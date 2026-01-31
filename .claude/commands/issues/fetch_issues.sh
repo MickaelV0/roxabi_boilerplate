@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Fetch open GitHub issues from project with labels, size, priority, and dependencies.
+# Fetch open GitHub issues from project with Status, Size, Priority, and dependencies.
 # Usage: ./fetch_issues.sh [--size|--priority] [--json]
 
 set -euo pipefail
 
-PROJECT_ID="PVT_kwHODEqYK84BN8ge"
+PROJECT_ID="${PROJECT_ID:-PVT_kwHODEqYK84BN8ge}"
 
 SORT_BY="size"
 JSON_OUTPUT=false
@@ -18,7 +18,6 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# GraphQL query with labels and dependencies
 QUERY='
 query($projectId: ID!) {
   node(id: $projectId) {
@@ -30,15 +29,8 @@ query($projectId: ID!) {
               number
               title
               state
-              labels(first: 5) {
-                nodes { name }
-              }
-              trackedInIssues(first: 10) {
-                nodes { number state }
-              }
-              trackedIssues(first: 10) {
-                nodes { number state }
-              }
+              trackedInIssues(first: 10) { nodes { number state } }
+              trackedIssues(first: 10) { nodes { number state } }
             }
           }
           fieldValues(first: 10) {
@@ -56,10 +48,8 @@ query($projectId: ID!) {
 }
 '
 
-# Fetch data
 DATA=$(gh api graphql -f query="$QUERY" -f projectId="$PROJECT_ID")
 
-# Process with jq
 if $JSON_OUTPUT; then
     echo "$DATA" | jq '
         .data.node.items.nodes
@@ -67,7 +57,7 @@ if $JSON_OUTPUT; then
         | map({
             number: .content.number,
             title: .content.title,
-            labels: [.content.labels.nodes[].name],
+            status: ([.fieldValues.nodes[] | select(.field.name == "Status") | .name] | first // "-"),
             size: ([.fieldValues.nodes[] | select(.field.name == "Size") | .name] | first // "-"),
             priority: ([.fieldValues.nodes[] | select(.field.name == "Priority") | .name] | first // "-"),
             blocked_by: [.content.trackedInIssues.nodes[] | select(.state == "OPEN") | .number],
@@ -88,24 +78,17 @@ else
             status: ([.fieldValues.nodes[] | select(.field.name == "Status") | .name] | first // "-"),
             size: ([.fieldValues.nodes[] | select(.field.name == "Size") | .name] | first // "-"),
             priority: ([.fieldValues.nodes[] | select(.field.name == "Priority") | .name] | first // "-"),
-            blocked_by: ([.content.trackedInIssues.nodes[] | select(.state == "OPEN") | "#\(.number)"] | join(", ")),
-            blocks: ([.content.trackedIssues.nodes[] | select(.state == "OPEN") | "#\(.number)"] | join(", "))
+            blocked_by: ([.content.trackedInIssues.nodes[] | select(.state == "OPEN") | "#\(.number)"] | join(",")),
+            blocks: ([.content.trackedIssues.nodes[] | select(.state == "OPEN") | "#\(.number)"] | join(","))
         })
-        | sort_by(
-            if $sort == "priority" then
-                .priority | priority_order[.] // 99
-            else
-                .size | size_order[.] // 99
-            end
-        )
-        | "**Open Issues - Roxabi Boilerplate**\n",
-          "| # | Title | Status | Size | Priority | Deps |",
-          "|---|-------|--------|------|----------|------|",
+        | sort_by(if $sort == "priority" then .priority | priority_order[.] // 99 else .size | size_order[.] // 99 end)
+        | "| # | Title | Status | Size | Pri | Deps |",
+          "|---|-------|--------|------|-----|------|",
           (.[] |
             (if .blocked_by != "" then "⛔" + .blocked_by elif .blocks != "" then "🔓" + .blocks else "-" end) as $deps |
             "| #\(.number) | \(.title | if length > 40 then .[:37] + "..." else . end) | \(.status) | \(.size) | \(.priority | priority_short[.] // .) | \($deps) |"
           ),
           "",
-          "*Total: \(length) issue(s)*"
+          "*\(length) issue(s)*"
     '
 fi

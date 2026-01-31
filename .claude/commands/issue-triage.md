@@ -3,7 +3,7 @@ List issues missing Size or Priority and assign them.
 ## Usage
 
 - `/issue-triage` - List issues to triage
-- `/issue-triage set <num> --size <S> --priority <P>` - Assign values
+- `/issue-triage set <num> --size <S> --priority <P>` - Assign
 
 ## Values
 
@@ -13,14 +13,10 @@ List issues missing Size or Priority and assign them.
 ## Execution
 
 ```bash
-# List
 .claude/commands/issue-triage/triage.sh [list] [--json]
-
-# Assign
 .claude/commands/issue-triage/triage.sh set 1 --size M --priority High
 ```
 
-## Prerequisites
+## Config
 
-- `gh` CLI authenticated
-- `jq`
+`PROJECT_ID`, `SIZE_FIELD_ID`, `PRIORITY_FIELD_ID` env vars

@@ -1,21 +1,21 @@
-List open GitHub issues from the project board with Size, Priority, Labels, and dependencies.
+List open issues from GitHub project with Status, Size, Priority, and dependencies.
 
 ## Usage
 
-- `/issues` - Sorted by Size (XS → XL, then unestimated)
-- `/issues --priority` - Sorted by Priority (High → Low)
-- `/issues --json` - Raw JSON output
+- `/issues` - Sorted by Size
+- `/issues --priority` - Sorted by Priority
+- `/issues --json` - Raw JSON
 
 ## Columns
 
-| Column | Description |
-|--------|-------------|
+| Col | Description |
+|-----|-------------|
 | # | Issue number |
-| Title | Title (truncated to 40 chars) |
+| Title | Truncated to 40 chars |
 | Status | Todo, In Progress, Done |
-| Size | XS, S, M, L, XL or - |
-| Priority | H (High), M (Medium), L (Low) or - |
-| Deps | ⛔#n (blocked by) or 🔓#n (blocks) or - |
+| Size | XS, S, M, L, XL |
+| Pri | H (High), M (Medium), L (Low) |
+| Deps | ⛔ blocked by / 🔓 blocks |
 
 ## Execution
 
@@ -23,7 +23,6 @@ List open GitHub issues from the project board with Size, Priority, Labels, and 
 .claude/commands/issues/fetch_issues.sh [--size|--priority] [--json]
 ```
 
-## Prerequisites
+## Config
 
-- `gh` CLI authenticated
-- `jq`
+`PROJECT_ID` env var (default: Roxabi Boilerplate project)
