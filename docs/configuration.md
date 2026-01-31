@@ -1,0 +1,93 @@
+# Configuration
+
+## Prerequisites
+
+- [Bun](https://bun.sh/) >= 1.1.0
+- Node.js >= 20 (for compatibility)
+- Git
+
+## Installation
+
+```bash
+# Clone the repository
+git clone <repo-url>
+cd roxabi_boilerplate
+
+# Install dependencies
+bun install
+```
+
+## Environment Variables
+
+Copy the example file and configure:
+
+```bash
+cp .env.example .env
+```
+
+### Required Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `NODE_ENV` | Environment mode | `development` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://...` |
+| `JWT_SECRET` | Secret for JWT tokens | Random string |
+
+### Optional Variables
+
+| Variable | Description |
+|----------|-------------|
+| `APP_URL` | Frontend URL |
+| `API_URL` | Backend URL |
+| `GITHUB_TOKEN` | GitHub API access |
+
+## TypeScript Configuration
+
+Root `tsconfig.json` provides base settings. Each app/package extends it:
+
+```json
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist"
+  }
+}
+```
+
+## Biome Configuration
+
+Linting and formatting configured in `biome.json`:
+
+- 2-space indentation
+- Single quotes
+- No semicolons (ASI)
+- 100 character line width
+
+## TurboRepo Configuration
+
+Tasks defined in `turbo.json`:
+
+- `dev` - Run development servers
+- `build` - Build all packages
+- `typecheck` - Type checking
+- `lint` - Run linter
+- `test` - Run tests
+
+## IDE Setup
+
+### VS Code
+
+Recommended extensions:
+
+- Biome
+- TypeScript
+- Turbo Console Log
+
+Settings:
+
+```json
+{
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.formatOnSave": true
+}
+```
