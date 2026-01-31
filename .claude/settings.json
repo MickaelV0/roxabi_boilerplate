@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [[ \"$CLAUDE_FILE_PATHS\" =~ \\.(ts|tsx|js|jsx|json)$ ]]; then bunx biome check --write \"$CLAUDE_FILE_PATHS\" 2>/dev/null || true; fi"
+            "command": "case \"$CLAUDE_FILE_PATHS\" in *.ts|*.tsx|*.js|*.jsx|*.json) bunx biome check --write \"$CLAUDE_FILE_PATHS\" 2>/dev/null || true ;; esac"
           }
         ]
       }
