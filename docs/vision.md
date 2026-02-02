@@ -46,24 +46,24 @@ Skip infrastructure setup. Focus directly on business features.
 
 ### North Stars
 
-1. **Simplicité d'abord** - Moins de features mais qui marchent parfaitement
-2. **Scalabilité** - Construit pour grandir, pas pour jeter
-3. **Convention over configuration** - Opinions fortes, moins de décisions à prendre
+1. **Simplicity first** - Fewer features but they work perfectly
+2. **Scalability** - Built to grow, not to throw away
+3. **Convention over configuration** - Strong opinions, fewer decisions to make
 
 ### Trade-offs
 
-| Choix | Préférence |
-|-------|------------|
-| Simple vs Flexible | **Flexible** (architecture modulaire avec defaults opinionés mais extensibles) |
-| Convention vs Liberté | **Opt-out explicite** (possible de déroger mais doit être justifié/documenté) |
-| Dette technique | **Zéro tolérance** (on ne shippe pas de code "temporaire") |
+| Choice | Preference |
+|--------|------------|
+| Simple vs Flexible | **Flexible** (modular architecture with opinionated defaults but extensible) |
+| Convention vs Freedom | **Explicit opt-out** (possible to deviate but must be justified/documented) |
+| Technical debt | **Zero tolerance** (we don't ship "temporary" code) |
 
 ### Non-Negotiables
 
 - TypeScript strict mode everywhere
-- TDD: tests écrits avant le code
-- Tous les quality gates doivent passer avant merge
-- Documentation maintenue comme le code
+- TDD: tests written before code
+- All quality gates must pass before merge
+- Documentation maintained like code
 
 ---
 
@@ -72,34 +72,34 @@ Skip infrastructure setup. Focus directly on business features.
 ### Agent Taxonomy
 
 **Core Agents (Boilerplate)**
-| Agent | Rôle |
+| Agent | Role |
 |-------|------|
-| Dev | Implémentation de features |
-| Review | Code review, qualité |
-| Test | Écriture et maintenance des tests |
-| Deploy | CI/CD, déploiements |
+| Dev | Feature implementation |
+| Review | Code review, quality |
+| Test | Writing and maintaining tests |
+| Deploy | CI/CD, deployments |
 | Product | Specs, product ownership |
 | Ops/Infra | Monitoring, infrastructure |
-| Frontend | Spécialiste UI/UX |
-| Backend | Spécialiste API/DB |
+| Frontend | UI/UX specialist |
+| Backend | API/DB specialist |
 
 **Domain Agents (App-specific)**
-- Agents métier créés selon le domaine de l'app
-- Personas génériques pour tester les flux utilisateurs
+- Business agents created according to the app domain
+- Generic personas to test user flows
 
 ### Skills Organization
 
 | Source | Usage |
 |--------|-------|
-| Built-in | Skills inclus dans le boilerplate |
-| Marketplace | Registry centralisé avec review/qualité |
-| Git-based | Import exceptionnel depuis repos Git |
+| Built-in | Skills included in the boilerplate |
+| Marketplace | Centralized registry with review/quality |
+| Git-based | Exceptional import from Git repos |
 
 ### Orchestration
 
-- **Workflow-driven**: Workflows prédéfinis chaînent les agents
-- **Event-driven**: Agents réagissent aux événements (hooks, PR, etc.)
-- **Autonomie**: Agents autonomes, humain review a posteriori
+- **Workflow-driven**: Predefined workflows chain agents
+- **Event-driven**: Agents react to events (hooks, PR, etc.)
+- **Autonomy**: Autonomous agents, human review afterwards
 
 ---
 
@@ -107,7 +107,7 @@ Skip infrastructure setup. Focus directly on business features.
 
 ### Code Methodology
 
-- **TDD strict**: Tests écrits avant le code, toujours
+- **Strict TDD**: Tests written before code, always
 - Functional patterns where appropriate
 - Named exports over default exports
 - No circular dependencies
@@ -115,25 +115,25 @@ Skip infrastructure setup. Focus directly on business features.
 ### Quality Gates (All Required for Merge)
 
 - [ ] Lint clean (Biome)
-- [ ] TypeScript sans erreur
-- [ ] Tous les tests passent
-- [ ] Seuil minimum de coverage atteint
-- [ ] Review approuvée (humaine ou AI)
+- [ ] TypeScript error-free
+- [ ] All tests pass
+- [ ] Minimum coverage threshold met
+- [ ] Review approved (human or AI)
 
 ### Documentation Strategy
 
-| Aspect | Approche |
+| Aspect | Approach |
 |--------|----------|
-| Format | Docs-as-code (Markdown dans le repo) |
-| API | Swagger/OpenAPI auto-généré |
-| Ownership | Agent AI dédié génère, humain review |
-| Versioning | Documenté avec le code |
+| Format | Docs-as-code (Markdown in repo) |
+| API | Swagger/OpenAPI auto-generated |
+| Ownership | Dedicated AI agent generates, human reviews |
+| Versioning | Documented with code |
 
 ### Testing Philosophy
 
 - **Unit/Integration**: Vitest
 - **E2E**: Playwright
-- **Coverage**: Seuil minimum enforced
+- **Coverage**: Minimum threshold enforced
 - **TDD**: Test first, implementation second
 
 ---
@@ -165,15 +165,15 @@ META Organization (super admin)
 ```
 
 **Strategy**: Row-Level Security (RLS)
-- Une seule base de données
-- Isolation par `tenant_id` + PostgreSQL RLS
-- Performant, simple à maintenir
+- Single database
+- Isolation by `tenant_id` + PostgreSQL RLS
+- Performant, simple to maintain
 
 ### API Design
 
 - **Style**: REST
-- **Documentation**: OpenAPI/Swagger auto-généré
-- **Contracts**: Types partagés via `@repo/types`
+- **Documentation**: OpenAPI/Swagger auto-generated
+- **Contracts**: Shared types via `@repo/types`
 
 ### Data Flow
 
@@ -198,8 +198,8 @@ META Organization (super admin)
 
 **GitHub Flow**
 - `main` = production-ready
-- Feature branches pour chaque changement
-- PR required pour merge
+- Feature branches for each change
+- PR required for merge
 
 ### Development Workflow
 
@@ -212,19 +212,19 @@ Idea → GitHub Issue → Branch → Dev → PR → Review → Merge → Deploy 
 | Trigger | Action |
 |---------|--------|
 | Pre-push | Tests run |
-| PR opened | CI complète (lint, types, tests, coverage) |
-| Post-merge | Deploy auto + notifications |
+| PR opened | Full CI (lint, types, tests, coverage) |
+| Post-merge | Auto deploy + notifications |
 
 ### Deployment Strategy
 
 **Continuous Deployment**
-- Merge to main = deploy automatique en production
-- Feature flags pour rollouts progressifs (via PostHog)
+- Merge to main = automatic deploy to production
+- Feature flags for progressive rollouts (via PostHog)
 
 ### Hotfix Process
 
-- Commit direct sur `main` avec validation post-deploy
-- Rollback automatique si health checks échouent
+- Direct commit to `main` with post-deploy validation
+- Automatic rollback if health checks fail
 
 ---
 
@@ -235,25 +235,25 @@ Idea → GitHub Issue → Branch → Dev → PR → Review → Merge → Deploy 
 **Scope**
 - [ ] Auth + Users (Better Auth)
 - [ ] Multi-tenant (RLS)
-- [ ] RBAC (rôles et permissions)
+- [ ] RBAC (roles and permissions)
 - [ ] Admin panel
-- [ ] i18n (internationalisation)
+- [ ] i18n (internationalization)
 - [ ] Audit logs
 - [ ] Notifications (emails + in-app)
 
 **Success Criteria**
-- Clone → dev en moins de 5 min
-- Première feature métier ajoutée rapidement
-- Déployable en production sans modifications
+- Clone → dev in less than 5 min
+- First business feature added quickly
+- Deployable to production without modifications
 
 ### Phase 2+: Backlog
 
-À prioriser ultérieurement:
+To be prioritized later:
 - [ ] Billing (Stripe/Paddle/Lemon Squeezy via abstraction)
 - [ ] Analytics dashboard
 - [ ] Webhooks
-- [ ] API publique
-- [ ] OAuth providers additionnels
+- [ ] Public API
+- [ ] Additional OAuth providers
 - [ ] Plugins/extensions system
 - [ ] Themes
 - [ ] Marketplace

@@ -1,91 +1,91 @@
 # Getting Started
 
-Guide de démarrage rapide pour utiliser le Roxabi Boilerplate.
+Quick start guide to use the Roxabi Boilerplate.
 
-## Prérequis
+## Prerequisites
 
 - [Bun](https://bun.sh/) >= 1.0
 - [Git](https://git-scm.com/)
 - [GitHub CLI](https://cli.github.com/) (`gh`)
-- [Claude Code](https://claude.ai/claude-code) (optionnel mais recommandé)
+- [Claude Code](https://claude.ai/claude-code) (optional but recommended)
 - PostgreSQL >= 15
 
-## 1. Créer le projet
+## 1. Create the Project
 
-### Clone le boilerplate
+### Clone the boilerplate
 
 ```bash
-# Option A: Clone direct (pour contribuer au boilerplate)
-git clone https://github.com/MickaelV0/roxabi_boilerplate.git mon-projet
-cd mon-projet
+# Option A: Direct clone (to contribute to the boilerplate)
+git clone https://github.com/MickaelV0/roxabi_boilerplate.git my-project
+cd my-project
 
-# Option B: Use as template (pour un nouveau projet)
-gh repo create mon-projet --template MickaelV0/roxabi_boilerplate --private
-gh repo clone mon-projet
-cd mon-projet
+# Option B: Use as template (for a new project)
+gh repo create my-project --template MickaelV0/roxabi_boilerplate --private
+gh repo clone my-project
+cd my-project
 ```
 
-### Configurer le remote (si clone direct)
+### Configure the remote (if direct clone)
 
 ```bash
-# Supprimer le remote origin du boilerplate
+# Remove the boilerplate's origin remote
 git remote remove origin
 
-# Créer ton propre repo GitHub
-gh repo create mon-projet --private --source=. --push
+# Create your own GitHub repo
+gh repo create my-project --private --source=. --push
 ```
 
-## 2. Configurer GitHub Project
+## 2. Configure GitHub Project
 
-### Créer le projet
+### Create the project
 
 ```bash
-# Créer un projet GitHub pour tracker issues et PRs
-gh project create --owner @me --title "Mon Projet"
+# Create a GitHub project to track issues and PRs
+gh project create --owner @me --title "My Project"
 ```
 
-### Activer l'auto-add
+### Enable auto-add
 
-1. Aller sur https://github.com/users/TON_USERNAME/projects/N/settings
-2. Dans **Workflows** > **Auto-add to project**
-3. Activer le workflow
-4. Configurer le filtre : `is:issue,pr repo:TON_USERNAME/mon-projet`
-5. Sauvegarder
+1. Go to https://github.com/users/YOUR_USERNAME/projects/N/settings
+2. In **Workflows** > **Auto-add to project**
+3. Enable the workflow
+4. Configure the filter: `is:issue,pr repo:YOUR_USERNAME/my-project`
+5. Save
 
-Ou via API :
+Or via API:
 ```bash
-# Lister les projets pour trouver l'ID
+# List projects to find the ID
 gh project list --owner @me
 
-# Le workflow auto-add doit être configuré via l'UI GitHub
-# car l'API ne supporte pas encore cette fonctionnalité
+# The auto-add workflow must be configured via GitHub UI
+# as the API doesn't support this feature yet
 ```
 
-### Configurer les colonnes du projet
+### Configure project columns
 
-Colonnes recommandées :
-- **Backlog** - Issues à prioriser
-- **Todo** - Prêt à être pris
-- **In Progress** - En cours de développement
-- **In Review** - PR ouverte, en attente de review
-- **Done** - Terminé
+Recommended columns:
+- **Backlog** - Issues to prioritize
+- **Todo** - Ready to be picked up
+- **In Progress** - Currently being developed
+- **In Review** - PR open, awaiting review
+- **Done** - Completed
 
-### Ajouter les champs custom
+### Add custom fields
 
-Dans les settings du projet, ajouter :
+In the project settings, add:
 
-| Champ | Type | Valeurs |
-|-------|------|---------|
+| Field | Type | Values |
+|-------|------|--------|
 | Priority | Single select | P1, P2, P3 |
 | Size | Single select | XS, S, M, L, XL |
-| Sprint | Iteration | 2 semaines |
+| Sprint | Iteration | 2 weeks |
 
-## 3. Configurer les labels
+## 3. Configure Labels
 
-Les labels sont déjà créés si tu utilises le template. Sinon :
+Labels are already created if you use the template. Otherwise:
 
 ```bash
-# Labels de type
+# Type labels
 gh label create setup --color "0E8A16" --description "Infrastructure & setup"
 gh label create feature --color "A2EEEF" --description "New feature"
 gh label create bug --color "D73A4A" --description "Bug fix"
@@ -94,12 +94,12 @@ gh label create docs --color "D4C5F9" --description "Documentation"
 gh label create ai --color "FBCA04" --description "AI agents & skills"
 gh label create workflow --color "C2E0C6" --description "Workflow & processes"
 
-# Labels de priorité
+# Priority labels
 gh label create P1 --color "B60205" --description "Priority 1 - Critical"
 gh label create P2 --color "D93F0B" --description "Priority 2 - Important"
 gh label create P3 --color "FBCA04" --description "Priority 3 - Nice to have"
 
-# Labels de taille
+# Size labels
 gh label create XS --color "E6E6E6" --description "Size: Extra Small"
 gh label create S --color "C5DEF5" --description "Size: Small"
 gh label create M --color "BFD4F2" --description "Size: Medium"
@@ -107,76 +107,76 @@ gh label create L --color "7057FF" --description "Size: Large"
 gh label create XL --color "D876E3" --description "Size: Extra Large"
 ```
 
-## 4. Configurer branch protection
+## 4. Configure Branch Protection
 
-Dans **Settings** > **Branches** > **Add rule** pour `main` :
+In **Settings** > **Branches** > **Add rule** for `main`:
 
 - [x] Require a pull request before merging
 - [x] Require approvals (1)
 - [x] Require status checks to pass before merging
-  - [x] ci (quand CI configurée)
+  - [x] ci (when CI is configured)
 - [x] Require branches to be up to date before merging
 - [x] Do not allow bypassing the above settings
 
-## 5. Installer les dépendances
+## 5. Install Dependencies
 
 ```bash
-# Installer toutes les dépendances du monorepo
+# Install all monorepo dependencies
 bun install
 ```
 
-## 6. Configurer l'environnement
+## 6. Configure Environment
 
 ```bash
-# Copier le fichier d'exemple
+# Copy the example file
 cp .env.example .env
 
-# Éditer avec tes valeurs
+# Edit with your values
 # DATABASE_URL, API keys, etc.
 ```
 
-## 7. Configurer la base de données
+## 7. Configure the Database
 
 ```bash
-# Créer la base de données
-createdb mon_projet_dev
+# Create the database
+createdb my_project_dev
 
-# Appliquer les migrations (quand configuré)
+# Apply migrations (when configured)
 bun db:migrate
 ```
 
-## 8. Lancer le projet
+## 8. Run the Project
 
 ```bash
-# Lancer tous les apps en mode dev
+# Run all apps in dev mode
 bun dev
 
-# Ou individuellement
+# Or individually
 bun --filter @repo/web dev
 bun --filter @repo/api dev
 ```
 
-## 9. Vérifier l'installation
+## 9. Verify Installation
 
 - Frontend: http://localhost:3000
 - API: http://localhost:4000
 - API Docs (Swagger): http://localhost:4000/docs
 
-## Commandes utiles
+## Useful Commands
 
-| Commande | Description |
-|----------|-------------|
-| `bun dev` | Lance tous les apps en dev |
-| `bun build` | Build tous les packages |
-| `bun lint` | Lint avec Biome |
-| `bun format` | Format avec Biome |
-| `bun typecheck` | Vérification TypeScript |
-| `bun test` | Lance tous les tests |
-| `bun test:coverage` | Tests avec coverage |
+| Command | Description |
+|---------|-------------|
+| `bun dev` | Run all apps in dev mode |
+| `bun build` | Build all packages |
+| `bun lint` | Lint with Biome |
+| `bun format` | Format with Biome |
+| `bun typecheck` | TypeScript type checking |
+| `bun test` | Run all tests |
+| `bun test:coverage` | Tests with coverage |
 
-## Prochaines étapes
+## Next Steps
 
-1. Lire la [Vision](./vision.md) pour comprendre le projet
-2. Consulter l'[Architecture](./architecture.md)
-3. Voir les [conventions de contribution](./contributing.md)
-4. Checker les [issues ouvertes](https://github.com/MickaelV0/roxabi_boilerplate/issues)
+1. Read the [Vision](./vision.md) to understand the project
+2. Check the [Architecture](./architecture.md)
+3. See the [contribution guidelines](./contributing.md)
+4. Check the [open issues](https://github.com/MickaelV0/roxabi_boilerplate/issues)
