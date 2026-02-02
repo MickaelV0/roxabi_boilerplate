@@ -26,3 +26,7 @@ List open issues from GitHub project with Status, Size, Priority, and dependenci
 ## Config
 
 `PROJECT_ID` env var (default: Roxabi Boilerplate project)
+
+## Output
+
+**IMPORTANT:** Always display the complete script output as-is, with all tables. Never summarize or condense the results.
