@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-PROJECT_ID="${PROJECT_ID:-PVT_kwHODEqYK84BN8ge}"
+PROJECT_ID="${PROJECT_ID:-PVT_kwHODEqYK84BOId3}"
 REPO="${GITHUB_REPO:-MickaelV0/roxabi_boilerplate}"
 
 SORT_BY="size"
