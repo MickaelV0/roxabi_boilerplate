@@ -35,6 +35,8 @@ query($projectId: ID!) {
               number
               title
               state
+              subIssues(first: 10) { nodes { number state } }
+              parent { number state }
             }
           }
           fieldValues(first: 10) {
@@ -100,7 +102,9 @@ if $JSON_OUTPUT; then
             blocked_by: ($deps[.content.number | tostring].blocked_by // []),
             blocked_by_open: ([$deps[.content.number | tostring].blocked_by // [] | .[] | select(.state == "OPEN") | .number]),
             blocked_by_closed: ([$deps[.content.number | tostring].blocked_by // [] | .[] | select(.state == "CLOSED") | .number]),
-            blocks: ($deps[.content.number | tostring].blocking // [])
+            blocks: ($deps[.content.number | tostring].blocking // []),
+            sub_issues: (.content.subIssues.nodes // []),
+            parent_issue: .content.parent
         })
     '
 else
@@ -112,12 +116,21 @@ else
         def format_deps:
             ($deps[.number | tostring].blocked_by // []) as $bb |
             ($deps[.number | tostring].blocking // []) as $bl |
+            (.sub_issues // []) as $sub |
+            .parent_issue as $parent |
             # Format blocked_by: ⛔#X for open, ✅#X for closed
             ($bb | map(if .state == "OPEN" then "⛔#\(.number)" else "✅#\(.number)" end)) as $bb_fmt |
             # Format blocking: 🔓#X
             ($bl | map("🔓#\(.number)")) as $bl_fmt |
-            if ($bb | length) > 0 then ($bb_fmt | join(","))
-            elif ($bl | length) > 0 then ($bl_fmt | join(","))
+            # Format parent: ⬆️#X (this is blocked by parent)
+            (if $parent then [(if $parent.state == "OPEN" then "⛔#\($parent.number)" else "✅#\($parent.number)" end)] else [] end) as $parent_fmt |
+            # Format sub-issues: 🔓#X (this blocks children)
+            ($sub | map("🔓#\(.number)")) as $sub_fmt |
+            # Combine: parent deps first, then tracked deps, then what this blocks
+            (($parent_fmt + $bb_fmt) | unique) as $all_blocked_by |
+            (($bl_fmt + $sub_fmt) | unique) as $all_blocks |
+            if ($all_blocked_by | length) > 0 then ($all_blocked_by | join(","))
+            elif ($all_blocks | length) > 0 then ($all_blocks | join(","))
             else "-" end;
 
         def format_row:
@@ -134,7 +147,9 @@ else
             title: .content.title,
             status: ([.fieldValues.nodes[] | select(.field.name == "Status") | .name] | first // "-"),
             size: ([.fieldValues.nodes[] | select(.field.name == "Size") | .name] | first // "-"),
-            priority: ([.fieldValues.nodes[] | select(.field.name == "Priority") | .name] | first // "-")
+            priority: ([.fieldValues.nodes[] | select(.field.name == "Priority") | .name] | first // "-"),
+            sub_issues: (.content.subIssues.nodes // []),
+            parent_issue: .content.parent
         })
         | group_by(.priority | priority_order[.] // 99)
         | map(sort_by(if $sort == "priority" then .priority | priority_order[.] // 99 else .size | size_order[.] // 99 end))
