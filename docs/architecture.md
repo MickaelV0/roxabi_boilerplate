@@ -4,15 +4,19 @@
 
 ```
 roxabi_boilerplate/
+├── .env                    # Global environment variables
 ├── apps/
-│   ├── web/              # Frontend application
-│   └── api/              # Backend API
-├── packages/
-│   ├── ui/               # Shared UI components
-│   ├── config/           # Shared configurations
-│   └── types/            # Shared TypeScript types
-├── docs/                 # Documentation
-└── .claude/              # Claude Code configuration
+│   ├── web/               # Frontend application
+│   ├── api/               # Backend API
+│   └── packages/          # Shared code
+│       ├── ui/            # Shared UI components
+│       ├── config/        # Shared configurations
+│       └── types/         # Shared TypeScript types
+├── docs/                   # Documentation (isolated, Docker-based)
+│   ├── *.md               # Markdown content
+│   ├── Dockerfile         # Fumadocs server
+│   └── docker-compose.yml
+└── .claude/                # Claude Code configuration
 ```
 
 ## Applications
@@ -33,9 +37,20 @@ Backend API built with NestJS and Fastify.
 - Modular architecture
 - OpenAPI documentation
 
-## Packages
+### CLI (`apps/cli`) - Planned
 
-### UI (`packages/ui`)
+Command-line interface generated from OpenAPI spec.
+
+- Auto-generated from API's OpenAPI/Swagger spec
+- Usable by humans and AI agents
+- Multiple auth modes (env vars, config file, interactive login)
+- JSON output for scripting and AI parsing
+
+## Packages (`apps/packages/`)
+
+Shared code used by applications.
+
+### UI (`apps/packages/ui`)
 
 Shared UI component library.
 
@@ -43,7 +58,7 @@ Shared UI component library.
 - Design system primitives
 - Exported from `@repo/ui`
 
-### Config (`packages/config`)
+### Config (`apps/packages/config`)
 
 Shared configurations.
 
@@ -51,13 +66,29 @@ Shared configurations.
 - Biome configs
 - Exported from `@repo/config`
 
-### Types (`packages/types`)
+### Types (`apps/packages/types`)
 
 Shared TypeScript type definitions.
 
 - Domain models
 - API contracts
 - Exported from `@repo/types`
+
+## Documentation (`docs/`)
+
+Documentation server isolated from the monorepo.
+
+- Markdown files at root level
+- Fumadocs-powered server (Next.js)
+- Runs in Docker container
+- Port configurable via `.env` (`DOCS_PORT`)
+
+```bash
+# Start documentation server
+bun docs
+# or
+docker compose -f docs/docker-compose.yml up
+```
 
 ## Data Flow
 
@@ -69,8 +100,8 @@ Shared TypeScript type definitions.
                            │                   │
                            ▼                   ▼
                     ┌─────────────┐     ┌─────────────┐
-                    │  packages/  │     │  Database   │
-                    │  ui, types  │     │             │
+                    │   apps/     │     │  Database   │
+                    │  packages/  │     │             │
                     └─────────────┘     └─────────────┘
 ```
 
@@ -82,4 +113,11 @@ TurboRepo handles:
 - Dependency-aware builds
 - Caching for faster rebuilds
 
-Build order: `packages/* → apps/*`
+Build order: `apps/packages/* → apps/*`
+
+Workspaces configuration:
+```json
+{
+  "workspaces": ["apps/*", "apps/packages/*"]
+}
+```

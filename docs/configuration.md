@@ -35,11 +35,12 @@ cp .env.example .env
 
 ### Optional Variables
 
-| Variable | Description |
-|----------|-------------|
-| `APP_URL` | Frontend URL |
-| `API_URL` | Backend URL |
-| `GITHUB_TOKEN` | GitHub API access |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `APP_URL` | Frontend URL | `http://localhost:3000` |
+| `API_URL` | Backend URL | `http://localhost:3001` |
+| `DOCS_PORT` | Documentation server port | `3002` |
+| `GITHUB_TOKEN` | GitHub API access | - |
 
 ## TypeScript Configuration
 

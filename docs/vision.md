@@ -69,9 +69,11 @@ Skip infrastructure setup. Focus directly on business features.
 
 ## 3. AI Team & Skills
 
-### Agent Taxonomy
+### Two Categories of AI Agents
 
-**Core Agents (Boilerplate)**
+The boilerplate distinguishes between two types of AI agents:
+
+**Development Agents** - Assist in building the SaaS
 | Agent | Role |
 |-------|------|
 | Dev | Feature implementation |
@@ -83,9 +85,21 @@ Skip infrastructure setup. Focus directly on business features.
 | Frontend | UI/UX specialist |
 | Backend | API/DB specialist |
 
-**Domain Agents (App-specific)**
-- Business agents created according to the app domain
-- Generic personas to test user flows
+**Runtime Agents** - Interact with the deployed SaaS
+| Agent | Role |
+|-------|------|
+| Domain agents | Business-specific automation |
+| User personas | Test user flows and UX |
+| Integration agents | Connect with external services |
+
+### CLI for AI Interaction
+
+A CLI generated from OpenAPI specs enables AI agents to interact with the SaaS API:
+- **Universal access**: Any AI capable of running bash can use it
+- **Human-friendly**: Developers can also use it for testing and debugging
+- **Auto-generated**: Stays in sync with API changes
+
+See [CLI for AI Agents Analysis](analyses/cli-for-ai-agents.md) for details.
 
 ### Skills Organization
 
@@ -144,15 +158,16 @@ Skip infrastructure setup. Focus directly on business features.
 
 ```
 roxabi_boilerplate/
+├── .env                    # Global environment variables
 ├── apps/
-│   ├── web/              # Frontend (TanStack Start)
-│   └── api/              # Backend (NestJS + Fastify)
-├── packages/
-│   ├── ui/               # Shared UI (Shadcn/UI)
-│   ├── config/           # Shared configurations
-│   └── types/            # Shared TypeScript types
-├── docs/                 # Documentation
-└── .claude/              # Claude Code configuration
+│   ├── web/               # Frontend (TanStack Start)
+│   ├── api/               # Backend (NestJS + Fastify)
+│   └── packages/          # Shared code
+│       ├── ui/            # Shared UI (Shadcn/UI)
+│       ├── config/        # Shared configurations
+│       └── types/         # Shared TypeScript types
+├── docs/                   # Documentation (Docker-based server)
+└── .claude/                # Claude Code configuration
 ```
 
 ### Multi-Tenant Model
@@ -174,6 +189,7 @@ META Organization (super admin)
 - **Style**: REST
 - **Documentation**: OpenAPI/Swagger auto-generated
 - **Contracts**: Shared types via `@repo/types`
+- **CLI**: Auto-generated from OpenAPI spec for human and AI interaction
 
 ### Data Flow
 
@@ -185,8 +201,8 @@ META Organization (super admin)
                            │                   │
                            ▼                   ▼
                     ┌─────────────┐     ┌─────────────┐
-                    │  packages/  │     │  PostgreSQL │
-                    │  ui, types  │     │   (RLS)     │
+                    │    apps/    │     │  PostgreSQL │
+                    │  packages/  │     │   (RLS)     │
                     └─────────────┘     └─────────────┘
 ```
 
@@ -249,6 +265,7 @@ Idea → GitHub Issue → Branch → Dev → PR → Review → Merge → Deploy 
 ### Phase 2+: Backlog
 
 To be prioritized later:
+- [ ] CLI generated from OpenAPI (AI-ready)
 - [ ] Billing (Stripe/Paddle/Lemon Squeezy via abstraction)
 - [ ] Analytics dashboard
 - [ ] Webhooks

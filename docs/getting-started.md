@@ -159,8 +159,9 @@ bun --filter @repo/api dev
 ## 9. Verify Installation
 
 - Frontend: http://localhost:3000
-- API: http://localhost:4000
-- API Docs (Swagger): http://localhost:4000/docs
+- API: http://localhost:3001
+- API Docs (Swagger): http://localhost:3001/docs
+- Documentation: http://localhost:3002 (run `bun docs` first)
 
 ## Useful Commands
 
@@ -173,6 +174,7 @@ bun --filter @repo/api dev
 | `bun typecheck` | TypeScript type checking |
 | `bun test` | Run all tests |
 | `bun test:coverage` | Tests with coverage |
+| `bun docs` | Start documentation server (Docker) |
 
 ## Next Steps
 
