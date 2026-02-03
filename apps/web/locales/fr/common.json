@@ -1,0 +1,44 @@
+{
+  "buttons": {
+    "submit": "Envoyer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "loading": "Chargement..."
+  },
+  "errors": {
+    "required": "Ce champ est requis",
+    "invalid_email": "Veuillez entrer un email valide",
+    "min_length": "Doit contenir au moins {{min}} caractères",
+    "max_length": "Doit contenir au maximum {{max}} caractères",
+    "generic": "Une erreur est survenue. Veuillez réessayer.",
+    "network": "Erreur réseau. Vérifiez votre connexion.",
+    "not_found": "Page non trouvée",
+    "unauthorized": "Vous n'êtes pas autorisé à voir cette page"
+  },
+  "labels": {
+    "email": "Email",
+    "password": "Mot de passe",
+    "name": "Nom",
+    "search": "Rechercher",
+    "language": "Langue"
+  },
+  "messages": {
+    "success": "Opération réussie",
+    "saved": "Modifications enregistrées",
+    "deleted": "Élément supprimé",
+    "copied": "Copié dans le presse-papiers"
+  },
+  "items": "{{count}} élément",
+  "items_other": "{{count}} éléments",
+  "languages": {
+    "en": "Anglais",
+    "fr": "Français"
+  }
+}

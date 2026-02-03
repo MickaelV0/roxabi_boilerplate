@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "@repo/types": "workspace:*",
-    "@repo/ui": "workspace:*"
+    "@repo/ui": "workspace:*",
+    "i18next": "^24.2.2",
+    "react-i18next": "^15.4.1"
   },
   "devDependencies": {
     "typescript": "^5.7.0"

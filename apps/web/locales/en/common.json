@@ -1,0 +1,44 @@
+{
+  "buttons": {
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save changes",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close",
+    "confirm": "Confirm",
+    "loading": "Loading..."
+  },
+  "errors": {
+    "required": "This field is required",
+    "invalid_email": "Please enter a valid email",
+    "min_length": "Must be at least {{min}} characters",
+    "max_length": "Must be at most {{max}} characters",
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "not_found": "Page not found",
+    "unauthorized": "You are not authorized to view this page"
+  },
+  "labels": {
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "search": "Search",
+    "language": "Language"
+  },
+  "messages": {
+    "success": "Operation completed successfully",
+    "saved": "Changes saved",
+    "deleted": "Item deleted",
+    "copied": "Copied to clipboard"
+  },
+  "items": "{{count}} item",
+  "items_other": "{{count}} items",
+  "languages": {
+    "en": "English",
+    "fr": "French"
+  }
+}
