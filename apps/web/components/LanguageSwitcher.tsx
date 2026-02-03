@@ -19,7 +19,7 @@ type LanguageSwitcherProps = {
  */
 const LANGUAGE_NAMES: Record<Locale, { native: string; english: string }> = {
   en: { native: 'English', english: 'English' },
-  fr: { native: 'Francais', english: 'French' },
+  fr: { native: 'Français', english: 'French' },
 }
 
 /**

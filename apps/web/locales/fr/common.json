@@ -7,7 +7,7 @@
     "edit": "Modifier",
     "back": "Retour",
     "next": "Suivant",
-    "previous": "Precedent",
+    "previous": "Précédent",
     "close": "Fermer",
     "confirm": "Confirmer",
     "loading": "Chargement..."
@@ -15,12 +15,12 @@
   "errors": {
     "required": "Ce champ est requis",
     "invalid_email": "Veuillez entrer un email valide",
-    "min_length": "Doit contenir au moins {{min}} caracteres",
-    "max_length": "Doit contenir au maximum {{max}} caracteres",
-    "generic": "Une erreur est survenue. Veuillez reessayer.",
-    "network": "Erreur reseau. Verifiez votre connexion.",
-    "not_found": "Page non trouvee",
-    "unauthorized": "Vous n'etes pas autorise a voir cette page"
+    "min_length": "Doit contenir au moins {{min}} caractères",
+    "max_length": "Doit contenir au maximum {{max}} caractères",
+    "generic": "Une erreur est survenue. Veuillez réessayer.",
+    "network": "Erreur réseau. Vérifiez votre connexion.",
+    "not_found": "Page non trouvée",
+    "unauthorized": "Vous n'êtes pas autorisé à voir cette page"
   },
   "labels": {
     "email": "Email",
@@ -30,15 +30,15 @@
     "language": "Langue"
   },
   "messages": {
-    "success": "Operation reussie",
-    "saved": "Modifications enregistrees",
-    "deleted": "Element supprime",
-    "copied": "Copie dans le presse-papiers"
+    "success": "Opération réussie",
+    "saved": "Modifications enregistrées",
+    "deleted": "Élément supprimé",
+    "copied": "Copié dans le presse-papiers"
   },
-  "items": "{{count}} element",
-  "items_other": "{{count}} elements",
+  "items": "{{count}} élément",
+  "items_other": "{{count}} éléments",
   "languages": {
     "en": "Anglais",
-    "fr": "Francais"
+    "fr": "Français"
   }
 }

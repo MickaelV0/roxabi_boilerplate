@@ -12,28 +12,28 @@
     "growth": "Croissance"
   },
   "recent_activity": {
-    "title": "Activite recente",
-    "empty": "Aucune activite recente a afficher.",
-    "view_all": "Voir toute l'activite"
+    "title": "Activité récente",
+    "empty": "Aucune activité récente à afficher.",
+    "view_all": "Voir toute l'activité"
   },
   "quick_actions": {
     "title": "Actions rapides",
     "new_project": "Nouveau projet",
     "invite_user": "Inviter un utilisateur",
     "view_reports": "Voir les rapports",
-    "settings": "Parametres"
+    "settings": "Paramètres"
   },
   "notifications": {
     "title": "Notifications",
-    "empty": "Vous etes a jour !",
+    "empty": "Vous êtes à jour !",
     "mark_read": "Marquer comme lu",
     "mark_all_read": "Tout marquer comme lu"
   },
   "navigation": {
     "home": "Accueil",
     "projects": "Projets",
-    "team": "Equipe",
+    "team": "Équipe",
     "analytics": "Analytiques",
-    "settings": "Parametres"
+    "settings": "Paramètres"
   }
 }
