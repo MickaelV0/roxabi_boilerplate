@@ -31,7 +31,7 @@ export const Route = createFileRoute('/$locale/_layout')({
 
 function LocaleLayout() {
   const { locale } = Route.useParams()
-  const context = useRouteContext({ from: '/$locale/_layout' }) as RouterContext
+  const context = useRouteContext({ from: '/$locale/_layout' }) as unknown as RouterContext
 
   // Create i18next instance with loaded resources
   const i18nInstance = useMemo(() => {

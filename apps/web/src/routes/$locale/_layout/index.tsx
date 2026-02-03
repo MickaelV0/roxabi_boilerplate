@@ -3,7 +3,7 @@ import { baseOptions } from '@/lib/layout.shared'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { HomeLayout } from 'fumadocs-ui/layouts/home'
 
-export const Route = createFileRoute('/$locale/')({
+export const Route = createFileRoute('/$locale/_layout/')({
   component: LocalizedHome,
 })
 

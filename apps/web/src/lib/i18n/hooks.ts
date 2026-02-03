@@ -23,19 +23,26 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
 }
 
 /**
+ * Hook to access router context with i18n data for SSR
+ * Returns undefined if context is not available (e.g., outside router)
+ */
+export function useI18nContext(): I18nRouterContext | undefined {
+  try {
+    const context = useRouteContext({ strict: false }) as { i18n?: I18nRouterContext } | undefined
+    return context?.i18n
+  } catch {
+    // Context not available (outside router or during SSR bootstrap)
+    return undefined
+  }
+}
+
+/**
  * Hook to access translation functions
  * Uses router context for SSR, falls back to i18next on client
  */
 export function useTranslation(ns?: Namespace | Namespace[]) {
   const i18nextResult = useI18nextTranslation(ns)
-
-  // Try to get context from router for SSR
-  let routerContext: { i18n?: I18nRouterContext } | undefined
-  try {
-    routerContext = useRouteContext({ strict: false }) as { i18n?: I18nRouterContext } | undefined
-  } catch {
-    // Context not available, use i18next
-  }
+  const i18nContext = useI18nContext()
 
   const namespace = Array.isArray(ns) ? ns[0] : ns
 
@@ -43,8 +50,8 @@ export function useTranslation(ns?: Namespace | Namespace[]) {
   const t = useCallback(
     (key: string, defaultValue?: string): string => {
       // Try router context first (for SSR)
-      if (routerContext?.i18n?.resources && namespace) {
-        const nsResources = routerContext.i18n.resources[namespace]
+      if (i18nContext?.resources && namespace) {
+        const nsResources = i18nContext.resources[namespace]
         if (nsResources) {
           const value = getNestedValue(nsResources as Record<string, unknown>, key)
           if (typeof value === 'string') {
@@ -57,7 +64,7 @@ export function useTranslation(ns?: Namespace | Namespace[]) {
       const result = defaultValue ? i18nextResult.t(key, defaultValue) : i18nextResult.t(key)
       return typeof result === 'string' ? result : (defaultValue ?? key)
     },
-    [routerContext?.i18n?.resources, namespace, i18nextResult.t]
+    [i18nContext?.resources, namespace, i18nextResult.t]
   )
 
   return {
@@ -71,17 +78,9 @@ export function useTranslation(ns?: Namespace | Namespace[]) {
  */
 export function useLocale(): LocaleContext {
   const { i18n } = useI18nextTranslation()
+  const i18nContext = useI18nContext()
 
-  // Try to get locale from router context for SSR
-  let routerContext: { i18n?: I18nRouterContext } | undefined
-  try {
-    routerContext = useRouteContext({ strict: false }) as { i18n?: I18nRouterContext } | undefined
-  } catch {
-    // Context not available
-  }
-
-  const locale =
-    (routerContext?.i18n?.locale as Locale) || (i18n.language as Locale) || DEFAULT_LOCALE
+  const locale = (i18nContext?.locale as Locale) || (i18n.language as Locale) || DEFAULT_LOCALE
 
   const formatDate = useCallback(
     (date: Date, options?: FormatOptions): string => {
@@ -129,14 +128,7 @@ export function useLocale(): LocaleContext {
  */
 export function useAvailableLocales() {
   const { i18n } = useI18nextTranslation()
-
-  // Try to get locale from router context for SSR
-  let routerContext: { i18n?: I18nRouterContext } | undefined
-  try {
-    routerContext = useRouteContext({ strict: false }) as { i18n?: I18nRouterContext } | undefined
-  } catch {
-    // Context not available
-  }
+  const i18nContext = useI18nContext()
 
   return useMemo(() => {
     // Handle SSR case where i18n may not be fully initialized
@@ -146,11 +138,11 @@ export function useAvailableLocales() {
       : (['en', 'fr'] as Locale[]) // Fallback to known locales
 
     const currentLocale =
-      (routerContext?.i18n?.locale as Locale) || (i18n.language as Locale) || DEFAULT_LOCALE
+      (i18nContext?.locale as Locale) || (i18n.language as Locale) || DEFAULT_LOCALE
 
     return {
       currentLocale,
       availableLocales: locales,
     }
-  }, [i18n.language, i18n.options?.supportedLngs, routerContext?.i18n?.locale])
+  }, [i18n.language, i18n.options?.supportedLngs, i18nContext?.locale])
 }

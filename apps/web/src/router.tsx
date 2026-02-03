@@ -49,6 +49,10 @@ export function getRouter() {
 }
 
 export function updateRouterContext(i18n: I18nRouterContext) {
+  if (!i18n || typeof i18n.locale !== 'string') {
+    throw new Error('[Router] Invalid i18n context: locale is required')
+  }
+
   const r = getRouter()
   r.update({
     context: { i18n } as RouterContext,

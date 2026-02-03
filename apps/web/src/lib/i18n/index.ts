@@ -40,7 +40,7 @@ export {
 } from './client'
 
 // React hooks
-export { useAvailableLocales, useLocale, useTranslation } from './hooks'
+export { useAvailableLocales, useI18nContext, useLocale, useTranslation } from './hooks'
 
 // Router context
 export { createI18nContext, loadI18nNamespaces, type I18nRouterContext } from './context'

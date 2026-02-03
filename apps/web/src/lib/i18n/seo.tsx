@@ -1,11 +1,21 @@
 import { LOCALES, type Locale } from './types'
 
+function getBaseUrl(): string {
+  const baseUrl = import.meta.env.VITE_BASE_URL
+
+  if (!baseUrl && import.meta.env.DEV) {
+    console.warn('[i18n/seo] VITE_BASE_URL not set, using fallback https://example.com')
+  }
+
+  return baseUrl || 'https://example.com'
+}
+
 type HreflangTagsProps = {
   path: string
 }
 
 export function HreflangTags({ path }: HreflangTagsProps) {
-  const baseUrl = process.env.PUBLIC_BASE_URL || 'https://example.com'
+  const baseUrl = getBaseUrl()
 
   return (
     <>
@@ -18,6 +28,6 @@ export function HreflangTags({ path }: HreflangTagsProps) {
 }
 
 export function getCanonicalUrl(locale: Locale, path: string): string {
-  const baseUrl = process.env.PUBLIC_BASE_URL || 'https://example.com'
+  const baseUrl = getBaseUrl()
   return `${baseUrl}/${locale}${path}`
 }
