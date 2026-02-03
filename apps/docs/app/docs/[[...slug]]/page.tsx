@@ -1,7 +1,7 @@
 import { source } from '@/source'
-import { DocsPage, DocsBody } from 'fumadocs-ui/page'
-import { notFound } from 'next/navigation'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
+import { DocsBody, DocsPage } from 'fumadocs-ui/page'
+import { notFound } from 'next/navigation'
 
 interface PageProps {
   params: Promise<{ slug?: string[] }>

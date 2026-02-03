@@ -15,7 +15,7 @@ List open issues from GitHub project with Status, Size, Priority, and dependenci
 | Status | Todo, In Progress, Done |
 | Size | XS, S, M, L, XL |
 | Pri | H (High), M (Medium), L (Low) |
-| Deps | ⛔ blocked by / 🔓 blocks |
+| Deps | ⛔ blocked by (open) / ✅ blocked by (closed) / 🔓 blocks |
 
 ## Execution
 

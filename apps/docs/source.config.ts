@@ -1,5 +1,5 @@
-import { defineDocs, defineConfig } from 'fumadocs-mdx/config'
 import path from 'path'
+import { defineConfig, defineDocs } from 'fumadocs-mdx/config'
 
 // Resolve docs path to support both local dev and Docker builds
 // without needing a symlink
