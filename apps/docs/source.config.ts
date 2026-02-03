@@ -1,4 +1,4 @@
-import path from 'path'
+import path from 'node:path'
 import { defineConfig, defineDocs } from 'fumadocs-mdx/config'
 
 // Resolve docs path to support both local dev and Docker builds

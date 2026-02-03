@@ -1,7 +1,4 @@
 {
   "title": "Specifications",
-  "pages": [
-    "index",
-    "11-documentation-server"
-  ]
+  "pages": ["index", "09-testing-infrastructure", "11-documentation-server"]
 }
