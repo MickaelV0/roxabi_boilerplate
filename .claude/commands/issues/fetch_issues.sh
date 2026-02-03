@@ -60,14 +60,15 @@ OPEN_ISSUES=$(echo "$PROJECT_DATA" | jq -r '
 ')
 
 # Fetch dependencies for each issue via GraphQL (trackedInIssues = blocked by, trackedIssues = blocks)
+# Also fetch state of each dependency to show if it's open or closed
 DEPS_DATA="{}"
 for issue_num in $OPEN_ISSUES; do
     deps=$(gh api graphql -f query='
         query($owner: String!, $repo: String!, $num: Int!) {
           repository(owner: $owner, name: $repo) {
             issue(number: $num) {
-              trackedInIssues(first: 10) { nodes { number } }
-              trackedIssues(first: 10) { nodes { number } }
+              trackedInIssues(first: 10) { nodes { number state } }
+              trackedIssues(first: 10) { nodes { number state } }
             }
           }
         }
@@ -75,8 +76,9 @@ for issue_num in $OPEN_ISSUES; do
 
     # trackedIssues = issues this one tracks (depends on) = blocked_by
     # trackedInIssues = issues tracking this one (depend on this) = blocking
-    blocked_by=$(echo "$deps" | jq '[.data.repository.issue.trackedIssues.nodes[].number]')
-    blocking=$(echo "$deps" | jq '[.data.repository.issue.trackedInIssues.nodes[].number]')
+    # Include state for each dependency: {number, state}
+    blocked_by=$(echo "$deps" | jq '[.data.repository.issue.trackedIssues.nodes[] | {number, state}]')
+    blocking=$(echo "$deps" | jq '[.data.repository.issue.trackedInIssues.nodes[] | {number, state}]')
 
     DEPS_DATA=$(echo "$DEPS_DATA" | jq --arg num "$issue_num" --argjson bb "$blocked_by" --argjson bl "$blocking" \
         '. + {($num): {blocked_by: $bb, blocking: $bl}}')
@@ -94,6 +96,8 @@ if $JSON_OUTPUT; then
             size: ([.fieldValues.nodes[] | select(.field.name == "Size") | .name] | first // "-"),
             priority: ([.fieldValues.nodes[] | select(.field.name == "Priority") | .name] | first // "-"),
             blocked_by: ($deps[.content.number | tostring].blocked_by // []),
+            blocked_by_open: ([$deps[.content.number | tostring].blocked_by // [] | .[] | select(.state == "OPEN") | .number]),
+            blocked_by_closed: ([$deps[.content.number | tostring].blocked_by // [] | .[] | select(.state == "CLOSED") | .number]),
             blocks: ($deps[.content.number | tostring].blocking // [])
         })
     '
@@ -106,8 +110,12 @@ else
         def format_deps:
             ($deps[.number | tostring].blocked_by // []) as $bb |
             ($deps[.number | tostring].blocking // []) as $bl |
-            if ($bb | length) > 0 then "⛔" + ($bb | map("#\(.)") | join(","))
-            elif ($bl | length) > 0 then "🔓" + ($bl | map("#\(.)") | join(","))
+            # Format blocked_by: ⛔#X for open, ✅#X for closed
+            ($bb | map(if .state == "OPEN" then "⛔#\(.number)" else "✅#\(.number)" end)) as $bb_fmt |
+            # Format blocking: 🔓#X
+            ($bl | map("🔓#\(.number)")) as $bl_fmt |
+            if ($bb | length) > 0 then ($bb_fmt | join(","))
+            elif ($bl | length) > 0 then ($bl_fmt | join(","))
             else "-" end;
 
         def format_row:
