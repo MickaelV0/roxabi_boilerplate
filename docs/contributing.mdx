@@ -1,0 +1,202 @@
+---
+title: Contributing
+description: Workflow conventions, branching strategy, and contribution guidelines
+---
+
+## Branching Strategy
+
+We use **GitHub Flow** - a simple, trunk-based workflow optimized for continuous delivery.
+
+### Main Branch
+
+- `main` is always production-ready
+- All changes go through Pull Requests
+- Protected with required reviews and status checks
+
+### Branch Naming
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| Feature | `feature/<issue-id>-<description>` | `feature/42-user-auth` |
+| Bug fix | `fix/<issue-id>-<description>` | `fix/15-login-timeout` |
+| Hotfix | `hotfix/<issue-id>-<description>` | `hotfix/99-security-patch` |
+| Docs | `docs/<description>` | `docs/api-reference` |
+
+### Workflow
+
+```
+1. Pick a GitHub Issue
+2. Create feature branch from main
+3. Implement changes (with tests)
+4. Open Pull Request
+5. Pass all quality gates
+6. Get review approval
+7. Merge to main
+8. Auto-deploy to production
+```
+
+---
+
+## Commit Conventions
+
+We follow [Conventional Commits](https://www.conventionalcommits.org/) for clear, automated changelogs.
+
+### Format
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Types
+
+| Type | Description | Version Bump |
+|------|-------------|--------------|
+| `feat` | New feature | MINOR |
+| `fix` | Bug fix | PATCH |
+| `docs` | Documentation only | None |
+| `style` | Formatting, no code change | None |
+| `refactor` | Code change, no new feature or fix | None |
+| `test` | Adding or updating tests | None |
+| `chore` | Maintenance tasks | None |
+| `ci` | CI/CD changes | None |
+| `perf` | Performance improvement | PATCH |
+
+### Scope
+
+Use the package name for monorepo changes:
+
+- `feat(web):` - Frontend changes
+- `fix(api):` - Backend changes
+- `docs(ui):` - UI package documentation
+- `chore(config):` - Config package maintenance
+
+### Breaking Changes
+
+Add `!` after the type or include `BREAKING CHANGE:` in the footer:
+
+```
+feat(api)!: redesign authentication endpoints
+
+BREAKING CHANGE: /auth/login now requires email instead of username
+```
+
+### Examples
+
+```
+feat(web): add user authentication flow
+fix(api): resolve database connection timeout
+docs: update README with installation steps
+test(ui): add Button component tests
+chore: update dependencies
+ci: add coverage reporting to pipeline
+```
+
+---
+
+## Pull Requests
+
+### Before Opening a PR
+
+- [ ] Branch is up-to-date with `main`
+- [ ] All tests pass locally (`bun test`)
+- [ ] Linting passes (`bun lint`)
+- [ ] Types check (`bun typecheck`)
+- [ ] Commit messages follow conventions
+
+### PR Title
+
+Use Conventional Commits format for the PR title (used for squash merge):
+
+```
+feat(web): add user dashboard
+fix(api): resolve timeout on large queries
+```
+
+### PR Description
+
+Include:
+- Summary of changes
+- Link to related issue
+- Testing performed
+- Screenshots (for UI changes)
+
+---
+
+## Quality Gates
+
+All PRs must pass before merge:
+
+| Gate | Command | Description |
+|------|---------|-------------|
+| Lint | `bun lint` | Biome linting |
+| Types | `bun typecheck` | TypeScript strict mode |
+| Tests | `bun test` | All tests pass |
+| Coverage | - | Minimum threshold met |
+| Review | - | At least 1 approval |
+
+---
+
+## Branch Protection
+
+The `main` branch is protected with:
+
+- Required pull request reviews (1 minimum)
+- Required status checks (CI must pass)
+- Dismiss stale approvals on new commits
+- Require conversation resolution
+- No direct pushes
+
+---
+
+## Labels
+
+### Priority
+
+| Label | Description |
+|-------|-------------|
+| `P1` | Critical - fix immediately |
+| `P2` | High - current sprint |
+| `P3` | Medium - next sprint |
+
+### Size
+
+| Label | Description |
+|-------|-------------|
+| `XS` | Trivial change (&lt;1 hour) |
+| `S` | Small change (few hours) |
+| `M` | Medium change (1-2 days) |
+| `L` | Large change (3-5 days) |
+| `XL` | Epic (needs breakdown) |
+
+### Type
+
+| Label | Description |
+|-------|-------------|
+| `feature` | New functionality |
+| `bug` | Something broken |
+| `docs` | Documentation |
+| `dx` | Developer experience |
+| `ai` | AI/Agent related |
+| `workflow` | Process improvement |
+| `setup` | Infrastructure setup |
+
+---
+
+## Issue Templates
+
+When creating issues, use the provided templates:
+
+- **Bug Report**: For reporting bugs with reproduction steps
+- **Feature Request**: For proposing new features
+
+---
+
+## Getting Help
+
+- Check existing issues before creating new ones
+- Use discussions for questions
+- Tag maintainers for urgent issues
