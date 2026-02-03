@@ -5,6 +5,7 @@
     "09-testing-infrastructure",
     "10-git-hooks",
     "11-documentation-server",
-    "20-i18n"
+    "20-i18n",
+    "33-tanstack-start-i18n-integration"
   ]
 }

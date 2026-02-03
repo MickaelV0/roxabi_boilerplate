@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Fetch open GitHub issues from project with Status, Size, Priority, and dependencies.
-# Usage: ./fetch_issues.sh [--size|--priority] [--json]
+# Usage: ./fetch_issues.sh [--size|--priority] [--json] [--title-length=N]
 
 set -euo pipefail
 
@@ -11,12 +11,14 @@ REPO_NAME="${REPO#*/}"
 
 SORT_BY="size"
 JSON_OUTPUT=false
+TITLE_LENGTH=60
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --priority) SORT_BY="priority"; shift ;;
         --size) SORT_BY="size"; shift ;;
         --json) JSON_OUTPUT=true; shift ;;
+        --title-length=*) TITLE_LENGTH="${1#*=}"; shift ;;
         *) shift ;;
     esac
 done
@@ -102,7 +104,7 @@ if $JSON_OUTPUT; then
         })
     '
 else
-    echo "$PROJECT_DATA" | jq -r --arg sort "$SORT_BY" --argjson deps "$DEPS_DATA" '
+    echo "$PROJECT_DATA" | jq -r --arg sort "$SORT_BY" --argjson deps "$DEPS_DATA" --argjson titleLen "$TITLE_LENGTH" '
         def size_order: {"XS": 1, "S": 2, "M": 3, "L": 4, "XL": 5, "-": 99};
         def priority_order: {"P0 - Urgent": 0, "P1 - High": 1, "P2 - Medium": 2, "P3 - Low": 3, "-": 99};
         def priority_short: {"P0 - Urgent": "P0", "P1 - High": "P1", "P2 - Medium": "P2", "P3 - Low": "P3"};
@@ -119,7 +121,7 @@ else
             else "-" end;
 
         def format_row:
-            "| #\(.number) | \(.title | if length > 40 then .[:37] + "..." else . end) | \(.status) | \(.size) | \(.priority | priority_short[.] // .) | \(format_deps) |";
+            "| #\(.number) | \(.title | if length > $titleLen then .[: $titleLen - 3] + "..." else . end) | \(.status) | \(.size) | \(.priority | priority_short[.] // .) | \(format_deps) |";
 
         def table_header:
             "| # | Title | Status | Size | Pri | Deps |",

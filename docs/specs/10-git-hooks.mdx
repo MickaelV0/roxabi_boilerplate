@@ -1,197 +1,139 @@
 ---
-title: Git Hooks (Pre-push Quality Gates)
-description: Specification for Git hooks configuration with Lefthook/Husky analysis
+title: Git Hooks (Pre-commit & Pre-push Quality Gates)
+description: Specification for Git hooks configuration with Lefthook - Option C Balanced Approach
 ---
 
 ## Overview
 
-Configuration des Git hooks pour enforcer la qualité du code avant chaque push. Ce setup garantit que le code pushé passe lint, typecheck et tests unitaires.
+Git hooks configuration using Lefthook following the **Option C: Balanced Approach** from the analysis. This setup provides layered quality gates with fast pre-commit hooks for formatting and comprehensive pre-push validation.
 
 ## Goals
 
-- Bloquer les push si les quality gates échouent
-- Intégration avec TurboRepo pour détection intelligente du scope
-- Partage des scripts avec la CI (issue #8)
-- Feedback clair avec progress indicators
-
-## Tool Analysis: Husky vs Lefthook
-
-### Comparison
-
-| Critère | Husky | Lefthook |
-|---------|-------|----------|
-| **Performance** | Moyen | Rapide (Go binary) |
-| **Configuration** | JS/package.json | YAML simple |
-| **Dépendances** | Node.js requis | Standalone binary |
-| **Parallélisme** | Manuel | Natif |
-| **TurboRepo** | Compatible | Compatible |
-| **Popularité** | ~32k stars | ~5k stars |
-| **Maintenance** | Active | Active |
-| **Setup** | `npx husky init` | `lefthook install` |
-
-### Husky
-
-**Avantages:**
-- Écosystème npm mature
-- Documentation abondante
-- Intégration lint-staged simple
-
-**Inconvénients:**
-- Plus lent (JS runtime)
-- Dépendance Node obligatoire
-- Config dispersée (multiple fichiers)
-
-### Lefthook
-
-**Avantages:**
-- Très rapide (binary Go)
-- Config YAML centralisée
-- Parallélisme natif des commandes
-- Pas de dépendance Node pour les hooks
-- Parfait pour les monorepos
-
-**Inconvénients:**
-- Moins populaire
-- Moins d'exemples en ligne
-
-### Recommendation
-
-**Lefthook** est recommandé pour ce projet car:
-1. Performance supérieure (important pour CI/hooks)
-2. Config YAML simple et centralisée
-3. Parallélisme natif (lint + typecheck en parallèle)
-4. Meilleure intégration monorepo
-5. Le projet utilise déjà Bun (pas de lock-in npm)
+- Auto-format staged files on commit (Biome)
+- Block pushes if quality gates fail (lint, typecheck, tests)
+- Zero configuration for new developers (`bun install` triggers hook setup)
+- Leverage TurboRepo caching for fast subsequent runs
+- Allow emergency bypass with `--no-verify` (CI is the ultimate enforcement)
 
 ## Architecture
 
-### Hook Type
+### Layered Quality Gates
 
-**Pre-push only** - Validation complète avant push:
-- Lint (Biome)
-- Typecheck (TypeScript)
-- Tests unitaires (Vitest)
+| Hook | Purpose | Speed Target |
+|------|---------|--------------|
+| **Pre-commit** | Format staged files with Biome | < 1s |
+| **Pre-push** | Full validation (lint, typecheck, test) | < 30s (cached) |
 
-Pas de pre-commit hook pour éviter la friction au développement quotidien.
+### Tool Choice: Lefthook
 
-### Scope Detection
+**Why Lefthook over Husky:**
 
-Utilisation de TurboRepo `--filter` pour ne valider que les packages affectés:
+1. **Go binary** - No Node.js/Bun PATH issues with version managers
+2. **Native parallel execution** - Significantly faster pre-push hooks
+3. **Built-in staged file handling** - `{staged_files}` interpolation
+4. **`stage_fixed: true`** - Auto-stage formatted files
+5. **Single YAML config** - Cleaner than multiple shell scripts
 
-```bash
-turbo run lint typecheck test --filter=...[origin/main]
-```
-
-Cette approche:
-- Utilise le cache Turbo existant
-- Détecte automatiquement les packages modifiés
-- Ne re-run pas les checks déjà passés
+See `docs/analyses/10-git-hooks.mdx` for detailed comparison.
 
 ### Test Scope
 
-- **Inclus:** Tests unitaires/intégration (Vitest)
-- **Exclus:** Tests E2E (Playwright) - réservés à la CI
+- **Included:** Unit/integration tests (Vitest)
+- **Excluded:** E2E tests (Playwright) - reserved for CI only
 
-Raison: Les tests E2E sont lents (2-5min) et frustreraient les développeurs.
+Reason: E2E tests are slow (2-5min) and would frustrate developers.
 
 ### Bypass Policy
 
-**Aucun bypass autorisé** - Approche stricte:
-- La CI bloquera de toute façon
-- `--no-verify` non encouragé
-- Force la qualité à la source
+**Allowed with `--no-verify`** for emergencies:
+- CI is the ultimate enforcement layer
+- Local hooks are a convenience, not a gate
+- Developers can bypass when needed (hotfixes, WIP commits)
 
 ## Configuration
 
-### Lefthook Setup
+### 1. Lefthook Setup (`lefthook.yml`)
 
 ```yaml
-# lefthook.yml
+pre-commit:
+  parallel: true
+  commands:
+    biome:
+      glob: "*.{js,ts,jsx,tsx,json,jsonc}"
+      run: bunx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+
 pre-push:
   parallel: true
   commands:
     lint:
-      run: bun run lint:affected
-      stage_fixed: false
+      run: bun run lint
     typecheck:
-      run: bun run typecheck:affected
+      run: bun run typecheck
     test:
-      run: bun run test:affected
+      run: bun run test
 ```
 
-### Package.json Scripts (Shared with CI)
+### 2. Package.json Scripts
 
 ```json
 {
   "scripts": {
-    "lint:affected": "turbo run lint --filter=...[origin/main]",
+    "prepare": "lefthook install",
     "typecheck:affected": "turbo run typecheck --filter=...[origin/main]",
-    "test:affected": "turbo run test --filter=...[origin/main]",
-    "quality": "turbo run lint typecheck test --filter=...[origin/main]"
+    "test:affected": "turbo run test --filter=...[origin/main]"
   }
 }
 ```
 
-Ces scripts sont utilisés par:
-- Les Git hooks (pre-push)
-- La CI GitHub Actions (issue #8)
+The `prepare` script ensures hooks are installed automatically on `bun install`.
 
-### Verbosity
+### 3. Biome Ignore Update
 
-Progress indicators pour feedback clair:
-- TurboRepo affiche déjà les tâches en cours
-- Lefthook affiche le nom de chaque commande
-- Erreurs complètes affichées si échec
+Add `coverage` folder to `biome.json` ignore list to prevent linting test coverage output.
 
 ## Implementation Checklist
 
-- [ ] Installer Lefthook (`bun add -D lefthook`)
-- [ ] Créer `lefthook.yml` à la racine
-- [ ] Ajouter scripts `*:affected` dans package.json
-- [ ] Initialiser hooks (`lefthook install`)
-- [ ] Ajouter `lefthook install` au postinstall
-- [ ] Tester avec un push valide
-- [ ] Tester avec un push invalide (lint error)
-- [ ] Documenter dans README
+- [ ] Install Lefthook (`bun add -D lefthook`)
+- [ ] Create `lefthook.yml` at root
+- [ ] Add `prepare` script to `package.json`
+- [ ] Add `*:affected` scripts for CI alignment
+- [ ] Add `coverage` to `biome.json` ignore
+- [ ] Test pre-commit with a formatting change
+- [ ] Test pre-push with valid code
+- [ ] Test pre-push failure (introduce lint error)
+- [ ] Test bypass with `--no-verify`
+- [ ] Update README with Git Hooks section
 
-## CI Alignment (Issue #8)
+## CI Alignment
 
-Les scripts `*:affected` seront réutilisés dans GitHub Actions:
+The same validation runs in CI (GitHub Actions):
 
 ```yaml
 # .github/workflows/ci.yml
 jobs:
   quality:
     steps:
-      - run: bun run quality
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun run test
 ```
 
-Cela garantit que hooks locaux et CI exécutent exactement les mêmes validations.
-
-## Non-Goals
-
-- Pre-commit hooks (pas dans le scope)
-- Tests E2E dans les hooks
-- Bypass configurable
-- Hooks personnalisés par développeur
+Local hooks and CI execute the same validations, ensuring consistency.
 
 ## Edge Cases
 
-### Premier push d'une branche
+### First Push of a Branch
 
-Si `origin/main` n'existe pas localement:
-```bash
-# Fallback: compare avec HEAD~1 ou run tout
-turbo run lint typecheck test --filter=...[HEAD~1] || turbo run lint typecheck test
-```
+TurboRepo's `--filter=...[origin/main]` handles this gracefully by comparing against the main branch.
 
-### Pas de changements détectés
+### No Changes Detected
 
-TurboRepo skip automatiquement si rien n'a changé (cache hit).
+TurboRepo skips tasks automatically when cache is valid (no work needed).
 
-### Hook échoue
+### Hook Failure
 
-Message clair affiché:
+Clear error output showing which check failed:
 ```
 ❌ Pre-push failed:
    - lint: 2 errors
@@ -199,20 +141,38 @@ Message clair affiché:
    - test: 1 failed
 
 Fix issues and try again.
+Use --no-verify to bypass (not recommended).
 ```
 
 ## Success Criteria
 
-- [ ] Push bloqué si lint/typecheck/test échouent
-- [ ] Validation &lt;30s pour changements mineurs (cache)
-- [ ] Scripts réutilisés par CI sans duplication
-- [ ] Feedback clair avec progress indicators
-- [ ] Zero configuration pour nouveaux développeurs (postinstall)
+- [ ] `bun install` triggers `lefthook install` automatically
+- [ ] Pre-commit formats staged files with Biome
+- [ ] Pre-commit auto-stages fixed files
+- [ ] Pre-push runs lint, typecheck, test in parallel
+- [ ] Push blocked if any check fails
+- [ ] Validation < 30s for minor changes (with cache)
+- [ ] `--no-verify` bypass works for emergencies
+- [ ] README documents Git Hooks usage
+
+## Non-Goals
+
+- Complex TurboRepo `--affected` filtering in hooks (kept simple, Option B deferred)
+- E2E tests in hooks (CI only)
+- Per-developer hook customization
+- Commit message linting (not in scope)
+
+## Future Improvements
+
+If pre-push times become problematic, consider upgrading to Option B:
+- Add TurboRepo `--affected` flag for incremental validation
+- Package-specific `root` configurations in Lefthook
 
 ## References
 
 - [Lefthook Documentation](https://github.com/evilmartians/lefthook)
-- [Husky Documentation](https://typicode.github.io/husky/)
+- [Biome Git Hooks Guide](https://biomejs.dev/recipes/git-hooks/)
 - [TurboRepo Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
-- Issue #9: Testing Infrastructure (dependency)
-- Issue #8: CI/CD GitHub Actions (blocks)
+- Analysis: `docs/analyses/10-git-hooks.mdx`
+- Related: Issue #8 (CI/CD GitHub Actions)
+- Related: Issue #18 (Testing Infrastructure)
