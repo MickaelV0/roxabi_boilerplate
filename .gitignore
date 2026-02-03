@@ -8,6 +8,11 @@ dist/
 build/
 .next/
 out/
+.output/
+
+# TanStack Start / Fumadocs generated
+apps/web/src/routeTree.gen.ts
+apps/web/.source/
 
 # Turbo
 .turbo/
