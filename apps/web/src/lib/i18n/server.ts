@@ -18,6 +18,43 @@ export function isValidLocale(locale: string): locale is Locale {
 }
 
 /**
+ * Check if a string looks like a locale code (2-letter format)
+ */
+export function looksLikeLocale(segment: string): boolean {
+  return /^[a-z]{2}$/i.test(segment)
+}
+
+/**
+ * Check if a URL path has an invalid locale prefix and return redirect info
+ * Returns the corrected path if redirect is needed, null otherwise
+ *
+ * Examples:
+ * - /de/dashboard → /en/dashboard (invalid locale)
+ * - /xyz/settings → /en/settings (invalid locale that looks like locale code)
+ * - /en/dashboard → null (valid locale)
+ * - /dashboard → null (no locale prefix)
+ * - /docs/api → null (doesn't look like locale)
+ */
+export function getInvalidLocaleRedirect(pathname: string): string | null {
+  const segments = pathname.split('/').filter(Boolean)
+  const firstSegment = segments[0]
+
+  // No first segment or doesn't look like a locale - no redirect needed
+  if (!firstSegment || !looksLikeLocale(firstSegment)) {
+    return null
+  }
+
+  // Valid locale - no redirect needed
+  if (isValidLocale(firstSegment)) {
+    return null
+  }
+
+  // Invalid locale detected - build redirect path with default locale
+  const restOfPath = segments.slice(1).join('/')
+  return `/${DEFAULT_LOCALE}${restOfPath ? `/${restOfPath}` : ''}`
+}
+
+/**
  * Parse locale from URL path (e.g., /fr/dashboard -> 'fr')
  */
 export function getLocaleFromPath(pathname: string): Locale | null {

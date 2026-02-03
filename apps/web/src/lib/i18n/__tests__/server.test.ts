@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   detectLanguage,
+  getInvalidLocaleRedirect,
   getLocaleFromCookie,
   getLocaleFromHeader,
   getLocaleFromPath,
   isValidLocale,
+  looksLikeLocale,
 } from '../server'
 
 describe('isValidLocale', () => {
@@ -114,5 +116,56 @@ describe('detectLanguage', () => {
     const result = detectLanguage('/de/dashboard', 'locale=de', 'de-DE')
     expect(result.locale).toBe('en')
     expect(result.source).toBe('default')
+  })
+})
+
+describe('looksLikeLocale', () => {
+  it('returns true for 2-letter codes', () => {
+    expect(looksLikeLocale('en')).toBe(true)
+    expect(looksLikeLocale('fr')).toBe(true)
+    expect(looksLikeLocale('de')).toBe(true)
+    expect(looksLikeLocale('ES')).toBe(true)
+  })
+
+  it('returns false for non-locale strings', () => {
+    expect(looksLikeLocale('')).toBe(false)
+    expect(looksLikeLocale('e')).toBe(false)
+    expect(looksLikeLocale('eng')).toBe(false)
+    expect(looksLikeLocale('dashboard')).toBe(false)
+    expect(looksLikeLocale('docs')).toBe(false)
+    expect(looksLikeLocale('api')).toBe(false)
+    expect(looksLikeLocale('123')).toBe(false)
+    expect(looksLikeLocale('a1')).toBe(false)
+  })
+})
+
+describe('getInvalidLocaleRedirect', () => {
+  it('returns redirect path for invalid locale', () => {
+    expect(getInvalidLocaleRedirect('/de/dashboard')).toBe('/en/dashboard')
+    expect(getInvalidLocaleRedirect('/es/settings')).toBe('/en/settings')
+    expect(getInvalidLocaleRedirect('/it/profile/edit')).toBe('/en/profile/edit')
+  })
+
+  it('returns null for valid locales', () => {
+    expect(getInvalidLocaleRedirect('/en/dashboard')).toBe(null)
+    expect(getInvalidLocaleRedirect('/fr/settings')).toBe(null)
+  })
+
+  it('returns null for paths without locale prefix', () => {
+    expect(getInvalidLocaleRedirect('/dashboard')).toBe(null)
+    expect(getInvalidLocaleRedirect('/docs/api')).toBe(null)
+    expect(getInvalidLocaleRedirect('/api/users')).toBe(null)
+    expect(getInvalidLocaleRedirect('/')).toBe(null)
+  })
+
+  it('returns null for paths that do not look like locales', () => {
+    expect(getInvalidLocaleRedirect('/dashboard/settings')).toBe(null)
+    expect(getInvalidLocaleRedirect('/abc/page')).toBe(null)
+    expect(getInvalidLocaleRedirect('/123/page')).toBe(null)
+  })
+
+  it('handles root-level invalid locale', () => {
+    expect(getInvalidLocaleRedirect('/de')).toBe('/en')
+    expect(getInvalidLocaleRedirect('/es')).toBe('/en')
   })
 })

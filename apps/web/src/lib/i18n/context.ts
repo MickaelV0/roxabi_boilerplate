@@ -7,7 +7,7 @@ import type { Locale, Namespace } from './types'
  */
 export type I18nRouterContext = {
   locale: Locale
-  resources: Record<string, Record<string, unknown>>
+  resources: Record<string, Record<string, object>>
 }
 
 /**
