@@ -1,0 +1,41 @@
+# Node modules
+node_modules
+**/node_modules
+
+# Build outputs
+.next
+**/.next
+dist
+**/dist
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Misc
+*.md
+!docs/**/*.md
+!docs/**/*.mdx
+*.log
+npm-debug.log*
+
+# Apps we don't need for docs build
+apps/web
+apps/api
+apps/packages
+packages

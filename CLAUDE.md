@@ -55,7 +55,50 @@ bun docs             # Start documentation server (Docker)
 - `apps/packages/ui` - Shared UI components
 - `apps/packages/config` - Shared configurations
 - `apps/packages/types` - Shared TypeScript types
-- `docs/` - Documentation (Docker-based Fumadocs server)
+- `docs/` - Documentation content (MDX files)
+- `apps/docs/` - Fumadocs server (Docker-based)
+
+## Documentation
+
+Documentation uses Fumadocs with MDX format. All docs are in the `docs/` folder.
+
+### Creating Documentation Files
+
+Files must be `.mdx` with frontmatter:
+
+```mdx
+---
+title: Page Title
+description: Brief description for SEO and previews
+---
+
+Content here...
+```
+
+### Folder Structure
+
+```
+docs/
+├── index.mdx           # Home page
+├── getting-started.mdx # Main docs
+├── meta.json           # Navigation order
+├── analyses/           # Technical analyses
+│   ├── meta.json
+│   └── *.mdx
+└── specs/              # Feature specifications
+    ├── meta.json
+    └── *.mdx
+```
+
+### Adding New Pages
+
+1. Create `.mdx` file with frontmatter
+2. Add filename (without extension) to `meta.json` in the `pages` array
+3. Run `bun docs` to preview
+
+### Special Characters in MDX
+
+Escape `<` as `&lt;` to avoid JSX parsing errors (e.g., `&lt;50KB` instead of `<50KB`).
 
 ## Development Process
 

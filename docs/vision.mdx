@@ -1,4 +1,7 @@
-# Roxabi Boilerplate - Vision
+---
+title: Vision
+description: Project vision, roadmap and technical decisions for Roxabi Boilerplate
+---
 
 ## 1. Purpose
 
@@ -99,8 +102,6 @@ A CLI generated from OpenAPI specs enables AI agents to interact with the SaaS A
 - **Human-friendly**: Developers can also use it for testing and debugging
 - **Auto-generated**: Stays in sync with API changes
 
-See [CLI for AI Agents Analysis](analyses/cli-for-ai-agents.md) for details.
-
 ### Skills Organization
 
 | Source | Usage |
@@ -162,11 +163,12 @@ roxabi_boilerplate/
 ├── apps/
 │   ├── web/               # Frontend (TanStack Start)
 │   ├── api/               # Backend (NestJS + Fastify)
+│   ├── docs/              # Documentation server (Fumadocs + Docker)
 │   └── packages/          # Shared code
 │       ├── ui/            # Shared UI (Shadcn/UI)
 │       ├── config/        # Shared configurations
 │       └── types/         # Shared TypeScript types
-├── docs/                   # Documentation (Docker-based server)
+├── docs/                   # Documentation source (Markdown)
 └── .claude/                # Claude Code configuration
 ```
 
