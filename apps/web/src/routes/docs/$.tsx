@@ -1,4 +1,5 @@
 import browserCollections from 'fumadocs-mdx:collections/browser'
+import { DocsErrorBoundary } from '@/components/docs-error-boundary'
 import { baseOptions } from '@/lib/layout.shared'
 import { source } from '@/lib/source'
 import { createFileRoute, notFound } from '@tanstack/react-router'
@@ -60,12 +61,14 @@ function Page() {
   const data = useFumadocsLoader(Route.useLoaderData())
 
   return (
-    <DocsLayout {...baseOptions()} tree={data.pageTree}>
-      <Suspense>
-        {clientLoader.useContent(data.path, {
-          className: '',
-        })}
-      </Suspense>
-    </DocsLayout>
+    <DocsErrorBoundary>
+      <DocsLayout {...baseOptions()} tree={data.pageTree}>
+        <Suspense>
+          {clientLoader.useContent(data.path, {
+            className: '',
+          })}
+        </Suspense>
+      </DocsLayout>
+    </DocsErrorBoundary>
   )
 }

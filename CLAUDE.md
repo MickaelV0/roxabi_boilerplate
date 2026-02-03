@@ -152,18 +152,17 @@ bun lint             # Run Biome linter
 bun format           # Format with Biome
 bun typecheck        # TypeScript type checking
 bun test             # Run tests
-bun docs             # Start documentation server (Docker)
+bun docs             # Start documentation server (runs apps/web)
 ```
 
 ## Monorepo Structure
 
-- `apps/web` - Frontend application
+- `apps/web` - Frontend application (includes documentation at `/docs`)
 - `apps/api` - Backend API
 - `packages/ui` - Shared UI components
 - `packages/config` - Shared configurations
 - `packages/types` - Shared TypeScript types
 - `docs/` - Documentation content (MDX files)
-- `apps/docs/` - Fumadocs server (Docker-based)
 
 ## Documentation
 

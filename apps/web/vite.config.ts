@@ -10,6 +10,7 @@ export default defineConfig({
     port: 3000,
   },
   plugins: [
+    react(),
     mdx(await import('./source.config')),
     tailwindcss(),
     tsConfigPaths({
@@ -18,8 +19,8 @@ export default defineConfig({
     tanstackStart({
       prerender: {
         enabled: true,
+        routes: ['/docs'],
       },
     }),
-    react(),
   ],
 })
