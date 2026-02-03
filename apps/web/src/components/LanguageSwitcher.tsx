@@ -1,5 +1,5 @@
-import { changeLanguage, useAvailableLocales, useTranslation } from '../lib/i18n'
-import type { Locale } from '../lib/i18n'
+import { changeLanguage, useAvailableLocales, useTranslation } from '@/lib/i18n'
+import type { Locale } from '@/lib/i18n'
 
 type LanguageSwitcherProps = {
   /**
@@ -40,7 +40,7 @@ export function LanguageSwitcher({ className, variant = 'dropdown' }: LanguageSw
 
   if (variant === 'buttons') {
     return (
-      <fieldset className={className}>
+      <fieldset className={className} data-testid="language-switcher">
         <legend className="sr-only">{t('labels.language')}</legend>
         {availableLocales.map((locale) => (
           <button
@@ -49,6 +49,7 @@ export function LanguageSwitcher({ className, variant = 'dropdown' }: LanguageSw
             onClick={() => handleLanguageChange(locale)}
             aria-pressed={locale === currentLocale}
             aria-label={LANGUAGE_NAMES[locale].english}
+            data-testid={`locale-${locale}`}
           >
             {LANGUAGE_NAMES[locale].native}
           </button>
@@ -58,7 +59,7 @@ export function LanguageSwitcher({ className, variant = 'dropdown' }: LanguageSw
   }
 
   return (
-    <div className={className}>
+    <div className={className} data-testid="language-switcher">
       <label htmlFor="language-select" className="sr-only">
         {t('labels.language')}
       </label>
@@ -67,9 +68,10 @@ export function LanguageSwitcher({ className, variant = 'dropdown' }: LanguageSw
         value={currentLocale}
         onChange={(e) => handleLanguageChange(e.target.value as Locale)}
         aria-label={t('labels.language')}
+        data-testid="language-select"
       >
         {availableLocales.map((locale) => (
-          <option key={locale} value={locale}>
+          <option key={locale} value={locale} data-testid={`locale-${locale}`}>
             {LANGUAGE_NAMES[locale].native}
           </option>
         ))}

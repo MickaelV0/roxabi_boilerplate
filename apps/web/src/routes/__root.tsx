@@ -1,9 +1,20 @@
+import { createI18nContext, detectLanguage } from '@/lib/i18n'
+import type { RouterContext } from '@/router'
 import appCss from '@/styles/app.css?url'
-import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
+import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
 import { RootProvider } from 'fumadocs-ui/provider/tanstack'
 import type * as React from 'react'
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<RouterContext>()({
+  beforeLoad: ({ context, location }) => {
+    // Initialize i18n context if not already set
+    if (!context.i18n) {
+      const detected = detectLanguage(location.pathname, null, null)
+      const i18n = createI18nContext(detected.locale)
+      return { i18n }
+    }
+    return {}
+  },
   head: () => ({
     meta: [
       {

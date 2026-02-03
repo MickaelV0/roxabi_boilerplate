@@ -138,9 +138,16 @@ export async function createServerI18n(
 }
 
 /**
+ * Pre-load all translation files using Vite's import.meta.glob
+ * This allows Vite to statically analyze the imports
+ */
+const translationModules = import.meta.glob<{ default: Record<string, unknown> }>(
+  '../../locales/**/*.json',
+  { eager: true }
+)
+
+/**
  * Load translation resources for a given locale and namespaces
- * This is a placeholder that should be replaced with actual file loading logic
- * when integrated with TanStack Start's asset handling
  */
 export async function loadTranslations(
   locale: Locale,
@@ -149,14 +156,12 @@ export async function loadTranslations(
   const resources = {} as Record<Namespace, Record<string, unknown>>
 
   for (const ns of namespaces) {
-    // Dynamic import will be handled by the build system
-    // This is a placeholder structure
-    try {
-      const module = (await import(`../../locales/${locale}/${ns}.json`)) as {
-        default: Record<string, unknown>
-      }
+    const path = `../../locales/${locale}/${ns}.json`
+    const module = translationModules[path]
+
+    if (module) {
       resources[ns] = module.default
-    } catch {
+    } else {
       console.warn(`Failed to load translations for ${locale}/${ns}`)
       resources[ns] = {}
     }

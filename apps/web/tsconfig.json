@@ -1,15 +1,6 @@
 {
   "extends": "../../tsconfig.json",
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "lib/**/*.ts",
-    "lib/**/*.tsx",
-    "components/**/*.ts",
-    "components/**/*.tsx",
-    ".source/**/*.ts",
-    "../../vitest.shared.ts"
-  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx", ".source/**/*.ts", "../../vitest.shared.ts"],
   "exclude": ["node_modules", "dist", ".output"],
   "compilerOptions": {
     "strict": true,
