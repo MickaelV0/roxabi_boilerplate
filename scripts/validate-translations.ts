@@ -13,7 +13,7 @@
 import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 
-const LOCALES_DIR = join(import.meta.dirname, '../apps/web/locales')
+const LOCALES_DIR = join(import.meta.dirname, '../apps/web/src/locales')
 
 type TranslationObject = Record<string, unknown>
 type LocaleData = Record<string, Record<string, TranslationObject>>
