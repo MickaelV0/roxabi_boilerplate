@@ -38,6 +38,17 @@
     }
   },
   "files": {
-    "ignore": ["node_modules", "dist", "build", ".next", ".turbo", "*.min.js", "coverage"]
+    "ignore": [
+      "node_modules",
+      "dist",
+      "build",
+      ".next",
+      ".turbo",
+      "*.min.js",
+      "coverage",
+      ".source",
+      ".output",
+      "routeTree.gen.ts"
+    ]
   }
 }
