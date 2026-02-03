@@ -1,8 +1,8 @@
 services:
   docs:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: apps/docs/Dockerfile
     ports:
       - "${DOCS_PORT:-3002}:3002"
     environment:

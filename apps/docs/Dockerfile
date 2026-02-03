@@ -3,14 +3,15 @@ WORKDIR /app
 
 # Install dependencies
 FROM base AS deps
-COPY package.json bun.lock* ./
+COPY apps/docs/package.json apps/docs/bun.lock* ./
 RUN bun install --frozen-lockfile
 
 # Build the application
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY apps/docs/ ./
+COPY docs/ ./docs/
 RUN bun run build
 
 # Production image
