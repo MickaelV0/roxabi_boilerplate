@@ -1,0 +1,16 @@
+FROM oven/bun:1
+WORKDIR /app
+
+# Install dependencies
+COPY package.json bun.lock* ./
+RUN bun install
+
+# Copy app files (volumes will override docs/ and app/ at runtime)
+COPY . .
+
+EXPOSE 3002
+
+ENV PORT=3002
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["bun", "run", "dev"]

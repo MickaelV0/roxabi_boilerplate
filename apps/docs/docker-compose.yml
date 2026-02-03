@@ -1,5 +1,21 @@
 services:
+  # Development mode with hot-reload
   docs:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "${DOCS_PORT:-3002}:3002"
+    volumes:
+      - ../../docs:/app/docs:ro
+      - ./app:/app/app:ro
+      - ./source.ts:/app/source.ts:ro
+      - ./source.config.ts:/app/source.config.ts:ro
+    environment:
+      - NODE_ENV=development
+
+  # Production mode (pre-built static site)
+  docs-prod:
     build:
       context: ../..
       dockerfile: apps/docs/Dockerfile

@@ -12,8 +12,9 @@
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "clean": "turbo clean && rm -rf node_modules",
-    "docs": "docker compose -f apps/docs/docker-compose.yml up",
-    "docs:build": "docker compose -f apps/docs/docker-compose.yml build"
+    "docs": "docker compose -f apps/docs/docker-compose.yml up docs",
+    "docs:prod": "docker compose -f apps/docs/docker-compose.yml up docs-prod",
+    "docs:build": "docker compose -f apps/docs/docker-compose.yml build docs-prod"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",
