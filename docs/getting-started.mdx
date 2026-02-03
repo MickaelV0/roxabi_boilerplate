@@ -110,16 +110,64 @@ gh label create L --color "7057FF" --description "Size: Large"
 gh label create XL --color "D876E3" --description "Size: Extra Large"
 ```
 
-## 4. Configure Branch Protection
+## 4. Configure GitHub Repository
+
+### Rename default branch to main
+
+If your repository uses `master` as the default branch, rename it to `main`:
+
+```bash
+# Rename master to main on GitHub
+gh api repos/OWNER/REPO/branches/master/rename -f new_name=main
+
+# Update local repository
+git fetch origin
+git branch -m master main
+git branch -u origin/main main
+git remote set-head origin -a
+```
+
+### Enable GitHub Discussions
+
+```bash
+# Enable discussions on the repository
+gh repo edit --enable-discussions
+```
+
+Or via **Settings** > **General** > **Features** > check **Discussions**.
+
+### Configure branch protection
 
 In **Settings** > **Branches** > **Add rule** for `main`:
 
 - [x] Require a pull request before merging
 - [x] Require approvals (1)
+- [x] Dismiss stale pull request approvals when new commits are pushed
+- [x] Require conversation resolution before merging
 - [x] Require status checks to pass before merging
   - [x] ci (when CI is configured)
-- [x] Require branches to be up to date before merging
 - [x] Do not allow bypassing the above settings
+
+Or via API:
+
+```bash
+gh api repos/OWNER/REPO/branches/main/protection -X PUT \
+  --input - <<'EOF'
+{
+  "required_status_checks": null,
+  "enforce_admins": false,
+  "required_pull_request_reviews": {
+    "dismiss_stale_reviews": true,
+    "require_code_owner_reviews": false,
+    "required_approving_review_count": 1
+  },
+  "restrictions": null,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "required_conversation_resolution": true
+}
+EOF
+```
 
 ## 5. Install Dependencies
 
