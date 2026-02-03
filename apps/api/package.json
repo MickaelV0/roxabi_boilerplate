@@ -2,18 +2,38 @@
   "name": "@repo/api",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "scripts": {
-    "dev": "echo 'NestJS + Fastify - placeholder'",
-    "build": "echo 'Build placeholder'",
-    "start": "echo 'Start placeholder'",
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main",
+    "start:prod": "NODE_ENV=production node dist/main",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
-    "@repo/types": "workspace:*"
+    "@fastify/static": "^9.0.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-fastify": "^11.0.0",
+    "@nestjs/swagger": "^11.2.5",
+    "@repo/types": "workspace:*",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.3",
+    "drizzle-orm": "^0.45.1",
+    "fastify": "^5.6.2",
+    "postgres": "^3.4.5",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
+    "@nestjs/cli": "^11.0.16",
+    "@nestjs/testing": "^11.1.13",
+    "@types/node": "^25.2.0",
+    "drizzle-kit": "^0.30.0",
     "typescript": "^5.7.0"
   }
 }
