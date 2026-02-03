@@ -1,0 +1,90 @@
+---
+title: Claude Code Hooks
+description: Guide to configured hooks for automating development tasks in Roxabi Boilerplate
+---
+
+## Overview
+
+Hooks are configured in `.claude/settings.json` to automate common tasks during development.
+
+## Configured Hooks
+
+### Biome Auto-Format
+
+**Trigger**: After Edit or Write operations on TS/JS files
+
+**Action**: Runs `biome check --write` to format the file
+
+```json
+{
+  "matcher": "Edit|Write",
+  "hooks": [{
+    "type": "command",
+    "command": "bunx biome check --write \"$CLAUDE_FILE_PATHS\""
+  }]
+}
+```
+
+### Security Check
+
+**Trigger**: Before Edit or Write operations
+
+**Action**: Scans for security anti-patterns and warns once per file/rule
+
+```json
+{
+  "matcher": "Edit|Write",
+  "hooks": [{
+    "type": "command",
+    "command": ".claude/hooks/security-check.js"
+  }]
+}
+```
+
+## Security Patterns Detected
+
+| Pattern | Description |
+|---------|-------------|
+| GitHub Actions Injection | Untrusted input in workflow expressions |
+| Dynamic Code Execution | `eval()` or `new Function()` |
+| XSS Vectors | `innerHTML` or `dangerouslySetInnerHTML` |
+| Hardcoded Secrets | API keys, passwords in code |
+| SQL Injection | Template literal interpolation in queries |
+| Command Injection | Template literals in exec/spawn |
+
+## Behavior
+
+- Warnings appear once per file per rule per session
+- Warnings don't block operations
+- State is persisted in `~/.claude-security-warnings.json`
+
+## Adding Custom Hooks
+
+1. Create hook script in `.claude/hooks/`
+2. Make it executable: `chmod +x script.js`
+3. Add to `.claude/settings.json`
+
+### Hook Script Format
+
+```javascript
+#!/usr/bin/env node
+
+const input = JSON.parse(process.env.CLAUDE_TOOL_INPUT || '{}')
+
+// Your logic here
+
+// Output (optional)
+console.log(JSON.stringify({
+  decision: 'allow', // or 'block'
+  message: 'Optional message to display'
+}))
+```
+
+## Environment Variables
+
+Available in hooks:
+
+| Variable | Description |
+|----------|-------------|
+| `CLAUDE_TOOL_INPUT` | JSON with tool parameters |
+| `CLAUDE_FILE_PATHS` | Affected file path(s) |
