@@ -1,6 +1,6 @@
 export const baseConfig = {
   globals: true,
-  passWithNoTests: true,
+  passWithNoTests: false,
   watch: false,
   reporters: ['default'],
   testTimeout: 10000,
