@@ -6,6 +6,7 @@
     "10-git-hooks",
     "11-documentation-server",
     "20-i18n",
-    "33-tanstack-start-i18n-integration"
+    "33-tanstack-start-i18n-integration",
+    "43-backend-setup"
   ]
 }
