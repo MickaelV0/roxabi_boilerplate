@@ -2,8 +2,8 @@ services:
   # Development mode with hot-reload
   docs:
     build:
-      context: .
-      dockerfile: Dockerfile.dev
+      context: ../..
+      dockerfile: apps/docs/Dockerfile.dev
     ports:
       - "${DOCS_PORT:-3002}:3002"
     volumes:
