@@ -9,5 +9,6 @@ export default defineConfig({
     name: 'web',
     root: __dirname,
     setupFiles: ['./src/test/setup.ts'],
+    include: ['src/**/*.test.{ts,tsx}', 'lib/**/*.test.{ts,tsx}'],
   },
 })

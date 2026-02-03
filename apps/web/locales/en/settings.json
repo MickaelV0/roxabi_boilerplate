@@ -1,0 +1,79 @@
+{
+  "title": "Settings",
+  "subtitle": "Manage your account settings and preferences.",
+  "sections": {
+    "profile": "Profile",
+    "account": "Account",
+    "notifications": "Notifications",
+    "appearance": "Appearance",
+    "security": "Security",
+    "billing": "Billing"
+  },
+  "profile": {
+    "title": "Profile Settings",
+    "subtitle": "Update your personal information.",
+    "avatar": "Profile Picture",
+    "avatar_change": "Change picture",
+    "avatar_remove": "Remove picture",
+    "name": "Display Name",
+    "email": "Email Address",
+    "bio": "Bio",
+    "bio_placeholder": "Tell us a little about yourself...",
+    "save": "Save Profile"
+  },
+  "account": {
+    "title": "Account Settings",
+    "subtitle": "Manage your account preferences.",
+    "language": "Language",
+    "language_description": "Select your preferred language.",
+    "timezone": "Timezone",
+    "timezone_description": "Set your local timezone for accurate timestamps.",
+    "delete_account": "Delete Account",
+    "delete_account_warning": "This action is permanent and cannot be undone.",
+    "delete_account_confirm": "Type DELETE to confirm"
+  },
+  "notifications": {
+    "title": "Notification Preferences",
+    "subtitle": "Choose what notifications you want to receive.",
+    "email_notifications": "Email Notifications",
+    "email_marketing": "Marketing emails",
+    "email_updates": "Product updates",
+    "email_security": "Security alerts",
+    "push_notifications": "Push Notifications",
+    "push_enabled": "Enable push notifications"
+  },
+  "appearance": {
+    "title": "Appearance",
+    "subtitle": "Customize how the app looks.",
+    "theme": "Theme",
+    "theme_light": "Light",
+    "theme_dark": "Dark",
+    "theme_system": "System"
+  },
+  "security": {
+    "title": "Security",
+    "subtitle": "Manage your security settings.",
+    "change_password": "Change Password",
+    "current_password": "Current Password",
+    "new_password": "New Password",
+    "confirm_new_password": "Confirm New Password",
+    "two_factor": "Two-Factor Authentication",
+    "two_factor_description": "Add an extra layer of security to your account.",
+    "two_factor_enable": "Enable 2FA",
+    "two_factor_disable": "Disable 2FA",
+    "sessions": "Active Sessions",
+    "sessions_description": "Manage your active sessions across devices.",
+    "revoke_session": "Revoke Session",
+    "revoke_all": "Revoke All Sessions"
+  },
+  "billing": {
+    "title": "Billing",
+    "subtitle": "Manage your subscription and payment methods.",
+    "current_plan": "Current Plan",
+    "upgrade": "Upgrade Plan",
+    "payment_method": "Payment Method",
+    "add_payment": "Add Payment Method",
+    "billing_history": "Billing History",
+    "view_invoice": "View Invoice"
+  }
+}

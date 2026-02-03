@@ -1,0 +1,39 @@
+{
+  "title": "Tableau de bord",
+  "welcome": "Bon retour, {{name}} !",
+  "overview": {
+    "title": "Vue d'ensemble",
+    "subtitle": "Voici ce qui se passe avec votre compte."
+  },
+  "stats": {
+    "total_users": "Utilisateurs totaux",
+    "active_users": "Utilisateurs actifs",
+    "revenue": "Revenus",
+    "growth": "Croissance"
+  },
+  "recent_activity": {
+    "title": "Activite recente",
+    "empty": "Aucune activite recente a afficher.",
+    "view_all": "Voir toute l'activite"
+  },
+  "quick_actions": {
+    "title": "Actions rapides",
+    "new_project": "Nouveau projet",
+    "invite_user": "Inviter un utilisateur",
+    "view_reports": "Voir les rapports",
+    "settings": "Parametres"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "Vous etes a jour !",
+    "mark_read": "Marquer comme lu",
+    "mark_all_read": "Tout marquer comme lu"
+  },
+  "navigation": {
+    "home": "Accueil",
+    "projects": "Projets",
+    "team": "Equipe",
+    "analytics": "Analytiques",
+    "settings": "Parametres"
+  }
+}
