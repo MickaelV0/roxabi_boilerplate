@@ -169,14 +169,40 @@ gh api repos/OWNER/REPO/branches/main/protection -X PUT \
 EOF
 ```
 
-## 5. Install Dependencies
+## 5. Configure CI/CD (Optional)
+
+CI/CD workflows are included and work out of the box. For faster builds, configure Turbo Remote Cache:
+
+### Turbo Remote Cache (~50% faster CI)
+
+1. Create a free [Vercel](https://vercel.com) account
+2. Go to **Settings** > **Tokens** > **Create token**
+3. In your GitHub repo: **Settings** > **Secrets and variables** > **Actions**
+4. Add secret: `TURBO_TOKEN` (your Vercel token)
+5. Add variable: `TURBO_TEAM` (your Vercel team name)
+
+### CI Pipeline
+
+The CI pipeline runs automatically on:
+- Pull requests to `main`
+- Pushes to `main`
+
+Jobs: `install` → `lint` / `typecheck` / `test` (parallel) → `build` → `e2e` (conditional)
+
+To run E2E tests on a PR, add the `e2e` label.
+
+### CD Pipeline
+
+Deployment runs automatically on pushes to `main` after CI passes. Deploy jobs are placeholders ready for your hosting provider (Vercel, Railway, Fly.io, etc.).
+
+## 6. Install Dependencies
 
 ```bash
 # Install all monorepo dependencies
 bun install
 ```
 
-## 6. Configure Environment
+## 7. Configure Environment
 
 ```bash
 # Copy the example file
@@ -186,7 +212,7 @@ cp .env.example .env
 # DATABASE_URL, API keys, etc.
 ```
 
-## 7. Configure the Database
+## 8. Configure the Database
 
 ```bash
 # Create the database
@@ -196,7 +222,7 @@ createdb my_project_dev
 bun db:migrate
 ```
 
-## 8. Run the Project
+## 9. Run the Project
 
 ```bash
 # Run all apps in dev mode
@@ -207,7 +233,7 @@ bun --filter @repo/web dev
 bun --filter @repo/api dev
 ```
 
-## 9. Verify Installation
+## 10. Verify Installation
 
 - Frontend: http://localhost:3000
 - API: http://localhost:3001

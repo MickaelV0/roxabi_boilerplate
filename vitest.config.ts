@@ -22,6 +22,17 @@ export default defineConfig({
         '**/index.ts',
         'packages/config/**',
         'packages/types/**',
+        // Generated files
+        '**/*.gen.ts',
+        // Framework/routing files
+        '**/routes/**',
+        '**/__root.tsx',
+        '**/router.tsx',
+        // Infrastructure/boilerplate files
+        '**/*-error-boundary.tsx',
+        '**/not-found.tsx',
+        '**/layout.shared.tsx',
+        '**/source.ts',
       ],
       thresholds: {
         lines: 70,
