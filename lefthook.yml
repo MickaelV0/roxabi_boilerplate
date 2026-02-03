@@ -5,7 +5,8 @@ pre-push:
   parallel: true
   commands:
     lint:
-      run: bun run lint:affected
+      # Biome runs at root level (fast ~6ms), no need for affected filter
+      run: bun run lint
     typecheck:
       run: bun run typecheck:affected
     test:

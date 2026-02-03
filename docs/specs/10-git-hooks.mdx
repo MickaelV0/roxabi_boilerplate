@@ -111,13 +111,15 @@ pre-push:
   parallel: true
   commands:
     lint:
-      run: bun run lint:affected
-      stage_fixed: false
+      # Biome runs at root level (fast ~6ms), no need for affected filter
+      run: bun run lint
     typecheck:
       run: bun run typecheck:affected
     test:
       run: bun run test:affected
 ```
+
+> **Note:** Lint runs without `--filter` because Biome operates at root level and is extremely fast (~6ms for all files). TypeScript and tests use the affected filter for performance.
 
 ### Package.json Scripts (Shared with CI)
 

@@ -29,6 +29,16 @@ bun format
 bun typecheck
 ```
 
+## Git Hooks
+
+Pre-push hooks run automatically to ensure code quality:
+
+- **Lint**: Biome checks all files
+- **Typecheck**: TypeScript validation (affected packages only)
+- **Tests**: Vitest unit tests (affected packages only)
+
+Hooks are installed automatically via `bun install`. To bypass in emergencies: `LEFTHOOK=0 git push`
+
 ## Structure
 
 ```
