@@ -6,6 +6,8 @@ set -euo pipefail
 
 PROJECT_ID="${PROJECT_ID:-PVT_kwHODEqYK84BOId3}"
 REPO="${GITHUB_REPO:-MickaelV0/roxabi_boilerplate}"
+OWNER="${REPO%/*}"
+REPO_NAME="${REPO#*/}"
 
 SORT_BY="size"
 JSON_OUTPUT=false
@@ -57,13 +59,24 @@ OPEN_ISSUES=$(echo "$PROJECT_DATA" | jq -r '
     | .content.number
 ')
 
-# Fetch dependencies for each issue via REST API (native GitHub feature)
+# Fetch dependencies for each issue via GraphQL (trackedInIssues = blocked by, trackedIssues = blocks)
 DEPS_DATA="{}"
 for issue_num in $OPEN_ISSUES; do
-    # Get blocked_by dependencies
-    blocked_by=$(gh api "repos/$REPO/issues/$issue_num/dependencies/blocked_by" --jq '[.[].number]' 2>/dev/null || echo "[]")
-    # Get blocking dependencies
-    blocking=$(gh api "repos/$REPO/issues/$issue_num/dependencies/blocking" --jq '[.[].number]' 2>/dev/null || echo "[]")
+    deps=$(gh api graphql -f query='
+        query($owner: String!, $repo: String!, $num: Int!) {
+          repository(owner: $owner, name: $repo) {
+            issue(number: $num) {
+              trackedInIssues(first: 10) { nodes { number } }
+              trackedIssues(first: 10) { nodes { number } }
+            }
+          }
+        }
+    ' -f owner="$OWNER" -f repo="$REPO_NAME" -F num="$issue_num" 2>/dev/null || echo '{"data":{"repository":{"issue":{"trackedInIssues":{"nodes":[]},"trackedIssues":{"nodes":[]}}}}}')
+
+    # trackedIssues = issues this one tracks (depends on) = blocked_by
+    # trackedInIssues = issues tracking this one (depend on this) = blocking
+    blocked_by=$(echo "$deps" | jq '[.data.repository.issue.trackedIssues.nodes[].number]')
+    blocking=$(echo "$deps" | jq '[.data.repository.issue.trackedInIssues.nodes[].number]')
 
     DEPS_DATA=$(echo "$DEPS_DATA" | jq --arg num "$issue_num" --argjson bb "$blocked_by" --argjson bl "$blocking" \
         '. + {($num): {blocked_by: $bb, blocking: $bl}}')
