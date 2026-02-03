@@ -162,11 +162,12 @@ roxabi_boilerplate/
 ├── apps/
 │   ├── web/               # Frontend (TanStack Start)
 │   ├── api/               # Backend (NestJS + Fastify)
+│   ├── docs/              # Documentation server (Fumadocs + Docker)
 │   └── packages/          # Shared code
 │       ├── ui/            # Shared UI (Shadcn/UI)
 │       ├── config/        # Shared configurations
 │       └── types/         # Shared TypeScript types
-├── docs/                   # Documentation (Docker-based server)
+├── docs/                   # Documentation source (Markdown)
 └── .claude/                # Claude Code configuration
 ```
 

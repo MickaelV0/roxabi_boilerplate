@@ -8,14 +8,12 @@ roxabi_boilerplate/
 ├── apps/
 │   ├── web/               # Frontend application
 │   ├── api/               # Backend API
+│   ├── docs/              # Documentation server (Fumadocs + Docker)
 │   └── packages/          # Shared code
 │       ├── ui/            # Shared UI components
 │       ├── config/        # Shared configurations
 │       └── types/         # Shared TypeScript types
-├── docs/                   # Documentation (isolated, Docker-based)
-│   ├── *.md               # Markdown content
-│   ├── Dockerfile         # Fumadocs server
-│   └── docker-compose.yml
+├── docs/                   # Documentation source (Markdown)
 └── .claude/                # Claude Code configuration
 ```
 
@@ -74,20 +72,20 @@ Shared TypeScript type definitions.
 - API contracts
 - Exported from `@repo/types`
 
-## Documentation (`docs/`)
+## Documentation (`apps/docs/`)
 
-Documentation server isolated from the monorepo.
+Documentation server as a monorepo app.
 
-- Markdown files at root level
 - Fumadocs-powered server (Next.js)
 - Runs in Docker container
 - Port configurable via `.env` (`DOCS_PORT`)
+- MDX content in `apps/docs/content/`
 
 ```bash
 # Start documentation server
 bun docs
 # or
-docker compose -f docs/docker-compose.yml up
+docker compose -f apps/docs/docker-compose.yml up
 ```
 
 ## Data Flow
