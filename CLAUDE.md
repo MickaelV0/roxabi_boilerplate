@@ -100,6 +100,7 @@ cd ../roxabi-XXX
 | issues, list issues | `issues` | "list GitHub issues", "/issues" |
 | issue triage, labeling | `issue-triage` | "triage issues", "label open issues" |
 | interview, spec | `interview` | "create a spec", "interview for feature" |
+| playground, explorer | `playground` | "create a playground", "interactive tool for X" |
 
 **Important notes:**
 - ALWAYS use the appropriate skill even if user doesn't explicitly mention the slash command
