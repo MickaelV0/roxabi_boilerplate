@@ -3,7 +3,7 @@ import { HreflangTags, loadI18nNamespaces, useLocale, useTranslation } from '@/l
 import type { RouterContext } from '@/router'
 import { createFileRoute } from '@tanstack/react-router'
 
-export const Route = createFileRoute('/$locale/_layout/dashboard')({
+export const Route = createFileRoute('/$locale/dashboard')({
   loader: async ({ context }) => {
     const ctx = context as RouterContext
     await loadI18nNamespaces(ctx.i18n, ['dashboard'])
