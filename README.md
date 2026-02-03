@@ -43,6 +43,17 @@ roxabi_boilerplate/
 └── docs/             # Documentation
 ```
 
+## Git Hooks
+
+Git hooks are configured using [Lefthook](https://github.com/evilmartians/lefthook) and are installed automatically on `bun install`.
+
+| Hook | Purpose | Speed |
+|------|---------|-------|
+| **Pre-commit** | Auto-format staged files with Biome | &lt;1s |
+| **Pre-push** | Full validation (lint, typecheck, tests) | &lt;30s (cached) |
+
+**Bypass for emergencies:** Use `--no-verify` flag (CI is the ultimate enforcement).
+
 ## Development Process
 
 ```

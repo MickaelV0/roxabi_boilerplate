@@ -38,6 +38,6 @@
     }
   },
   "files": {
-    "ignore": ["node_modules", "dist", "build", ".next", ".turbo", "*.min.js"]
+    "ignore": ["node_modules", "dist", "build", ".next", ".turbo", "*.min.js", "coverage"]
   }
 }
