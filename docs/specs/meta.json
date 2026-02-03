@@ -1,4 +1,4 @@
 {
   "title": "Specifications",
-  "pages": ["index", "09-testing-infrastructure", "11-documentation-server"]
+  "pages": ["index", "09-testing-infrastructure", "10-git-hooks", "11-documentation-server", "20-i18n"]
 }

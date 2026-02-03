@@ -1,0 +1,217 @@
+---
+title: "i18n (Internationalization)"
+description: "Specification for multi-language support in the Roxabi boilerplate"
+---
+
+# i18n (Internationalization)
+
+## Contexte
+
+L'i18n est listé comme feature core dans la Phase 1 MVP du boilerplate. L'objectif est de fournir une infrastructure solide pour supporter plusieurs langues dans les applications SaaS construites avec Roxabi.
+
+## Objectif
+
+Implémenter un système d'internationalisation complet permettant:
+- Traduire toutes les chaînes UI
+- Détecter et persister la préférence de langue
+- Formater dates, nombres et devises selon la locale
+- Support SSR complet sans flash de contenu
+
+## Utilisateurs & Cas d'usage
+
+### Utilisateurs
+- **Développeurs** utilisant le boilerplate pour créer des SaaS
+- **Utilisateurs finaux** des applications construites avec Roxabi
+
+### Cas d'usage
+1. Un visiteur arrive sur le site, sa langue est détectée automatiquement (browser)
+2. L'utilisateur change de langue via un switcher
+3. La préférence est persistée (cookie pour anonymes, profil pour connectés)
+4. Toutes les chaînes UI, dates et nombres s'affichent dans la bonne locale
+
+## Décisions techniques
+
+### Stack choisie
+
+| Aspect | Choix | Justification |
+|--------|-------|---------------|
+| Librairie | **i18next** + react-i18next | Écosystème mature, excellent support SSR, grande communauté |
+| Format fichiers | **JSON namespaces** | Lazy loading par route, organisation claire, bon splitting |
+| Pluriels | **i18next standard** | Suffisant pour EN/FR, syntaxe simple |
+| Formatage | **Intl API native** | Standard, léger, pas de dépendance externe |
+| SSR | **Full SSR** | 0 flash, meilleur SEO, UX optimale |
+
+### Détection de langue
+
+```
+1. URL path (/fr/..., /en/...)
+2. Cookie (si déjà défini)
+3. Accept-Language header (browser)
+4. Fallback: English
+```
+
+### Persistance
+
+| Utilisateur | Stockage |
+|-------------|----------|
+| Anonyme | Cookie `locale` (1 an) |
+| Connecté | Champ `locale` dans user profile + cookie sync |
+
+### Structure des fichiers
+
+```
+apps/web/
+├── locales/
+│   ├── en/
+│   │   ├── common.json      # Chaînes partagées (buttons, errors...)
+│   │   ├── auth.json        # Login, register, password...
+│   │   ├── dashboard.json   # Dashboard specific
+│   │   └── settings.json    # Settings page
+│   └── fr/
+│       ├── common.json
+│       ├── auth.json
+│       ├── dashboard.json
+│       └── settings.json
+├── lib/
+│   └── i18n/
+│       ├── index.ts         # Configuration i18next
+│       ├── server.ts        # SSR utilities
+│       ├── client.ts        # Client initialization
+│       └── types.ts         # TypeScript types
+└── components/
+    └── LanguageSwitcher.tsx # Hook + minimal UI example
+```
+
+### Format des traductions
+
+```json
+// locales/en/common.json
+{
+  "buttons": {
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save changes"
+  },
+  "errors": {
+    "required": "This field is required",
+    "invalid_email": "Please enter a valid email"
+  },
+  "items": "{{count}} item",
+  "items_plural": "{{count}} items"
+}
+```
+
+### Intégration TanStack Start
+
+```tsx
+// Route avec SSR i18n
+export const Route = createFileRoute('/dashboard')({
+  loader: async ({ context }) => {
+    // Charger namespace dashboard côté serveur
+    await context.i18n.loadNamespaces(['dashboard'])
+    return { /* data */ }
+  },
+  component: Dashboard,
+})
+```
+
+## Comportement attendu
+
+### Happy path
+
+1. Requête arrive sur `/fr/dashboard`
+2. Serveur détecte locale `fr` depuis URL
+3. Charge les namespaces requis (`common`, `dashboard`)
+4. Rend le HTML avec traductions FR
+5. Client hydrate avec même état i18n
+6. Aucun flash, SEO optimal
+
+### Edge cases
+
+| Cas | Comportement |
+|-----|--------------|
+| Locale inconnue dans URL | Redirect vers locale par défaut (EN) |
+| Clé de traduction manquante | Affiche `[missing: key.name]` en dev, fallback EN en prod |
+| Changement de langue | Update cookie + reload page (pour SSR correct) |
+| User connecté change langue | Update profil DB + cookie + reload |
+
+## Contraintes
+
+### Techniques
+- TanStack Start avec SSR (Vinxi)
+- Bun runtime
+- Pas de RTL pour v1
+
+### Scope v1
+- Langues: English (default), French
+- UI strings seulement (pas de contenu DB)
+- Pas de workflow traducteurs externes
+
+## Non-goals
+
+- Support RTL (arabe, hébreu)
+- Traduction du contenu DB
+- Intégration plateformes de traduction (Crowdin, Lokalise)
+- Support de &gt;2 langues dans v1
+
+## DX (Developer Experience)
+
+### Clés manquantes en développement
+
+```tsx
+// En mode dev, affiche:
+// - Warning console: "Missing translation key: dashboard.welcome"
+// - Visual: [missing: dashboard.welcome] dans l'UI
+```
+
+### Script de validation CI
+
+```bash
+# scripts/validate-translations.ts
+# Vérifie que toutes les locales ont les mêmes clés
+bun run scripts/validate-translations.ts
+```
+
+Intégré dans le CI pour bloquer les PR avec clés manquantes.
+
+### Helpers de formatage
+
+```tsx
+import { useLocale } from '@/lib/i18n'
+
+function PriceDisplay({ amount }: { amount: number }) {
+  const { formatCurrency, formatDate, formatNumber } = useLocale()
+
+  return (
+    <div>
+      <span>{formatCurrency(amount, 'EUR')}</span>
+      <span>{formatDate(new Date())}</span>
+      <span>{formatNumber(1234.56)}</span>
+    </div>
+  )
+}
+```
+
+## Critères de succès
+
+- [ ] i18next configuré avec SSR complet (0 flash)
+- [ ] Détection automatique de langue (URL > cookie > browser > EN)
+- [ ] Persistance cookie + user profile
+- [ ] Structure namespaces avec lazy loading
+- [ ] Hook `useTranslation` fonctionnel
+- [ ] Hook `useLocale` avec formatters (date, number, currency)
+- [ ] Composant LanguageSwitcher minimal
+- [ ] Script CI de validation des clés
+- [ ] Documentation du workflow de traduction
+- [ ] Tests unitaires pour la logique i18n
+
+## Questions ouvertes
+
+- Faut-il précharger tous les namespaces ou lazy load par route ? (À valider avec benchmarks)
+- Format exact des URLs: `/fr/dashboard` vs `/dashboard?lang=fr` (pencher pour path-based pour SEO)
+
+## Références
+
+- [i18next documentation](https://www.i18next.com/)
+- [react-i18next](https://react.i18next.com/)
+- [TanStack Start SSR](https://tanstack.com/start/latest)
