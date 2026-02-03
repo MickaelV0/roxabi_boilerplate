@@ -1,0 +1,218 @@
+---
+title: Git Hooks (Pre-push Quality Gates)
+description: Specification for Git hooks configuration with Lefthook/Husky analysis
+---
+
+## Overview
+
+Configuration des Git hooks pour enforcer la qualité du code avant chaque push. Ce setup garantit que le code pushé passe lint, typecheck et tests unitaires.
+
+## Goals
+
+- Bloquer les push si les quality gates échouent
+- Intégration avec TurboRepo pour détection intelligente du scope
+- Partage des scripts avec la CI (issue #8)
+- Feedback clair avec progress indicators
+
+## Tool Analysis: Husky vs Lefthook
+
+### Comparison
+
+| Critère | Husky | Lefthook |
+|---------|-------|----------|
+| **Performance** | Moyen | Rapide (Go binary) |
+| **Configuration** | JS/package.json | YAML simple |
+| **Dépendances** | Node.js requis | Standalone binary |
+| **Parallélisme** | Manuel | Natif |
+| **TurboRepo** | Compatible | Compatible |
+| **Popularité** | ~32k stars | ~5k stars |
+| **Maintenance** | Active | Active |
+| **Setup** | `npx husky init` | `lefthook install` |
+
+### Husky
+
+**Avantages:**
+- Écosystème npm mature
+- Documentation abondante
+- Intégration lint-staged simple
+
+**Inconvénients:**
+- Plus lent (JS runtime)
+- Dépendance Node obligatoire
+- Config dispersée (multiple fichiers)
+
+### Lefthook
+
+**Avantages:**
+- Très rapide (binary Go)
+- Config YAML centralisée
+- Parallélisme natif des commandes
+- Pas de dépendance Node pour les hooks
+- Parfait pour les monorepos
+
+**Inconvénients:**
+- Moins populaire
+- Moins d'exemples en ligne
+
+### Recommendation
+
+**Lefthook** est recommandé pour ce projet car:
+1. Performance supérieure (important pour CI/hooks)
+2. Config YAML simple et centralisée
+3. Parallélisme natif (lint + typecheck en parallèle)
+4. Meilleure intégration monorepo
+5. Le projet utilise déjà Bun (pas de lock-in npm)
+
+## Architecture
+
+### Hook Type
+
+**Pre-push only** - Validation complète avant push:
+- Lint (Biome)
+- Typecheck (TypeScript)
+- Tests unitaires (Vitest)
+
+Pas de pre-commit hook pour éviter la friction au développement quotidien.
+
+### Scope Detection
+
+Utilisation de TurboRepo `--filter` pour ne valider que les packages affectés:
+
+```bash
+turbo run lint typecheck test --filter=...[origin/main]
+```
+
+Cette approche:
+- Utilise le cache Turbo existant
+- Détecte automatiquement les packages modifiés
+- Ne re-run pas les checks déjà passés
+
+### Test Scope
+
+- **Inclus:** Tests unitaires/intégration (Vitest)
+- **Exclus:** Tests E2E (Playwright) - réservés à la CI
+
+Raison: Les tests E2E sont lents (2-5min) et frustreraient les développeurs.
+
+### Bypass Policy
+
+**Aucun bypass autorisé** - Approche stricte:
+- La CI bloquera de toute façon
+- `--no-verify` non encouragé
+- Force la qualité à la source
+
+## Configuration
+
+### Lefthook Setup
+
+```yaml
+# lefthook.yml
+pre-push:
+  parallel: true
+  commands:
+    lint:
+      run: bun run lint:affected
+      stage_fixed: false
+    typecheck:
+      run: bun run typecheck:affected
+    test:
+      run: bun run test:affected
+```
+
+### Package.json Scripts (Shared with CI)
+
+```json
+{
+  "scripts": {
+    "lint:affected": "turbo run lint --filter=...[origin/main]",
+    "typecheck:affected": "turbo run typecheck --filter=...[origin/main]",
+    "test:affected": "turbo run test --filter=...[origin/main]",
+    "quality": "turbo run lint typecheck test --filter=...[origin/main]"
+  }
+}
+```
+
+Ces scripts sont utilisés par:
+- Les Git hooks (pre-push)
+- La CI GitHub Actions (issue #8)
+
+### Verbosity
+
+Progress indicators pour feedback clair:
+- TurboRepo affiche déjà les tâches en cours
+- Lefthook affiche le nom de chaque commande
+- Erreurs complètes affichées si échec
+
+## Implementation Checklist
+
+- [ ] Installer Lefthook (`bun add -D lefthook`)
+- [ ] Créer `lefthook.yml` à la racine
+- [ ] Ajouter scripts `*:affected` dans package.json
+- [ ] Initialiser hooks (`lefthook install`)
+- [ ] Ajouter `lefthook install` au postinstall
+- [ ] Tester avec un push valide
+- [ ] Tester avec un push invalide (lint error)
+- [ ] Documenter dans README
+
+## CI Alignment (Issue #8)
+
+Les scripts `*:affected` seront réutilisés dans GitHub Actions:
+
+```yaml
+# .github/workflows/ci.yml
+jobs:
+  quality:
+    steps:
+      - run: bun run quality
+```
+
+Cela garantit que hooks locaux et CI exécutent exactement les mêmes validations.
+
+## Non-Goals
+
+- Pre-commit hooks (pas dans le scope)
+- Tests E2E dans les hooks
+- Bypass configurable
+- Hooks personnalisés par développeur
+
+## Edge Cases
+
+### Premier push d'une branche
+
+Si `origin/main` n'existe pas localement:
+```bash
+# Fallback: compare avec HEAD~1 ou run tout
+turbo run lint typecheck test --filter=...[HEAD~1] || turbo run lint typecheck test
+```
+
+### Pas de changements détectés
+
+TurboRepo skip automatiquement si rien n'a changé (cache hit).
+
+### Hook échoue
+
+Message clair affiché:
+```
+❌ Pre-push failed:
+   - lint: 2 errors
+   - typecheck: passed
+   - test: 1 failed
+
+Fix issues and try again.
+```
+
+## Success Criteria
+
+- [ ] Push bloqué si lint/typecheck/test échouent
+- [ ] Validation &lt;30s pour changements mineurs (cache)
+- [ ] Scripts réutilisés par CI sans duplication
+- [ ] Feedback clair avec progress indicators
+- [ ] Zero configuration pour nouveaux développeurs (postinstall)
+
+## References
+
+- [Lefthook Documentation](https://github.com/evilmartians/lefthook)
+- [Husky Documentation](https://typicode.github.io/husky/)
+- [TurboRepo Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
+- Issue #9: Testing Infrastructure (dependency)
+- Issue #8: CI/CD GitHub Actions (blocks)
