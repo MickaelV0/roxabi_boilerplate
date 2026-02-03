@@ -1,0 +1,12 @@
+# Git Hooks Configuration
+# See docs/specs/10-git-hooks.mdx for details
+
+pre-push:
+  parallel: true
+  commands:
+    lint:
+      run: bun run lint:affected
+    typecheck:
+      run: bun run typecheck:affected
+    test:
+      run: bun run test:affected

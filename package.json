@@ -15,13 +15,19 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "lint:affected": "turbo run lint --filter=...[origin/main]",
+    "typecheck:affected": "turbo run typecheck --filter=...[origin/main]",
+    "test:affected": "turbo run test --filter=...[origin/main]",
+    "quality": "turbo run lint typecheck test --filter=...[origin/main]",
     "clean": "turbo clean && rm -rf node_modules",
     "docs": "docker compose -f apps/docs/docker-compose.yml up docs",
     "docs:prod": "docker compose -f apps/docs/docker-compose.yml up docs-prod",
-    "docs:build": "docker compose -f apps/docs/docker-compose.yml build docs-prod"
+    "docs:build": "docker compose -f apps/docs/docker-compose.yml build docs-prod",
+    "postinstall": "lefthook install"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",
+    "lefthook": "^1.10.10",
     "@playwright/test": "^1.58.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
