@@ -9,7 +9,7 @@
     "build": "vite build",
     "start": "node .output/server/index.mjs",
     "preview": "vite preview",
-    "typecheck": "fumadocs-mdx && tsc --noEmit",
+    "typecheck": "tsr generate && fumadocs-mdx && tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
@@ -29,6 +29,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@tanstack/router-cli": "^1.157.16",
     "@tailwindcss/vite": "^4.1.18",
     "@types/mdx": "^2.0.13",
     "@types/node": "^25.1.0",
