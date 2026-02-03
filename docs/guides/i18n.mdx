@@ -1,0 +1,247 @@
+---
+title: Internationalization (i18n)
+description: Guide for working with translations in the application
+---
+
+This guide explains how to work with translations in the Roxabi application.
+
+## Overview
+
+The i18n system uses [i18next](https://www.i18next.com/) with the following structure:
+
+```
+apps/web/
+├── lib/i18n/           # i18n configuration and hooks
+│   ├── types.ts        # Locale and namespace types
+│   ├── hooks.ts        # React hooks (useTranslation, useLocale)
+│   ├── server.ts       # Server-side utilities
+│   └── client.ts       # Client-side initialization
+└── locales/            # Translation files
+    ├── en/             # English translations
+    │   ├── common.json
+    │   ├── auth.json
+    │   ├── dashboard.json
+    │   └── settings.json
+    └── fr/             # French translations
+        └── ...
+```
+
+## Adding New Translation Keys
+
+### 1. Choose the Right Namespace
+
+| Namespace | Use for |
+|-----------|---------|
+| `common` | Shared UI elements (buttons, labels, errors) |
+| `auth` | Login, signup, password reset |
+| `dashboard` | Dashboard-specific content |
+| `settings` | User settings and preferences |
+
+### 2. Add the Key to All Locales
+
+Add the key to both `locales/en/{namespace}.json` and `locales/fr/{namespace}.json`:
+
+```json
+// locales/en/common.json
+{
+  "buttons": {
+    "submit": "Submit",
+    "my_new_button": "Click me"
+  }
+}
+```
+
+```json
+// locales/fr/common.json
+{
+  "buttons": {
+    "submit": "Soumettre",
+    "my_new_button": "Cliquez ici"
+  }
+}
+```
+
+### 3. Use Interpolation for Dynamic Values
+
+```json
+{
+  "greeting": "Hello, {{name}}!",
+  "items": "{{count}} item",
+  "items_other": "{{count}} items"
+}
+```
+
+The `_other` suffix handles pluralization automatically.
+
+## Adding a New Namespace
+
+### 1. Create JSON Files
+
+Create the namespace file in each locale folder:
+
+```bash
+# Create files
+touch apps/web/locales/en/billing.json
+touch apps/web/locales/fr/billing.json
+```
+
+Add initial content:
+
+```json
+{
+  "title": "Billing"
+}
+```
+
+### 2. Update Types
+
+Add the namespace to `apps/web/lib/i18n/types.ts`:
+
+```typescript
+export const NAMESPACES = ['common', 'auth', 'dashboard', 'settings', 'billing'] as const
+```
+
+### 3. Validate
+
+Run validation to ensure all keys match:
+
+```bash
+bun run i18n:validate
+```
+
+## Adding a New Language
+
+### 1. Create Locale Folder
+
+```bash
+mkdir apps/web/locales/de
+```
+
+### 2. Copy and Translate Files
+
+Copy all JSON files from `en/` and translate them:
+
+```bash
+cp apps/web/locales/en/*.json apps/web/locales/de/
+```
+
+### 3. Update Types
+
+Add the locale to `apps/web/lib/i18n/types.ts`:
+
+```typescript
+export const LOCALES = ['en', 'fr', 'de'] as const
+```
+
+### 4. Add Language Name
+
+Add the display name in `locales/{locale}/common.json`:
+
+```json
+{
+  "languages": {
+    "en": "English",
+    "fr": "French",
+    "de": "German"
+  }
+}
+```
+
+## Using Translations in Components
+
+### useTranslation Hook
+
+```tsx
+import { useTranslation } from '@/lib/i18n/hooks'
+
+function MyComponent() {
+  const { t } = useTranslation('common')
+
+  return (
+    <button>{t('buttons.submit')}</button>
+  )
+}
+```
+
+### With Interpolation
+
+```tsx
+const { t } = useTranslation('common')
+
+// Simple interpolation
+t('greeting', { name: 'John' }) // "Hello, John!"
+
+// Pluralization
+t('items', { count: 1 }) // "1 item"
+t('items', { count: 5 }) // "5 items"
+```
+
+### Multiple Namespaces
+
+```tsx
+const { t } = useTranslation(['common', 'dashboard'])
+
+t('common:buttons.submit')
+t('dashboard:title')
+```
+
+### useLocale Hook
+
+For locale-aware formatting:
+
+```tsx
+import { useLocale } from '@/lib/i18n/hooks'
+
+function PriceDisplay({ amount }: { amount: number }) {
+  const { formatCurrency, formatDate, formatNumber } = useLocale()
+
+  return (
+    <div>
+      <p>Price: {formatCurrency(amount)}</p>
+      <p>Date: {formatDate(new Date())}</p>
+      <p>Count: {formatNumber(1234.56)}</p>
+    </div>
+  )
+}
+```
+
+## Validation
+
+### Running Validation
+
+```bash
+bun run i18n:validate
+```
+
+### Understanding Output
+
+**Success:**
+```
+✅ common: All keys match
+✅ auth: All keys match
+```
+
+**Missing keys:**
+```
+❌ common: Missing keys:
+    - buttons.new_button
+    - errors.timeout
+```
+
+**Extra keys (warning only):**
+```
+⚠️  common: Extra keys (not in en):
+    - buttons.deprecated
+```
+
+### CI Integration
+
+Translation validation runs automatically on every PR. PRs with missing keys will be blocked.
+
+## Best Practices
+
+1. **Always add keys to all locales** - The CI will block PRs with missing keys
+2. **Use dot notation** for nested keys: `buttons.submit`, not flat keys
+3. **Keep namespaces focused** - Don't put everything in `common`
+4. **Use interpolation** instead of string concatenation
+5. **Test with different locales** during development

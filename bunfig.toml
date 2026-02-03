@@ -1,0 +1,17 @@
+# Bun configuration
+# https://bun.sh/docs/runtime/bunfig
+
+[test]
+# Disable Bun's built-in test runner to avoid conflicts with Vitest
+# Use `bun run test` (which runs turbo test -> vitest) instead of `bun test`
+#
+# This project uses Vitest for testing, configured per-package via vitest.config.ts
+# Running `bun test` would use Bun's built-in runner which:
+# - Ignores vitest.config.ts files
+# - Doesn't set up jsdom environment for React tests
+# - Picks up Playwright e2e files causing conflicts
+#
+# Correct command: bun run test
+
+# Set root to a non-existent path to prevent bun test from finding files
+root = "./.bun-test-disabled"
