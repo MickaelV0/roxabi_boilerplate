@@ -6,6 +6,9 @@
     "vision",
     "architecture",
     "configuration",
-    "hooks"
+    "hooks",
+    "---",
+    "analyses",
+    "specs"
   ]
 }

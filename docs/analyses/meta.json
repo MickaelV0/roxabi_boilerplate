@@ -1,0 +1,14 @@
+{
+  "title": "Analyses",
+  "pages": [
+    "index",
+    "00-infrastructure-setup-summary",
+    "08-cicd-github-actions",
+    "09-testing-infrastructure",
+    "10-git-hooks",
+    "11-documentation-structure",
+    "12-claude-code-agents",
+    "13-workflow-branching",
+    "cli-for-ai-agents"
+  ]
+}
