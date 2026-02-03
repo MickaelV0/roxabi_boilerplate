@@ -1,109 +1,109 @@
 ---
-argument-hint: [sujet ou instructions]
-description: Interview approfondi pour créer une spec ou analyse détaillée
+argument-hint: [topic or instructions]
+description: In-depth interview to create a spec or detailed analysis
 allowed-tools: AskUserQuestion, Write, Read, Glob
 ---
 
 # Interview
 
-Interview l'utilisateur en profondeur pour créer un document détaillé (spec ou analyse).
+Conduct an in-depth interview with the user to create a detailed document (spec or analysis).
 
 ## Instructions
 
-1. **Commence par demander le type de document** via AskUserQuestion:
-   - **Spec**: Spécification technique pour un projet/feature à implémenter
-   - **Analyse**: Analyse approfondie d'un sujet, concept ou problème
+1. **Start by asking the document type** via AskUserQuestion:
+   - **Spec**: Technical specification for a project/feature to implement
+   - **Analysis**: In-depth analysis of a topic, concept, or problem
 
-2. **Interview en profondeur** avec AskUserQuestion:
-   - Pose des questions NON évidentes et approfondies
-   - Couvre tous les aspects: technique, UX, contraintes, compromis, edge cases
-   - Continue à poser des questions jusqu'à avoir une vision complète
-   - Regroupe 2-4 questions par appel pour être efficace
-   - Ne pose pas de questions dont la réponse est évidente
+2. **Conduct in-depth interview** with AskUserQuestion:
+   - Ask NON-obvious and probing questions
+   - Cover all aspects: technical, UX, constraints, trade-offs, edge cases
+   - Continue asking questions until you have a complete picture
+   - Group 2-4 questions per call for efficiency
+   - Don't ask questions with obvious answers
 
-3. **Questions selon le type**:
+3. **Questions by type**:
 
-   Pour une **Spec**:
-   - Objectif et problème résolu
-   - Utilisateurs cibles et cas d'usage
-   - Comportement attendu (happy path + edge cases)
-   - Contraintes techniques et dépendances
-   - Points d'intégration avec l'existant
-   - Compromis acceptables
-   - Critères de succès
+   For a **Spec**:
+   - Goal and problem being solved
+   - Target users and use cases
+   - Expected behavior (happy path + edge cases)
+   - Technical constraints and dependencies
+   - Integration points with existing systems
+   - Acceptable trade-offs
+   - Success criteria
 
-   Pour une **Analyse**:
-   - Contexte et pourquoi ce sujet
-   - Ce que tu sais déjà vs ce que tu veux explorer
-   - Questions spécifiques à résoudre
-   - Contraintes ou biais à considérer
-   - Format d'output souhaité
-   - Prochaines étapes envisagées
+   For an **Analysis**:
+   - Context and why this topic
+   - What you already know vs what you want to explore
+   - Specific questions to resolve
+   - Constraints or biases to consider
+   - Desired output format
+   - Planned next steps
 
-4. **Génère le document** une fois l'interview complète:
+4. **Generate the document** once the interview is complete:
    - Spec: `docs/spec/{slug}.md`
-   - Analyse: `knowledge/analyses/{slug}.md`
-   - Utilise un slug basé sur le sujet (kebab-case)
+   - Analysis: `knowledge/analyses/{slug}.md`
+   - Use a slug based on the topic (kebab-case)
 
-## Format du document
+## Document Format
 
-### Pour une Spec
+### For a Spec
 
 ```markdown
-# {Titre}
+# {Title}
 
-## Contexte
-{Pourquoi ce projet/feature}
+## Context
+{Why this project/feature}
 
-## Objectif
-{Ce que ça doit accomplir}
+## Goal
+{What it should accomplish}
 
-## Utilisateurs & Cas d'usage
-{Qui et comment}
+## Users & Use Cases
+{Who and how}
 
-## Comportement attendu
+## Expected Behavior
 ### Happy path
-{Flux principal}
+{Main flow}
 
 ### Edge cases
-{Cas limites et comportement}
+{Edge cases and behavior}
 
-## Contraintes
-- {Contraintes techniques}
-- {Contraintes de temps/ressources}
+## Constraints
+- {Technical constraints}
+- {Time/resource constraints}
 
 ## Non-goals
-{Ce qui est explicitement hors scope}
+{What is explicitly out of scope}
 
-## Décisions techniques
-{Choix à faire et compromis}
+## Technical Decisions
+{Choices to make and trade-offs}
 
-## Critères de succès
-- [ ] {Critère mesurable}
+## Success Criteria
+- [ ] {Measurable criterion}
 
-## Questions ouvertes
-{Points à clarifier plus tard}
+## Open Questions
+{Points to clarify later}
 ```
 
-### Pour une Analyse
+### For an Analysis
 
 ```markdown
-# {Titre}
+# {Title}
 
-## Contexte
-{Pourquoi cette analyse}
+## Context
+{Why this analysis}
 
-## Questions explorées
-{Questions principales}
+## Questions Explored
+{Main questions}
 
-## Analyse
-{Corps de l'analyse}
+## Analysis
+{Body of the analysis}
 
 ## Conclusions
-{Points clés}
+{Key points}
 
-## Prochaines étapes
-- {Action à prendre}
+## Next Steps
+- {Action to take}
 ```
 
 $ARGUMENTS
