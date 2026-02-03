@@ -54,8 +54,8 @@ export function useTranslation(ns?: Namespace | Namespace[]) {
       }
 
       // Fall back to i18next (for client-side after hydration)
-      const result = i18nextResult.t(key, defaultValue)
-      return typeof result === 'string' ? result : defaultValue || key
+      const result = defaultValue ? i18nextResult.t(key, defaultValue) : i18nextResult.t(key)
+      return typeof result === 'string' ? result : (defaultValue ?? key)
     },
     [routerContext?.i18n?.resources, namespace, i18nextResult.t]
   )
