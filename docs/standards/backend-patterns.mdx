@@ -1,0 +1,290 @@
+---
+title: Backend Patterns
+description: NestJS coding standards, design patterns, and best practices
+---
+
+## TypeScript Preamble
+
+Shared TypeScript rules (const assertions, derived unions, type guards, `satisfies`, `type` vs `interface`, anti-patterns) are documented in [Frontend Patterns](/docs/standards/frontend-patterns). Read that section first; everything below is backend-specific.
+
+### Backend-Specific TypeScript Patterns
+
+| Pattern | Example | Source |
+|---------|---------|--------|
+| Symbol injection tokens | `const DRIZZLE = Symbol('DRIZZLE')` | `apps/api/src/database/drizzle.provider.ts` |
+| Decorator validation | `@IsEnum()`, `@IsString()`, `@IsOptional()` | `apps/api/src/config/env.validation.ts` |
+
+### Note on `class-validator`
+
+`class-validator` is currently used for environment variable validation (`env.validation.ts`). It is effectively in maintenance mode. Plan to migrate to Zod when validation needs grow beyond env config. For all new DTO validation, use Zod with a custom `ZodValidationPipe`.
+
+---
+
+## 1.1 Code Organization
+
+### Module Structure
+
+```
+feature/
+├── feature.module.ts      # NestJS module registration
+├── feature.controller.ts  # HTTP routes
+├── feature.service.ts     # Business logic
+├── exceptions/            # Domain exception classes (pure TS, no NestJS imports)
+├── dto/                   # Request/response types
+├── entities/              # Database schemas
+└── feature.test.ts        # Colocated tests
+```
+
+### Rules
+
+- **One module per domain feature.** Do not combine unrelated concerns into a single module.
+- **Controllers handle HTTP only.** Extract all business logic into services. Controllers parse requests, call services, and format responses.
+- **Use providers for infrastructure.** Database connections, external API clients, and third-party integrations are providers, not services.
+- **No barrel files in app code.** Import directly from source files (`@/common/filters/all-exceptions.filter`, not `@/common`).
+- **Barrel exports allowed only in `common/index.ts`** for cross-cutting concerns shared across modules. See `apps/api/src/common/index.ts` for the existing pattern.
+
+### Anti-patterns
+
+- Putting business logic in controllers.
+- Creating a `shared/` or `utils/` module that becomes a dumping ground. Use `common/` for cross-cutting infrastructure only.
+- Re-exporting from barrel files inside feature modules.
+
+---
+
+## 1.2 Design Patterns
+
+### Codebase Patterns
+
+| Pattern | Example File | Description |
+|---------|-------------|-------------|
+| Dependency Injection | `drizzle.provider.ts` | Symbol tokens + `useFactory` for injectable providers |
+| Factory | `drizzle.provider.ts` | `useFactory` creates instances from config values |
+| Middleware | `correlation-id.middleware.ts` | Request-level pre-processing for correlation IDs, logging |
+| Exception Filter | `all-exceptions.filter.ts` | Global fallback error formatting with structured responses |
+| Domain Exception Filter | `feature/filters/*.filter.ts` | Maps domain exceptions to HTTP responses |
+| Lifecycle Hook | `database.module.ts` | `OnModuleDestroy` for connection cleanup |
+
+### Design Principles
+
+- **Focused providers**: Each provider does one thing. `AllExceptionsFilter` only formats errors. The correlation ID middleware only attaches IDs.
+- **Extension via modules**: Add new providers and modules without modifying existing ones. Register new filters, guards, and interceptors in `AppModule` providers.
+- **Interface contracts**: Filters implement `ExceptionFilter`, interceptors implement `NestInterceptor`. Follow these contracts strictly.
+- **Dependency inversion**: Inject via Symbol tokens (`DRIZZLE`, `POSTGRES_CLIENT`), not concrete instances. Consumers never depend on implementation details.
+
+### NestJS Lifecycle Ordering
+
+Understand this ordering when deciding where to place cross-cutting concerns:
+
+```
+Middleware → Guards → Interceptors (pre) → Pipes → Handler → Interceptors (post) → Filters (on error)
+```
+
+Correlation IDs belong in **middleware** (earliest). Authentication belongs in **guards**. Input validation belongs in **pipes**. Error formatting belongs in **filters**.
+
+---
+
+## 1.3 Error Handling
+
+### Layered Exception Architecture
+
+Use a three-layer approach: domain exceptions, domain-to-HTTP mapping filters, and a global fallback.
+
+**1. Domain exceptions** -- pure TypeScript, no NestJS imports:
+
+```typescript
+// feature/exceptions/user-not-found.exception.ts
+export class UserNotFoundException extends Error {
+  constructor(public readonly userId: string) {
+    super(`User ${userId} not found`)
+  }
+}
+```
+
+**2. Domain-to-HTTP mapping filter** -- translates domain exceptions into HTTP responses:
+
+```typescript
+// feature/filters/user-not-found.filter.ts
+import { type ArgumentsHost, Catch, type ExceptionFilter, HttpStatus } from '@nestjs/common'
+import type { FastifyReply, FastifyRequest } from 'fastify'
+import { UserNotFoundException } from '../exceptions/user-not-found.exception'
+
+@Catch(UserNotFoundException)
+export class UserNotFoundFilter implements ExceptionFilter {
+  catch(exception: UserNotFoundException, host: ArgumentsHost) {
+    const ctx = host.switchToHttp()
+    const response = ctx.getResponse<FastifyReply>()
+    const request = ctx.getRequest<FastifyRequest>()
+    const correlationId = request.headers['x-correlation-id'] || 'unknown'
+
+    response.status(HttpStatus.NOT_FOUND).send({
+      statusCode: HttpStatus.NOT_FOUND,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      correlationId,
+      message: exception.message,
+    })
+  }
+}
+```
+
+**3. `AllExceptionsFilter`** remains as the global fallback for unexpected errors. See `apps/api/src/common/filters/all-exceptions.filter.ts`.
+
+### Structured Error Response Format
+
+All error responses follow this shape:
+
+```typescript
+{
+  statusCode: number
+  timestamp: string       // ISO 8601
+  path: string
+  correlationId: string
+  message: string | string[]
+}
+```
+
+**Forward-looking**: Adopt RFC 9457 (Problem Details for HTTP APIs) before public API release. This adds `type` (URI identifying the error class) and `detail` (specific occurrence description) fields.
+
+### Rules
+
+- Services throw **domain exceptions** -- pure TypeScript `Error` subclasses with no NestJS imports.
+- Controllers and filters map domain exceptions to HTTP responses.
+- **Never throw raw `Error`.** Always use a typed domain exception class.
+- **Always include correlation ID** in error logs. See the logging pattern in `AllExceptionsFilter`.
+- **Validate all input at the controller boundary** using `ValidationPipe` + DTOs (see `main.ts` for the global pipe configuration).
+
+### Anti-patterns
+
+- Throwing `HttpException` from services. Services must not know about HTTP.
+- Catching exceptions in controllers to manually format errors. Use filters instead.
+- Logging errors without the correlation ID.
+- Returning raw error messages from unhandled exceptions to clients.
+
+---
+
+## 1.4 Provider & Module Patterns
+
+### Injection Tokens
+
+Use `Symbol()` for injection tokens. Never use strings.
+
+```typescript
+// Correct
+export const DRIZZLE = Symbol('DRIZZLE')
+
+// Wrong -- string tokens cause collisions and lack type safety
+export const DRIZZLE = 'DRIZZLE'
+```
+
+See `apps/api/src/database/drizzle.provider.ts` for the reference implementation.
+
+### Global Modules
+
+Mark a module `@Global()` **only** for read-only infrastructure: `DatabaseModule`, `ConfigModule`. Feature modules must never be `@Global()`.
+
+```typescript
+// Correct -- infrastructure module
+@Global()
+@Module({
+  providers: [postgresClientProvider, drizzleProvider],
+  exports: [drizzleProvider, postgresClientProvider],
+})
+export class DatabaseModule implements OnModuleDestroy { ... }
+```
+
+See `apps/api/src/database/database.module.ts` for the reference implementation.
+
+### Config-Dependent Providers
+
+Use `useFactory` + `inject` for providers that depend on configuration:
+
+```typescript
+export const postgresClientProvider = {
+  provide: POSTGRES_CLIENT,
+  inject: [ConfigService],
+  useFactory: (config: ConfigService): PostgresClient | null => {
+    const connectionString = config.get<string>('DATABASE_URL')
+    if (!connectionString) {
+      // Handle graceful degradation
+      return null
+    }
+    return postgres(connectionString, { max: 10 })
+  },
+}
+```
+
+### Nullable Dependencies
+
+Handle nullable dependencies explicitly. The `PostgresClient | null` pattern in `drizzle.provider.ts` demonstrates graceful degradation when a dependency is unavailable:
+
+```typescript
+export const drizzleProvider = {
+  provide: DRIZZLE,
+  inject: [POSTGRES_CLIENT],
+  useFactory: (client: PostgresClient | null): DrizzleDB | null => {
+    if (!client) return null
+    return drizzle(client, { schema })
+  },
+}
+```
+
+### Configurable Modules
+
+Use `ConfigurableModuleBuilder` for modules that need `forRoot()` / `forRootAsync()` patterns. This provides a type-safe, standardized API for module configuration.
+
+### Lifecycle Hooks
+
+- **`OnModuleDestroy`**: Close connections, release resources. See `DatabaseModule.onModuleDestroy()`.
+- **`BeforeApplicationShutdown`**: Drain in-flight requests before shutdown. Use `app.enableShutdownHooks()` (already configured in `main.ts`).
+
+### Anti-patterns
+
+- Using string injection tokens.
+- Marking feature modules as `@Global()`.
+- Creating providers without handling nullable/optional dependencies.
+- Forgetting to close connections in `OnModuleDestroy`.
+
+---
+
+## 1.5 Correlation ID
+
+### Current State
+
+Correlation ID is currently implemented as an **interceptor** (`apps/api/src/common/interceptors/correlation-id.interceptor.ts`). This is registered globally in `AppModule` via `APP_INTERCEPTOR`.
+
+### Target State
+
+Migrate to **middleware** so the correlation ID is available before guards and interceptors in the NestJS lifecycle.
+
+### Rules
+
+- **Generate a UUID** if no `x-correlation-id` header is present on the incoming request.
+- **Reuse the incoming header** if one is provided (for distributed tracing across services).
+- **Set the correlation ID on both request and response headers** so downstream handlers and the client both have access.
+- **Include the correlation ID in all error logs.** See the `AllExceptionsFilter` pattern: `[${correlationId}] ${request.method} ${request.url}`.
+
+### Future Enhancement
+
+Adopt `nestjs-cls` (AsyncLocalStorage-based) to propagate the correlation ID through async chains without passing it as a parameter. This eliminates the need to thread the ID through service method signatures.
+
+---
+
+## 1.6 AI Quick Reference
+
+Compressed imperative rules for AI agent consumption. No examples, no rationale.
+
+- One module per domain feature
+- Controllers HTTP-only -- delegate to services
+- Use `Symbol()` for injection tokens
+- No barrel files in app code
+- Domain exceptions: pure TS `Error` subclasses, no NestJS imports
+- Filters map domain exceptions to HTTP responses
+- `AllExceptionsFilter` as global fallback only
+- `@Global()` only for read-only infrastructure
+- Correlation ID as middleware, not interceptor
+- `OnModuleDestroy` for resource cleanup
+- Zod for new DTO validation, not class-validator
+- `useFactory` + `inject` for config-dependent providers
+- Validate all input at controller boundary
+- Always include correlation ID in error logs
+- Never throw raw untyped `Error`

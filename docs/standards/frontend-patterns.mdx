@@ -1,0 +1,148 @@
+---
+title: Frontend Patterns
+description: React and TanStack Start coding standards, design patterns, and best practices
+---
+
+## TypeScript Preamble
+
+Use the TypeScript compiler as a safety net, not a suggestion engine. Every pattern below exists in
+or is derived from the codebase.
+
+| Pattern | Example | Source |
+|---------|---------|--------|
+| Const assertions | `const LOCALES = ['en', 'fr'] as const` | `apps/web/src/lib/i18n/types.ts` |
+| Derived unions | `type Locale = (typeof LOCALES)[number]` | `apps/web/src/lib/i18n/types.ts` |
+| Type guards | `function isValidLocale(s): s is Locale` | `apps/web/src/lib/i18n/server.ts` |
+| Assertion functions | `function assertLocale(s): asserts s is Locale` | New pattern |
+| `satisfies` validation | `config satisfies Record&lt;Locale, ...>` | New pattern |
+| `as const satisfies` | `['en', 'fr'] as const satisfies readonly string[]` | New pattern |
+| Generic responses | `ApiResponse&lt;T>` (discriminated union preferred) | `packages/types/src/index.ts` |
+| Mapped types | `Record&lt;Locale, { native: string; english: string }>` | `LanguageSwitcher.tsx` |
+| Type-only imports | `import type { Locale }` | Enforced by Biome |
+| Template literal types | `` type LocalizedRoute = `/${Locale}/${string}` `` | New pattern |
+
+**Anti-patterns:**
+
+- **`any`** -- Use `unknown` instead. Biome enforces this via `noExplicitAny: "warn"`.
+- **`!` non-null assertion** -- Use null checks, optional chaining, or assertion functions. Biome enforces via `noNonNullAssertion: "warn"`.
+- **`as X` type casting** -- Use `satisfies` for compile-time validation or type guards for runtime narrowing.
+
+**`type` vs `interface`:** Use `type` as default. It prevents accidental declaration merging and supports unions/intersections directly. Use `interface extends` only for deep type hierarchies where compiler performance matters (rare).
+
+**Auto-enforced:** `biome.json` enables `useImportType: "error"` and `noExplicitAny: "warn"`. `tsconfig.json` sets `strict: true` across all packages.
+
+## 1.1 Code Organization
+
+Structure feature directories consistently:
+
+```
+lib/feature/
+├── types.ts        # Type definitions
+├── hooks.ts        # React hooks
+├── client.ts       # Client-side utilities
+├── server.ts       # Server-side utilities (createServerFn)
+└── __tests__/      # Tests (alternative to colocated .test.ts)
+```
+
+See `apps/web/src/lib/i18n/` for a canonical example of this structure.
+
+**Rules:**
+
+- **No barrel files in app code.** Import directly from the source file: `@/lib/i18n/hooks`, not `@/lib/i18n`. Barrel files increase bundle size and create circular dependency risks.
+- **Barrel files allowed only in `packages/*/src/index.ts`** for public API surfaces of shared packages.
+- **Separate client and server files** for isomorphic features. Never import server-only code (e.g., cookie parsing, database calls) into client modules.
+- **Hooks in a dedicated file.** Do not mix hook definitions with utility functions. `hooks.ts` contains React hooks; `client.ts` and `server.ts` contain plain functions.
+- **TanStack Start conventions:** Use `$param` for dynamic route segments (e.g., `$locale/dashboard.tsx`), `_` prefix for pathless layouts (e.g., `$locale/_layout.tsx`), and `__root.tsx` for the root route.
+
+## 1.2 Design Patterns
+
+| Pattern | Source | Example |
+|---------|--------|---------|
+| Hook Composition | `apps/web/src/lib/i18n/hooks.ts` | `useTranslation`, `useLocale` -- focused, single-purpose hooks |
+| Companion Hook | `apps/web/src/components/LanguageSwitcher.tsx` | `useLanguageSwitcher` co-located with the component it serves |
+| Error Boundary | `react-error-boundary` package | `&lt;ErrorBoundary>` with `fallbackRender` prop |
+| Component Composition | `apps/web/src/components/LanguageSwitcher.tsx` | Variant props + companion hook for flexible rendering |
+| Module Namespace | `apps/web/src/lib/i18n/` directory | Related files grouped in a dedicated directory |
+
+**Design principles:**
+
+- **Focused hooks.** Each hook does one thing. `useTranslation` returns translation functions; `useLocale` returns locale and formatting utilities. Do not combine unrelated concerns.
+- **Minimal props.** Pass only what the component needs. Derive internal state from props rather than requiring callers to pre-compute it.
+- **Extension via composition.** Add variants without modifying internals. The `LanguageSwitcher` uses a `variant` prop to switch between `'dropdown'` and `'buttons'` rendering.
+- **Compound components over config props.** If a component accumulates more than 4-5 configuration props, refactor it into a compound component pattern with subcomponents.
+
+## 1.3 Error Handling
+
+**Existing patterns in the codebase:**
+
+- Error boundaries via `react-error-boundary` at route and feature level.
+- `null` return for graceful degradation (e.g., `getLocaleFromPath` returns `null` when no locale is found).
+- `console.warn` for non-critical failures (e.g., missing translation files in `loadTranslations`).
+- Try/catch in hooks with `undefined` fallback (e.g., `useI18nContext` catches missing router context).
+
+**Rules:**
+
+- **Use `react-error-boundary`.** Do not write hand-rolled class components for error boundaries.
+- **React 19 behavior:** Errors thrown in `useTransition` async callbacks propagate to the nearest error boundary automatically.
+- **Utility and UI helpers may return `null` or `undefined`** for expected failure cases. Callers handle the absent value.
+- **Business logic: use Result types.** For operations that can fail in expected ways, return discriminated unions instead of throwing:
+
+```ts
+type Result<T, E = string> =
+  | { success: true; data: T }
+  | { success: false; error: E }
+```
+
+- **Never throw from functions called during rendering.** Thrown errors in the render path crash the component tree. Return fallback UI or `null` instead.
+
+## 1.4 Component Patterns
+
+- **Functional components only.** No class components, no exceptions.
+- **Props type as `type`, not `interface`.** Use PascalCase with a `Props` suffix:
+
+```tsx
+type LanguageSwitcherProps = {
+  className?: string
+  variant?: 'dropdown' | 'buttons'
+}
+```
+
+- **Extract logic into companion hooks** when a component's logic grows beyond simple event handlers. See `useLanguageSwitcher` in `LanguageSwitcher.tsx`.
+- **Named exports only.** Never use default exports. Exception: framework conventions that require them (e.g., route components if mandated by the framework).
+- **Variant pattern** for multi-mode components. Use a `variant` prop with a union type rather than separate components or boolean flags:
+
+```tsx
+variant?: 'dropdown' | 'buttons'  // Good
+isDropdown?: boolean              // Avoid
+```
+
+- **React Compiler handles memoization.** Do not add manual `React.memo`, `useMemo`, or `useCallback` unless profiling proves a measurable performance problem. The React Compiler (enabled in this project) optimizes re-renders automatically.
+
+## 1.5 AI Quick Reference
+
+Compressed imperative rules for AI agent consumption. No examples, no rationale.
+
+**TypeScript:**
+
+- Use `unknown` over `any`
+- Use `satisfies` over `as` for type validation
+- Use `type` over `interface` as default
+- Enforce type-only imports (`import type`)
+- No `!` non-null assertions -- use optional chaining or assertion functions
+- Use const assertions with derived union types
+- Use discriminated unions for API responses
+- Escape `&lt;` as `&amp;lt;` in MDX text (not in code blocks)
+
+**Frontend:**
+
+- No barrel files in app code -- import directly from source files
+- Functional components only -- no class components
+- Named exports only (exception: framework conventions)
+- Use `react-error-boundary` for error boundaries
+- No manual `React.memo`/`useMemo`/`useCallback` -- React Compiler handles memoization
+- Extract complex logic into companion hooks
+- Variant pattern for multi-mode components (`variant?: 'a' | 'b'`, not `isA?: boolean`)
+- Client/server file separation for isomorphic features
+- Props as `type` with `Props` suffix
+- Never throw from render path
+- TanStack Start: `$param` for dynamic segments, `_` prefix for pathless layouts
