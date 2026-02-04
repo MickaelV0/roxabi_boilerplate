@@ -126,6 +126,9 @@ jobs:
           restore-keys: |
             turbo-test-${{ runner.os }}-
 
+      - name: Compile Paraglide
+        run: cd apps/web && bunx paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --strategy url cookie preferredLanguage baseLocale --silent
+
       - name: Run tests with coverage
         run: bun test:coverage
         env:
