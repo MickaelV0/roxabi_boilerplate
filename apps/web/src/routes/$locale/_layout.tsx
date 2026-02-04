@@ -36,14 +36,12 @@ function LocaleLayout() {
 
   const i18nInstance = useMemo(() => {
     const namespaces = Object.keys(context.i18n.resources) as Namespace[]
-    const instance = i18next.createInstance()
-    instance.init({
+    return i18next.cloneInstance({
       ...getServerConfig(locale as Locale),
+      lng: locale,
       ns: namespaces.length > 0 ? namespaces : ['common'],
       resources: { [locale]: context.i18n.resources },
-      initImmediate: false, // Makes init synchronous — no Promise, no use()
     })
-    return instance
   }, [locale, context.i18n.resources])
 
   return (

@@ -4,6 +4,7 @@ import { getClientConfig } from './config'
 import {
   LOCALE_COOKIE_MAX_AGE,
   LOCALE_COOKIE_NAME,
+  LOCALES,
   type Locale,
   type Namespace,
   type TranslationResources,
@@ -86,6 +87,7 @@ export function changeLanguage(locale: Locale): void {
 
   // Navigate to new locale URL (e.g., /en/dashboard → /fr/dashboard)
   const currentPath = window.location.pathname
-  const newPath = currentPath.replace(/^\/[a-z]{2}(\/|$)/, `/${locale}$1`) || `/${locale}`
+  const localePattern = new RegExp(`^\\/(${LOCALES.join('|')})(\\/|$)`)
+  const newPath = currentPath.replace(localePattern, `/${locale}$2`) || `/${locale}`
   window.location.href = newPath
 }

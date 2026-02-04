@@ -4,6 +4,7 @@ import {
   Outlet,
   redirect,
   Scripts,
+  useMatches,
 } from '@tanstack/react-router'
 import { RootProvider } from 'fumadocs-ui/provider/tanstack'
 import type * as React from 'react'
@@ -13,9 +14,9 @@ import type { RouterContext } from '@/router'
 import appCss from '@/styles/app.css?url'
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  beforeLoad: ({ context, location, cause }) => {
+  beforeLoad: ({ context, location, preload }) => {
     // Skip heavy work during preload to avoid infinite pending
-    if (cause === 'preload') {
+    if (preload) {
       return { i18n: context.i18n }
     }
 
@@ -66,8 +67,11 @@ function RootComponent() {
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const matches = useMatches()
+  const localeMatch = matches.find((m) => 'locale' in m.params)
+  const lang = localeMatch ? (localeMatch.params as { locale: string }).locale : 'en'
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={lang} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
