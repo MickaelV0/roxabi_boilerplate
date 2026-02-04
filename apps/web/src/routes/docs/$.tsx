@@ -1,4 +1,7 @@
 import browserCollections from 'fumadocs-mdx:collections/browser'
+import { DocsErrorBoundary } from '@/components/docs-error-boundary'
+import { baseOptions } from '@/lib/layout.shared'
+import { source } from '@/lib/source'
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useFumadocsLoader } from 'fumadocs-core/source/client'
@@ -6,9 +9,6 @@ import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
 import { Suspense } from 'react'
-import { DocsErrorBoundary } from '@/components/docs-error-boundary'
-import { baseOptions } from '@/lib/layout.shared'
-import { source } from '@/lib/source'
 
 export const Route = createFileRoute('/docs/$')({
   component: Page,

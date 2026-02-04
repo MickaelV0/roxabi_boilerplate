@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { HomeLayout } from 'fumadocs-ui/layouts/home'
 import { useTranslation } from '@/lib/i18n'
 import { baseOptions } from '@/lib/layout.shared'
+import { Link, createFileRoute } from '@tanstack/react-router'
+import { HomeLayout } from 'fumadocs-ui/layouts/home'
 
 export const Route = createFileRoute('/$locale/')({
   component: LocalizedHome,

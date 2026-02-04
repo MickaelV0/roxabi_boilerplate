@@ -1,6 +1,6 @@
-import { type AnyRouter, createRouter as createTanStackRouter } from '@tanstack/react-router'
 import { NotFound } from '@/components/not-found'
 import { type I18nRouterContext, initClientI18n } from '@/lib/i18n'
+import { type AnyRouter, createRouter as createTanStackRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 
 export type RouterContext = {

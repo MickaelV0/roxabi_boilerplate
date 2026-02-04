@@ -1,6 +1,6 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.3.14/schema.json",
-  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "assists": { "enabled": true },
   "linter": {
     "enabled": true,
     "rules": {
@@ -18,8 +18,7 @@
         "useImportType": "error"
       },
       "suspicious": {
-        "noExplicitAny": "warn",
-        "noDocumentCookie": "warn"
+        "noExplicitAny": "warn"
       }
     }
   },
@@ -37,18 +36,18 @@
     }
   },
   "files": {
-    "includes": [
-      "**",
-      "!**/node_modules",
-      "!**/dist",
-      "!**/build",
-      "!**/.next",
-      "!**/.turbo",
-      "!**/*.min.js",
-      "!**/coverage",
-      "!**/.source",
-      "!**/.output",
-      "!**/routeTree.gen.ts"
+    "include": ["**"],
+    "ignore": [
+      "**/node_modules",
+      "**/dist",
+      "**/build",
+      "**/.next",
+      "**/.turbo",
+      "**/*.min.js",
+      "**/coverage",
+      "**/.source",
+      "**/.output",
+      "**/routeTree.gen.ts"
     ]
   }
 }

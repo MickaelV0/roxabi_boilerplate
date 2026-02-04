@@ -1,7 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { HreflangTags, loadI18nNamespaces, useLocale, useTranslation } from '@/lib/i18n'
 import type { RouterContext } from '@/router'
+import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/$locale/dashboard')({
   loader: async ({ context }) => {

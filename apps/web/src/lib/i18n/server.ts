@@ -3,9 +3,9 @@ import { getServerConfig } from './config'
 import {
   DEFAULT_LOCALE,
   type DetectedLanguage,
+  LOCALES,
   LOCALE_COOKIE_MAX_AGE,
   LOCALE_COOKIE_NAME,
-  LOCALES,
   type Locale,
   type Namespace,
 } from './types'

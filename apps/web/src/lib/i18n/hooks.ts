@@ -28,7 +28,6 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
  */
 export function useI18nContext(): I18nRouterContext | undefined {
   try {
-    // biome-ignore lint/correctness/useHookAtTopLevel: intentional try/catch for graceful fallback outside router
     const context = useRouteContext({ strict: false }) as { i18n?: I18nRouterContext } | undefined
     return context?.i18n
   } catch {
