@@ -9,7 +9,7 @@ import {
 @Global()
 @Module({
   providers: [postgresClientProvider, drizzleProvider],
-  exports: [drizzleProvider],
+  exports: [drizzleProvider, postgresClientProvider],
 })
 export class DatabaseModule implements OnModuleDestroy {
   private readonly logger = new Logger(DatabaseModule.name)

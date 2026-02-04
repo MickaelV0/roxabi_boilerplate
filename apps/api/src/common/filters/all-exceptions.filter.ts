@@ -4,11 +4,13 @@ import {
   type ExceptionFilter,
   HttpException,
   HttpStatus,
+  Injectable,
   Logger,
 } from '@nestjs/common'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 
 @Catch()
+@Injectable()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name)
 
@@ -22,18 +24,26 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const status =
       exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR
 
-    const message =
-      exception instanceof HttpException ? exception.getResponse() : 'Internal server error'
+    let message: string | string[]
+    if (exception instanceof HttpException) {
+      const body = exception.getResponse()
+      if (typeof body === 'string') {
+        message = body
+      } else if (typeof body === 'object' && body !== null && 'message' in body) {
+        message = (body as { message: string | string[] }).message
+      } else {
+        message = HttpStatus[status] || 'Error'
+      }
+    } else {
+      message = 'Internal server error'
+    }
 
     const errorResponse = {
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
       correlationId,
-      message:
-        typeof message === 'string'
-          ? message
-          : (message as { message?: string }).message || message,
+      message,
     }
 
     this.logger.error(

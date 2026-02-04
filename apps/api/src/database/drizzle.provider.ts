@@ -10,15 +10,18 @@ export const POSTGRES_CLIENT = Symbol('POSTGRES_CLIENT')
 export type DrizzleDB = PostgresJsDatabase<typeof schema>
 export type PostgresClient = ReturnType<typeof postgres>
 
-const logger = new Logger('DrizzleProvider')
-
 export const postgresClientProvider = {
   provide: POSTGRES_CLIENT,
   inject: [ConfigService],
   useFactory: (config: ConfigService): PostgresClient | null => {
+    const logger = new Logger('DrizzleProvider')
     const connectionString = config.get<string>('DATABASE_URL')
+    const nodeEnv = config.get<string>('NODE_ENV', 'development')
 
     if (!connectionString) {
+      if (nodeEnv === 'production') {
+        throw new Error('DATABASE_URL is required in production')
+      }
       logger.warn('DATABASE_URL not set, database features will be unavailable')
       return null
     }
