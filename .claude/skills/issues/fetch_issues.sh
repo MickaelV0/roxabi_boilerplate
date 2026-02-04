@@ -24,7 +24,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Single GraphQL query: project items + dependencies (trackedInIssues/trackedIssues)
+# Single GraphQL query: project items + dependencies (trackedInIssues/trackedIssues + blockedBy/blocking)
 QUERY='
 query($projectId: ID!) {
   node(id: $projectId) {
@@ -40,6 +40,8 @@ query($projectId: ID!) {
               parent { number state }
               trackedInIssues(first: 20) { nodes { number state } }
               trackedIssues(first: 20) { nodes { number state } }
+              blockedBy(first: 20) { nodes { number state } }
+              blocking(first: 20) { nodes { number state } }
             }
           }
           fieldValues(first: 10) {
@@ -63,19 +65,24 @@ if $JSON_OUTPUT; then
     echo "$PROJECT_DATA" | jq '
         .data.node.items.nodes
         | map(select(.content.state == "OPEN"))
-        | map({
-            number: .content.number,
-            title: .content.title,
-            status: ([.fieldValues.nodes[] | select(.field.name == "Status") | .name] | first // "-"),
-            size: ([.fieldValues.nodes[] | select(.field.name == "Size") | .name] | first // "-"),
-            priority: ([.fieldValues.nodes[] | select(.field.name == "Priority") | .name] | first // "-"),
-            blocked_by: [.content.trackedIssues.nodes[] | {number, state}],
-            blocked_by_open: [.content.trackedIssues.nodes[] | select(.state == "OPEN") | .number],
-            blocked_by_closed: [.content.trackedIssues.nodes[] | select(.state == "CLOSED") | .number],
-            blocks: [.content.trackedInIssues.nodes[] | {number, state}],
-            sub_issues: (.content.subIssues.nodes // []),
-            parent_issue: .content.parent
-        })
+        | map(
+            # Merge tracked + blocked relationships
+            ((.content.trackedIssues.nodes // []) + (.content.blockedBy.nodes // []) | group_by(.number) | map(.[0])) as $blocked_by |
+            ((.content.trackedInIssues.nodes // []) + (.content.blocking.nodes // []) | group_by(.number) | map(.[0])) as $blocks |
+            {
+                number: .content.number,
+                title: .content.title,
+                status: ([.fieldValues.nodes[] | select(.field.name == "Status") | .name] | first // "-"),
+                size: ([.fieldValues.nodes[] | select(.field.name == "Size") | .name] | first // "-"),
+                priority: ([.fieldValues.nodes[] | select(.field.name == "Priority") | .name] | first // "-"),
+                blocked_by: [$blocked_by[] | {number, state}],
+                blocked_by_open: [$blocked_by[] | select(.state == "OPEN") | .number],
+                blocked_by_closed: [$blocked_by[] | select(.state == "CLOSED") | .number],
+                blocks: [$blocks[] | {number, state}],
+                sub_issues: (.content.subIssues.nodes // []),
+                parent_issue: .content.parent
+            }
+        )
     '
 else
     echo "$PROJECT_DATA" | jq -r --arg sort "$SORT_BY" --argjson titleLen "$TITLE_LENGTH" '
@@ -85,17 +92,25 @@ else
 
         def pad($s; $w): ($s + (" " * 100))[:$w];
 
+        # Merge tracked + blocked relationships (deduplicated by number)
+        def merge_blocked_by:
+            ((.content.trackedIssues.nodes // []) + (.content.blockedBy.nodes // []))
+            | group_by(.number) | map(.[0]);
+        def merge_blocking:
+            ((.content.trackedInIssues.nodes // []) + (.content.blocking.nodes // []))
+            | group_by(.number) | map(.[0]);
+
         # Block status: ⛔ blocked, 🔓 blocking others, ✅ ready
         def block_status:
-            ([.content.trackedIssues.nodes[] | select(.state == "OPEN")] | length) as $blocked_count |
-            ([.content.trackedInIssues.nodes[]] | length) as $blocking_count |
+            ([merge_blocked_by[] | select(.state == "OPEN")] | length) as $blocked_count |
+            ([merge_blocking[]] | length) as $blocking_count |
             if $blocked_count > 0 then "⛔"
             elif $blocking_count > 0 then "🔓"
             else "✅" end;
 
         def format_deps:
-            (.content.trackedIssues.nodes // []) as $bb |
-            (.content.trackedInIssues.nodes // []) as $bl |
+            merge_blocked_by as $bb |
+            merge_blocking as $bl |
             ($bb | map(if .state == "OPEN" then "⛔#\(.number)" else "✅#\(.number)" end)) as $bb_fmt |
             ($bl | map("🔓#\(.number)")) as $bl_fmt |
             ([$bb_fmt[], $bl_fmt[]]) as $all |
@@ -162,13 +177,14 @@ else
 
         # Build dependency chains visualization - simplified
         def build_chains($all; $byNum):
-            # Map number -> {title, blocks: [numbers]}
+            # Map number -> {title, blocks: [numbers]} - merge tracked + blocking
             ($all | map({
                 key: (.content.number | tostring),
                 value: {
                     num: .content.number,
                     title: .content.title,
-                    blocks: [.content.trackedInIssues.nodes[] | select(.state == "OPEN") | .number] | sort
+                    blocks: [((.content.trackedInIssues.nodes // []) + (.content.blocking.nodes // []))
+                             | group_by(.number) | map(.[0])[] | select(.state == "OPEN") | .number] | sort | unique
                 }
             }) | from_entries) as $graph |
 
