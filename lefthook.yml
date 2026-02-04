@@ -15,8 +15,8 @@ pre-push:
   parallel: true
   commands:
     lint:
-      run: bun run lint
+      run: CI=true bun run lint
     typecheck:
-      run: bun run typecheck
+      run: CI=true bun run typecheck
     test:
-      run: bun run test
+      run: CI=true bun run test

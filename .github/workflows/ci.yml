@@ -42,6 +42,9 @@ jobs:
       - name: Run Biome lint
         run: bun lint
 
+      - name: Validate translations
+        run: bun run i18n:validate
+
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest

@@ -9,14 +9,13 @@ description: Project structure, applications, packages and data flow in Roxabi B
 roxabi_boilerplate/
 ├── .env                    # Global environment variables
 ├── apps/
-│   ├── web/               # Frontend application
-│   ├── api/               # Backend API
-│   ├── docs/              # Documentation server (Fumadocs + Docker)
-│   └── packages/          # Shared code
-│       ├── ui/            # Shared UI components
-│       ├── config/        # Shared configurations
-│       └── types/         # Shared TypeScript types
-├── docs/                   # Documentation source (Markdown)
+│   ├── web/               # Frontend + Documentation (TanStack Start + Fumadocs)
+│   └── api/               # Backend API
+├── packages/               # Shared code
+│   ├── ui/                # Shared UI components
+│   ├── config/            # Shared configurations
+│   └── types/             # Shared TypeScript types
+├── docs/                   # Documentation content (MDX files)
 └── .claude/                # Claude Code configuration
 ```
 
@@ -47,11 +46,11 @@ Command-line interface generated from OpenAPI spec.
 - Multiple auth modes (env vars, config file, interactive login)
 - JSON output for scripting and AI parsing
 
-## Packages (`apps/packages/`)
+## Packages (`packages/`)
 
 Shared code used by applications.
 
-### UI (`apps/packages/ui`)
+### UI (`packages/ui`)
 
 Shared UI component library.
 
@@ -59,7 +58,7 @@ Shared UI component library.
 - Design system primitives
 - Exported from `@repo/ui`
 
-### Config (`apps/packages/config`)
+### Config (`packages/config`)
 
 Shared configurations.
 
@@ -67,7 +66,7 @@ Shared configurations.
 - Biome configs
 - Exported from `@repo/config`
 
-### Types (`apps/packages/types`)
+### Types (`packages/types`)
 
 Shared TypeScript type definitions.
 
@@ -75,20 +74,17 @@ Shared TypeScript type definitions.
 - API contracts
 - Exported from `@repo/types`
 
-## Documentation (`apps/docs/`)
+## Documentation
 
-Documentation server as a monorepo app.
+Documentation is integrated into `apps/web` using Fumadocs v16 with TanStack Start.
 
-- Fumadocs-powered server (Next.js)
-- Runs in Docker container
-- Port configurable via `.env` (`DOCS_PORT`)
-- MDX content in `apps/docs/content/`
+- MDX content lives in `docs/` at the repo root
+- Fumadocs renders docs at `/docs/*` routes
+- Single dev server for both app and documentation
 
 ```bash
 # Start documentation server
 bun docs
-# or
-docker compose -f apps/docs/docker-compose.yml up
 ```
 
 ## Data Flow
@@ -101,8 +97,8 @@ docker compose -f apps/docs/docker-compose.yml up
                            │                   │
                            ▼                   ▼
                     ┌─────────────┐     ┌─────────────┐
-                    │   apps/     │     │  Database   │
-                    │  packages/  │     │             │
+                    │  packages/  │     │  Database   │
+                    │             │     │             │
                     └─────────────┘     └─────────────┘
 ```
 
@@ -114,11 +110,11 @@ TurboRepo handles:
 - Dependency-aware builds
 - Caching for faster rebuilds
 
-Build order: `apps/packages/* → apps/*`
+Build order: `packages/* → apps/*`
 
 Workspaces configuration:
 ```json
 {
-  "workspaces": ["apps/*", "apps/packages/*"]
+  "workspaces": ["apps/*", "packages/*"]
 }
 ```

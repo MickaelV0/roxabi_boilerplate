@@ -152,9 +152,11 @@ bun build            # Build all packages
 bun lint             # Run Biome linter
 bun format           # Format with Biome
 bun typecheck        # TypeScript type checking
-bun test             # Run tests
+bun run test         # Run tests (via turbo + vitest)
 bun docs             # Start documentation server (runs apps/web)
 ```
+
+> **Important**: Use `bun run test` (not `bun test`). The `bun test` command invokes Bun's built-in test runner which ignores vitest configs. The `bun run test` command runs the `test` script which uses turbo to run vitest in each package with proper configuration.
 
 ## Monorepo Structure
 

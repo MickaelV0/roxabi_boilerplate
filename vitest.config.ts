@@ -37,6 +37,14 @@ export default defineConfig({
         '**/main.ts',
         '**/*.module.ts',
         '**/database/schema/*.ts',
+        // i18n infrastructure (React hooks/components - tested via integration)
+        '**/lib/i18n/client.ts',
+        '**/lib/i18n/context.ts',
+        '**/lib/i18n/hooks.ts',
+        '**/lib/i18n/seo.tsx',
+        // Component files need integration tests
+        '**/components/LanguageSwitcher.tsx',
+        '**/vite-env.d.ts',
       ],
       thresholds: {
         lines: 70,

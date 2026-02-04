@@ -1,8 +1,8 @@
 import { Global, Inject, Logger, Module, type OnModuleDestroy } from '@nestjs/common'
 import {
+  drizzleProvider,
   POSTGRES_CLIENT,
   type PostgresClient,
-  drizzleProvider,
   postgresClientProvider,
 } from './drizzle.provider'
 
