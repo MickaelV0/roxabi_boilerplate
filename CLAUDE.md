@@ -154,7 +154,10 @@ bun format           # Format with Biome
 bun typecheck        # TypeScript type checking
 bun run test         # Run tests (via turbo + vitest)
 bun docs             # Start documentation server (runs apps/web)
+bun run clean:cache  # Clear Vite dep optimization cache
 ```
+
+> **Troubleshooting**: If you see redirect loops or unexpected 307 redirects in dev, run `bun run clean:cache` to clear the stale Vite dependency optimization cache. This commonly happens after dependency upgrades.
 
 > **Important**: Use `bun run test` (not `bun test`). The `bun test` command invokes Bun's built-in test runner which ignores vitest configs. The `bun run test` command runs the `test` script which uses turbo to run vitest in each package with proper configuration.
 

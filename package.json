@@ -20,6 +20,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "clean": "turbo clean && rm -rf node_modules",
+    "clean:cache": "rm -rf apps/web/node_modules/.vite",
     "docs": "turbo dev --filter=@repo/web",
     "i18n:validate": "bun run scripts/validate-translations.ts",
     "typecheck:affected": "turbo run typecheck --filter=...[origin/main]",
