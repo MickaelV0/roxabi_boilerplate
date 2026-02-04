@@ -7,6 +7,7 @@ description: Setup instructions and environment variables for Roxabi Boilerplate
 
 - [Bun](https://bun.sh/) >= 1.1.0
 - Node.js >= 20 (for compatibility)
+- [Docker](https://www.docker.com/) (for local PostgreSQL)
 - Git
 
 ## Installation
@@ -33,7 +34,7 @@ cp .env.example .env
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `NODE_ENV` | Environment mode | `development` |
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://...` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://roxabi:roxabi@localhost:5432/roxabi` |
 | `JWT_SECRET` | Secret for JWT tokens | Random string |
 
 ### Optional Variables
