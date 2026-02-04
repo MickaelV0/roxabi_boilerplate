@@ -4,9 +4,12 @@
 
 | Topic | Documentation |
 |-------|---------------|
-| Development process | [.claude/processes/dev-process.md](.claude/processes/dev-process.md) |
-| Documentation (Fumadocs) | [docs/](docs/) |
+| Development process | [docs/processes/dev-process.mdx](docs/processes/dev-process.mdx) |
+| Processes | [docs/processes/](docs/processes/) |
+| Architecture | [docs/architecture/](docs/architecture/) |
+| Analyses (pre-spec) | [docs/analyses/](docs/analyses/) |
 | Feature specifications | [docs/specs/](docs/specs/) |
+| Documentation (Fumadocs) | [docs/](docs/) |
 
 ---
 
@@ -14,7 +17,7 @@
 
 ### 1. Development Process (CRITICAL)
 
-**BEFORE ANY SPEC, CODE CHANGE, OR PR REVIEW: Read [dev-process.md](.claude/processes/dev-process.md) in full.**
+**BEFORE ANY SPEC, CODE CHANGE, OR PR REVIEW: Read [dev-process.mdx](docs/processes/dev-process.mdx) in full.**
 
 This applies to ALL development work: specs, features, bug fixes, refactoring, docs, tests, PR reviews. **NO EXCEPTIONS.**
 
@@ -194,7 +197,15 @@ docs/
 ├── index.mdx           # Home page
 ├── getting-started.mdx # Main docs
 ├── meta.json           # Navigation order
-├── analyses/           # Technical analyses
+├── architecture/       # Architecture documentation
+│   ├── meta.json
+│   ├── index.mdx
+│   └── *.mdx
+├── processes/          # Development processes
+│   ├── meta.json
+│   ├── index.mdx
+│   └── *.mdx
+├── analyses/           # Pre-spec analyses
 │   ├── meta.json
 │   └── *.mdx
 └── specs/              # Feature specifications
