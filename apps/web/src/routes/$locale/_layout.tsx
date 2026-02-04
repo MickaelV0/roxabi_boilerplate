@@ -1,9 +1,10 @@
 import { createFileRoute, Outlet, redirect, useRouteContext } from '@tanstack/react-router'
-import { use, useMemo } from 'react'
+import i18next from 'i18next'
+import { useMemo } from 'react'
 import { I18nextProvider } from 'react-i18next'
 import {
-  createServerI18n,
   DEFAULT_LOCALE,
+  getServerConfig,
   isValidLocale,
   type Locale,
   loadI18nNamespaces,
@@ -33,21 +34,18 @@ function LocaleLayout() {
   const { locale } = Route.useParams()
   const context = useRouteContext({ from: '/$locale/_layout' }) as unknown as RouterContext
 
-  // Create i18next instance with loaded resources
   const i18nInstance = useMemo(() => {
     const namespaces = Object.keys(context.i18n.resources) as Namespace[]
-    return createServerI18n(
-      locale as Locale,
-      namespaces.length > 0 ? namespaces : ['common'],
-      context.i18n.resources as Record<Namespace, Record<string, unknown>>
-    )
+    return i18next.cloneInstance({
+      ...getServerConfig(locale as Locale),
+      lng: locale,
+      ns: namespaces.length > 0 ? namespaces : ['common'],
+      resources: { [locale]: context.i18n.resources },
+    })
   }, [locale, context.i18n.resources])
 
-  // Use React's use() hook to handle the promise
-  const resolvedI18n = use(i18nInstance)
-
   return (
-    <I18nextProvider i18n={resolvedI18n}>
+    <I18nextProvider i18n={i18nInstance}>
       <Outlet />
     </I18nextProvider>
   )

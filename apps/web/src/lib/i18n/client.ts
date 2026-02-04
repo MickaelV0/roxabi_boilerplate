@@ -1,7 +1,14 @@
 import i18next from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import { getClientConfig } from './config'
-import type { Locale, Namespace, TranslationResources } from './types'
+import {
+  LOCALE_COOKIE_MAX_AGE,
+  LOCALE_COOKIE_NAME,
+  LOCALES,
+  type Locale,
+  type Namespace,
+  type TranslationResources,
+} from './types'
 
 let isInitialized = false
 
@@ -62,15 +69,25 @@ export function getI18n(): typeof i18next {
 }
 
 /**
- * Change the current language and persist to cookie
+ * Set a cookie value (wrapper to satisfy biome noDocumentCookie rule)
  */
-export async function changeLanguage(locale: Locale): Promise<void> {
-  await i18next.changeLanguage(locale)
+function setCookie(value: string): void {
+  // biome-ignore lint/suspicious/noDocumentCookie: intentional cookie write for locale persistence
+  document.cookie = value
+}
 
-  // Persist to cookie
-  document.cookie = `locale=${locale}; path=/; max-age=${365 * 24 * 60 * 60}; samesite=lax`
+/**
+ * Change the current language and navigate to new locale URL
+ */
+export function changeLanguage(locale: Locale): void {
+  // Persist to cookie before navigation so server detects it
+  setCookie(
+    `${LOCALE_COOKIE_NAME}=${locale}; path=/; max-age=${LOCALE_COOKIE_MAX_AGE}; samesite=lax`
+  )
 
-  // Reload page to ensure SSR content matches
-  // This is the recommended approach for full SSR consistency
-  window.location.reload()
+  // Navigate to new locale URL (e.g., /en/dashboard → /fr/dashboard)
+  const currentPath = window.location.pathname
+  const localePattern = new RegExp(`^\\/(${LOCALES.join('|')})(\\/|$)`)
+  const newPath = currentPath.replace(localePattern, `/${locale}$2`) || `/${locale}`
+  window.location.href = newPath
 }
