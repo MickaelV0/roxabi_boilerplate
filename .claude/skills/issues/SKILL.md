@@ -127,6 +127,34 @@ PRs:
 | Recommendations | Brief analysis of priorities and blockers |
 | Work in Progress | Worktrees, branches, and open PRs |
 
+## Dependencies (blockedBy / blocking)
+
+GitHub's native **`blockedBy`** field is the source of truth for issue dependencies. Use the `addBlockedBy` GraphQL mutation to create them:
+
+```graphql
+mutation($issueId: ID!, $blockingId: ID!) {
+  addBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockingId }) {
+    issue { number }
+    blockingIssue { number }
+  }
+}
+```
+
+- `issueId` = the issue that IS blocked (node ID)
+- `blockingIssueId` = the issue that IS blocking (node ID)
+
+**Get node IDs:** `gh api repos/OWNER/REPO/issues/NUMBER --jq '.node_id'`
+
+**Example** — make #51 blocked by #19:
+```bash
+gh api graphql \
+  -F query=@/tmp/mutation.graphql \
+  -f issueId="$(gh api repos/OWNER/REPO/issues/51 --jq '.node_id')" \
+  -f blockingId="$(gh api repos/OWNER/REPO/issues/19 --jq '.node_id')"
+```
+
+> **Important:** Always use `blockedBy`/`blocking` (not `trackedIssues`/`trackedInIssues`). The `blockedBy` field is GitHub's official dependency mechanism (GA August 2025).
+
 ## Configuration
 
 Environment variables (with defaults):
