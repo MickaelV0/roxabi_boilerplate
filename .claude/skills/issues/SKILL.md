@@ -91,7 +91,7 @@ List open GitHub issues from the project board with their Status, Size, Priority
 
   ⛔=blocked  🔓=blocking  ✅=ready
 
-  Chaînes:
+  Chains:
   #19 Auth + Users ──► #21 Multi-tenant
                                └──► #22 Audit Logs
                                └──► #23 Notifications
@@ -123,17 +123,30 @@ PRs:
 | Header | `● N issues` - Total count of open issues |
 | Table | Issues sorted by Priority, then Size |
 | Legend | Icon meanings for quick reference |
-| Chaînes | Dependency visualization showing blocking relationships |
+| Chains | Dependency visualization showing blocking relationships |
 | Recommendations | Brief analysis of priorities and blockers |
 | Work in Progress | Worktrees, branches, and open PRs |
 
 ## Dependencies (blockedBy / blocking)
 
-GitHub's native **`blockedBy`** field is the source of truth for issue dependencies. Use the `addBlockedBy` GraphQL mutation to create them:
+GitHub's native **`blockedBy`** field is the source of truth for issue dependencies.
+
+**Add** a dependency with `addBlockedBy`:
 
 ```graphql
 mutation($issueId: ID!, $blockingId: ID!) {
   addBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockingId }) {
+    issue { number }
+    blockingIssue { number }
+  }
+}
+```
+
+**Remove** a dependency with `removeBlockedBy`:
+
+```graphql
+mutation($issueId: ID!, $blockingId: ID!) {
+  removeBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockingId }) {
     issue { number }
     blockingIssue { number }
   }

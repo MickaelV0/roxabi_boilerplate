@@ -24,7 +24,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Single GraphQL query: project items + dependencies (trackedInIssues/trackedIssues + blockedBy/blocking)
+# Single GraphQL query: project items + dependencies (blockedBy/blocking)
 QUERY='
 query($projectId: ID!) {
   node(id: $projectId) {
@@ -38,8 +38,6 @@ query($projectId: ID!) {
               state
               subIssues(first: 20) { nodes { number state title } }
               parent { number state }
-              trackedInIssues(first: 20) { nodes { number state } }
-              trackedIssues(first: 20) { nodes { number state } }
               blockedBy(first: 20) { nodes { number state } }
               blocking(first: 20) { nodes { number state } }
             }
@@ -66,9 +64,8 @@ if $JSON_OUTPUT; then
         .data.node.items.nodes
         | map(select(.content.state == "OPEN"))
         | map(
-            # Merge tracked + blocked relationships
-            ((.content.trackedIssues.nodes // []) + (.content.blockedBy.nodes // []) | group_by(.number) | map(.[0])) as $blocked_by |
-            ((.content.trackedInIssues.nodes // []) + (.content.blocking.nodes // []) | group_by(.number) | map(.[0])) as $blocks |
+            (.content.blockedBy.nodes // []) as $blocked_by |
+            (.content.blocking.nodes // []) as $blocks |
             {
                 number: .content.number,
                 title: .content.title,
@@ -92,13 +89,8 @@ else
 
         def pad($s; $w): ($s + (" " * 100))[:$w];
 
-        # Merge tracked + blocked relationships (deduplicated by number)
-        def merge_blocked_by:
-            ((.content.trackedIssues.nodes // []) + (.content.blockedBy.nodes // []))
-            | group_by(.number) | map(.[0]);
-        def merge_blocking:
-            ((.content.trackedInIssues.nodes // []) + (.content.blocking.nodes // []))
-            | group_by(.number) | map(.[0]);
+        def merge_blocked_by: (.content.blockedBy.nodes // []);
+        def merge_blocking: (.content.blocking.nodes // []);
 
         # Block status: ⛔ blocked, 🔓 blocking others, ✅ ready
         def block_status:
@@ -175,7 +167,7 @@ else
             gsub("\\s*\\(.*?\\)$"; "") |
             if length > 20 then .[:17] + "..." else . end;
 
-        # Build dependency chains visualization - simplified
+        # Build dependency chains visualization - topological order (upstream first)
         def build_chains($all; $byNum):
             # Map number -> {title, blocks: [numbers]} - merge tracked + blocking
             ($all | map({
@@ -183,17 +175,46 @@ else
                 value: {
                     num: .content.number,
                     title: .content.title,
-                    blocks: [((.content.trackedInIssues.nodes // []) + (.content.blocking.nodes // []))
-                             | group_by(.number) | map(.[0])[] | select(.state == "OPEN") | .number] | sort | unique
+                    blocks: [(.content.blocking.nodes // [])[]
+                             | select(.state == "OPEN") | .number] | sort | unique
                 }
             }) | from_entries) as $graph |
 
             # Issues that block others
             [$graph | to_entries[] | select(.value.blocks | length > 0) | .value.num] | sort as $blockers |
 
-            # Format each blocker with its targets
+            # Topological sort: emit blockers whose upstream deps have all been emitted
+            # For each blocker, find other blockers that must come before it
+            ($blockers | map(tostring)) as $blocker_strs |
+            ([$blockers[] | . as $num |
+                [$blockers[] | . as $other |
+                    select($other != $num) |
+                    select($graph[$other | tostring].blocks | index($num))
+                ] as $upstream |
+                {key: ($num | tostring), value: $upstream}
+            ] | from_entries) as $in_deps |
+
+            # Iteratively pick issues with all in-set deps satisfied
+            {emitted: [], remaining: $blockers} |
+            until(.remaining | length == 0;
+                (.emitted | map(tostring)) as $done |
+                ([.remaining[] | select(
+                    . as $num |
+                    ($in_deps[$num | tostring] // []) |
+                    all(. as $d | $done | index($d | tostring))
+                )] | sort) as $ready |
+                if ($ready | length) == 0 then
+                    # Break cycles: emit remaining sorted by number
+                    .emitted += (.remaining | sort) | .remaining = []
+                else
+                    .emitted += $ready |
+                    .remaining -= $ready
+                end
+            ) | .emitted as $sorted_blockers |
+
+            # Format each blocker with its targets in topological order
             [
-                $blockers[] |
+                $sorted_blockers[] |
                 . as $num |
                 ($graph[$num | tostring]) as $node |
                 ($node.blocks | length) as $count |
@@ -224,6 +245,6 @@ else
         "  ⛔=blocked  🔓=blocking  ✅=ready",
         "",
         # Dependency chains
-        (build_chains($all; $byNum) as $chains | if ($chains | length) > 0 then "  Chaînes:", ($chains[]) else empty end)
+        (build_chains($all; $byNum) as $chains | if ($chains | length) > 0 then "  Chains:", ($chains[]) else empty end)
     '
 fi
