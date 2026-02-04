@@ -24,7 +24,9 @@
     "docs": "turbo dev --filter=@repo/web",
     "i18n:validate": "bun run scripts/validate-translations.ts",
     "typecheck:affected": "turbo run typecheck --filter=...[origin/main]",
-    "test:affected": "turbo run test --filter=...[origin/main]"
+    "test:affected": "turbo run test --filter=...[origin/main]",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.14",

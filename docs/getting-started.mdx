@@ -10,8 +10,8 @@ Quick start guide to use the Roxabi Boilerplate.
 - [Bun](https://bun.sh/) >= 1.0
 - [Git](https://git-scm.com/)
 - [GitHub CLI](https://cli.github.com/) (`gh`)
+- [Docker](https://www.docker.com/) (for local PostgreSQL)
 - [Claude Code](https://claude.ai/claude-code) (optional but recommended)
-- PostgreSQL >= 15
 
 ## 1. Create the Project
 
@@ -212,12 +212,19 @@ cp .env.example .env
 # DATABASE_URL, API keys, etc.
 ```
 
-## 8. Configure the Database
+## 8. Start the Database
 
 ```bash
-# Create the database
-createdb my_project_dev
+# Start PostgreSQL via Docker Compose
+bun db:up
+
+# Verify it's running and healthy
+docker compose ps
 ```
+
+> **Note:** Data persists across restarts. To stop: `bun db:down`. To reset data: `docker compose down -v`.
+
+> **Troubleshooting:** If port 5432 is already in use, stop your local PostgreSQL first (`sudo systemctl stop postgresql` or `brew services stop postgresql`).
 
 ## 9. Run the Project
 
@@ -249,6 +256,8 @@ bun --filter @repo/api dev
 | `bun run test` | Run all tests (via turbo + vitest) |
 | `bun test:coverage` | Tests with coverage |
 | `bun docs` | Start documentation server (runs apps/web) |
+| `bun db:up` | Start PostgreSQL (Docker Compose) |
+| `bun db:down` | Stop PostgreSQL (preserves data) |
 
 ## Next Steps
 
