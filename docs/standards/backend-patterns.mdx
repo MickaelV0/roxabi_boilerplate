@@ -20,7 +20,7 @@ Shared TypeScript rules (const assertions, derived unions, type guards, `satisfi
 
 ---
 
-## 2.1 Code Organization
+## 1.1 Code Organization
 
 ### Module Structure
 
@@ -51,7 +51,7 @@ feature/
 
 ---
 
-## 2.2 Design Patterns
+## 1.2 Design Patterns
 
 ### Codebase Patterns
 
@@ -59,9 +59,9 @@ feature/
 |---------|-------------|-------------|
 | Dependency Injection | `drizzle.provider.ts` | Symbol tokens + `useFactory` for injectable providers |
 | Factory | `drizzle.provider.ts` | `useFactory` creates instances from config values |
-| Middleware | (to migrate from `correlation-id.interceptor.ts`) | Request-level pre-processing for correlation IDs, logging |
+| Middleware | `correlation-id.middleware.ts` | Request-level pre-processing for correlation IDs, logging |
 | Exception Filter | `all-exceptions.filter.ts` | Global fallback error formatting with structured responses |
-| Domain Exception Filter | (to create) | Maps domain exceptions to HTTP responses |
+| Domain Exception Filter | `feature/filters/*.filter.ts` | Maps domain exceptions to HTTP responses |
 | Lifecycle Hook | `database.module.ts` | `OnModuleDestroy` for connection cleanup |
 
 ### Design Principles
@@ -83,7 +83,7 @@ Correlation IDs belong in **middleware** (earliest). Authentication belongs in *
 
 ---
 
-## 2.3 Error Handling
+## 1.3 Error Handling
 
 ### Layered Exception Architecture
 
@@ -162,7 +162,7 @@ All error responses follow this shape:
 
 ---
 
-## 2.4 Provider & Module Patterns
+## 1.4 Provider & Module Patterns
 
 ### Injection Tokens
 
@@ -246,7 +246,7 @@ Use `ConfigurableModuleBuilder` for modules that need `forRoot()` / `forRootAsyn
 
 ---
 
-## 2.5 Correlation ID
+## 1.5 Correlation ID
 
 ### Current State
 
@@ -269,7 +269,7 @@ Adopt `nestjs-cls` (AsyncLocalStorage-based) to propagate the correlation ID thr
 
 ---
 
-## 2.6 AI Quick Reference
+## 1.6 AI Quick Reference
 
 Compressed imperative rules for AI agent consumption. No examples, no rationale.
 
