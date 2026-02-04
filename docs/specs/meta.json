@@ -9,6 +9,7 @@
     "33-tanstack-start-i18n-integration",
     "28-coding-standards",
     "43-backend-setup",
-    "47-docker-compose"
+    "47-docker-compose",
+    "49-api-client"
   ]
 }

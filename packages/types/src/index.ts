@@ -14,3 +14,11 @@ export type ApiResponse<T> = {
     total?: number
   }
 }
+
+export type ApiErrorResponse = {
+  statusCode: number
+  timestamp: string
+  path: string
+  correlationId: string
+  message: string | string[]
+}
