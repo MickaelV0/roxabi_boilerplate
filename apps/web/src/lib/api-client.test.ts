@@ -118,7 +118,8 @@ describe('correlation ID uniqueness', () => {
     await api('/b')
     await api('/c')
 
-    const ids = mockFetch.mock.calls.map(([, options]: [string, RequestInit]) => {
+    const ids = mockFetch.mock.calls.map((call) => {
+      const options = call[1] as RequestInit
       const headers = new Headers(options.headers as HeadersInit)
       return headers.get('x-correlation-id')
     })
