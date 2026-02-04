@@ -1,34 +1,4 @@
 // Types
-export {
-  DEFAULT_LOCALE,
-  DEFAULT_NAMESPACE,
-  LOCALE_COOKIE_MAX_AGE,
-  LOCALE_COOKIE_NAME,
-  LOCALES,
-  NAMESPACES,
-  type DetectedLanguage,
-  type FormatOptions,
-  type LanguageDetectionSource,
-  type Locale,
-  type LocaleContext,
-  type Namespace,
-  type TranslationResources,
-} from './types'
-
-// Configuration
-export { getClientConfig, getServerConfig, i18nConfig } from './config'
-
-// Server utilities
-export {
-  createServerI18n,
-  detectLanguage,
-  getLocaleFromCookie,
-  getLocaleFromHeader,
-  getLocaleFromPath,
-  getLocaleCookieHeader,
-  isValidLocale,
-  loadTranslations,
-} from './server'
 
 // Client utilities
 export {
@@ -39,11 +9,37 @@ export {
   initClientI18n,
 } from './client'
 
+// Configuration
+export { getClientConfig, getServerConfig, i18nConfig } from './config'
+// Router context
+export { createI18nContext, type I18nRouterContext, loadI18nNamespaces } from './context'
 // React hooks
 export { useAvailableLocales, useI18nContext, useLocale, useTranslation } from './hooks'
-
-// Router context
-export { createI18nContext, loadI18nNamespaces, type I18nRouterContext } from './context'
-
 // SEO utilities
 export { getCanonicalUrl, HreflangTags } from './seo'
+// Server utilities
+export {
+  createServerI18n,
+  detectLanguage,
+  getLocaleCookieHeader,
+  getLocaleFromCookie,
+  getLocaleFromHeader,
+  getLocaleFromPath,
+  isValidLocale,
+  loadTranslations,
+} from './server'
+export {
+  DEFAULT_LOCALE,
+  DEFAULT_NAMESPACE,
+  type DetectedLanguage,
+  type FormatOptions,
+  type LanguageDetectionSource,
+  LOCALE_COOKIE_MAX_AGE,
+  LOCALE_COOKIE_NAME,
+  LOCALES,
+  type Locale,
+  type LocaleContext,
+  NAMESPACES,
+  type Namespace,
+  type TranslationResources,
+} from './types'

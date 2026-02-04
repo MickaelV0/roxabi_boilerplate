@@ -1,15 +1,15 @@
-import {
-  DEFAULT_LOCALE,
-  type Locale,
-  type Namespace,
-  createServerI18n,
-  isValidLocale,
-  loadI18nNamespaces,
-} from '@/lib/i18n'
-import type { RouterContext } from '@/router'
-import { Outlet, createFileRoute, redirect, useRouteContext } from '@tanstack/react-router'
+import { createFileRoute, Outlet, redirect, useRouteContext } from '@tanstack/react-router'
 import { use, useMemo } from 'react'
 import { I18nextProvider } from 'react-i18next'
+import {
+  createServerI18n,
+  DEFAULT_LOCALE,
+  isValidLocale,
+  type Locale,
+  loadI18nNamespaces,
+  type Namespace,
+} from '@/lib/i18n'
+import type { RouterContext } from '@/router'
 
 export const Route = createFileRoute('/$locale/_layout')({
   beforeLoad: async ({ params, context }) => {

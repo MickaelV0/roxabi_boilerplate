@@ -1,5 +1,5 @@
-import { changeLanguage, useAvailableLocales, useTranslation } from '@/lib/i18n'
 import type { Locale } from '@/lib/i18n'
+import { changeLanguage, useAvailableLocales, useTranslation } from '@/lib/i18n'
 
 type LanguageSwitcherProps = {
   /**
