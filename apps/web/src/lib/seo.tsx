@@ -1,4 +1,4 @@
-import { getLocale, locales } from '@/paraglide/runtime'
+import { locales } from '@/paraglide/runtime'
 
 function getBaseUrl(): string {
   const baseUrl = import.meta.env.VITE_BASE_URL
@@ -27,8 +27,7 @@ export function HreflangTags({ path }: HreflangTagsProps) {
   )
 }
 
-export function getCanonicalUrl(path: string): string {
+export function getCanonicalUrl(locale: string, path: string): string {
   const baseUrl = getBaseUrl()
-  const locale = getLocale()
   return `${baseUrl}/${locale}${path}`
 }

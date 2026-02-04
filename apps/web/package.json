@@ -9,7 +9,7 @@
     "build": "vite build",
     "start": "node .output/server/index.mjs",
     "preview": "vite preview",
-    "typecheck": "tsr generate && fumadocs-mdx && tsc --noEmit",
+    "typecheck": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --strategy url cookie preferredLanguage baseLocale --silent && tsr generate && fumadocs-mdx && tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {

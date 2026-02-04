@@ -1,8 +1,14 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import { getLocale } from '@/paraglide/runtime'
 
+const subscribe = () => () => {}
+
+export function useLocale(): string {
+  return useSyncExternalStore(subscribe, getLocale, getLocale)
+}
+
 export function useLocaleFormatters() {
-  const locale = getLocale()
+  const locale = useLocale()
 
   const formatDate = useCallback(
     (date: Date, options?: Intl.DateTimeFormatOptions): string => {

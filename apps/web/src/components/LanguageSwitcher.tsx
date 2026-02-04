@@ -6,7 +6,7 @@ type LanguageSwitcherProps = {
   variant?: 'dropdown' | 'buttons'
 }
 
-const LANGUAGE_NAMES: Record<string, { native: string; english: string }> = {
+const LANGUAGE_NAMES: Record<Locale, { native: string; english: string }> = {
   en: { native: 'English', english: 'English' },
   fr: { native: 'Français', english: 'French' },
 }
@@ -30,10 +30,10 @@ export function LanguageSwitcher({ className, variant = 'dropdown' }: LanguageSw
             type="button"
             onClick={() => handleLanguageChange(locale)}
             aria-pressed={locale === currentLocale}
-            aria-label={LANGUAGE_NAMES[locale]?.english}
+            aria-label={LANGUAGE_NAMES[locale].english}
             data-testid={`locale-${locale}`}
           >
-            {LANGUAGE_NAMES[locale]?.native}
+            {LANGUAGE_NAMES[locale].native}
           </button>
         ))}
       </fieldset>
@@ -54,7 +54,7 @@ export function LanguageSwitcher({ className, variant = 'dropdown' }: LanguageSw
       >
         {locales.map((locale) => (
           <option key={locale} value={locale} data-testid={`locale-${locale}`}>
-            {LANGUAGE_NAMES[locale]?.native}
+            {LANGUAGE_NAMES[locale].native}
           </option>
         ))}
       </select>
@@ -73,6 +73,6 @@ export function useLanguageSwitcher() {
         setLocale(locale)
       }
     },
-    getLanguageName: (locale: string) => LANGUAGE_NAMES[locale],
+    getLanguageName: (locale: Locale) => LANGUAGE_NAMES[locale],
   }
 }
