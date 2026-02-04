@@ -2,7 +2,10 @@
   "name": "roxabi-boilerplate",
   "version": "0.1.0",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "prepare": "lefthook install",
     "dev": "turbo dev",

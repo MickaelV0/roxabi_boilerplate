@@ -1,16 +1,16 @@
+import {
+  createRootRouteWithContext,
+  HeadContent,
+  Outlet,
+  redirect,
+  Scripts,
+} from '@tanstack/react-router'
+import { RootProvider } from 'fumadocs-ui/provider/tanstack'
+import type * as React from 'react'
 import { createI18nContext, detectLanguage } from '@/lib/i18n'
 import { getInvalidLocaleRedirect } from '@/lib/i18n/server'
 import type { RouterContext } from '@/router'
 import appCss from '@/styles/app.css?url'
-import {
-  HeadContent,
-  Outlet,
-  Scripts,
-  createRootRouteWithContext,
-  redirect,
-} from '@tanstack/react-router'
-import { RootProvider } from 'fumadocs-ui/provider/tanstack'
-import type * as React from 'react'
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   beforeLoad: ({ context, location }) => {

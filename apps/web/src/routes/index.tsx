@@ -1,5 +1,5 @@
-import { DEFAULT_LOCALE, detectLanguage } from '@/lib/i18n'
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { DEFAULT_LOCALE, detectLanguage } from '@/lib/i18n'
 
 export const Route = createFileRoute('/')({
   beforeLoad: () => {

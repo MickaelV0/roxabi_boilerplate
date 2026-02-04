@@ -1,6 +1,6 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.3.14/schema.json",
-  "assists": { "enabled": true },
+  "assist": { "enabled": true },
   "linter": {
     "enabled": true,
     "rules": {
@@ -29,6 +29,9 @@
     "lineWidth": 100
   },
   "javascript": {
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
+    },
     "formatter": {
       "quoteStyle": "single",
       "semicolons": "asNeeded",
@@ -36,18 +39,18 @@
     }
   },
   "files": {
-    "include": ["**"],
-    "ignore": [
-      "**/node_modules",
-      "**/dist",
-      "**/build",
-      "**/.next",
-      "**/.turbo",
-      "**/*.min.js",
-      "**/coverage",
-      "**/.source",
-      "**/.output",
-      "**/routeTree.gen.ts"
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/build",
+      "!**/.next",
+      "!**/.turbo",
+      "!**/*.min.js",
+      "!**/coverage",
+      "!**/.source",
+      "!**/.output",
+      "!**/routeTree.gen.ts"
     ]
   }
 }

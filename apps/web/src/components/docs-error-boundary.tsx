@@ -1,7 +1,7 @@
-import { baseOptions } from '@/lib/layout.shared'
 import { Link } from '@tanstack/react-router'
 import { HomeLayout } from 'fumadocs-ui/layouts/home'
 import { Component, type ReactNode } from 'react'
+import { baseOptions } from '@/lib/layout.shared'
 
 interface Props {
   children: ReactNode
