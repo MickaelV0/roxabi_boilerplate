@@ -24,7 +24,7 @@ function createMockHost(headers: Record<string, string> = {}) {
   const getSentBody = () => {
     const call = sendFn.mock.calls[0]
     expect(call).toBeDefined()
-    return call![0] as Record<string, unknown>
+    return call?.[0] as Record<string, unknown>
   }
 
   return { host, statusFn, getSentBody } as const
