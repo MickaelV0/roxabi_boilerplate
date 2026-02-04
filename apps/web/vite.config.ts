@@ -1,3 +1,4 @@
+import { paraglideVitePlugin } from '@inlang/paraglide-js'
 import tailwindcss from '@tailwindcss/vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import react from '@vitejs/plugin-react'
@@ -10,6 +11,36 @@ export default defineConfig({
     port: 3000,
   },
   plugins: [
+    paraglideVitePlugin({
+      project: './project.inlang',
+      outdir: './src/paraglide',
+      outputStructure: 'message-modules',
+      strategy: ['url', 'cookie', 'preferredLanguage', 'baseLocale'],
+      cookieName: 'locale',
+      urlPatterns: [
+        {
+          pattern: '/',
+          localized: [
+            ['en', '/en'],
+            ['fr', '/fr'],
+          ],
+        },
+        {
+          pattern: '/dashboard',
+          localized: [
+            ['en', '/en/dashboard'],
+            ['fr', '/fr/dashboard'],
+          ],
+        },
+        {
+          pattern: '/:path(.*)?',
+          localized: [
+            ['en', '/en/:path(.*)?'],
+            ['fr', '/fr/:path(.*)?'],
+          ],
+        },
+      ],
+    }),
     tanstackStart(),
     react(),
     mdx(await import('./source.config')),
