@@ -9,8 +9,8 @@ import {
 import type { FastifyReply, FastifyRequest } from 'fastify'
 
 @Catch()
-export class HttpExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(HttpExceptionFilter.name)
+export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger(AllExceptionsFilter.name)
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp()
