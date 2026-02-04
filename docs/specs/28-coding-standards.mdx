@@ -5,7 +5,7 @@ description: Specification for documenting coding standards, testing workflow, c
 
 ## Overview
 
-Create 4 standards documents + 1 AI agent rule file that codify existing codebase patterns and fill documentation gaps. These serve as actionable references for developers and AI agents alike.
+Create 4 standards documents that codify existing codebase patterns and fill documentation gaps. These serve as actionable references for developers and AI agents alike. The frontend and backend pattern docs each include a compressed "AI Quick Reference" section with imperative rules for agent consumption.
 
 **Approach**: Option C (Balanced) from [analysis](/docs/analyses/28-coding-standards), refined by a [challenge review](#challenge-review-decisions) that validated patterns against 2025-2026 best practices and corrected 17 items.
 
@@ -15,25 +15,24 @@ Create 4 standards documents + 1 AI agent rule file that codify existing codebas
 - Document testing workflow and philosophy (currently undocumented)
 - Establish code review guidelines (currently missing)
 - Catalog testing patterns per layer with real examples
-- Make standards AI-agent consumable (compressed rules in `.claude/processes/`)
+- Make standards AI-agent consumable (compressed rules embedded in frontend/backend pattern docs)
 
 ## Files to Create
 
 | File | Est. Lines | Purpose |
 |------|-----------|---------|
 | `docs/standards/meta.json` | ~10 | Navigation config |
-| `docs/standards/frontend-patterns.mdx` | ~150 | React/TanStack: hooks, components, error boundaries, code org |
-| `docs/standards/backend-patterns.mdx` | ~150 | NestJS: DI, modules, filters, middleware, code org |
+| `docs/standards/frontend-patterns.mdx` | ~180 | React/TanStack: hooks, components, error boundaries, code org + AI quick reference |
+| `docs/standards/backend-patterns.mdx` | ~180 | NestJS: DI, modules, filters, middleware, code org + AI quick reference |
 | `docs/standards/testing.mdx` | ~250 | Testing philosophy (Trophy), TDD cycle, per-layer patterns, mocks, coverage |
 | `docs/standards/code-review.mdx` | ~200 | Checklist, security, Conventional Comments, approval criteria |
-| `.claude/processes/coding-standards.md` | ~80 | Compressed AI-agent rules (no examples, just imperatives) |
 
 ## Files to Update
 
 | File | Change |
 |------|--------|
 | `docs/meta.json` | Add `standards` section to navigation |
-| `CLAUDE.md` | Add reference to standards docs + AI rules file in Documentation table |
+| `CLAUDE.md` | Add reference to standards docs in Documentation table |
 
 ---
 
@@ -126,6 +125,13 @@ Rules:
 - Use named exports, never default exports (exception: follow framework conventions where required)
 - Variant pattern for multi-mode components (`variant?: 'dropdown' | 'buttons'`)
 - React Compiler handles memoization — do not add manual `React.memo`, `useMemo`, or `useCallback` unless profiling proves it necessary
+
+#### 1.5 AI Quick Reference
+
+Compressed imperative rules for AI agent consumption. No examples, no rationale — just rules. Covers TypeScript (shared) + frontend-specific patterns:
+
+- **TypeScript rules**: `unknown` over `any`, `satisfies` over `as`, `type` over `interface` (default), type-only imports, no `!` assertions
+- **Frontend rules**: no barrel files in app code, functional components only, named exports, `react-error-boundary` for error boundaries, no manual memoization (React Compiler), companion hooks for complex components, variant pattern for multi-mode, client/server separation
 
 ---
 
@@ -239,6 +245,12 @@ Rules:
 - Generate UUID if no `x-correlation-id` header present; reuse incoming header if present
 - Set on request and response headers
 - Future enhancement: consider `nestjs-cls` (AsyncLocalStorage) for propagating correlation ID through async chains without parameter passing
+
+#### 2.6 AI Quick Reference
+
+Compressed imperative rules for AI agent consumption. No examples, no rationale — just rules. Covers backend-specific patterns:
+
+- **Backend rules**: one module per domain feature, controllers HTTP-only (delegate to services), Symbol() for injection tokens, no barrel files in app code, domain exceptions (pure TS Error subclasses — no NestJS imports), filters map domain exceptions to HTTP, AllExceptionsFilter as global fallback only, `@Global()` only for read-only infrastructure, correlation ID as middleware (not interceptor), `OnModuleDestroy` for cleanup, Zod for new DTO validation (not class-validator)
 
 ---
 
@@ -572,34 +584,6 @@ Example: `suggestion(blocking): This needs a domain exception instead of throwin
 
 ---
 
-## AI Agent Rules File
-
-**File**: `.claude/processes/coding-standards.md`
-
-Compressed rule extract (~80 lines) for Claude Code consumption. No examples, no rationale — just imperative rules. Content derived from the 4 standards documents above.
-
-Structure:
-```markdown
-## TypeScript
-- [compressed rules from preamble sections]
-
-## Frontend
-- [compressed rules from frontend-patterns.mdx]
-
-## Backend
-- [compressed rules from backend-patterns.mdx]
-
-## Testing
-- [compressed rules from testing.mdx]
-
-## Code Review
-- [compressed rules from code-review.mdx]
-```
-
-Referenced from `CLAUDE.md` Documentation table as: `Coding standards (AI) | [.claude/processes/coding-standards.md]`
-
----
-
 ## Navigation Setup
 
 ### `docs/standards/meta.json`
@@ -627,17 +611,16 @@ Add to Documentation table:
 | Topic | Documentation |
 |-------|---------------|
 | Coding standards | [docs/standards/](docs/standards/) |
-| Coding standards (AI) | [.claude/processes/coding-standards.md](.claude/processes/coding-standards.md) |
 
 ---
 
 ## Acceptance Criteria
 
 - [ ] 4 MDX documents created in `docs/standards/`
-- [ ] 1 AI rules file created in `.claude/processes/`
+- [ ] `frontend-patterns.mdx` and `backend-patterns.mdx` include AI Quick Reference sections with compressed imperative rules
 - [ ] `meta.json` created for standards section navigation
 - [ ] `docs/meta.json` updated with standards section
-- [ ] `CLAUDE.md` references both standards docs and AI rules file
+- [ ] `CLAUDE.md` references standards docs
 - [ ] All code examples reference actual project files (verified against codebase)
 - [ ] No duplication of Biome/TypeScript auto-enforced rules
 - [ ] `bun docs` renders all 4 pages correctly
@@ -654,6 +637,7 @@ Add to Documentation table:
   - [ ] Design patterns (hooks, react-error-boundary, composition)
   - [ ] Error handling (boundaries, null returns, Result types for business logic)
   - [ ] Component patterns (functional only, React Compiler, variants)
+  - [ ] AI Quick Reference (compressed TypeScript + frontend rules, no examples)
 - [ ] Create `docs/standards/backend-patterns.mdx`
   - [ ] TypeScript preamble (symbols, decorators, class-validator/Zod note)
   - [ ] Code organization (module structure, no barrel files)
@@ -661,6 +645,7 @@ Add to Documentation table:
   - [ ] Error handling (domain exceptions → HTTP mapping, AllExceptionsFilter as fallback)
   - [ ] Provider & module patterns (symbols, @Global constraints, ConfigurableModuleBuilder)
   - [ ] Correlation ID as middleware with lifecycle ordering
+  - [ ] AI Quick Reference (compressed backend rules, no examples)
 - [ ] Create `docs/standards/testing.mdx` (merged TDD + testing patterns)
   - [ ] Testing Trophy philosophy
   - [ ] Red-Green-Refactor with walkthrough
@@ -681,11 +666,8 @@ Add to Documentation table:
   - [ ] Per-layer review criteria (including migrations, a11y)
   - [ ] Conventional Comments (labels + decorators)
   - [ ] Approval criteria with documented-vs-undocumented architecture distinction
-- [ ] Create `.claude/processes/coding-standards.md`
-  - [ ] Compressed rules from all 4 standards documents
-  - [ ] ~80 lines, imperatives only, no examples
 - [ ] Update `docs/meta.json` navigation
-- [ ] Update `CLAUDE.md` documentation table (both references)
+- [ ] Update `CLAUDE.md` documentation table
 
 ## Prerequisites / Related Tasks
 
@@ -707,7 +689,7 @@ This spec was refined through a systematic challenge review against 2025-2026 be
 | 3 | Correlation ID: middleware, not interceptor | Critical |
 | 4 | Security checklist: full expansion (sql.raw, XSS, CORS, auth, rate limiting) | Critical |
 | 5 | React Compiler adoption, remove manual memoization | Critical |
-| 6 | 4 docs + AI file (merged TDD+testing, kept frontend/backend separate) | Important |
+| 6 | 4 docs with AI quick reference embedded in frontend/backend pattern docs (no separate AI file) | Important |
 | 7 | `satisfies` operator as first-class TypeScript pattern | Important |
 | 8 | Coverage: 80% + ratcheting (from 70%) | Important |
 | 9 | Role-based selectors first, data-testid as last resort | Important |

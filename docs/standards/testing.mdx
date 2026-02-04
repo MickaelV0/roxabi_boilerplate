@@ -1,0 +1,335 @@
+---
+title: Testing
+description: Testing philosophy, TDD workflow, per-layer patterns, and coverage guidelines
+---
+
+## Testing Philosophy — The Testing Trophy
+
+Adopt the Testing Trophy model instead of the traditional test pyramid. Integration tests form the largest layer because they catch the most bugs per line of test code.
+
+```
+        /  E2E  \         ← Small: critical user flows only
+       / Integr. \        ← LARGEST: real modules working together
+      /   Unit    \       ← Focused: pure functions, utilities
+     / Static Anal.\      ← Foundation: TypeScript strict + Biome
+```
+
+**Static Analysis (foundation):** TypeScript strict mode and Biome catch type errors, formatting issues, and code smells at zero runtime cost. Every file passes through this layer automatically.
+
+**Unit Tests:** Test pure functions, utilities, and type guards in isolation. Keep these fast and deterministic with no external dependencies.
+
+**Integration Tests (largest layer):** Use NestJS `Test.createTestingModule()` for backend tests that wire multiple providers together. Use Testing Library with real hooks and context for frontend components. This layer delivers the highest confidence-to-effort ratio.
+
+**E2E Tests:** Reserve Playwright for critical user journeys — signup, login, core workflows. These are slow and brittle, so keep the count small and the scope broad.
+
+## Red-Green-Refactor Cycle
+
+Follow this cycle for every unit of work:
+
+1. **Red:** Write a failing test that describes the expected behavior. Run it. Confirm it fails for the right reason.
+2. **Green:** Write the minimum code to make the test pass. No more.
+3. **Refactor:** Clean up the implementation and the test while the suite stays green. This step is not optional — take it every time.
+
+### Walkthrough: `UserService.findById`
+
+```typescript
+// 1. RED — Write the test first
+import { describe, it, expect } from 'vitest'
+
+describe('UserService', () => {
+  it('should return user when found by id', async () => {
+    // Arrange
+    const service = new UserService(mockUserRepository)
+    await mockUserRepository.insert({ id: '1', name: 'Ada' })
+
+    // Act
+    const user = await service.findById('1')
+
+    // Assert
+    expect(user).toEqual({ id: '1', name: 'Ada' })
+  })
+
+  it('should throw NotFoundException when user does not exist', async () => {
+    const service = new UserService(mockUserRepository)
+
+    await expect(service.findById('nonexistent'))
+      .rejects.toThrow('User not found')
+  })
+})
+
+// 2. GREEN — Minimum implementation
+// 3. REFACTOR — Extract shared setup, improve naming
+```
+
+**Note:** "Test-after" is acceptable during prototyping and exploration. Tests must exist before the PR merges.
+
+## Test Structure (AAA Pattern)
+
+Use the Arrange-Act-Assert pattern with explicit section comments. This example comes from `apps/api/src/common/filters/all-exceptions.filter.test.ts`:
+
+```typescript
+import { describe, it, expect } from 'vitest'
+
+it('should handle HttpException with string response', () => {
+  // Arrange
+  const { host, statusFn, getSentBody } = createMockHost()
+  const exception = new HttpException('Not found', HttpStatus.NOT_FOUND)
+
+  // Act
+  filter.catch(exception, host as never)
+
+  // Assert
+  expect(statusFn).toHaveBeenCalledWith(404)
+  expect(getSentBody().message).toBe('Not found')
+})
+```
+
+**Rules:**
+- Test one behavior per test case (unit). Coherent multi-step scenarios are acceptable for integration and E2E tests.
+- Use descriptive names: `should X when Y`.
+- Extract shared setup into factory/helper functions. Reserve `beforeEach` for teardown and mock resets only.
+- Do not test private methods directly. If a private method is complex enough to need its own tests, extract it into a separate module.
+
+## Test Organization
+
+**Naming:** Use `.test.ts` for unit and integration tests. Use `.spec.ts` for E2E tests (Playwright).
+
+**Location:** Colocate test files next to source files. Place shared test helpers and fixtures in a `__tests__/` directory.
+
+**Configuration:** Each package has its own Vitest config extending `vitest.shared.ts` at the repo root:
+
+```typescript
+// apps/api/vitest.config.ts
+import { defineConfig } from 'vitest/config'
+import { nodeConfig } from '../../vitest.shared'
+
+export default defineConfig({
+  test: {
+    ...nodeConfig,
+    name: 'api',
+    root: __dirname,
+    setupFiles: ['./src/test/setup.ts'],
+  },
+})
+```
+
+**Environments:** Use `node` for backend packages (`apps/api`). Use `jsdom` for frontend packages (`apps/web`, `packages/ui`).
+
+**Imports:** Import test utilities explicitly from `vitest`. Do not rely on `globals: true`:
+
+```typescript
+import { describe, it, expect, vi } from 'vitest'
+```
+
+## Coverage Guidelines
+
+**Threshold:** Maintain 80% coverage across lines, functions, branches, and statements.
+
+**Ratcheting:** Enable `thresholds.autoUpdate: true` in Vitest config so the threshold automatically increases as coverage grows. It never decreases.
+
+**Provider:** Use V8 with `text`, `json`, and `html` reporters.
+
+**Per-directory targets:**
+- Business logic (services, domain): 90%+
+- Glue code (controllers, modules): 80%
+- Config files, generated code, and type declarations: exclude from coverage
+
+## Backend Testing Patterns
+
+### Filter / Interceptor / Middleware Testing
+
+From `apps/api/src/common/filters/all-exceptions.filter.test.ts`:
+
+- Instantiate the class directly — do not use NestJS test modules for unit tests.
+- Build factory helpers like `createMockHost()` and `createMockContext()` to construct mock objects.
+- Test the happy path and every error path.
+- Verify the response structure matches the API contract (status code, message, correlationId, path, timestamp).
+
+### Provider / Factory Testing
+
+From `apps/api/src/database/drizzle.provider.test.ts`:
+
+- Mock `ConfigService` with a `createMockConfig()` helper:
+
+```typescript
+function createMockConfig(values: Record<string, string | undefined>) {
+  return {
+    get: vi.fn((key: string, defaultValue?: string) => values[key] ?? defaultValue),
+  }
+}
+```
+
+- Call `useFactory` functions directly with the mock config.
+- Verify null handling for optional dependencies and error throwing in production mode.
+
+### When to Use `Test.createTestingModule()` (Integration)
+
+Use the NestJS testing module when:
+- Multiple providers must work together through real dependency injection.
+- You need to test module initialization and lifecycle hooks.
+- You are verifying that DI wiring is correct across module boundaries.
+
+## Frontend Testing Patterns
+
+### Setup
+
+From `apps/web/src/test/setup.ts`:
+
+```typescript
+import '@testing-library/jest-dom/vitest'
+import { cleanup } from '@testing-library/react'
+import { afterEach } from 'vitest'
+
+afterEach(() => {
+  cleanup()
+})
+```
+
+Import `@testing-library/jest-dom/vitest` for DOM matchers (`toBeInTheDocument`, `toHaveTextContent`). Call `cleanup()` after each test to unmount rendered components.
+
+### Component Testing
+
+From `packages/ui`:
+
+- Use `render()` and `screen` queries from Testing Library.
+- Prefer role-based selectors in this order:
+  1. `getByRole('button', { name: 'Submit' })`
+  2. `getByLabelText('Email')`
+  3. `getByText('Welcome')`
+  4. `getByTestId('submit-btn')` — last resort only
+- Use `fireEvent` for simple interactions. Use `userEvent` for realistic user behavior (typing, tabbing).
+- Assert on visible text, ARIA roles, and attributes. Do not assert on DOM structure or CSS classes.
+
+### Utility Testing
+
+From `apps/web/src/lib/i18n/__tests__/server.test.ts`:
+
+- Test comprehensive edge cases: null, empty string, invalid input, and boundary values.
+- Group tests by function under `describe` blocks.
+- Test type guards with both valid and invalid inputs to verify the return type narrows correctly.
+
+## E2E Testing Patterns
+
+### Configuration
+
+From `playwright.config.ts`:
+
+```typescript
+import { defineConfig, devices } from '@playwright/test'
+
+export default defineConfig({
+  testDir: './apps/web/e2e',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  reporter: 'html',
+  use: {
+    baseURL: 'http://localhost:3000',
+    trace: 'on-first-retry',
+  },
+  webServer: {
+    command: 'bun run dev',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120000,
+  },
+})
+```
+
+Reuse the existing dev server locally. Start a fresh server in CI.
+
+### Test Structure
+
+```typescript
+test.describe('Feature Name', () => {
+  test('should perform user action', async ({ page }) => {
+    await page.goto('/path')
+    await page.getByRole('button', { name: 'Submit' }).click()
+    await expect(page).toHaveTitle(/Expected/)
+  })
+})
+```
+
+**Selector priority:** `getByRole` &rarr; `getByLabel` &rarr; `getByText` &rarr; `getByTestId` (last resort).
+
+**Patterns:**
+- Use the Page Object Model to encapsulate page interactions.
+- Use fixtures for authentication state and shared setup.
+- Do not place assertions inside page objects — page objects return data, tests assert on it.
+
+## Mocking Strategies
+
+### Factory Helper Pattern (Preferred)
+
+From `apps/api/src/common/filters/all-exceptions.filter.test.ts`:
+
+```typescript
+import { vi } from 'vitest'
+
+function createMockHost(headers: Record<string, string> = {}) {
+  const sendFn = vi.fn()
+  const statusFn = vi.fn().mockReturnValue({ send: sendFn })
+
+  const request = {
+    url: '/test',
+    method: 'GET',
+    headers: { 'x-correlation-id': 'test-id', ...headers },
+  }
+  const response = { status: statusFn }
+
+  const host = {
+    switchToHttp: () => ({
+      getRequest: () => request,
+      getResponse: () => response,
+    }),
+  }
+
+  const getSentBody = () => {
+    const call = sendFn.mock.calls[0]
+    expect(call).toBeDefined()
+    return call?.[0] as Record<string, unknown>
+  }
+
+  return { host, statusFn, getSentBody } as const
+}
+```
+
+### Rules
+
+- Build factory functions that accept `Partial<T>` overrides for flexibility.
+- Keep mocks close to the tests that use them.
+- **Backend:** Prefer dependency injection over module-level mocking. Pass `vi.fn()` stubs through DI. Avoid `vi.mock()`.
+- **Frontend:** Use `vi.fn()` and `vi.spyOn()` for internal code. Use `vi.mock()` only for third-party modules that cannot be injected.
+- **Environment variables:** Use `vi.stubEnv()` as shown in `apps/api/src/test/setup.ts`.
+
+## Test Data Management
+
+- **Inline data:** Use directly in the test for simple, self-contained cases.
+- **Factory functions:** Build helper functions that produce complex entities with sensible defaults and optional overrides.
+- **Fixtures:** Store static JSON data in `__tests__/fixtures/` for large or shared datasets.
+- **Database:** Use Testcontainers for integration tests that require a real PostgreSQL instance.
+- **Cleanup:** Each test owns its data. Do not rely on shared mutable state between tests.
+
+## AI-Assisted TDD Workflow
+
+1. **Describe** the feature or function you need to build.
+2. **Ask Claude to write the test first.** Be explicit: "Write the test FIRST. Do not create implementation code."
+3. **Review the test** — does it capture the right behavior? This is the most critical step.
+4. **Ask Claude to implement** the code that makes the test pass.
+5. **Run `bun run test`** and verify the result.
+6. **Refactor together** — improve both test and implementation.
+7. **Validate** — a human reviews both the test and the implementation before merge.
+
+**Tips:**
+- Provide existing test files as context so Claude follows the project's patterns.
+- Ask for edge cases after the happy path is covered.
+- Watch for circular validation — where the test and implementation are derived from the same flawed logic.
+
+## Advanced Testing
+
+These techniques apply to specific scenarios. Introduce them incrementally, not all at once.
+
+- **Property-based testing (fast-check):** Use for utility functions, validators, and type guards where you want to verify invariants across random inputs.
+- **Mutation testing (Stryker):** Apply to critical business logic to verify that tests actually catch regressions. Use incremental mode in CI to keep build times manageable.
+- **Contract testing (Pact):** Use consumer-driven contracts when the frontend and backend are developed by different teams or deployed independently.
+- **Snapshot testing:** Do not use for UI components — snapshots are brittle and provide low signal. Inline snapshots are acceptable for small data structures like serialized error responses.

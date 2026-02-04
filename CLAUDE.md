@@ -9,6 +9,7 @@
 | Architecture | [docs/architecture/](docs/architecture/) |
 | Analyses (pre-spec) | [docs/analyses/](docs/analyses/) |
 | Feature specifications | [docs/specs/](docs/specs/) |
+| Coding standards | [docs/standards/](docs/standards/) |
 | Documentation (Fumadocs) | [docs/](docs/) |
 
 ---
@@ -204,6 +205,9 @@ docs/
 ├── processes/          # Development processes
 │   ├── meta.json
 │   ├── index.mdx
+│   └── *.mdx
+├── standards/          # Coding standards & best practices
+│   ├── meta.json
 │   └── *.mdx
 ├── analyses/           # Pre-spec analyses
 │   ├── meta.json

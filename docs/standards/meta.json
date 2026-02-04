@@ -1,0 +1,4 @@
+{
+  "title": "Standards",
+  "pages": ["frontend-patterns", "backend-patterns", "testing", "code-review"]
+}

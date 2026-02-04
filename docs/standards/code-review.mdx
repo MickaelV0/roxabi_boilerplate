@@ -1,0 +1,166 @@
+---
+title: Code Review Guidelines
+description: Review checklist, feedback guidelines with Conventional Comments, and approval criteria
+---
+
+## Review Checklist
+
+Use this checklist for every pull request. Not every item applies to every PR — skip items that are irrelevant, but do not skip a category entirely without scanning it.
+
+### Correctness
+
+- [ ] Logic handles edge cases (null, empty, invalid input)
+- [ ] Error paths handled (error boundaries, domain exceptions, exception filters)
+- [ ] Types correct — no `any`, no unsafe `as` casts (use `satisfies` instead)
+- [ ] API contracts match (request/response types, discriminated unions)
+
+### Security
+
+- [ ] No secrets in code (API keys, tokens, passwords — use env vars)
+- [ ] No secrets leaked in error messages or logs
+- [ ] User input validated — `class-validator` / Zod on DTOs, type guards on frontend
+- [ ] No SQL injection — no `sql.raw()` with user-supplied input. Drizzle query builder and `sql` tagged templates are safe; `sql.raw()` is **not**
+- [ ] No XSS vectors:
+  - No `dangerouslySetInnerHTML` without DOMPurify sanitization
+  - No `javascript:` or `data:` URLs in `href` / `src`
+  - No `eval()`, `Function()`, or direct `innerHTML`
+  - User-supplied data in route params sanitized before rendering
+- [ ] CORS configured with explicit origin allowlist (never `*` in production)
+- [ ] Auth guards on protected endpoints (`@UseGuards()`)
+- [ ] Rate limiting on public-facing endpoints (`@nestjs/throttler`)
+- [ ] Sensitive tokens stored in `httpOnly` cookies, not `localStorage`
+
+### Performance
+
+- [ ] React Compiler enabled — no manual `React.memo` / `useMemo` / `useCallback` unless profiling proves necessary
+- [ ] Components follow Rules of React (pure render, immutable props/state, no side effects in render)
+- [ ] No N+1 queries — check for queries inside loops, missing joins
+- [ ] No blocking operations in hot paths
+- [ ] New dependencies justified — check bundle size impact
+- [ ] Route-level code splitting / lazy loading for new routes
+- [ ] No memory leaks — uncleared intervals, event listeners, `useEffect` without cleanup
+
+### Architecture
+
+- [ ] Follows module structure (see [frontend-patterns](/docs/standards/frontend-patterns) / [backend-patterns](/docs/standards/backend-patterns))
+- [ ] No circular dependencies
+- [ ] Shared types in `packages/types`, not duplicated across apps
+- [ ] Uses existing patterns (dependency injection, hooks, direct imports)
+- [ ] No barrel files in application code
+- [ ] Services throw domain exceptions, not `HttpException` directly
+
+### Tests
+
+- [ ] New public functions have tests
+- [ ] Tests cover happy path + at least one error path
+- [ ] Tests use explicit `import { describe, it, expect } from 'vitest'`
+- [ ] No flaky assertions (no timing-dependent tests)
+- [ ] Mocks use factory helpers, not inline complex objects
+- [ ] Selectors use `getByRole` / `getByLabel` / `getByText` first, `data-testid` last
+
+### Readability
+
+- [ ] Code understandable without extensive comments
+- [ ] Naming clear and consistent
+- [ ] No over-engineering or speculative abstractions
+
+### Observability
+
+- [ ] New endpoints have structured logging
+- [ ] Error paths include correlation IDs
+- [ ] External service calls have timeout and retry configuration
+
+### PR Size
+
+- [ ] PR under ~400 lines changed (excluding auto-generated files, lock files, and test fixtures)
+- [ ] If over 400 lines, justified by an atomic feature that cannot be split further
+
+---
+
+## Review Criteria by Layer
+
+Different layers of the stack deserve different focus areas. Use this table to prioritize what to look for depending on which files changed.
+
+| Layer | Focus Areas |
+|-------|-------------|
+| **Backend (NestJS)** | DI correctness, domain exception usage, DTO validation, SQL safety (`sql.raw()` check), middleware ordering |
+| **Frontend (React)** | Hook rules, component props, error boundaries, a11y (semantic HTML, ARIA), React Compiler compatibility |
+| **Shared packages** | Backward compatibility, type exports, no runtime dependencies, barrel file is the only entry point |
+| **Tests** | AAA structure, role-based selectors, meaningful assertions, no implementation coupling, explicit vitest imports |
+| **Documentation** | Frontmatter present, MDX valid, `meta.json` updated |
+| **Database migrations** | No destructive operations without review, indexes for new query patterns, reversible migrations |
+
+---
+
+## Feedback Guidelines — Conventional Comments
+
+All code review feedback must use [Conventional Comments](https://conventionalcomments.org/). This removes ambiguity about whether a comment blocks merge and keeps reviews constructive.
+
+### Labels
+
+Every review comment starts with a label that signals its intent.
+
+| Label | Usage | Example |
+|-------|-------|---------|
+| `praise:` | Highlight something positive | `praise: Great use of the factory helper pattern here!` |
+| `nitpick:` | Trivial, preference-based | `nitpick: Prefer const over let here.` |
+| `suggestion:` | Proposes an improvement | `suggestion: Consider using a discriminated union for this response type.` |
+| `issue:` | Highlights a specific problem | `issue: This sql.raw() call with user input is a SQL injection vector.` |
+| `question:` | Invites clarification | `question: Why is this module marked as @Global()? It seems feature-specific.` |
+| `thought:` | Non-blocking idea for consideration | `thought: A factory helper would make this test more readable.` |
+| `todo:` | Small required change | `todo: Add the missing correlation ID to this error log.` |
+
+### Decorators
+
+Append a decorator in parentheses to clarify whether a comment blocks merge.
+
+| Decorator | Meaning |
+|-----------|---------|
+| `(blocking)` | Must be resolved before merge |
+| `(non-blocking)` | Should not prevent approval |
+
+Combine a label with a decorator when intent would otherwise be unclear:
+
+```
+suggestion(blocking): This needs a domain exception instead of throwing HttpException directly.
+```
+
+```
+suggestion(non-blocking): You could extract this into a shared helper, but it's fine for now.
+```
+
+### Tone Guidelines
+
+- **Security issues and correctness bugs** are direct statements, not suggestions. Use `issue:` or `todo:`, not `suggestion:`.
+- **Style and approach** get `suggestion:` or `nitpick:`. Be collaborative, not prescriptive.
+- **Frame feedback about the code, not the author.** Write "This code has X issue" — not "You wrote X wrong."
+- **Praise good work.** If a solution is elegant or well-tested, say so. Reviews that only contain criticism discourage contribution.
+
+---
+
+## Approval Criteria
+
+Use the following table to determine the correct review action for a PR.
+
+| Condition | Action |
+|-----------|--------|
+| All checks pass + no blocking comments | **Approve** |
+| Minor nitpicks only | **Approve with comments** |
+| Missing tests for new public logic | **Request changes** |
+| Security concern (XSS, injection, secret leak) | **Block** until resolved |
+| Architecture violation of a documented standard | **Block** + reference the standard and discuss approach |
+| Architecture preference that is not yet documented | **Discuss** and document the agreed pattern — do not block |
+
+### When to Block
+
+Blocking a PR is a strong signal. Reserve it for cases where merging would introduce a concrete risk:
+
+- A security vulnerability
+- A correctness bug that will reach production
+- A violation of a standard that the team has already agreed on and documented
+
+Do **not** block for style preferences, naming debates, or "I would have done it differently." Use `suggestion(non-blocking):` for those.
+
+### When to Approve with Comments
+
+If the only open items are `nitpick:` or `suggestion(non-blocking):` comments, approve the PR. Trust the author to address non-blocking feedback in a follow-up or to explain why they chose a different approach.
