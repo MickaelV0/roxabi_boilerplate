@@ -10,7 +10,7 @@
  * - 1: Missing or extra keys found
  */
 
-import { readFile, readdir } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 const LOCALES_DIR = join(import.meta.dirname, '../apps/web/src/locales')
