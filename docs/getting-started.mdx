@@ -217,9 +217,6 @@ cp .env.example .env
 ```bash
 # Create the database
 createdb my_project_dev
-
-# Apply migrations (when configured)
-bun db:migrate
 ```
 
 ## 9. Run the Project
@@ -236,9 +233,9 @@ bun --filter @repo/api dev
 ## 10. Verify Installation
 
 - Frontend: http://localhost:3000
-- API: http://localhost:3001
-- API Docs (Swagger): http://localhost:3001/docs
-- Documentation: http://localhost:3002 (run `bun docs` first)
+- API: http://localhost:4000
+- API Docs (Swagger): http://localhost:4000/docs
+- Documentation: http://localhost:3000/docs (served by `bun docs`)
 
 ## Useful Commands
 
@@ -249,9 +246,9 @@ bun --filter @repo/api dev
 | `bun lint` | Lint with Biome |
 | `bun format` | Format with Biome |
 | `bun typecheck` | TypeScript type checking |
-| `bun test` | Run all tests |
+| `bun run test` | Run all tests (via turbo + vitest) |
 | `bun test:coverage` | Tests with coverage |
-| `bun docs` | Start documentation server (Docker) |
+| `bun docs` | Start documentation server (runs apps/web) |
 
 ## Next Steps
 
