@@ -1,7 +1,7 @@
 import type { ApiErrorResponse } from '@repo/types'
 import type { FetchError } from 'ofetch'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createApiClient, getApiErrorData } from './api-client'
+import { createApiClient, getApiErrorData } from './api-client.server'
 
 const mockFetch = vi.fn()
 
@@ -94,5 +94,57 @@ describe('getApiErrorData', () => {
   it('returns undefined when no data is present', () => {
     const error = { data: undefined } as FetchError
     expect(getApiErrorData(error)).toBeUndefined()
+  })
+
+  it('returns undefined when data does not match ApiErrorResponse shape', () => {
+    const error = { data: { unexpected: 'shape' } } as FetchError
+    expect(getApiErrorData(error)).toBeUndefined()
+  })
+})
+
+describe('correlation ID uniqueness', () => {
+  it('generates unique correlation IDs for consecutive requests', async () => {
+    for (let i = 0; i < 3; i++) {
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify({}), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    }
+
+    const api = createApiClient('http://api.test:3001')
+    await api('/a')
+    await api('/b')
+    await api('/c')
+
+    const ids = mockFetch.mock.calls.map(([, options]: [string, RequestInit]) => {
+      const headers = new Headers(options.headers as HeadersInit)
+      return headers.get('x-correlation-id')
+    })
+
+    const unique = new Set(ids)
+    expect(unique.size).toBe(3)
+  })
+})
+
+describe('error handling edge cases', () => {
+  it('throws on non-JSON error responses', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response('<html>502 Bad Gateway</html>', {
+        status: 502,
+        headers: { 'content-type': 'text/html' },
+      })
+    )
+
+    const api = createApiClient('http://api.test:3001')
+    await expect(api('/health')).rejects.toThrow()
+  })
+
+  it('throws on network failure', async () => {
+    mockFetch.mockRejectedValueOnce(new TypeError('fetch failed'))
+
+    const api = createApiClient('http://api.test:3001')
+    await expect(api('/health')).rejects.toThrow()
   })
 })

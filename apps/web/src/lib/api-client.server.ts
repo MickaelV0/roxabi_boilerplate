@@ -19,8 +19,20 @@ export function createApiClient(baseURL: string) {
   })
 }
 
-export function getApiErrorData(error: FetchError): ApiErrorResponse | undefined {
-  return error.data as ApiErrorResponse | undefined
+function isApiErrorResponse(data: unknown): data is ApiErrorResponse {
+  return typeof data === 'object' && data !== null && 'statusCode' in data && 'message' in data
 }
 
-export const api = createApiClient(process.env.API_URL ?? 'http://localhost:3001')
+export function getApiErrorData(error: FetchError): ApiErrorResponse | undefined {
+  return isApiErrorResponse(error.data) ? error.data : undefined
+}
+
+const API_URL =
+  process.env.API_URL ??
+  (process.env.NODE_ENV === 'production'
+    ? (() => {
+        throw new Error('API_URL environment variable is required in production')
+      })()
+    : 'http://localhost:3001')
+
+export const api = createApiClient(API_URL)

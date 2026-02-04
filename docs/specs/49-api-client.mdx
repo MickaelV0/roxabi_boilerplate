@@ -50,13 +50,13 @@ API calls happen inside **server functions** (`createServerFn()`), not directly 
 
 | File | Action | Description |
 |------|--------|-------------|
-| `apps/web/src/lib/api-client.ts` | Created | ofetch instance with interceptors |
+| `apps/web/src/lib/api-client.server.ts` | Created | ofetch instance with interceptors |
 | `apps/web/src/lib/api-client.test.ts` | Created | Unit tests |
 | `packages/types/src/index.ts` | Modified | Added `ApiErrorResponse` type |
 | `apps/web/.env.example` | Modified | Added `API_URL` |
 | `apps/web/package.json` | Modified | Added `ofetch` dependency |
 
-### API Client (`api-client.ts`)
+### API Client (`api-client.server.ts`)
 
 The client exposes:
 
