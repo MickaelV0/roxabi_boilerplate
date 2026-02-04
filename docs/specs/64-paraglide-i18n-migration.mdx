@@ -1,0 +1,260 @@
+---
+title: "Migrate i18n from i18next to Paraglide JS"
+description: "Replace runtime i18next with compile-time Paraglide JS for type-safe, lighter i18n with first-class TanStack Start support"
+---
+
+# Migrate i18n from i18next to Paraglide JS
+
+## Context
+
+The current i18n implementation (specs [#20](/docs/specs/20-i18n), [#33](/docs/specs/33-tanstack-start-i18n-integration)) uses i18next with react-i18next. PR #63 fixed immediate issues (preload guard, hydration loop, `&lt;html lang>`), but revealed architectural limitations:
+
+1. **SSR cookie access**: `document.cookie` is always `null` during SSR — the current code silently falls back to path/default detection, losing cookie-persisted preferences on first render
+2. **`$locale` route param pollution**: Every route must nest under `/$locale`, adding boilerplate and complexity to route definitions
+3. **Runtime overhead**: i18next ships ~40-50KB of parsing/formatting engine to the client
+4. **No type-safe keys**: Translation keys are plain strings — typos only caught at runtime
+5. **Manual instance management**: `createInstance()`/`cloneInstance()` per request for SSR isolation
+
+**Paraglide JS** (by inlang) solves all of these by compiling translations at build time into typed JS functions.
+
+## Goals
+
+1. Replace i18next/react-i18next with Paraglide JS
+2. Eliminate `$locale` route param — use TanStack Router rewrite API instead
+3. Fix SSR locale detection via `paraglideMiddleware()` (AsyncLocalStorage-based)
+4. Achieve type-safe translation keys with compile-time validation
+5. Reduce i18n bundle size by ~70%
+
+## Non-Goals
+
+- Changing the supported locales (`en`, `fr`) — same set carries over
+- Migrating translation content — existing JSON keys/values are preserved in Paraglide format
+- Adding new languages in this PR
+
+## Technical Design
+
+### Architecture Overview
+
+```
+Build Time                          Runtime (SSR)                        Runtime (Client)
+┌──────────────┐                   ┌──────────────────────┐             ┌─────────────────┐
+│ messages/    │  Vite plugin      │ paraglideMiddleware  │             │ getLocale()     │
+│  en.json     │ ─────────────►   │  ├─ AsyncLocalStorage│             │  reads cookie   │
+│  fr.json     │  compiles to     │  ├─ detect locale    │             │                 │
+│              │  typed functions  │  └─ set on request   │             │ m.greeting()    │
+└──────────────┘                   └──────────┬───────────┘             │  returns string │
+       │                                      │                         └─────────────────┘
+       ▼                                      ▼
+┌──────────────┐                   ┌──────────────────────┐
+│ paraglide/   │                   │ TanStack Router      │
+│  messages.js │                   │  rewrite.input()     │
+│  runtime.js  │                   │   deLocalizeUrl()    │
+│  server.js   │                   │  rewrite.output()    │
+└──────────────┘                   │   localizeUrl()      │
+                                   └──────────────────────┘
+```
+
+### 1. Vite Plugin Configuration
+
+```typescript
+// apps/web/vite.config.ts
+import { paraglideVitePlugin } from '@inlang/paraglide-js'
+
+export default defineConfig({
+  plugins: [
+    paraglideVitePlugin({
+      project: './project.inlang',
+      outdir: './src/paraglide',
+      strategy: ['url', 'cookie', 'preferredLanguage', 'baseLocale'],
+      cookieName: 'locale', // matches existing LOCALE_COOKIE_NAME
+    }),
+    // ... existing plugins
+  ],
+})
+```
+
+### 2. Server Middleware (SSR Locale Detection)
+
+```typescript
+// apps/web/src/server.ts
+import { paraglideMiddleware } from './paraglide/server.js'
+import handler from '@tanstack/react-start/server-entry'
+
+export default {
+  fetch(req: Request): Promise&lt;Response> {
+    return paraglideMiddleware(req, ({ request }) =>
+      handler.fetch(request)
+    )
+  },
+}
+```
+
+This replaces the current `document.cookie` approach. The middleware uses `AsyncLocalStorage` for request isolation — each concurrent SSR request maintains its own locale context.
+
+### 3. URL Rewriting (Replace `$locale` Param)
+
+```typescript
+// apps/web/src/router.tsx
+import { deLocalizeUrl, localizeUrl } from './paraglide/runtime'
+
+const router = createRouter({
+  routeTree,
+  rewrite: {
+    input: ({ url }) => deLocalizeUrl(url),   // /fr/dashboard → /dashboard
+    output: ({ url }) => localizeUrl(url),     // /dashboard → /fr/dashboard
+  },
+})
+```
+
+This eliminates the `$locale` route param entirely. Routes become clean:
+- `routes/index.tsx` (was `routes/$locale/index.tsx`)
+- `routes/dashboard.tsx` (was `routes/$locale/dashboard.tsx`)
+
+### 4. Component Usage
+
+```typescript
+// Before (i18next)
+import { useTranslation } from 'react-i18next'
+
+function Dashboard() {
+  const { t } = useTranslation('dashboard')
+  return <h1>{t('welcome')}</h1>
+}
+
+// After (Paraglide)
+import { m } from '@/paraglide/messages'
+
+function Dashboard() {
+  return <h1>{m.dashboard_welcome()}</h1>
+}
+```
+
+Key differences:
+- **No hooks needed** — `m.key()` is a plain function call
+- **Type-safe** — `m.nonexistent_key()` is a compile error
+- **Tree-shaken** — unused messages are stripped from the bundle
+- **No namespaces** — flat key structure with prefixes (e.g., `dashboard_welcome`)
+
+### 5. Language Switching
+
+```typescript
+// Before
+import { changeLanguage } from '@/lib/i18n/client'
+changeLanguage('fr') // sets cookie + window.location.href
+
+// After
+import { setLocale, localizeUrl } from '@/paraglide/runtime'
+
+function LanguageSwitcher() {
+  return (
+    <button onClick={() => {
+      setLocale('fr')
+      window.location.href = localizeUrl(window.location.href)
+    }}>
+      Français
+    </button>
+  )
+}
+```
+
+### 6. Dynamic `&lt;html lang>`
+
+```typescript
+// apps/web/src/routes/__root.tsx
+import { getLocale } from '@/paraglide/runtime'
+
+function RootDocument({ children }) {
+  return (
+    <html lang={getLocale()} suppressHydrationWarning>
+```
+
+No more `useMatches()` workaround — `getLocale()` reads from the middleware context on server and cookie/URL on client.
+
+## Migration Steps
+
+### Phase 1: Setup Paraglide (no behavior change)
+
+| # | Task | Files |
+|---|------|-------|
+| 1 | Install `@inlang/paraglide-js` | `package.json` |
+| 2 | Create `project.inlang/settings.json` | new file |
+| 3 | Add Vite plugin to config | `vite.config.ts` |
+| 4 | Convert translation JSONs to Paraglide format | `messages/en.json`, `messages/fr.json` |
+| 5 | Add `src/paraglide/` to `.gitignore` | `.gitignore` |
+
+### Phase 2: Server middleware + routing
+
+| # | Task | Files |
+|---|------|-------|
+| 6 | Add `paraglideMiddleware` to `server.ts` | `server.ts` |
+| 7 | Add rewrite config to router | `router.tsx` |
+| 8 | Remove `$locale` from route file structure | `routes/` directory |
+| 9 | Remove `_layout.tsx` i18next provider | `routes/$locale/_layout.tsx` |
+| 10 | Update `__root.tsx` (remove i18n beforeLoad, use getLocale) | `routes/__root.tsx` |
+
+### Phase 3: Migrate components
+
+| # | Task | Files |
+|---|------|-------|
+| 11 | Replace `useTranslation()` with `m.key()` in all components | all components using translations |
+| 12 | Replace `changeLanguage()` with `setLocale()` | language switcher component |
+| 13 | Remove `I18nextProvider` wrapper | layout components |
+
+### Phase 4: Cleanup
+
+| # | Task | Files |
+|---|------|-------|
+| 14 | Remove i18next, react-i18next dependencies | `package.json` |
+| 15 | Delete `lib/i18n/` directory | `client.ts`, `config.ts`, `server.ts`, `types.ts`, etc. |
+| 16 | Delete old `locales/` translation files | `locales/en/*.json`, `locales/fr/*.json` |
+| 17 | Update tests | `__tests__/` |
+
+## Namespace Migration
+
+i18next uses namespaces (`common`, `auth`, `dashboard`, `settings`). Paraglide uses a flat key structure. Migration mapping:
+
+```
+# i18next (namespaced)
+common:welcome  →  common_welcome
+auth:login      →  auth_login
+dashboard:title →  dashboard_title
+settings:theme  →  settings_theme
+```
+
+All keys live in a single `messages/en.json` per locale. Tree-shaking ensures only used keys are bundled.
+
+## Risks & Mitigations
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| TanStack Start compatibility | Paraglide v2.9 may have issues with specific TanStack versions (GitHub #6089) | Pin compatible versions, test thoroughly |
+| No namespace support | Flat key space may feel less organized | Use consistent prefix convention |
+| Generated code in `src/paraglide/` | Must be gitignored, regenerated on build | Add to `.gitignore`, document in README |
+| Learning curve | Team unfamiliar with Paraglide API | Simple API surface (`m.key()`, `getLocale()`, `setLocale()`) |
+
+## Bundle Size Impact
+
+| | i18next | Paraglide |
+|---|---------|-----------|
+| Runtime library | ~40-50KB | ~2KB |
+| Translation loading | All namespaces at runtime | Tree-shaken per-page |
+| Type safety | None (string keys) | Full (compile-time) |
+
+## Testing
+
+- Verify SSR renders correct locale from URL and cookie
+- Verify client hydration matches server locale
+- Verify language switching updates URL, cookie, and content
+- Verify `&lt;html lang>` attribute is dynamic
+- Verify tree-shaking: unused translation keys not in client bundle
+- Run existing test suite (adapt i18n-specific tests)
+
+## References
+
+- [Paraglide JS documentation](https://inlang.com/m/gerre34r/library-inlang-paraglideJs)
+- [TanStack Start + Paraglide example](https://github.com/TanStack/router/tree/main/examples/react/start-i18n-paraglide)
+- [Modern i18n DX in TanStack Start](https://eugeneistrach.com/blog/paraglide-tanstack-start/)
+- [Why I replaced i18next with Paraglide](https://dropanote.de/en/blog/20250726-why-i-replaced-i18next-with-paraglide-js/)
+- Spec [#20 — i18n foundation](/docs/specs/20-i18n)
+- Spec [#33 — TanStack Start i18n integration](/docs/specs/33-tanstack-start-i18n-integration)
+- PR #63 — i18n fixes (preload, cloneInstance, html lang)

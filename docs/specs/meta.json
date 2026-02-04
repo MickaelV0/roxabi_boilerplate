@@ -10,6 +10,7 @@
     "28-coding-standards",
     "43-backend-setup",
     "47-docker-compose",
-    "49-api-client"
+    "49-api-client",
+    "64-paraglide-i18n-migration"
   ]
 }
