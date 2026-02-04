@@ -1,48 +1,30 @@
-import type { Locale } from '@/lib/i18n'
-import { changeLanguage, useAvailableLocales, useTranslation } from '@/lib/i18n'
+import * as m from '@/paraglide/messages'
+import { getLocale, type Locale, locales, setLocale } from '@/paraglide/runtime'
 
 type LanguageSwitcherProps = {
-  /**
-   * Optional className for the container
-   */
   className?: string
-  /**
-   * Display variant
-   * - 'dropdown': Shows current language with dropdown to select others
-   * - 'buttons': Shows all languages as buttons
-   */
   variant?: 'dropdown' | 'buttons'
 }
 
-/**
- * Language names mapped by locale code
- */
 const LANGUAGE_NAMES: Record<Locale, { native: string; english: string }> = {
   en: { native: 'English', english: 'English' },
   fr: { native: 'Français', english: 'French' },
 }
 
-/**
- * Language switcher component
- * Allows users to change the application language
- *
- * Note: Changing language triggers a page reload for SSR consistency
- */
 export function LanguageSwitcher({ className, variant = 'dropdown' }: LanguageSwitcherProps) {
-  const { t } = useTranslation('common')
-  const { currentLocale, availableLocales } = useAvailableLocales()
+  const currentLocale = getLocale()
 
   const handleLanguageChange = (locale: Locale) => {
     if (locale !== currentLocale) {
-      changeLanguage(locale)
+      setLocale(locale)
     }
   }
 
   if (variant === 'buttons') {
     return (
       <fieldset className={className} data-testid="language-switcher">
-        <legend className="sr-only">{t('labels.language')}</legend>
-        {availableLocales.map((locale) => (
+        <legend className="sr-only">{m.common_labels_language()}</legend>
+        {locales.map((locale) => (
           <button
             key={locale}
             type="button"
@@ -61,16 +43,16 @@ export function LanguageSwitcher({ className, variant = 'dropdown' }: LanguageSw
   return (
     <div className={className} data-testid="language-switcher">
       <label htmlFor="language-select" className="sr-only">
-        {t('labels.language')}
+        {m.common_labels_language()}
       </label>
       <select
         id="language-select"
         value={currentLocale}
         onChange={(e) => handleLanguageChange(e.target.value as Locale)}
-        aria-label={t('labels.language')}
+        aria-label={m.common_labels_language()}
         data-testid="language-select"
       >
-        {availableLocales.map((locale) => (
+        {locales.map((locale) => (
           <option key={locale} value={locale} data-testid={`locale-${locale}`}>
             {LANGUAGE_NAMES[locale].native}
           </option>
@@ -80,19 +62,15 @@ export function LanguageSwitcher({ className, variant = 'dropdown' }: LanguageSw
   )
 }
 
-/**
- * Hook to use language switcher logic without the UI
- * Useful for building custom language switcher components
- */
 export function useLanguageSwitcher() {
-  const { currentLocale, availableLocales } = useAvailableLocales()
+  const currentLocale = getLocale()
 
   return {
     currentLocale,
-    availableLocales,
+    availableLocales: locales,
     changeLanguage: (locale: Locale) => {
       if (locale !== currentLocale) {
-        changeLanguage(locale)
+        setLocale(locale)
       }
     },
     getLanguageName: (locale: Locale) => LANGUAGE_NAMES[locale],

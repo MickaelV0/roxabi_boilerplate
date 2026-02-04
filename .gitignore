@@ -13,6 +13,7 @@ out/
 # TanStack Start / Fumadocs generated
 apps/web/src/routeTree.gen.ts
 apps/web/.source/
+apps/web/src/paraglide/
 
 # Turbo
 .turbo/

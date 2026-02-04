@@ -1,9 +1,10 @@
 import react from '@vitejs/plugin-react'
+import tsConfigPaths from 'vite-tsconfig-paths'
 import { defineConfig } from 'vitest/config'
 import { reactConfig } from '../../vitest.shared'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tsConfigPaths({ projects: ['./tsconfig.json'] })],
   test: {
     ...reactConfig,
     name: 'web',

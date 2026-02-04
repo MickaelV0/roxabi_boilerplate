@@ -1,6 +1,12 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*.ts", "src/**/*.tsx", ".source/**/*.ts", "../../vitest.shared.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/paraglide/**/*.js",
+    ".source/**/*.ts",
+    "../../vitest.shared.ts"
+  ],
   "exclude": ["node_modules", "dist", ".output"],
   "compilerOptions": {
     "strict": true,
