@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "nest start --watch",
-    "build": "nest build",
+    "dev": "bunx nest start --watch",
+    "build": "bunx nest build",
     "start": "node dist/main",
     "start:prod": "NODE_ENV=production node dist/main",
     "db:generate": "drizzle-kit generate",
