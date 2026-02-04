@@ -10,7 +10,7 @@ This guide explains how to work with translations in the Roxabi application.
 The i18n system uses [i18next](https://www.i18next.com/) with the following structure:
 
 ```
-apps/web/
+apps/web/src/
 ├── lib/i18n/           # i18n configuration and hooks
 │   ├── types.ts        # Locale and namespace types
 │   ├── hooks.ts        # React hooks (useTranslation, useLocale)
@@ -39,7 +39,7 @@ apps/web/
 
 ### 2. Add the Key to All Locales
 
-Add the key to both `locales/en/{namespace}.json` and `locales/fr/{namespace}.json`:
+Add the key to both `src/locales/en/{namespace}.json` and `src/locales/fr/{namespace}.json`:
 
 ```json
 // locales/en/common.json
@@ -81,8 +81,8 @@ Create the namespace file in each locale folder:
 
 ```bash
 # Create files
-touch apps/web/locales/en/billing.json
-touch apps/web/locales/fr/billing.json
+touch apps/web/src/locales/en/billing.json
+touch apps/web/src/locales/fr/billing.json
 ```
 
 Add initial content:
@@ -95,7 +95,7 @@ Add initial content:
 
 ### 2. Update Types
 
-Add the namespace to `apps/web/lib/i18n/types.ts`:
+Add the namespace to `apps/web/src/lib/i18n/types.ts`:
 
 ```typescript
 export const NAMESPACES = ['common', 'auth', 'dashboard', 'settings', 'billing'] as const
@@ -114,7 +114,7 @@ bun run i18n:validate
 ### 1. Create Locale Folder
 
 ```bash
-mkdir apps/web/locales/de
+mkdir apps/web/src/locales/de
 ```
 
 ### 2. Copy and Translate Files
@@ -122,12 +122,12 @@ mkdir apps/web/locales/de
 Copy all JSON files from `en/` and translate them:
 
 ```bash
-cp apps/web/locales/en/*.json apps/web/locales/de/
+cp apps/web/src/locales/en/*.json apps/web/src/locales/de/
 ```
 
 ### 3. Update Types
 
-Add the locale to `apps/web/lib/i18n/types.ts`:
+Add the locale to `apps/web/src/lib/i18n/types.ts`:
 
 ```typescript
 export const LOCALES = ['en', 'fr', 'de'] as const
