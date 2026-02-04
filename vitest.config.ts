@@ -33,6 +33,10 @@ export default defineConfig({
         '**/not-found.tsx',
         '**/layout.shared.tsx',
         '**/source.ts',
+        // NestJS bootstrap and module wiring
+        '**/main.ts',
+        '**/*.module.ts',
+        '**/database/schema/*.ts',
       ],
       thresholds: {
         lines: 70,
