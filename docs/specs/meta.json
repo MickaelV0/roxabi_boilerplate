@@ -8,6 +8,7 @@
     "20-i18n",
     "33-tanstack-start-i18n-integration",
     "28-coding-standards",
-    "43-backend-setup"
+    "43-backend-setup",
+    "47-docker-compose"
   ]
 }
