@@ -13,7 +13,12 @@ import type { RouterContext } from '@/router'
 import appCss from '@/styles/app.css?url'
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  beforeLoad: ({ context, location }) => {
+  beforeLoad: ({ context, location, cause }) => {
+    // Skip heavy work during preload to avoid infinite pending
+    if (cause === 'preload') {
+      return { i18n: context.i18n }
+    }
+
     // Redirect invalid locales (e.g., /de/dashboard → /en/dashboard)
     const redirectPath = getInvalidLocaleRedirect(location.pathname)
     if (redirectPath) {
@@ -23,7 +28,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
     // Initialize i18n context if not already set
     if (!context.i18n) {
-      const detected = detectLanguage(location.pathname, null, null)
+      const cookieHeader = typeof document !== 'undefined' ? document.cookie : null
+      const detected = detectLanguage(location.pathname, cookieHeader, null)
       return { i18n: createI18nContext(detected.locale) }
     }
     // Return existing context to satisfy TypeScript

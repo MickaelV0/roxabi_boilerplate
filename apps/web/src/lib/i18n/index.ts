@@ -19,7 +19,6 @@ export { useAvailableLocales, useI18nContext, useLocale, useTranslation } from '
 export { getCanonicalUrl, HreflangTags } from './seo'
 // Server utilities
 export {
-  createServerI18n,
   detectLanguage,
   getLocaleCookieHeader,
   getLocaleFromCookie,

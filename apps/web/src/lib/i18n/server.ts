@@ -1,5 +1,3 @@
-import i18next, { type i18n as I18nInstance } from 'i18next'
-import { getServerConfig } from './config'
 import {
   DEFAULT_LOCALE,
   type DetectedLanguage,
@@ -151,27 +149,6 @@ export function detectLanguage(
  */
 export function getLocaleCookieHeader(locale: Locale): string {
   return `${LOCALE_COOKIE_NAME}=${locale}; Path=/; Max-Age=${LOCALE_COOKIE_MAX_AGE}; SameSite=Lax`
-}
-
-/**
- * Create i18next instance for server-side rendering
- */
-export async function createServerI18n(
-  locale: Locale,
-  namespaces: Namespace[],
-  resources: Record<Namespace, Record<string, unknown>>
-): Promise<I18nInstance> {
-  const instance = i18next.createInstance()
-
-  await instance.init({
-    ...getServerConfig(locale),
-    ns: namespaces,
-    resources: {
-      [locale]: resources,
-    },
-  })
-
-  return instance
 }
 
 /**
