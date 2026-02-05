@@ -1,14 +1,15 @@
 // Locale switcher refs:
 // - Paraglide docs: https://inlang.com/m/gerre34r/library-inlang-paraglideJs
 // - Router example: https://github.com/TanStack/router/tree/main/examples/react/i18n-paraglide#switching-locale
-import { getLocale, locales, setLocale } from '@/paraglide/runtime'
+
 import { m } from '@/paraglide/messages'
+import { getLocale, locales, setLocale } from '@/paraglide/runtime'
 
 export default function ParaglideLocaleSwitcher() {
   const currentLocale = getLocale()
 
   return (
-    <div
+    <nav
       style={{
         display: 'flex',
         gap: '0.5rem',
@@ -17,12 +18,11 @@ export default function ParaglideLocaleSwitcher() {
       }}
       aria-label={m.language_label()}
     >
-      <span style={{ opacity: 0.85 }}>
-        {m.current_locale({ locale: currentLocale })}
-      </span>
+      <span style={{ opacity: 0.85 }}>{m.current_locale({ locale: currentLocale })}</span>
       <div style={{ display: 'flex', gap: '0.25rem' }}>
         {locales.map((locale) => (
           <button
+            type="button"
             key={locale}
             onClick={() => setLocale(locale)}
             aria-pressed={locale === currentLocale}
@@ -41,6 +41,6 @@ export default function ParaglideLocaleSwitcher() {
           </button>
         ))}
       </div>
-    </div>
+    </nav>
   )
 }

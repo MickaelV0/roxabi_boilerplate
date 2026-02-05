@@ -1,5 +1,13 @@
-import React from 'react'
+import type { RankingInfo } from '@tanstack/match-sorter-utils'
+import { compareItems, rankItem } from '@tanstack/match-sorter-utils'
 import { createFileRoute } from '@tanstack/react-router'
+import type {
+  Column,
+  ColumnDef,
+  ColumnFiltersState,
+  FilterFn,
+  SortingFn,
+} from '@tanstack/react-table'
 import {
   flexRender,
   getCoreRowModel,
@@ -9,20 +17,9 @@ import {
   sortingFns,
   useReactTable,
 } from '@tanstack/react-table'
-import { compareItems, rankItem } from '@tanstack/match-sorter-utils'
-
-import { makeData } from '@/data/demo-table-data'
-
-import type {
-  Column,
-  ColumnDef,
-  ColumnFiltersState,
-  FilterFn,
-  SortingFn,
-} from '@tanstack/react-table'
-import type { RankingInfo } from '@tanstack/match-sorter-utils'
-
+import React from 'react'
 import type { Person } from '@/data/demo-table-data'
+import { makeData } from '@/data/demo-table-data'
 
 export const Route = createFileRoute('/demo/table')({
   component: TableDemo,
@@ -59,7 +56,7 @@ const fuzzySort: SortingFn<any> = (rowA, rowB, columnId) => {
   if (rowA.columnFiltersMeta[columnId]) {
     dir = compareItems(
       rowA.columnFiltersMeta[columnId]?.itemRank!,
-      rowB.columnFiltersMeta[columnId]?.itemRank!,
+      rowB.columnFiltersMeta[columnId]?.itemRank!
     )
   }
 
@@ -70,9 +67,7 @@ const fuzzySort: SortingFn<any> = (rowA, rowB, columnId) => {
 function TableDemo() {
   const rerender = React.useReducer(() => ({}), {})[1]
 
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    [],
-  )
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = React.useState('')
 
   const columns = React.useMemo<ColumnDef<Person, any>[]>(
@@ -103,7 +98,7 @@ function TableDemo() {
         sortingFn: fuzzySort, //sort by fuzzy rank (falls back to alphanumeric)
       },
     ],
-    [],
+    []
   )
 
   const [data, setData] = React.useState<Person[]>(() => makeData(5_000))
@@ -138,7 +133,7 @@ function TableDemo() {
         table.setSorting([{ id: 'fullName', desc: false }])
       }
     }
-  }, [table.getState().columnFilters[0]?.id])
+  }, [table])
 
   return (
     <div className="min-h-screen bg-gray-900 p-6">
@@ -158,11 +153,7 @@ function TableDemo() {
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <th
-                      key={header.id}
-                      colSpan={header.colSpan}
-                      className="px-4 py-3 text-left"
-                    >
+                    <th key={header.id} colSpan={header.colSpan} className="px-4 py-3 text-left">
                       {header.isPlaceholder ? null : (
                         <>
                           <div
@@ -173,10 +164,7 @@ function TableDemo() {
                               onClick: header.column.getToggleSortingHandler(),
                             }}
                           >
-                            {flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
+                            {flexRender(header.column.columnDef.header, header.getContext())}
                             {{
                               asc: ' 🔼',
                               desc: ' 🔽',
@@ -198,17 +186,11 @@ function TableDemo() {
           <tbody className="divide-y divide-gray-700">
             {table.getRowModel().rows.map((row) => {
               return (
-                <tr
-                  key={row.id}
-                  className="hover:bg-gray-800 transition-colors"
-                >
+                <tr key={row.id} className="hover:bg-gray-800 transition-colors">
                   {row.getVisibleCells().map((cell) => {
                     return (
                       <td key={cell.id} className="px-4 py-3">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     )
                   })}
@@ -221,6 +203,7 @@ function TableDemo() {
       <div className="h-4" />
       <div className="flex flex-wrap items-center gap-2 text-gray-200">
         <button
+          type="button"
           className="px-3 py-1 bg-gray-800 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={() => table.setPageIndex(0)}
           disabled={!table.getCanPreviousPage()}
@@ -228,6 +211,7 @@ function TableDemo() {
           {'<<'}
         </button>
         <button
+          type="button"
           className="px-3 py-1 bg-gray-800 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
@@ -235,6 +219,7 @@ function TableDemo() {
           {'<'}
         </button>
         <button
+          type="button"
           className="px-3 py-1 bg-gray-800 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
@@ -242,6 +227,7 @@ function TableDemo() {
           {'>'}
         </button>
         <button
+          type="button"
           className="px-3 py-1 bg-gray-800 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={() => table.setPageIndex(table.getPageCount() - 1)}
           disabled={!table.getCanNextPage()}
@@ -251,8 +237,7 @@ function TableDemo() {
         <span className="flex items-center gap-1">
           <div>Page</div>
           <strong>
-            {table.getState().pagination.pageIndex + 1} of{' '}
-            {table.getPageCount()}
+            {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
           </strong>
         </span>
         <span className="flex items-center gap-1">
@@ -281,17 +266,17 @@ function TableDemo() {
           ))}
         </select>
       </div>
-      <div className="mt-4 text-gray-400">
-        {table.getPrePaginationRowModel().rows.length} Rows
-      </div>
+      <div className="mt-4 text-gray-400">{table.getPrePaginationRowModel().rows.length} Rows</div>
       <div className="mt-4 flex gap-2">
         <button
+          type="button"
           onClick={() => rerender()}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
         >
           Force Rerender
         </button>
         <button
+          type="button"
           onClick={() => refreshData()}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
         >
@@ -305,7 +290,7 @@ function TableDemo() {
             globalFilter: table.getState().globalFilter,
           },
           null,
-          2,
+          2
         )}
       </pre>
     </div>
@@ -349,13 +334,7 @@ function DebouncedInput({
     }, debounce)
 
     return () => clearTimeout(timeout)
-  }, [value])
+  }, [value, debounce, onChange])
 
-  return (
-    <input
-      {...props}
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-    />
-  )
+  return <input {...props} value={value} onChange={(e) => setValue(e.target.value)} />
 }

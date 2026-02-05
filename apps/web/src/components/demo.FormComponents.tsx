@@ -1,14 +1,12 @@
 import { useStore } from '@tanstack/react-form'
-
-import { useFieldContext, useFormContext } from '@/hooks/demo.form-context'
-
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea as ShadcnTextarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import * as ShadcnSelect from '@/components/ui/select'
 import { Slider as ShadcnSlider } from '@/components/ui/slider'
 import { Switch as ShadcnSwitch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
+import { Textarea as ShadcnTextarea } from '@/components/ui/textarea'
+import { useFieldContext, useFormContext } from '@/hooks/demo.form-context'
 
 export function SubscribeButton({ label }: { label: string }) {
   const form = useFormContext()
@@ -23,11 +21,7 @@ export function SubscribeButton({ label }: { label: string }) {
   )
 }
 
-function ErrorMessages({
-  errors,
-}: {
-  errors: Array<string | { message: string }>
-}) {
+function ErrorMessages({ errors }: { errors: Array<string | { message: string }> }) {
   return (
     <>
       {errors.map((error) => (
@@ -42,13 +36,7 @@ function ErrorMessages({
   )
 }
 
-export function TextField({
-  label,
-  placeholder,
-}: {
-  label: string
-  placeholder?: string
-}) {
+export function TextField({ label, placeholder }: { label: string; placeholder?: string }) {
   const field = useFieldContext<string>()
   const errors = useStore(field.store, (state) => state.meta.errors)
 
@@ -68,13 +56,7 @@ export function TextField({
   )
 }
 
-export function TextArea({
-  label,
-  rows = 3,
-}: {
-  label: string
-  rows?: number
-}) {
+export function TextArea({ label, rows = 3 }: { label: string; rows?: number }) {
   const field = useFieldContext<string>()
   const errors = useStore(field.store, (state) => state.meta.errors)
 
@@ -146,7 +128,7 @@ export function Slider({ label }: { label: string }) {
         id={label}
         onBlur={field.handleBlur}
         value={[field.state.value]}
-        onValueChange={(value) => field.handleChange(value[0])}
+        onValueChange={(value) => field.handleChange(value[0] ?? 0)}
       />
       {field.state.meta.isTouched && <ErrorMessages errors={errors} />}
     </div>

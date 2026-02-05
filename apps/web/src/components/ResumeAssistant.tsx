@@ -1,20 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
-import { Send, X, Briefcase, UserCheck } from 'lucide-react'
-import { Streamdown } from 'streamdown'
 import { Store } from '@tanstack/store'
-
-import { useResumeChat } from '@/lib/resume-ai-hook'
+import { Briefcase, Send, UserCheck, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Streamdown } from 'streamdown'
 import type { ResumeChatMessages } from '@/lib/resume-ai-hook'
+import { useResumeChat } from '@/lib/resume-ai-hook'
 
 function Messages({ messages }: { messages: ResumeChatMessages }) {
   const messagesContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop =
-        messagesContainerRef.current.scrollHeight
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
     }
-  }, [messages])
+  }, [])
 
   if (!messages.length) {
     return (
@@ -23,9 +21,7 @@ function Messages({ messages }: { messages: ResumeChatMessages }) {
           <Briefcase className="w-12 h-12 text-blue-400/40 animate-pulse" />
           <UserCheck className="w-6 h-6 text-purple-400/60 absolute -bottom-1 -right-1" />
         </div>
-        <p className="text-center text-slate-200/80 font-medium">
-          Welcome, Recruiter!
-        </p>
+        <p className="text-center text-slate-200/80 font-medium">Welcome, Recruiter!</p>
         <p className="text-xs text-slate-300/40 mt-2 text-center max-w-[200px]">
           Ask about skills, experience, or qualifications...
         </p>
@@ -113,13 +109,12 @@ export default function ResumeAssistant() {
             <Briefcase className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="font-bold text-slate-200 text-base tracking-tight">
-              Resume Assistant
-            </h3>
+            <h3 className="font-bold text-slate-200 text-base tracking-tight">Resume Assistant</h3>
             <p className="text-xs text-blue-300/50">Candidate Evaluation AI</p>
           </div>
         </div>
         <button
+          type="button"
           onClick={handleToggle}
           className="text-slate-300/50 hover:text-slate-100 transition-colors p-2 hover:bg-white/5 rounded-xl"
         >
@@ -164,15 +159,10 @@ export default function ResumeAssistant() {
               onInput={(e) => {
                 const target = e.target as HTMLTextAreaElement
                 target.style.height = 'auto'
-                target.style.height = Math.min(target.scrollHeight, 100) + 'px'
+                target.style.height = `${Math.min(target.scrollHeight, 100)}px`
               }}
               onKeyDown={(e) => {
-                if (
-                  e.key === 'Enter' &&
-                  !e.shiftKey &&
-                  input.trim() &&
-                  !isLoading
-                ) {
+                if (e.key === 'Enter' && !e.shiftKey && input.trim() && !isLoading) {
                   e.preventDefault()
                   handleSend()
                 }

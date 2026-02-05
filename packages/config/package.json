@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./tsconfig": "./tsconfig.json",
+    "./tsconfig.base": "./tsconfig.base.json",
     "./biome": "./biome.json"
   },
   "scripts": {

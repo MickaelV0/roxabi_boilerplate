@@ -10,4 +10,6 @@ count.txt
 .wrangler
 .output
 .vinxi
+.content-collections
+src/paraglide
 todos.json

@@ -1,7 +1,6 @@
 import { toolDefinition } from '@tanstack/ai'
+import { allEducations, allJobs } from 'content-collections'
 import { z } from 'zod'
-
-import { allJobs, allEducations } from 'content-collections'
 
 // Tool definition for getting jobs by skill
 export const getJobsBySkillToolDef = toolDefinition({
@@ -12,7 +11,7 @@ export const getJobsBySkillToolDef = toolDefinition({
     skill: z
       .string()
       .describe(
-        'The skill or technology to search for (e.g., "React", "TypeScript", "Leadership")',
+        'The skill or technology to search for (e.g., "React", "TypeScript", "Leadership")'
       ),
   }),
   outputSchema: z.array(
@@ -25,14 +24,14 @@ export const getJobsBySkillToolDef = toolDefinition({
       summary: z.string(),
       tags: z.array(z.string()),
       content: z.string(),
-    }),
+    })
   ),
 })
 
 // Server implementation
 export const getJobsBySkill = getJobsBySkillToolDef.server(({ skill }) => {
   return allJobs.filter((job) =>
-    job.tags.some((tag) => tag.toLowerCase().includes(skill.toLowerCase())),
+    job.tags.some((tag) => tag.toLowerCase().includes(skill.toLowerCase()))
   )
 })
 
@@ -52,7 +51,7 @@ export const getAllJobsToolDef = toolDefinition({
       summary: z.string(),
       tags: z.array(z.string()),
       content: z.string(),
-    }),
+    })
   ),
 })
 
@@ -84,7 +83,7 @@ export const getAllEducationToolDef = toolDefinition({
       endDate: z.string().optional(),
       tags: z.array(z.string()),
       content: z.string(),
-    }),
+    })
   ),
 })
 
@@ -106,11 +105,7 @@ export const searchExperienceToolDef = toolDefinition({
   description:
     'Search for jobs by keywords in the job title, company name, summary, or content. Use this to find specific types of experience or roles.',
   inputSchema: z.object({
-    query: z
-      .string()
-      .describe(
-        'The search query (e.g., "senior", "lead", "frontend", "startup")',
-      ),
+    query: z.string().describe('The search query (e.g., "senior", "lead", "frontend", "startup")'),
   }),
   outputSchema: z.array(
     z.object({
@@ -121,10 +116,8 @@ export const searchExperienceToolDef = toolDefinition({
       endDate: z.string().optional(),
       summary: z.string(),
       tags: z.array(z.string()),
-      matchedIn: z
-        .array(z.string())
-        .describe('Which fields matched the search'),
-    }),
+      matchedIn: z.array(z.string()).describe('Which fields matched the search'),
+    })
   ),
 })
 

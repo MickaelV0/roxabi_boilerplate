@@ -1,16 +1,11 @@
-import { createFileRoute } from '@tanstack/react-router'
 import { chat, maxIterations, toServerSentEventsResponse } from '@tanstack/ai'
 import { anthropicText } from '@tanstack/ai-anthropic'
-import { openaiText } from '@tanstack/ai-openai'
 import { geminiText } from '@tanstack/ai-gemini'
 import { ollamaText } from '@tanstack/ai-ollama'
+import { openaiText } from '@tanstack/ai-openai'
+import { createFileRoute } from '@tanstack/react-router'
 
-import {
-  getJobsBySkill,
-  getAllJobs,
-  getAllEducation,
-  searchExperience,
-} from '@/lib/resume-tools'
+import { getAllEducation, getAllJobs, getJobsBySkill, searchExperience } from '@/lib/resume-tools'
 
 export const Route = createFileRoute('/api/resume-chat')({
   server: {
@@ -51,8 +46,7 @@ INSTRUCTIONS:
 CONTEXT: You are helping evaluate this candidate's qualifications for potential job opportunities.`
 
           // Determine the best available provider
-          let provider: 'anthropic' | 'openai' | 'gemini' | 'ollama' =
-            data.provider || 'ollama'
+          let provider: 'anthropic' | 'openai' | 'gemini' | 'ollama' = data.provider || 'ollama'
           let model: string = data.model || 'mistral:7b'
 
           // Use the first available provider with an API key, fallback to ollama
@@ -70,8 +64,7 @@ CONTEXT: You are helping evaluate this candidate's qualifications for potential 
 
           // Adapter factory pattern for multi-vendor support
           const adapterConfig = {
-            anthropic: () =>
-              anthropicText((model || 'claude-haiku-4-5') as any),
+            anthropic: () => anthropicText((model || 'claude-haiku-4-5') as any),
             openai: () => openaiText((model || 'gpt-4o') as any),
             gemini: () => geminiText((model || 'gemini-2.0-flash-exp') as any),
             ollama: () => ollamaText((model || 'mistral:7b') as any),
@@ -81,12 +74,7 @@ CONTEXT: You are helping evaluate this candidate's qualifications for potential 
 
           const stream = chat({
             adapter,
-            tools: [
-              getJobsBySkill,
-              getAllJobs,
-              getAllEducation,
-              searchExperience,
-            ],
+            tools: [getJobsBySkill, getAllJobs, getAllEducation, searchExperience],
             systemPrompts: [SYSTEM_PROMPT],
             agentLoopStrategy: maxIterations(5),
             messages,
@@ -107,7 +95,7 @@ CONTEXT: You are helping evaluate this candidate's qualifications for potential 
             {
               status: 500,
               headers: { 'Content-Type': 'application/json' },
-            },
+            }
           )
         }
       },

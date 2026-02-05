@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { useAppForm } from '@/hooks/demo.form'
 
-export const Route = createFileRoute('/demo/form')({
+export const Route = createFileRoute('/demo/form/address')({
   component: AddressForm,
 })
 
@@ -172,20 +172,14 @@ function AddressForm() {
                 if (!value || value.trim().length === 0) {
                   return 'Phone number is required'
                 }
-                if (
-                  !/^(\+\d{1,3})?\s?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/.test(
-                    value,
-                  )
-                ) {
+                if (!/^(\+\d{1,3})?\s?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/.test(value)) {
                   return 'Invalid phone number format'
                 }
                 return undefined
               },
             }}
           >
-            {(field) => (
-              <field.TextField label="Phone" placeholder="123-456-7890" />
-            )}
+            {(field) => <field.TextField label="Phone" placeholder="123-456-7890" />}
           </form.AppField>
 
           <div className="flex justify-end">

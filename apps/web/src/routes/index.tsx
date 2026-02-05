@@ -1,19 +1,13 @@
-import { useState, useMemo } from 'react'
-import { marked } from 'marked'
-
 import { createFileRoute } from '@tanstack/react-router'
-import { allJobs, allEducations } from 'content-collections'
+import { allEducations, allJobs } from 'content-collections'
+import { marked } from 'marked'
+import { useMemo, useState } from 'react'
+import ResumeAssistant from '@/components/ResumeAssistant'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Badge } from '@/components/ui/badge'
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { Separator } from '@/components/ui/separator'
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '@/components/ui/hover-card'
-
-import ResumeAssistant from '@/components/ResumeAssistant'
 
 export const Route = createFileRoute('/')({
   component: App,
@@ -34,9 +28,7 @@ function App() {
   // Filter jobs based on selected tags
   const filteredJobs = useMemo(() => {
     if (selectedTags.length === 0) return allJobs
-    return allJobs.filter((job) =>
-      selectedTags.some((tag) => job.tags.includes(tag)),
-    )
+    return allJobs.filter((job) => selectedTags.some((tag) => job.tags.includes(tag)))
   }, [selectedTags])
 
   return (
@@ -46,9 +38,7 @@ function App() {
         <div className="flex">
           {/* Sidebar with filters */}
           <div className="w-72 min-h-screen bg-white border-r shadow-sm p-8 sticky top-0">
-            <h3 className="text-lg font-semibold mb-6 text-gray-900">
-              Skills & Technologies
-            </h3>
+            <h3 className="text-lg font-semibold mb-6 text-gray-900">Skills & Technologies</h3>
             <div className="space-y-4">
               {allTags.map((tag) => (
                 <div key={tag} className="flex items-center space-x-3 group">
@@ -82,28 +72,23 @@ function App() {
                 <h1 className="text-5xl font-bold bg-linear-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent">
                   My Resume
                 </h1>
-                <p className="text-gray-600 text-lg">
-                  Professional Experience & Education
-                </p>
+                <p className="text-gray-600 text-lg">Professional Experience & Education</p>
                 <Separator className="mt-8" />
               </div>
 
               {/* Career Summary */}
               <Card className="border-0 shadow-lg bg-white/50 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle className="text-2xl text-gray-900">
-                    Career Summary
-                  </CardTitle>
+                  <CardTitle className="text-2xl text-gray-900">Career Summary</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-8">
                     <p className="text-gray-700 flex-1 leading-relaxed">
-                      I am a passionate and driven professional seeking
-                      opportunities that will leverage my extensive experience
-                      in frontend development while providing continuous growth
-                      and learning opportunities. My goal is to contribute to
-                      innovative projects that challenge me to expand my skill
-                      set and make meaningful impacts through technology.
+                      I am a passionate and driven professional seeking opportunities that will
+                      leverage my extensive experience in frontend development while providing
+                      continuous growth and learning opportunities. My goal is to contribute to
+                      innovative projects that challenge me to expand my skill set and make
+                      meaningful impacts through technology.
                     </p>
                     <img
                       src="/headshot-on-white.jpg"
@@ -116,9 +101,7 @@ function App() {
 
               {/* Work Experience */}
               <section className="space-y-6">
-                <h2 className="text-3xl font-semibold text-gray-900">
-                  Work Experience
-                </h2>
+                <h2 className="text-3xl font-semibold text-gray-900">Work Experience</h2>
                 <div className="space-y-6">
                   {filteredJobs.map((job) => (
                     <Card
@@ -128,9 +111,7 @@ function App() {
                       <CardHeader>
                         <div className="flex justify-between items-start">
                           <div className="space-y-2">
-                            <CardTitle className="text-xl text-gray-900">
-                              {job.jobTitle}
-                            </CardTitle>
+                            <CardTitle className="text-xl text-gray-900">{job.jobTitle}</CardTitle>
                             <p className="text-blue-600 font-medium">
                               {job.company} - {job.location}
                             </p>
@@ -141,9 +122,7 @@ function App() {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-gray-700 mb-6 leading-relaxed">
-                          {job.summary}
-                        </p>
+                        <p className="text-gray-700 mb-6 leading-relaxed">{job.summary}</p>
                         <div className="flex flex-wrap gap-2">
                           {job.tags.map((tag) => (
                             <HoverCard key={tag}>
@@ -157,8 +136,7 @@ function App() {
                               </HoverCardTrigger>
                               <HoverCardContent className="w-64">
                                 <p className="text-sm text-gray-600">
-                                  Experience with {tag} in professional
-                                  development
+                                  Experience with {tag} in professional development
                                 </p>
                               </HoverCardContent>
                             </HoverCard>
@@ -180,9 +158,7 @@ function App() {
 
               {/* Education */}
               <section className="space-y-6">
-                <h2 className="text-3xl font-semibold text-gray-900">
-                  Education
-                </h2>
+                <h2 className="text-3xl font-semibold text-gray-900">Education</h2>
                 <div className="space-y-6">
                   {allEducations.map((education) => (
                     <Card
@@ -190,14 +166,10 @@ function App() {
                       className="border-0 shadow-md hover:shadow-lg transition-shadow"
                     >
                       <CardHeader>
-                        <CardTitle className="text-xl text-gray-900">
-                          {education.school}
-                        </CardTitle>
+                        <CardTitle className="text-xl text-gray-900">{education.school}</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-gray-700 leading-relaxed">
-                          {education.summary}
-                        </p>
+                        <p className="text-gray-700 leading-relaxed">{education.summary}</p>
                         {education.content && (
                           <div
                             className="mt-6 text-gray-700 prose prose-sm max-w-none"

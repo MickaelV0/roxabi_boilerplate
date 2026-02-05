@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 import { useAppForm } from '@/hooks/demo.form'
 
-export const Route = createFileRoute('/demo/form')({
+export const Route = createFileRoute('/demo/form/simple')({
   component: SimpleForm,
 })
 
@@ -45,9 +45,7 @@ function SimpleForm() {
           }}
           className="space-y-6"
         >
-          <form.AppField name="title">
-            {(field) => <field.TextField label="Title" />}
-          </form.AppField>
+          <form.AppField name="title">{(field) => <field.TextField label="Title" />}</form.AppField>
 
           <form.AppField name="description">
             {(field) => <field.TextArea label="Description" />}

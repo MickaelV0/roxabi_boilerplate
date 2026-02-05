@@ -1,10 +1,4 @@
 import { Link } from '@tanstack/react-router'
-
-import ParaglideLocaleSwitcher from './LocaleSwitcher.tsx'
-
-import ResumeAssistantButton from './ResumeAssistantButton'
-
-import { useState } from 'react'
 import {
   ChevronDown,
   ChevronRight,
@@ -19,17 +13,19 @@ import {
   Table,
   X,
 } from 'lucide-react'
+import { useState } from 'react'
+import ParaglideLocaleSwitcher from './LocaleSwitcher.tsx'
+import ResumeAssistantButton from './ResumeAssistantButton'
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
-  const [groupedExpanded, setGroupedExpanded] = useState<
-    Record<string, boolean>
-  >({})
+  const [groupedExpanded, setGroupedExpanded] = useState<Record<string, boolean>>({})
 
   return (
     <>
       <header className="p-4 flex items-center bg-gray-800 text-white shadow-lg">
         <button
+          type="button"
           onClick={() => setIsOpen(true)}
           className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
           aria-label="Open menu"
@@ -38,11 +34,7 @@ export default function Header() {
         </button>
         <h1 className="ml-4 text-xl font-semibold">
           <Link to="/">
-            <img
-              src="/tanstack-word-logo-white.svg"
-              alt="TanStack Logo"
-              className="h-10"
-            />
+            <img src="/tanstack-word-logo-white.svg" alt="TanStack Logo" className="h-10" />
           </Link>
         </h1>
       </header>
@@ -55,6 +47,7 @@ export default function Header() {
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <h2 className="text-xl font-bold">Navigation</h2>
           <button
+            type="button"
             onClick={() => setIsOpen(false)}
             className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
             aria-label="Close menu"
@@ -119,6 +112,7 @@ export default function Header() {
               <span className="font-medium">Start - SSR Demos</span>
             </Link>
             <button
+              type="button"
               className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
               onClick={() =>
                 setGroupedExpanded((prev) => ({
