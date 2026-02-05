@@ -1,33 +1,32 @@
-import { type AnyRouter, createRouter as createTanStackRouter } from '@tanstack/react-router'
-import { NotFound } from '@/components/not-found'
+import { createRouter } from '@tanstack/react-router'
+import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
+import * as TanstackQuery from './integrations/tanstack-query/root-provider'
+
 import { deLocalizeUrl, localizeUrl } from './paraglide/runtime'
+
+// Import the generated route tree
 import { routeTree } from './routeTree.gen'
 
-let router: AnyRouter | null = null
+// Create a new router instance
+export const getRouter = () => {
+  const rqContext = TanstackQuery.getContext()
 
-export function createAppRouter() {
-  const r = createTanStackRouter({
+  const router = createRouter({
     routeTree,
-    defaultPreload: 'intent',
-    scrollRestoration: true,
-    defaultNotFoundComponent: NotFound,
+    context: {
+      ...rqContext,
+    },
+
+    // Paraglide URL rewrite docs: https://github.com/TanStack/router/tree/main/examples/react/i18n-paraglide#rewrite-url
     rewrite: {
       input: ({ url }) => deLocalizeUrl(url),
       output: ({ url }) => localizeUrl(url),
     },
+
+    defaultPreload: 'intent',
   })
-  return r
-}
 
-export function getRouter() {
-  if (!router) {
-    router = createAppRouter()
-  }
+  setupRouterSsrQueryIntegration({ router, queryClient: rqContext.queryClient })
+
   return router
-}
-
-declare module '@tanstack/react-router' {
-  interface Register {
-    router: ReturnType<typeof createAppRouter>
-  }
 }

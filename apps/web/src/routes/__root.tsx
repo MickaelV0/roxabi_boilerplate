@@ -1,10 +1,37 @@
-import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-router'
-import { RootProvider } from 'fumadocs-ui/provider/tanstack'
-import type * as React from 'react'
-import { getLocale } from '@/paraglide/runtime'
-import appCss from '@/styles/app.css?url'
+import {
+  HeadContent,
+  Scripts,
+  createRootRouteWithContext,
+  redirect,
+} from '@tanstack/react-router'
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
+import { TanStackDevtools } from '@tanstack/react-devtools'
 
-export const Route = createRootRoute({
+import Header from '../components/Header'
+
+import StoreDevtools from '../lib/demo-store-devtools'
+
+import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
+
+import { getLocale, shouldRedirect } from '@/paraglide/runtime'
+
+import appCss from '../styles.css?url'
+
+import type { QueryClient } from '@tanstack/react-query'
+
+interface MyRouterContext {
+  queryClient: QueryClient
+}
+
+export const Route = createRootRouteWithContext<MyRouterContext>()({
+  beforeLoad: async () => {
+    // Other redirect strategies are possible; see
+    // https://github.com/TanStack/router/tree/main/examples/react/i18n-paraglide#offline-redirect
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('lang', getLocale())
+    }
+  },
+
   head: () => ({
     meta: [
       {
@@ -15,34 +42,42 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'Roxabi Boilerplate',
-      },
-      {
-        name: 'description',
-        content: 'SaaS framework with integrated AI team',
+        title: 'TanStack Start Starter',
       },
     ],
-    links: [{ rel: 'stylesheet', href: appCss }],
+    links: [
+      {
+        rel: 'stylesheet',
+        href: appCss,
+      },
+    ],
   }),
-  component: RootComponent,
-})
 
-function RootComponent() {
-  return (
-    <RootDocument>
-      <Outlet />
-    </RootDocument>
-  )
-}
+  shellComponent: RootDocument,
+})
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang={getLocale()} suppressHydrationWarning>
+    <html lang={getLocale()}>
       <head>
         <HeadContent />
       </head>
-      <body className="flex flex-col min-h-screen">
-        <RootProvider>{children}</RootProvider>
+      <body>
+        <Header />
+        {children}
+        <TanStackDevtools
+          config={{
+            position: 'bottom-right',
+          }}
+          plugins={[
+            {
+              name: 'Tanstack Router',
+              render: <TanStackRouterDevtoolsPanel />,
+            },
+            StoreDevtools,
+            TanStackQueryDevtools,
+          ]}
+        />
         <Scripts />
       </body>
     </html>
