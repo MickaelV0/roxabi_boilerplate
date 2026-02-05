@@ -2,6 +2,9 @@ import { randomUUID } from 'node:crypto'
 import type { ApiErrorResponse } from '@repo/types'
 import { type FetchError, ofetch } from 'ofetch'
 
+/** Default API URL for local development */
+const DEFAULT_API_URL = 'http://localhost:4000'
+
 /**
  * Creates a configured ofetch instance for API communication.
  *
@@ -27,9 +30,9 @@ export function createApiClient(baseURL: string) {
 
 /**
  * Default API client instance using the API_URL environment variable.
- * Fallback to localhost:4000 for local development.
+ * Fallback to DEFAULT_API_URL for local development.
  */
-export const api = createApiClient(process.env.API_URL || 'http://localhost:4000')
+export const api = createApiClient(process.env.API_URL || DEFAULT_API_URL)
 
 /**
  * Type guard to check if an error is a FetchError with API error data.

@@ -56,7 +56,7 @@ This add-on wires up ParaglideJS for localized routing and message formatting.
 Add components using the latest version of [Shadcn](https://ui.shadcn.com/).
 
 ```bash
-pnpm dlx shadcn@latest add button
+bunx shadcn@latest add button
 ```
 
 
@@ -137,10 +137,10 @@ Details about your education...
 
 ```bash
 # Start development server
-npm run dev
+bun run dev
 
 # Build for production
-npm run build
+bun run build
 ```
 
 
