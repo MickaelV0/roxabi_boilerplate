@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import 'fumadocs-ui/style.css';
 @import '@repo/ui/theme.css';
 
 @plugin "tailwindcss-animate";

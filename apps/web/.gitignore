@@ -12,4 +12,6 @@ count.txt
 .vinxi
 .content-collections
 src/paraglide
+source.generated
+.source
 todos.json

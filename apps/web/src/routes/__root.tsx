@@ -2,6 +2,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 import type { QueryClient } from '@tanstack/react-query'
 import { createRootRouteWithContext, HeadContent, Scripts } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
+import { RootProvider } from 'fumadocs-ui/provider/tanstack'
 import { ErrorBoundary } from 'react-error-boundary'
 import { getLocale } from '@/paraglide/runtime'
 import { Header } from '../components/Header'
@@ -78,8 +79,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <Header />
-        <ErrorBoundary FallbackComponent={ErrorFallback}>{children}</ErrorBoundary>
+        <RootProvider>
+          <Header />
+          <ErrorBoundary FallbackComponent={ErrorFallback}>{children}</ErrorBoundary>
+        </RootProvider>
         <TanStackDevtools
           config={{
             position: 'bottom-right',

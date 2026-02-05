@@ -5,11 +5,12 @@ import tailwindcss from '@tailwindcss/vite'
 import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
+import mdx from 'fumadocs-mdx/vite'
 import { nitro } from 'nitro/vite'
 import { defineConfig } from 'vite'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
 
-const config = defineConfig({
+const config = defineConfig(async () => ({
   envDir: '../..',
   server: {
     port: Number(process.env.WEB_PORT) || 3000,
@@ -20,6 +21,7 @@ const config = defineConfig({
     },
   },
   plugins: [
+    mdx(await import('./source.config')),
     devtools(),
     paraglideVitePlugin({
       project: './project.inlang',
@@ -36,6 +38,6 @@ const config = defineConfig({
     tanstackStart(),
     viteReact(),
   ],
-})
+}))
 
 export default config
