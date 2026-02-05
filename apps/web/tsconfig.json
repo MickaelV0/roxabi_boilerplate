@@ -1,7 +1,7 @@
 {
   "extends": "@repo/config/tsconfig.base",
   "include": ["**/*.ts", "**/*.tsx", "src/paraglide/**/*.js"],
-  "exclude": ["node_modules", "dist", ".output"],
+  "exclude": ["node_modules", "dist", ".output", "vitest.config.ts"],
   "compilerOptions": {
     "jsx": "react-jsx",
     "types": ["vite/client", "node"],
