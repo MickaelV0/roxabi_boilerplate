@@ -3,6 +3,8 @@ title: "Issue #8: CI/CD GitHub Actions - Technical Analysis"
 description: Technical analysis for Roxabi Boilerplate infrastructure
 ---
 
+> **Deprecated**: This document is outdated and kept for historical reference only. Please refer to the main documentation sections for current information.
+
 
 **Issue**: Setup: CI/CD GitHub Actions
 **Size**: M (Medium) | **Priority**: P1 (Critical)
@@ -16,6 +18,8 @@ description: Technical analysis for Roxabi Boilerplate infrastructure
 GitHub Actions provides the most integrated CI/CD solution for this Bun/TurboRepo monorepo, with native support for Bun via `oven-sh/setup-bun` and excellent TurboRepo caching options. The recommended approach combines TurboRepo's `--affected` flag for smart change detection, GitHub Actions caching for dependencies, and a modular workflow structure that separates CI (quality gates) from CD (deployment). This setup can achieve 2x faster CI times compared to traditional npm/yarn setups while maintaining comprehensive quality checks.
 
 ---
+
+> **Deprecated**: This document is outdated and kept for historical reference only. Please refer to the main documentation sections for current information.
 
 ## State of the Art (2025-2026)
 
@@ -158,6 +162,8 @@ jobs:
 ### Estimated Complexity: 1/5
 
 ---
+
+> **Deprecated**: This document is outdated and kept for historical reference only. Please refer to the main documentation sections for current information.
 
 ## Option B: Gold Standard (Best Quality)
 
@@ -687,6 +693,8 @@ jobs:
 
 ---
 
+> **Deprecated**: This document is outdated and kept for historical reference only. Please refer to the main documentation sections for current information.
+
 ## Comparison Table
 
 | Aspect | Option A (MVP) | Option B (Gold) | Option C (Balanced) |
@@ -749,6 +757,8 @@ Before implementing:
 - **Issue #10 (Git hooks)**: Pre-commit hooks should catch issues before CI
 
 ---
+
+> **Deprecated**: This document is outdated and kept for historical reference only. Please refer to the main documentation sections for current information.
 
 ## Key Resources
 

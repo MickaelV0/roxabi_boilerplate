@@ -116,7 +116,7 @@ variant?: 'dropdown' | 'buttons'  // Good
 isDropdown?: boolean              // Avoid
 ```
 
-- **React Compiler handles memoization.** Do not add manual `React.memo`, `useMemo`, or `useCallback` unless profiling proves a measurable performance problem. The React Compiler (enabled in this project) optimizes re-renders automatically.
+- **Avoid premature memoization.** Do not add manual `React.memo`, `useMemo`, or `useCallback` unless profiling proves a measurable performance problem. Most components don't need memoization, and it adds complexity without benefit.
 
 ## 1.5 AI Quick Reference
 
@@ -139,7 +139,7 @@ Compressed imperative rules for AI agent consumption. No examples, no rationale.
 - Functional components only -- no class components
 - Named exports only (exception: framework conventions)
 - Use `react-error-boundary` for error boundaries
-- No manual `React.memo`/`useMemo`/`useCallback` -- React Compiler handles memoization
+- No manual `React.memo`/`useMemo`/`useCallback` unless profiling proves necessary
 - Extract complex logic into companion hooks
 - Variant pattern for multi-mode components (`variant?: 'a' | 'b'`, not `isA?: boolean`)
 - Client/server file separation for isomorphic features

@@ -1,247 +1,209 @@
 ---
 title: Internationalization (i18n)
-description: Guide for working with translations in the application
+description: Guide to using Paraglide JS for internationalization in Roxabi Boilerplate
 ---
-
-This guide explains how to work with translations in the Roxabi application.
 
 ## Overview
 
-The i18n system uses [i18next](https://www.i18next.com/) with the following structure:
+Roxabi Boilerplate uses [Paraglide JS](https://inlang.com/m/gerre34r/library-inlang-paraglideJs) for internationalization. Paraglide compiles translations into tree-shakeable JavaScript functions, resulting in up to 70% smaller i18n bundle sizes compared to traditional libraries.
+
+## Key Benefits
+
+- **Tree-shakeable**: Only used translations are bundled
+- **Type-safe**: Full TypeScript support with autocomplete
+- **Fast**: No runtime parsing, messages are pre-compiled
+- **Simple**: No complex configuration or context providers
+
+## Project Structure
 
 ```
-apps/web/src/
-├── lib/i18n/           # i18n configuration and hooks
-│   ├── types.ts        # Locale and namespace types
-│   ├── hooks.ts        # React hooks (useTranslation, useLocale)
-│   ├── server.ts       # Server-side utilities
-│   └── client.ts       # Client-side initialization
-└── locales/            # Translation files
-    ├── en/             # English translations
-    │   ├── common.json
-    │   ├── auth.json
-    │   ├── dashboard.json
-    │   └── settings.json
-    └── fr/             # French translations
-        └── ...
+apps/web/
+├── messages/              # Source translation files
+│   ├── en.json           # English (base locale)
+│   └── de.json           # German
+├── project.inlang/        # Paraglide configuration
+│   └── settings.json
+└── src/paraglide/         # Auto-generated (do not edit)
+    ├── messages.js        # Message functions
+    └── runtime.js         # Locale utilities
 ```
 
-## Adding New Translation Keys
+## Configuration
 
-### 1. Choose the Right Namespace
-
-| Namespace | Use for |
-|-----------|---------|
-| `common` | Shared UI elements (buttons, labels, errors) |
-| `auth` | Login, signup, password reset |
-| `dashboard` | Dashboard-specific content |
-| `settings` | User settings and preferences |
-
-### 2. Add the Key to All Locales
-
-Add the key to both `src/locales/en/{namespace}.json` and `src/locales/fr/{namespace}.json`:
-
-```json
-// locales/en/common.json
-{
-  "buttons": {
-    "submit": "Submit",
-    "my_new_button": "Click me"
-  }
-}
-```
-
-```json
-// locales/fr/common.json
-{
-  "buttons": {
-    "submit": "Soumettre",
-    "my_new_button": "Cliquez ici"
-  }
-}
-```
-
-### 3. Use Interpolation for Dynamic Values
-
-```json
-{
-  "greeting": "Hello, {{name}}!",
-  "items": "{{count}} item",
-  "items_other": "{{count}} items"
-}
-```
-
-The `_other` suffix handles pluralization automatically.
-
-## Adding a New Namespace
-
-### 1. Create JSON Files
-
-Create the namespace file in each locale folder:
-
-```bash
-# Create files
-touch apps/web/src/locales/en/billing.json
-touch apps/web/src/locales/fr/billing.json
-```
-
-Add initial content:
-
-```json
-{
-  "title": "Billing"
-}
-```
-
-### 2. Update Types
-
-Add the namespace to `apps/web/src/lib/i18n/types.ts`:
+The Paraglide Vite plugin is configured in `apps/web/vite.config.ts`:
 
 ```typescript
-export const NAMESPACES = ['common', 'auth', 'dashboard', 'settings', 'billing'] as const
+paraglideVitePlugin({
+  project: './project.inlang',
+  outdir: './src/paraglide',
+  strategy: ['url'],
+})
 ```
 
-### 3. Validate
-
-Run validation to ensure all keys match:
-
-```bash
-bun run i18n:validate
-```
-
-## Adding a New Language
-
-### 1. Create Locale Folder
-
-```bash
-mkdir apps/web/src/locales/de
-```
-
-### 2. Copy and Translate Files
-
-Copy all JSON files from `en/` and translate them:
-
-```bash
-cp apps/web/src/locales/en/*.json apps/web/src/locales/de/
-```
-
-### 3. Update Types
-
-Add the locale to `apps/web/src/lib/i18n/types.ts`:
-
-```typescript
-export const LOCALES = ['en', 'fr', 'de'] as const
-```
-
-### 4. Add Language Name
-
-Add the display name in `locales/{locale}/common.json`:
+Locale settings are in `apps/web/project.inlang/settings.json`:
 
 ```json
 {
-  "languages": {
-    "en": "English",
-    "fr": "French",
-    "de": "German"
+  "baseLocale": "en",
+  "locales": ["en", "de"],
+  "plugin.inlang.messageFormat": {
+    "pathPattern": "./messages/{locale}.json"
   }
 }
 ```
 
-## Using Translations in Components
+## Adding Translations
 
-### useTranslation Hook
+### 1. Add Messages to JSON Files
 
-```tsx
-import { useTranslation } from '@/lib/i18n/hooks'
+Add your message to each locale file in `apps/web/messages/`:
 
-function MyComponent() {
-  const { t } = useTranslation('common')
-
-  return (
-    <button>{t('buttons.submit')}</button>
-  )
+```json
+// messages/en.json
+{
+  "greeting": "Hello, {name}!",
+  "items_count": "{count, plural, one {# item} other {# items}}"
 }
 ```
 
-### With Interpolation
-
-```tsx
-const { t } = useTranslation('common')
-
-// Simple interpolation
-t('greeting', { name: 'John' }) // "Hello, John!"
-
-// Pluralization
-t('items', { count: 1 }) // "1 item"
-t('items', { count: 5 }) // "5 items"
+```json
+// messages/de.json
+{
+  "greeting": "Hallo, {name}!",
+  "items_count": "{count, plural, one {# Artikel} other {# Artikel}}"
+}
 ```
 
-### Multiple Namespaces
+### 2. Use Messages in Components
+
+Import and call message functions:
 
 ```tsx
-const { t } = useTranslation(['common', 'dashboard'])
+import { m } from '@/paraglide/messages'
 
-t('common:buttons.submit')
-t('dashboard:title')
-```
-
-### useLocale Hook
-
-For locale-aware formatting:
-
-```tsx
-import { useLocale } from '@/lib/i18n/hooks'
-
-function PriceDisplay({ amount }: { amount: number }) {
-  const { formatCurrency, formatDate, formatNumber } = useLocale()
-
+function Welcome() {
   return (
     <div>
-      <p>Price: {formatCurrency(amount)}</p>
-      <p>Date: {formatDate(new Date())}</p>
-      <p>Count: {formatNumber(1234.56)}</p>
+      <h1>{m.greeting({ name: 'World' })}</h1>
+      <p>{m.items_count({ count: 5 })}</p>
     </div>
   )
 }
 ```
 
-## Validation
+## Locale Management
 
-### Running Validation
+### Getting the Current Locale
+
+```typescript
+import { getLocale } from '@/paraglide/runtime'
+
+const currentLocale = getLocale() // "en" or "de"
+```
+
+### Changing the Locale
+
+```typescript
+import { setLocale } from '@/paraglide/runtime'
+
+setLocale('de') // Switch to German
+```
+
+### Available Locales
+
+```typescript
+import { locales, baseLocale } from '@/paraglide/runtime'
+
+console.log(locales)    // ["en", "de"]
+console.log(baseLocale) // "en"
+```
+
+## Locale Switcher Component
+
+A ready-to-use locale switcher is available at `apps/web/src/components/LocaleSwitcher.tsx`:
+
+```tsx
+import { m } from '@/paraglide/messages'
+import { getLocale, locales, setLocale } from '@/paraglide/runtime'
+
+export function LocaleSwitcher() {
+  const currentLocale = getLocale()
+
+  return (
+    <nav aria-label={m.language_label()}>
+      {locales.map((locale) => (
+        <button
+          key={locale}
+          onClick={() => setLocale(locale)}
+          aria-pressed={locale === currentLocale}
+        >
+          {locale.toUpperCase()}
+        </button>
+      ))}
+    </nav>
+  )
+}
+```
+
+## Adding a New Locale
+
+1. Add the locale to `apps/web/project.inlang/settings.json`:
+
+```json
+{
+  "locales": ["en", "de", "fr"]
+}
+```
+
+2. Create the translation file `apps/web/messages/fr.json`:
+
+```json
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "greeting": "Bonjour, {name}!"
+}
+```
+
+3. Run the dev server to regenerate the paraglide output:
 
 ```bash
-bun run i18n:validate
+bun dev
 ```
 
-### Understanding Output
+## Message Syntax
 
-**Success:**
-```
-✅ common: All keys match
-✅ auth: All keys match
-```
+Paraglide uses the [ICU Message Format](https://unicode-org.github.io/icu/userguide/format_parse/messages/):
 
-**Missing keys:**
-```
-❌ common: Missing keys:
-    - buttons.new_button
-    - errors.timeout
+### Variables
+
+```json
+{
+  "welcome": "Welcome, {username}!"
+}
 ```
 
-**Extra keys (warning only):**
+### Pluralization
+
+```json
+{
+  "notifications": "{count, plural, =0 {No notifications} one {# notification} other {# notifications}}"
+}
 ```
-⚠️  common: Extra keys (not in en):
-    - buttons.deprecated
+
+### Select (Gender, etc.)
+
+```json
+{
+  "invite": "{gender, select, male {He invited you} female {She invited you} other {They invited you}}"
+}
 ```
 
-### CI Integration
+## Demo
 
-Translation validation runs automatically on every PR. PRs with missing keys will be blocked.
+Visit `/demo/i18n` in the web app to see a working example of the i18n implementation.
 
-## Best Practices
+## Resources
 
-1. **Always add keys to all locales** - The CI will block PRs with missing keys
-2. **Use dot notation** for nested keys: `buttons.submit`, not flat keys
-3. **Keep namespaces focused** - Don't put everything in `common`
-4. **Use interpolation** instead of string concatenation
-5. **Test with different locales** during development
+- [Paraglide JS Documentation](https://inlang.com/m/gerre34r/library-inlang-paraglideJs)
+- [ICU Message Format](https://unicode-org.github.io/icu/userguide/format_parse/messages/)
+- [TanStack Router i18n Example](https://github.com/TanStack/router/tree/main/examples/react/i18n-paraglide)
