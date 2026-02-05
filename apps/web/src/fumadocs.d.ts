@@ -11,6 +11,8 @@ declare module 'fumadocs-mdx:collections/server' {
 }
 
 declare module 'fumadocs-mdx:collections/browser' {
+  import type { TOCItemType } from 'fumadocs-core/mdx-plugins'
+
   interface ClientLoader<T> {
     preload(path: string): Promise<void>
     useContent(path: string, props?: T): React.ReactNode
@@ -23,7 +25,8 @@ declare module 'fumadocs-mdx:collections/browser' {
         component: (
           compiled: {
             frontmatter: { title: string; description?: string }
-            default: React.ComponentType
+            default: React.ComponentType<{ components?: Record<string, unknown> }>
+            toc: TOCItemType[]
           },
           props: T
         ) => React.ReactNode

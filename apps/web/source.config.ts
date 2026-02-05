@@ -1,7 +1,7 @@
 import { defineConfig, defineDocs } from 'fumadocs-mdx/config'
 
 export const docs = defineDocs({
-  dir: 'docs', // Uses symlink to repo root docs folder
+  dir: 'docs', // Symlink to ../../docs
 })
 
 export default defineConfig()

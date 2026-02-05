@@ -1,6 +1,11 @@
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import type { QueryClient } from '@tanstack/react-query'
-import { createRootRouteWithContext, HeadContent, Scripts } from '@tanstack/react-router'
+import {
+  createRootRouteWithContext,
+  HeadContent,
+  Scripts,
+  useRouterState,
+} from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { RootProvider } from 'fumadocs-ui/provider/tanstack'
 import { ErrorBoundary } from 'react-error-boundary'
@@ -72,6 +77,18 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   shellComponent: RootDocument,
 })
 
+function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const isDocsPage = pathname.startsWith('/docs')
+
+  return (
+    <RootProvider>
+      {!isDocsPage && <Header />}
+      <ErrorBoundary FallbackComponent={ErrorFallback}>{children}</ErrorBoundary>
+    </RootProvider>
+  )
+}
+
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang={getLocale()} suppressHydrationWarning>
@@ -79,10 +96,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <RootProvider>
-          <Header />
-          <ErrorBoundary FallbackComponent={ErrorFallback}>{children}</ErrorBoundary>
-        </RootProvider>
+        <AppShell>{children}</AppShell>
         <TanStackDevtools
           config={{
             position: 'bottom-right',
