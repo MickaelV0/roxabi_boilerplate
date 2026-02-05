@@ -143,7 +143,11 @@ else
                     ($child | format_deps) as $cDeps |
                     "       │   \($prefix)#\($sub.number) \(pad($cTitle; $cTitleWidth))│ \(pad($cStatus; 11))│ \(pad($cSize; 5))│ \(pad($cPri; 4))│ \($cBlock) │ \($cDeps)"
                 else
-                    "       │   \($prefix)#\($sub.number) \($sub.title // "?")"
+                    # Closed child - show with truncated title and CLOSED status, no block/deps
+                    (($sub.number | tostring | length) + 7) as $prefixLen |
+                    (($titleLen + 3) - $prefixLen) as $cTitleWidth |
+                    (($sub.title // "?") | if length > ($cTitleWidth - 4) then .[:$cTitleWidth - 4] + "... " else . end) as $cTitle |
+                    "       │   \($prefix)#\($sub.number) \(pad($cTitle; $cTitleWidth))│ \(pad("Done"; 11))│ \(pad("-"; 5))│ \(pad("-"; 4))│   │"
                 end
             else empty end;
 
