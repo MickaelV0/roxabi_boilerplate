@@ -4,6 +4,13 @@
   "exclude": ["node_modules", "dist"],
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "incremental": false,
+    "composite": false,
+    "types": ["vitest/globals", "@testing-library/jest-dom"]
   }
 }

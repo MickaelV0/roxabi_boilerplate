@@ -1,11 +1,19 @@
+import {
+  Button,
+  Input,
+  Label,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+  Select as UiSelect,
+  Slider as UiSlider,
+  Switch as UiSwitch,
+} from '@repo/ui'
 import { useStore } from '@tanstack/react-form'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import * as ShadcnSelect from '@/components/ui/select'
-import { Slider as ShadcnSlider } from '@/components/ui/slider'
-import { Switch as ShadcnSwitch } from '@/components/ui/switch'
-import { Textarea as ShadcnTextarea } from '@/components/ui/textarea'
 import { useFieldContext, useFormContext } from '@/hooks/demo.form-context'
 
 export function SubscribeButton({ label }: { label: string }) {
@@ -65,7 +73,7 @@ export function TextArea({ label, rows = 3 }: { label: string; rows?: number }) 
       <Label htmlFor={label} className="mb-2 text-xl font-bold">
         {label}
       </Label>
-      <ShadcnTextarea
+      <Textarea
         id={label}
         value={field.state.value}
         onBlur={field.handleBlur}
@@ -91,25 +99,25 @@ export function Select({
 
   return (
     <div>
-      <ShadcnSelect.Select
+      <UiSelect
         name={field.name}
         value={field.state.value}
         onValueChange={(value) => field.handleChange(value)}
       >
-        <ShadcnSelect.SelectTrigger className="w-full">
-          <ShadcnSelect.SelectValue placeholder={placeholder} />
-        </ShadcnSelect.SelectTrigger>
-        <ShadcnSelect.SelectContent>
-          <ShadcnSelect.SelectGroup>
-            <ShadcnSelect.SelectLabel>{label}</ShadcnSelect.SelectLabel>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectLabel>{label}</SelectLabel>
             {values.map((value) => (
-              <ShadcnSelect.SelectItem key={value.value} value={value.value}>
+              <SelectItem key={value.value} value={value.value}>
                 {value.label}
-              </ShadcnSelect.SelectItem>
+              </SelectItem>
             ))}
-          </ShadcnSelect.SelectGroup>
-        </ShadcnSelect.SelectContent>
-      </ShadcnSelect.Select>
+          </SelectGroup>
+        </SelectContent>
+      </UiSelect>
       {field.state.meta.isTouched && <ErrorMessages errors={errors} />}
     </div>
   )
@@ -124,7 +132,7 @@ export function Slider({ label }: { label: string }) {
       <Label htmlFor={label} className="mb-2 text-xl font-bold">
         {label}
       </Label>
-      <ShadcnSlider
+      <UiSlider
         id={label}
         onBlur={field.handleBlur}
         value={[field.state.value]}
@@ -142,7 +150,7 @@ export function Switch({ label }: { label: string }) {
   return (
     <div>
       <div className="flex items-center gap-2">
-        <ShadcnSwitch
+        <UiSwitch
           id={label}
           onBlur={field.handleBlur}
           checked={field.state.value}

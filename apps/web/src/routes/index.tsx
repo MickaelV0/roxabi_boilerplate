@@ -1,13 +1,20 @@
+import {
+  Badge,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Checkbox,
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+  Separator,
+} from '@repo/ui'
 import { createFileRoute } from '@tanstack/react-router'
 import { allEducations, allJobs } from 'content-collections'
 import { marked } from 'marked'
 import { useMemo, useState } from 'react'
 import ResumeAssistant from '@/components/ResumeAssistant'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
-import { Separator } from '@/components/ui/separator'
 
 export const Route = createFileRoute('/')({
   component: App,
