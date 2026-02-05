@@ -1,9 +1,7 @@
 ---
-title: "API Client (Frontend \u2192 Backend)"
+title: "API Client (Frontend → Backend)"
 description: Typed HTTP client for frontend-to-backend communication using ofetch
 ---
-
-> **Deprecated**: This document is outdated and kept for historical reference only. Please refer to the main documentation sections for current information.
 
 ## Overview
 
@@ -32,6 +30,16 @@ Setup a typed HTTP client on the frontend (`apps/web`) to communicate with the N
 
 ofetch was chosen for its universal runtime support (critical for TanStack Start SSR), auto JSON parsing (NestJS returns JSON by default), and smart error handling where `error.data` contains the parsed NestJS error body.
 
+### Scope: REST Only
+
+This API client handles REST endpoints only:
+
+| Communication Type | Solution | Rationale |
+|-------------------|----------|-----------|
+| REST/JSON | **ofetch** | Auto JSON, error handling, interceptors |
+| SSE streaming | Native fetch | ofetch has streaming issues ([#484](https://github.com/unjs/ofetch/issues/484)) |
+| WebSocket | Native/socket.io | OpenAPI doesn't support WS |
+
 ### Architecture
 
 ```
@@ -41,7 +49,7 @@ Browser                     TanStack Start Server           NestJS API
   |                               |-- createServerFn() ------->|
   |                               |   (uses ofetch instance)   |
   |                               |                            |
-  |&lt;-- SSR HTML + data -----------|&lt;-- JSON response ----------|
+  |<-- SSR HTML + data -----------|<-- JSON response ----------|
 ```
 
 API calls happen inside **server functions** (`createServerFn()`), not directly from the browser. The `API_URL` environment variable is server-side only (no `VITE_` prefix needed).
@@ -54,21 +62,22 @@ API calls happen inside **server functions** (`createServerFn()`), not directly 
 |------|--------|-------------|
 | `apps/web/src/lib/api-client.server.ts` | Created | ofetch instance with interceptors |
 | `apps/web/src/lib/api-client.test.ts` | Created | Unit tests |
-| `packages/types/src/index.ts` | Modified | Added `ApiErrorResponse` type |
-| `apps/web/.env.example` | Modified | Added `API_URL` |
+| `packages/types/src/index.ts` | Existing | Has `ApiErrorResponse` type |
 | `apps/web/package.json` | Modified | Added `ofetch` dependency |
 
 ### API Client (`api-client.server.ts`)
 
 The client exposes:
 
-- **`createApiClient(baseURL)`** &mdash; factory for creating configured ofetch instances
-- **`api`** &mdash; default instance using `API_URL` env var (fallback: `http://localhost:3001`)
-- **`getApiErrorData(error)`** &mdash; helper to extract typed error data from `FetchError`
+- **`createApiClient(baseURL)`** — factory for creating configured ofetch instances
+- **`api`** — default instance using `API_URL` env var (fallback: `http://localhost:4000`)
+- **`isFetchError(error)`** — type guard to check if error is a FetchError
+- **`getApiErrorData(error)`** — helper to extract typed error data from `FetchError`
 
 Features:
 - Automatic `x-correlation-id` header on every request (matches backend interceptor)
 - Base URL configurable via `API_URL` environment variable
+- Retry logic for transient errors (408, 429, 5xx)
 - Auth header hook ready for future integration (when Auth #19 is implemented)
 
 ### Shared Types (`ApiErrorResponse`)
@@ -89,10 +98,30 @@ Matches the NestJS `AllExceptionsFilter` error response format exactly.
 
 ```typescript
 import { createServerFn } from '@tanstack/react-start'
-import { api } from '@/lib/api-client'
+import { api } from '@/lib/api-client.server'
 
-const fetchHealth = createServerFn().handler(async () => {
-  return api&lt;{ status: string }>('/health')
+const fetchHealth = createServerFn({ method: 'GET' }).handler(async () => {
+  return api<{ status: string }>('/health')
+})
+```
+
+### Error Handling Example
+
+```typescript
+import { createServerFn } from '@tanstack/react-start'
+import { api, getApiErrorData, isFetchError } from '@/lib/api-client.server'
+
+const createUser = createServerFn({ method: 'POST' }).handler(async (data) => {
+  try {
+    return await api('/users', { method: 'POST', body: data })
+  } catch (error) {
+    const apiError = getApiErrorData(error)
+    if (apiError) {
+      // Handle structured API error
+      console.error(`API Error [${apiError.correlationId}]: ${apiError.message}`)
+    }
+    throw error
+  }
 })
 ```
 
@@ -100,7 +129,27 @@ const fetchHealth = createServerFn().handler(async () => {
 
 | Variable | Location | Default | Description |
 |----------|----------|---------|-------------|
-| `API_URL` | Server-side env | `http://localhost:3001` | Backend API base URL |
+| `API_URL` | Server-side env | `http://localhost:4000` | Backend API base URL |
+
+## Migration Path to openapi-fetch
+
+When the backend has more endpoints with documented DTOs, migrate to openapi-fetch for auto-generated types:
+
+### Prerequisites
+
+- More API endpoints beyond `/health`
+- DTOs documented with `@ApiProperty()` decorators
+- OpenAPI spec exportable (endpoint or build step)
+
+### Steps
+
+1. Install dependencies: `bun add openapi-fetch && bun add -D openapi-typescript`
+2. Generate types: `bunx openapi-typescript http://localhost:4000/api-json -o src/api/schema.d.ts`
+3. Create new client using openapi-fetch
+4. Migrate existing API calls
+5. Remove ofetch dependency
+
+See [API Client Research](/docs/analyses/api-client-research) for detailed migration guide.
 
 ## Dependencies
 
@@ -112,6 +161,7 @@ const fetchHealth = createServerFn().handler(async () => {
 - [x] Base URL configurable via `API_URL` environment variable
 - [x] Correlation ID forwarded on every request
 - [x] Error responses typed via `ApiErrorResponse`
+- [x] Retry logic for transient errors
 - [x] Unit tests pass
 - [ ] Auth token/cookie automatically included (deferred to #19)
 - [x] Works with SSR (server-side via `process.env`)
