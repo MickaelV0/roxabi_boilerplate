@@ -18,7 +18,14 @@
         "useImportType": "error"
       },
       "suspicious": {
-        "noExplicitAny": "warn"
+        "noExplicitAny": "warn",
+        "noArrayIndexKey": "warn",
+        "noExtraNonNullAssertion": "warn",
+        "useIterableCallbackReturn": "warn",
+        "noNonNullAssertedOptionalChain": "warn"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "warn"
       }
     }
   },
@@ -38,6 +45,14 @@
       "trailingCommas": "es5"
     }
   },
+  "css": {
+    "parser": {
+      "cssModules": true
+    },
+    "linter": {
+      "enabled": false
+    }
+  },
   "files": {
     "includes": [
       "**",
@@ -50,9 +65,11 @@
       "!**/coverage",
       "!**/.source",
       "!**/.output",
+      "!**/.content-collections",
       "!**/routeTree.gen.ts",
       "!**/src/paraglide",
-      "!**/project.inlang"
+      "!**/project.inlang",
+      "!**/*.css"
     ]
   }
 }

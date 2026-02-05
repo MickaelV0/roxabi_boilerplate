@@ -1,32 +1,23 @@
 {
-  "extends": "../../tsconfig.json",
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/paraglide/**/*.js",
-    ".source/**/*.ts",
-    "../../vitest.shared.ts"
-  ],
-  "exclude": ["node_modules", "dist", ".output"],
+  "extends": "@repo/config/tsconfig.base",
+  "include": ["**/*.ts", "**/*.tsx", "src/paraglide/**/*.js", ".source/**/*.ts"],
+  "exclude": ["node_modules", "dist", ".output", "vitest.config.ts"],
   "compilerOptions": {
-    "strict": true,
-    "esModuleInterop": true,
     "jsx": "react-jsx",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "lib": ["DOM", "DOM.Iterable", "ES2022"],
-    "types": ["vite/client", "vitest/globals", "node"],
-    "isolatedModules": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "target": "ES2022",
+    "types": ["vite/client", "node"],
+    "allowImportingTsExtensions": true,
     "allowJs": true,
-    "forceConsistentCasingInFileNames": true,
+    "checkJs": false,
+    "verbatimModuleSyntax": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "content-collections": ["./.content-collections/generated"],
       "fumadocs-mdx:collections/*": [".source/*"]
-    },
-    "noEmit": true
+    }
   }
 }

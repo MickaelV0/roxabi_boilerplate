@@ -1,10 +1,58 @@
-import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-router'
+import { TanStackDevtools } from '@tanstack/react-devtools'
+import type { QueryClient } from '@tanstack/react-query'
+import {
+  createRootRouteWithContext,
+  HeadContent,
+  Scripts,
+  useRouterState,
+} from '@tanstack/react-router'
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { RootProvider } from 'fumadocs-ui/provider/tanstack'
-import type * as React from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
 import { getLocale } from '@/paraglide/runtime'
-import appCss from '@/styles/app.css?url'
+import { Header } from '../components/Header'
+import { TanStackQueryDevtools } from '../integrations/tanstack-query/devtools'
+import StoreDevtools from '../lib/demo-store-devtools'
+import appCss from '../styles.css?url'
 
-export const Route = createRootRoute({
+export interface MyRouterContext {
+  queryClient: QueryClient
+}
+
+function ErrorFallback({
+  error,
+  resetErrorBoundary,
+}: {
+  error: unknown
+  resetErrorBoundary: () => void
+}) {
+  const message = error instanceof Error ? error.message : 'An unexpected error occurred'
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="max-w-md p-8 bg-white rounded-lg shadow-lg text-center">
+        <h2 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h2>
+        <p className="text-gray-600 mb-4">{message}</p>
+        <button
+          type="button"
+          onClick={resetErrorBoundary}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+        >
+          Try again
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export const Route = createRootRouteWithContext<MyRouterContext>()({
+  beforeLoad: async () => {
+    // Other redirect strategies are possible; see
+    // https://github.com/TanStack/router/tree/main/examples/react/i18n-paraglide#offline-redirect
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('lang', getLocale())
+    }
+  },
+
   head: () => ({
     meta: [
       {
@@ -15,23 +63,29 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'Roxabi Boilerplate',
-      },
-      {
-        name: 'description',
-        content: 'SaaS framework with integrated AI team',
+        title: 'TanStack Start Starter',
       },
     ],
-    links: [{ rel: 'stylesheet', href: appCss }],
+    links: [
+      {
+        rel: 'stylesheet',
+        href: appCss,
+      },
+    ],
   }),
-  component: RootComponent,
+
+  shellComponent: RootDocument,
 })
 
-function RootComponent() {
+function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const isDocsPage = pathname.startsWith('/docs')
+
   return (
-    <RootDocument>
-      <Outlet />
-    </RootDocument>
+    <RootProvider>
+      {!isDocsPage && <Header />}
+      <ErrorBoundary FallbackComponent={ErrorFallback}>{children}</ErrorBoundary>
+    </RootProvider>
   )
 }
 
@@ -41,8 +95,21 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body className="flex flex-col min-h-screen">
-        <RootProvider>{children}</RootProvider>
+      <body>
+        <AppShell>{children}</AppShell>
+        <TanStackDevtools
+          config={{
+            position: 'bottom-right',
+          }}
+          plugins={[
+            {
+              name: 'Tanstack Router',
+              render: <TanStackRouterDevtoolsPanel />,
+            },
+            StoreDevtools,
+            TanStackQueryDevtools,
+          ]}
+        />
         <Scripts />
       </body>
     </html>

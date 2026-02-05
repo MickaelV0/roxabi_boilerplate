@@ -13,11 +13,19 @@ import { source } from '@/lib/source'
 export const Route = createFileRoute('/docs/$')({
   component: Page,
   loader: async ({ params }) => {
-    const slugs = params._splat?.split('/') ?? []
+    const slugs = params._splat?.split('/').filter(Boolean) ?? []
     const data = await serverLoader({ data: slugs })
     await clientLoader.preload(data.path)
     return data
   },
+  head: ({ loaderData }) => ({
+    meta: loaderData
+      ? [
+          { title: loaderData.title },
+          { name: 'description', content: loaderData.description ?? '' },
+        ]
+      : [],
+  }),
 })
 
 const serverLoader = createServerFn({
@@ -31,6 +39,8 @@ const serverLoader = createServerFn({
     return {
       path: page.path,
       pageTree: await source.serializePageTree(source.getPageTree()),
+      title: page.data.title,
+      description: page.data.description,
     }
   })
 
@@ -63,11 +73,7 @@ function Page() {
   return (
     <DocsErrorBoundary>
       <DocsLayout {...baseOptions()} tree={data.pageTree}>
-        <Suspense>
-          {clientLoader.useContent(data.path, {
-            className: '',
-          })}
-        </Suspense>
+        <Suspense>{clientLoader.useContent(data.path)}</Suspense>
       </DocsLayout>
     </DocsErrorBoundary>
   )

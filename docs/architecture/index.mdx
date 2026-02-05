@@ -5,18 +5,35 @@ description: Project structure, applications, packages and data flow in Roxabi B
 
 ## Monorepo Structure
 
-```
+```txt
 roxabi_boilerplate/
-├── .env                    # Global environment variables
+├── .env                      # Global environment variables
 ├── apps/
-│   ├── web/               # Frontend + Documentation (TanStack Start + Fumadocs)
-│   └── api/               # Backend API
-├── packages/               # Shared code
-│   ├── ui/                # Shared UI components
-│   ├── config/            # Shared configurations
-│   └── types/             # Shared TypeScript types
-├── docs/                   # Documentation content (MDX files)
-└── .claude/                # Claude Code configuration
+│   ├── web/                  # Frontend + Documentation (TanStack Start + Fumadocs)
+│   │   ├── src/
+│   │   │   ├── routes/       # File-based routing
+│   │   │   ├── components/   # React components
+│   │   │   └── lib/          # Utilities and helpers
+│   │   ├── docs -> ../../docs  # Symlink to root docs
+│   │   └── source.config.ts  # Fumadocs MDX configuration
+│   └── api/                  # Backend API (NestJS + Fastify)
+│       └── src/
+│           ├── modules/      # Feature modules
+│           └── common/       # Shared utilities
+├── packages/
+│   ├── ui/                   # Shared UI components (@repo/ui)
+│   ├── config/               # Shared configurations (@repo/config)
+│   └── types/                # Shared TypeScript types (@repo/types)
+├── docs/                     # Documentation content (MDX files)
+│   ├── index.mdx             # Docs home page
+│   ├── meta.json             # Navigation order
+│   ├── architecture/         # Architecture documentation
+│   ├── processes/            # Development processes
+│   ├── standards/            # Coding standards
+│   └── specs/                # Feature specifications
+└── .claude/                  # Claude Code configuration
+    ├── settings.json         # Project settings and hooks
+    └── skills/               # Custom skills
 ```
 
 ## Applications
@@ -89,17 +106,47 @@ bun docs
 
 ## Data Flow
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Client    │────▶│   Web App   │────▶│   API       │
-│   Browser   │◀────│ (TanStack)  │◀────│  (NestJS)   │
-└─────────────┘     └─────────────┘     └─────────────┘
-                           │                   │
-                           ▼                   ▼
-                    ┌─────────────┐     ┌─────────────┐
-                    │  packages/  │     │  Database   │
-                    │             │     │             │
-                    └─────────────┘     └─────────────┘
+```txt
+┌──────────────────────────────────────────────────────────────────────────┐
+│                              Client Browser                               │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐          │
+│  │   React    │  │  TanStack  │  │  TanStack  │  │  TanStack  │          │
+│  │ Components │◀▶│   Router   │◀▶│   Query    │◀▶│   Form     │          │
+│  └────────────┘  └────────────┘  └─────┬──────┘  └────────────┘          │
+└────────────────────────────────────────┼─────────────────────────────────┘
+                                         │ HTTP/SSR
+                                         ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                         Web App (TanStack Start)                          │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐          │
+│  │   SSR      │  │  Server    │  │  Loaders   │  │  Fumadocs  │          │
+│  │  Renderer  │◀▶│  Functions │◀▶│  & Actions │  │   (Docs)   │          │
+│  └────────────┘  └─────┬──────┘  └────────────┘  └────────────┘          │
+└────────────────────────┼─────────────────────────────────────────────────┘
+                         │ HTTP (REST/GraphQL)
+                         ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          API (NestJS + Fastify)                           │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐          │
+│  │ Controllers│─▶│  Services  │─▶│   Guards   │  │  OpenAPI   │          │
+│  │  (Routes)  │◀─│  (Logic)   │◀─│ & Pipes    │  │   Docs     │          │
+│  └────────────┘  └─────┬──────┘  └────────────┘  └────────────┘          │
+└────────────────────────┼─────────────────────────────────────────────────┘
+                         │ ORM/Query
+                         ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                              Database Layer                               │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐                          │
+│  │  Drizzle   │─▶│  Database  │  │   Redis    │                          │
+│  │    ORM     │◀─│ (Postgres) │  │  (Cache)   │                          │
+│  └────────────┘  └────────────┘  └────────────┘                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Shared Packages (@repo/*)
+┌────────────┐  ┌────────────┐  ┌────────────┐
+│  @repo/ui  │  │@repo/config│  │@repo/types │
+│ Components │  │  Settings  │  │   DTOs     │
+└────────────┘  └────────────┘  └────────────┘
 ```
 
 ## Build System

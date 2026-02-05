@@ -1,52 +1,43 @@
+import { fileURLToPath, URL } from 'node:url'
+import contentCollections from '@content-collections/vite'
 import { paraglideVitePlugin } from '@inlang/paraglide-js'
 import tailwindcss from '@tailwindcss/vite'
+import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
-import react from '@vitejs/plugin-react'
+import viteReact from '@vitejs/plugin-react'
 import mdx from 'fumadocs-mdx/vite'
+import { nitro } from 'nitro/vite'
 import { defineConfig } from 'vite'
-import tsConfigPaths from 'vite-tsconfig-paths'
+import viteTsConfigPaths from 'vite-tsconfig-paths'
 
-export default defineConfig({
+const config = defineConfig(async () => ({
+  envDir: '../..',
   server: {
-    port: 3000,
+    port: Number(process.env.WEB_PORT) || 3000,
+  },
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
   },
   plugins: [
+    mdx(await import('./source.config')),
+    devtools(),
     paraglideVitePlugin({
       project: './project.inlang',
       outdir: './src/paraglide',
-      outputStructure: 'message-modules',
-      strategy: ['url', 'cookie', 'preferredLanguage', 'baseLocale'],
-      cookieName: 'locale',
-      urlPatterns: [
-        {
-          pattern: '/',
-          localized: [
-            ['en', '/en'],
-            ['fr', '/fr'],
-          ],
-        },
-        {
-          pattern: '/dashboard',
-          localized: [
-            ['en', '/en/dashboard'],
-            ['fr', '/fr/dashboard'],
-          ],
-        },
-        {
-          pattern: '/:path(.*)?',
-          localized: [
-            ['en', '/en/:path(.*)?'],
-            ['fr', '/fr/:path(.*)?'],
-          ],
-        },
-      ],
+      strategy: ['url'],
     }),
-    tanstackStart(),
-    react(),
-    mdx(await import('./source.config')),
-    tailwindcss(),
-    tsConfigPaths({
+    nitro(),
+    contentCollections(),
+    // this is the plugin that enables path aliases
+    viteTsConfigPaths({
       projects: ['./tsconfig.json'],
     }),
+    tailwindcss(),
+    tanstackStart(),
+    viteReact(),
   ],
-})
+}))
+
+export default config

@@ -32,7 +32,7 @@ Use this checklist for every pull request. Not every item applies to every PR �
 
 ### Performance
 
-- [ ] React Compiler enabled — no manual `React.memo` / `useMemo` / `useCallback` unless profiling proves necessary
+- [ ] No premature memoization — avoid `React.memo` / `useMemo` / `useCallback` unless profiling proves necessary
 - [ ] Components follow Rules of React (pure render, immutable props/state, no side effects in render)
 - [ ] No N+1 queries — check for queries inside loops, missing joins
 - [ ] No blocking operations in hot paths
@@ -84,7 +84,7 @@ Different layers of the stack deserve different focus areas. Use this table to p
 | Layer | Focus Areas |
 |-------|-------------|
 | **Backend (NestJS)** | DI correctness, domain exception usage, DTO validation, SQL safety (`sql.raw()` check), middleware ordering |
-| **Frontend (React)** | Hook rules, component props, error boundaries, a11y (semantic HTML, ARIA), React Compiler compatibility |
+| **Frontend (React)** | Hook rules, component props, error boundaries, a11y (semantic HTML, ARIA), performance patterns |
 | **Shared packages** | Backward compatibility, type exports, no runtime dependencies, barrel file is the only entry point |
 | **Tests** | AAA structure, role-based selectors, meaningful assertions, no implementation coupling, explicit vitest imports |
 | **Documentation** | Frontmatter present, MDX valid, `meta.json` updated |
