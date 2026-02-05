@@ -20,7 +20,7 @@ Roxabi Boilerplate uses [Paraglide JS](https://inlang.com/m/gerre34r/library-inl
 apps/web/
 ├── messages/              # Source translation files
 │   ├── en.json           # English (base locale)
-│   └── de.json           # German
+│   └── fr.json           # French
 ├── project.inlang/        # Paraglide configuration
 │   └── settings.json
 └── src/paraglide/         # Auto-generated (do not edit)
@@ -45,7 +45,7 @@ Locale settings are in `apps/web/project.inlang/settings.json`:
 ```json
 {
   "baseLocale": "en",
-  "locales": ["en", "de"],
+  "locales": ["en", "fr"],
   "plugin.inlang.messageFormat": {
     "pathPattern": "./messages/{locale}.json"
   }
@@ -67,10 +67,10 @@ Add your message to each locale file in `apps/web/messages/`:
 ```
 
 ```json
-// messages/de.json
+// messages/fr.json
 {
-  "greeting": "Hallo, {name}!",
-  "items_count": "{count, plural, one {# Artikel} other {# Artikel}}"
+  "greeting": "Bonjour, {name}!",
+  "items_count": "{count, plural, one {# article} other {# articles}}"
 }
 ```
 
@@ -98,7 +98,7 @@ function Welcome() {
 ```typescript
 import { getLocale } from '@/paraglide/runtime'
 
-const currentLocale = getLocale() // "en" or "de"
+const currentLocale = getLocale() // "en" or "fr"
 ```
 
 ### Changing the Locale
@@ -106,7 +106,7 @@ const currentLocale = getLocale() // "en" or "de"
 ```typescript
 import { setLocale } from '@/paraglide/runtime'
 
-setLocale('de') // Switch to German
+setLocale('fr') // Switch to French
 ```
 
 ### Available Locales
@@ -114,7 +114,7 @@ setLocale('de') // Switch to German
 ```typescript
 import { locales, baseLocale } from '@/paraglide/runtime'
 
-console.log(locales)    // ["en", "de"]
+console.log(locales)    // ["en", "fr"]
 console.log(baseLocale) // "en"
 ```
 
@@ -151,16 +151,16 @@ export function LocaleSwitcher() {
 
 ```json
 {
-  "locales": ["en", "de", "fr"]
+  "locales": ["en", "fr", "es"]
 }
 ```
 
-2. Create the translation file `apps/web/messages/fr.json`:
+2. Create the translation file `apps/web/messages/es.json`:
 
 ```json
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "greeting": "Bonjour, {name}!"
+  "greeting": "¡Hola, {name}!"
 }
 ```
 
