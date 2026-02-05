@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { m } from '@/paraglide/messages'
-import LocaleSwitcher from '../components/LocaleSwitcher'
+import { LocaleSwitcher } from '../components/LocaleSwitcher'
 import logo from '../logo.svg'
 
 export const Route = createFileRoute('/demo/i18n')({

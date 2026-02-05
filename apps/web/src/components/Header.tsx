@@ -14,10 +14,10 @@ import {
   X,
 } from 'lucide-react'
 import { useState } from 'react'
-import ParaglideLocaleSwitcher from './LocaleSwitcher.tsx'
+import { LocaleSwitcher } from './LocaleSwitcher'
 import ResumeAssistantButton from './ResumeAssistantButton'
 
-export default function Header() {
+export function Header() {
   const [isOpen, setIsOpen] = useState(false)
   const [groupedExpanded, setGroupedExpanded] = useState<Record<string, boolean>>({})
 
@@ -253,7 +253,7 @@ export default function Header() {
         </nav>
 
         <div className="p-4 border-t border-gray-700 bg-gray-800 flex flex-col gap-2">
-          <ParaglideLocaleSwitcher />
+          <LocaleSwitcher />
 
           <ResumeAssistantButton />
         </div>
