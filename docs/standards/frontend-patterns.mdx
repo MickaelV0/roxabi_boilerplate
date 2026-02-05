@@ -31,7 +31,47 @@ or is derived from the codebase.
 
 **Auto-enforced:** `biome.json` enables `useImportType: "error"` and `noExplicitAny: "warn"`. `tsconfig.json` sets `strict: true` across all packages.
 
-## 1.1 Code Organization
+## 1.1 Monorepo Component Strategy
+
+### Where to Put Components
+
+| Location | Use Case | Examples |
+|----------|----------|----------|
+| `packages/ui/src/components/` | Reusable primitives, design system | Button, Card, Input, Select |
+| `apps/web/src/components/` | App-specific, business logic | LocaleSwitcher, Header, ResumeAssistant |
+
+**Decision tree:**
+
+```
+Is it a generic UI primitive with no business logic?
+  └─ YES → packages/ui
+  └─ NO → Does it need app-specific context (i18n, auth, routing)?
+           └─ YES → apps/web/src/components
+           └─ NO → Could other apps in the monorepo use it?
+                    └─ YES → packages/ui
+                    └─ NO → apps/web/src/components
+```
+
+**Rules:**
+
+- **`packages/ui`**: Zero business logic. Only styling, variants, and accessibility. No imports from `apps/*`.
+- **`apps/web/src/components`**: Can import from `@repo/ui`. Can use app context (router, i18n, auth).
+- **Composition over modification**: Wrap `@repo/ui` components in app components rather than forking them.
+
+### Consuming `@repo/ui`
+
+```tsx
+// Import components
+import { Button, Card, CardContent } from '@repo/ui'
+
+// Import utility
+import { cn } from '@repo/ui'
+
+// Import styles in your app's root (e.g., root layout or CSS entry)
+import '@repo/ui/styles.css'
+```
+
+## 1.2 Code Organization
 
 Structure feature directories consistently:
 
@@ -54,7 +94,7 @@ See `apps/web/src/lib/i18n/` for a canonical example of this structure.
 - **Hooks in a dedicated file.** Do not mix hook definitions with utility functions. `hooks.ts` contains React hooks; `client.ts` and `server.ts` contain plain functions.
 - **TanStack Start conventions:** Use `$param` for dynamic route segments (e.g., `$locale/dashboard.tsx`), `_` prefix for pathless layouts (e.g., `$locale/_layout.tsx`), and `__root.tsx` for the root route.
 
-## 1.2 Design Patterns
+## 1.3 Design Patterns
 
 | Pattern | Source | Example |
 |---------|--------|---------|
@@ -71,7 +111,7 @@ See `apps/web/src/lib/i18n/` for a canonical example of this structure.
 - **Extension via composition.** Add variants without modifying internals. The `LanguageSwitcher` uses a `variant` prop to switch between `'dropdown'` and `'buttons'` rendering.
 - **Compound components over config props.** If a component accumulates more than 4-5 configuration props, refactor it into a compound component pattern with subcomponents.
 
-## 1.3 Error Handling
+## 1.4 Error Handling
 
 **Existing patterns in the codebase:**
 
@@ -95,7 +135,7 @@ type Result<T, E = string> =
 
 - **Never throw from functions called during rendering.** Thrown errors in the render path crash the component tree. Return fallback UI or `null` instead.
 
-## 1.4 Component Patterns
+## 1.5 Component Patterns
 
 - **Functional components only.** No class components, no exceptions.
 - **Props type as `type`, not `interface`.** Use PascalCase with a `Props` suffix:
@@ -118,7 +158,146 @@ isDropdown?: boolean              // Avoid
 
 - **Avoid premature memoization.** Do not add manual `React.memo`, `useMemo`, or `useCallback` unless profiling proves a measurable performance problem. Most components don't need memoization, and it adds complexity without benefit.
 
-## 1.5 AI Quick Reference
+## 1.6 Shared UI Library (`packages/ui`)
+
+The `@repo/ui` package uses **shadcn/ui** patterns: Radix UI primitives + CVA + Tailwind CSS.
+
+### Core Dependencies
+
+| Package | Purpose |
+|---------|---------|
+| `radix-ui` | Accessible, unstyled primitives |
+| `class-variance-authority` | Type-safe variant management |
+| `clsx` + `tailwind-merge` | Conditional class composition via `cn()` |
+| `lucide-react` | Icons |
+
+### The `cn()` Utility
+
+Always use `cn()` for className composition. It merges Tailwind classes intelligently:
+
+```tsx
+import { cn } from '@repo/ui'
+
+// Merges and deduplicates Tailwind classes
+cn('px-4 py-2', 'px-6')           // → 'py-2 px-6'
+cn('text-red-500', isActive && 'text-blue-500')  // conditional
+cn(baseStyles, className)          // allow className override
+```
+
+### CVA (Class Variance Authority) Pattern
+
+Use CVA for components with multiple variants:
+
+```tsx
+import { cva, type VariantProps } from 'class-variance-authority'
+
+const buttonVariants = cva(
+  // Base styles (always applied)
+  'inline-flex items-center justify-center rounded-md font-medium',
+  {
+    variants: {
+      variant: {
+        default: 'bg-primary text-primary-foreground',
+        outline: 'border bg-background',
+        ghost: 'hover:bg-accent',
+      },
+      size: {
+        default: 'h-9 px-4 py-2',
+        sm: 'h-8 px-3',
+        lg: 'h-10 px-6',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'default',
+    },
+  }
+)
+
+// Export variants for external use (composition)
+export { buttonVariants }
+```
+
+### Props Pattern for Primitives
+
+Extend native HTML props and add variant types:
+
+```tsx
+import type * as React from 'react'
+import type { VariantProps } from 'class-variance-authority'
+
+function Button({
+  className,
+  variant,
+  size,
+  asChild = false,
+  ...props
+}: React.ComponentProps&lt;'button'> &
+  VariantProps&lt;typeof buttonVariants> & {
+    asChild?: boolean
+  }) {
+  const Comp = asChild ? Slot.Root : 'button'
+  return (
+    &lt;Comp
+      className={cn(buttonVariants({ variant, size, className }))}
+      {...props}
+    />
+  )
+}
+```
+
+**Key points:**
+
+- `React.ComponentProps&lt;'button'>` — inherit all native button props
+- `VariantProps&lt;typeof buttonVariants>` — type-safe variant props
+- `className` in CVA call — allows consumer override
+- `asChild` + `Slot` — Radix pattern for composing with other elements
+
+### Data Attributes Convention
+
+Add data attributes for CSS targeting and testing:
+
+```tsx
+&lt;button
+  data-slot="button"
+  data-variant={variant}
+  data-size={size}
+  // ...
+/>
+```
+
+### Adding New shadcn/ui Components
+
+1. **Visit**: [ui.shadcn.com](https://ui.shadcn.com/docs/components)
+2. **Copy** the component code (not CLI — we customize)
+3. **Create** `packages/ui/src/components/ComponentName.tsx`
+4. **Adapt** imports:
+   - Change `@/lib/utils` → `@/lib/utils` (same path alias)
+   - Use `radix-ui` instead of individual `@radix-ui/*` packages
+5. **Export** from `packages/ui/src/index.ts`
+6. **Test**: Add `ComponentName.test.tsx` with basic render test
+
+```tsx
+// packages/ui/src/index.ts
+export { NewComponent } from './components/NewComponent'
+```
+
+### Compound Components
+
+For complex components (Select, Dialog), export all sub-components:
+
+```tsx
+export {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './components/Select'
+```
+
+## 1.7 AI Quick Reference
 
 Compressed imperative rules for AI agent consumption. No examples, no rationale.
 
@@ -133,7 +312,7 @@ Compressed imperative rules for AI agent consumption. No examples, no rationale.
 - Use discriminated unions for API responses
 - Escape `&lt;` as `&amp;lt;` in MDX text (not in code blocks)
 
-**Frontend:**
+**Frontend (App Components):**
 
 - No barrel files in app code -- import directly from source files
 - Functional components only -- no class components
@@ -146,3 +325,16 @@ Compressed imperative rules for AI agent consumption. No examples, no rationale.
 - Props as `type` with `Props` suffix
 - Never throw from render path
 - TanStack Start: `$param` for dynamic segments, `_` prefix for pathless layouts
+
+**Shared UI (`packages/ui`):**
+
+- Generic primitives only -- no business logic, no app imports
+- Use CVA (`class-variance-authority`) for variant management
+- Use `cn()` for all className composition
+- Extend `React.ComponentProps&lt;'element'>` for native props
+- Use `VariantProps&lt;typeof variants>` for type-safe variants
+- Support `asChild` prop with Radix `Slot` for composition
+- Add `data-slot`, `data-variant` attributes
+- Export component + variants (e.g., `Button`, `buttonVariants`)
+- Export compound component parts separately
+- Copy shadcn/ui components manually (no CLI) and adapt imports
