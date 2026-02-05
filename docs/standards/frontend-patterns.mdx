@@ -268,14 +268,38 @@ Add data attributes for CSS targeting and testing:
 
 ### Adding New shadcn/ui Components
 
+**Method 1: CLI Installation (Recommended)**
+
+The shadcn CLI doesn't work directly in `packages/ui` (no framework detected), but works from `apps/web`:
+
+```bash
+# 1. Install from apps/web (has components.json)
+cd apps/web
+bunx shadcn@latest add button dialog accordion --yes
+
+# 2. Move to packages/ui
+mv src/components/ui/*.tsx ../../packages/ui/src/components/
+
+# 3. Rename to PascalCase (our convention)
+cd ../../packages/ui/src/components
+mv button.tsx Button.tsx
+mv dialog.tsx Dialog.tsx
+
+# 4. Export from packages/ui/src/index.ts
+```
+
+**Method 2: Manual Copy**
+
 1. **Visit**: [ui.shadcn.com](https://ui.shadcn.com/docs/components)
-2. **Copy** the component code (not CLI — we customize)
+2. **Copy** the component code
 3. **Create** `packages/ui/src/components/ComponentName.tsx`
 4. **Adapt** imports:
    - Change `@/lib/utils` → `@/lib/utils` (same path alias)
    - Use `radix-ui` instead of individual `@radix-ui/*` packages
 5. **Export** from `packages/ui/src/index.ts`
 6. **Test**: Add `ComponentName.test.tsx` with basic render test
+
+**Both methods require:**
 
 ```tsx
 // packages/ui/src/index.ts
