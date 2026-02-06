@@ -1,0 +1,30 @@
+import type * as React from 'react'
+
+import { cn } from '@/lib/utils'
+import { Card, CardContent, CardHeader, CardTitle } from './Card'
+
+function FeatureCard({
+  icon,
+  title,
+  description,
+  className,
+  ...props
+}: React.ComponentProps<'div'> & {
+  icon: React.ReactNode
+  title: React.ReactNode
+  description: React.ReactNode
+}) {
+  return (
+    <Card className={cn('border-border bg-background', className)} {...props}>
+      <CardHeader>
+        {icon}
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+export { FeatureCard }
