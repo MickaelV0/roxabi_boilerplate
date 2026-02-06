@@ -11,6 +11,7 @@
     "43-backend-setup",
     "47-docker-compose",
     "49-api-client",
-    "64-paraglide-i18n-migration"
+    "64-paraglide-i18n-migration",
+    "19-auth-users"
   ]
 }
