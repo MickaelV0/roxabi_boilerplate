@@ -94,11 +94,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     <html lang={getLocale()} suppressHydrationWarning>
       <head>
         <HeadContent />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("roxabi-theme");if(t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})()`,
-          }}
-        />
       </head>
       <body>
         <AppShell>{children}</AppShell>

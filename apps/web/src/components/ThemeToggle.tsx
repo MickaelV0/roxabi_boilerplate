@@ -1,28 +1,34 @@
 import { Button } from '@repo/ui'
 import { Moon, Sun } from 'lucide-react'
+import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
-import { getStoredTheme, setTheme } from '@/lib/theme'
 import { m } from '@/paraglide/messages'
 
 export function ThemeToggle() {
-  const [isDark, setIsDark] = useState(false)
+  const { resolvedTheme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    const stored = getStoredTheme()
-    const dark =
-      stored === 'dark' ||
-      (stored === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-    setIsDark(dark)
+    setMounted(true)
   }, [])
 
-  function toggle() {
-    const next = isDark ? 'light' : 'dark'
-    setIsDark(!isDark)
-    setTheme(next)
+  if (!mounted) {
+    return (
+      <Button variant="ghost" size="icon" aria-label={m.theme_toggle()} disabled>
+        <Sun className="h-4 w-4" />
+      </Button>
+    )
   }
 
+  const isDark = resolvedTheme === 'dark'
+
   return (
-    <Button variant="ghost" size="icon" onClick={toggle} aria-label={m.theme_toggle()}>
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      aria-label={m.theme_toggle()}
+    >
       {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
     </Button>
   )
