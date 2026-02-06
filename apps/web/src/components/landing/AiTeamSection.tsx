@@ -34,7 +34,7 @@ export function AiTeamSection() {
         </div>
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Development Agents */}
-          <Card className="border-border">
+          <Card className="border-border transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -49,7 +49,10 @@ export function AiTeamSection() {
             <CardContent>
               <div className="grid grid-cols-2 gap-2">
                 {devAgents.map((agent) => (
-                  <div key={agent.nameKey} className="rounded-md border border-border px-3 py-2">
+                  <div
+                    key={agent.nameKey}
+                    className="rounded-md border border-border px-3 py-2 transition-colors duration-150 hover:bg-muted/50"
+                  >
                     <span className="text-sm font-medium">{msg(agent.nameKey)}</span>
                     <p className="text-xs text-muted-foreground">{msg(agent.roleKey)}</p>
                   </div>
@@ -59,7 +62,7 @@ export function AiTeamSection() {
           </Card>
 
           {/* Runtime Agents */}
-          <Card className="border-border">
+          <Card className="border-border transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -74,7 +77,10 @@ export function AiTeamSection() {
             <CardContent>
               <div className="grid gap-2">
                 {runtimeAgents.map((agent) => (
-                  <div key={agent.nameKey} className="rounded-md border border-border px-3 py-2">
+                  <div
+                    key={agent.nameKey}
+                    className="rounded-md border border-border px-3 py-2 transition-colors duration-150 hover:bg-muted/50"
+                  >
                     <span className="text-sm font-medium">{msg(agent.nameKey)}</span>
                     <p className="text-xs text-muted-foreground">{msg(agent.roleKey)}</p>
                   </div>

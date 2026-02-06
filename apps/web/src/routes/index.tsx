@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { AnimatedSection } from '@/components/AnimatedSection'
 import { Footer } from '@/components/Footer'
 import { AiTeamSection } from '@/components/landing/AiTeamSection'
 import { CtaSection } from '@/components/landing/CtaSection'
@@ -16,11 +17,21 @@ function LandingPage() {
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <main className="flex-1">
         <HeroSection />
-        <FeaturesSection />
-        <AiTeamSection />
-        <DxSection />
-        <TechStackSection />
-        <CtaSection />
+        <AnimatedSection>
+          <FeaturesSection />
+        </AnimatedSection>
+        <AnimatedSection>
+          <AiTeamSection />
+        </AnimatedSection>
+        <AnimatedSection>
+          <DxSection />
+        </AnimatedSection>
+        <AnimatedSection>
+          <TechStackSection />
+        </AnimatedSection>
+        <AnimatedSection>
+          <CtaSection />
+        </AnimatedSection>
       </main>
       <Footer />
     </div>

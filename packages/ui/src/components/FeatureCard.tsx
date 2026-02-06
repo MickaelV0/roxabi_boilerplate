@@ -15,7 +15,13 @@ function FeatureCard({
   description: React.ReactNode
 }) {
   return (
-    <Card className={cn('border-border bg-background', className)} {...props}>
+    <Card
+      className={cn(
+        'border-border bg-background transition-all duration-200 hover:-translate-y-1 hover:shadow-md',
+        className
+      )}
+      {...props}
+    >
       <CardHeader>
         {icon}
         <CardTitle className="text-base">{title}</CardTitle>
