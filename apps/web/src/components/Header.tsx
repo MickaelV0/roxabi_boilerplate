@@ -1,8 +1,9 @@
 import { Button } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
-import { ExternalLink, Menu, X } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { m } from '@/paraglide/messages'
+import { GithubIcon } from './GithubIcon'
 import { LocaleSwitcher } from './LocaleSwitcher'
 import { ThemeToggle } from './ThemeToggle'
 
@@ -27,23 +28,13 @@ export function Header() {
           <Button variant="ghost" size="sm" asChild>
             <a href="/docs">{m.nav_docs()}</a>
           </Button>
-          <Button variant="ghost" size="sm" asChild>
-            <a
-              href={import.meta.env.VITE_GITHUB_REPO_URL || '#'}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1"
-            >
-              GitHub
-              <ExternalLink className="h-3 w-3" />
-            </a>
-          </Button>
         </div>
 
         {/* Right side: switchers + mobile toggle */}
         <div className="flex items-center gap-1">
           <LocaleSwitcher />
           <ThemeToggle />
+          <GithubIcon />
           <Button
             variant="ghost"
             size="icon"
@@ -72,17 +63,6 @@ export function Header() {
             </Button>
             <Button variant="ghost" size="sm" className="justify-start" asChild>
               <a href="/docs">{m.nav_docs()}</a>
-            </Button>
-            <Button variant="ghost" size="sm" className="justify-start" asChild>
-              <a
-                href={import.meta.env.VITE_GITHUB_REPO_URL || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1"
-              >
-                GitHub
-                <ExternalLink className="h-3 w-3" />
-              </a>
             </Button>
           </div>
         </div>
