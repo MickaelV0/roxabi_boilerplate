@@ -343,24 +343,24 @@ Pragmatic middle ground using root-level shared configuration (no separate packa
 roxabi_boilerplate/
 ├── apps/
 │   ├── web/
-│   │   ├── vitest.config.ts      # Extends root vitest.shared.ts
+│   │   ├── vitest.config.ts      # Extends @repo/config/vitest
 │   │   ├── playwright.config.ts
 │   │   └── e2e/
 │   └── api/
-│       └── vitest.config.ts      # Extends root vitest.shared.ts
+│       └── vitest.config.ts      # Extends @repo/config/vitest
 ├── packages/
 │   ├── ui/
 │   │   └── vitest.config.ts
 │   ├── config/
 │   └── types/
-├── vitest.shared.ts              # Shared config (not a package)
+├── packages/config/vitest.ts     # Shared config (@repo/config/vitest)
 ├── vitest.config.ts              # Root config for coverage
 ├── playwright.config.ts          # Root Playwright config
 ├── turbo.json
 └── package.json
 ```
 
-**Root `vitest.shared.ts`:**
+**`@repo/config/vitest` module:**
 ```typescript
 import type { UserConfig } from 'vitest/config'
 
@@ -397,7 +397,7 @@ export const nodeTestConfig: UserConfig['test'] = {
 **Root `vitest.config.ts`:**
 ```typescript
 import { defineConfig } from 'vitest/config'
-import { sharedTestConfig } from './vitest.shared'
+import { sharedTestConfig } from '@repo/config/vitest'
 
 export default defineConfig({
   test: {
@@ -427,7 +427,7 @@ export default defineConfig({
 ```typescript
 import { defineConfig, mergeConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
-import { reactTestConfig } from '../../vitest.shared'
+import { reactTestConfig } from '@repo/config/vitest'
 
 export default defineConfig({
   plugins: [react()],
@@ -443,7 +443,7 @@ export default defineConfig({
 **`apps/api/vitest.config.ts`:**
 ```typescript
 import { defineConfig } from 'vitest/config'
-import { nodeTestConfig } from '../../vitest.shared'
+import { nodeTestConfig } from '@repo/config/vitest'
 
 export default defineConfig({
   test: {
@@ -459,7 +459,7 @@ export default defineConfig({
 ```typescript
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
-import { reactTestConfig } from '../../vitest.shared'
+import { reactTestConfig } from '@repo/config/vitest'
 
 export default defineConfig({
   plugins: [react()],
@@ -628,7 +628,7 @@ test.describe('Home Page', () => {
 
 ### Cons
 
-- **Relative imports**: Config uses `../../vitest.shared` (slightly fragile)
+- **Relative imports**: Config previously used `../../vitest.shared` (now resolved via `@repo/config/vitest`)
 - **No browser matrix**: Only Chromium + Firefox (not full Option B coverage)
 - **Coverage at root only**: Must run from root for merged coverage
 - **Less sophisticated CI**: No sharding by default (can be added later)
@@ -666,7 +666,7 @@ test.describe('Home Page', () => {
 2. **TDD-ready without overhead**: Coverage thresholds (70%) and per-package test execution support strict TDD without the complexity of auto-updating thresholds.
 
 3. **Clear upgrade path**: Option C can evolve into Option B by:
-   - Extracting `vitest.shared.ts` into `@repo/vitest-config` package
+   - Extracting shared config into `@repo/config/vitest` module (now done)
    - Adding Playwright sharding in CI
    - Implementing auto-update thresholds
    - Adding more browser projects
@@ -730,7 +730,7 @@ test.describe('Home Page', () => {
 When implementing Option C:
 
 - [ ] Install dependencies: `vitest`, `@vitest/coverage-v8`, `@playwright/test`, `jsdom`
-- [ ] Create `vitest.shared.ts` with base configurations
+- [ ] Create `@repo/config/vitest` module with base configurations
 - [ ] Create root `vitest.config.ts` with projects and coverage
 - [ ] Create `apps/web/vitest.config.ts` extending shared config
 - [ ] Create `apps/api/vitest.config.ts` extending shared config

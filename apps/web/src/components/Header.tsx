@@ -1,7 +1,7 @@
 import { Button } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
 import { Menu, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { m } from '@/paraglide/messages'
 import { GithubIcon } from './GithubIcon'
 import { LocaleSwitcher } from './LocaleSwitcher'
@@ -9,6 +9,30 @@ import { ThemeToggle } from './ThemeToggle'
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const mobileRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!mobileOpen) return
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setMobileOpen(false)
+      }
+    }
+
+    function handleClickOutside(e: MouseEvent) {
+      if (mobileRef.current && !mobileRef.current.contains(e.target as Node)) {
+        setMobileOpen(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('click', handleClickOutside)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [mobileOpen])
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur">
@@ -40,7 +64,7 @@ export function Header() {
             size="icon"
             className="md:hidden"
             onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            aria-label={mobileOpen ? m.menu_close() : m.menu_open()}
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
@@ -49,7 +73,7 @@ export function Header() {
 
       {/* Mobile panel */}
       {mobileOpen && (
-        <div className="border-t border-border bg-background px-6 py-4 md:hidden">
+        <div ref={mobileRef} className="border-t border-border bg-background px-6 py-4 md:hidden">
           <div className="flex flex-col gap-2">
             <Button variant="ghost" size="sm" className="justify-start" asChild>
               <Link
@@ -62,7 +86,9 @@ export function Header() {
               </Link>
             </Button>
             <Button variant="ghost" size="sm" className="justify-start" asChild>
-              <a href="/docs">{m.nav_docs()}</a>
+              <a href="/docs" onClick={() => setMobileOpen(false)}>
+                {m.nav_docs()}
+              </a>
             </Button>
           </div>
         </div>

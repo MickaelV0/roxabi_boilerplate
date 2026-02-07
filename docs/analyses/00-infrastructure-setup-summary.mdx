@@ -92,7 +92,7 @@ graph TD
 | Issue | Title | Recommended Option | Complexity | Key Tool/Approach |
 |-------|-------|-------------------|------------|-------------------|
 | #8 | CI/CD GitHub Actions | **C: Balanced** | 3/5 | Parallel jobs + `rharkor/caching-for-turbo` + coverage reports |
-| #9 | Testing Infrastructure | **C: Balanced** | 3/5 | Vitest with `projects` config + Playwright + shared `vitest.shared.ts` |
+| #9 | Testing Infrastructure | **C: Balanced** | 3/5 | Vitest with `projects` config + Playwright + shared `@repo/config/vitest` |
 | #10 | Git Hooks | **C: Simplified** | 2/5 | Lefthook (Go binary) with parallel pre-commit/pre-push |
 | #11 | Documentation Structure | **C: Balanced** | 2/5 | Markdown + TypeDoc + MADR templates |
 | #12 | Claude Code Agents | **C: Balanced** | 3/5 | Core agents (dev/review/test) + essential skills (/commit, /pr, /review, /test) |

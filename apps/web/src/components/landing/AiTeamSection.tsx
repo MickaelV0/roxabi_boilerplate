@@ -1,37 +1,30 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@repo/ui'
 import { Code2, Play } from 'lucide-react'
+import { SectionHeading } from '@/components/landing/SectionHeading'
 import { m } from '@/paraglide/messages'
 
-const devAgents = [
-  { nameKey: 'ai_agent_dev', roleKey: 'ai_agent_dev_role' },
-  { nameKey: 'ai_agent_review', roleKey: 'ai_agent_review_role' },
-  { nameKey: 'ai_agent_test', roleKey: 'ai_agent_test_role' },
-  { nameKey: 'ai_agent_deploy', roleKey: 'ai_agent_deploy_role' },
-  { nameKey: 'ai_agent_product', roleKey: 'ai_agent_product_role' },
-  { nameKey: 'ai_agent_ops', roleKey: 'ai_agent_ops_role' },
-  { nameKey: 'ai_agent_frontend', roleKey: 'ai_agent_frontend_role' },
-  { nameKey: 'ai_agent_backend', roleKey: 'ai_agent_backend_role' },
-] as const
-
-const runtimeAgents = [
-  { nameKey: 'ai_agent_domain', roleKey: 'ai_agent_domain_role' },
-  { nameKey: 'ai_agent_personas', roleKey: 'ai_agent_personas_role' },
-  { nameKey: 'ai_agent_integration', roleKey: 'ai_agent_integration_role' },
-] as const
-
-function msg(key: string): string {
-  const fn = (m as unknown as Record<string, (inputs: Record<string, unknown>) => string>)[key]
-  return fn?.({}) ?? key
-}
-
 export function AiTeamSection() {
+  const devAgents = [
+    { name: m.ai_agent_dev(), role: m.ai_agent_dev_role() },
+    { name: m.ai_agent_review(), role: m.ai_agent_review_role() },
+    { name: m.ai_agent_test(), role: m.ai_agent_test_role() },
+    { name: m.ai_agent_deploy(), role: m.ai_agent_deploy_role() },
+    { name: m.ai_agent_product(), role: m.ai_agent_product_role() },
+    { name: m.ai_agent_ops(), role: m.ai_agent_ops_role() },
+    { name: m.ai_agent_frontend(), role: m.ai_agent_frontend_role() },
+    { name: m.ai_agent_backend(), role: m.ai_agent_backend_role() },
+  ]
+
+  const runtimeAgents = [
+    { name: m.ai_agent_domain(), role: m.ai_agent_domain_role() },
+    { name: m.ai_agent_personas(), role: m.ai_agent_personas_role() },
+    { name: m.ai_agent_integration(), role: m.ai_agent_integration_role() },
+  ]
+
   return (
     <section className="py-24">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="mb-16 text-center">
-          <h2 className="text-3xl font-bold tracking-tight">{m.ai_title()}</h2>
-          <p className="mt-4 text-lg text-muted-foreground">{m.ai_subtitle()}</p>
-        </div>
+        <SectionHeading title={m.ai_title()} subtitle={m.ai_subtitle()} className="mb-16" />
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Development Agents */}
           <Card className="border-border transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
@@ -50,11 +43,11 @@ export function AiTeamSection() {
               <div className="grid grid-cols-2 gap-2">
                 {devAgents.map((agent) => (
                   <div
-                    key={agent.nameKey}
+                    key={agent.name}
                     className="rounded-md border border-border px-3 py-2 transition-colors duration-150 hover:bg-muted/50"
                   >
-                    <span className="text-sm font-medium">{msg(agent.nameKey)}</span>
-                    <p className="text-xs text-muted-foreground">{msg(agent.roleKey)}</p>
+                    <span className="text-sm font-medium">{agent.name}</span>
+                    <p className="text-xs text-muted-foreground">{agent.role}</p>
                   </div>
                 ))}
               </div>
@@ -78,11 +71,11 @@ export function AiTeamSection() {
               <div className="grid gap-2">
                 {runtimeAgents.map((agent) => (
                   <div
-                    key={agent.nameKey}
+                    key={agent.name}
                     className="rounded-md border border-border px-3 py-2 transition-colors duration-150 hover:bg-muted/50"
                   >
-                    <span className="text-sm font-medium">{msg(agent.nameKey)}</span>
-                    <p className="text-xs text-muted-foreground">{msg(agent.roleKey)}</p>
+                    <span className="text-sm font-medium">{agent.name}</span>
+                    <p className="text-xs text-muted-foreground">{agent.role}</p>
                   </div>
                 ))}
               </div>

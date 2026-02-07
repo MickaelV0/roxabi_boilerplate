@@ -1,7 +1,5 @@
+import { Card, CardContent, CardHeader, CardTitle, cn } from '@repo/ui'
 import type * as React from 'react'
-
-import { cn } from '@/lib/utils'
-import { Card, CardContent, CardHeader, CardTitle } from './Card'
 
 function FeatureCard({
   icon,
@@ -32,5 +30,4 @@ function FeatureCard({
     </Card>
   )
 }
-
 export { FeatureCard }

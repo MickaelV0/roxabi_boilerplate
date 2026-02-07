@@ -1,5 +1,6 @@
 import { Badge, Button } from '@repo/ui'
 import { ExternalLink } from 'lucide-react'
+import { GITHUB_REPO_URL } from '@/lib/config'
 import { m } from '@/paraglide/messages'
 
 export function HeroSection() {
@@ -30,7 +31,7 @@ export function HeroSection() {
           </Button>
           <Button variant="outline" size="lg" asChild>
             <a
-              href={import.meta.env.VITE_GITHUB_REPO_URL || '#'}
+              href={GITHUB_REPO_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2"

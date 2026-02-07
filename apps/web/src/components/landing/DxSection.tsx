@@ -1,34 +1,27 @@
-import { FeatureCard } from '@repo/ui'
 import { BookOpen, FlaskConical, ShieldCheck, Zap } from 'lucide-react'
+import { FeatureCard } from '@/components/FeatureCard'
+import { SectionHeading } from '@/components/landing/SectionHeading'
 import { m } from '@/paraglide/messages'
 
-const dxFeatures = [
-  { icon: FlaskConical, titleKey: 'dx_tdd_title', descKey: 'dx_tdd_desc' },
-  { icon: ShieldCheck, titleKey: 'dx_quality_title', descKey: 'dx_quality_desc' },
-  { icon: BookOpen, titleKey: 'dx_docs_title', descKey: 'dx_docs_desc' },
-  { icon: Zap, titleKey: 'dx_tooling_title', descKey: 'dx_tooling_desc' },
-] as const
-
-function msg(key: string): string {
-  const fn = (m as unknown as Record<string, (inputs: Record<string, unknown>) => string>)[key]
-  return fn?.({}) ?? key
-}
-
 export function DxSection() {
+  const dxFeatures = [
+    { icon: FlaskConical, title: m.dx_tdd_title(), description: m.dx_tdd_desc() },
+    { icon: ShieldCheck, title: m.dx_quality_title(), description: m.dx_quality_desc() },
+    { icon: BookOpen, title: m.dx_docs_title(), description: m.dx_docs_desc() },
+    { icon: Zap, title: m.dx_tooling_title(), description: m.dx_tooling_desc() },
+  ]
+
   return (
     <section className="border-t border-border bg-muted/30 py-24">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="mb-12 text-center">
-          <h2 className="text-3xl font-bold tracking-tight">{m.dx_title()}</h2>
-          <p className="mt-4 text-lg text-muted-foreground">{m.dx_subtitle()}</p>
-        </div>
+        <SectionHeading title={m.dx_title()} subtitle={m.dx_subtitle()} />
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {dxFeatures.map((feature) => (
             <FeatureCard
-              key={feature.titleKey}
+              key={feature.title}
               icon={<feature.icon className="mb-2 h-8 w-8 text-primary" />}
-              title={msg(feature.titleKey)}
-              description={msg(feature.descKey)}
+              title={feature.title}
+              description={feature.description}
             />
           ))}
         </div>

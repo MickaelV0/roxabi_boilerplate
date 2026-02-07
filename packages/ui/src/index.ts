@@ -54,7 +54,6 @@ export {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from './components/DropdownMenu'
-export { FeatureCard } from './components/FeatureCard'
 export { HoverCard, HoverCardContent, HoverCardTrigger } from './components/HoverCard'
 export { Input } from './components/Input'
 export { Label } from './components/Label'

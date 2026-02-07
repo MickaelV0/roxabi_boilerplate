@@ -323,7 +323,7 @@ Rules:
 
 - **Naming**: `.test.ts` for unit/integration, `.spec.ts` for E2E (Playwright)
 - **Location**: Colocated with source (same directory) as default. `__tests__/` subdirectory for test helpers and fixtures.
-- **Config**: Per-package Vitest configs extending `vitest.shared.ts`
+- **Config**: Per-package Vitest configs extending `@repo/config/vitest`
 - **Environments**: `node` for backend, `jsdom` for frontend/UI (consider `happy-dom` for speed-sensitive utility tests)
 - **Imports**: Use explicit imports — `import { describe, it, expect, vi } from 'vitest'` (not `globals: true`)
 

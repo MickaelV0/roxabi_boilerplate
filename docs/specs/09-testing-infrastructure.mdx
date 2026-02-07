@@ -31,7 +31,7 @@ This specification defines the testing infrastructure for the Roxabi Boilerplate
 
 ```
 roxabi-boilerplate/
-├── vitest.shared.ts           # Shared Vitest presets
+├── packages/config/vitest.ts  # Shared Vitest presets (@repo/config/vitest)
 ├── vitest.config.ts           # Root config with projects
 ├── playwright.config.ts       # Playwright config (Chrome only)
 ├── apps/
@@ -57,7 +57,7 @@ roxabi-boilerplate/
 Three presets for different environments:
 
 ```typescript
-// vitest.shared.ts
+// @repo/config/vitest
 export const baseConfig = {
   // Common settings for all packages
 }
@@ -116,7 +116,7 @@ Development server at `http://localhost:3000`
 ## Implementation Checklist
 
 - [x] Install dependencies
-- [x] Create `vitest.shared.ts`
+- [x] Create `@repo/config/vitest` module
 - [x] Create root `vitest.config.ts`
 - [x] Create package-level configs
 - [x] Create setup files
