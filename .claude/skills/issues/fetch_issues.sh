@@ -100,6 +100,13 @@ else
             elif $blocking_count > 0 then "🔓"
             else "✅" end;
 
+        # Sort order for block status: 🔓=0 (blocking), ✅=1 (ready), ⛔=2 (blocked)
+        def block_order:
+            block_status as $s |
+            if $s == "🔓" then 0
+            elif $s == "✅" then 1
+            else 2 end;
+
         def format_deps:
             merge_blocked_by as $bb |
             merge_blocking as $bl |
@@ -159,6 +166,7 @@ else
         # Only show root issues (no parent), children are shown inline
         [$all[] | select(.content.parent == null)]
         | sort_by([
+            block_order,
             (priority_order[([.fieldValues.nodes[] | select(.field.name == "Priority") | .name] | first // "-")] // 99),
             (size_order[([.fieldValues.nodes[] | select(.field.name == "Size") | .name] | first // "-")] // 99)
         ]) as $roots |
