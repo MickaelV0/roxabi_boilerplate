@@ -104,6 +104,7 @@ cd ../roxabi-XXX
 | issues, list issues | `issues` | "list GitHub issues", "/issues" |
 | issue triage, labeling | `issue-triage` | "triage issues", "label open issues" |
 | interview, spec | `interview` | "create a spec", "interview for feature" |
+| cleanup, git cleanup | `cleanup` | "clean branches", "cleanup worktrees", "/cleanup" |
 | playground, explorer | `playground` | "create a playground", "interactive tool for X" |
 
 **Important notes:**
