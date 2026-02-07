@@ -12,6 +12,8 @@
     "28-coding-standards",
     "api-client-research",
     "cli-for-ai-agents",
-    "70-design-system"
+    "70-design-system",
+    "claude-code-usage-insights",
+    "claude-code-on-the-horizon"
   ]
 }
