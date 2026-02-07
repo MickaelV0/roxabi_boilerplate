@@ -47,6 +47,7 @@
       "devDependencies": {
         "@nestjs/cli": "^11.0.16",
         "@nestjs/testing": "^11.1.13",
+        "@repo/config": "workspace:*",
         "@types/node": "^25.2.0",
         "drizzle-kit": "^0.31.8",
         "typescript": "^5.7.0",
@@ -138,6 +139,7 @@
       "name": "@repo/types",
       "version": "0.1.0",
       "devDependencies": {
+        "@repo/config": "workspace:*",
         "typescript": "^5.7.0",
       },
     },
@@ -153,6 +155,7 @@
         "tailwind-merge": "^3.0.2",
       },
       "devDependencies": {
+        "@repo/config": "workspace:*",
         "@testing-library/dom": "^10.4.0",
         "@testing-library/jest-dom": "^6.9.1",
         "@testing-library/react": "^16.2.0",

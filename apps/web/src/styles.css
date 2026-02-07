@@ -3,7 +3,7 @@
 @import 'fumadocs-ui/css/preset.css';
 @import '@repo/ui/theme.css';
 
-@source "../../../packages/ui/src";
+@source "../node_modules/@repo/ui/src";
 
 @plugin "tailwindcss-animate";
 
