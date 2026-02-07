@@ -28,14 +28,14 @@ function ErrorFallback({
 }) {
   const message = error instanceof Error ? error.message : 'An unexpected error occurred'
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="max-w-md p-8 bg-white rounded-lg shadow-lg text-center">
-        <h2 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h2>
-        <p className="text-gray-600 mb-4">{message}</p>
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="max-w-md p-8 bg-card rounded-lg shadow-lg text-center">
+        <h2 className="text-2xl font-bold text-destructive mb-4">Something went wrong</h2>
+        <p className="text-muted-foreground mb-4">{message}</p>
         <button
           type="button"
           onClick={resetErrorBoundary}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
         >
           Try again
         </button>
@@ -63,7 +63,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'Roxabi',
       },
     ],
     links: [

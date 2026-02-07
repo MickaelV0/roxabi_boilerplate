@@ -1,33 +1,40 @@
-// Locale switcher refs:
-// - Paraglide docs: https://inlang.com/m/gerre34r/library-inlang-paraglideJs
-// - Router example: https://github.com/TanStack/router/tree/main/examples/react/i18n-paraglide#switching-locale
-
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@repo/ui'
+import { Languages } from 'lucide-react'
 import { m } from '@/paraglide/messages'
 import { getLocale, locales, setLocale } from '@/paraglide/runtime'
+
+const localeLabels: Record<string, string> = {
+  en: 'English',
+  fr: 'Français',
+}
 
 export function LocaleSwitcher() {
   const currentLocale = getLocale()
 
   return (
-    <nav className="flex gap-2 items-center" aria-label={m.language_label()}>
-      <span className="opacity-85">{m.current_locale({ locale: currentLocale })}</span>
-      <div className="flex gap-1">
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label={m.language_label()}>
+          <Languages className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
         {locales.map((locale) => (
-          <button
-            type="button"
+          <DropdownMenuItem
             key={locale}
             onClick={() => setLocale(locale)}
-            aria-pressed={locale === currentLocale}
-            className={`cursor-pointer px-3 py-1.5 rounded-full border border-gray-300 tracking-tight ${
-              locale === currentLocale
-                ? 'bg-slate-900 text-slate-50 font-bold'
-                : 'bg-transparent font-medium'
-            }`}
+            className={locale === currentLocale ? 'bg-accent' : ''}
           >
-            {locale.toUpperCase()}
-          </button>
+            {localeLabels[locale] ?? locale.toUpperCase()}
+          </DropdownMenuItem>
         ))}
-      </div>
-    </nav>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url'
+import { reactConfig } from '@repo/config/vitest'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
-import { reactConfig } from '../../vitest.shared'
 
 export default defineConfig({
   plugins: [react()],

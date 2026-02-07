@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@repo/config": "workspace:*",
     "typescript": "^5.7.0"
   }
 }

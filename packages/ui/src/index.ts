@@ -37,6 +37,23 @@ export {
   DialogTitle,
   DialogTrigger,
 } from './components/Dialog'
+export {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuPortal,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from './components/DropdownMenu'
 export { HoverCard, HoverCardContent, HoverCardTrigger } from './components/HoverCard'
 export { Input } from './components/Input'
 export { Label } from './components/Label'

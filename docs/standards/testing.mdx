@@ -96,12 +96,12 @@ it('should handle HttpException with string response', () => {
 
 **Location:** Colocate test files next to source files. Place shared test helpers and fixtures in a `__tests__/` directory.
 
-**Configuration:** Each package has its own Vitest config extending `vitest.shared.ts` at the repo root:
+**Configuration:** Each package has its own Vitest config extending the `@repo/config/vitest` module:
 
 ```typescript
 // apps/api/vitest.config.ts
 import { defineConfig } from 'vitest/config'
-import { nodeConfig } from '../../vitest.shared'
+import { nodeConfig } from '@repo/config/vitest'
 
 export default defineConfig({
   test: {

@@ -3,6 +3,8 @@
 @import 'fumadocs-ui/css/preset.css';
 @import '@repo/ui/theme.css';
 
+@source "../node_modules/@repo/ui/src";
+
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
@@ -20,4 +22,43 @@ body {
 code {
   font-family:
     source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hero entrance animation */
+@keyframes hero-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-hero-in {
+  animation: hero-fade-in 0.8s ease-out both;
+}
+
+.animate-hero-in-delayed {
+  animation: hero-fade-in 0.8s ease-out 0.2s both;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-hero-in,
+  .animate-hero-in-delayed {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
