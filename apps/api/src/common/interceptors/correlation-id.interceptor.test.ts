@@ -1,6 +1,6 @@
 import { of } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
-import { CorrelationIdInterceptor } from './correlation-id.interceptor'
+import { CorrelationIdInterceptor } from './correlation-id.interceptor.js'
 
 function createMockContext(headers: Record<string, string> = {}) {
   const headerFn = vi.fn()

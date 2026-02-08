@@ -1,4 +1,4 @@
-export * from './base'
+export * from './base.js'
 
 // Future schema exports will be added here
 // Example:

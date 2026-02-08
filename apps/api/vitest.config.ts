@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     ...nodeConfig,
     name: 'api',
-    root: __dirname,
+    root: import.meta.dirname,
     setupFiles: ['./src/test/setup.ts'],
   },
 })

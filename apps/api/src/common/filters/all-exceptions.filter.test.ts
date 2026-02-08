@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus } from '@nestjs/common'
 import { describe, expect, it, vi } from 'vitest'
 
-import { AllExceptionsFilter } from './all-exceptions.filter'
+import { AllExceptionsFilter } from './all-exceptions.filter.js'
 
 function createMockHost(headers: Record<string, string> = {}) {
   const sendFn = vi.fn()

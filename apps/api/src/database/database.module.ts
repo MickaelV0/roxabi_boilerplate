@@ -4,7 +4,7 @@ import {
   POSTGRES_CLIENT,
   type PostgresClient,
   postgresClientProvider,
-} from './drizzle.provider'
+} from './drizzle.provider.js'
 
 @Global()
 @Module({
