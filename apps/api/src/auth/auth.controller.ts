@@ -30,7 +30,9 @@ export class AuthController {
     const response = await this.authService.handler(fetchRequest)
 
     reply.status(response.status)
-    response.headers.forEach((value, key) => reply.header(key, value))
+    for (const [key, value] of response.headers.entries()) {
+      reply.header(key, value)
+    }
     const text = await response.text()
     return reply.send(text)
   }
