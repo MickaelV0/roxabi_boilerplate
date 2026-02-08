@@ -1,0 +1,662 @@
+---
+title: "Analysis: Claude Code, AI Agents & Telegram Bot Recommendations"
+description: Analyse et recommandations basées sur 45+ documents - Claude Code, agents IA, bot Telegram.
+---
+
+# Analyse et Recommandations - Claude Code, Agents IA, Bot Telegram
+
+**Date**: 2026-02-01 (mis à jour 2026-02-08)
+**Sources**: 45+ documents analysés (liens sauvegardés, learnings existants, setup actuel)
+
+---
+
+## Table des matières
+
+1. [Insights clés des sources analysées](#1-insights-clés-des-sources-analysées)
+2. [Recommandations Claude Code](#2-recommandations-claude-code)
+3. [Recommandations Bot Telegram](#3-recommandations-bot-telegram)
+4. [Plan d'action priorisé](#4-plan-daction-priorisé)
+
+---
+
+## 1. Insights clés des sources analysées
+
+### 1.1 Skills et Best Practices Claude Code
+
+| Source | Insight principal |
+|--------|------------------|
+| **Vercel Blog (agents.md)** | Documentation passive (AGENTS.md) = 100% succès vs Skills = 53%. Les agents échouent à invoquer les skills dans 56% des cas. |
+| **45 Claude Code Tips** | "AI context is like milk - best served fresh and condensed". Réduire system prompt de 45% possible. |
+| **Skills Deep Dive** | Skills = prompt templates, PAS du code. Sélection par raisonnement LLM pur. Coût: ~1,500+ tokens/turn. |
+| **everything-claude-code** | Max 10 MCPs actifs sur 20-30 configurés. 200k context shrink à 70k avec trop d'outils. |
+
+### 1.2 Plugins Officiels Anthropic
+
+| Plugin | Apport clé |
+|--------|------------|
+| **security-guidance** | 9 patterns de sécurité avec exemples SAFE/UNSAFE. Bloque l'édition (exit code 2). Gestion d'état par session. |
+| **frontend-design** | Skill auto-invoqué pour éviter "AI slop". Guidelines design distinctif. |
+| **feature-dev** | Workflow 7 phases avec 3 agents parallèles (code-explorer, code-architect, code-reviewer). |
+
+### 1.3 Systèmes de Mémoire IA (State of the Art 2026)
+
+| Pattern | Benchmark | Applicabilité |
+|---------|-----------|---------------|
+| **ENGRAM** (typed stores) | +31% accuracy (LoCoMo) | Très haute - séparer episodic/semantic/procedural |
+| **Supermemory** | 81.6% LongMemEval | Haute - dual timestamps (documentDate + eventDate) |
+| **A-MEM** (Zettelkasten) | -85-93% tokens | Haute - mémoires atomiques interconnectées |
+| **ACC** (bounded states) | ~0 hallucination/30k turns | Haute - qualification gate |
+| **GAM** (dual-agent) | 90%+ RULER | Moyenne - coûteux en compute |
+
+### 1.4 Évolution du Workflow (Karpathy 2025-2026)
+
+> "80% manuel → 80% agents en quelques semaines. Le plus grand changement de workflow de coding en ~20 ans."
+
+**Multi-layer approach**:
+- Layer 1: Tab completion (75% de l'aide IA)
+- Layer 2: Targeted edits (highlight + modification)
+- Layer 3: Advanced models pour problèmes complexes
+
+Karpathy mentionne aussi explicitement les **agent swarms** et leur faillibilité comme prochaine frontière du coding assisté par IA. ([source](https://x.com/karpathy/status/2015883857489522876))
+
+### 1.5 Architectures Multi-Agents
+
+#### Patterns théoriques
+
+| Pattern | Use case |
+|---------|----------|
+| **Hierarchical** | Tâches structurées (reactive → deliberative → meta-cognitive) |
+| **Swarm/Mesh** | Exploration parallèle, haute flexibilité |
+| **Master-Worker** | Orchestrateur central + agents spécialisés |
+| **Fan-out/Fan-in** | +36% performance vs single-agent |
+
+#### Claude Code Task System = Swarm natif
+
+Le **task system de Claude Code** est désormais le mécanisme natif pour orchestrer des swarms d'agents. Insights clés de [@seejayhess](https://x.com/seejayhess/status/2015148706471846275) :
+
+- Chaque tâche peut **spawner un sub-agent avec son propre contexte 200k tokens** isolé
+- Les **dépendances (blockedBy)** sont enforced par le système — impossible de skip des étapes
+- Le **graphe de tâches survit** aux `/clear` et restarts de session
+- **7-10 agents** peuvent tourner en parallèle
+- Transforme Claude d'un cerveau unique en **système de coordination multi-agents**
+- Plus besoin de ré-expliquer le plan : il est externalisé dans la structure de tâches
+
+> "The task system is fundamentally a coordination layer. It lets multiple agents work in parallel, track dependencies, and share state that survives beyond any single conversation."
+
+#### De la to-do list à l'orchestration avec dépendances
+
+[@nummanali](https://x.com/nummanali/status/2014684862985175205) détaille l'évolution :
+
+| Avant | Après |
+|-------|-------|
+| Listes de tâches plates (flat to-do) | Orchestration avec dépendances |
+| Exécution séquentielle manuelle | Parallélisation automatique des tâches indépendantes |
+| Pas de notion de prérequis | Séquençage correct des tâches dépendantes |
+| État perdu entre sessions | Graphe de dépendances persistant |
+
+#### Outils de gestion multi-agents
+
+| Outil | Description | Capacité |
+|-------|-------------|----------|
+| **Claude Code Task System** | Natif, intégré | 7-10 agents parallèles, dépendances, persistance |
+| **[AgentCraft](https://www.getagentcraft.com/)** | Interface RTS open-source par [@idosal1](https://x.com/idosal1/status/2011886884830789808) | Jusqu'à 9 agents, visualisation temps réel, contrôle centralisé |
+| **[feature-dev plugin](https://github.com/anthropics/claude-code/tree/main/plugins/feature-dev)** | Plugin officiel Anthropic | 3 agents spécialisés (explorer, architect, reviewer), workflow 7 phases |
+
+**AgentCraft** mérite une mention particulière : interface inspirée des jeux RTS permettant de superviser une équipe d'agents autonomes. La v1 a été construite avec la v0 (bootstrapping). Cas d'usage : refactoring massif, tests parallèles, développement simultané de features indépendantes.
+
+---
+
+## 2. Recommandations Claude Code
+
+### 2.1 CRITIQUE: Enrichir CLAUDE.md (roxabi_boilerplate)
+
+**Pourquoi**: Les agents échouent à invoquer les skills dans 56% des cas. Documentation passive toujours disponible = 100% succès.
+
+**Actions**:
+
+```markdown
+# Ajouter dans CLAUDE.md
+
+## Architecture Quick Reference
+
+| Package | Tech | Patterns |
+|---------|------|----------|
+| apps/web | TanStack Start | RSC, file-based routing |
+| apps/api | NestJS + Fastify | DI, decorators, modules |
+| packages/ui | React | Compound components |
+
+## Common Tasks
+
+| Task | Command | Notes |
+|------|---------|-------|
+| New API module | `bun nx g @nestjs/schematics:module` | Always with spec |
+| New component | Create in packages/ui | Export from index |
+| Add dependency | `bun add -D` for dev | At package level |
+
+## Patterns to Follow
+
+- Repository pattern for data access
+- DTOs for API contracts
+- Zod for runtime validation
+- Error boundaries in React
+```
+
+### 2.2 HAUTE PRIORITÉ: Améliorer le hook de sécurité
+
+**Pourquoi**: Le hook actuel (`security-check.js`) permet toujours l'édition même avec avertissement. Le hook Anthropic bloque l'opération (exit code 2).
+
+**Actions** pour `.claude/hooks/security-check.js`:
+
+```javascript
+// Ajouter ces patterns manquants
+const SECURITY_PATTERNS = [
+  // Existants...
+  // Ajouter:
+  {
+    id: 'pickle-deserialization',
+    pattern: /pickle\.loads?\s*\(|pickle\.Unpickler/gi,
+    message: 'Unsafe deserialization: use safe_load or JSON instead',
+  },
+  {
+    id: 'os-system',
+    pattern: /os\.system\s*\(|subprocess\.call\s*\(.*shell\s*=\s*True/gi,
+    message: 'Command injection risk: use subprocess.run with shell=False',
+  },
+  {
+    id: 'dangerouslySetInnerHTML',
+    pattern: /dangerouslySetInnerHTML\s*=\s*\{\s*\{\s*__html/gi,
+    message: 'XSS risk: sanitize HTML with DOMPurify before injection',
+  },
+];
+
+// Changer decision pour bloquer
+if (warnings.length > 0) {
+  console.log(JSON.stringify({
+    decision: 'block',  // Était 'allow'
+    message: `SECURITY BLOCKED:\n${warnings.map((w) => `- ${w}`).join('\n')}`,
+  }));
+  process.exit(2);  // Exit code 2 = block
+}
+```
+
+### 2.3 HAUTE PRIORITÉ: Créer le workflow feature-dev
+
+**Pourquoi**: Structure le développement de features, évite le code "au pif". Agents parallèles optimisent le temps.
+
+**Créer** `.claude/commands/feature-dev.md`:
+
+```markdown
+Develop a feature using a structured 7-phase workflow.
+
+## Phases
+
+### Phase 1 - Discovery
+- Clarify requirements with user
+- Create todo list
+- Identify acceptance criteria
+
+### Phase 2 - Codebase Exploration
+- Launch 2-3 code-explorer agents in parallel
+- Map existing patterns and integration points
+- Check for similar implementations
+
+### Phase 3 - Clarifying Questions
+**CRITICAL: DO NOT SKIP**
+- Present findings from exploration
+- Ask specific questions about ambiguities
+- Wait for explicit user approval
+
+### Phase 4 - Architecture Design
+- Launch 2-3 code-architect agents in parallel
+- Design multiple approaches
+- Document tradeoffs
+
+### Phase 5 - Implementation
+**Wait for explicit approval before starting**
+- Follow existing patterns
+- Write tests alongside code
+- Run checks throughout
+
+### Phase 6 - Quality Review
+- Launch 3 code-reviewer agents in parallel
+- Verify against acceptance criteria
+- Check test coverage (target: 80%+)
+
+### Phase 7 - Summary
+- Document decisions made
+- List files modified
+- Note any follow-up tasks
+
+## Execution
+```bash
+.claude/commands/feature-dev/run.sh "$ARGS"
+```
+```
+
+### 2.4 MOYENNE PRIORITÉ: Créer des agents spécialisés
+
+**Pourquoi**: Agents parallèles = +36% performance. Scope limité = meilleure qualité.
+
+**Créer** `.claude/agents/`:
+
+```yaml
+# .claude/agents/code-explorer.md
+---
+name: code-explorer
+tools: Glob, Grep, Read, WebFetch
+model: sonnet
+color: yellow
+---
+# Code Explorer Agent
+
+Analyze codebase to understand architecture and patterns.
+
+## Responsibilities
+- Trace execution paths
+- Identify integration points
+- Map dependencies between modules
+- Find similar implementations
+
+## Output Format
+Provide structured findings with:
+- File paths with line numbers
+- Code snippets (max 20 lines each)
+- Architecture diagrams (ASCII)
+```
+
+```yaml
+# .claude/agents/code-reviewer.md
+---
+name: code-reviewer
+tools: Glob, Grep, Read
+model: sonnet
+color: green
+---
+# Code Review Agent
+
+Review code for quality, bugs, and convention compliance.
+
+## Focus Areas
+1. Biome compliance
+2. TypeScript strict mode
+3. NestJS patterns
+4. React best practices
+5. Test coverage
+
+## Confidence Threshold
+Only report issues with confidence >= 80%
+```
+
+### 2.5 MOYENNE PRIORITÉ: Créer skill frontend-design
+
+**Pourquoi**: Garantit cohérence UI sur apps/web et packages/ui. Évite "AI slop" générique.
+
+**Créer** `.claude/skills/frontend-design/SKILL.md`:
+
+```yaml
+---
+name: frontend-design
+description: |
+  WHEN: Creating or modifying UI components, pages, or layouts
+  WHEN NOT: Backend-only changes, config files, tests
+allowed-tools: Read, Write, Edit, Glob
+---
+# Frontend Design Skill - Roxabi
+
+## Design Principles
+
+### Typography
+- Primary: Inter (already configured in Tailwind)
+- Headings: font-semibold tracking-tight
+- Body: font-normal leading-relaxed
+
+### Colors
+Use Tailwind semantic colors:
+- primary/secondary for brand
+- destructive for errors
+- muted for backgrounds
+
+### Components
+Follow packages/ui patterns:
+- Compound components for complex UI
+- Radix primitives for accessibility
+- CVA for variant management
+
+### Animations
+- Prefer CSS transitions (opacity, transform)
+- Use framer-motion only for complex sequences
+- Duration: 150-300ms for micro-interactions
+
+## Anti-Patterns to Avoid
+- Generic gradients (avoid blue→purple clichés)
+- Excessive shadows (max shadow-md)
+- Emoji as UI elements
+- Stock photo aesthetics
+```
+
+### 2.6 BASSE PRIORITÉ: Créer CLAUDE.md par package
+
+**Pourquoi**: Instructions spécifiques par contexte. Le système charge CLAUDE.md du dossier courant.
+
+**Créer**:
+
+`apps/web/CLAUDE.md`:
+```markdown
+# TanStack Start - Web App
+
+## Routing
+- File-based in `app/routes/`
+- Use `createFileRoute` helper
+- Loaders for data fetching
+
+## State
+- TanStack Query for server state
+- Zustand for client state (if needed)
+
+## Components
+- Import from `@repo/ui`
+- Wrap with error boundaries
+```
+
+`apps/api/CLAUDE.md`:
+```markdown
+# NestJS API
+
+## Modules
+- One module per domain
+- Always include .spec.ts
+
+## Patterns
+- Repository for data access
+- DTOs with class-validator
+- Guards for auth
+- Interceptors for transforms
+```
+
+---
+
+## 3. Recommandations Bot Telegram
+
+### 3.1 CRITIQUE: Ajouter Circuit Breaker
+
+**Pourquoi**: Pas de recovery si Claude API fail. Actuellement silencieux sur erreurs.
+
+**Actions** dans `telegram_bot/core/claude_pool.py`:
+
+```python
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+class ClaudePool:
+    def __init__(self):
+        self._failure_count = defaultdict(int)
+        self._circuit_open = defaultdict(lambda: False)
+        self._circuit_open_until = defaultdict(lambda: 0)
+
+    async def send(self, chat_id: int, message: str, ...):
+        # Circuit breaker check
+        if self._circuit_open[chat_id]:
+            if time.time() < self._circuit_open_until[chat_id]:
+                return {"error": "Service temporarily unavailable", "retry_after": ...}
+            self._circuit_open[chat_id] = False
+
+        try:
+            result = await self._send_with_retry(chat_id, message, ...)
+            self._failure_count[chat_id] = 0
+            return result
+        except Exception as e:
+            self._failure_count[chat_id] += 1
+            if self._failure_count[chat_id] >= 3:
+                self._circuit_open[chat_id] = True
+                self._circuit_open_until[chat_id] = time.time() + 60
+            raise
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
+    async def _send_with_retry(self, ...):
+        ...
+```
+
+### 3.2 HAUTE PRIORITÉ: Structured Logging
+
+**Pourquoi**: Logging dispersé = difficile de diagnostiquer. Pas de correlation IDs.
+
+**Actions**:
+
+```python
+# telegram_bot/core/logging_config.py
+import structlog
+import uuid
+
+def configure_logging():
+    structlog.configure(
+        processors=[
+            structlog.stdlib.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.JSONRenderer(),
+        ],
+        logger_factory=structlog.PrintLoggerFactory(),
+    )
+
+def get_logger(name: str):
+    return structlog.get_logger(name)
+
+# Usage dans handlers
+async def handle_message(update, context):
+    correlation_id = str(uuid.uuid4())[:8]
+    logger = get_logger("message_handler").bind(
+        correlation_id=correlation_id,
+        chat_id=update.effective_chat.id,
+        user_id=update.effective_user.id,
+    )
+    logger.info("message_received", text_length=len(update.message.text))
+    ...
+```
+
+### 3.3 HAUTE PRIORITÉ: Implémenter Memory ENGRAM
+
+**Pourquoi**: +31% accuracy avec typed separation (episodic/semantic/procedural).
+
+**Actions** dans `telegram_bot/core/memory/`:
+
+```python
+# memory_types.py
+from enum import Enum
+from dataclasses import dataclass
+from datetime import datetime
+
+class MemoryType(Enum):
+    EPISODIC = "episodic"    # Conversations, events
+    SEMANTIC = "semantic"    # Facts, knowledge
+    PROCEDURAL = "procedural"  # Skills, how-to
+
+@dataclass
+class Memory:
+    id: str
+    type: MemoryType
+    content: str
+    document_date: datetime  # When stored
+    event_date: datetime     # When occurred
+    confidence: float = 1.0
+    ttl_days: int | None = None  # None = permanent
+
+# vector_store.py - Update queries
+def search(self, query: str, memory_type: MemoryType | None = None):
+    base_query = "SELECT * FROM documents WHERE ..."
+    if memory_type:
+        base_query += f" AND category = '{memory_type.value}'"
+    ...
+```
+
+### 3.4 MOYENNE PRIORITÉ: Qualification Gate (ACC Pattern)
+
+**Pourquoi**: Empêche le contenu non vérifié de devenir mémoire persistante. ~0 hallucination.
+
+**Actions**:
+
+```python
+# telegram_bot/core/memory/qualification_gate.py
+class QualificationGate:
+    """Filter between recall and commitment."""
+
+    CONFIDENCE_THRESHOLD = 0.7
+
+    async def qualify(self, extracted_facts: list[dict]) -> list[dict]:
+        """Only allow high-confidence facts to become persistent memory."""
+        qualified = []
+        for fact in extracted_facts:
+            # Check confidence
+            if fact.get("confidence", 0) < self.CONFIDENCE_THRESHOLD:
+                continue
+
+            # Check for contradictions with existing memory
+            if await self._contradicts_existing(fact):
+                continue
+
+            # Check source reliability
+            if not self._is_reliable_source(fact.get("source")):
+                continue
+
+            qualified.append(fact)
+
+        return qualified
+```
+
+### 3.5 MOYENNE PRIORITÉ: SessionArchive Cleanup
+
+**Pourquoi**: `message_index.json` grandit indéfiniment (ROX-242). Pas de purge.
+
+**Actions**:
+
+```python
+# telegram_bot/core/session_archive.py
+class SessionArchive:
+    TTL_DAYS = 30
+
+    async def cleanup(self):
+        """Purge old entries and orphaned sessions."""
+        cutoff = datetime.now() - timedelta(days=self.TTL_DAYS)
+
+        # Remove old entries
+        self._index = {
+            k: v for k, v in self._index.items()
+            if v.timestamp > cutoff
+        }
+
+        # Remove entries for deleted session files
+        valid_sessions = set(self._get_existing_session_ids())
+        self._index = {
+            k: v for k, v in self._index.items()
+            if v.session_id in valid_sessions
+        }
+
+        await self._save()
+```
+
+### 3.6 BASSE PRIORITÉ: Commandes /memory
+
+**Pourquoi**: Contrôle utilisateur sur ses données (GDPR, transparence).
+
+```python
+# telegram_bot/plugins/base/handlers.py
+
+@requires_auth
+async def cmd_memory_inspect(update, context, bot_context=None):
+    """List all stored memories for user."""
+    memories = await bot_context.memory.list_all(update.effective_chat.id)
+    text = "**Your memories:**\n\n"
+    for m in memories[:20]:  # Limit display
+        text += f"- [{m.type.value}] {m.content[:50]}... (conf: {m.confidence:.0%})\n"
+    await update.message.reply_text(text, parse_mode="Markdown")
+
+@requires_auth
+async def cmd_memory_forget(update, context, bot_context=None):
+    """Delete a specific memory."""
+    memory_id = context.args[0] if context.args else None
+    if not memory_id:
+        await update.message.reply_text("Usage: /memory_forget <id>")
+        return
+    await bot_context.memory.delete(memory_id)
+    await update.message.reply_text(f"Memory {memory_id} deleted.")
+
+@requires_auth
+async def cmd_memory_export(update, context, bot_context=None):
+    """Export all memories as JSON."""
+    memories = await bot_context.memory.list_all(update.effective_chat.id)
+    export = json.dumps([m.to_dict() for m in memories], indent=2)
+    # Send as file
+    await update.message.reply_document(
+        document=io.BytesIO(export.encode()),
+        filename=f"memories_{update.effective_chat.id}.json"
+    )
+```
+
+---
+
+## 4. Plan d'action priorisé
+
+### Semaine 1 - Fondations
+
+| Action | Fichier | Impact |
+|--------|---------|--------|
+| Enrichir CLAUDE.md | `CLAUDE.md` | Haute - doc passive = 100% succès |
+| Améliorer security hook | `.claude/hooks/security-check.js` | Haute - bloque les risques |
+| Ajouter circuit breaker | `telegram_bot/core/claude_pool.py` | Haute - fiabilité |
+
+### Semaine 2 - Workflow
+
+| Action | Fichier | Impact |
+|--------|---------|--------|
+| Créer feature-dev command | `.claude/commands/feature-dev.md` | Haute - structure dev |
+| Créer agents (explorer, reviewer) | `.claude/agents/*.md` | Moyenne - parallélisation |
+| Structured logging | `telegram_bot/core/logging_config.py` | Haute - observabilité |
+
+### Semaine 3 - Mémoire
+
+| Action | Fichier | Impact |
+|--------|---------|--------|
+| Implémenter ENGRAM | `telegram_bot/core/memory/` | Haute - +31% accuracy |
+| Qualification Gate | `telegram_bot/core/memory/qualification_gate.py` | Moyenne - qualité |
+| SessionArchive cleanup | `telegram_bot/core/session_archive.py` | Moyenne - dette tech |
+
+### Semaine 4 - Polish
+
+| Action | Fichier | Impact |
+|--------|---------|--------|
+| Skill frontend-design | `.claude/skills/frontend-design/` | Moyenne - cohérence UI |
+| CLAUDE.md par package | `apps/*/CLAUDE.md` | Basse - contexte spécifique |
+| Commandes /memory | `telegram_bot/plugins/base/handlers.py` | Basse - UX |
+
+---
+
+## Annexe: Sources principales
+
+### Claude Code & Skills
+- [Vercel Blog - Agents.md vs Skills](https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals)
+- [karanb192/awesome-claude-skills](https://github.com/karanb192/awesome-claude-skills)
+- [VoltAgent/awesome-claude-skills](https://github.com/VoltAgent/awesome-claude-skills)
+- [affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code)
+- [ykdojo/claude-code-tips](https://github.com/ykdojo/claude-code-tips)
+- [Skills Deep Dive](https://leehanchung.github.io/blogs/2025/10/26/claude-skills-deep-dive/)
+
+### Plugins Anthropic
+- [security-guidance](https://github.com/anthropics/claude-code/tree/main/plugins/security-guidance)
+- [frontend-design](https://github.com/anthropics/claude-code/tree/main/plugins/frontend-design)
+- [feature-dev](https://github.com/anthropics/claude-code/tree/main/plugins/feature-dev)
+
+### Mémoire IA
+- [ENGRAM](https://arxiv.org/abs/2511.12960)
+- [Supermemory](https://supermemory.ai/research)
+- [A-MEM](https://arxiv.org/abs/2502.12110)
+- [ACC](https://arxiv.org/abs/2601.11653)
+- [Memory as Reasoning](https://blog.plasticlabs.ai/blog/Memory-as-Reasoning)
+
+### Multi-Agents & Swarms
+- [Agent Swarms Are Here - @seejayhess](https://x.com/seejayhess/status/2015148706471846275) - Task system comme coordination layer multi-agents
+- [AgentCraft RTS Interface - @idosal1](https://x.com/idosal1/status/2011886884830789808) - Jusqu'à 9 agents, interface RTS open-source
+- [Guide tâches avec dépendances - @nummanali](https://x.com/nummanali/status/2014684862985175205) - De la to-do list à l'orchestration
+- [Karpathy: Agent Swarms & Workflow](https://x.com/karpathy/status/2015883857489522876) - 80% agent coding, mention swarms
+- [Swarms Framework](https://docs.swarms.world/)
+- [AgentCraft](https://www.getagentcraft.com/)
+
+---
+
+_Document généré le 2026-02-01, mis à jour le 2026-02-08. Analyse de 45+ sources via 6 sous-agents parallèles._
