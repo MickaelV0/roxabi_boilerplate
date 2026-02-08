@@ -3,7 +3,7 @@ import type { ApiErrorResponse } from '@repo/types'
 import { type FetchError, ofetch } from 'ofetch'
 
 /** Default API URL for local development */
-const DEFAULT_API_URL = 'http://localhost:4000'
+const DEFAULT_API_URL = 'http://localhost:3001'
 
 /**
  * Creates a configured ofetch instance for API communication.
