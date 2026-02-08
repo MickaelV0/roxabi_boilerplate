@@ -1,0 +1,37 @@
+import { All, Controller, Req, Res } from '@nestjs/common'
+import { ApiExcludeController } from '@nestjs/swagger'
+import type { FastifyReply, FastifyRequest } from 'fastify'
+import type { AuthService } from './auth.service.js'
+import { AllowAnonymous } from './decorators/allow-anonymous.js'
+
+@Controller()
+@ApiExcludeController()
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  @All('api/auth/*path')
+  @AllowAnonymous()
+  async handleAuth(@Req() req: FastifyRequest, @Res() reply: FastifyReply) {
+    const url = new URL(req.url, `http://${req.headers.host ?? 'localhost'}`)
+    const headers = new Headers()
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (value) headers.set(key, Array.isArray(value) ? value.join(', ') : String(value))
+    }
+
+    const body =
+      req.method !== 'GET' && req.method !== 'HEAD' ? JSON.stringify(req.body) : undefined
+
+    const fetchRequest = new Request(url.toString(), {
+      method: req.method,
+      headers,
+      body,
+    })
+
+    const response = await this.authService.handler(fetchRequest)
+
+    reply.status(response.status)
+    response.headers.forEach((value, key) => reply.header(key, value))
+    const text = await response.text()
+    return reply.send(text)
+  }
+}
