@@ -80,7 +80,7 @@ function LoginPage() {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                 required
               />
             </div>
@@ -90,7 +90,7 @@ function LoginPage() {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 required
               />
             </div>
@@ -125,7 +125,9 @@ function LoginPage() {
                 type="email"
                 placeholder="your@email.com"
                 value={magicLinkEmail}
-                onChange={(e) => setMagicLinkEmail(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setMagicLinkEmail(e.target.value)
+                }
                 required
               />
               <Button type="submit" variant="outline" disabled={loading}>

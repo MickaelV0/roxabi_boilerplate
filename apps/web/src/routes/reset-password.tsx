@@ -28,7 +28,7 @@ function ResetPasswordPage() {
     setMessage('')
     setLoading(true)
     try {
-      const { error: resetError } = await authClient.forgetPassword({ email })
+      const { error: resetError } = await authClient.requestPasswordReset({ email })
       if (resetError) {
         setError(resetError.message ?? 'Failed to send reset email')
       } else {
@@ -57,7 +57,7 @@ function ResetPasswordPage() {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                 required
               />
             </div>
