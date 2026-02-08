@@ -14,6 +14,7 @@
     "cli-for-ai-agents",
     "70-design-system",
     "claude-code-usage-insights",
-    "claude-code-on-the-horizon"
+    "claude-code-on-the-horizon",
+    "19-auth-users"
   ]
 }
