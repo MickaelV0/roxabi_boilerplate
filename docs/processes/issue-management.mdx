@@ -1,0 +1,172 @@
+---
+title: Issue Management
+description: Full issue lifecycle — creation, triage, blockers, labels, and resolution
+---
+
+## Issue Lifecycle
+
+```
+Create → Triage → Prioritize → Assign → Implement → Review → Close
+```
+
+---
+
+## Creating Issues
+
+### From Templates
+
+Use the provided GitHub templates:
+
+- **Bug Report**: For reporting bugs with reproduction steps
+- **Feature Request**: For proposing new features
+
+### Minimum Requirements
+
+Every issue should have:
+
+- Clear, actionable title
+- Description with context and acceptance criteria
+- Related issues linked (if any)
+
+---
+
+## Triage
+
+Triage ensures every issue has a **Size** and **Priority** assigned.
+
+### Size
+
+| Size | Description | Example |
+|------|-------------|---------|
+| **XS** | Trivial change, &lt;1 hour | Typo fix, config tweak |
+| **S** | Small task, &lt;4 hours | Single file change, simple feature |
+| **M** | Medium task, 1-2 days | Multi-file feature, requires testing |
+| **L** | Large task, 3-5 days | Complex feature, architectural changes |
+| **XL** | Very large, >1 week | Major refactor, new system |
+
+### Priority
+
+| Priority | Label | Description | Action |
+|----------|-------|-------------|--------|
+| **Urgent** | `P0` | Blocking or critical | Do immediately |
+| **High** | `P1` | Important for current milestone | Do this sprint |
+| **Medium** | `P2` | Should be done soon | Plan for next sprint |
+| **Low** | `P3` | Nice to have | Backlog |
+
+### Triage Process
+
+Use the `/issue-triage` skill to identify and label untriaged issues:
+
+```bash
+# List issues missing Size or Priority
+.claude/skills/issue-triage/triage.sh list
+
+# Set values
+.claude/skills/issue-triage/triage.sh set 42 --size M --priority High
+```
+
+---
+
+## Blockers & Dependencies
+
+### Adding a Blocker
+
+When an issue blocks another:
+
+1. Use GitHub's native `blockedBy` dependency (source of truth):
+   ```bash
+   # Make #51 blocked by #19
+   gh api graphql \
+     -F query='mutation($issueId: ID!, $blockingId: ID!) {
+       addBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockingId }) {
+         issue { number }
+         blockingIssue { number }
+       }
+     }' \
+     -f issueId="$(gh api repos/OWNER/REPO/issues/51 --jq '.node_id')" \
+     -f blockingId="$(gh api repos/OWNER/REPO/issues/19 --jq '.node_id')"
+   ```
+
+2. Add the `blocked` label to the blocked issue:
+   ```bash
+   gh issue edit <number> --add-label "blocked"
+   ```
+
+3. Reference the blocked issue in the blocker's body (e.g., "Blocker for #19")
+
+### Resolving a Blocker
+
+When a blocking issue is closed:
+
+1. Remove the `blocked` label from previously blocked issues:
+   ```bash
+   gh issue edit <number> --remove-label "blocked"
+   ```
+
+2. Verify unblocked issues are ready to work on
+
+### Viewing Dependencies
+
+Use the `/issues` skill to see the full dependency graph:
+
+```bash
+.claude/skills/issues/fetch_issues.sh
+```
+
+The output shows block status for each issue:
+
+| Icon | Meaning |
+|------|---------|
+| `✅` | Ready — no open blockers |
+| `⛔` | Blocked — waiting on other issues |
+| `🔓` | Blocking — other issues depend on this |
+
+---
+
+## Labels
+
+### Priority Labels
+
+| Label | Description |
+|-------|-------------|
+| `P1` | Critical — fix immediately |
+| `P2` | High — current sprint |
+| `P3` | Medium — next sprint |
+
+### Size Labels
+
+| Label | Description |
+|-------|-------------|
+| `XS` | Trivial change (&lt;1 hour) |
+| `S` | Small change (few hours) |
+| `M` | Medium change (1-2 days) |
+| `L` | Large change (3-5 days) |
+| `XL` | Epic (needs breakdown) |
+
+### Type Labels
+
+| Label | Description |
+|-------|-------------|
+| `feature` | New functionality |
+| `bug` | Something broken |
+| `docs` | Documentation |
+| `dx` | Developer experience |
+| `ai` | AI/Agent related |
+| `workflow` | Process improvement |
+| `setup` | Infrastructure setup |
+
+### Status Labels
+
+| Label | Description |
+|-------|-------------|
+| `blocked` | Issue is blocked by another issue |
+
+---
+
+## Best Practices
+
+- **One issue per concern**: Don't bundle unrelated changes
+- **Link related issues**: Use GitHub references (`#42`) and `blockedBy`
+- **Close with PR**: Reference the issue in your PR (`Closes #42`)
+- **Update status**: Move issues on the project board as work progresses
+- **Break down XL**: Issues sized XL should be broken into smaller issues

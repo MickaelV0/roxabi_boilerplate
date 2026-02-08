@@ -5,12 +5,21 @@
 | Topic | Documentation |
 |-------|---------------|
 | Development process | [docs/processes/dev-process.mdx](docs/processes/dev-process.mdx) |
+| Issue management | [docs/processes/issue-management.mdx](docs/processes/issue-management.mdx) |
 | Processes | [docs/processes/](docs/processes/) |
 | Architecture | [docs/architecture/](docs/architecture/) |
 | Analyses (pre-spec) | [docs/analyses/](docs/analyses/) |
 | Feature specifications | [docs/specs/](docs/specs/) |
 | Coding standards | [docs/standards/](docs/standards/) |
-| Documentation (Fumadocs) | [docs/](docs/) |
+| Frontend patterns | [docs/standards/frontend-patterns.mdx](docs/standards/frontend-patterns.mdx) |
+| Backend patterns | [docs/standards/backend-patterns.mdx](docs/standards/backend-patterns.mdx) |
+| Testing | [docs/standards/testing.mdx](docs/standards/testing.mdx) |
+| Code review | [docs/standards/code-review.mdx](docs/standards/code-review.mdx) |
+| Vision & roadmap | [docs/vision.mdx](docs/vision.mdx) |
+| Configuration & setup | [docs/configuration.mdx](docs/configuration.mdx) |
+| Contributing & MDX guide | [docs/contributing.mdx](docs/contributing.mdx) |
+| Guides | [docs/guides/](docs/guides/) |
+| Hooks | [docs/hooks.mdx](docs/hooks.mdx) |
 
 ---
 
@@ -18,19 +27,11 @@
 
 ### 1. Development Process (CRITICAL)
 
-**BEFORE ANY SPEC, CODE CHANGE, OR PR REVIEW: Read [dev-process.mdx](docs/processes/dev-process.mdx) in full.**
+**BEFORE ANY SPEC, CODE CHANGE, OR PR REVIEW: MUST read [dev-process.mdx](docs/processes/dev-process.mdx) in full.**
 
 This applies to ALL development work: specs, features, bug fixes, refactoring, docs, tests, PR reviews. **NO EXCEPTIONS.**
 
 **Tier determination:**
-
-```
-New architecture or system-wide change? ─────────────────► Tier L
-More than 10 files? ─────────────────────────────────────► Tier L
-More than 3 files? ──────────────────────────────────────► Tier M
-Regression risk or complex logic? ───────────────────────► Tier M
-Otherwise ───────────────────────────────────────────────► Tier S
-```
 
 | Tier | Name | Criteria | Process |
 |------|------|----------|---------|
@@ -71,6 +72,7 @@ When detecting a large workload (3+ complex tasks, migrations, or multi-componen
 - **NEVER push without explicit request**
 - **NEVER use** `--force`, `--hard`, `--amend` (unless explicitly requested)
 - If pre-commit hook fails: fix and create a NEW commit (never amend)
+- For full Conventional Commits spec: MUST read [docs/contributing.mdx](docs/contributing.mdx)
 
 ---
 
@@ -97,6 +99,30 @@ cd ../roxabi-XXX
 
 ---
 
+### 6. Code Review (CRITICAL)
+
+**When reviewing PRs or code: MUST read [docs/standards/code-review.mdx](docs/standards/code-review.mdx).**
+
+- Use **Conventional Comments** format for all review comments
+- Follow the review checklist
+- Block only for: security issues, correctness bugs, or documented standard violations
+
+---
+
+### 7. Coding Standards (CRITICAL)
+
+**When writing or modifying code: MUST read the relevant standards doc.**
+
+| Context | MUST read |
+|---------|-----------|
+| React / TanStack components | [docs/standards/frontend-patterns.mdx](docs/standards/frontend-patterns.mdx) |
+| NestJS / API code | [docs/standards/backend-patterns.mdx](docs/standards/backend-patterns.mdx) |
+| Writing or modifying tests | [docs/standards/testing.mdx](docs/standards/testing.mdx) |
+| Creating or editing documentation | [docs/contributing.mdx](docs/contributing.mdx) |
+| Managing issues or blockers | [docs/processes/issue-management.mdx](docs/processes/issue-management.mdx) |
+
+---
+
 ## Available Skills
 
 | Trigger | Skill | Examples |
@@ -117,6 +143,8 @@ cd ../roxabi-XXX
 
 Roxabi Boilerplate - SaaS framework with integrated AI team.
 
+For project vision, principles, and roadmap: see [docs/vision.mdx](docs/vision.mdx).
+
 ## Tech Stack
 
 - **Runtime**: Bun
@@ -126,107 +154,7 @@ Roxabi Boilerplate - SaaS framework with integrated AI team.
 - **Frontend**: TanStack Start
 - **Backend**: NestJS + Fastify
 
-## Conventions
-
-### Code Style
-
-- Use Biome for linting and formatting
-- TypeScript strict mode enabled
-- Prefer functional patterns where appropriate
-- Use named exports over default exports
-
-### File Naming
-
-- Components: `PascalCase.tsx`
-- Utilities: `camelCase.ts`
-- Types: `camelCase.types.ts`
-- Tests: `*.test.ts` or `*.spec.ts`
-
-### Imports
-
-- Use path aliases (`@/`, `@repo/`)
-- Group imports: external, internal, relative
-- No circular dependencies
-
-## Commands
-
-```bash
-bun install          # Install dependencies
-bun dev              # Run all apps in dev mode
-bun build            # Build all packages
-bun lint             # Run Biome linter
-bun format           # Format with Biome
-bun typecheck        # TypeScript type checking
-bun run test         # Run tests (via turbo + vitest)
-bun docs             # Start documentation server (runs apps/web)
-bun run clean:cache  # Clear Vite dep optimization cache
-```
-
-> **Troubleshooting**: If you see redirect loops or unexpected 307 redirects in dev, run `bun run clean:cache` to clear the stale Vite dependency optimization cache. This commonly happens after dependency upgrades.
-
-> **Important**: Use `bun run test` (not `bun test`). The `bun test` command invokes Bun's built-in test runner which ignores vitest configs. The `bun run test` command runs the `test` script which uses turbo to run vitest in each package with proper configuration.
-
-## Monorepo Structure
-
-- `apps/web` - Frontend application (includes documentation at `/docs`)
-- `apps/api` - Backend API
-- `packages/ui` - Shared UI components
-- `packages/config` - Shared configurations
-- `packages/types` - Shared TypeScript types
-- `docs/` - Documentation content (MDX files)
-
-## Documentation
-
-Documentation uses Fumadocs with MDX format. All docs are in the `docs/` folder.
-
-### Creating Documentation Files
-
-Files must be `.mdx` with frontmatter:
-
-```mdx
----
-title: Page Title
-description: Brief description for SEO and previews
----
-
-Content here...
-```
-
-### Folder Structure
-
-```
-docs/
-├── index.mdx           # Home page
-├── getting-started.mdx # Main docs
-├── meta.json           # Navigation order
-├── architecture/       # Architecture documentation
-│   ├── meta.json
-│   ├── index.mdx
-│   └── *.mdx
-├── processes/          # Development processes
-│   ├── meta.json
-│   ├── index.mdx
-│   └── *.mdx
-├── standards/          # Coding standards & best practices
-│   ├── meta.json
-│   └── *.mdx
-├── analyses/           # Pre-spec analyses
-│   ├── meta.json
-│   └── *.mdx
-└── specs/              # Feature specifications
-    ├── meta.json
-    └── *.mdx
-```
-
-### Adding New Pages
-
-1. Create `.mdx` file with frontmatter
-2. Add filename (without extension) to `meta.json` in the `pages` array
-3. Run `bun docs` to preview
-
-### Special Characters in MDX
-
-Escape `<` as `&lt;` to avoid JSX parsing errors (e.g., `&lt;50KB` instead of `<50KB`).
+For full architecture, monorepo structure, and commands: MUST read [docs/architecture/](docs/architecture/) and [docs/configuration.mdx](docs/configuration.mdx).
 
 ## Hooks
 

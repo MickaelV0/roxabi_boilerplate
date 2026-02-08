@@ -195,6 +195,61 @@ When creating issues, use the provided templates:
 
 ---
 
+## Documentation (MDX)
+
+Documentation uses Fumadocs with MDX format. All docs live in the `docs/` folder.
+
+### Creating Documentation Files
+
+Files must be `.mdx` with frontmatter:
+
+```mdx
+---
+title: Page Title
+description: Brief description for SEO and previews
+---
+
+Content here...
+```
+
+### Folder Structure
+
+```
+docs/
+├── index.mdx           # Home page
+├── getting-started.mdx # Main docs
+├── meta.json           # Navigation order
+├── architecture/       # Architecture documentation
+│   ├── meta.json
+│   ├── index.mdx
+│   └── *.mdx
+├── processes/          # Development processes
+│   ├── meta.json
+│   ├── index.mdx
+│   └── *.mdx
+├── standards/          # Coding standards & best practices
+│   ├── meta.json
+│   └── *.mdx
+├── analyses/           # Pre-spec analyses
+│   ├── meta.json
+│   └── *.mdx
+└── specs/              # Feature specifications
+    ├── meta.json
+    └── *.mdx
+```
+
+### Adding New Pages
+
+1. Create `.mdx` file with frontmatter
+2. Add filename (without extension) to `meta.json` in the `pages` array
+3. Run `bun docs` to preview
+
+### Special Characters in MDX
+
+Escape `<` as `&lt;` to avoid JSX parsing errors (e.g., `&lt;50KB` instead of `<50KB`).
+
+---
+
 ## Getting Help
 
 - Check existing issues before creating new ones
