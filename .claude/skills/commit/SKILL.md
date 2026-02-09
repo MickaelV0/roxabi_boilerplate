@@ -13,7 +13,7 @@ Enforce commit conventions and guard against common mistakes. Automates the mech
 ```
 /commit                    → Interactive commit of staged changes
 /commit --all              → Stage all modified tracked files, then commit
-/commit -m "message"       → Commit with provided message (still validates)
+/commit -m "message"       → Commit with provided message (used as-is)
 ```
 
 ## Instructions
@@ -99,7 +99,7 @@ If found, **refuse to commit**:
 
 ### 3. Generate Commit Message
 
-If the user passed `-m "message"`, use that message but still **validate** it against the format below. If it does not conform, suggest a corrected version via `AskUserQuestion`.
+If the user passed `-m "message"`, use that message as-is.
 
 If no message was provided, generate one:
 
@@ -163,14 +163,9 @@ Rules:
 - Body wraps at 72 characters
 - One blank line between sections
 
-#### Present for approval
-
-Show the generated message to the user via `AskUserQuestion` with options:
-- **Commit** — use as-is
-- **Edit** — let the user modify
-- **Abort** — cancel
-
 ### 4. Commit
+
+**Do NOT ask the user to approve the commit message.** Proceed directly to committing.
 
 Execute the commit using HEREDOC format:
 
@@ -210,7 +205,7 @@ If the commit fails due to a pre-commit hook:
 | Pre-commit hook failure | Fix, re-stage, NEW commit (never amend) |
 | Merge conflict markers in staged files | Block commit, list affected files |
 | Branch has no issue number | Omit `Refs #` footer line |
-| User passes `-m` with non-conforming message | Suggest corrected version, ask to confirm |
+| User passes `-m` with non-conforming message | Use as-is |
 
 ## Safety Rules
 
@@ -218,7 +213,6 @@ If the commit fails due to a pre-commit hook:
 2. **NEVER use `git commit --amend`** unless the user explicitly requests it
 3. **NEVER commit secret files** (`.env`, `credentials.json`, `*.pem`, `*.key`)
 4. **NEVER push** — committing is the only action; pushing is a separate concern
-5. **ALWAYS ask for approval** before executing the commit
-6. **ALWAYS use HEREDOC** for commit messages to preserve formatting
+5. **ALWAYS use HEREDOC** for commit messages to preserve formatting
 
 $ARGUMENTS
