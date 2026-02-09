@@ -1,0 +1,351 @@
+---
+title: Agent Teams
+description: Getting started with multi-agent coordination using Claude Code Agent Teams
+---
+
+# Agent Teams
+
+Run specialized AI agents in parallel to implement features faster. Each agent has a dedicated role, domain, and tool access.
+
+## Prerequisites
+
+- Claude Code CLI installed
+- Agent Teams enabled (experimental):
+
+```bash
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+```
+
+Add this to your shell profile (`.bashrc`, `.zshrc`) to persist across sessions.
+
+## How It Works
+
+### Subagents (`.claude/agents/`)
+
+Each `.md` file in `.claude/agents/` defines a **subagent** — a pre-defined role with specific tools, permissions, and domain boundaries. Claude Code auto-discovers these files and makes them available as specialized workers within a single session via the `Task` tool.
+
+Subagents are **stable** and work without any experimental flags.
+
+### Agent Teams (experimental swarm)
+
+Agent Teams go further: multiple independent Claude Code sessions coordinate in parallel via a shared task list and mailbox. Each teammate runs as a separate process with its own context window.
+
+Agent Teams require the experimental flag:
+
+```bash
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+```
+
+### How they connect
+
+The `.md` files in `.claude/agents/` serve **both** purposes:
+- **Single session**: The lead uses `Task` tool to delegate work to a subagent by referencing its definition
+- **Agent Teams**: Team members reference the same `.md` files as their `agentType`, getting the same role, tools, and permissions
+
+---
+
+## Quick Start
+
+### 1. Determine your tier
+
+Before spawning agents, check the [Development Process](/docs/processes/dev-process) to classify your task:
+
+| Tier | Files | Agents |
+|------|-------|--------|
+| **S** | 1-3 | None — use a single Claude Code session |
+| **M** | 3-10 | 3-5 agents based on domain |
+| **L** | >10 | 6-10 agents (full or near-full team) |
+
+### 2. Pick your agents
+
+Use the routing decision tree:
+
+```
+Is this a code change?
+├── No (docs only) → doc-writer alone
+└── Yes
+    ├── Tier S → Single session (no agents)
+    ├── Tier M
+    │   ├── Frontend only? → frontend-dev + reviewer + tester
+    │   ├── Backend only?  → backend-dev + reviewer + tester
+    │   ├── Full-stack?    → frontend-dev + backend-dev + reviewer + tester
+    │   └── + architect (if design decisions needed)
+    └── Tier L
+        └── architect + domain agents + reviewer + tester
+            + business-analyst, product-manager, security-auditor, doc-writer as needed
+```
+
+### 3. Start a session
+
+**Single session (subagents via Task tool):**
+
+```bash
+# Start Claude Code — subagents are auto-discovered from .claude/agents/
+claude
+
+# Ask Claude to delegate to a subagent
+> "Use the frontend-dev agent to implement the UserProfile component"
+```
+
+Claude uses the `Task` tool internally to spawn the subagent with the role's tools and permissions.
+
+**Agent Teams (experimental — multiple independent sessions):**
+
+```bash
+# Enable agent teams
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+
+# Start Claude Code as the lead
+claude
+
+# Spawn teammates as independent sessions
+/teammates add frontend-dev backend-dev reviewer tester
+```
+
+### 4. Create tasks and assign
+
+As the lead, you create tasks and set dependencies:
+
+```
+Create a task list for implementing the user profile page:
+1. "Implement GET /api/users/:id endpoint" → assign to backend-dev
+2. "Create UserProfile component" → assign to frontend-dev, blocked by task 1
+3. "Write tests for user profile" → assign to tester, blocked by tasks 1 and 2
+4. "Review all changes" → assign to reviewer, blocked by task 3
+```
+
+Agents will claim tasks matching their domain and execute within their boundaries.
+
+### 5. Review and merge
+
+Once all tasks are complete, review the deliverables and create the PR.
+
+---
+
+## Available Agents
+
+### Domain Agents (code writers)
+
+| Agent | Color | Domain | Standards |
+|-------|-------|--------|-----------|
+| **frontend-dev** | cyan | `apps/web/`, `packages/ui/` | [Frontend Patterns](/docs/standards/frontend-patterns) |
+| **backend-dev** | green | `apps/api/`, `packages/types/` | [Backend Patterns](/docs/standards/backend-patterns) |
+| **infra-ops** | yellow | `packages/config/`, root configs | [Configuration](/docs/configuration) |
+
+### Quality Agents (verification)
+
+| Agent | Color | Role | Standards |
+|-------|-------|------|-----------|
+| **reviewer** | magenta | Code review (read-only) | [Code Review](/docs/standards/code-review) |
+| **tester** | blue | Test generation &amp; validation | [Testing](/docs/standards/testing) |
+| **security-auditor** | red | Vulnerability detection | OWASP Top 10 |
+
+### Strategy Agents (planning &amp; alignment)
+
+| Agent | Color | Role | Standards |
+|-------|-------|------|-----------|
+| **architect** | white | System design, tier classification | [Architecture](/docs/architecture/) |
+| **business-analyst** | orange | Requirements, acceptance criteria | Interview framework |
+| **product-manager** | purple | Issue triage, prioritization | [Issue Management](/docs/processes/issue-management) |
+| **doc-writer** | gray | Documentation maintenance | [Contributing](/docs/contributing) |
+
+---
+
+## Agent Configuration
+
+Each agent's `.md` file contains YAML frontmatter that controls its behavior:
+
+### `permissionMode`
+
+Controls what the agent can do without user approval.
+
+| Mode | Meaning | Used by |
+|------|---------|---------|
+| `bypassPermissions` | Agent can execute all its tools freely — appropriate for domain agents that write code | frontend-dev, backend-dev, infra-ops, tester, doc-writer |
+| `plan` | Agent can only read and analyze — it proposes changes but cannot execute them | reviewer, security-auditor, architect, business-analyst, product-manager |
+
+### `maxTurns`
+
+Maximum number of agentic turns (API round-trips) before the agent stops. Prevents runaway token usage.
+
+| Value | Used by |
+|-------|---------|
+| `50` | Domain agents and tester (may need many iterations) |
+| `30` | Reviewer, security-auditor, doc-writer |
+| `20` | Architect, business-analyst, product-manager (analysis-focused) |
+
+### `memory: project`
+
+All agents use `memory: project`, which enables persistent learnings stored in `.claude/agent-memory/`. Agents accumulate knowledge about the codebase across sessions.
+
+### `skills`
+
+Each agent has a core skill preloaded, matching its primary function:
+
+| Agent | Skill | Purpose |
+|-------|-------|---------|
+| frontend-dev, backend-dev, infra-ops, doc-writer | `commit` | Conventional Commits workflow |
+| reviewer | `review` | Code review with Conventional Comments |
+| tester | `test` | Test generation and validation |
+| architect | `plan` | Implementation planning |
+| business-analyst | `interview` | Requirements gathering |
+| product-manager | `issue-triage` | Issue prioritization |
+| security-auditor | — | No skill (pure analysis) |
+
+### `disallowedTools`
+
+Defense-in-depth for read-only agents. Even if an agent's `tools` list doesn't include write tools, `disallowedTools` provides an explicit deny list:
+
+| Agent | Disallowed |
+|-------|------------|
+| reviewer | Write, Edit, Bash |
+| security-auditor | Write, Edit |
+| architect | Write, Edit |
+| business-analyst | Write, Edit, Bash |
+| product-manager | Write, Edit |
+
+---
+
+## Playbooks
+
+### Playbook 1: Tier M Frontend Feature
+
+**Scenario:** Add a new page with components, no API changes.
+
+```bash
+# 1. Create worktree
+git worktree add ../roxabi-XXX -b feat/XXX-slug
+cd ../roxabi-XXX && bun install
+
+# 2. Start Claude Code and spawn agents
+claude
+/teammates add frontend-dev reviewer tester
+```
+
+**Task flow:**
+
+```
+[frontend-dev: Implement page + components]
+        │
+        ├──→ [tester: Write component tests]
+        │
+        └──→ [reviewer: Review changes]
+```
+
+**As the lead, you:**
+1. Describe the feature and create the task list
+2. frontend-dev implements the UI
+3. Once done, tester writes tests and reviewer reviews in parallel
+4. You resolve any feedback, then create the PR
+
+### Playbook 2: Tier M Full-Stack Feature
+
+**Scenario:** New API endpoint + frontend page that consumes it.
+
+```bash
+/teammates add frontend-dev backend-dev reviewer tester
+```
+
+**Task flow:**
+
+```
+[backend-dev: Implement API endpoint + types]
+        │
+[frontend-dev: Implement UI consuming the API]
+        │
+   ┌────┴────┐
+[tester]  [reviewer]
+```
+
+**As the lead, you:**
+1. Create tasks with dependencies — frontend is blocked by backend (needs the API and types)
+2. backend-dev implements the endpoint and shared types
+3. frontend-dev implements the UI once the API is ready
+4. tester and reviewer work in parallel on the completed code
+5. You review findings and create the PR
+
+### Playbook 3: Bug Fix with Validation
+
+**Scenario:** Backend bug that needs a fix and regression test.
+
+```bash
+/teammates add backend-dev tester
+```
+
+**Task flow:**
+
+```
+[backend-dev: Fix the bug]
+        │
+[tester: Write regression test]
+```
+
+**As the lead, you:**
+1. Describe the bug with reproduction steps
+2. backend-dev investigates and fixes
+3. tester writes a regression test that would have caught it
+4. You verify and create the PR
+
+### Playbook 4: Tier L Feature (Full Team)
+
+**Scenario:** Major feature spanning frontend, backend, and infrastructure.
+
+```bash
+/teammates add architect frontend-dev backend-dev infra-ops reviewer tester doc-writer
+# Add business-analyst, product-manager, security-auditor if needed
+```
+
+**Task flow:**
+
+```
+[architect: Design + break into tasks]
+        │
+   ┌────┼────────┐
+[front] [back] [infra]     ← parallel implementation
+   └────┼────────┘
+        │
+   ┌────┼────┐
+[tester] [reviewer] [security-auditor]  ← parallel verification
+        │
+   [doc-writer: Update docs]
+```
+
+**As the lead, you:**
+1. Let architect design the approach and create the task dependency graph
+2. Domain agents implement in parallel (each in their own packages)
+3. Quality agents verify in parallel once implementation is complete
+4. doc-writer updates documentation
+5. You review everything and create the PR
+
+---
+
+## Coordination Rules
+
+All agents follow these rules (baked into their system prompts):
+
+1. **Stay in your domain** — Never modify files outside your assigned packages
+2. **Claim, don't grab** — Pick tasks from the shared task list, don't create your own
+3. **Report blockers** — If stuck, message the lead with a clear description
+4. **Hand off properly** — When done, mark your task complete and create tasks for the next agent
+5. **Escalate cross-domain needs** — If you need changes in another domain, create a task for that agent
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Agent modifies wrong files | Check its `.claude/agents/*.md` boundaries section. Remind it of its domain. |
+| Agent doesn't claim tasks | Make sure the task description matches the agent's domain keywords. |
+| Context window exhausted | Restart the agent. The task list persists across sessions. |
+| Agent teams feature not working | Verify `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` is set. Check Claude Code version. |
+| Two agents conflict on a file | Add a `blockedBy` dependency to serialize access. |
+| Too expensive for small tasks | Use single-agent mode for Tier S. Agent teams are for Tier M/L only. |
+
+## Fallback: Single Agent Mode
+
+If agent teams are unstable or unavailable, the agent `.md` files still work as reference documents. You can:
+
+1. Use a single Claude Code session
+2. Read the relevant agent's `.md` file for domain context
+3. Follow the same boundaries and standards manually
+
+The agent definitions are designed to be useful both as agent team prompts and as human reference guides.
