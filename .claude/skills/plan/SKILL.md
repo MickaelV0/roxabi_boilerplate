@@ -57,7 +57,7 @@ Break the spec into ordered tasks. For each task:
 
 - **Description:** What to implement and why
 - **Files:** Specific files to create or modify (full paths)
-- **Effort:** S (< 1h), M (1-4h), or L (> 4h)
+- **Effort:** S (small), M (medium), or L (large)
 - **Dependencies:** Which tasks must complete first
 
 Define the implementation order:

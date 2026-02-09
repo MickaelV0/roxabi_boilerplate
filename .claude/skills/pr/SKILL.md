@@ -116,7 +116,7 @@ gh pr edit <number> --title "<title>" --body "<body>"
 Closes #{issue_number}
 
 ---
-Generated with [Claude Code](https://claude.ai/code) via `/pr`
+Generated with [Claude Code](https://claude.com/claude-code) via `/pr`
 ```
 
 **Notes on the template:**

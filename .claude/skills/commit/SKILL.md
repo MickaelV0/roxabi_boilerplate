@@ -52,7 +52,7 @@ If staged changes span **more than 3 files** and the working directory is NOT a 
 
 Present this as a **warning** via `AskUserQuestion` with options to continue or abort. Do NOT block.
 
-Detect worktree: `git rev-parse --show-toplevel` differs from `git rev-parse --git-common-dir | sed 's|/\.git$||'` when in a worktree.
+Detect worktree: `test "$(git rev-parse --git-dir)" != ".git"` — returns true when inside a worktree.
 
 #### Debug check
 

@@ -148,7 +148,7 @@ Each fix agent:
 3. **Run validation:**
    ```bash
    bunx biome check --write <file>
-   bun typecheck
+   bunx tsc --noEmit <file>
    ```
 4. **If validation fails:** restore the original file content from the snapshot and report the finding as "could not auto-fix" with the error reason
 5. **If validation passes:** keep the fix

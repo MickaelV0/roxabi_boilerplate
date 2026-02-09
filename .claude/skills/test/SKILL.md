@@ -46,7 +46,7 @@ Filter the output to testable files:
 
 If no testable files are found, inform the user and stop.
 
-### 3. Find Existing Test Patterns
+### 3. Find Existing Test Patterns (Pattern Discovery)
 
 Before generating anything, understand the codebase's testing conventions:
 
@@ -89,7 +89,7 @@ For each target file:
    - Happy path for each exported function/class/component
    - Edge cases (empty input, null, boundary values)
    - Error cases (invalid input, thrown exceptions)
-3. **Follow the patterns** discovered in step 3 exactly (framework, structure, naming).
+3. **Follow the patterns** discovered in the Pattern Discovery step exactly (framework, structure, naming).
 4. **Place test files** adjacent to source: `login.ts` -> `login.test.ts` (or `.spec.ts` if that's the convention).
 
 ### 6. Present for Approval

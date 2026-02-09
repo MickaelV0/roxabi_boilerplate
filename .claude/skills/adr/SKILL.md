@@ -111,10 +111,10 @@ The file is a JSON array of ADR entries:
 [
   {
     "number": 1,
-    "title": "ADR-001: {Title}",
+    "title": "ADR-001: Fastify over Express",
     "status": "Accepted",
-    "date": "YYYY-MM-DD",
-    "file": "{NNN}-{slug}.mdx"
+    "date": "2025-03-15",
+    "file": "001-fastify-over-express.mdx"
   }
 ]
 ```

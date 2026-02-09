@@ -43,9 +43,9 @@ docs/specs/*      -- existing specs (match by issue number or slug keywords)
 
 Use **Glob** to search for files matching the topic. For `--issue N`, also match by issue number prefix (e.g., `docs/analyses/N-*.mdx`, `docs/specs/N-*.mdx`).
 
-**If a spec already exists** and the entry point is Gate 1: skip directly to Gate 2 and present the existing spec for validation.
+**If a spec already exists** and the entry point is Gate 1: present the existing spec to the user via **AskUserQuestion** and ask whether to reuse it (skip to Gate 2) or start fresh. Do not silently skip.
 
-**If an analysis already exists** and the entry point is Gate 1: skip the `/interview` analysis step and present the existing analysis for validation.
+**If an analysis already exists** and the entry point is Gate 1: present the existing analysis to the user via **AskUserQuestion** and ask whether to reuse it or start fresh. Do not silently skip.
 
 ---
 

@@ -172,6 +172,8 @@ Run quality checks on the scaffolded files:
 bun lint && bun typecheck
 ```
 
+> **Note:** `bun test` is intentionally skipped — stubs contain only TODO placeholders and would not pass tests.
+
 **If all passes:** continue to commit.
 
 **If typecheck fails:**
@@ -204,6 +206,8 @@ Follow `/commit` skill conventions:
 
    Co-Authored-By: Claude <model> <noreply@anthropic.com>
    ```
+
+Replace `<model>` with the actual model name (e.g., `Claude Opus 4.6`).
 
 3. Present the message to the user via `AskUserQuestion`:
    - **Commit** — use as-is
