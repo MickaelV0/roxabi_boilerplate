@@ -114,6 +114,66 @@ The `/plan` skill handles its own presentation and approval flow. Once `/plan` c
 
 ---
 
+## Issue Status Transitions
+
+When a GitHub issue is associated with the bootstrap pipeline, update its status on the project board at these points:
+
+| Event | New Status | When |
+|-------|-----------|------|
+| Gate 1 approved (analysis done) | **Analysis** | After user approves the analysis |
+| Gate 2 approved (spec done) | **Specs** | After user approves the spec |
+
+Use the following helper to update the status. Replace `<ISSUE_NUMBER>` with the actual issue number:
+
+```bash
+# Get the project item ID for the issue
+ITEM_ID=$(gh api graphql -F query=@- -f projectId="PVT_kwHODEqYK84BOId3" <<'GQL' | jq -r --argjson num <ISSUE_NUMBER> '.data.node.items.nodes[] | select(.content.number == $num) | .id'
+query($projectId: ID!) {
+  node(id: $projectId) {
+    ... on ProjectV2 {
+      items(first: 100) {
+        nodes {
+          id
+          content { ... on Issue { number } }
+        }
+      }
+    }
+  }
+}
+GQL
+)
+
+# Update the Status field (use heredoc to avoid shell expansion of GraphQL $ variables)
+gh api graphql -F query=@- \
+  -f projectId="PVT_kwHODEqYK84BOId3" \
+  -f itemId="$ITEM_ID" \
+  -f fieldId="PVTSSF_lAHODEqYK84BOId3zg87HNM" \
+  -f optionId="<OPTION_ID>" <<'GQL'
+mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+  updateProjectV2ItemFieldValue(input: {projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: {singleSelectOptionId: $optionId}}) {
+    projectV2Item { id }
+  }
+}
+GQL
+```
+
+**Status option IDs:**
+
+| Status | Option ID |
+|--------|-----------|
+| Backlog | `df6ee93b` |
+| Analysis | `bec91bb0` |
+| Specs | `ad9a9195` |
+| In Progress | `331d27a4` |
+| Review | `ee30a001` |
+| Done | `bfdc35bd` |
+
+**When to update:**
+- Only update if a GitHub issue is associated (skip if no issue number exists)
+- Gate 1 → set to "Analysis" (`bec91bb0`)
+- Gate 2 → set to "Specs" (`ad9a9195`)
+- Gate 3 does NOT change status (stays at "Specs" until `/scaffold` moves it to "In Progress")
+
 ## Completion
 
 Once all three gates are passed, inform the user:
