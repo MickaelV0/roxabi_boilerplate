@@ -8,7 +8,7 @@ import {
   Input,
   Label,
 } from '@repo/ui'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { authClient } from '@/lib/auth-client'
 
@@ -68,9 +68,9 @@ function ResetPasswordPage() {
 
           <p className="text-center text-sm text-muted-foreground">
             Remember your password?{' '}
-            <a href="/login" className="underline hover:text-foreground">
+            <Link to="/login" className="underline hover:text-foreground">
               Sign in
-            </a>
+            </Link>
           </p>
         </CardContent>
       </Card>

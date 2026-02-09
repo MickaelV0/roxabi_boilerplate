@@ -1,18 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common'
 import type { ConfigService } from '@nestjs/config'
+import { Resend } from 'resend'
 import type { EmailProvider } from './email.provider.js'
 
 @Injectable()
 export class ResendEmailProvider implements EmailProvider {
   private readonly logger = new Logger(ResendEmailProvider.name)
-  private readonly apiKey: string | undefined
   private readonly from: string
+  private readonly resendClient: Resend | null
 
   constructor(config: ConfigService) {
-    this.apiKey = config.get<string>('RESEND_API_KEY')
+    const apiKey = config.get<string>('RESEND_API_KEY')
     this.from = config.get<string>('EMAIL_FROM', 'noreply@yourdomain.com')
+    this.resendClient = apiKey ? new Resend(apiKey) : null
 
-    if (!this.apiKey) {
+    if (!apiKey) {
       const nodeEnv = config.get<string>('NODE_ENV', 'development')
       if (nodeEnv === 'production') {
         this.logger.error('RESEND_API_KEY is not set in production — emails will not be sent')
@@ -23,16 +25,13 @@ export class ResendEmailProvider implements EmailProvider {
   }
 
   async send(params: { to: string; subject: string; html: string; text?: string }): Promise<void> {
-    if (!this.apiKey) {
+    if (!this.resendClient) {
       this.logger.log(`[Console Email] To: ${params.to} | Subject: ${params.subject}`)
       this.logger.log(`[Console Email] HTML: ${params.html}`)
       return
     }
 
-    const { Resend } = await import('resend')
-    const resend = new Resend(this.apiKey)
-
-    await resend.emails.send({
+    await this.resendClient.emails.send({
       from: this.from,
       to: params.to,
       subject: params.subject,

@@ -4,6 +4,7 @@ import type { FastifyRequest } from 'fastify'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { type BetterAuthInstance, createBetterAuth } from './auth.instance.js'
 import { EMAIL_PROVIDER, type EmailProvider } from './email/email.provider.js'
+import { toFetchHeaders } from './fastify-headers.js'
 
 @Injectable()
 export class AuthService {
@@ -15,7 +16,7 @@ export class AuthService {
     config: ConfigService
   ) {
     this.auth = createBetterAuth(db, emailProvider, {
-      secret: config.get<string>('BETTER_AUTH_SECRET', 'dev-secret-change-in-production'),
+      secret: config.getOrThrow<string>('BETTER_AUTH_SECRET'),
       baseURL: config.get<string>('BETTER_AUTH_URL', 'http://localhost:3001'),
       googleClientId: config.get<string>('GOOGLE_CLIENT_ID'),
       googleClientSecret: config.get<string>('GOOGLE_CLIENT_SECRET'),
@@ -29,11 +30,7 @@ export class AuthService {
   }
 
   async getSession(request: FastifyRequest) {
-    const headers = new Headers()
-    for (const [key, value] of Object.entries(request.headers)) {
-      if (value) headers.set(key, Array.isArray(value) ? value.join(', ') : value)
-    }
-
+    const headers = toFetchHeaders(request)
     const session = await this.auth.api.getSession({ headers })
     return session
   }

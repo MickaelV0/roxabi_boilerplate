@@ -8,7 +8,7 @@ import {
   Input,
   Label,
 } from '@repo/ui'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { authClient } from '@/lib/auth-client'
 
@@ -138,14 +138,14 @@ function LoginPage() {
 
           <p className="text-center text-sm text-muted-foreground">
             Don't have an account?{' '}
-            <a href="/register" className="underline hover:text-foreground">
+            <Link to="/register" className="underline hover:text-foreground">
               Register
-            </a>
+            </Link>
           </p>
           <p className="text-center text-sm text-muted-foreground">
-            <a href="/reset-password" className="underline hover:text-foreground">
+            <Link to="/reset-password" className="underline hover:text-foreground">
               Forgot password?
-            </a>
+            </Link>
           </p>
         </CardContent>
       </Card>

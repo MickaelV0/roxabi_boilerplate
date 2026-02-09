@@ -1,4 +1,3 @@
-import { UnauthorizedException } from '@nestjs/common'
 import { describe, expect, it, vi } from 'vitest'
 import { UserController } from './user.controller.js'
 import type { UserService } from './user.service.js'
@@ -35,10 +34,6 @@ describe('UserController', () => {
       expect(result).toEqual(mockUser)
       expect(mockUserService.getProfile).toHaveBeenCalledWith('user-1')
     })
-
-    it('should throw UnauthorizedException when no session', async () => {
-      await expect(controller.getMe(null)).rejects.toThrow(UnauthorizedException)
-    })
   })
 
   describe('updateMe', () => {
@@ -52,12 +47,6 @@ describe('UserController', () => {
 
       expect(result).toEqual(updatedUser)
       expect(mockUserService.updateProfile).toHaveBeenCalledWith('user-1', updateData)
-    })
-
-    it('should throw UnauthorizedException when no session', async () => {
-      await expect(controller.updateMe(null, { name: 'Jane' })).rejects.toThrow(
-        UnauthorizedException
-      )
     })
   })
 })

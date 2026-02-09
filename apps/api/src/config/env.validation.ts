@@ -29,8 +29,7 @@ export class EnvironmentVariables {
   LOG_LEVEL = 'debug'
 
   @IsString()
-  @IsOptional()
-  BETTER_AUTH_SECRET?: string
+  BETTER_AUTH_SECRET = 'dev-secret-do-not-use-in-production'
 
   @IsString()
   @IsOptional()
