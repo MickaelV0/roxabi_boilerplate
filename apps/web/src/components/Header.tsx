@@ -1,6 +1,6 @@
 import { Button } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
-import { Menu, X } from 'lucide-react'
+import { BookOpenIcon, Menu, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { m } from '@/paraglide/messages'
 import { GithubIcon } from './GithubIcon'
@@ -55,7 +55,15 @@ export function Header() {
             </Link>
           </Button>
           <Button variant="ghost" size="sm" asChild>
-            <a href="/docs">{m.nav_docs()}</a>
+            <Link to="/design-system" activeProps={{ className: 'bg-accent' }}>
+              Design System
+            </Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <a href="/docs">
+              <BookOpenIcon className="size-4" />
+              {m.nav_docs()}
+            </a>
           </Button>
         </div>
 
@@ -100,7 +108,17 @@ export function Header() {
               </Link>
             </Button>
             <Button variant="ghost" size="sm" className="justify-start" asChild>
+              <Link
+                to="/design-system"
+                activeProps={{ className: 'bg-accent' }}
+                onClick={() => setMobileOpen(false)}
+              >
+                Design System
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" className="justify-start" asChild>
               <a href="/docs" onClick={() => setMobileOpen(false)}>
+                <BookOpenIcon className="size-4" />
                 {m.nav_docs()}
               </a>
             </Button>

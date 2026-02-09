@@ -86,6 +86,34 @@ export { Slider } from './components/Slider'
 export { Switch } from './components/Switch'
 export { Textarea } from './components/Textarea'
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './components/Tooltip'
-
+// Theme engine
+export type {
+  DerivedTheme,
+  ThemeColors,
+  ThemeConfig,
+  ThemeShadows,
+  ThemeTypography,
+} from './lib/theme'
+export {
+  applyTheme,
+  contrastRatio,
+  deriveFullTheme,
+  hexToOklch,
+  meetsWcagAA,
+  oklchToHex,
+  resetTheme,
+} from './lib/theme'
 // Utilities
 export { cn } from './lib/utils'
+
+// Theme presets
+export type { ShadcnPreset } from './themes/presets'
+export {
+  ALL_PRESETS,
+  BASE_PRESETS,
+  COLOR_PRESETS,
+  getComposedConfig,
+  getComposedDerivedTheme,
+  getPresetConfig,
+  getPresetDerivedTheme,
+} from './themes/presets'
