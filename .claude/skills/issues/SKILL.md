@@ -55,7 +55,7 @@ List open GitHub issues from the project board with their Status, Size, Priority
 |--------|-------------|
 | `#` | Issue number |
 | `Title` | Issue title with children as tree (├/└) |
-| `Status` | Todo, In Progress, Done |
+| `Status` | Backlog, Analysis, Specs, In Prog, Review, Done |
 | `Size` | XS, S, M, L, XL |
 | `Pri` | P0, P1, P2, P3 |
 | `⚡` | Block status (see below) |

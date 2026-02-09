@@ -86,6 +86,8 @@ else
         def size_order: {"XS": 1, "S": 2, "M": 3, "L": 4, "XL": 5, "-": 99};
         def priority_order: {"P0 - Urgent": 0, "P1 - High": 1, "P2 - Medium": 2, "P3 - Low": 3, "-": 99};
         def priority_short: {"P0 - Urgent": "P0", "P1 - High": "P1", "P2 - Medium": "P2", "P3 - Low": "P3"};
+        def status_order: {"Review": 0, "In Progress": 1, "Specs": 2, "Analysis": 3, "Backlog": 4, "-": 99};
+        def status_short: {"In Progress": "In Prog", "Backlog": "Backlog", "Analysis": "Analysis", "Specs": "Specs", "Review": "Review", "Done": "Done"};
 
         def pad($s; $w): ($s + (" " * 100))[:$w];
 
@@ -128,7 +130,7 @@ else
             (.content.subIssues.nodes // []) as $subs |
 
             # Parent row (with indent)
-            "  \(pad("#\($num)"; 5))│ \(pad($title; $titleLen + 2))│ \(pad($status; 11))│ \(pad($size; 5))│ \(pad($priority | priority_short[.] // .; 4))│ \(block_status) │ \(format_deps)",
+            "  \(pad("#\($num)"; 5))│ \(pad($title; $titleLen + 2))│ \(pad($status | status_short[.] // .; 9))│ \(pad($size; 5))│ \(pad($priority | priority_short[.] // .; 4))│ \(block_status) │ \(format_deps)",
 
             # Children rows (cyan colored, with their own stats)
             if ($subs | length) > 0 then
@@ -148,13 +150,13 @@ else
                     (($titleLen + 3) - $prefixLen) as $cTitleWidth |
                     ($child.content.title | if length > ($cTitleWidth - 4) then .[:$cTitleWidth - 4] + "... " else . end) as $cTitle |
                     ($child | format_deps) as $cDeps |
-                    "       │   \($prefix)#\($sub.number) \(pad($cTitle; $cTitleWidth))│ \(pad($cStatus; 11))│ \(pad($cSize; 5))│ \(pad($cPri; 4))│ \($cBlock) │ \($cDeps)"
+                    "       │   \($prefix)#\($sub.number) \(pad($cTitle; $cTitleWidth))│ \(pad($cStatus | status_short[.] // .; 9))│ \(pad($cSize; 5))│ \(pad($cPri; 4))│ \($cBlock) │ \($cDeps)"
                 else
                     # Closed child - show with truncated title and CLOSED status, no block/deps
                     (($sub.number | tostring | length) + 7) as $prefixLen |
                     (($titleLen + 3) - $prefixLen) as $cTitleWidth |
                     (($sub.title // "?") | if length > ($cTitleWidth - 4) then .[:$cTitleWidth - 4] + "... " else . end) as $cTitle |
-                    "       │   \($prefix)#\($sub.number) \(pad($cTitle; $cTitleWidth))│ \(pad("Done"; 11))│ \(pad("-"; 5))│ \(pad("-"; 4))│   │"
+                    "       │   \($prefix)#\($sub.number) \(pad($cTitle; $cTitleWidth))│ \(pad("Done"; 9))│ \(pad("-"; 5))│ \(pad("-"; 4))│   │"
                 end
             else empty end;
 
@@ -167,6 +169,7 @@ else
         [$all[] | select(.content.parent == null)]
         | sort_by([
             block_order,
+            (status_order[([.fieldValues.nodes[] | select(.field.name == "Status") | .name] | first // "-")] // 99),
             (priority_order[([.fieldValues.nodes[] | select(.field.name == "Priority") | .name] | first // "-")] // 99),
             (size_order[([.fieldValues.nodes[] | select(.field.name == "Size") | .name] | first // "-")] // 99)
         ]) as $roots |
@@ -249,7 +252,7 @@ else
         "● \($roots | length) issues",
         "",
         # Table header
-        "  \(pad("#"; 5))│ \(pad("Title"; $titleLen + 2))│ \(pad("Status"; 11))│ \(pad("Size"; 5))│ \(pad("Pri"; 4))│ ⚡ │ Deps",
+        "  \(pad("#"; 5))│ \(pad("Title"; $titleLen + 2))│ \(pad("Status"; 9))│ \(pad("Size"; 5))│ \(pad("Pri"; 4))│ ⚡ │ Deps",
         # Table rows
         ($roots[] | format_row($byNum)),
         "",
