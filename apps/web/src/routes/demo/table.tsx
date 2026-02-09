@@ -35,6 +35,7 @@ declare module '@tanstack/react-table' {
 }
 
 // Define a custom fuzzy filter function that will apply ranking info to rows (using match-sorter utils)
+// biome-ignore lint/suspicious/noExplicitAny: TanStack Table FilterFn requires <any> for reusable filters
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   // Rank the item
   const itemRank = rankItem(row.getValue(columnId), value)
@@ -49,14 +50,15 @@ const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
 }
 
 // Define a custom fuzzy sort function that will sort by rank if the row has ranking information
+// biome-ignore lint/suspicious/noExplicitAny: TanStack Table SortingFn requires <any> for reusable sorters
 const fuzzySort: SortingFn<any> = (rowA, rowB, columnId) => {
   let dir = 0
 
   // Only sort by rank if the column has ranking information
   if (rowA.columnFiltersMeta[columnId]) {
     dir = compareItems(
-      rowA.columnFiltersMeta[columnId]?.itemRank!,
-      rowB.columnFiltersMeta[columnId]?.itemRank!
+      rowA.columnFiltersMeta[columnId]?.itemRank as RankingInfo,
+      rowB.columnFiltersMeta[columnId]?.itemRank as RankingInfo
     )
   }
 
@@ -70,6 +72,7 @@ function TableDemo() {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = React.useState('')
 
+  // biome-ignore lint/suspicious/noExplicitAny: TanStack Table ColumnDef uses any for mixed accessor types
   const columns = React.useMemo<ColumnDef<Person, any>[]>(
     () => [
       {
@@ -297,7 +300,7 @@ function TableDemo() {
   )
 }
 
-function Filter({ column }: { column: Column<any, unknown> }) {
+function Filter({ column }: { column: Column<Person, unknown> }) {
   const columnFilterValue = column.getFilterValue()
 
   return (
