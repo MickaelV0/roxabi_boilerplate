@@ -32,6 +32,33 @@ Parse the arguments to determine the entry point:
 2. **If `--issue N`**: Start at **Gate 1**. Fetch the issue body with `gh issue view N` for starting context.
 3. **If `--spec N`**: Start at **Gate 2**. Look for `docs/specs/N-*.mdx` using Glob. If not found, inform the user and suggest starting from scratch with `/bootstrap "idea"` or `/bootstrap --issue N`.
 
+### Step 0b -- Check for Existing Branch / PR
+
+When using `--issue N`, check if the issue already has a branch or open PR **before** proceeding:
+
+```bash
+gh pr list --search "N" --json number,title,state,headRefName --jq '.[] | select(.state=="OPEN")'
+```
+
+Also check for linked branches via the issue timeline:
+
+```bash
+gh api repos/:owner/:repo/issues/N/timeline --jq '.[] | select(.event=="cross-referenced") | .source.issue | select(.pull_request) | {number, title, state}'
+```
+
+**If an open PR or branch exists**, stop and present to the user via **AskUserQuestion**:
+
+> "Issue #N already has an open PR: #P (`branch-name`) — `PR title`. Bootstrap is for planning (analysis → spec → plan). This issue appears to already be in progress."
+
+Options:
+- **Switch to `/review`** — Review the existing PR instead
+- **Switch to `/scaffold`** — Continue implementation work from the existing branch
+- **Continue bootstrap anyway** — Proceed with the planning pipeline regardless (e.g., to create missing docs)
+
+**Do not proceed with Gate 1 unless the user explicitly chooses "Continue bootstrap anyway".**
+
+---
+
 ### Step 1 -- Scan for Existing Documents
 
 Before starting any gate, check what already exists:
@@ -192,6 +219,7 @@ Once all three gates are passed, inform the user:
 | `--spec N` but no spec found | Inform user: "No spec found matching issue #N. Try `/bootstrap --issue N` or `/bootstrap 'your idea'` to start from scratch." |
 | Analysis exists but is a brainstorm | Treat as "no analysis" -- invoke `/interview` to promote brainstorm to analysis |
 | `/interview` or `/plan` skill fails | Report the error to the user and stop |
+| Issue already has a branch or open PR | Stop and propose `/review` or `/scaffold` instead (Step 0b) |
 
 ## Skill Invocation Reference
 
