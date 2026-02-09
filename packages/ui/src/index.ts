@@ -86,6 +86,28 @@ export { Slider } from './components/Slider'
 export { Switch } from './components/Switch'
 export { Textarea } from './components/Textarea'
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './components/Tooltip'
-
+// Theme engine
+export type {
+  DerivedTheme,
+  ThemeColors,
+  ThemeConfig,
+  ThemeShadows,
+  ThemeTypography,
+} from './lib/theme'
+export {
+  applyTheme,
+  contrastRatio,
+  deriveFullTheme,
+  hexToOklch,
+  meetsWcagAA,
+  oklchToHex,
+  resetTheme,
+} from './lib/theme'
 // Utilities
 export { cn } from './lib/utils'
+
+// Theme presets
+export { defaultTheme } from './themes/default'
+export { minimalTheme } from './themes/minimal'
+export { oceanTheme } from './themes/ocean'
+export { warmTheme } from './themes/warm'
