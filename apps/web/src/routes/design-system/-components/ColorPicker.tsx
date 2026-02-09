@@ -1,7 +1,7 @@
-// TODO: implement — import color conversion helpers
-// import { hexToOklch, oklchToHex, meetsWcagAA } from '@repo/ui'
+import { Badge, cn, hexToOklch, meetsWcagAA, oklchToHex } from '@repo/ui'
+import { useMemo } from 'react'
 
-interface ColorPickerProps {
+type ColorPickerProps = {
   /** Semantic token name (e.g., "Primary", "Secondary") */
   label: string
   /** Current value in OKLch format */
@@ -25,16 +25,74 @@ interface ColorPickerProps {
  * - aria-label with token name (e.g., "Primary color")
  * - Keyboard operable
  */
-export function ColorPicker(_props: ColorPickerProps) {
-  // TODO: implement
-  // 1. Convert OKLch value to hex for the native color picker
-  // 2. On picker change: convert hex to OKLch → call onChange
-  // 3. Display hex and OKLch values
-  // 4. If contrastAgainst provided, compute contrast ratio and show indicator
+export function ColorPicker({ label, value, onChange, contrastAgainst }: ColorPickerProps) {
+  const hexValue = useMemo(() => {
+    try {
+      return oklchToHex(value)
+    } catch {
+      return '#000000'
+    }
+  }, [value])
+
+  const passesContrast = useMemo(() => {
+    if (!contrastAgainst) return undefined
+    try {
+      return meetsWcagAA(value, contrastAgainst)
+    } catch {
+      return undefined
+    }
+  }, [value, contrastAgainst])
+
+  function handleColorChange(e: React.ChangeEvent<HTMLInputElement>) {
+    try {
+      const oklch = hexToOklch(e.target.value)
+      onChange(oklch)
+    } catch {
+      // Ignore invalid hex values from the picker
+    }
+  }
 
   return (
-    <div>
-      <p>ColorPicker — scaffold placeholder</p>
+    <div className="flex items-center gap-3">
+      <label
+        className="group relative flex size-10 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md border border-border shadow-sm"
+        aria-label={`${label} color`}
+      >
+        <input
+          type="color"
+          value={hexValue}
+          onChange={handleColorChange}
+          className="absolute inset-0 size-full cursor-pointer opacity-0"
+          aria-label={`${label} color picker`}
+        />
+        <span className="block size-full rounded-md" style={{ backgroundColor: hexValue }} />
+      </label>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-foreground">{label}</span>
+          {passesContrast !== undefined && (
+            <Badge
+              variant={passesContrast ? 'secondary' : 'destructive'}
+              className="text-[10px] leading-none"
+            >
+              {passesContrast ? 'AA' : 'Fail'}
+            </Badge>
+          )}
+        </div>
+        <div className="mt-0.5 flex items-center gap-2">
+          <code className="text-xs text-muted-foreground">{hexValue}</code>
+          <span className="text-muted-foreground/40" aria-hidden="true">
+            /
+          </span>
+          <code
+            className={cn('max-w-[160px] truncate text-xs text-muted-foreground')}
+            title={value}
+          >
+            {value}
+          </code>
+        </div>
+      </div>
     </div>
   )
 }

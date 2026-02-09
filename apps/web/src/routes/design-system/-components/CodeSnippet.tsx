@@ -1,4 +1,7 @@
-interface CodeSnippetProps {
+import { cn } from '@repo/ui'
+import { useState } from 'react'
+
+type CodeSnippetProps = {
   /** The code string to display */
   code: string
   /** Programming language for syntax highlighting */
@@ -6,30 +9,43 @@ interface CodeSnippetProps {
 }
 
 /**
- * Syntax-highlighted code snippet with copy button.
+ * Code snippet with copy button.
  *
- * Uses shiki for highlighting (already a project dependency via Fumadocs).
- * Loaded lazily (dynamic import) to avoid bundling shiki eagerly.
- *
- * If shiki chunk exceeds 100KB gzip for this route, falls back to
- * CSS-only syntax theme with <pre><code> and class-based token coloring.
- *
- * Features:
- * - Syntax highlighting via shiki (lazy-loaded)
- * - Copy button (navigator.clipboard.writeText + checkmark confirmation)
- * - Responsive: horizontal scroll for long lines
+ * Uses a simple `<pre><code>` with basic Tailwind styling (no shiki for now).
+ * Includes a copy-to-clipboard button with checkmark confirmation.
  */
-export function CodeSnippet(_props: CodeSnippetProps) {
-  // TODO: implement
-  // 1. Lazy-load shiki highlighter
-  // 2. Highlight code string
-  // 3. Render <pre><code> with highlighted HTML
-  // 4. Add copy button with clipboard API
-  // 5. Show checkmark confirmation after copy
+export function CodeSnippet({ code, language }: CodeSnippetProps) {
+  const [copied, setCopied] = useState(false)
+
+  function handleCopy() {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 3000)
+    })
+  }
 
   return (
-    <div>
-      <p>CodeSnippet — scaffold placeholder</p>
+    <div className="relative">
+      {language && (
+        <span className="text-muted-foreground absolute top-2 left-4 text-xs select-none">
+          {language}
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={handleCopy}
+        className={cn(
+          'absolute top-2 right-2 rounded-md border px-2 py-1 text-xs transition-colors',
+          'bg-background hover:bg-accent text-muted-foreground hover:text-foreground',
+          copied && 'text-green-600 hover:text-green-600'
+        )}
+        aria-label={copied ? 'Copied' : 'Copy code'}
+      >
+        {copied ? '✓ Copied' : 'Copy'}
+      </button>
+      <pre className={cn('bg-muted overflow-x-auto rounded-lg p-4 text-sm', language && 'pt-8')}>
+        <code className="font-mono">{code}</code>
+      </pre>
     </div>
   )
 }
