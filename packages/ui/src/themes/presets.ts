@@ -984,8 +984,10 @@ export function getComposedConfig(base: ShadcnPreset, color?: ShadcnPreset | nul
  * Falls back to Zinc base values for any missing keys.
  */
 export function getPresetConfig(preset: ShadcnPreset): ThemeConfig {
+  const zincBase = BASE_PRESETS.find((p) => p.name === 'zinc')
+  if (!zincBase) throw new Error('Zinc preset not found in BASE_PRESETS')
   return getComposedConfig(
-    preset.group === 'base' ? preset : BASE_PRESETS.find((p) => p.name === 'zinc')!,
+    preset.group === 'base' ? preset : zincBase,
     preset.group === 'color' ? preset : null
   )
 }

@@ -133,7 +133,9 @@ function ThemeScript() {
 // ---------------------------------------------------------------------------
 
 /** Zinc is the default base — matches theme.css */
-const ZINC_PRESET = BASE_PRESETS.find((p) => p.name === 'zinc')!
+const _zincPreset = BASE_PRESETS.find((p) => p.name === 'zinc')
+if (!_zincPreset) throw new Error('Zinc preset not found in BASE_PRESETS')
+const ZINC_PRESET = _zincPreset
 const ZINC_CONFIG = getComposedConfig(ZINC_PRESET, null)
 
 /** Look up a base preset by name (stable — only depends on constants). */

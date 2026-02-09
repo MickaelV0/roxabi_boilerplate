@@ -83,7 +83,8 @@
       "!**/project.inlang",
       "!**/*.css",
       "!**/playwright-report",
-      "!**/test-results"
+      "!**/test-results",
+      "!**/reports/licenses.json"
     ]
   }
 }
