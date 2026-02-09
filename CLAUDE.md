@@ -138,6 +138,7 @@ cd ../roxabi-XXX
 | bootstrap, plan feature, start feature | `bootstrap` | "bootstrap avatar upload", "/bootstrap --issue 42" |
 | scaffold, setup feature | `scaffold` | "scaffold from spec", "/scaffold --spec 42" |
 | plan, implementation plan | `plan` | "plan the implementation", "/plan --spec 42" |
+| 1b1, one by one, walk through | `1b1` | "go through these one by one", "/1b1" |
 | adr, architecture decision | `adr` | "create an ADR", "list ADRs", "/adr --list" |
 
 **Important notes:**
