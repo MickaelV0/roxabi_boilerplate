@@ -52,6 +52,35 @@ function findDifferences(
   }
 }
 
+function checkLocale(
+  locale: string,
+  baseLocale: string,
+  refKeys: string[],
+  localeKeys: string[]
+): boolean {
+  const { missing, extra } = findDifferences(refKeys, localeKeys)
+
+  if (missing.length > 0) {
+    console.error(`  ${locale}: Missing ${missing.length} keys:`)
+    for (const key of missing) {
+      console.error(`    - ${key}`)
+    }
+  }
+
+  if (extra.length > 0) {
+    console.warn(`  ${locale}: Extra ${extra.length} keys (not in ${baseLocale}):`)
+    for (const key of extra) {
+      console.warn(`    - ${key}`)
+    }
+  }
+
+  if (missing.length === 0 && extra.length === 0) {
+    console.log(`  ${locale}: ${localeKeys.length} keys - all match`)
+  }
+
+  return missing.length > 0
+}
+
 async function main() {
   console.log('Validating translations...\n')
 
@@ -77,25 +106,8 @@ async function main() {
     const localeMessages = await loadMessages(localePath)
     const localeKeys = Object.keys(localeMessages).sort()
 
-    const { missing, extra } = findDifferences(refKeys, localeKeys)
-
-    if (missing.length > 0) {
-      console.error(`  ${locale}: Missing ${missing.length} keys:`)
-      for (const key of missing) {
-        console.error(`    - ${key}`)
-      }
+    if (checkLocale(locale, baseLocale, refKeys, localeKeys)) {
       hasErrors = true
-    }
-
-    if (extra.length > 0) {
-      console.warn(`  ${locale}: Extra ${extra.length} keys (not in ${baseLocale}):`)
-      for (const key of extra) {
-        console.warn(`    - ${key}`)
-      }
-    }
-
-    if (missing.length === 0 && extra.length === 0) {
-      console.log(`  ${locale}: ${localeKeys.length} keys - all match`)
     }
   }
 

@@ -25,6 +25,10 @@
     },
     "clean": {
       "cache": false
+    },
+    "license:check": {
+      "cache": false,
+      "outputs": ["reports/licenses.json"]
     }
   }
 }

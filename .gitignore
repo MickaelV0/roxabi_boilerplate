@@ -51,6 +51,9 @@ test-results/
 .cache/
 *.tsbuildinfo
 
+# Reports (generated artifacts)
+reports/
+
 # Misc
 *.pem
 .vercel
