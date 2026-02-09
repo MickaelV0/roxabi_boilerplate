@@ -57,13 +57,8 @@ describe('policy loading', () => {
     expect(policy.overrides).toEqual({ 'foo@1.0.0': 'MIT' })
   })
 
-  it('exits when policy file is missing', () => {
-    const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('exit')
-    })
-    expect(() => loadPolicy(tmpDir)).toThrow('exit')
-    expect(mockExit).toHaveBeenCalledWith(1)
-    mockExit.mockRestore()
+  it('throws when policy file is missing', () => {
+    expect(() => loadPolicy(tmpDir)).toThrow('No license-policy.json found at repo root')
   })
 
   it('handles empty allowedLicenses (strict mode)', () => {
@@ -157,6 +152,14 @@ describe('SPDX expression handling', () => {
 
   it('allows a direct match', () => {
     expect(isLicenseAllowed('MIT', ['MIT', 'ISC'])).toBe(true)
+  })
+
+  it('rejects AND expression when not all components are allowed', () => {
+    expect(isLicenseAllowed('MIT AND GPL-3.0', ['MIT'])).toBe(false)
+  })
+
+  it('allows AND expression when all components are allowed', () => {
+    expect(isLicenseAllowed('MIT AND ISC', ['MIT', 'ISC'])).toBe(true)
   })
 
   it('rejects null license', () => {

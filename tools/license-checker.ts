@@ -58,8 +58,7 @@ export interface LicenseReport {
 export function loadPolicy(repoRoot: string): LicensePolicy {
   const policyPath = join(repoRoot, 'license-policy.json')
   if (!existsSync(policyPath)) {
-    console.error('Error: No license-policy.json found at repo root')
-    process.exit(1)
+    throw new Error('No license-policy.json found at repo root')
   }
   const raw = readFileSync(policyPath, 'utf-8')
   const policy = JSON.parse(raw) as LicensePolicy
@@ -163,24 +162,31 @@ function readPackageInfo(pkgDir: string): RawPackageInfo | null {
   }
 }
 
+function collectWorkspaceNodeModules(repoRoot: string): string[] {
+  try {
+    const rootPkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf-8'))
+    const workspaceGlobs: string[] = rootPkg.workspaces ?? []
+    const workspaceDirs = new Set(workspaceGlobs.map((g: string) => g.replace(/\/\*$/, '')))
+    const dirs: string[] = []
+    for (const dir of workspaceDirs) {
+      const wsRoot = join(repoRoot, dir)
+      if (!existsSync(wsRoot)) continue
+      for (const ws of readdirSync(wsRoot)) {
+        const wsNodeModules = join(wsRoot, ws, 'node_modules')
+        if (existsSync(wsNodeModules)) dirs.push(wsNodeModules)
+      }
+    }
+    return dirs
+  } catch {
+    return []
+  }
+}
+
 export function scanDependencies(repoRoot: string): RawPackageInfo[] {
   const seen = new Set<string>()
   const results: RawPackageInfo[] = []
 
-  // Collect node_modules directories: root + each workspace
-  const nodeModulesDirs = [join(repoRoot, 'node_modules')]
-
-  const workspaceGlobs = ['apps', 'packages']
-  for (const dir of workspaceGlobs) {
-    const wsRoot = join(repoRoot, dir)
-    if (!existsSync(wsRoot)) continue
-    for (const ws of readdirSync(wsRoot)) {
-      const wsNodeModules = join(wsRoot, ws, 'node_modules')
-      if (existsSync(wsNodeModules)) {
-        nodeModulesDirs.push(wsNodeModules)
-      }
-    }
-  }
+  const nodeModulesDirs = [join(repoRoot, 'node_modules'), ...collectWorkspaceNodeModules(repoRoot)]
 
   for (const nmDir of nodeModulesDirs) {
     for (const pkg of listPackagesInNodeModules(nmDir)) {
@@ -208,13 +214,20 @@ const LICENSE_FILE_NAMES = [
 const LICENSE_PATTERNS: Array<[RegExp, string]> = [
   [/MIT License/i, 'MIT'],
   [/Permission is hereby granted, free of charge/i, 'MIT'],
+  [/MIT No Attribution/i, 'MIT-0'],
   [/Apache License.*Version 2\.0/i, 'Apache-2.0'],
   [/BSD 3-Clause/i, 'BSD-3-Clause'],
   [/BSD 2-Clause/i, 'BSD-2-Clause'],
+  [/BSD Zero Clause/i, '0BSD'],
+  [/Permission to use, copy, modify, and\/or distribute.*without fee/i, 'ISC'],
   [/ISC License/i, 'ISC'],
-  [/Permission to use, copy, modify, and\/or distribute/i, 'ISC'],
   [/The Unlicense/i, 'Unlicense'],
   [/CC0 1\.0 Universal/i, 'CC0-1.0'],
+  [/Creative Commons Attribution 4\.0/i, 'CC-BY-4.0'],
+  [/Blue Oak Model License.*1\.0\.0/i, 'BlueOak-1.0.0'],
+  [/Mozilla Public License.*Version 2\.0/i, 'MPL-2.0'],
+  [/Python Software Foundation License/i, 'Python-2.0'],
+  [/PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2/i, 'Python-2.0'],
 ]
 
 function detectLicenseFromFile(pkgDir: string): string | null {
@@ -274,8 +287,8 @@ export function detectLicense(
 // ─── SPDX Expression Handling ────────────────────────────────────────────────
 
 export function parseSpdxExpression(expression: string): string[] {
-  // Strip outer parens and split on OR/AND
-  const cleaned = expression.replace(/^\(|\)$/g, '')
+  // Strip all parens and split on OR/AND
+  const cleaned = expression.replace(/[()]/g, '')
   return cleaned
     .split(/\s+(?:OR|AND)\s+/i)
     .map((s) => s.trim())
@@ -288,10 +301,16 @@ export function isLicenseAllowed(license: string | null, allowedLicenses: string
   // Direct match
   if (allowedLicenses.includes(license)) return true
 
-  // SPDX expression — check if ANY component is allowed
-  if (license.includes(' OR ') || license.includes(' AND ') || license.startsWith('(')) {
+  // SPDX OR expression — at least one component must be allowed
+  if (license.includes(' OR ') || license.startsWith('(')) {
     const components = parseSpdxExpression(license)
     return components.some((c) => allowedLicenses.includes(c))
+  }
+
+  // SPDX AND expression — all components must be allowed
+  if (license.includes(' AND ')) {
+    const components = parseSpdxExpression(license)
+    return components.every((c) => allowedLicenses.includes(c))
   }
 
   return false
@@ -412,29 +431,34 @@ export function printSummary(report: LicenseReport, reportPath: string): void {
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 function main(): void {
-  const repoRoot = resolve(import.meta.dirname ?? '.', '..')
+  try {
+    const repoRoot = resolve(import.meta.dirname ?? '.', '..')
 
-  // 1. Validate node_modules exists
-  if (!existsSync(join(repoRoot, 'node_modules'))) {
-    console.error('Error: Run `bun install` first')
+    // 1. Validate node_modules exists
+    if (!existsSync(join(repoRoot, 'node_modules'))) {
+      console.error('Error: Run `bun install` first')
+      process.exit(1)
+    }
+
+    // 2. Load policy
+    const policy = loadPolicy(repoRoot)
+
+    // 3-5. Scan dependencies and check compliance
+    const packages = scanDependencies(repoRoot)
+    const report = checkCompliance(packages, policy)
+
+    // 6. Generate report
+    const reportPath = writeReport(report, repoRoot)
+
+    // 7. Print CLI output
+    printSummary(report, reportPath)
+
+    // 8. Exit with appropriate code
+    process.exit(report.summary.violations > 0 ? 1 : 0)
+  } catch (error) {
+    console.error(`Error: ${error instanceof Error ? error.message : error}`)
     process.exit(1)
   }
-
-  // 2. Load policy
-  const policy = loadPolicy(repoRoot)
-
-  // 3-5. Scan dependencies and check compliance
-  const packages = scanDependencies(repoRoot)
-  const report = checkCompliance(packages, policy)
-
-  // 6. Generate report
-  const reportPath = writeReport(report, repoRoot)
-
-  // 7. Print CLI output
-  printSummary(report, reportPath)
-
-  // 8. Exit with appropriate code
-  process.exit(report.summary.violations > 0 ? 1 : 0)
 }
 
 // Only run when executed directly, not when imported for testing
