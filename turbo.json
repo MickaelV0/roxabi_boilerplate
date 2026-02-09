@@ -25,6 +25,9 @@
     },
     "clean": {
       "cache": false
+    },
+    "license:check": {
+      "cache": false
     }
   }
 }
