@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "codegen": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --silent && tsr generate",
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
@@ -68,6 +69,7 @@
     "@content-collections/core": "^0.13.1",
     "@content-collections/vite": "^0.2.8",
     "@inlang/paraglide-js": "^2.8.0",
+    "@tanstack/router-cli": "^1.158.0",
     "@repo/config": "workspace:*",
     "@tanstack/devtools-event-client": "^0.4.0",
     "@tanstack/devtools-vite": "^0.3.11",

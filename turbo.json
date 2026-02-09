@@ -9,8 +9,11 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "build/**"]
     },
+    "codegen": {
+      "outputs": ["src/routeTree.gen.ts", "src/paraglide/**"]
+    },
     "typecheck": {
-      "dependsOn": ["^typecheck"]
+      "dependsOn": ["codegen", "^typecheck"]
     },
     "lint": {
       "dependsOn": ["^lint"]

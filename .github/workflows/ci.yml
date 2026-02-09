@@ -16,7 +16,7 @@ concurrency:
 
 env:
   BUN_VERSION: "1.3.6"
-  NODE_VERSION: "20"
+  NODE_VERSION: "24"
 
 jobs:
   lint:
@@ -84,6 +84,9 @@ jobs:
           restore-keys: |
             turbo-typecheck-${{ runner.os }}-
 
+      - name: Generate Paraglide & route tree
+        run: cd apps/web && bun run codegen
+
       - name: Run typecheck
         run: bun typecheck
         env:
@@ -126,11 +129,11 @@ jobs:
           restore-keys: |
             turbo-test-${{ runner.os }}-
 
-      - name: Compile Paraglide
-        run: cd apps/web && bunx paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --strategy url cookie preferredLanguage baseLocale --silent
+      - name: Generate Paraglide & route tree
+        run: cd apps/web && bun run codegen
 
       - name: Run tests with coverage
-        run: bun test:coverage
+        run: bunx --bun vitest run --coverage
         env:
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM }}
