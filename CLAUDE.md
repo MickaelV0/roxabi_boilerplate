@@ -19,6 +19,8 @@
 | Configuration & setup | [docs/configuration.mdx](docs/configuration.mdx) |
 | Contributing & MDX guide | [docs/contributing.mdx](docs/contributing.mdx) |
 | Guides | [docs/guides/](docs/guides/) |
+| Agent Teams guide | [docs/guides/agent-teams.mdx](docs/guides/agent-teams.mdx) |
+| Agent Teams coordination | [AGENTS.md](AGENTS.md) |
 | Hooks | [docs/hooks.mdx](docs/hooks.mdx) |
 
 ---
