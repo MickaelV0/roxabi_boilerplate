@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import type { ConfigService } from '@nestjs/config'
+import { ConfigService } from '@nestjs/config'
 import type { FastifyRequest } from 'fastify'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { type BetterAuthInstance, createBetterAuth } from './auth.instance.js'

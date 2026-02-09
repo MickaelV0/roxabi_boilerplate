@@ -3,7 +3,7 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 import { Session } from '../auth/decorators/session.decorator.js'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
-import type { UserService } from './user.service.js'
+import { UserService } from './user.service.js'
 
 const updateProfileSchema = z.object({
   name: z.string().min(1).max(100).optional(),

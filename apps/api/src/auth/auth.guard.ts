@@ -5,9 +5,9 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common'
-import type { Reflector } from '@nestjs/core'
+import { Reflector } from '@nestjs/core'
 import type { FastifyRequest } from 'fastify'
-import type { AuthService } from './auth.service.js'
+import { AuthService } from './auth.service.js'
 
 type AuthSession = {
   user: { id: string; role?: string }
