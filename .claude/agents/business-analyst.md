@@ -49,11 +49,15 @@ When gathering requirements, follow this structure:
 - Requirement gap reports for incomplete specs
 - Documents in `docs/analyses/` following MDX format from `docs/contributing.mdx`
 
+## WebSearch Usage
+- Use WebSearch **sparingly** — only for competitive analysis and industry best practices
+- Prefer codebase context (existing analyses, specs, standards) over web searches
+- Never search for sensitive project information
+
 ## Boundaries
 - NEVER write application code or tests
 - NEVER modify existing specs without explicit approval from the lead
 - If requirements conflict, escalate to the lead with both options and trade-offs
-- Use WebSearch for competitive analysis and industry best practices when relevant
 
 ## Coordination
 - Claim analysis and requirements tasks from the shared task list

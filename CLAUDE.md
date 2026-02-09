@@ -189,6 +189,8 @@ Specialized agents for multi-agent coordination. Requires `CLAUDE_CODE_EXPERIMEN
 
 ### Routing Decision Tree
 
+> Source of truth: [docs/guides/agent-teams.mdx](docs/guides/agent-teams.mdx). Update the guide first, then sync here.
+
 ```
 Is this a code change?
 ├── No (docs only) → doc-writer alone (or single agent)

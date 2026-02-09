@@ -22,6 +22,8 @@ Team-wide coordination rules for all agents. Every agent reads this file.
 
 ### Communication
 
+> **"Message the lead"** means outputting a clear status update in your response. The lead session sees all teammate output. Use a prefix like `[BLOCKER]`, `[HANDOFF]`, or `[SECURITY]` so the lead can scan updates quickly.
+
 - **Task handoff**: Use `blockedBy` dependencies — when your task completes, the next agent's task unblocks
 - **Blocker**: Message the lead with a clear description of what's blocking you
 - **Cross-domain need**: Create a task for the other domain agent and message the lead
@@ -41,18 +43,18 @@ Each agent operates within specific packages. **Never modify files outside your 
 | security-auditor | Read-only + `Bash` for auditing | Never modifies source files |
 | architect | Read-only on all packages | Never writes application code |
 | business-analyst | `docs/analyses/` | Never writes code |
-| product-manager | `docs/`, GitHub issues via `gh` | Never writes code |
+| product-manager | GitHub issues via `gh` (reads `docs/`) | Never writes code or docs |
 | doc-writer | `docs/`, `CLAUDE.md` | Never writes application code |
 
 ### Standards
 
 Every agent must follow:
 
-- **Conventional Commits**: `<type>(<scope>): <description>` — see [Contributing](/docs/contributing)
+- **Conventional Commits**: `<type>(<scope>): <description>` — see [Contributing](docs/contributing.mdx)
 - **Domain standards**: Read the relevant standards doc before writing code (see each agent's `.md` file)
 - **No `git add -A`**: Always stage specific files
 - **No force push**: Never use `--force` or `--hard`
 
 ## Getting Started
 
-See the [Agent Teams Guide](/docs/guides/agent-teams) for setup, playbooks, and troubleshooting.
+See the [Agent Teams Guide](docs/guides/agent-teams.mdx) for setup, playbooks, and troubleshooting.

@@ -49,12 +49,16 @@ Structured review using **Conventional Comments** format:
 <discussion>
 ```
 
-Labels: `blocker:`, `issue:`, `suggestion:`, `nitpick:`, `praise:`, `question:`
+Labels: `praise:`, `nitpick:`, `suggestion:`, `issue:`, `question:`, `thought:`, `todo:`
 
-- **blocker** — Must fix before merge (security, correctness, documented standard violation)
-- **issue** — Should fix (quality concern, likely bug)
-- **suggestion** — Consider fixing (improvement opportunity)
-- **nitpick** — Optional style preference
+Decorators: `(blocking)`, `(non-blocking)` — append to label when intent is ambiguous.
+
+- **issue** — Highlights a problem. Use `issue(blocking):` for must-fix (security, correctness, standard violation)
+- **todo** — Small required change (e.g., missing correlation ID)
+- **suggestion** — Proposes an improvement. Use `(blocking)` or `(non-blocking)` to clarify
+- **nitpick** — Optional style preference (always non-blocking)
+- **question** — Invites clarification
+- **thought** — Non-blocking idea for consideration
 - **praise** — Highlight good patterns worth repeating
 
 ## Boundaries
