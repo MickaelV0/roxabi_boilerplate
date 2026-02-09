@@ -1,0 +1,154 @@
+---
+argument-hint: [--draft | --base <branch>]
+description: Create or update a pull request with consistent format, issue linking, and guard rails.
+allowed-tools: Bash, AskUserQuestion, Read, Grep
+---
+
+# Pull Request
+
+Create or update a pull request with a consistent format, proper issue linking, and guard rails. Natural pair with `/commit`.
+
+## Instructions
+
+### 1. Gather State
+
+Run all these commands and collect the output:
+
+```bash
+# Current branch
+BRANCH=$(git branch --show-current)
+echo "Branch: $BRANCH"
+
+# All commits on this branch vs main
+git log main..HEAD --oneline
+
+# Changed files summary
+git diff main...HEAD --stat
+
+# Check if PR already exists for this branch
+gh pr list --head "$BRANCH" --json number,title,url,state
+```
+
+### 2. Guard Rails
+
+Check each condition **before** proceeding:
+
+| Check | Condition | Action |
+|-------|-----------|--------|
+| **Branch is main/master** | `$BRANCH` is `main` or `master` | **REFUSE.** Tell user to create a feature branch first. Stop here. |
+| **No commits ahead** | `git log main..HEAD` is empty | **REFUSE.** Nothing to PR. Stop here. |
+| **PR already exists** | `gh pr list` returned a result | Offer to **update** the existing PR description with `gh pr edit` instead of creating a new one. Use `AskUserQuestion` to confirm. |
+| **Branch not pushed** | `git ls-remote --heads origin $BRANCH` is empty | Push with `git push -u origin $BRANCH` before creating PR. |
+| **Behind main** | `git rev-list HEAD..main --count` > 0 | **Warn** the user that the branch is behind main and suggest rebasing. Use `AskUserQuestion` to ask whether to continue anyway or rebase first. |
+| **Quality gates** | Run `bun lint && bun typecheck` | **Warn** if failing but do NOT block. Show the output and note it in the PR body if user chooses to proceed. |
+
+### 3. Generate PR Content
+
+**Analyze ALL commits** on the branch (not just the latest) to understand the full scope of changes:
+
+```bash
+# Full commit messages
+git log main..HEAD --format="%h %s%n%b"
+
+# Diff stat for scope
+git diff main...HEAD --stat
+```
+
+**Detect issue number** from the branch name:
+
+- Branch `feature/42-user-auth` -> issue `#42`
+- Branch `fix/15-login-timeout` -> issue `#15`
+- Pattern: extract the first number after the `/` in the branch name
+- If no issue number found, ask the user via `AskUserQuestion`
+
+**Generate title** in Conventional Commits format:
+
+- Analyze the commits to determine the primary type (`feat`, `fix`, `docs`, `refactor`, `chore`, `test`, `ci`, `perf`)
+- Analyze the changed files to determine the scope (`web`, `api`, `ui`, `config`, or omit if cross-cutting)
+- Format: `<type>(<scope>): <description>` (under 70 characters)
+- The description should summarize what the PR accomplishes, not list individual commits
+
+**Generate body** using the template below.
+
+### 4. Present for Approval
+
+Use **AskUserQuestion** to present the generated title and body to the user:
+
+- Show the full PR title
+- Show the full PR body
+- Options: **Create PR** / **Create as Draft** / **Edit title/body** / **Cancel**
+
+If user chooses "Edit title/body", ask what they want to change and regenerate.
+
+### 5. Create PR
+
+```bash
+# Standard PR
+gh pr create --title "<title>" --body "<body>"
+
+# If --draft flag or user chose "Create as Draft"
+gh pr create --title "<title>" --body "<body>" --draft
+
+# If --base flag specified
+gh pr create --title "<title>" --body "<body>" --base <branch>
+```
+
+After creation, display the PR URL.
+
+If updating an existing PR instead:
+
+```bash
+gh pr edit <number> --title "<title>" --body "<body>"
+```
+
+## PR Body Template
+
+```markdown
+## Summary
+- {bullet 1: what changed and why}
+- {bullet 2: secondary change if applicable}
+- {bullet 3: if needed}
+
+## Test Plan
+- [ ] {how to verify the change works}
+- [ ] {edge case to test}
+
+Closes #{issue_number}
+
+---
+Generated with [Claude Code](https://claude.com/claude-code) via `/pr`
+```
+
+**Notes on the template:**
+
+- Summary bullets should focus on **what** changed and **why**, not list commits
+- Test Plan should have actionable items a reviewer can follow
+- `Closes #XX` auto-links and auto-closes the issue on merge
+- If no issue number was detected, omit the `Closes` line
+
+## Options
+
+| Flag | Description |
+|------|-------------|
+| (none) | Create PR targeting `main` |
+| `--draft` | Create as draft PR |
+| `--base <branch>` | Target a specific base branch instead of `main` |
+
+## Edge Cases
+
+- **Branch is main/master:** Refuse immediately. Tell user: "Cannot create a PR from main. Create a feature branch first: `git checkout -b feature/<issue>-<description>`"
+- **No commits ahead of main:** Refuse. Tell user: "No commits ahead of main. Nothing to create a PR for."
+- **PR already exists:** Offer to update the existing PR description with `gh pr edit`. Show the existing PR URL.
+- **No issue number in branch name:** Ask the user via `AskUserQuestion` if they want to link an issue (provide issue number) or skip issue linking.
+- **Multiple types of changes:** If commits span multiple types (e.g., feat + test + docs), use the primary type (the one representing the main purpose of the PR).
+- **Lint/typecheck failures:** Show the failures as a warning, ask user whether to proceed or fix first. If proceeding, add a note in the PR body under Summary.
+
+## Safety Rules
+
+1. **NEVER create a PR from `main` or `master`**
+2. **NEVER force-push** as part of this skill
+3. **ALWAYS present the PR content for user approval** before creating
+4. **ALWAYS use `AskUserQuestion`** for decisions (proceed despite warnings, edit content, etc.)
+5. **ALWAYS display the PR URL** after successful creation
+
+$ARGUMENTS
