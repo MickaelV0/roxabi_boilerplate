@@ -84,7 +84,56 @@ gh issue view <number> --json number,title,state 2>/dev/null
 
 **If issue already exists:** use the existing issue number. Inform the user.
 
-### 4. Create Branch + Worktree
+### 4. Update Issue Status to "In Progress"
+
+If a GitHub issue is associated, move it to **In Progress** on the project board:
+
+```bash
+# Get the project item ID for the issue
+ITEM_ID=$(gh api graphql -F query=@- -f projectId="PVT_kwHODEqYK84BOId3" <<'GQL' | jq -r --argjson num <ISSUE_NUMBER> '.data.node.items.nodes[] | select(.content.number == $num) | .id'
+query($projectId: ID!) {
+  node(id: $projectId) {
+    ... on ProjectV2 {
+      items(first: 100) {
+        nodes {
+          id
+          content { ... on Issue { number } }
+        }
+      }
+    }
+  }
+}
+GQL
+)
+
+# Set Status to "In Progress" (use heredoc to avoid shell expansion of GraphQL $ variables)
+gh api graphql -F query=@- \
+  -f projectId="PVT_kwHODEqYK84BOId3" \
+  -f itemId="$ITEM_ID" \
+  -f fieldId="PVTSSF_lAHODEqYK84BOId3zg87HNM" \
+  -f optionId="331d27a4" <<'GQL'
+mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+  updateProjectV2ItemFieldValue(input: {projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: {singleSelectOptionId: $optionId}}) {
+    projectV2Item { id }
+  }
+}
+GQL
+```
+
+**Status option IDs reference:**
+
+| Status | Option ID |
+|--------|-----------|
+| Backlog | `df6ee93b` |
+| Analysis | `bec91bb0` |
+| Specs | `ad9a9195` |
+| In Progress | `331d27a4` |
+| Review | `ee30a001` |
+| Done | `bfdc35bd` |
+
+Skip this step if no issue is associated with the scaffold.
+
+### 5. Create Branch + Worktree
 
 Extract a slug from the spec title (kebab-case, 3-4 words max).
 
@@ -104,7 +153,7 @@ git checkout -b feat/<issue_number>-<slug>
 
 Stay in the current directory.
 
-### 5. Scaffold Boilerplate
+### 6. Scaffold Boilerplate
 
 #### 5.1 Find a Reference Feature
 
@@ -164,7 +213,7 @@ Options:
 - **Edit list** — add/remove files
 - **Cancel** — abort scaffold
 
-### 6. Verify
+### 7. Verify
 
 Run quality checks on the scaffolded files:
 
@@ -186,7 +235,7 @@ bun lint && bun typecheck
 
 **If lint fails:** auto-fix with `bunx biome check --write` and re-run.
 
-### 7. Commit
+### 8. Commit
 
 Follow `/commit` skill conventions. **Do NOT ask the user to approve the commit message.** Proceed directly to committing.
 
@@ -221,7 +270,7 @@ Replace `<model>` with the actual model name (e.g., `Claude Opus 4.6`).
 
 5. If pre-commit hook fails: fix, re-stage, create a **NEW** commit (never amend).
 
-### 8. Final Summary
+### 9. Final Summary
 
 **Do NOT create a draft PR.** The scaffold only sets up stubs — the PR should be created later via `/pr` once implementation is complete.
 
