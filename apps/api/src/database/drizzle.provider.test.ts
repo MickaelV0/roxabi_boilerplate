@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { drizzleProvider, postgresClientProvider } from './drizzle.provider'
+import { drizzleProvider, postgresClientProvider } from './drizzle.provider.js'
 
 function createMockConfig(values: Record<string, string | undefined>) {
   return {

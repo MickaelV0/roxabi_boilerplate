@@ -1,6 +1,6 @@
 import 'reflect-metadata'
 import { describe, expect, it } from 'vitest'
-import { validate } from './env.validation'
+import { validate } from './env.validation.js'
 
 // Note: enableImplicitConversion in class-transformer relies on emitDecoratorMetadata
 // to coerce strings to numbers. Vitest uses esbuild which doesn't emit decorator metadata,

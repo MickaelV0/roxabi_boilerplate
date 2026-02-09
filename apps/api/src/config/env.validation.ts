@@ -27,6 +27,37 @@ export class EnvironmentVariables {
   @IsString()
   @IsOptional()
   LOG_LEVEL = 'debug'
+
+  @IsString()
+  BETTER_AUTH_SECRET = 'dev-secret-do-not-use-in-production'
+
+  @IsString()
+  @IsOptional()
+  BETTER_AUTH_URL = 'http://localhost:3001'
+
+  @IsString()
+  @IsOptional()
+  GOOGLE_CLIENT_ID?: string
+
+  @IsString()
+  @IsOptional()
+  GOOGLE_CLIENT_SECRET?: string
+
+  @IsString()
+  @IsOptional()
+  GITHUB_CLIENT_ID?: string
+
+  @IsString()
+  @IsOptional()
+  GITHUB_CLIENT_SECRET?: string
+
+  @IsString()
+  @IsOptional()
+  RESEND_API_KEY?: string
+
+  @IsString()
+  @IsOptional()
+  EMAIL_FROM = 'noreply@yourdomain.com'
 }
 
 export function validate(config: Record<string, unknown>) {

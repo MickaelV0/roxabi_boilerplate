@@ -2,7 +2,7 @@ import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
-import * as schema from './schema'
+import * as schema from './schema/index.js'
 
 export const DRIZZLE = Symbol('DRIZZLE')
 export const POSTGRES_CLIENT = Symbol('POSTGRES_CLIENT')

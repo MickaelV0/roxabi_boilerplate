@@ -5,12 +5,12 @@
       "cache": false,
       "persistent": true
     },
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "build/**"]
-    },
     "codegen": {
       "outputs": ["src/routeTree.gen.ts", "src/paraglide/**"]
+    },
+    "build": {
+      "dependsOn": ["codegen", "^build"],
+      "outputs": ["dist/**", ".next/**", "build/**"]
     },
     "typecheck": {
       "dependsOn": ["codegen", "^typecheck", "^build"]

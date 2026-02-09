@@ -14,6 +14,12 @@ const config = defineConfig(async () => ({
   envDir: '../..',
   server: {
     port: Number(process.env.WEB_PORT) || 3000,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+    },
   },
   resolve: {
     alias: {

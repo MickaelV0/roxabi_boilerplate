@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AppController } from './app.controller'
+import { AppController } from './app.controller.js'
 
 describe('AppController', () => {
   const controller = new AppController()
