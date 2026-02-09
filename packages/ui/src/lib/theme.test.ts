@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultTheme } from '../themes/default'
+import { ALL_PRESETS, getPresetConfig } from '../themes/presets'
 import {
   contrastRatio,
   deriveFullTheme,
@@ -8,6 +8,10 @@ import {
   oklchToHex,
   parseOklch,
 } from './theme'
+
+/** Zinc preset config — used as the default theme for tests */
+const zincPreset = ALL_PRESETS.find((p) => p.name === 'zinc')!
+const defaultTheme = getPresetConfig(zincPreset)
 
 // ---------------------------------------------------------------------------
 // hexToOklch

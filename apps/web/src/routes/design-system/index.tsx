@@ -1,9 +1,10 @@
-import type { ThemeConfig } from '@repo/ui'
+import type { ShadcnPreset, ThemeConfig } from '@repo/ui'
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
   applyTheme,
+  BASE_PRESETS,
   Badge,
   Button,
   Card,
@@ -13,12 +14,15 @@ import {
   CardHeader,
   CardTitle,
   Checkbox,
+  COLOR_PRESETS,
   cn,
-  defaultTheme,
   deriveFullTheme,
+  getComposedConfig,
+  getComposedDerivedTheme,
   Input,
   Label,
   oklchToHex,
+  resetTheme,
   Select,
   SelectContent,
   SelectItem,
@@ -128,43 +132,133 @@ function ThemeScript() {
 // Main Page Component
 // ---------------------------------------------------------------------------
 
+/** Zinc is the default base — matches theme.css */
+const ZINC_PRESET = BASE_PRESETS.find((p) => p.name === 'zinc')!
+const ZINC_CONFIG = getComposedConfig(ZINC_PRESET, null)
+
+/** Look up a base preset by name (stable — only depends on constants). */
+function findBase(name: string): ShadcnPreset {
+  return BASE_PRESETS.find((p) => p.name === name) ?? ZINC_PRESET
+}
+
+/** Look up a color preset by name (stable — only depends on constants). */
+function findColor(name: string | null): ShadcnPreset | null {
+  if (!name) return null
+  return COLOR_PRESETS.find((p) => p.name === name) ?? null
+}
+
 function DesignSystemPage() {
   const [activeTab, setActiveTab] = useState<TabId>('colors')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [themeConfig, setThemeConfig] = useState<ThemeConfig>(defaultTheme)
+  const [themeConfig, setThemeConfig] = useState<ThemeConfig>(ZINC_CONFIG)
+  const [activeBase, setActiveBase] = useState('zinc')
+  const [activeColor, setActiveColor] = useState<string | null>(null)
   const announcementRef = useRef<HTMLOutputElement>(null)
+
+  /** Apply the composed base + color theme and sync UI state + localStorage. */
+  const applyComposed = useCallback((baseName: string, colorName: string | null) => {
+    const base = findBase(baseName)
+    const color = findColor(colorName)
+
+    const isDefault = baseName === 'zinc' && !colorName
+    if (isDefault) {
+      resetTheme()
+    } else {
+      const derived = getComposedDerivedTheme(base, color)
+      applyTheme(derived)
+    }
+
+    const config = getComposedConfig(base, color)
+    setThemeConfig(config)
+    setActiveBase(baseName)
+    setActiveColor(colorName)
+
+    try {
+      if (isDefault) {
+        localStorage.removeItem(STORAGE_KEY)
+      } else {
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ base: baseName, color: colorName, config })
+        )
+      }
+    } catch {
+      // localStorage unavailable
+    }
+  }, [])
 
   // Load theme from localStorage on mount
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) {
-        const parsed = JSON.parse(stored) as ThemeConfig
-        setThemeConfig(parsed)
-        const derived = deriveFullTheme(parsed)
-        applyTheme(derived)
+      if (!stored) return
+
+      const data = JSON.parse(stored) as {
+        base?: string
+        color?: string | null
+        config: ThemeConfig
       }
+
+      // Restore base + color composition
+      if (data.base) {
+        const base = findBase(data.base)
+        const color = findColor(data.color ?? null)
+        const derived = getComposedDerivedTheme(base, color)
+        applyTheme(derived)
+        setThemeConfig(data.config)
+        setActiveBase(data.base)
+        setActiveColor(data.color ?? null)
+        return
+      }
+
+      // Legacy: manual config without base/color
+      setThemeConfig(data.config)
+      setActiveBase('zinc')
+      setActiveColor(null)
+      const derived = deriveFullTheme(data.config)
+      applyTheme(derived)
     } catch {
       // localStorage unavailable or corrupt — use defaults
+      localStorage.removeItem(STORAGE_KEY)
     }
   }, [])
 
-  // Handle theme config changes: derive, apply, persist
+  // Handle manual config changes from color pickers / sliders
   const handleConfigChange = useCallback((newConfig: ThemeConfig) => {
     setThemeConfig(newConfig)
+    setActiveBase('zinc')
+    setActiveColor(null)
+
+    const derived = deriveFullTheme(newConfig)
+    applyTheme(derived)
+
     try {
-      const derived = deriveFullTheme(newConfig)
-      applyTheme(derived)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ config: newConfig }))
     } catch {
-      // Theme engine not fully implemented — persist config anyway
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig))
-      } catch {
-        // localStorage unavailable
-      }
+      // localStorage unavailable
     }
   }, [])
+
+  // Handle base preset selection (keeps current color overlay)
+  const handleBaseSelect = useCallback(
+    (preset: ShadcnPreset) => {
+      applyComposed(preset.name, activeColor)
+    },
+    [applyComposed, activeColor]
+  )
+
+  // Handle color preset selection (keeps current base)
+  const handleColorSelect = useCallback(
+    (preset: ShadcnPreset | null) => {
+      applyComposed(activeBase, preset?.name ?? null)
+    },
+    [applyComposed, activeBase]
+  )
+
+  // Reset to Zinc base with no color overlay
+  const handleReset = useCallback(() => {
+    applyComposed('zinc', null)
+  }, [applyComposed])
 
   function toggleSidebar() {
     setSidebarOpen((prev) => !prev)
@@ -263,6 +357,11 @@ function DesignSystemPage() {
       <ThemeEditor
         config={themeConfig}
         onConfigChange={handleConfigChange}
+        onBaseSelect={handleBaseSelect}
+        onColorSelect={handleColorSelect}
+        onReset={handleReset}
+        activeBase={activeBase}
+        activeColor={activeColor}
         isOpen={sidebarOpen}
         onToggle={toggleSidebar}
       />

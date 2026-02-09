@@ -8,6 +8,8 @@ import {
   CardTitle,
   cn,
 } from '@repo/ui'
+import { AlertTriangleIcon, CheckIcon, InfoIcon, XIcon } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 type NotificationVariant = {
   label: string
@@ -15,7 +17,7 @@ type NotificationVariant = {
   description: string
   borderColor: string
   badgeClass: string
-  iconLabel: string
+  icon: ReactNode
 }
 
 const notifications: NotificationVariant[] = [
@@ -25,7 +27,7 @@ const notifications: NotificationVariant[] = [
     description: 'Your changes have been saved successfully.',
     borderColor: 'border-l-green-500',
     badgeClass: 'bg-green-100 text-green-800 border-green-200',
-    iconLabel: 'check',
+    icon: <CheckIcon className="size-4" />,
   },
   {
     label: 'Error',
@@ -33,7 +35,7 @@ const notifications: NotificationVariant[] = [
     description: 'There was an error processing your request. Please try again.',
     borderColor: 'border-l-red-500',
     badgeClass: 'bg-red-100 text-red-800 border-red-200',
-    iconLabel: 'x',
+    icon: <XIcon className="size-4" />,
   },
   {
     label: 'Warning',
@@ -41,7 +43,7 @@ const notifications: NotificationVariant[] = [
     description: 'Your account storage is almost full. Consider upgrading your plan.',
     borderColor: 'border-l-yellow-500',
     badgeClass: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    iconLabel: '!',
+    icon: <AlertTriangleIcon className="size-4" />,
   },
   {
     label: 'Info',
@@ -49,7 +51,7 @@ const notifications: NotificationVariant[] = [
     description: 'A new version is available. Refresh the page to get the latest features.',
     borderColor: 'border-l-blue-500',
     badgeClass: 'bg-blue-100 text-blue-800 border-blue-200',
-    iconLabel: 'i',
+    icon: <InfoIcon className="size-4" />,
   },
 ]
 
@@ -79,7 +81,7 @@ export function FeedbackPatterns() {
                       notification.badgeClass
                     )}
                   >
-                    {notification.iconLabel}
+                    {notification.icon}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">

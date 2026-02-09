@@ -57,48 +57,6 @@ export type DerivedTheme = {
 
 const STYLE_ELEMENT_ID = 'roxabi-theme-dark'
 
-/**
- * All CSS variable names that applyTheme sets on :root.
- * Used by resetTheme to clean up.
- */
-const ALL_CSS_VARIABLES = [
-  'background',
-  'foreground',
-  'card',
-  'card-foreground',
-  'popover',
-  'popover-foreground',
-  'primary',
-  'primary-foreground',
-  'secondary',
-  'secondary-foreground',
-  'muted',
-  'muted-foreground',
-  'accent',
-  'accent-foreground',
-  'destructive',
-  'destructive-foreground',
-  'border',
-  'input',
-  'ring',
-  'chart-1',
-  'chart-2',
-  'chart-3',
-  'chart-4',
-  'chart-5',
-  'radius',
-  'sidebar',
-  'sidebar-foreground',
-  'sidebar-primary',
-  'sidebar-primary-foreground',
-  'sidebar-accent',
-  'sidebar-accent-foreground',
-  'sidebar-border',
-  'sidebar-ring',
-  'font-family',
-  'font-size',
-] as const
-
 // ---------------------------------------------------------------------------
 // Color helpers
 // ---------------------------------------------------------------------------
@@ -433,22 +391,15 @@ function deriveVariableSet(seeds: ThemeColors, mode: 'light' | 'dark'): Record<s
 /**
  * Apply a derived theme to the document by setting CSS custom properties.
  *
- * Light values go on :root (document.documentElement.style).
- * Dark values are injected into a <style> element with .dark { ... } rules.
+ * Both light and dark values are injected via a single <style> element
+ * using :root { ... } and .dark { ... } rules. This avoids inline styles
+ * which would override the .dark class selector and break light/dark toggling.
  */
 export function applyTheme(derived: DerivedTheme): void {
   if (typeof document === 'undefined') {
     return
   }
 
-  const root = document.documentElement
-
-  // Apply light mode variables as inline styles on :root
-  for (const [key, value] of Object.entries(derived.light)) {
-    root.style.setProperty(`--${key}`, value)
-  }
-
-  // Apply dark mode variables via an injected <style> element
   let styleEl = document.getElementById(STYLE_ELEMENT_ID) as HTMLStyleElement | null
 
   if (!styleEl) {
@@ -457,11 +408,15 @@ export function applyTheme(derived: DerivedTheme): void {
     document.head.appendChild(styleEl)
   }
 
+  const lightRules = Object.entries(derived.light)
+    .map(([key, value]) => `  --${key}: ${value};`)
+    .join('\n')
+
   const darkRules = Object.entries(derived.dark)
     .map(([key, value]) => `  --${key}: ${value};`)
     .join('\n')
 
-  styleEl.textContent = `.dark {\n${darkRules}\n}`
+  styleEl.textContent = `:root {\n${lightRules}\n}\n.dark {\n${darkRules}\n}`
 }
 
 // ---------------------------------------------------------------------------
@@ -471,22 +426,13 @@ export function applyTheme(derived: DerivedTheme): void {
 /**
  * Remove all custom theme overrides, restoring the stylesheet defaults.
  *
- * Removes all inline style properties set by applyTheme and the injected
- * <style> element for dark mode.
+ * Removes the injected <style> element that applyTheme created.
  */
 export function resetTheme(): void {
   if (typeof document === 'undefined') {
     return
   }
 
-  const root = document.documentElement
-
-  // Remove all inline style properties that applyTheme may have set
-  for (const varName of ALL_CSS_VARIABLES) {
-    root.style.removeProperty(`--${varName}`)
-  }
-
-  // Remove the injected dark mode <style> element
   const styleEl = document.getElementById(STYLE_ELEMENT_ID)
   if (styleEl) {
     styleEl.remove()

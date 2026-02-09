@@ -107,7 +107,13 @@ export {
 export { cn } from './lib/utils'
 
 // Theme presets
-export { defaultTheme } from './themes/default'
-export { minimalTheme } from './themes/minimal'
-export { oceanTheme } from './themes/ocean'
-export { warmTheme } from './themes/warm'
+export type { ShadcnPreset } from './themes/presets'
+export {
+  ALL_PRESETS,
+  BASE_PRESETS,
+  COLOR_PRESETS,
+  getComposedConfig,
+  getComposedDerivedTheme,
+  getPresetConfig,
+  getPresetDerivedTheme,
+} from './themes/presets'

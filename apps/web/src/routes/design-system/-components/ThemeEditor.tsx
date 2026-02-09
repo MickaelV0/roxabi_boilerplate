@@ -1,11 +1,10 @@
-import type { ThemeConfig, ThemeShadows } from '@repo/ui'
+import type { ShadcnPreset, ThemeConfig, ThemeShadows } from '@repo/ui'
 import {
+  BASE_PRESETS,
   Button,
+  COLOR_PRESETS,
   cn,
-  defaultTheme,
   Label,
-  minimalTheme,
-  oceanTheme,
   Select,
   SelectContent,
   SelectItem,
@@ -13,7 +12,6 @@ import {
   SelectValue,
   Separator,
   Slider,
-  warmTheme,
 } from '@repo/ui'
 import { PaletteIcon, RotateCcwIcon, XIcon } from 'lucide-react'
 import { useCallback, useEffect, useRef } from 'react'
@@ -23,6 +21,11 @@ import { ColorPicker } from './ColorPicker'
 type ThemeEditorProps = {
   config: ThemeConfig
   onConfigChange: (config: ThemeConfig) => void
+  onBaseSelect: (preset: ShadcnPreset) => void
+  onColorSelect: (preset: ShadcnPreset | null) => void
+  onReset: () => void
+  activeBase: string
+  activeColor: string | null
   isOpen: boolean
   onToggle: () => void
 }
@@ -68,30 +71,27 @@ const FONT_FAMILIES = [
 
 const SHADOW_OPTIONS: ThemeShadows[] = ['none', 'subtle', 'medium', 'strong']
 
-const PRESETS: Array<{ config: ThemeConfig; label: string }> = [
-  { config: defaultTheme, label: 'Default' },
-  { config: oceanTheme, label: 'Ocean' },
-  { config: warmTheme, label: 'Warm' },
-  { config: minimalTheme, label: 'Minimal' },
-]
-
 /**
  * Theme editor sidebar panel.
  *
- * Contains:
- * - 8 color pickers (semantic tokens: primary, secondary, accent, etc.)
- * - Font family dropdown
- * - Base font size slider
- * - Border radius slider (auto-calculates sm/md/lg/xl)
- * - Shadow preset selector (none, subtle, medium, strong)
- * - Preset theme buttons (Default, Ocean, Warm, Minimal)
- * - Reset to default button
- * - WCAG contrast indicators per color pair
+ * Presets are split into two independent groups:
+ * - **Base** (Neutral, Stone, Zinc, Gray): controls background/foreground/border tones
+ * - **Color** (17 accent colors): controls primary, charts, sidebar accent
  *
- * Responsive: sidebar at >=1024px, slide-over overlay at <1024px.
- * Focus management: focus moves to sidebar on open, returns to trigger on close.
+ * Selecting a base keeps the current color overlay. Selecting a color keeps the
+ * current base. Clicking an active color deselects it (returns to base-only).
  */
-export function ThemeEditor({ config, onConfigChange, isOpen, onToggle }: ThemeEditorProps) {
+export function ThemeEditor({
+  config,
+  onConfigChange,
+  onBaseSelect,
+  onColorSelect,
+  onReset,
+  activeBase,
+  activeColor,
+  isOpen,
+  onToggle,
+}: ThemeEditorProps) {
   const sidebarRef = useRef<HTMLElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const announcementRef = useRef<HTMLOutputElement>(null)
@@ -165,13 +165,23 @@ export function ThemeEditor({ config, onConfigChange, isOpen, onToggle }: ThemeE
     onConfigChange({ ...config, shadows: shadow })
   }
 
-  function handlePresetSelect(preset: ThemeConfig) {
-    onConfigChange(preset)
-    announce(`Applied ${preset.name} theme preset`)
+  function handleBaseClick(preset: ShadcnPreset) {
+    onBaseSelect(preset)
+    announce(`Applied ${preset.title} base theme`)
+  }
+
+  function handleColorClick(preset: ShadcnPreset) {
+    if (activeColor === preset.name) {
+      onColorSelect(null)
+      announce(`Removed ${preset.title} color overlay`)
+    } else {
+      onColorSelect(preset)
+      announce(`Applied ${preset.title} color`)
+    }
   }
 
   function handleReset() {
-    onConfigChange(defaultTheme)
+    onReset()
     announce('Theme reset to default')
   }
 
@@ -197,30 +207,54 @@ export function ThemeEditor({ config, onConfigChange, isOpen, onToggle }: ThemeE
           <PaletteIcon className="size-4 text-muted-foreground" />
           <h2 className="text-sm font-semibold">Theme Editor</h2>
         </div>
-        <Button variant="ghost" size="icon-xs" onClick={onToggle} aria-label="Close theme editor">
+        <Button variant="ghost" size="sm" onClick={onToggle} aria-label="Close theme editor">
           <XIcon className="size-4" />
+          Close
         </Button>
       </div>
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {/* Preset buttons */}
-        <section aria-labelledby="presets-heading">
+        {/* Base preset buttons */}
+        <section aria-labelledby="base-presets-heading">
           <h3
-            id="presets-heading"
+            id="base-presets-heading"
             className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"
           >
-            Presets
+            Base
           </h3>
           <div className="grid grid-cols-2 gap-2">
-            {PRESETS.map((preset) => (
+            {BASE_PRESETS.map((preset) => (
               <Button
-                key={preset.label}
-                variant={config.name === preset.config.name ? 'default' : 'outline'}
+                key={preset.name}
+                variant={activeBase === preset.name ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => handlePresetSelect(preset.config)}
+                onClick={() => handleBaseClick(preset)}
               >
-                {preset.label}
+                {preset.title}
+              </Button>
+            ))}
+          </div>
+        </section>
+
+        {/* Color preset buttons */}
+        <section aria-labelledby="color-presets-heading" className="mt-4">
+          <h3
+            id="color-presets-heading"
+            className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"
+          >
+            Accent Color
+          </h3>
+          <div className="grid max-h-48 grid-cols-3 gap-2 overflow-y-auto">
+            {COLOR_PRESETS.map((preset) => (
+              <Button
+                key={preset.name}
+                variant={activeColor === preset.name ? 'default' : 'outline'}
+                size="sm"
+                className="text-xs"
+                onClick={() => handleColorClick(preset)}
+              >
+                {preset.title}
               </Button>
             ))}
           </div>
@@ -418,9 +452,7 @@ export function ThemeEditor({ config, onConfigChange, isOpen, onToggle }: ThemeE
         aria-label="Theme editor"
         tabIndex={-1}
         className={cn(
-          'fixed top-0 right-0 z-50 h-full w-80 border-l border-border bg-background shadow-lg transition-transform duration-200 ease-in-out',
-          // Desktop: static sidebar
-          'lg:top-0 lg:z-30',
+          'fixed top-0 right-0 z-[60] h-full w-80 border-l border-border bg-background shadow-lg transition-transform duration-200 ease-in-out',
           // Transform for open/close
           isOpen ? 'translate-x-0' : 'translate-x-full'
         )}
