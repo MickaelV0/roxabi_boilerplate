@@ -121,6 +121,38 @@ Verdict: Request changes (blockers must be resolved)
 | Suggestions/praise only | Approve |
 | No findings | Approve (clean) |
 
+### Phase 3.5 — Post Findings to PR
+
+After presenting findings locally, **post the full review as a PR comment** so there is a trace on GitHub.
+
+1. **Resolve the PR number:**
+   - If a PR number was provided (`/review #42`), use it directly.
+   - If reviewing a branch (`/review`), detect the PR for the current branch:
+     ```bash
+     gh pr list --head "$(git branch --show-current)" --json number --jq '.[0].number'
+     ```
+   - If no PR exists for the branch, **skip this phase** (no comment to post).
+
+2. **Post the review comment:**
+
+   ```bash
+   gh pr comment <number> --body "$(cat <<'EOF'
+   ## Code Review
+
+   <full review output from Phase 3: all findings grouped by category + summary + verdict>
+
+   ---
+   _Review by Claude Code via `/review`_
+   EOF
+   )"
+   ```
+
+3. **Format rules:**
+   - Use the same grouped format as Phase 3 (Blockers → Warnings → Suggestions → Praise)
+   - Include the summary line and verdict
+   - Wrap finding labels in backticks for readability (e.g., `` `issue(blocking):` ``)
+   - Use a `## Code Review` header so comments are easy to find
+
 **If not using `--fix`, stop here.** The review is complete.
 
 ---
@@ -179,6 +211,28 @@ Run /commit to commit the approved changes.
 - **Never auto-commit.** The user reviews the diff and decides what to keep
 - Suggest running `/commit` to commit the approved changes
 
+#### Step 4d: Post Fix Report to PR
+
+After presenting the fix report locally and the user has committed the fixes, **post a follow-up comment on the PR** documenting what was fixed.
+
+1. **Resolve the PR number** using the same logic as Phase 3.5 step 1. If no PR exists, skip.
+
+2. **Post the fix report comment:**
+
+   ```bash
+   gh pr comment <number> --body "$(cat <<'EOF'
+   ## Fix Report
+
+   <fix report from Step 4c: applied fixes + could-not-fix list>
+
+   ---
+   _Fixes applied by Claude Code via `/review --fix`_
+   EOF
+   )"
+   ```
+
+3. This comment should reference the review comment so reviewers can see what was found and what was addressed.
+
 ## Edge Cases
 
 | Scenario | Behavior |
@@ -186,10 +240,11 @@ Run /commit to commit the approved changes.
 | No changes on branch | Inform user, nothing to review. Stop. |
 | Binary files in diff | Skip, note in report as "binary file, skipped" |
 | Large PR (>50 files) | Warn about review quality, suggest splitting |
-| No findings | Report clean review, approve |
+| No findings | Report clean review, approve. Still post comment (clean verdict). |
 | `--fix` with no actionable findings | Inform user there is nothing to fix |
 | Fix agent fails validation | Revert file, mark as "could not auto-fix" |
 | Multiple findings in same file | Single agent handles them sequentially |
+| No PR for current branch | Skip PR comment (Phase 3.5 / 4d), findings stay local only |
 
 ## Safety Rules
 
@@ -198,5 +253,6 @@ Run /commit to commit the approved changes.
 3. **Always revert on failure** — if a fix breaks typecheck or tests, restore the original
 4. **Max 5 concurrent fix agents** — prevent resource exhaustion
 5. **User selects findings** — never auto-fix without explicit selection
+6. **Always post review to PR** — if a PR exists, findings must be posted as a comment for traceability
 
 $ARGUMENTS
