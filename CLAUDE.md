@@ -129,9 +129,16 @@ cd ../roxabi-XXX
 |---------|-------|----------|
 | issues, list issues | `issues` | "list GitHub issues", "/issues" |
 | issue triage, labeling | `issue-triage` | "triage issues", "label open issues" |
-| interview, spec | `interview` | "create a spec", "interview for feature" |
+| interview, spec, brainstorm, analysis | `interview` | "create a spec", "interview for feature", "brainstorm ideas" |
 | cleanup, git cleanup | `cleanup` | "clean branches", "cleanup worktrees", "/cleanup" |
-| playground, explorer | `playground` | "create a playground", "interactive tool for X" |
+| commit, stage, git commit | `commit` | "commit changes", "commit staged files", "/commit --all" |
+| pull request, PR, create PR | `pr` | "create a PR", "open pull request", "/pr --draft" |
+| review, code review | `review` | "review my changes", "review PR #42", "/review --fix" |
+| test, generate tests | `test` | "write tests", "test this file", "/test --e2e" |
+| bootstrap, plan feature, start feature | `bootstrap` | "bootstrap avatar upload", "/bootstrap --issue 42" |
+| scaffold, setup feature | `scaffold` | "scaffold from spec", "/scaffold --spec 42" |
+| plan, implementation plan | `plan` | "plan the implementation", "/plan --spec 42" |
+| adr, architecture decision | `adr` | "create an ADR", "list ADRs", "/adr --list" |
 
 **Important notes:**
 - ALWAYS use the appropriate skill even if user doesn't explicitly mention the slash command
