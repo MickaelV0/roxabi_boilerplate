@@ -13,7 +13,7 @@
       "outputs": ["src/routeTree.gen.ts", "src/paraglide/**"]
     },
     "typecheck": {
-      "dependsOn": ["codegen", "^typecheck"]
+      "dependsOn": ["codegen", "^typecheck", "^build"]
     },
     "lint": {
       "dependsOn": ["^lint"]

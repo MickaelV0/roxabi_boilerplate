@@ -133,7 +133,7 @@ jobs:
         run: cd apps/web && bun run codegen
 
       - name: Run tests with coverage
-        run: bunx --bun vitest run --coverage
+        run: bun test:coverage
         env:
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM }}
