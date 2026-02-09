@@ -81,7 +81,9 @@
       "!**/routeTree.gen.ts",
       "!**/src/paraglide",
       "!**/project.inlang",
-      "!**/*.css"
+      "!**/*.css",
+      "!**/playwright-report",
+      "!**/test-results"
     ]
   }
 }
