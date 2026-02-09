@@ -10,7 +10,7 @@ import {
 } from './theme'
 
 /** Zinc preset config — used as the default theme for tests */
-const zincPreset = ALL_PRESETS.find((p) => p.name === 'zinc')!
+const zincPreset = ALL_PRESETS.find((p) => p.name === 'zinc') as (typeof ALL_PRESETS)[number]
 const defaultTheme = getPresetConfig(zincPreset)
 
 // ---------------------------------------------------------------------------
@@ -406,5 +406,206 @@ describe('deriveFullTheme', () => {
 
     // Assert — dark mode foreground should be lighter (higher L) since background is darker
     expect(darkFg.l).toBeGreaterThan(lightFg.l)
+  })
+
+  it('should include font-family and font-size in both modes', () => {
+    // Assert
+    expect(derived.light['font-family']).toBe(defaultTheme.typography.fontFamily)
+    expect(derived.dark['font-family']).toBe(defaultTheme.typography.fontFamily)
+    expect(derived.light['font-size']).toBe(defaultTheme.typography.baseFontSize)
+    expect(derived.dark['font-size']).toBe(defaultTheme.typography.baseFontSize)
+  })
+
+  it('should derive sidebar-ring from ring in both modes', () => {
+    // Assert
+    expect(derived.light['sidebar-ring']).toBe(derived.light.ring)
+    expect(derived.dark['sidebar-ring']).toBe(derived.dark.ring)
+  })
+
+  it('should derive destructive-foreground with inverted lightness', () => {
+    // Arrange
+    const destructiveFg = derived.light['destructive-foreground'] as string
+
+    // Assert — should be a valid oklch color
+    expect(destructiveFg).toMatch(/^oklch\(/)
+    const parsed = parseOklch(destructiveFg)
+    expect(parsed.l).toBeGreaterThanOrEqual(0)
+    expect(parsed.l).toBeLessThanOrEqual(1)
+  })
+
+  it('should derive accent-foreground and muted-foreground', () => {
+    // Assert
+    expect(derived.light['accent-foreground']).toMatch(/^oklch\(/)
+    expect(derived.light['muted-foreground']).toMatch(/^oklch\(/)
+    expect(derived.dark['accent-foreground']).toMatch(/^oklch\(/)
+    expect(derived.dark['muted-foreground']).toMatch(/^oklch\(/)
+  })
+
+  it('should handle mid-lightness primary that forces foreground contrast shift', () => {
+    // Arrange — primary with L=0.5 should trigger the |L'-L| < 0.4 branch
+    const midConfig: typeof defaultTheme = {
+      ...defaultTheme,
+      colors: {
+        ...defaultTheme.colors,
+        primary: 'oklch(0.5 0.15 260)',
+      },
+    }
+
+    // Act
+    const midDerived = deriveFullTheme(midConfig)
+
+    // Assert — foreground should be forced to 0.95 (since 1-0.5=0.5 is too close)
+    const primaryFg = parseOklch(midDerived.light['primary-foreground'] as string)
+    expect(primaryFg.l).toBe(0.95)
+  })
+
+  it('should handle high-lightness primary that forces foreground to 0.15', () => {
+    // Arrange — primary with L=0.8, inverted=0.2, |0.2-0.8|=0.6 >= 0.4 — no force
+    // But L=0.7, inverted=0.3, |0.3-0.7|=0.4 >= 0.4 — border case
+    // L=0.65, inverted=0.35, |0.35-0.65|=0.3 < 0.4 — forces to 0.15 since L>0.5
+    const highConfig: typeof defaultTheme = {
+      ...defaultTheme,
+      colors: {
+        ...defaultTheme.colors,
+        primary: 'oklch(0.65 0.15 260)',
+      },
+    }
+
+    // Act
+    const highDerived = deriveFullTheme(highConfig)
+
+    // Assert
+    const primaryFg = parseOklch(highDerived.light['primary-foreground'] as string)
+    expect(primaryFg.l).toBe(0.15)
+  })
+
+  it('should clamp dark mode lightness between 0.1 and 0.95', () => {
+    // Arrange — very dark primary (L=0.05), mirrored = 1-0.05=0.95
+    const darkConfig: typeof defaultTheme = {
+      ...defaultTheme,
+      colors: {
+        ...defaultTheme.colors,
+        primary: 'oklch(0.05 0.15 260)',
+      },
+    }
+
+    // Act
+    const darkDerived = deriveFullTheme(darkConfig)
+
+    // Assert — dark mode primary L should be clamped to 0.95
+    const darkPrimary = parseOklch(darkDerived.dark.primary as string)
+    expect(darkPrimary.l).toBeLessThanOrEqual(0.95)
+    expect(darkPrimary.l).toBeGreaterThanOrEqual(0.1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// parseOklch — error paths
+// ---------------------------------------------------------------------------
+
+describe('parseOklch error handling', () => {
+  it('should throw when given an invalid color string', () => {
+    expect(() => parseOklch('not-a-color')).toThrow('Failed to parse color')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// hexToOklch / oklchToHex — error paths
+// ---------------------------------------------------------------------------
+
+describe('hexToOklch error handling', () => {
+  it('should throw when given an invalid hex string', () => {
+    expect(() => hexToOklch('zzz')).toThrow('Failed to parse hex color')
+  })
+})
+
+describe('oklchToHex error handling', () => {
+  it('should throw when given an invalid oklch string', () => {
+    expect(() => oklchToHex('not-valid')).toThrow('Failed to parse oklch color')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// applyTheme / resetTheme
+// ---------------------------------------------------------------------------
+
+import { applyTheme, formatOklchStr, resetTheme } from './theme'
+
+describe('formatOklchStr', () => {
+  it('should format components into an oklch() string rounded to 3 decimals', () => {
+    // Act
+    const result = formatOklchStr(0.12345, 0.06789, 264.5678)
+
+    // Assert
+    expect(result).toBe('oklch(0.123 0.068 264.568)')
+  })
+})
+
+describe('applyTheme', () => {
+  it('should create a style element with CSS variables when called in browser', () => {
+    // Arrange
+    const theme: import('./theme').DerivedTheme = {
+      light: { primary: 'oklch(0.5 0.2 260)', radius: '0.5rem' },
+      dark: { primary: 'oklch(0.6 0.2 260)', radius: '0.5rem' },
+    }
+
+    // Act
+    applyTheme(theme)
+
+    // Assert
+    const styleEl = document.getElementById('roxabi-theme-dark')
+    expect(styleEl).not.toBeNull()
+    expect(styleEl?.textContent).toContain('--primary')
+    expect(styleEl?.textContent).toContain(':root')
+    expect(styleEl?.textContent).toContain('.dark')
+
+    // Cleanup
+    styleEl?.remove()
+  })
+
+  it('should reuse existing style element on second call', () => {
+    // Arrange
+    const theme1: import('./theme').DerivedTheme = {
+      light: { primary: 'oklch(0.5 0.2 260)' },
+      dark: { primary: 'oklch(0.6 0.2 260)' },
+    }
+    const theme2: import('./theme').DerivedTheme = {
+      light: { primary: 'oklch(0.7 0.1 120)' },
+      dark: { primary: 'oklch(0.8 0.1 120)' },
+    }
+
+    // Act
+    applyTheme(theme1)
+    applyTheme(theme2)
+
+    // Assert — only one style element should exist
+    const elements = document.querySelectorAll('#roxabi-theme-dark')
+    expect(elements).toHaveLength(1)
+    expect(elements[0]?.textContent).toContain('0.7')
+
+    // Cleanup
+    elements[0]?.remove()
+  })
+})
+
+describe('resetTheme', () => {
+  it('should remove the injected style element', () => {
+    // Arrange
+    const theme: import('./theme').DerivedTheme = {
+      light: { primary: 'oklch(0.5 0.2 260)' },
+      dark: { primary: 'oklch(0.6 0.2 260)' },
+    }
+    applyTheme(theme)
+
+    // Act
+    resetTheme()
+
+    // Assert
+    expect(document.getElementById('roxabi-theme-dark')).toBeNull()
+  })
+
+  it('should not throw when no style element exists', () => {
+    // Assert
+    expect(() => resetTheme()).not.toThrow()
   })
 })

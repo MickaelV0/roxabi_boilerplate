@@ -119,4 +119,50 @@ describe('Header', () => {
     const logoLink = screen.getByText('Roxabi').closest('a')
     expect(logoLink).toHaveAttribute('href', '/')
   })
+
+  it('renders the Design System link in desktop nav', () => {
+    render(<Header />)
+
+    const links = screen.getAllByText('Design System')
+    expect(links.length).toBeGreaterThanOrEqual(1)
+
+    const desktopLink = links[0]?.closest('a')
+    expect(desktopLink).toHaveAttribute('href', '/design-system')
+  })
+
+  it('renders the Design System link in mobile nav when open', () => {
+    render(<Header />)
+
+    // Open mobile menu
+    const menuButton = screen.getByLabelText('Open menu')
+    fireEvent.click(menuButton)
+
+    // Both desktop and mobile links should exist
+    const links = screen.getAllByText('Design System')
+    expect(links.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('closes mobile menu when Escape key is pressed', () => {
+    render(<Header />)
+
+    // Open mobile menu
+    fireEvent.click(screen.getByLabelText('Open menu'))
+    expect(screen.getByLabelText('Close menu')).toBeInTheDocument()
+
+    // Press Escape
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.getByLabelText('Open menu')).toBeInTheDocument()
+  })
+
+  it('closes mobile menu when clicking outside', () => {
+    render(<Header />)
+
+    // Open mobile menu
+    fireEvent.click(screen.getByLabelText('Open menu'))
+    expect(screen.getByLabelText('Close menu')).toBeInTheDocument()
+
+    // Click outside (on document body)
+    fireEvent.click(document.body)
+    expect(screen.getByLabelText('Open menu')).toBeInTheDocument()
+  })
 })
