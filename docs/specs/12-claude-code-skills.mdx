@@ -1,6 +1,6 @@
 ---
 title: "Claude Code Skills"
-description: Specification for 8 Claude Code skills covering the full dev lifecycle — from idea to merged PR.
+description: Specification for 9 Claude Code skills covering the full dev lifecycle — from idea to merged PR.
 ---
 
 # #12 — Claude Code Skills
@@ -17,14 +17,14 @@ Roxabi operates with Claude Code as a **parallelized development workforce** (80
 
 ## Goal
 
-Deliver 8 skills across 3 phases that cover the **full development lifecycle**:
+Deliver 9 skills across 3 phases that cover the **full development lifecycle**:
 
 ```
 Idea → Analysis → Spec → Plan → Scaffold → Code → Test → Review → Commit → PR
- ↑                                 ↑                          ↑           ↑
- /interview (improve)           /scaffold                   /review     /commit
- /bootstrap ────────────────────┘                           /test       /pr
-                                                                        /adr
+ ↑                         ↑      ↑                         ↑           ↑
+ /interview              /plan  /scaffold                  /review     /commit
+ /bootstrap ────────────┴──────┘                           /test       /pr
+                                                                       /adr
 ```
 
 ## Human Gates
@@ -35,9 +35,10 @@ No skill takes an irreversible action without explicit user consent. The followi
 |------|----------|----------------------|
 | Analysis approval | `/bootstrap`, `/interview` | Analysis content before proceeding to spec |
 | Spec approval | `/bootstrap`, `/interview` | Spec content before proceeding to plan |
-| Plan approval | `/bootstrap` | Implementation plan before scaffolding |
+| Plan approval | `/bootstrap`, `/plan` | Implementation plan before scaffolding |
 | Commit message | `/commit`, `/scaffold` | Message content before `git commit` |
 | PR content | `/pr`, `/scaffold` | Title and body before `gh pr create` |
+| Fix selection | `/review --fix` | Which findings to auto-fix (multi-select) |
 | Review fixes | `/review --fix` | Applied diffs before any manual commit |
 | Test content | `/test` | Generated tests before writing files |
 
@@ -55,19 +56,17 @@ No skill takes an irreversible action without explicit user consent. The followi
 | 6 | `/bootstrap` | 3 — Orchestration | Pure SKILL.md | P1 | M |
 | 7 | `/scaffold` | 3 — Orchestration | Pure SKILL.md | P1 | M |
 | 8 | `/adr` | 3 — Orchestration | Pure SKILL.md | P3 | S |
+| 9 | `/plan` | 3 — Orchestration | Pure SKILL.md | P1 | S |
 
 ## Skill Interaction Matrix
 
-Skills that call or suggest other skills:
+| Skill | Hard Dependencies | Soft Suggestions |
+|-------|------------------|-----------------|
+| `/bootstrap` | `/interview`, `/plan` | — |
+| `/scaffold` | `/commit`, `/pr` | — |
+| `/review --fix` | — | `/commit` |
 
-| Caller | Calls / Suggests | Relationship |
-|--------|-----------------|--------------|
-| `/bootstrap` | → `/interview` | Calls for analysis and spec generation |
-| `/scaffold` | → `/commit` | Calls to commit scaffold |
-| `/scaffold` | → `/pr` | Calls to create draft PR |
-| `/review --fix` | → `/commit` | Suggests after user approves fixes |
-
-All other skills are fully standalone.
+5 of 9 skills (`/interview`, `/commit`, `/pr`, `/test`, `/adr`) are fully standalone with no dependencies.
 
 ## Phasing
 
@@ -96,13 +95,16 @@ Build the high-level orchestration skills that compose the others.
 
 | Skill | Depends on |
 |-------|------------|
-| `/bootstrap` | `/interview` (calls it for analysis/spec steps) |
+| `/bootstrap` | `/interview` (analysis/spec), `/plan` (implementation plan) |
 | `/scaffold` | `/commit`, `/pr` (calls them for commit + draft PR) |
+| `/plan` | — |
 | `/adr` | — |
 
 ---
 
 ## Skill 1: `/interview` (Improve Existing)
+
+> **Replaces:** Ad-hoc conversations with no structure; tribal knowledge about what analyses/specs should contain.
 
 ### Current State
 
@@ -217,6 +219,8 @@ If found, present them and ask: "An analysis already exists for this topic. Do y
 
 Enforce commit conventions and guard against common mistakes. Automates the mechanical parts of committing while keeping the user in control.
 
+> **Replaces:** Manually crafting commit messages, forgetting Co-Authored-By trailers, occasionally committing debug code.
+
 ### Behavior
 
 ```
@@ -277,6 +281,8 @@ Enforce commit conventions and guard against common mistakes. Automates the mech
 ### Purpose
 
 Create pull requests with consistent format, proper linking, and guard rails. Natural pair with `/commit`.
+
+> **Replaces:** Manually writing PR descriptions, forgetting to link issues, inconsistent PR formats across the team.
 
 ### Behavior
 
@@ -347,6 +353,8 @@ Closes #{issue_number}
 
 Code review with optional automated fix pipeline. Default mode: review only (findings report). With `--fix`: review + parallel fix agents that apply changes without committing.
 
+> **Replaces:** Manual code review with no checklist, inconsistent feedback format, no automated fix pipeline.
+
 ### Behavior
 
 ```
@@ -386,14 +394,20 @@ Code review with optional automated fix pipeline. Default mode: review only (fin
 
 After the review step above:
 
-4. **Spawn fix agents:**
-   - **Parallel across different files**, sequential within the same file (bugs fixed first, then style)
+4. **User selects findings to fix:**
+   - Present all findings grouped by file via `AskUserQuestion` (multi-select)
+   - User selects which findings to fix
+   - Only selected findings proceed to fix agents
+
+5. **Spawn fix agents:**
+   - **Maximum 5 concurrent agents**
+   - **Parallel across different files**, sequential within the same file
    - Each agent receives: the finding, the file content, the project standards
    - Each agent applies its fix
    - Each agent runs `bunx biome check --write` + `bun typecheck` on changed files
-   - If typecheck or tests break: **revert that fix** and mark as "could not auto-fix"
+   - **Revert strategy:** Read file content into memory before applying fix. If typecheck or tests break after fix, restore the original content and mark as "could not auto-fix"
 
-5. **Present fix report:**
+6. **Present fix report:**
    - Show all applied fixes as a unified diff
    - Show any findings that could not be auto-fixed (with reason)
    - **Never auto-commit.** User reviews the diff and decides what to keep.
@@ -414,8 +428,9 @@ After the review step above:
 - [ ] Review follows `code-review.mdx` checklist
 - [ ] Findings use Conventional Comments format
 - [ ] Findings categorized by severity (Blocker, Warning, Suggestion)
-- [ ] `--fix` spawns fix agents (parallel across files, sequential within same file)
-- [ ] Fix agents revert on typecheck/test failure
+- [ ] `--fix` presents findings for user selection via `AskUserQuestion` (multi-select)
+- [ ] `--fix` spawns fix agents (max 5 concurrent, parallel across files, sequential within same file)
+- [ ] Fix agents use file content snapshot for revert on typecheck/test failure
 - [ ] Fixes never auto-committed — presented as diff for user approval
 - [ ] PR number support (`/review #42`)
 
@@ -426,6 +441,8 @@ After the review step above:
 ### Purpose
 
 Generate tests for changed or specified files. Follows existing test patterns in the codebase.
+
+> **Replaces:** Writing test files from scratch each time, inconsistent test patterns, no auto-detection of what needs tests.
 
 ### Behavior
 
@@ -496,7 +513,9 @@ When `--e2e` flag is used:
 
 ### Purpose
 
-Planning orchestrator from idea to approved implementation plan. Multiple entry points depending on what already exists. Calls `/interview` for analysis/spec steps. Three validation gates. Stops at the approved plan — execution is handled by `/scaffold`.
+Planning orchestrator from idea to approved implementation plan. Multiple entry points depending on what already exists. Calls `/interview` for analysis/spec steps and `/plan` for implementation planning. Three validation gates. Stops at the approved plan — execution is handled by `/scaffold`.
+
+> **Replaces:** Jumping straight to code without analysis/spec, or manual doc creation with ad-hoc structure.
 
 ### Behavior
 
@@ -537,11 +556,8 @@ Planning orchestrator from idea to approved implementation plan. Multiple entry 
 ├──────────────────────────────────────────────────────────────┤
 │ GATE 3: Implementation Plan                                  │
 │                                                              │
-│ 6. Break spec into tasks:                                    │
-│    - Identify files to create/modify                         │
-│    - Auto-suggest tier (S/M/L), user confirms or overrides   │
-│    - Estimate effort per task                                │
-│    - Define implementation order                             │
+│ 6. Call /plan to generate implementation plan:               │
+│    (see Skill 9: /plan for full details)                     │
 │                                                              │
 │ 7. Present plan → User approves ✓                            │
 │                                                              │
@@ -582,6 +598,8 @@ Planning orchestrator from idea to approved implementation plan. Multiple entry 
 ### Purpose
 
 Execution skill that takes an approved spec/plan and does the mechanical work: creates the GitHub issue, sets up the worktree, scaffolds boilerplate, commits, and opens a draft PR.
+
+> **Replaces:** Manually creating worktrees, boilerplate files, GitHub issues, and draft PRs for each new feature.
 
 ### Behavior
 
@@ -650,6 +668,8 @@ gh pr close <PR_NUMBER>
 ### Purpose
 
 Create Architecture Decision Records to document **why** technical choices were made.
+
+> **Replaces:** Architectural decisions made in conversations and never documented; rationale lost over time.
 
 ### Behavior
 
@@ -731,6 +751,64 @@ description: {One-line summary of the decision}
 
 ---
 
+## Skill 9: `/plan`
+
+### Purpose
+
+Generate a structured implementation plan from an existing spec. Extracted from `/bootstrap` Gate 3 to be usable independently.
+
+> **Replaces:** Ad-hoc implementation planning with no structured breakdown of spec into tasks.
+
+### Behavior
+
+```
+/plan --spec 42               → Generate plan from spec docs/specs/42-*.mdx
+/plan --spec path/to/spec.mdx → Generate plan from a specific spec file
+```
+
+### Process
+
+1. **Read the spec:**
+   - Locate spec by issue number (`docs/specs/{N}-*.mdx`) or by path
+   - If not found: inform user, suggest running `/bootstrap` or `/interview` first
+
+2. **Analyze scope:**
+   - Identify files to create/modify
+   - Detect dependencies between tasks
+   - Auto-suggest tier (S/M/L) based on file count and architectural impact
+
+3. **Generate implementation plan:**
+   - Break spec into ordered tasks
+   - For each task: files affected, description, estimated effort
+   - Define implementation order respecting dependencies
+   - Present tier suggestion — user confirms or overrides via `AskUserQuestion`
+
+4. **Present plan:**
+   - Show full plan for approval via `AskUserQuestion`
+   - If rejected: ask for feedback, regenerate
+   - Output: approved plan ready for `/scaffold`
+
+### Edge Cases
+
+- **Spec not found:** Inform user, suggest `/bootstrap` or `/interview`
+- **Spec too vague:** Ask clarifying questions before generating plan
+- **User overrides tier:** Accept and adjust plan accordingly (e.g., skip worktree recommendation for S)
+
+### Allowed Tools
+
+`AskUserQuestion`, `Read`, `Glob`, `Grep`
+
+### Acceptance Criteria
+
+- [ ] Reads spec by issue number or file path
+- [ ] Identifies files to create/modify
+- [ ] Auto-suggests tier (S/M/L) with user confirmation
+- [ ] Generates ordered task list with effort estimates
+- [ ] Plan presented for user approval before proceeding
+- [ ] Works standalone and when called from `/bootstrap`
+
+---
+
 ## Non-Goals
 
 - **Agent definitions** — Deferred. No `.claude/agents/` directory. Skills spawn Task subagents as needed.
@@ -762,26 +840,28 @@ After implementation, update the Available Skills table in `CLAUDE.md` with all 
 ## Constraints
 
 - **No breaking changes** to existing skills (`/issues`, `/issue-triage`, `/interview`, `/cleanup`)
-- **Skill independence:** Each skill must work standalone (except `/bootstrap` which calls `/interview`, and `/scaffold` which calls `/commit` + `/pr`)
+- **Skill independence:** Each skill must work standalone (except `/bootstrap` which calls `/interview` + `/plan`, and `/scaffold` which calls `/commit` + `/pr`)
 - **No new dependencies:** Skills use only Claude Code built-in tools + `gh` CLI + `git` + `bun`
 - **Convention alignment:** All skills enforce conventions from `docs/contributing.mdx` and `docs/standards/`
 
 ## Success Criteria
 
-- [ ] All 8 skills implemented and documented
+- [ ] All 9 skills implemented and documented
 - [ ] Phase 1 skills (`/interview`, `/commit`, `/pr`) working independently
 - [ ] Phase 2 skills (`/review`, `/test`) working with `--fix` and `--e2e` flags
-- [ ] Phase 3 skills (`/bootstrap`, `/scaffold`, `/adr`) working with all entry points
-- [ ] `/bootstrap` successfully calls `/interview` for analysis/spec steps
+- [ ] Phase 3 skills (`/bootstrap`, `/scaffold`, `/plan`, `/adr`) working with all entry points
+- [ ] `/bootstrap` successfully calls `/interview` for analysis/spec steps and `/plan` for implementation planning
+- [ ] `/plan` generates implementation plans from specs with tier suggestion
 - [ ] `/bootstrap` stops at approved plan (does not scaffold)
 - [ ] `/scaffold` creates worktree, scaffolds, commits, and opens draft PR
-- [ ] `/review --fix` spawns fix agents (parallel across files, sequential within) without auto-committing
+- [ ] `/review --fix` presents findings for user selection, then spawns fix agents (max 5, parallel across files, sequential within) without auto-committing
 - [ ] CLAUDE.md updated with all new skills
 - [ ] Existing skills unmodified
 
 ## Resolved Decisions
 
-1. **`/review --fix` agent isolation:** Fix agents run in parallel across different files, sequentially within the same file (bugs first, then style). No file-level conflicts.
+1. **`/review --fix` agent isolation:** Fix agents run in parallel across different files (max 5 concurrent), sequentially within the same file. User selects which findings to fix via `AskUserQuestion` before agents spawn. Revert strategy: file content snapshot (read before fix, restore on failure).
 2. **`/bootstrap` tier detection:** Auto-suggest a tier based on spec scope. User confirms or overrides via `AskUserQuestion`.
 3. **`/test --e2e` and Playwright:** `/test --e2e` checks if Playwright is installed. If missing, informs the user with the install command and stops. Skills do not install dependencies.
 4. **ADR directory:** `/adr` creates `docs/architecture/adr/` on first run if it doesn't exist.
+5. **`/plan` extraction:** Implementation planning extracted from `/bootstrap` into standalone `/plan` skill for independent use. `/bootstrap` calls `/plan` for Gate 3.
