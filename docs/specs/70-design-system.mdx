@@ -7,7 +7,7 @@ description: Public design system page with interactive component playground, th
 
 ## Context
 
-Issue #48 (UI Component Library) is complete: Shadcn/UI is configured, 20 components live in `packages/ui`, and light/dark mode works via OKLch CSS variables. However, there is no visible design system page, no interactive playground to explore components, and no theme customization beyond the light/dark toggle.
+Issue #48 (UI Component Library) is complete: Shadcn/UI is configured, 19 components live in `packages/ui`, and light/dark mode works via OKLch CSS variables. However, there is no visible design system page, no interactive playground to explore components, and no theme customization beyond the light/dark toggle.
 
 This spec covers **Phase 1**: a public `/design-system` page with an interactive component playground, a live theme editor, preset themes, and localStorage persistence.
 
@@ -71,7 +71,7 @@ Deliver a public `/design-system` page that lets developers:
 | Corrupt JSON in localStorage | Ignore stored theme, fall back to default. Clear the corrupt entry. |
 | User switches between light/dark mode while custom theme is active | `deriveFullTheme()` produces both light and dark variable sets. Light values are set on `:root`, dark values on `.dark`, both via inline `style` (highest specificity). Toggling dark mode shows the derived dark palette automatically. |
 | Browser with JS disabled | Page renders with default theme. Theme editor and interactive controls are non-functional (acceptable — this is a dev tool). |
-| Window resize / mobile viewport | Theme editor sidebar collapses to an overlay or bottom sheet on narrow viewports. Component showcase adapts responsively. |
+| Window resize / mobile viewport | Below 1024px, the theme editor sidebar becomes a slide-over overlay panel from the right (triggered by the same toggle button). A semi-transparent backdrop dismisses it on click. Component showcase sections stack vertically. |
 | Component has no configurable props | Show the component rendered with default props. Hide the prop controls panel. |
 
 ## Constraints
@@ -87,6 +87,10 @@ Deliver a public `/design-system` page that lets developers:
   - **Focus management**: Opening/closing the theme editor sidebar must move focus to the sidebar / return focus to the trigger button. Focus trapping is not required (sidebar is not a modal).
   - **ARIA labels**: Color pickers must have `aria-label` with the token name (e.g., "Primary color"). Sliders must have `aria-valuetext`. Tabs must use `role="tablist"` / `role="tab"` / `role="tabpanel"`.
   - **Screen reader announcements**: Preset theme selection and reset actions should announce the result via `aria-live="polite"` region.
+- **Performance**: The page is content-heavy (19 component showcases + 6 compositions + theme editor + code snippets). To keep it snappy:
+  - Tab section content (Colors, Typography, Spacing, Components, Compositions) must be **lazy-rendered** — only the active tab's content is mounted. Use `React.lazy()` or conditional rendering.
+  - Code snippets (shiki) must be rendered **on-demand** (when the code tab is expanded or visible), not eagerly for all components at once.
+  - The `/design-system` route should be **code-split** from the main app bundle (TanStack Router handles this by default for file-based routes).
 
 ## Non-goals
 
@@ -176,7 +180,11 @@ All formulas use OKLch coordinates: `L` (lightness, 0–1), `C` (chroma, 0–0.4
 
 Variables not listed above are **not user-editable in Phase 1** and retain their default values.
 
-### 7. File architecture
+### 7. File architecture & ownership boundaries
+
+**`packages/ui`** owns: `ThemeConfig` type, preset theme data, derivation logic (`deriveFullTheme`), and CSS variable application helpers (`applyTheme`, `resetTheme`). This package has no knowledge of persistence (localStorage, API, etc.).
+
+**`apps/web`** owns: persistence (localStorage in Phase 1, API calls in Phase 2), the editor UI, the design system page, and all route-level components. Serialization (JSON ↔ `ThemeConfig`) lives here, not in `packages/ui`.
 
 ```
 apps/web/src/routes/
@@ -200,7 +208,7 @@ packages/ui/src/
 │   ├── warm.ts
 │   └── minimal.ts
 └── lib/
-    └── theme.ts               # ThemeConfig type + apply/reset/load helpers
+    └── theme.ts               # ThemeConfig type + derive/apply/reset helpers (no persistence)
 ```
 
 ## Component Delivery Waves
@@ -244,13 +252,13 @@ Wave 2 components are shown in the showcase with **default rendering only** (no 
 
 ## Composition Patterns
 
-At least 3 composition categories must be included:
+6 compositions across 3 categories (2 per category):
 
-| Category | Patterns |
-|----------|----------|
-| **Auth forms** | Login form, signup form, forgot password form |
-| **Feedback** | Toast/alert notification, empty state, error page |
-| **Data display** | Stat card, simple table, profile card |
+| Category | Phase 1 Patterns | Deferred |
+|----------|-----------------|----------|
+| **Auth forms** | Login form, Signup form | Forgot password form |
+| **Feedback** | Toast/alert notification, Empty state | Error page |
+| **Data display** | Stat card, Profile card | Simple table |
 
 Compositions use real `@repo/ui` components with realistic (but static) data.
 
@@ -270,8 +278,8 @@ Compositions use real `@repo/ui` components with realistic (but static) data.
 - [ ] 4 preset themes (Default, Ocean, Warm, Minimal) can be selected and applied
 - [ ] "Reset to default" restores the original zinc-based theme
 - [ ] Wave 1 components (12) are showcased with interactive prop controls and code snippets
-- [ ] Wave 2 components (8) are showcased with default rendering (interactive controls deferred)
-- [ ] At least 3 composition patterns are displayed (auth forms, feedback, data display)
+- [ ] Wave 2 components (7) are showcased with default rendering (interactive controls deferred)
+- [ ] 6 composition patterns displayed: login form, signup form, toast/alert, empty state, stat card, profile card
 - [ ] Custom theme persists in localStorage across page reloads
 - [ ] No FOUC when loading a custom theme (inline `ThemeScript` component, same pattern as next-themes)
 - [ ] Color pickers use hex with OKLch conversion via `culori`
@@ -292,7 +300,7 @@ Compositions use real `@repo/ui` components with realistic (but static) data.
 
 | Question | Decision | Rationale |
 |----------|----------|-----------|
-| Code snippet library | **shiki** | Already a dependency via Fumadocs. No new bundle cost. |
+| Code snippet library | **shiki** | Already a project dependency via Fumadocs. However, shiki may only be bundled into the docs route — verify it doesn't add significant weight to the `/design-system` route chunk. If shiki's chunk exceeds 100KB gzip for the design-system route, fall back to a CSS-only syntax theme with `&lt;pre>&lt;code>` and class-based token coloring. Load shiki lazily (dynamic import) regardless. |
 | Copy code button | **Yes** | Standard DX pattern. `navigator.clipboard.writeText()` with checkmark confirmation. |
 | Theme editor position | **Right side** | Matches DevTools/Figma patterns. Content flows left-to-right. |
 | Component organization | **By category** | Groups: Inputs, Feedback, Layout, Data Display, Navigation. Easier discovery. |
