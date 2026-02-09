@@ -17,7 +17,12 @@ description: |
   </example>
 model: inherit
 color: magenta
-tools: ["Read", "Glob", "Grep"]
+tools: Read, Glob, Grep
+permissionMode: plan
+maxTurns: 30
+memory: project
+skills: review
+disallowedTools: Write, Edit, Bash
 ---
 
 # Code Reviewer Agent

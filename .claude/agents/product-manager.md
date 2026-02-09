@@ -17,7 +17,12 @@ description: |
   </example>
 model: inherit
 color: purple
-tools: ["Read", "Glob", "Grep", "Bash"]
+tools: Read, Glob, Grep, Bash
+permissionMode: plan
+maxTurns: 20
+memory: project
+skills: issue-triage
+disallowedTools: Write, Edit
 ---
 
 # Product Manager Agent

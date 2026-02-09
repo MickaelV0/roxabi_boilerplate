@@ -17,7 +17,11 @@ description: |
   </example>
 model: inherit
 color: gray
-tools: ["Read", "Write", "Edit", "Glob", "Grep"]
+tools: Read, Write, Edit, Glob, Grep
+permissionMode: bypassPermissions
+maxTurns: 30
+memory: project
+skills: commit
 ---
 
 # Documentation Writer Agent

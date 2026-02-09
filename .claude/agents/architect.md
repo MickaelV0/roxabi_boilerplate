@@ -17,7 +17,12 @@ description: |
   </example>
 model: inherit
 color: white
-tools: ["Read", "Glob", "Grep", "Bash"]
+tools: Read, Glob, Grep, Bash
+permissionMode: plan
+maxTurns: 20
+memory: project
+skills: plan
+disallowedTools: Write, Edit
 ---
 
 # Architect Agent

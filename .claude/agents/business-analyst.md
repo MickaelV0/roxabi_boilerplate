@@ -17,7 +17,12 @@ description: |
   </example>
 model: inherit
 color: orange
-tools: ["Read", "Glob", "Grep", "WebSearch"]
+tools: Read, Glob, Grep, WebSearch
+permissionMode: plan
+maxTurns: 20
+memory: project
+skills: interview
+disallowedTools: Write, Edit, Bash
 ---
 
 # Business Analyst Agent

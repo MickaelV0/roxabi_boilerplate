@@ -55,6 +55,18 @@ Every agent must follow:
 - **No `git add -A`**: Always stage specific files
 - **No force push**: Never use `--force` or `--hard`
 
+## Configuration
+
+Each agent's `.md` file in `.claude/agents/` defines its behavior through YAML frontmatter:
+
+- **`permissionMode`** — `bypassPermissions` for domain agents (can write code), `plan` for read-only agents (can only analyze)
+- **`maxTurns`** — Maximum API round-trips before stopping (20-50 depending on role)
+- **`memory: project`** — Enables persistent learnings across sessions in `.claude/agent-memory/`
+- **`skills`** — Core skill preloaded per agent (e.g., `commit`, `review`, `test`)
+- **`disallowedTools`** — Explicit deny list for read-only agents (defense-in-depth)
+
+See the [Agent Teams Guide](docs/guides/agent-teams.mdx) for full details on each configuration field.
+
 ## Getting Started
 
 See the [Agent Teams Guide](docs/guides/agent-teams.mdx) for setup, playbooks, and troubleshooting.

@@ -50,6 +50,7 @@ cp .env.example .env
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | Enable multi-agent coordination (experimental) | `0` |
+| `CLAUDE_CODE_TEAMMATE_MODE` | Controls teammate display: `in-process` (same terminal) or `split-pane` (separate panes) | `in-process` |
 
 To enable agent teams, set in your shell:
 
@@ -57,7 +58,7 @@ To enable agent teams, set in your shell:
 export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
 ```
 
-Agent definitions are in `.claude/agents/*.md`. See the [Agent Teams spec](../specs/78-agent-teams-architecture) for details.
+Agent definitions are in `.claude/agents/*.md`. See the [Agent Teams Guide](/docs/guides/agent-teams) for details.
 
 ## TypeScript Configuration
 

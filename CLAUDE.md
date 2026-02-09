@@ -174,18 +174,18 @@ Specialized agents for multi-agent coordination. Requires `CLAUDE_CODE_EXPERIMEN
 
 ### Available Agents
 
-| Agent | Tier | Domain | Tools |
-|-------|------|--------|-------|
-| `frontend-dev` | Domain | `apps/web`, `packages/ui` | Read, Write, Edit, Glob, Grep, Bash |
-| `backend-dev` | Domain | `apps/api`, `packages/types` | Read, Write, Edit, Glob, Grep, Bash |
-| `infra-ops` | Domain | `packages/config`, root configs | Read, Write, Edit, Glob, Grep, Bash |
-| `reviewer` | Quality | All packages (read-only) | Read, Glob, Grep |
-| `tester` | Quality | All packages | Read, Write, Edit, Glob, Grep, Bash |
-| `security-auditor` | Quality | All packages | Read, Glob, Grep, Bash |
-| `architect` | Strategy | All packages | Read, Glob, Grep, Bash |
-| `business-analyst` | Strategy | `docs/` | Read, Glob, Grep, WebSearch |
-| `product-manager` | Strategy | `docs/`, GitHub issues | Read, Glob, Grep, Bash |
-| `doc-writer` | Strategy | `docs/`, `CLAUDE.md` | Read, Write, Edit, Glob, Grep |
+| Agent | Tier | Domain | Permission | Tools |
+|-------|------|--------|------------|-------|
+| `frontend-dev` | Domain | `apps/web`, `packages/ui` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash |
+| `backend-dev` | Domain | `apps/api`, `packages/types` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash |
+| `infra-ops` | Domain | `packages/config`, root configs | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash |
+| `reviewer` | Quality | All packages (read-only) | plan | Read, Glob, Grep |
+| `tester` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash |
+| `security-auditor` | Quality | All packages | plan | Read, Glob, Grep, Bash |
+| `architect` | Strategy | All packages | plan | Read, Glob, Grep, Bash |
+| `business-analyst` | Strategy | `docs/` | plan | Read, Glob, Grep, WebSearch |
+| `product-manager` | Strategy | `docs/`, GitHub issues | plan | Read, Glob, Grep, Bash |
+| `doc-writer` | Strategy | `docs/`, `CLAUDE.md` | bypassPermissions | Read, Write, Edit, Glob, Grep |
 
 ### Routing Decision Tree
 

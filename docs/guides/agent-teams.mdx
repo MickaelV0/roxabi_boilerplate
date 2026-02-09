@@ -18,6 +18,32 @@ export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
 
 Add this to your shell profile (`.bashrc`, `.zshrc`) to persist across sessions.
 
+## How It Works
+
+### Subagents (`.claude/agents/`)
+
+Each `.md` file in `.claude/agents/` defines a **subagent** — a pre-defined role with specific tools, permissions, and domain boundaries. Claude Code auto-discovers these files and makes them available as specialized workers within a single session via the `Task` tool.
+
+Subagents are **stable** and work without any experimental flags.
+
+### Agent Teams (experimental swarm)
+
+Agent Teams go further: multiple independent Claude Code sessions coordinate in parallel via a shared task list and mailbox. Each teammate runs as a separate process with its own context window.
+
+Agent Teams require the experimental flag:
+
+```bash
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+```
+
+### How they connect
+
+The `.md` files in `.claude/agents/` serve **both** purposes:
+- **Single session**: The lead uses `Task` tool to delegate work to a subagent by referencing its definition
+- **Agent Teams**: Team members reference the same `.md` files as their `agentType`, getting the same role, tools, and permissions
+
+---
+
 ## Quick Start
 
 ### 1. Determine your tier
@@ -49,13 +75,30 @@ Is this a code change?
             + business-analyst, product-manager, security-auditor, doc-writer as needed
 ```
 
-### 3. Start a session and spawn teammates
+### 3. Start a session
+
+**Single session (subagents via Task tool):**
 
 ```bash
+# Start Claude Code — subagents are auto-discovered from .claude/agents/
+claude
+
+# Ask Claude to delegate to a subagent
+> "Use the frontend-dev agent to implement the UserProfile component"
+```
+
+Claude uses the `Task` tool internally to spawn the subagent with the role's tools and permissions.
+
+**Agent Teams (experimental — multiple independent sessions):**
+
+```bash
+# Enable agent teams
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+
 # Start Claude Code as the lead
 claude
 
-# Add teammates
+# Spawn teammates as independent sessions
 /teammates add frontend-dev backend-dev reviewer tester
 ```
 
@@ -105,6 +148,61 @@ Once all tasks are complete, review the deliverables and create the PR.
 | **business-analyst** | orange | Requirements, acceptance criteria | Interview framework |
 | **product-manager** | purple | Issue triage, prioritization | [Issue Management](/docs/processes/issue-management) |
 | **doc-writer** | gray | Documentation maintenance | [Contributing](/docs/contributing) |
+
+---
+
+## Agent Configuration
+
+Each agent's `.md` file contains YAML frontmatter that controls its behavior:
+
+### `permissionMode`
+
+Controls what the agent can do without user approval.
+
+| Mode | Meaning | Used by |
+|------|---------|---------|
+| `bypassPermissions` | Agent can execute all its tools freely — appropriate for domain agents that write code | frontend-dev, backend-dev, infra-ops, tester, doc-writer |
+| `plan` | Agent can only read and analyze — it proposes changes but cannot execute them | reviewer, security-auditor, architect, business-analyst, product-manager |
+
+### `maxTurns`
+
+Maximum number of agentic turns (API round-trips) before the agent stops. Prevents runaway token usage.
+
+| Value | Used by |
+|-------|---------|
+| `50` | Domain agents and tester (may need many iterations) |
+| `30` | Reviewer, security-auditor, doc-writer |
+| `20` | Architect, business-analyst, product-manager (analysis-focused) |
+
+### `memory: project`
+
+All agents use `memory: project`, which enables persistent learnings stored in `.claude/agent-memory/`. Agents accumulate knowledge about the codebase across sessions.
+
+### `skills`
+
+Each agent has a core skill preloaded, matching its primary function:
+
+| Agent | Skill | Purpose |
+|-------|-------|---------|
+| frontend-dev, backend-dev, infra-ops, doc-writer | `commit` | Conventional Commits workflow |
+| reviewer | `review` | Code review with Conventional Comments |
+| tester | `test` | Test generation and validation |
+| architect | `plan` | Implementation planning |
+| business-analyst | `interview` | Requirements gathering |
+| product-manager | `issue-triage` | Issue prioritization |
+| security-auditor | — | No skill (pure analysis) |
+
+### `disallowedTools`
+
+Defense-in-depth for read-only agents. Even if an agent's `tools` list doesn't include write tools, `disallowedTools` provides an explicit deny list:
+
+| Agent | Disallowed |
+|-------|------------|
+| reviewer | Write, Edit, Bash |
+| security-auditor | Write, Edit |
+| architect | Write, Edit |
+| business-analyst | Write, Edit, Bash |
+| product-manager | Write, Edit |
 
 ---
 
