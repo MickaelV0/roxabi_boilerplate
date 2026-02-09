@@ -128,7 +128,7 @@ cd ../roxabi-XXX
 | Trigger | Skill | Examples |
 |---------|-------|----------|
 | issues, list issues | `issues` | "list GitHub issues", "/issues" |
-| issue triage, labeling | `issue-triage` | "triage issues", "label open issues" |
+| issue triage, labeling, status update | `issue-triage` | "triage issues", "label open issues", "update issue status" |
 | interview, spec, brainstorm, analysis | `interview` | "create a spec", "interview for feature", "brainstorm ideas" |
 | cleanup, git cleanup | `cleanup` | "clean branches", "cleanup worktrees", "/cleanup" |
 | commit, stage, git commit | `commit` | "commit changes", "commit staged files", "/commit --all" |

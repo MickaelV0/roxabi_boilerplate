@@ -1,6 +1,6 @@
 ---
-argument-hint: [list | set <num> --size <S> --priority <P>]
-description: List issues missing Size or Priority and assign them.
+argument-hint: [list | set <num> --size <S> --priority <P> --status <Status>]
+description: List issues missing Size or Priority and assign them. Also update issue Status.
 allowed-tools: Bash, AskUserQuestion
 ---
 
@@ -24,7 +24,12 @@ Identify and label GitHub issues that are missing Size or Priority fields.
    .claude/skills/issue-triage/triage.sh set <number> --size <S> --priority <P>
    ```
 
-4. **Use AskUserQuestion** if unsure about Size or Priority for an issue.
+4. **Update status** when needed:
+   ```bash
+   .claude/skills/issue-triage/triage.sh set <number> --status "In Progress"
+   ```
+
+5. **Use AskUserQuestion** if unsure about Size or Priority for an issue.
 
 ## Size Guidelines
 
@@ -53,7 +58,20 @@ Identify and label GitHub issues that are missing Size or Priority fields.
 | `list --json` | JSON output for programmatic use |
 | `set <num> --size <S>` | Set size for issue |
 | `set <num> --priority <P>` | Set priority for issue |
-| `set <num> --size <S> --priority <P>` | Set both |
+| `set <num> --status <Status>` | Set status for issue |
+| `set <num> --size <S> --priority <P>` | Set size and priority |
+| `set <num> --status <S> --size <S> --priority <P>` | Set all fields |
+
+## Status Values
+
+| Status | Description |
+|--------|-------------|
+| **Backlog** | Not yet started, waiting to be picked up |
+| **Analysis** | Being researched / analyzed |
+| **Specs** | Specification in progress or done |
+| **In Progress** | Active development (has worktree/branch) |
+| **Review** | In code review / PR open |
+| **Done** | Completed and merged |
 
 ## Example Workflow
 
@@ -61,15 +79,20 @@ Identify and label GitHub issues that are missing Size or Priority fields.
 # 1. List issues to triage
 .claude/skills/issue-triage/triage.sh list
 
-# 2. Set values for each issue
+# 2. Set size and priority
 .claude/skills/issue-triage/triage.sh set 42 --size M --priority High
 .claude/skills/issue-triage/triage.sh set 43 --size S --priority Medium
+
+# 3. Update status
+.claude/skills/issue-triage/triage.sh set 42 --status "In Progress"
+.claude/skills/issue-triage/triage.sh set 43 --status Review
 ```
 
 ## Configuration
 
 Environment variables (with defaults):
 - `PROJECT_ID` - GitHub Project V2 ID
+- `STATUS_FIELD_ID` - Project field ID for Status
 - `SIZE_FIELD_ID` - Project field ID for Size
 - `PRIORITY_FIELD_ID` - Project field ID for Priority
 
