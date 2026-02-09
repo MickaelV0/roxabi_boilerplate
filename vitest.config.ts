@@ -45,6 +45,12 @@ export default defineConfig({
         // Component files need integration tests
         '**/components/LanguageSwitcher.tsx',
         '**/vite-env.d.ts',
+        // Type declaration files
+        '**/*.d.ts',
+        // Server entry point (infrastructure)
+        '**/server.ts',
+        // Generated i18n runtime (paraglide)
+        '**/paraglide/**',
       ],
       thresholds: {
         lines: 70,
