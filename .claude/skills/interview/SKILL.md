@@ -1,7 +1,7 @@
 ---
 argument-hint: [topic | --promote <path>]
 description: Structured interview to create a brainstorm, analysis, or spec — with promotion between levels.
-allowed-tools: AskUserQuestion, Write, Read, Glob
+allowed-tools: AskUserQuestion, Write, Read, Edit, Glob
 ---
 
 # Interview
@@ -112,7 +112,10 @@ Write the document using the appropriate template below. Follow these rules:
 - For **Analysis** and **Brainstorm** documents: `docs/analyses/{slug}.mdx` (prefix with issue number if one exists, e.g., `docs/analyses/{issue}-{slug}.mdx`).
 - Brainstorm documents add `type: brainstorm` to their frontmatter.
 - Escape `<` as `&lt;` in MDX content to avoid JSX parsing errors.
-- After writing, remind the user to add the filename (without extension) to the corresponding `meta.json` in `docs/analyses/` or `docs/specs/`.
+- After writing the document, **automatically update the corresponding `meta.json`**:
+  - For analyses/brainstorms: Read `docs/analyses/meta.json`, add the filename (without extension) to the `pages` array, and write it back using `Edit`.
+  - For specs: Read `docs/specs/meta.json`, add the filename (without extension) to the `pages` array, and write it back using `Edit`.
+  - If the filename already exists in the array, skip the update.
 
 ---
 
