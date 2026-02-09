@@ -27,7 +27,8 @@
       "cache": false
     },
     "license:check": {
-      "cache": false
+      "cache": false,
+      "outputs": ["reports/licenses.json"]
     }
   }
 }

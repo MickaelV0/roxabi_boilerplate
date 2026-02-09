@@ -301,16 +301,16 @@ export function isLicenseAllowed(license: string | null, allowedLicenses: string
   // Direct match
   if (allowedLicenses.includes(license)) return true
 
+  // SPDX AND expression — all components must be allowed (check before OR/parens)
+  if (license.includes(' AND ')) {
+    const components = parseSpdxExpression(license)
+    return components.every((c) => allowedLicenses.includes(c))
+  }
+
   // SPDX OR expression — at least one component must be allowed
   if (license.includes(' OR ') || license.startsWith('(')) {
     const components = parseSpdxExpression(license)
     return components.some((c) => allowedLicenses.includes(c))
-  }
-
-  // SPDX AND expression — all components must be allowed
-  if (license.includes(' AND ')) {
-    const components = parseSpdxExpression(license)
-    return components.every((c) => allowedLicenses.includes(c))
   }
 
   return false
@@ -355,6 +355,18 @@ export function checkCompliance(packages: RawPackageInfo[], policy: LicensePolic
     if (status === 'violation') violations.push(entry)
     if (license) {
       licenseCounts[license] = (licenseCounts[license] ?? 0) + 1
+    }
+  }
+
+  // Detect stale overrides that don't match any scanned package
+  const scannedKeys = new Set(packages.map((p) => `${p.name}@${p.version}`))
+  for (const overrideKey of Object.keys(policy.overrides)) {
+    if (!scannedKeys.has(overrideKey)) {
+      warnings.push({
+        name: overrideKey.replace(/@[^@]+$/, ''),
+        version: overrideKey.replace(/^.*@/, ''),
+        reason: `Override "${overrideKey}" does not match any installed package`,
+      })
     }
   }
 

@@ -162,6 +162,14 @@ describe('SPDX expression handling', () => {
     expect(isLicenseAllowed('MIT AND ISC', ['MIT', 'ISC'])).toBe(true)
   })
 
+  it('rejects parenthesized AND expression when not all components are allowed', () => {
+    expect(isLicenseAllowed('(MIT AND GPL-3.0)', ['MIT'])).toBe(false)
+  })
+
+  it('allows parenthesized AND expression when all components are allowed', () => {
+    expect(isLicenseAllowed('(MIT AND ISC)', ['MIT', 'ISC'])).toBe(true)
+  })
+
   it('rejects null license', () => {
     expect(isLicenseAllowed(null, ['MIT'])).toBe(false)
   })
@@ -211,6 +219,18 @@ describe('compliance check', () => {
     const report = checkCompliance([{ name: 'ov-pkg', version: '1.0.0', dir: pkgDir }], policy)
     expect(report.packages[0].status).toBe('override')
     expect(report.packages[0].license).toBe('MIT')
+  })
+
+  it('warns about stale overrides that match no installed package', () => {
+    const pkgDir = join(tmpDir, 'real-pkg')
+    writePkg(pkgDir, { name: 'real-pkg', version: '1.0.0', license: 'MIT' })
+    const policy: LicensePolicy = {
+      allowedLicenses: ['MIT'],
+      overrides: { 'gone-pkg@2.0.0': 'MIT' },
+    }
+    const report = checkCompliance([{ name: 'real-pkg', version: '1.0.0', dir: pkgDir }], policy)
+    expect(report.warnings).toHaveLength(1)
+    expect(report.warnings[0].reason).toContain('gone-pkg@2.0.0')
   })
 })
 
