@@ -166,6 +166,52 @@ For project vision, principles, and roadmap: see [docs/vision.mdx](docs/vision.m
 
 For full architecture, monorepo structure, and commands: MUST read [docs/architecture/](docs/architecture/) and [docs/configuration.mdx](docs/configuration.mdx).
 
+## Agent Teams (Experimental)
+
+Specialized agents for multi-agent coordination. Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
+
+### Available Agents
+
+| Agent | Tier | Domain | Tools |
+|-------|------|--------|-------|
+| `frontend-dev` | Domain | `apps/web`, `packages/ui` | Read, Write, Edit, Glob, Grep, Bash |
+| `backend-dev` | Domain | `apps/api`, `packages/types` | Read, Write, Edit, Glob, Grep, Bash |
+| `infra-ops` | Domain | `packages/config`, root configs | Read, Write, Edit, Glob, Grep, Bash |
+| `reviewer` | Quality | All packages (read-only) | Read, Glob, Grep |
+| `tester` | Quality | All packages | Read, Write, Edit, Glob, Grep, Bash |
+| `security-auditor` | Quality | All packages | Read, Glob, Grep, Bash |
+| `architect` | Strategy | All packages | Read, Glob, Grep, Bash |
+| `business-analyst` | Strategy | `docs/` | Read, Glob, Grep, WebSearch |
+| `product-manager` | Strategy | `docs/`, GitHub issues | Read, Glob, Grep, Bash |
+| `doc-writer` | Strategy | `docs/`, `CLAUDE.md` | Read, Write, Edit, Glob, Grep |
+
+### Routing Decision Tree
+
+```
+Is this a code change?
+├── No (docs only) → doc-writer alone (or single agent)
+└── Yes
+    ├── Tier S (≤3 files, no arch risk)
+    │   └── Single agent session (no agent teams)
+    │
+    ├── Tier M (3-10 files, local arch)
+    │   ├── Frontend only? → frontend-dev + reviewer + tester
+    │   ├── Backend only?  → backend-dev + reviewer + tester
+    │   ├── Full-stack?    → frontend-dev + backend-dev + reviewer + tester
+    │   └── + architect (if design decisions needed)
+    │
+    └── Tier L (>10 files, system arch)
+        └── Full team or near-full team:
+            ├── Always: architect + domain agents + reviewer + tester
+            ├── If new feature: + business-analyst + product-manager
+            ├── If security-sensitive: + security-auditor
+            └── If docs impact: + doc-writer
+```
+
+Agent definitions: `.claude/agents/*.md`
+
+---
+
 ## Hooks
 
 Claude Code hooks are configured in `.claude/settings.json`:

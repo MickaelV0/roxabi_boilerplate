@@ -45,6 +45,20 @@ cp .env.example .env
 | `API_URL` | Backend URL | `http://localhost:4000` |
 | `GITHUB_TOKEN` | GitHub API access | - |
 
+### Claude Code Agent Teams
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | Enable multi-agent coordination (experimental) | `0` |
+
+To enable agent teams, set in your shell:
+
+```bash
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+```
+
+Agent definitions are in `.claude/agents/*.md`. See the [Agent Teams spec](specs/78-agent-teams-architecture) for details.
+
 ## TypeScript Configuration
 
 Root `tsconfig.json` provides base settings. Each app/package extends it:
