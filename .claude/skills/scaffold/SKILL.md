@@ -1,6 +1,6 @@
 ---
 argument-hint: [--spec <number> | --plan]
-description: Scaffold a feature from an approved spec — creates issue, worktree, boilerplate, commit, and draft PR.
+description: Scaffold a feature from an approved spec — creates issue, worktree, boilerplate, and commit.
 allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Edit, Task
 ---
 
@@ -188,7 +188,7 @@ bun lint && bun typecheck
 
 ### 7. Commit
 
-Follow `/commit` skill conventions:
+Follow `/commit` skill conventions. **Do NOT ask the user to approve the commit message.** Proceed directly to committing.
 
 1. Stage only the scaffolded files (never `git add -A`):
    ```bash
@@ -209,12 +209,7 @@ Follow `/commit` skill conventions:
 
 Replace `<model>` with the actual model name (e.g., `Claude Opus 4.6`).
 
-3. Present the message to the user via `AskUserQuestion`:
-   - **Commit** — use as-is
-   - **Edit** — modify the message
-   - **Abort** — cancel
-
-4. Execute the commit using HEREDOC format:
+3. Execute the commit using HEREDOC format:
    ```bash
    git commit -m "$(cat <<'EOF'
    <message>
@@ -222,50 +217,13 @@ Replace `<model>` with the actual model name (e.g., `Claude Opus 4.6`).
    )"
    ```
 
+4. After commit: run `git log --oneline -1` to confirm and show the result to the user.
+
 5. If pre-commit hook fails: fix, re-stage, create a **NEW** commit (never amend).
 
-### 8. Create Draft PR
+### 8. Final Summary
 
-Follow `/pr` skill conventions:
-
-1. Push the branch:
-   ```bash
-   git push -u origin feat/<issue_number>-<slug>
-   ```
-
-2. Generate PR content:
-   - **Title:** `feat(<scope>): scaffold <feature> boilerplate`
-   - **Body:**
-     ```markdown
-     ## Summary
-     - Scaffold boilerplate for <feature> based on spec #<number>
-     - Creates file stubs: types, API routes, UI components, tests
-     - All stubs follow existing codebase patterns with TODO placeholders
-
-     ## Test Plan
-     - [ ] Verify `bun typecheck` passes
-     - [ ] Verify `bun lint` passes
-     - [ ] Review stub files match project conventions
-
-     Refs #<issue_number>
-
-     ---
-     Generated with [Claude Code](https://claude.ai/code) via `/scaffold`
-     ```
-
-3. Present to user via `AskUserQuestion`:
-   - **Create draft PR** — proceed
-   - **Edit** — modify title/body
-   - **Skip PR** — commit only, no PR
-
-4. Create the draft PR:
-   ```bash
-   gh pr create --title "<title>" --body "<body>" --draft
-   ```
-
-5. Display the PR URL.
-
-### 9. Final Summary
+**Do NOT create a draft PR.** The scaffold only sets up stubs — the PR should be created later via `/pr` once implementation is complete.
 
 Display a summary of everything created:
 
@@ -275,7 +233,6 @@ Scaffold Complete
   Issue:    #<number> — <title>
   Branch:   feat/<number>-<slug>
   Worktree: ../roxabi-<number>       (or "N/A — Tier S")
-  PR:       <PR_URL> (draft)
 
   Files created:
     - packages/types/src/<feature>.ts
@@ -286,7 +243,8 @@ Scaffold Complete
     1. cd ../roxabi-<number>          (if worktree)
     2. Implement the TODOs
     3. Run /commit when ready
-    4. Run /review before merging
+    4. Run /pr when implementation is complete
+    5. Run /review before merging
 ```
 
 ## Rollback
@@ -296,9 +254,6 @@ If the scaffold is wrong, cleanup is two commands:
 ```bash
 # Remove worktree (Tier M/L only)
 git worktree remove ../roxabi-<number>
-
-# Close the draft PR
-gh pr close <PR_NUMBER>
 
 # Delete the branch
 git branch -D feat/<number>-<slug>
@@ -320,12 +275,10 @@ git branch -D feat/<number>-<slug>
 ## Safety Rules
 
 1. **NEVER run `git add -A` or `git add .`** — always add specific files
-2. **NEVER push without creating a branch first**
-3. **NEVER auto-commit** — user approves message before every commit
-4. **NEVER create the PR without user approval** of title and body
-5. **NEVER create the issue without user approval** of content
-6. **ALWAYS present scaffolded file list** before writing any files
-7. **ALWAYS use HEREDOC** for commit messages to preserve formatting
-8. **ALWAYS display the PR URL** after creation
+2. **NEVER push** — scaffold only commits locally; pushing and PR creation happen later via `/pr`
+3. **NEVER create the issue without user approval** of content
+4. **ALWAYS present scaffolded file list** before writing any files
+5. **ALWAYS use HEREDOC** for commit messages to preserve formatting
+6. **ALWAYS commit directly** without asking for approval (follow `/commit` conventions)
 
 $ARGUMENTS
