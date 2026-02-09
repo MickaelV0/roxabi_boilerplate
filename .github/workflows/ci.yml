@@ -263,8 +263,8 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: bunx playwright install-deps chromium
 
-      - name: Generate Paraglide & route tree
-        run: cd apps/web && bun run codegen
+      - name: Build web app
+        run: bun run build --filter=@repo/web
 
       - name: Run E2E tests
         run: bun test:e2e
