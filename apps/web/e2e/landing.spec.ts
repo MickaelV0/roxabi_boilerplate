@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 
+// Selectors match the v2 landing page (Feb 2026 redesign)
 test.describe('Landing Page', () => {
   test('should load the landing page with correct content', async ({ page }) => {
     await page.goto('/')
