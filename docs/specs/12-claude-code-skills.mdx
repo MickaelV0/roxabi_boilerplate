@@ -840,7 +840,7 @@ After implementation, update the Available Skills table in `CLAUDE.md` with all 
 ## Constraints
 
 - **No breaking changes** to existing skills (`/issues`, `/issue-triage`, `/interview`, `/cleanup`)
-- **Skill independence:** Each skill must work standalone (except `/bootstrap` which calls `/interview` + `/plan`, and `/scaffold` which calls `/commit` + `/pr`)
+- **Skill independence:** Each skill must work standalone (except `/bootstrap` which calls `/interview` + `/plan`, and `/scaffold` which invokes `/commit` + `/pr`)
 - **No new dependencies:** Skills use only Claude Code built-in tools + `gh` CLI + `git` + `bun`
 - **Convention alignment:** All skills enforce conventions from `docs/contributing.mdx` and `docs/standards/`
 
