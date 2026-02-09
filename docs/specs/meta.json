@@ -13,6 +13,7 @@
     "49-api-client",
     "64-paraglide-i18n-migration",
     "19-auth-users",
-    "12-claude-code-skills"
+    "12-claude-code-skills",
+    "70-design-system"
   ]
 }

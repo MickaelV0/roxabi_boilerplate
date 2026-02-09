@@ -50,6 +50,11 @@ export function Header() {
             </Link>
           </Button>
           <Button variant="ghost" size="sm" asChild>
+            <Link to="/demo" activeProps={{ className: 'bg-accent' }}>
+              {m.nav_demos()}
+            </Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
             <a href="/docs">{m.nav_docs()}</a>
           </Button>
         </div>
@@ -83,6 +88,15 @@ export function Header() {
                 onClick={() => setMobileOpen(false)}
               >
                 {m.nav_home()}
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" className="justify-start" asChild>
+              <Link
+                to="/demo"
+                activeProps={{ className: 'bg-accent' }}
+                onClick={() => setMobileOpen(false)}
+              >
+                {m.nav_demos()}
               </Link>
             </Button>
             <Button variant="ghost" size="sm" className="justify-start" asChild>

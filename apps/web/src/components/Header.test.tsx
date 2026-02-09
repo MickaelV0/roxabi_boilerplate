@@ -57,6 +57,7 @@ vi.mock('@tanstack/react-router', () => ({
 vi.mock('@/paraglide/messages', () => ({
   m: {
     nav_home: () => 'Home',
+    nav_demos: () => 'Demos',
     nav_docs: () => 'Docs',
     menu_open: () => 'Open menu',
     menu_close: () => 'Close menu',
