@@ -2,14 +2,16 @@
 # Triage GitHub issues by setting Size and Priority fields.
 # Usage:
 #   ./triage.sh [list] [--json]
-#   ./triage.sh set <number> --size <XS|S|M|L|XL> --priority <High|Medium|Low>
+#   ./triage.sh set <number> --size <XS|S|M|L|XL> --priority <High|Medium|Low> --status <Status>
 
 set -euo pipefail
 
 PROJECT_ID="${PROJECT_ID:-PVT_kwHODEqYK84BOId3}"
+STATUS_FIELD_ID="${STATUS_FIELD_ID:-PVTSSF_lAHODEqYK84BOId3zg87HNM}"
 SIZE_FIELD_ID="${SIZE_FIELD_ID:-PVTSSF_lAHODEqYK84BOId3zg87HYo}"
 PRIORITY_FIELD_ID="${PRIORITY_FIELD_ID:-PVTSSF_lAHODEqYK84BOId3zg87HYs}"
 
+declare -A STATUS_OPTIONS=(["BACKLOG"]="df6ee93b" ["ANALYSIS"]="bec91bb0" ["SPECS"]="ad9a9195" ["IN PROGRESS"]="331d27a4" ["INPROGRESS"]="331d27a4" ["IN_PROGRESS"]="331d27a4" ["REVIEW"]="ee30a001" ["DONE"]="bfdc35bd")
 declare -A SIZE_OPTIONS=(["XS"]="dfcde6df" ["S"]="4390f522" ["M"]="e2c52fb1" ["L"]="f8ea3803" ["XL"]="228a917d")
 declare -A PRIORITY_OPTIONS=(["URGENT"]="ed739db3" ["HIGH"]="742ac87b" ["MEDIUM"]="723e7784" ["LOW"]="796f973f")
 
@@ -92,28 +94,34 @@ update_field() {
 }
 
 set_issue() {
-    local issue_number="" size="" priority=""
+    local issue_number="" size="" priority="" status=""
     while [[ $# -gt 0 ]]; do
         case $1 in
             --size) size="${2^^}"; shift 2 ;;
             --priority) priority="${2^^}"; shift 2 ;;
+            --status) status="${2^^}"; shift 2 ;;
             *) issue_number="$1"; shift ;;
         esac
     done
 
     [[ -z "$issue_number" ]] && { echo "Error: Issue number required" >&2; exit 1; }
-    [[ -z "$size" && -z "$priority" ]] && { echo "Error: Specify --size and/or --priority" >&2; exit 1; }
+    [[ -z "$size" && -z "$priority" && -z "$status" ]] && { echo "Error: Specify --size, --priority, and/or --status" >&2; exit 1; }
 
     item_id=$(get_item_id "$issue_number")
     [[ -z "$item_id" ]] && { echo "Error: Issue #$issue_number not found" >&2; exit 1; }
 
+    if [[ -n "$status" ]]; then
+        [[ -z "${STATUS_OPTIONS[$status]:-}" ]] && { echo "Error: Invalid status. Valid: Backlog, Analysis, Specs, \"In Progress\", Review, Done" >&2; exit 1; }
+        update_field "$item_id" "$STATUS_FIELD_ID" "${STATUS_OPTIONS[$status]}"
+        echo "Status=$status #$issue_number"
+    fi
     if [[ -n "$size" ]]; then
         [[ -z "${SIZE_OPTIONS[$size]:-}" ]] && { echo "Error: Invalid size. Valid: ${!SIZE_OPTIONS[*]}" >&2; exit 1; }
         update_field "$item_id" "$SIZE_FIELD_ID" "${SIZE_OPTIONS[$size]}"
         echo "Size=$size #$issue_number"
     fi
     if [[ -n "$priority" ]]; then
-        [[ -z "${PRIORITY_OPTIONS[$priority]:-}" ]] && { echo "Error: Invalid priority. Valid: High, Medium, Low" >&2; exit 1; }
+        [[ -z "${PRIORITY_OPTIONS[$priority]:-}" ]] && { echo "Error: Invalid priority. Valid: Urgent, High, Medium, Low" >&2; exit 1; }
         update_field "$item_id" "$PRIORITY_FIELD_ID" "${PRIORITY_OPTIONS[$priority]}"
         echo "Priority=$priority #$issue_number"
     fi
