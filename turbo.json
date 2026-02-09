@@ -10,7 +10,7 @@
     },
     "build": {
       "dependsOn": ["codegen", "^build"],
-      "outputs": ["dist/**", ".next/**", "build/**"]
+      "outputs": ["dist/**", ".output/**", ".next/**", "build/**"]
     },
     "typecheck": {
       "dependsOn": ["codegen", "^typecheck", "^build"]

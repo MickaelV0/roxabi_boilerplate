@@ -1,31 +1,31 @@
 import { expect, test } from '@playwright/test'
 
+// Selectors match the v2 landing page (Feb 2026 redesign)
 test.describe('Landing Page', () => {
   test('should load the landing page with correct content', async ({ page }) => {
     await page.goto('/')
 
-    // Verify page title/heading
-    await expect(page.getByRole('heading', { name: 'Roxabi' })).toBeVisible()
-    await expect(page.getByText('Boilerplate')).toBeVisible()
-
     // Verify hero badge
-    await expect(page.getByText('Production-Ready SaaS Starter')).toBeVisible()
+    await expect(page.getByText('Open-Source SaaS Boilerplate')).toBeVisible()
+
+    // Verify hero title
+    await expect(page.getByText('Skip the infrastructure.')).toBeVisible()
 
     // Verify CTA buttons exist
     await expect(page.getByRole('link', { name: 'Get Started' }).first()).toBeVisible()
-    await expect(page.getByRole('link', { name: 'View on GitHub' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'GitHub' }).first()).toBeVisible()
   })
 
   test('should display feature cards', async ({ page }) => {
     await page.goto('/')
 
     // Verify feature section
-    await expect(page.getByText('Built for Developers')).toBeVisible()
+    await expect(page.getByText('Everything you need to ship')).toBeVisible()
 
     // Verify feature cards
-    await expect(page.getByRole('heading', { name: 'Modern Frontend' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Robust Backend' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Developer Experience' })).toBeVisible()
+    await expect(page.getByText('Full-Stack TypeScript')).toBeVisible()
+    await expect(page.getByText('Auth & Users')).toBeVisible()
+    await expect(page.getByText('AI-Powered Dev', { exact: true })).toBeVisible()
   })
 
   test('should have working header navigation', async ({ page }) => {
@@ -52,13 +52,13 @@ test.describe('Landing Page', () => {
     await expect(page).toHaveURL(/\/docs/)
   })
 
-  test('should have a footer with documentation link', async ({ page }) => {
+  test('should have a footer with links', async ({ page }) => {
     await page.goto('/')
 
     // Verify footer content
     const footer = page.locator('footer')
     await expect(footer).toBeVisible()
-    await expect(footer.getByText('Roxabi Boilerplate')).toBeVisible()
-    await expect(footer.getByRole('link', { name: 'Documentation' })).toBeVisible()
+    await expect(footer.getByText('Roxabi')).toBeVisible()
+    await expect(footer.getByRole('link', { name: 'GitHub' })).toBeVisible()
   })
 })
