@@ -15,6 +15,7 @@
     "19-auth-users",
     "12-claude-code-skills",
     "70-design-system",
-    "78-agent-teams-architecture"
+    "78-agent-teams-architecture",
+    "80-license-checker"
   ]
 }
