@@ -44,4 +44,24 @@ describe('OAuthButton', () => {
     render(<OAuthButton provider="google" />)
     expect(screen.getByRole('button')).toHaveAttribute('data-slot', 'oauth-button')
   })
+
+  it('renders provider icon SVG', () => {
+    const { container } = render(<OAuthButton provider="google" />)
+    const svg = container.querySelector('svg')
+    expect(svg).toBeTruthy()
+    expect(svg).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('shows spinner when loading', () => {
+    const { container } = render(<OAuthButton provider="google" loading />)
+    const spinner = container.querySelector('.animate-spin')
+    expect(spinner).toBeTruthy()
+  })
+
+  it('does not call onClick when disabled', () => {
+    const handleClick = vi.fn()
+    render(<OAuthButton provider="google" onClick={handleClick} disabled />)
+    fireEvent.click(screen.getByRole('button'))
+    expect(handleClick).not.toHaveBeenCalled()
+  })
 })
