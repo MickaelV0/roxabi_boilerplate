@@ -41,8 +41,25 @@ async function bootstrap() {
     hsts: { maxAge: 31536000, includeSubDomains: true },
     frameguard: { action: 'deny' },
     referrerPolicy: { policy: 'no-referrer' },
-    crossOriginEmbedderPolicy: false,
+    crossOriginEmbedderPolicy: false, // disabled to allow cross-origin resources (fonts, images)
   })
+
+  // Permissions-Policy (not included in helmet v8)
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .addHook(
+      'onSend',
+      (
+        _request: unknown,
+        reply: { header: (k: string, v: string) => void },
+        _payload: unknown,
+        done: () => void
+      ) => {
+        reply.header('permissions-policy', 'camera=(), microphone=(), geolocation=()')
+        done()
+      }
+    )
 
   // Global pipes
   app.useGlobalPipes(
