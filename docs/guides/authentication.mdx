@@ -1,0 +1,220 @@
+---
+title: Authentication Guide
+description: Better Auth setup, guard system, decorators, session management, and frontend integration.
+---
+
+# Authentication Guide
+
+## Overview
+
+Authentication is powered by **Better Auth** with the Drizzle adapter. It supports:
+
+- **Email + password** with email verification
+- **OAuth** providers (Google, GitHub) — conditionally enabled when credentials are configured
+- **Magic link** sign-in via email
+- **Organizations** with role-based membership and invitations
+- **Admin** plugin for user management (ban, role assignment)
+
+The auth system follows a **deny-by-default** model: every endpoint requires authentication unless explicitly marked otherwise.
+
+## Architecture
+
+Auth is split into two layers:
+
+| File | Role | Description |
+|------|------|-------------|
+| `auth.instance.ts` | **Configuration** | Pure function `createBetterAuth()` that configures Better Auth with the Drizzle adapter, plugins, email provider, and OAuth settings. No NestJS dependency. |
+| `auth.service.ts` | **NestJS wrapper** | Injectable service that creates the Better Auth instance and exposes `getSession()` for the guard. Injects `DRIZZLE`, `EMAIL_PROVIDER`, and `ConfigService`. |
+
+The `AuthModule` wires everything together:
+
+```ts
+@Module({
+  controllers: [AuthController],
+  providers: [
+    AuthService,
+    { provide: EMAIL_PROVIDER, useClass: ResendEmailProvider },
+    { provide: APP_GUARD, useClass: AuthGuard },
+  ],
+  exports: [AuthService],
+})
+export class AuthModule {}
+```
+
+The `AuthController` mounts Better Auth's HTTP handler at `/api/auth/*` as a catch-all route, forwarding raw Fastify requests to Better Auth's internal router.
+
+## Auth Guard &amp; Decorators
+
+The `AuthGuard` is registered as a **global guard** via `APP_GUARD`. Every route is protected by default. Use decorators to modify this behavior:
+
+### `@AllowAnonymous()`
+
+Skip authentication entirely. The endpoint is open to everyone.
+
+```ts
+@AllowAnonymous()
+@Get('health')
+healthCheck() {
+  return { status: 'ok' }
+}
+```
+
+### `@OptionalAuth()`
+
+Allow unauthenticated requests but still attach the session if a valid one exists. Useful for endpoints that behave differently for logged-in users.
+
+```ts
+@OptionalAuth()
+@Get('feed')
+getFeed(@Session() session: AuthSession | null) {
+  // session is null for anonymous users
+}
+```
+
+### `@Roles(...roles)`
+
+Require the authenticated user to have one of the specified roles. Returns `403 Forbidden` if the user's role doesn't match.
+
+```ts
+@Roles('admin')
+@Delete('users/:id')
+deleteUser(@Param('id') id: string) { ... }
+```
+
+### `@RequireOrg()`
+
+Require the session to have an active organization. Returns `403 Forbidden` with message "No active organization" if not set.
+
+```ts
+@RequireOrg()
+@Get('org/settings')
+getOrgSettings(@Session() session: AuthSession) { ... }
+```
+
+### `@Session()`
+
+Parameter decorator that extracts the session object from the request. The session contains:
+
+```ts
+type AuthSession = {
+  user: { id: string; role?: string }
+  session: { id: string; activeOrganizationId?: string | null }
+}
+```
+
+### Guard evaluation order
+
+The guard checks metadata in this order:
+
+1. `PUBLIC` — if set, allow immediately
+2. Fetch session from Better Auth
+3. `OPTIONAL_AUTH` — if set and no session, allow
+4. No session → `401 Unauthorized`
+5. `ROLES` — check user role → `403 Forbidden` if mismatch
+6. `REQUIRE_ORG` — check active org → `403 Forbidden` if missing
+
+## Session Management
+
+Better Auth uses **cookie-based sessions**:
+
+| Setting | Value | Description |
+|---------|-------|-------------|
+| `expiresIn` | 7 days | Session lifetime |
+| `updateAge` | 1 day | Refresh the session after this much inactivity |
+| `cookieCache.enabled` | `true` | Cache session in cookie to reduce DB lookups |
+| `cookieCache.maxAge` | 5 minutes | Cookie cache duration |
+
+### Same-origin cookies
+
+The frontend (port 3000) and API (port 3001) run on different ports in development. To keep cookies on the same origin (avoiding `SameSite=None`), the frontend uses a **Vite dev proxy**:
+
+```
+/api/* → http://localhost:3001
+```
+
+This means the browser sends requests to `localhost:3000/api/auth/*`, which are proxied to the API. Cookies are set on `localhost:3000` — same origin as the frontend.
+
+In production, both apps deploy to Vercel on the same domain, so cookies work natively.
+
+## Email Provider
+
+Email sending is abstracted behind an injection token:
+
+```ts
+export const EMAIL_PROVIDER = Symbol('EMAIL_PROVIDER')
+
+export interface EmailProvider {
+  send(options: { to: string; subject: string; html: string }): Promise&lt;void>
+}
+```
+
+The default implementation is `ResendEmailProvider`, which uses the Resend SDK. It is registered in `AuthModule`:
+
+```ts
+{ provide: EMAIL_PROVIDER, useClass: ResendEmailProvider }
+```
+
+Better Auth invokes the email provider for three flows:
+
+| Flow | Trigger | Template |
+|------|---------|----------|
+| **Email verification** | User signs up | "Click here to verify your email" |
+| **Password reset** | User requests reset | "Click here to reset your password" |
+| **Magic link** | User requests magic link | "Click here to sign in" |
+
+To swap email providers, create a new class implementing `EmailProvider` and register it in the module.
+
+## Frontend Client
+
+The frontend uses Better Auth's React client SDK:
+
+```ts
+// apps/web/src/lib/auth-client.ts
+import { createAuthClient } from 'better-auth/react'
+import { adminClient, magicLinkClient, organizationClient } from 'better-auth/client/plugins'
+
+export const authClient = createAuthClient({
+  baseURL: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
+  plugins: [organizationClient(), adminClient(), magicLinkClient()],
+})
+
+export const { useSession, signIn, signUp, signOut } = authClient
+```
+
+**Key points:**
+
+- `baseURL` uses `window.location.origin` in the browser, so requests go through the Vite proxy
+- Server-side falls back to `http://localhost:3000`
+- Plugins must mirror the server-side plugins (organization, admin, magic link)
+
+### Usage in components
+
+```tsx
+import { useSession, signOut } from '~/lib/auth-client'
+
+function UserMenu() {
+  const { data: session } = useSession()
+
+  if (!session) return null
+
+  return (
+    &lt;div>
+      &lt;span>{session.user.name}&lt;/span>
+      &lt;button onClick={() => signOut()}>Sign out&lt;/button>
+    &lt;/div>
+  )
+}
+```
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `BETTER_AUTH_SECRET` | **Yes** | Secret used for signing sessions and tokens. Must be a random string of 32+ characters. In production, the app throws on startup if this is set to a known default value. |
+| `GOOGLE_CLIENT_ID` | No | Google OAuth client ID. Google sign-in is only enabled when both ID and secret are set. |
+| `GOOGLE_CLIENT_SECRET` | No | Google OAuth client secret. |
+| `GITHUB_CLIENT_ID` | No | GitHub OAuth client ID. GitHub sign-in is only enabled when both ID and secret are set. |
+| `GITHUB_CLIENT_SECRET` | No | GitHub OAuth client secret. |
+| `RESEND_API_KEY` | No | API key for the Resend email service. Required for email verification, password reset, and magic link flows. |
+
+OAuth providers are **conditionally enabled**: if the client ID and secret are both set, the provider is registered. If either is missing, the provider is silently skipped.
