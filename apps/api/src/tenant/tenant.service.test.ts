@@ -31,58 +31,276 @@ function createMockDb() {
 }
 
 describe('TenantService', () => {
-  it('should execute callback within a tenant-scoped transaction', async () => {
-    // Arrange
-    const cls = createMockCls('org-1')
-    const db = createMockDb()
-    const service = new TenantService(cls as never, db as never)
-    const callback = vi.fn().mockResolvedValue('result')
+  describe('query()', () => {
+    it('should execute callback within a tenant-scoped transaction', async () => {
+      // Arrange
+      const cls = createMockCls('org-1')
+      const db = createMockDb()
+      const service = new TenantService(cls as never, db as never)
+      const callback = vi.fn().mockResolvedValue('result')
 
-    // Act
-    const result = await service.query(callback)
+      // Act
+      const result = await service.query(callback)
 
-    // Assert
-    expect(result).toBe('result')
-    expect(db.transaction).toHaveBeenCalled()
-    expect(db._executeFn).toHaveBeenCalled()
-    expect(callback).toHaveBeenCalledWith(db._txProxy)
+      // Assert
+      expect(result).toBe('result')
+      expect(db.transaction).toHaveBeenCalled()
+      expect(db._executeFn).toHaveBeenCalled()
+      expect(callback).toHaveBeenCalledOnce()
+    })
+
+    it('should read tenantId from CLS using the "tenantId" key', async () => {
+      // Arrange
+      const cls = createMockCls('org-42')
+      const db = createMockDb()
+      const service = new TenantService(cls as never, db as never)
+
+      // Act
+      await service.query(vi.fn().mockResolvedValue(undefined))
+
+      // Assert
+      expect(cls.get).toHaveBeenCalledWith('tenantId')
+    })
+
+    it('should throw ForbiddenException when tenantId is null in CLS', async () => {
+      // Arrange
+      const cls = createMockCls(null)
+      const db = createMockDb()
+      const service = new TenantService(cls as never, db as never)
+
+      // Act & Assert
+      await expect(service.query(vi.fn())).rejects.toThrow(ForbiddenException)
+    })
+
+    it('should throw ForbiddenException with descriptive message when no tenant context', async () => {
+      // Arrange
+      const cls = createMockCls(null)
+      const db = createMockDb()
+      const service = new TenantService(cls as never, db as never)
+
+      // Act & Assert
+      await expect(service.query(vi.fn())).rejects.toThrow('No tenant context available')
+    })
+
+    it('should not call db.transaction when tenantId is missing', async () => {
+      // Arrange
+      const cls = createMockCls(null)
+      const db = createMockDb()
+      const service = new TenantService(cls as never, db as never)
+
+      // Act
+      try {
+        await service.query(vi.fn())
+      } catch {
+        // expected
+      }
+
+      // Assert
+      expect(db.transaction).not.toHaveBeenCalled()
+    })
   })
 
-  it('should throw ForbiddenException when tenantId is null', async () => {
-    // Arrange
-    const cls = createMockCls(null)
-    const db = createMockDb()
-    const service = new TenantService(cls as never, db as never)
+  describe('queryAs()', () => {
+    it('should use explicit tenantId without reading from CLS', async () => {
+      // Arrange
+      const cls = createMockCls('cls-org-should-not-be-used')
+      const db = createMockDb()
+      const service = new TenantService(cls as never, db as never)
+      const callback = vi.fn().mockResolvedValue('result')
 
-    // Act & Assert
-    await expect(service.query(vi.fn())).rejects.toThrow(ForbiddenException)
+      // Act
+      const result = await service.queryAs('explicit-org-id', callback)
+
+      // Assert
+      expect(result).toBe('result')
+      expect(cls.get).not.toHaveBeenCalled()
+    })
+
+    it('should succeed even when CLS has no tenant context', async () => {
+      // Arrange
+      const cls = createMockCls(null)
+      const db = createMockDb()
+      const service = new TenantService(cls as never, db as never)
+      const callback = vi.fn().mockResolvedValue('explicit-result')
+
+      // Act
+      const result = await service.queryAs('explicit-org-id', callback)
+
+      // Assert
+      expect(result).toBe('explicit-result')
+      expect(db.transaction).toHaveBeenCalled()
+      expect(callback).toHaveBeenCalledOnce()
+    })
+
+    it('should pass the explicit tenantId to set_config SQL', async () => {
+      // Arrange
+      const cls = createMockCls(null)
+      const db = createMockDb()
+      const service = new TenantService(cls as never, db as never)
+      const callback = vi.fn().mockResolvedValue(undefined)
+
+      // Act
+      await service.queryAs('explicit-tenant-99', callback)
+
+      // Assert — the SQL queryChunks contain the tenant ID as a plain string
+      const sqlArg = db._executeFn.mock.calls[0]?.[0]
+      const stringChunks = sqlArg.queryChunks.filter((chunk: unknown) => typeof chunk === 'string')
+      expect(stringChunks).toContain('explicit-tenant-99')
+    })
   })
 
-  it('should use explicit tenantId with queryAs()', async () => {
-    // Arrange
-    const cls = createMockCls(null) // CLS has no tenant
-    const db = createMockDb()
-    const service = new TenantService(cls as never, db as never)
-    const callback = vi.fn().mockResolvedValue('result')
+  describe('set_config SQL', () => {
+    it('should call set_config with the correct tenant ID from CLS', async () => {
+      // Arrange
+      const cls = createMockCls('tenant-abc-123')
+      const db = createMockDb()
+      const service = new TenantService(cls as never, db as never)
 
-    // Act
-    const result = await service.queryAs('explicit-org-id', callback)
+      // Act
+      await service.query(vi.fn().mockResolvedValue(undefined))
 
-    // Assert
-    expect(result).toBe('result')
-    expect(db.transaction).toHaveBeenCalled()
-    expect(callback).toHaveBeenCalledWith(db._txProxy)
+      // Assert
+      expect(db._executeFn).toHaveBeenCalledOnce()
+      const sqlArg = db._executeFn.mock.calls[0]?.[0]
+      const stringChunks = sqlArg.queryChunks.filter((chunk: unknown) => typeof chunk === 'string')
+      expect(stringChunks).toContain('tenant-abc-123')
+    })
+
+    it('should call set_config before executing the callback', async () => {
+      // Arrange
+      const callOrder: string[] = []
+      const cls = createMockCls('org-1')
+      const db = createMockDb()
+      db._executeFn.mockImplementation(async () => {
+        callOrder.push('set_config')
+      })
+      const service = new TenantService(cls as never, db as never)
+      const callback = vi.fn().mockImplementation(async () => {
+        callOrder.push('callback')
+        return 'done'
+      })
+
+      // Act
+      await service.query(callback)
+
+      // Assert
+      expect(callOrder).toEqual(['set_config', 'callback'])
+    })
   })
 
-  it('should throw Error when database is not available', async () => {
-    // Arrange
-    const cls = createMockCls('org-1')
-    const service = new TenantService(cls as never, null)
+  describe('transaction proxy', () => {
+    it('should pass the transaction proxy to the callback', async () => {
+      // Arrange
+      const cls = createMockCls('org-1')
+      const db = createMockDb()
+      const service = new TenantService(cls as never, db as never)
+      let receivedTx: unknown = null
 
-    // Act & Assert
-    await expect(service.query(vi.fn())).rejects.toThrow('Database not available')
+      // Act
+      await service.query(async (tx) => {
+        receivedTx = tx
+        return 'ok'
+      })
+
+      // Assert — verify identity with the proxy object
+      expect(receivedTx).toBe(db._txProxy)
+    })
+
+    it('should pass the same transaction proxy for queryAs()', async () => {
+      // Arrange
+      const cls = createMockCls(null)
+      const db = createMockDb()
+      const service = new TenantService(cls as never, db as never)
+      let receivedTx: unknown = null
+
+      // Act
+      await service.queryAs('org-1', async (tx) => {
+        receivedTx = tx
+        return 'ok'
+      })
+
+      // Assert — verify identity with the proxy object
+      expect(receivedTx).toBe(db._txProxy)
+    })
   })
 
-  // TODO: test that set_config SQL is called with correct tenant ID
-  // TODO: test transaction rollback behavior
+  describe('error propagation', () => {
+    it('should propagate errors thrown by the callback', async () => {
+      // Arrange
+      const cls = createMockCls('org-1')
+      const db = createMockDb()
+      const service = new TenantService(cls as never, db as never)
+      const callbackError = new Error('Something went wrong in callback')
+
+      // Act & Assert
+      await expect(
+        service.query(async () => {
+          throw callbackError
+        })
+      ).rejects.toThrow('Something went wrong in callback')
+    })
+
+    it('should propagate the exact error instance from the callback', async () => {
+      // Arrange
+      const cls = createMockCls('org-1')
+      const db = createMockDb()
+      const service = new TenantService(cls as never, db as never)
+      const callbackError = new Error('Specific error')
+
+      // Act & Assert
+      await expect(
+        service.query(async () => {
+          throw callbackError
+        })
+      ).rejects.toBe(callbackError)
+    })
+
+    it('should propagate errors from queryAs() callback', async () => {
+      // Arrange
+      const cls = createMockCls(null)
+      const db = createMockDb()
+      const service = new TenantService(cls as never, db as never)
+      const callbackError = new Error('queryAs callback failure')
+
+      // Act & Assert
+      await expect(
+        service.queryAs('org-1', async () => {
+          throw callbackError
+        })
+      ).rejects.toBe(callbackError)
+    })
+
+    it('should propagate errors when set_config execution fails', async () => {
+      // Arrange
+      const cls = createMockCls('org-1')
+      const db = createMockDb()
+      db._executeFn.mockRejectedValue(new Error('set_config failed'))
+      const service = new TenantService(cls as never, db as never)
+
+      // Act & Assert
+      await expect(service.query(vi.fn().mockResolvedValue('should not reach'))).rejects.toThrow(
+        'set_config failed'
+      )
+    })
+  })
+
+  describe('database not available', () => {
+    it('should throw Error when database is null via query()', async () => {
+      // Arrange
+      const cls = createMockCls('org-1')
+      const service = new TenantService(cls as never, null)
+
+      // Act & Assert
+      await expect(service.query(vi.fn())).rejects.toThrow('Database not available')
+    })
+
+    it('should throw Error when database is null via queryAs()', async () => {
+      // Arrange
+      const cls = createMockCls(null)
+      const service = new TenantService(cls as never, null)
+
+      // Act & Assert
+      await expect(service.queryAs('org-1', vi.fn())).rejects.toThrow('Database not available')
+    })
+  })
 })

@@ -104,7 +104,7 @@ export class TenantInterceptor implements NestInterceptor {
       // Better Auth may not include this column by default.
       // When a `parentOrganizationId` field exists on the row, use it to resolve
       // the parent tenant boundary.
-      const parentId = (org as Record<string, unknown>)['parentOrganizationId'] as
+      const parentId = (org as Record<string, unknown>).parentOrganizationId as
         | string
         | null
         | undefined
