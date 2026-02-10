@@ -37,6 +37,7 @@ vi.mock('@repo/ui', () => ({
     onCheckedChange?: (v: boolean) => void
   }) => <input type="checkbox" id={id} {...props} />,
   Input: (props: Record<string, unknown>) => <input {...props} />,
+  PasswordInput: (props: Record<string, unknown>) => <input {...props} />,
   Label: ({
     children,
     htmlFor,

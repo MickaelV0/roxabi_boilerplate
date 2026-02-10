@@ -17,7 +17,7 @@ import {
   Label,
 } from '@repo/ui'
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
 import { m } from '@/paraglide/messages'
@@ -45,11 +45,13 @@ function OrgSettingsPage() {
   const [deleting, setDeleting] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
-  // Sync state when activeOrg changes
-  if (activeOrg && name === '' && slug === '') {
-    setName(activeOrg.name)
-    setSlug(activeOrg.slug)
-  }
+  // Sync local state when the active org changes (e.g. user switches org)
+  useEffect(() => {
+    if (activeOrg) {
+      setName(activeOrg.name)
+      setSlug(activeOrg.slug ?? '')
+    }
+  }, [activeOrg])
 
   if (!activeOrg) {
     return (

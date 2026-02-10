@@ -1,4 +1,4 @@
-import { Button, Checkbox, Input, Label, OAuthButton } from '@repo/ui'
+import { Button, Checkbox, Input, Label, OAuthButton, PasswordInput } from '@repo/ui'
 import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -111,9 +111,8 @@ function LoginPage() {
               {m.auth_forgot_password()}
             </Link>
           </div>
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             value={password}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             required

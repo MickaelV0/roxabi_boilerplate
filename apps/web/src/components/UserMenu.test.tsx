@@ -36,7 +36,7 @@ vi.mock('@repo/ui', () => ({
   DropdownMenuLabel: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
   DropdownMenuSeparator: () => <hr />,
   DropdownMenuTrigger: ({ children, asChild }: React.PropsWithChildren<{ asChild?: boolean }>) =>
-    asChild ? <>{children}</> : <button type="button">{children}</button>,
+    asChild ? children : <button type="button">{children}</button>,
 }))
 
 vi.mock('@tanstack/react-router', () => ({
@@ -138,7 +138,8 @@ describe('UserMenu', () => {
     render(<UserMenu />)
 
     // Act
-    const signOutButton = screen.getByText('user_menu_sign_out').closest('button')!
+    const signOutButton = screen.getByText('user_menu_sign_out').closest('button')
+    if (!signOutButton) throw new Error('sign out button not found')
     fireEvent.click(signOutButton)
 
     // Assert
@@ -160,7 +161,8 @@ describe('UserMenu', () => {
     render(<UserMenu />)
 
     // Act
-    const signOutButton = screen.getByText('user_menu_sign_out').closest('button')!
+    const signOutButton = screen.getByText('user_menu_sign_out').closest('button')
+    if (!signOutButton) throw new Error('sign out button not found')
     fireEvent.click(signOutButton)
 
     // Assert

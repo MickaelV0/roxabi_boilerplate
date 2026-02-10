@@ -27,9 +27,6 @@ export function OrgSwitcher() {
   const { data: orgs } = authClient.useListOrganizations()
   const { data: activeOrg } = authClient.useActiveOrganization()
   const [createOpen, setCreateOpen] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newSlug, setNewSlug] = useState('')
-  const [creating, setCreating] = useState(false)
 
   if (!orgs || orgs.length === 0) {
     return (
@@ -40,15 +37,7 @@ export function OrgSwitcher() {
             {m.org_create()}
           </Button>
         </DialogTrigger>
-        <CreateOrgDialogContent
-          newName={newName}
-          setNewName={setNewName}
-          newSlug={newSlug}
-          setNewSlug={setNewSlug}
-          creating={creating}
-          setCreating={setCreating}
-          onClose={() => setCreateOpen(false)}
-        />
+        <CreateOrgDialogContent onClose={() => setCreateOpen(false)} />
       </Dialog>
     )
   }
@@ -96,38 +85,20 @@ export function OrgSwitcher() {
           </DialogTrigger>
         </DropdownMenuContent>
       </DropdownMenu>
-      <CreateOrgDialogContent
-        newName={newName}
-        setNewName={setNewName}
-        newSlug={newSlug}
-        setNewSlug={setNewSlug}
-        creating={creating}
-        setCreating={setCreating}
-        onClose={() => setCreateOpen(false)}
-      />
+      <CreateOrgDialogContent onClose={() => setCreateOpen(false)} />
     </Dialog>
   )
 }
 
 type CreateOrgDialogContentProps = {
-  newName: string
-  setNewName: (v: string) => void
-  newSlug: string
-  setNewSlug: (v: string) => void
-  creating: boolean
-  setCreating: (v: boolean) => void
   onClose: () => void
 }
 
-function CreateOrgDialogContent({
-  newName,
-  setNewName,
-  newSlug,
-  setNewSlug,
-  creating,
-  setCreating,
-  onClose,
-}: CreateOrgDialogContentProps) {
+function CreateOrgDialogContent({ onClose }: CreateOrgDialogContentProps) {
+  const [newName, setNewName] = useState('')
+  const [newSlug, setNewSlug] = useState('')
+  const [creating, setCreating] = useState(false)
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     setCreating(true)
@@ -183,7 +154,7 @@ function CreateOrgDialogContent({
         <DialogFooter>
           <DialogClose asChild>
             <Button type="button" variant="outline">
-              Cancel
+              {m.common_cancel()}
             </Button>
           </DialogClose>
           <Button type="submit" disabled={creating}>
