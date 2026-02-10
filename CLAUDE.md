@@ -193,7 +193,7 @@ vercel promote <url>             # Promote to production
 vercel redeploy                  # Trigger a redeploy
 ```
 
-**Prefer Vercel CLI over browser automation** for deployment tasks (env vars, redeploys, logs, rollbacks). Use Playwright only when CLI cannot achieve the task (e.g., initial project creation, visual verification).
+**Prefer Vercel CLI over browser automation** for deployment tasks (env vars, redeploys, logs, rollbacks). When browser interaction is needed (e.g., initial project creation, visual verification), use the `/agent-browser` skill instead of Playwright directly.
 
 ## Agent Teams (Experimental)
 
