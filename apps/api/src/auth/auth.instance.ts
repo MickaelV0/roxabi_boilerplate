@@ -18,6 +18,7 @@ export function escapeHtml(str: string): string {
 export interface AuthInstanceConfig {
   secret: string
   baseURL: string
+  appURL?: string
   googleClientId?: string
   googleClientSecret?: string
   githubClientId?: string
@@ -45,10 +46,13 @@ export function createBetterAuth(
     }
   }
 
+  const trustedOrigins = config.appURL ? [config.appURL] : []
+
   return betterAuth({
     basePath: '/api/auth',
     secret: config.secret,
     baseURL: config.baseURL,
+    trustedOrigins,
     database: drizzleAdapter(db, {
       provider: 'pg',
       usePlural: true,
