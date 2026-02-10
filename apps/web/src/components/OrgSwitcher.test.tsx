@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { mockParaglideMessages } from '@/test/mock-messages'
 
-function closestOrThrow(element: Element, selector: string): Element {
+function getClosestAncestor(element: Element, selector: string): Element {
   const result = element.closest(selector)
   if (!result) throw new Error(`No ancestor matching "${selector}" found`)
   return result
@@ -135,7 +135,7 @@ describe('OrgSwitcher', () => {
     render(<OrgSwitcher />)
 
     // Act - click the non-active org (Beta Inc)
-    const betaItem = closestOrThrow(screen.getByText('Beta Inc'), 'button')
+    const betaItem = getClosestAncestor(screen.getByText('Beta Inc'), 'button')
     fireEvent.click(betaItem)
 
     // Assert
@@ -154,7 +154,7 @@ describe('OrgSwitcher', () => {
     render(<OrgSwitcher />)
 
     // Act
-    const betaItem = closestOrThrow(screen.getByText('Beta Inc'), 'button')
+    const betaItem = getClosestAncestor(screen.getByText('Beta Inc'), 'button')
     fireEvent.click(betaItem)
 
     // Assert
@@ -192,7 +192,7 @@ describe('OrgSwitcher', () => {
     render(<OrgSwitcher />)
 
     // Act
-    const betaItem = closestOrThrow(screen.getByText('Beta Inc'), 'button')
+    const betaItem = getClosestAncestor(screen.getByText('Beta Inc'), 'button')
     fireEvent.click(betaItem)
 
     // Assert
@@ -234,7 +234,7 @@ describe('CreateOrgDialogContent', () => {
     // Act
     fireEvent.change(nameInput, { target: { value: 'New Org' } })
     fireEvent.change(slugInput, { target: { value: 'new-org' } })
-    fireEvent.submit(closestOrThrow(nameInput, 'form'))
+    fireEvent.submit(getClosestAncestor(nameInput, 'form'))
 
     // Assert
     await waitFor(() => {
@@ -260,7 +260,7 @@ describe('CreateOrgDialogContent', () => {
     // Act
     fireEvent.change(nameInput, { target: { value: 'New Org' } })
     fireEvent.change(slugInput, { target: { value: 'new-org' } })
-    fireEvent.submit(closestOrThrow(nameInput, 'form'))
+    fireEvent.submit(getClosestAncestor(nameInput, 'form'))
 
     // Assert
     await waitFor(() => {
@@ -285,7 +285,7 @@ describe('CreateOrgDialogContent', () => {
     // Act
     fireEvent.change(nameInput, { target: { value: 'New Org' } })
     fireEvent.change(slugInput, { target: { value: 'new-org' } })
-    fireEvent.submit(closestOrThrow(nameInput, 'form'))
+    fireEvent.submit(getClosestAncestor(nameInput, 'form'))
 
     // Assert
     await waitFor(() => {
@@ -308,7 +308,7 @@ describe('CreateOrgDialogContent', () => {
     // Act
     fireEvent.change(nameInput, { target: { value: 'New Org' } })
     fireEvent.change(slugInput, { target: { value: 'new-org' } })
-    fireEvent.submit(closestOrThrow(nameInput, 'form'))
+    fireEvent.submit(getClosestAncestor(nameInput, 'form'))
 
     // Assert
     await waitFor(() => {
