@@ -10,16 +10,12 @@ import { nitro } from 'nitro/vite'
 import { defineConfig } from 'vite'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
 
+const apiTarget = process.env.API_URL || `http://localhost:${process.env.API_PORT || 3001}`
+
 const config = defineConfig(async () => ({
   envDir: '../..',
   server: {
     port: Number(process.env.WEB_PORT) || 3000,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-      },
-    },
   },
   resolve: {
     alias: {
@@ -34,7 +30,14 @@ const config = defineConfig(async () => ({
       outdir: './src/paraglide',
       strategy: ['url'],
     }),
-    nitro(),
+    nitro({
+      devProxy: {
+        '/api/**': { target: apiTarget, changeOrigin: true },
+      },
+      routeRules: {
+        '/api/**': { proxy: `${apiTarget}/api/**` },
+      },
+    }),
     contentCollections(),
     // this is the plugin that enables path aliases
     viteTsConfigPaths({
