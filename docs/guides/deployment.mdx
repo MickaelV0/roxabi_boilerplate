@@ -1,0 +1,157 @@
+---
+title: Deployment
+description: Deploy Roxabi on Vercel — both web and API on one platform
+---
+
+## Overview
+
+Roxabi uses a push-to-deploy architecture with **Vercel** as the single deployment platform for both the web app and API.
+
+```
+Push to main
+  -> GitHub Actions CI (lint, typecheck, test)
+  -> Vercel auto-deploys web app (TanStack Start)
+  -> Vercel auto-deploys API (NestJS — zero-config support)
+```
+
+| Component | Platform | Details |
+|-----------|----------|---------|
+| Web (TanStack Start + Nitro) | Vercel | SSR, edge caching, Fluid compute |
+| API (NestJS + Fastify) | Vercel | Zero-config NestJS, Fluid compute, auto-scaling |
+| Database | OVH CloudDB | External PostgreSQL, not managed by Vercel |
+
+No Docker is needed for deployment. Docker configurations (Dockerfiles, `docker-compose.prod.yml`, Nginx configs, `deploy/`) remain in the repo for local development only.
+
+---
+
+## Vercel Setup
+
+You need **two Vercel projects** pointing to the same GitHub repository — one for the web app and one for the API.
+
+### Project 1: Web (TanStack Start)
+
+#### 1. Create the Project
+
+1. Sign up at [vercel.com](https://vercel.com) and connect your GitHub account
+2. Click **Add New Project** and import the repository
+
+#### 2. Configure Build Settings
+
+| Setting | Value |
+|---------|-------|
+| Root Directory | `apps/web` |
+| Framework Preset | Auto-detected (TanStack Start / Nitro) |
+| Build Command | `turbo run build` (auto-detected) |
+| Output Directory | `.output` (override the default `dist`) |
+| Install Command | `bun install` (auto-detected) |
+
+#### 3. Add Environment Variables
+
+In **Settings &gt; Environment Variables**:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `API_URL` | Vercel API project URL | `https://roxabi-api.vercel.app` |
+| `APP_URL` | This project's URL | `https://roxabi.vercel.app` |
+
+#### 4. Deploy
+
+Click **Deploy**. Every subsequent push to `main` triggers automatic redeployment.
+
+---
+
+### Project 2: API (NestJS)
+
+#### 1. Create a Second Project
+
+1. In the Vercel dashboard, click **Add New Project** again
+2. Import the **same repository**
+
+#### 2. Configure Build Settings
+
+Vercel auto-detects `src/main.ts` as the NestJS entrypoint. Override the root directory:
+
+| Setting | Value |
+|---------|-------|
+| Root Directory | `apps/api` |
+| Framework Preset | Auto-detected (NestJS) |
+| Build Command | `turbo run build` (auto-detected) |
+| Install Command | `bun install` (auto-detected) |
+
+#### 3. Add Environment Variables
+
+In **Settings &gt; Environment Variables**:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DATABASE_URL` | OVH CloudDB connection string | `postgresql://user:pass@host:5432/roxabi` |
+| `CORS_ORIGIN` | Web project URL | `https://roxabi.vercel.app` |
+| `BETTER_AUTH_SECRET` | Random 32+ character string | `<random-string>` |
+| `BETTER_AUTH_URL` | This project's URL | `https://roxabi-api.vercel.app` |
+| `APP_URL` | Web project URL | `https://roxabi.vercel.app` |
+| `API_URL` | This project's URL | `https://roxabi-api.vercel.app` |
+| `EMAIL_FROM` | Sender email address | `noreply@example.com` |
+
+Generate `BETTER_AUTH_SECRET` with:
+
+```bash
+openssl rand -base64 32
+```
+
+#### 4. Important Notes
+
+- Vercel automatically sets `NODE_ENV=production`
+- NestJS runs as a [Vercel Function](https://vercel.com/docs/functions) with [Fluid compute](https://vercel.com/docs/fluid-compute) — auto-scaling, reduced cold starts
+- Free tier: 10s execution limit per request. Pro tier: 60s
+- 250MB max application size (Vercel Functions limitation)
+
+---
+
+## Ignoring Paths (Avoid Duplicate Deploys)
+
+Since both projects share the same repo, configure **Ignored Build Step** so each project only redeploys when its own code changes.
+
+In each project's **Settings &gt; Git &gt; Ignored Build Step**, use:
+
+**Web project:**
+```bash
+git diff --quiet HEAD^ HEAD -- apps/web/ packages/ docs/
+```
+
+**API project:**
+```bash
+git diff --quiet HEAD^ HEAD -- apps/api/ packages/types/
+```
+
+---
+
+## Custom Domains (Optional)
+
+Vercel handles SSL certificates automatically.
+
+1. Go to **Settings &gt; Domains** in each project
+2. Add your domain:
+   - Web: `app.yourdomain.com`
+   - API: `api.yourdomain.com`
+3. Configure DNS with a CNAME record pointing to Vercel's target
+
+---
+
+## Rollback
+
+1. Go to the **Deployments** tab in the affected Vercel project
+2. Find the previous working deployment
+3. Click the three-dot menu and select **Promote to Production**
+
+---
+
+## VPS Alternative
+
+The repository includes Docker configurations for VPS-based deployment:
+
+- Multi-stage Dockerfiles for API and web
+- `docker-compose.prod.yml` for container orchestration
+- Nginx reverse proxy configs in `deploy/nginx/`
+- GitHub Actions CD workflow for automated SSH deploy
+
+If you have a VPS with Docker, you can use the Docker build/push/SSH deploy pipeline instead of Vercel. See the full specification at [docs/specs/52-vps-deployment.mdx](/docs/specs/52-vps-deployment).

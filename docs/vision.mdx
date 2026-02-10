@@ -234,14 +234,16 @@ Idea → GitHub Issue → Branch → Dev → PR → Review → Merge → Deploy 
 
 ### Deployment Strategy
 
-**Continuous Deployment**
-- Merge to main = automatic deploy to production
-- Feature flags for progressive rollouts (via PostHog)
+**Continuous Deployment via Vercel**
+- Merge to main = auto-deploy both apps on Vercel
+- Web (TanStack Start) → Vercel (SSR, edge caching, Fluid compute)
+- API (NestJS) → Vercel (zero-config NestJS, Fluid compute)
+- Docker configs included for self-hosted/VPS alternative
 
 ### Hotfix Process
 
 - Direct commit to `main` with post-deploy validation
-- Automatic rollback if health checks fail
+- Rollback via Vercel dashboard (promote previous deployment)
 
 ---
 

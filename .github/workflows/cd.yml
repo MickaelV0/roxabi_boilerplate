@@ -13,135 +13,41 @@ permissions:
   contents: read
   statuses: write
 
-env:
-  BUN_VERSION: "1.3.9"
-  NODE_VERSION: "24"
-
 jobs:
   ci:
     name: CI
     uses: ./.github/workflows/ci.yml
     secrets: inherit
 
-  build-production:
-    name: Production Build
-    runs-on: ubuntu-latest
-    needs: ci
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Cache Bun dependencies
-        uses: actions/cache@v4
-        id: cache-deps
-        with:
-          path: node_modules
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-
-      - name: Install dependencies
-        if: steps.cache-deps.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
-
-      - name: Cache Turbo
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: turbo-build-prod-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            turbo-build-prod-${{ runner.os }}-
-
-      - name: Production Build
-        run: bun run build
-        env:
-          NODE_ENV: production
-          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ vars.TURBO_TEAM }}
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: production-build
-          path: |
-            apps/web/dist
-            apps/api/dist
-          retention-days: 7
-          if-no-files-found: warn
-
-  deploy-web:
-    name: Deploy Web
-    runs-on: ubuntu-latest
-    needs: build-production
-    environment: production
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: production-build
-          path: build
-
-      - name: Deploy Web (placeholder)
-        run: |
-          echo "Web deployment placeholder"
-          echo "Future: Deploy to Vercel/Cloudflare Pages"
-          echo "Build artifacts available at: build/"
-
-  deploy-api:
-    name: Deploy API
-    runs-on: ubuntu-latest
-    needs: build-production
-    environment: production
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: production-build
-          path: build
-
-      - name: Deploy API (placeholder)
-        run: |
-          echo "API deployment placeholder"
-          echo "Future: Deploy to Railway/Fly.io"
-          echo "Build artifacts available at: build/"
+  # Deployment is handled by Vercel:
+  #   - Web (TanStack Start): Vercel auto-deploys on push to main
+  #   - API (NestJS): Vercel auto-deploys on push to main (zero-config NestJS support)
+  #
+  # No deploy jobs needed — Vercel watches the GitHub repo directly.
 
   notify:
     name: Notify
     runs-on: ubuntu-latest
-    needs: [deploy-web, deploy-api]
+    needs: [ci]
     if: always()
     steps:
-      - name: Deployment Status
+      - name: CI Status
         run: |
-          WEB_RESULT="${{ needs.deploy-web.result }}"
-          API_RESULT="${{ needs.deploy-api.result }}"
+          CI_RESULT="${{ needs.ci.result }}"
+          echo "CI: $CI_RESULT"
 
-          echo "Web: $WEB_RESULT"
-          echo "API: $API_RESULT"
-
-          # Fail only if any deployment actually failed (not skipped or cancelled)
-          if [ "$WEB_RESULT" == "failure" ] || [ "$API_RESULT" == "failure" ]; then
-            echo "::error::Deployment failed"
+          if [ "$CI_RESULT" == "failure" ]; then
+            echo "::error::CI failed — Vercel will still deploy from main. Fix the issue."
             exit 1
-          elif [ "$WEB_RESULT" == "success" ] && [ "$API_RESULT" == "success" ]; then
-            echo "Deployment successful!"
+          elif [ "$CI_RESULT" == "success" ]; then
+            echo "CI passed. Vercel will auto-deploy both web and API."
           else
-            echo "Deployment skipped or cancelled"
+            echo "CI skipped or cancelled"
           fi
 
       - name: Create GitHub deployment status
         uses: actions/github-script@v7
-        if: needs.deploy-web.result == 'success' && needs.deploy-api.result == 'success'
+        if: needs.ci.result == 'success'
         with:
           script: |
             github.rest.repos.createCommitStatus({
@@ -149,6 +55,6 @@ jobs:
               repo: context.repo.repo,
               sha: context.sha,
               state: 'success',
-              description: 'Deployment completed successfully',
+              description: 'CI passed — deploying via Vercel',
               context: 'deployment/production'
             })

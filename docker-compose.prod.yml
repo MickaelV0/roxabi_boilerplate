@@ -1,0 +1,34 @@
+# =============================================================================
+# Production Docker Compose — VPS deployment
+# No database service: PostgreSQL is managed by OVH CloudDB
+#
+# Usage on VPS:
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d --remove-orphans
+# =============================================================================
+
+services:
+  api:
+    image: ghcr.io/mickaelv0/roxabi/api:latest
+    container_name: roxabi-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4000:4000"
+    env_file: .env
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/health').then(r => { if (!r.ok) throw 1 })"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  web:
+    image: ghcr.io/mickaelv0/roxabi/web:latest
+    container_name: roxabi-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file: .env
+    depends_on:
+      api:
+        condition: service_healthy

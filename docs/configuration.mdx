@@ -110,3 +110,34 @@ Settings:
   "editor.formatOnSave": true
 }
 ```
+
+## Production Environment
+
+Production runs entirely on **Vercel** with two projects (web + API). Environment variables are configured in each project's dashboard.
+
+### Vercel — Web Project
+
+Configure in Vercel dashboard under **Settings &gt; Environment Variables**:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `API_URL` | Vercel API project URL | `https://roxabi-api.vercel.app` |
+| `APP_URL` | This project's URL | `https://roxabi.vercel.app` |
+
+### Vercel — API Project
+
+Configure in Vercel dashboard under **Settings &gt; Environment Variables**:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection (OVH CloudDB) | `postgresql://user:pass@host:5432/roxabi` |
+| `CORS_ORIGIN` | Web project URL | `https://roxabi.vercel.app` |
+| `BETTER_AUTH_SECRET` | Auth secret (random 32+ chars) | `&lt;random-string&gt;` |
+| `BETTER_AUTH_URL` | This project's URL | `https://roxabi-api.vercel.app` |
+| `APP_URL` | Web project URL | `https://roxabi.vercel.app` |
+| `API_URL` | This project's URL | `https://roxabi-api.vercel.app` |
+| `EMAIL_FROM` | Sender email address | `noreply@example.com` |
+
+> **Note:** Vercel auto-sets `NODE_ENV=production`. NestJS runs as a Vercel Function with Fluid compute.
+
+See the [Deployment Guide](/docs/guides/deployment) for full setup instructions.

@@ -193,7 +193,14 @@ To run E2E tests on a PR, add the `e2e` label.
 
 ### CD Pipeline
 
-Deployment runs automatically on pushes to `main` after CI passes. Deploy jobs are placeholders ready for your hosting provider (Vercel, Railway, Fly.io, etc.).
+Deployment runs automatically on pushes to `main` via Vercel:
+
+- **Web** (TanStack Start) — auto-deploys to **Vercel** (SSR, edge caching, Fluid compute)
+- **API** (NestJS) — auto-deploys to **Vercel** (zero-config NestJS, Fluid compute)
+
+No Docker or SSH needed — Vercel watches the GitHub repo directly.
+
+> **First-time setup:** Create two Vercel projects (web + API) from the same repo. See the [Deployment Guide](/docs/guides/deployment).
 
 ## 6. Install Dependencies
 
@@ -264,3 +271,4 @@ bun --filter @repo/api dev
 1. Read the [Vision](./vision) to understand the project
 2. Check the [Architecture](./architecture)
 3. Check the [open issues](https://github.com/MickaelV0/roxabi_boilerplate/issues)
+4. Set up [VPS Deployment](./guides/deployment) when ready for production

@@ -138,6 +138,16 @@ All PRs must pass before merge:
 | Coverage | - | Minimum threshold met |
 | Review | - | At least 1 approval |
 
+### After Merge
+
+When a PR is merged to `main`, deployment happens automatically:
+
+1. **Web** (TanStack Start) — Vercel detects the push and deploys
+2. **API** (NestJS) — Vercel detects the push and deploys (zero-config NestJS support)
+3. GitHub Actions runs CI and reports status on the commit
+
+If something breaks, roll back via the Vercel dashboard (Deployments &gt; Promote previous). See the [Deployment Guide](/docs/guides/deployment) for details.
+
 ---
 
 ## Branch Protection

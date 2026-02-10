@@ -2,11 +2,13 @@
 node_modules
 **/node_modules
 
-# Build outputs
-.next
-**/.next
+# Build outputs (rebuilt inside Docker)
 dist
 **/dist
+.output
+**/.output
+.next
+**/.next
 
 # Git
 .git
@@ -18,7 +20,7 @@ dist
 *.swp
 *.swo
 
-# Environment files
+# Environment files (secrets — never bake into image)
 .env
 .env.*
 !.env.example
@@ -27,15 +29,33 @@ dist
 .DS_Store
 Thumbs.db
 
-# Misc
-*.md
-!docs/**/*.md
-!docs/**/*.mdx
+# Logs
 *.log
 npm-debug.log*
 
-# Apps we don't need for docs build
-apps/web
-apps/api
-apps/packages
-packages
+# Documentation & non-runtime files
+docs
+*.md
+*.mdx
+LICENSE
+
+# Tests (not needed in production image)
+**/*.test.ts
+**/*.spec.ts
+**/e2e
+**/__tests__
+vitest.config.ts
+**/vitest.config.ts
+
+# CI/CD & tooling configs
+.github
+.claude
+.turbo
+**/.turbo
+.husky
+biome.jsonc
+
+# Docker (avoid recursive copy)
+Dockerfile
+docker-compose*.yml
+deploy
