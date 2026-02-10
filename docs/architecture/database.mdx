@@ -104,7 +104,7 @@ Better Auth manages its own database tables via the Drizzle adapter (`usePlural:
 | `members` | Org membership | `userId`, `organizationId`, `role` |
 | `invitations` | Pending org invites | `organizationId`, `email`, `role`, `status`, `expiresAt` |
 
-These tables use `text` primary keys with UUID generation (`advanced.database.generateId: 'uuid'` in Better Auth config). The auth schema does **not** use the shared `timestamps` helper — it defines its own `createdAt` / `updatedAt` columns inline (without timezone or `$onUpdateFn`). This is tracked as tech debt.
+These tables use `text` primary keys with UUID generation (`advanced.database.generateId: 'uuid'` in Better Auth config). The auth schema does **not** use the shared `timestamps` helper — most tables define `createdAt` / `updatedAt` inline (without timezone or `$onUpdateFn`), `organizations` and `members` only have `createdAt`, and `invitations` has no timestamps at all. This inconsistency is tracked as tech debt.
 
 ## Drizzle Kit Configuration
 

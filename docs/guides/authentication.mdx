@@ -47,12 +47,12 @@ The `AuthController` mounts Better Auth's HTTP handler at `/api/auth/*` as a cat
 
 The `AuthGuard` is registered as a **global guard** via `APP_GUARD`. Every route is protected by default. Use decorators to modify this behavior:
 
-### `@Public()`
+### `@AllowAnonymous()`
 
 Skip authentication entirely. The endpoint is open to everyone.
 
 ```ts
-@Public()
+@AllowAnonymous()
 @Get('health')
 healthCheck() {
   return { status: 'ok' }
