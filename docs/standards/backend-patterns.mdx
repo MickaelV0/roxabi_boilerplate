@@ -59,7 +59,7 @@ feature/
 |---------|-------------|-------------|
 | Dependency Injection | `drizzle.provider.ts` | Symbol tokens + `useFactory` for injectable providers |
 | Factory | `drizzle.provider.ts` | `useFactory` creates instances from config values |
-| Middleware | `correlation-id.middleware.ts` | Request-level pre-processing for correlation IDs, logging |
+| CLS Middleware | `app.module.ts` (`ClsModule.forRoot`) | Correlation ID via `nestjs-cls` AsyncLocalStorage, available before guards |
 | Exception Filter | `all-exceptions.filter.ts` | Global fallback error formatting with structured responses |
 | Domain Exception Filter | `feature/filters/*.filter.ts` | Maps domain exceptions to HTTP responses |
 | Lifecycle Hook | `database.module.ts` | `OnModuleDestroy` for connection cleanup |
@@ -106,16 +106,20 @@ export class UserNotFoundException extends Error {
 // feature/filters/user-not-found.filter.ts
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpStatus } from '@nestjs/common'
 import type { FastifyReply, FastifyRequest } from 'fastify'
+import { ClsService } from 'nestjs-cls'
 import { UserNotFoundException } from '../exceptions/user-not-found.exception'
 
 @Catch(UserNotFoundException)
 export class UserNotFoundFilter implements ExceptionFilter {
+  constructor(private readonly cls: ClsService) {}
+
   catch(exception: UserNotFoundException, host: ArgumentsHost) {
     const ctx = host.switchToHttp()
     const response = ctx.getResponse<FastifyReply>()
     const request = ctx.getRequest<FastifyRequest>()
-    const correlationId = request.headers['x-correlation-id'] || 'unknown'
+    const correlationId = this.cls.getId()
 
+    response.header('x-correlation-id', correlationId)
     response.status(HttpStatus.NOT_FOUND).send({
       statusCode: HttpStatus.NOT_FOUND,
       timestamp: new Date().toISOString(),
@@ -248,24 +252,28 @@ Use `ConfigurableModuleBuilder` for modules that need `forRoot()` / `forRootAsyn
 
 ## 1.5 Correlation ID
 
-### Current State
+### Implementation
 
-Correlation ID is currently implemented as an **interceptor** (`apps/api/src/common/interceptors/correlation-id.interceptor.ts`). This is registered globally in `AppModule` via `APP_INTERCEPTOR`.
+Correlation ID is implemented via `nestjs-cls` (`ClsModule.forRoot()` in `AppModule`). The CLS middleware runs **before guards**, ensuring every request — including auth failures — has a correlation ID.
 
-### Target State
+Configuration is in `apps/api/src/app.module.ts`:
 
-Migrate to **middleware** so the correlation ID is available before guards and interceptors in the NestJS lifecycle.
+- **`idGenerator`**: Reads the `x-correlation-id` header, validates against `/^[\w-]{1,128}$/`, and generates a UUID v4 if missing or invalid.
+- **`setup`**: Sets the `x-correlation-id` response header immediately after ID assignment.
+- **`ClsService.getId()`**: Available via DI anywhere in the request lifecycle (services, filters, interceptors).
 
 ### Rules
 
 - **Generate a UUID** if no `x-correlation-id` header is present on the incoming request.
-- **Reuse the incoming header** if one is provided (for distributed tracing across services).
+- **Validate incoming headers**: Accept alphanumeric strings, hyphens, and underscores up to 128 chars. Reject and regenerate for anything else.
+- **Reuse the incoming header** if valid (for distributed tracing across services).
 - **Set the correlation ID on both request and response headers** so downstream handlers and the client both have access.
 - **Include the correlation ID in all error logs.** See the `AllExceptionsFilter` pattern: `[${correlationId}] ${request.method} ${request.url}`.
+- **Use `ClsService.getId()`** to read the correlation ID — never read from raw headers in application code.
 
 ### Future Enhancement
 
-Adopt `nestjs-cls` (AsyncLocalStorage-based) to propagate the correlation ID through async chains without passing it as a parameter. This eliminates the need to thread the ID through service method signatures.
+Extend `ClsModule` setup to store additional request context (tenant ID, user context) in the CLS store for cross-cutting observability.
 
 ---
 
