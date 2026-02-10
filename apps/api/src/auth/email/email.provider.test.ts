@@ -1,6 +1,9 @@
 import { Logger } from '@nestjs/common'
 import { describe, expect, it, vi } from 'vitest'
-import { EmailSendFailedEvent } from '../../common/events/email-send-failed.event.js'
+import {
+  EMAIL_SEND_FAILED,
+  EmailSendFailedEvent,
+} from '../../common/events/email-send-failed.event.js'
 import { EmailSendException } from './email-send.exception.js'
 import { ResendEmailProvider } from './resend.provider.js'
 
@@ -210,7 +213,7 @@ describe('ResendEmailProvider', () => {
       .catch(() => {})
 
     // Assert
-    expect(emitter.emit).toHaveBeenCalledWith('email.send.failed', expect.any(EmailSendFailedEvent))
+    expect(emitter.emit).toHaveBeenCalledWith(EMAIL_SEND_FAILED, expect.any(EmailSendFailedEvent))
 
     const event = emitter.emit.mock.calls[0]![1] as EmailSendFailedEvent
     expect(event.recipient).toBe('user@example.com')

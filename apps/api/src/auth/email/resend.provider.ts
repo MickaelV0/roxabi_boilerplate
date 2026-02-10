@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { Resend } from 'resend'
-import { EmailSendFailedEvent } from '../../common/events/email-send-failed.event.js'
+import {
+  EMAIL_SEND_FAILED,
+  EmailSendFailedEvent,
+} from '../../common/events/email-send-failed.event.js'
 import type { EmailProvider } from './email.provider.js'
 import { EmailSendException } from './email-send.exception.js'
 
@@ -54,7 +57,7 @@ export class ResendEmailProvider implements EmailProvider {
       )
 
       this.eventEmitter.emit(
-        'email.send.failed',
+        EMAIL_SEND_FAILED,
         new EmailSendFailedEvent(params.to, params.subject, cause)
       )
 

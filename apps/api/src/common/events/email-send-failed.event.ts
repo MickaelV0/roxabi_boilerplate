@@ -1,3 +1,5 @@
+export const EMAIL_SEND_FAILED = 'email.send.failed' as const
+
 export class EmailSendFailedEvent {
   constructor(
     public readonly recipient: string,
