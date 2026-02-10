@@ -1,10 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@repo/ui'
+import { Link } from '@tanstack/react-router'
 import type * as React from 'react'
 
-// TODO: import app logo/branding
-// TODO: import Paraglide messages for footer links
-
-interface AuthLayoutProps {
+type AuthLayoutProps = {
   /** Page title displayed in the card header */
   title: string
   /** Optional subtitle/description */
@@ -18,22 +16,16 @@ interface AuthLayoutProps {
  *
  * Provides consistent branding, responsive design (centered on desktop,
  * full-width on mobile), and optional footer links.
- *
- * @example
- * ```tsx
- * <AuthLayout title="Sign In" description="Sign in to your account">
- *   <LoginForm />
- * </AuthLayout>
- * ```
  */
 export function AuthLayout({ title, description, children }: AuthLayoutProps) {
-  // TODO: implement app logo/branding at top
-  // TODO: implement footer links (privacy, terms)
-  // TODO: implement responsive design (full-width mobile, centered desktop)
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      {/* TODO: add app logo above card */}
+    <div className="flex min-h-[calc(100vh-57px)] flex-col items-center justify-center bg-background p-4">
+      <Link
+        to="/"
+        className="mb-8 text-2xl font-bold tracking-tight text-foreground hover:opacity-80 transition-opacity"
+      >
+        Roxabi
+      </Link>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">{title}</CardTitle>
@@ -41,7 +33,6 @@ export function AuthLayout({ title, description, children }: AuthLayoutProps) {
         </CardHeader>
         <CardContent className="space-y-6">{children}</CardContent>
       </Card>
-      {/* TODO: add footer links */}
     </div>
   )
 }

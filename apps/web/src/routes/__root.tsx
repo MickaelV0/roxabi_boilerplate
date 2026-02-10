@@ -1,3 +1,4 @@
+import { Toaster } from '@repo/ui'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import type { QueryClient } from '@tanstack/react-query'
 import {
@@ -85,6 +86,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
     <RootProvider>
       {!isDocsPage && <Header />}
       <ErrorBoundary FallbackComponent={ErrorFallback}>{children}</ErrorBoundary>
+      <Toaster richColors />
     </RootProvider>
   )
 }

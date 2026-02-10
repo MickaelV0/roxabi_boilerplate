@@ -1,16 +1,10 @@
-import {
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  Input,
-  Label,
-} from '@repo/ui'
+import { Button, Input, Label } from '@repo/ui'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
+import { m } from '@/paraglide/messages'
+import { AuthLayout } from '../components/AuthLayout'
 
 export const Route = createFileRoute('/reset-password')({
   component: ResetPasswordPage,
@@ -32,48 +26,44 @@ function ResetPasswordPage() {
       if (resetError) {
         setError(resetError.message ?? 'Failed to send reset email')
       } else {
-        setMessage('Check your email for a password reset link.')
+        toast.success(m.auth_toast_reset_link_sent())
+        setMessage(m.auth_check_email_reset())
       }
+    } catch {
+      toast.error(m.auth_toast_error())
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Reset Password</CardTitle>
-          <CardDescription>Enter your email to receive a reset link</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {error && <p className="text-sm text-destructive text-center">{error}</p>}
-          {message && <p className="text-sm text-muted-foreground text-center">{message}</p>}
+    <AuthLayout title={m.auth_reset_password_title()} description={m.auth_reset_password_desc()}>
+      {error && <p className="text-sm text-destructive text-center">{error}</p>}
+      {message && <p className="text-sm text-muted-foreground text-center">{message}</p>}
 
-          <form onSubmit={handleRequestReset} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Sending...' : 'Send reset link'}
-            </Button>
-          </form>
+      <form onSubmit={handleRequestReset} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">{m.auth_email()}</Label>
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+            required
+            disabled={loading}
+          />
+        </div>
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? m.auth_sending() : m.auth_send_reset_link()}
+        </Button>
+      </form>
 
-          <p className="text-center text-sm text-muted-foreground">
-            Remember your password?{' '}
-            <Link to="/login" className="underline hover:text-foreground">
-              Sign in
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+      <p className="text-center text-sm text-muted-foreground">
+        {m.auth_remember_password()}{' '}
+        <Link to="/login" className="underline hover:text-foreground">
+          {m.auth_sign_in_link()}
+        </Link>
+      </p>
+    </AuthLayout>
   )
 }
