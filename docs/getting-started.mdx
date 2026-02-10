@@ -193,15 +193,14 @@ To run E2E tests on a PR, add the `e2e` label.
 
 ### CD Pipeline
 
-The CD pipeline runs automatically on pushes to `main` after CI passes:
+Deployment runs automatically on pushes to `main` via platform integrations:
 
-1. **Build** — Docker images for API and Web are built and pushed to GHCR
-2. **Deploy** — Images are pulled and started on the VPS via SSH
-3. **Notify** — GitHub commit status is updated
+- **Web** (TanStack Start) — auto-deploys to **Vercel** (free, SSR, no cold starts)
+- **API** (NestJS) — auto-deploys to **Render** (free tier, cold starts after 15min idle)
 
-Images are tagged `latest` and `sha-&lt;commit&gt;` for rollback capability.
+No Docker or SSH needed — both platforms watch the GitHub repo directly.
 
-> **First-time setup:** You need to configure your VPS and GitHub Secrets before deployment works. See the [Deployment Guide](/docs/guides/deployment).
+> **First-time setup:** Connect your repo to Vercel and Render. See the [Deployment Guide](/docs/guides/deployment).
 
 ## 6. Install Dependencies
 

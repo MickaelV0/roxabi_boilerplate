@@ -234,16 +234,16 @@ Idea → GitHub Issue → Branch → Dev → PR → Review → Merge → Deploy 
 
 ### Deployment Strategy
 
-**Continuous Deployment to VPS**
-- Merge to main = Docker images built → pushed to GHCR → deployed to VPS via SSH
-- Docker Compose orchestrates API and Web containers
-- Nginx reverse proxy with SSL (Certbot)
-- Rollback by pinning a previous image SHA tag
+**Continuous Deployment via Vercel + Render**
+- Merge to main = auto-deploy to both platforms
+- Web (TanStack Start) → Vercel (free, SSR, edge caching)
+- API (NestJS) → Render (free tier, Node.js)
+- Docker configs included for self-hosted/VPS alternative
 
 ### Hotfix Process
 
 - Direct commit to `main` with post-deploy validation
-- Rollback: pin previous `sha-&lt;commit&gt;` tag in `docker-compose.prod.yml`
+- Rollback via Vercel (promote previous deployment) or Render (redeploy previous commit)
 
 ---
 

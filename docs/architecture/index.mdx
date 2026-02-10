@@ -168,38 +168,33 @@ Workspaces configuration:
 
 ## Deployment Architecture
 
-Production deployment uses Docker containers on a VPS, with GitHub Actions for CI/CD.
+Production uses **Vercel** (web) and **Render** (API) with automatic deploys from GitHub.
 
 ```txt
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Developer  │────▶│   GitHub     │────▶│    GHCR      │
-│  Push/Merge  │     │   Actions    │     │  (Registry)  │
-└──────────────┘     └──────────────┘     └──────┬───────┘
-                                                  │ docker pull
-                                                  ▼
-┌──────────────────────────────────────────────────────────┐
-│                        VPS (OVH)                          │
-│                                                            │
-│  ┌─────────┐    ┌───────────────┐    ┌───────────────┐    │
-│  │  Nginx  │───▶│  roxabi-web   │    │  roxabi-api   │    │
-│  │ :80/443 │    │  :3000        │    │  :4000        │    │
-│  │         │───▶│  (Nitro SSR)  │───▶│  (NestJS)     │    │
-│  └─────────┘    └───────────────┘    └───────┬───────┘    │
-│                                               │            │
-│  ┌─────────────┐                              │            │
-│  │  WordPress  │  (existing, untouched)       │            │
-│  └─────────────┘                              │            │
-└───────────────────────────────────────────────┼────────────┘
-                                                │
-                                                ▼
-                                     ┌──────────────────┐
-                                     │  OVH CloudDB     │
-                                     │  (PostgreSQL)    │
-                                     └──────────────────┘
+┌──────────────┐     ┌──────────────┐
+│   Developer  │────▶│   GitHub     │
+│  Push/Merge  │     │   (main)     │
+└──────────────┘     └──────┬───────┘
+                            │
+                  ┌─────────┴─────────┐
+                  ▼                   ▼
+         ┌──────────────┐    ┌──────────────┐
+         │   Vercel     │    │   Render     │
+         │   (Web)      │    │   (API)      │
+         │  TanStack    │    │  NestJS +    │
+         │  Start SSR   │───▶│  Fastify     │
+         └──────────────┘    └──────┬───────┘
+                                    │
+                                    ▼
+                          ┌──────────────────┐
+                          │  OVH CloudDB     │
+                          │  (PostgreSQL)    │
+                          └──────────────────┘
 ```
 
 Key decisions:
-- **Docker images built in CI** — VPS has limited resources (4 GB RAM)
-- **Ports bound to 127.0.0.1** — Nginx handles external traffic and SSL
-- **No database container** — PostgreSQL managed by OVH CloudDB
-- **WordPress coexistence** — Fully containerized, no port or filesystem conflicts
+- **Platform-managed deployment** — No servers to maintain, automatic SSL
+- **Vercel for SSR** — TanStack Start + Nitro has native Vercel support
+- **Render for API** — Free tier with Node.js, auto-deploy from GitHub
+- **No database hosting** — PostgreSQL managed by OVH CloudDB
+- **Docker configs included** — For local dev and self-hosted VPS alternative
