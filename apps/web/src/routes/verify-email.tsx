@@ -3,7 +3,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { authClient } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/auth-client'
 import { m } from '@/paraglide/messages'
 import { AuthLayout } from '../components/AuthLayout'
 
@@ -20,8 +20,10 @@ export const Route = createFileRoute('/verify-email')({
 
 function VerifyEmailPage() {
   const { token } = Route.useSearch()
+  const { data: session } = useSession()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [resending, setResending] = useState(false)
+  const sessionEmail = session?.user?.email
 
   useEffect(() => {
     if (!token) {
@@ -29,9 +31,9 @@ function VerifyEmailPage() {
       return
     }
 
-    async function verify() {
+    async function verify(t: string) {
       try {
-        const { error } = await authClient.verifyEmail({ query: { token: token as string } })
+        const { error } = await authClient.verifyEmail({ query: { token: t } })
         if (error) {
           setStatus('error')
         } else {
@@ -42,14 +44,15 @@ function VerifyEmailPage() {
       }
     }
 
-    verify()
+    verify(token)
   }, [token])
 
   async function handleResend() {
+    if (!sessionEmail) return
     setResending(true)
     try {
       const { error } = await authClient.sendVerificationEmail({
-        email: '',
+        email: sessionEmail,
         callbackURL: `${window.location.origin}/verify-email`,
       })
       if (error) {
@@ -94,9 +97,11 @@ function VerifyEmailPage() {
         <p role="alert" aria-live="polite" className="text-sm text-destructive">
           {!token ? m.auth_missing_token() : m.auth_verification_failed()}
         </p>
-        <Button variant="outline" onClick={handleResend} disabled={resending} className="w-full">
-          {resending ? m.auth_resending() : m.auth_resend_verification()}
-        </Button>
+        {sessionEmail && (
+          <Button variant="outline" onClick={handleResend} disabled={resending} className="w-full">
+            {resending ? m.auth_resending() : m.auth_resend_verification()}
+          </Button>
+        )}
         <p className="text-sm text-muted-foreground">
           <Link to="/login" className="underline hover:text-foreground">
             {m.auth_back_to_sign_in()}

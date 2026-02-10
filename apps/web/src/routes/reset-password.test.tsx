@@ -1,5 +1,7 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { authClient } from '@/lib/auth-client'
+import { mockParaglideMessages } from '@/test/mock-messages'
 
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
@@ -61,21 +63,7 @@ vi.mock('../components/AuthLayout', () => ({
   ),
 }))
 
-vi.mock('@/paraglide/messages', () => ({
-  m: new Proxy(
-    {},
-    {
-      get:
-        (_target, prop) =>
-        (...args: unknown[]) => {
-          if (args.length > 0 && typeof args[0] === 'object') {
-            return `${String(prop)}(${JSON.stringify(args[0])})`
-          }
-          return String(prop)
-        },
-    }
-  ),
-}))
+mockParaglideMessages()
 
 // Import to trigger createFileRoute and capture the component
 import './reset-password'
@@ -102,5 +90,27 @@ describe('ResetPasswordPage', () => {
     const link = screen.getByText('auth_sign_in_link')
     expect(link).toBeInTheDocument()
     expect(link.closest('a')).toHaveAttribute('href', '/login')
+  })
+
+  it('should display error message when requestPasswordReset returns an error', async () => {
+    // Arrange
+    vi.mocked(authClient.requestPasswordReset).mockResolvedValueOnce({
+      error: { message: 'User not found' },
+      data: null,
+    } as never)
+
+    const ResetPasswordPage = captured.Component
+    render(<ResetPasswordPage />)
+
+    // Act
+    fireEvent.change(screen.getByLabelText('auth_email'), {
+      target: { value: 'unknown@example.com' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'auth_send_reset_link' }))
+
+    // Assert
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('User not found')
+    })
   })
 })

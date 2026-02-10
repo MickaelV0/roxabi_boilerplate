@@ -38,6 +38,8 @@ export default defineConfig({
         '**/main.ts',
         '**/*.module.ts',
         '**/database/schema/*.ts',
+        // Auth client instantiation (no logic, just config)
+        '**/lib/auth-client.ts',
         // i18n infrastructure (React hooks/components - tested via integration)
         '**/lib/i18n/client.ts',
         '**/lib/i18n/context.ts',

@@ -1,5 +1,7 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { authClient } from '@/lib/auth-client'
+import { mockParaglideMessages } from '@/test/mock-messages'
 
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
@@ -70,21 +72,7 @@ vi.mock('../components/AuthLayout', () => ({
   ),
 }))
 
-vi.mock('@/paraglide/messages', () => ({
-  m: new Proxy(
-    {},
-    {
-      get:
-        (_target, prop) =>
-        (...args: unknown[]) => {
-          if (args.length > 0 && typeof args[0] === 'object') {
-            return `${String(prop)}(${JSON.stringify(args[0])})`
-          }
-          return String(prop)
-        },
-    }
-  ),
-}))
+mockParaglideMessages()
 
 // Import to trigger createFileRoute and capture the component
 import './register'
@@ -121,5 +109,33 @@ describe('RegisterPage', () => {
     const link = screen.getByText('auth_sign_in_link')
     expect(link).toBeInTheDocument()
     expect(link.closest('a')).toHaveAttribute('href', '/login')
+  })
+
+  it('should display error message when signUp.email returns an error', async () => {
+    // Arrange
+    vi.mocked(authClient.signUp.email).mockResolvedValueOnce({
+      error: { message: 'Email already exists' },
+      data: null,
+    } as never)
+
+    const RegisterPage = captured.Component
+    render(<RegisterPage />)
+
+    // Act
+    fireEvent.change(screen.getByLabelText('auth_name'), {
+      target: { value: 'Test User' },
+    })
+    fireEvent.change(screen.getByLabelText('auth_email'), {
+      target: { value: 'existing@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('auth_password'), {
+      target: { value: 'password123' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'auth_create_account_button' }))
+
+    // Assert
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Email already exists')
+    })
   })
 })

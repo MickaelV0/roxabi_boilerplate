@@ -1,9 +1,11 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { mockParaglideMessages } from '@/test/mock-messages'
 
-const { captured, useSearchFn } = vi.hoisted(() => ({
+const { captured, useSearchFn, useSessionFn } = vi.hoisted(() => ({
   captured: { Component: (() => null) as React.ComponentType },
   useSearchFn: vi.fn(() => ({ token: undefined as string | undefined })),
+  useSessionFn: vi.fn(() => ({ data: null as { user: { email: string } } | null })),
 }))
 
 vi.mock('@tanstack/react-router', () => ({
@@ -32,6 +34,7 @@ vi.mock('@repo/ui', () => ({
 }))
 
 vi.mock('@/lib/auth-client', () => ({
+  useSession: useSessionFn,
   authClient: {
     verifyEmail: vi.fn(() => new Promise(() => {})),
     sendVerificationEmail: vi.fn(),
@@ -62,21 +65,7 @@ vi.mock('../components/AuthLayout', () => ({
   ),
 }))
 
-vi.mock('@/paraglide/messages', () => ({
-  m: new Proxy(
-    {},
-    {
-      get:
-        (_target, prop) =>
-        (...args: unknown[]) => {
-          if (args.length > 0 && typeof args[0] === 'object') {
-            return `${String(prop)}(${JSON.stringify(args[0])})`
-          }
-          return String(prop)
-        },
-    }
-  ),
-}))
+mockParaglideMessages()
 
 // Import to trigger createFileRoute and capture the component
 import './verify-email'
@@ -100,8 +89,9 @@ describe('VerifyEmailPage', () => {
     expect(screen.getByText('auth_verifying_email')).toBeInTheDocument()
   })
 
-  it('should render resend verification button in error state', () => {
+  it('should render resend verification button in error state when session exists', () => {
     useSearchFn.mockReturnValue({ token: undefined })
+    useSessionFn.mockReturnValue({ data: { user: { email: 'user@example.com' } } })
     const VerifyEmailPage = captured.Component
     render(<VerifyEmailPage />)
 

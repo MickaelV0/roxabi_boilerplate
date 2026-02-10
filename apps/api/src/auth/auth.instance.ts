@@ -57,11 +57,6 @@ export function createBetterAuth(
       provider: 'pg',
       usePlural: true,
     }),
-    advanced: {
-      database: {
-        generateId: 'uuid',
-      },
-    },
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,

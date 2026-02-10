@@ -20,13 +20,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@repo/ui'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/org/members')({
+  beforeLoad: async () => {
+    const { data } = await authClient.getSession()
+    if (!data) {
+      throw redirect({ to: '/login' })
+    }
+  },
   component: OrgMembersPage,
 })
 

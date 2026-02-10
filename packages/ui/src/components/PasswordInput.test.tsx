@@ -88,7 +88,7 @@ describe('calculateStrength', () => {
     expect(calculateStrength('')).toBe(0)
   })
 
-  it('returns 1 for short lowercase-only password', () => {
+  it('returns 0 for short lowercase-only password', () => {
     expect(calculateStrength('abc')).toBe(0)
   })
 
