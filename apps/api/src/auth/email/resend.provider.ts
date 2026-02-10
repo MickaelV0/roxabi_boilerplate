@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { Resend } from 'resend'
+import { EmailSendFailedEvent } from '../../common/events/email-send-failed.event.js'
 import type { EmailProvider } from './email.provider.js'
+import { EmailSendException } from './email-send.exception.js'
 
 @Injectable()
 export class ResendEmailProvider implements EmailProvider {
@@ -9,7 +12,10 @@ export class ResendEmailProvider implements EmailProvider {
   private readonly from: string
   private readonly resendClient: Resend | null
 
-  constructor(config: ConfigService) {
+  constructor(
+    config: ConfigService,
+    private readonly eventEmitter: EventEmitter2
+  ) {
     const apiKey = config.get<string>('RESEND_API_KEY')
     this.from = config.get<string>('EMAIL_FROM', 'noreply@yourdomain.com')
     this.resendClient = apiKey ? new Resend(apiKey) : null
@@ -31,12 +37,28 @@ export class ResendEmailProvider implements EmailProvider {
       return
     }
 
-    await this.resendClient.emails.send({
-      from: this.from,
-      to: params.to,
-      subject: params.subject,
-      html: params.html,
-      text: params.text,
-    })
+    try {
+      await this.resendClient.emails.send({
+        from: this.from,
+        to: params.to,
+        subject: params.subject,
+        html: params.html,
+        text: params.text,
+      })
+    } catch (error) {
+      const cause = error instanceof Error ? error : new Error(String(error))
+
+      this.logger.error(
+        `Failed to send email to ${params.to} (subject: "${params.subject}"): ${cause.message}`,
+        cause.stack
+      )
+
+      this.eventEmitter.emit(
+        'email.send.failed',
+        new EmailSendFailedEvent(params.to, params.subject, cause)
+      )
+
+      throw new EmailSendException(params.to, cause)
+    }
   }
 }

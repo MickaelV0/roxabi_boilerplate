@@ -1,5 +1,7 @@
 import { Logger } from '@nestjs/common'
 import { describe, expect, it, vi } from 'vitest'
+import { EmailSendFailedEvent } from '../../common/events/email-send-failed.event.js'
+import { EmailSendException } from './email-send.exception.js'
 import { ResendEmailProvider } from './resend.provider.js'
 
 const mockSend = vi.fn().mockResolvedValue({ id: 'mock-id' })
@@ -17,6 +19,10 @@ function createMockConfig(values: Record<string, string | undefined>) {
   }
 }
 
+function createMockEventEmitter() {
+  return { emit: vi.fn() }
+}
+
 describe('ResendEmailProvider', () => {
   it('should log warning to console when no RESEND_API_KEY is set in development', () => {
     // Arrange
@@ -24,7 +30,7 @@ describe('ResendEmailProvider', () => {
 
     // Act
     const config = createMockConfig({ NODE_ENV: 'development' })
-    new ResendEmailProvider(config as never)
+    new ResendEmailProvider(config as never, createMockEventEmitter() as never)
 
     // Assert
     expect(warnSpy).toHaveBeenCalledWith(
@@ -40,7 +46,7 @@ describe('ResendEmailProvider', () => {
 
     // Act
     const config = createMockConfig({ NODE_ENV: 'production' })
-    new ResendEmailProvider(config as never)
+    new ResendEmailProvider(config as never, createMockEventEmitter() as never)
 
     // Assert
     expect(errorSpy).toHaveBeenCalledWith(
@@ -55,7 +61,7 @@ describe('ResendEmailProvider', () => {
     const logSpy = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => {})
     vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {})
     const config = createMockConfig({ NODE_ENV: 'development' })
-    const provider = new ResendEmailProvider(config as never)
+    const provider = new ResendEmailProvider(config as never, createMockEventEmitter() as never)
 
     // Act
     await provider.send({
@@ -80,7 +86,7 @@ describe('ResendEmailProvider', () => {
       RESEND_API_KEY: 're_test_123',
       EMAIL_FROM: 'hello@roxabi.com',
     })
-    const provider = new ResendEmailProvider(config as never)
+    const provider = new ResendEmailProvider(config as never, createMockEventEmitter() as never)
 
     // Act
     await provider.send({
@@ -108,7 +114,7 @@ describe('ResendEmailProvider', () => {
     })
 
     // Act
-    new ResendEmailProvider(config as never)
+    new ResendEmailProvider(config as never, createMockEventEmitter() as never)
 
     // Assert
     expect(config.get).toHaveBeenCalledWith('EMAIL_FROM', 'noreply@yourdomain.com')
@@ -120,11 +126,95 @@ describe('ResendEmailProvider', () => {
     const config = createMockConfig({ NODE_ENV: 'development' })
 
     // Act
-    new ResendEmailProvider(config as never)
+    new ResendEmailProvider(config as never, createMockEventEmitter() as never)
 
     // Assert
     expect(config.get).toHaveBeenCalledWith('EMAIL_FROM', 'noreply@yourdomain.com')
 
     warnSpy.mockRestore()
+  })
+
+  it('should throw EmailSendException when Resend SDK fails', async () => {
+    // Arrange
+    const resendError = new Error('Rate limit exceeded')
+    mockSend.mockRejectedValueOnce(resendError)
+    const errorSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {})
+    const config = createMockConfig({
+      RESEND_API_KEY: 're_test_123',
+      EMAIL_FROM: 'hello@roxabi.com',
+    })
+    const emitter = createMockEventEmitter()
+    const provider = new ResendEmailProvider(config as never, emitter as never)
+
+    // Act & Assert
+    await expect(
+      provider.send({
+        to: 'user@example.com',
+        subject: 'Verify your email',
+        html: '<p>Click here</p>',
+      })
+    ).rejects.toThrow(EmailSendException)
+
+    errorSpy.mockRestore()
+  })
+
+  it('should log error details when Resend SDK fails', async () => {
+    // Arrange
+    const resendError = new Error('Network timeout')
+    mockSend.mockRejectedValueOnce(resendError)
+    const errorSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {})
+    const config = createMockConfig({
+      RESEND_API_KEY: 're_test_123',
+      EMAIL_FROM: 'hello@roxabi.com',
+    })
+    const emitter = createMockEventEmitter()
+    const provider = new ResendEmailProvider(config as never, emitter as never)
+
+    // Act
+    await provider
+      .send({
+        to: 'user@example.com',
+        subject: 'Reset your password',
+        html: '<p>Click here</p>',
+      })
+      .catch(() => {})
+
+    // Assert
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Failed to send email to user@example.com (subject: "Reset your password"): Network timeout',
+      resendError.stack
+    )
+
+    errorSpy.mockRestore()
+  })
+
+  it('should emit email.send.failed event when Resend SDK fails', async () => {
+    // Arrange
+    const resendError = new Error('Invalid API key')
+    mockSend.mockRejectedValueOnce(resendError)
+    vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {})
+    const config = createMockConfig({
+      RESEND_API_KEY: 're_test_123',
+      EMAIL_FROM: 'hello@roxabi.com',
+    })
+    const emitter = createMockEventEmitter()
+    const provider = new ResendEmailProvider(config as never, emitter as never)
+
+    // Act
+    await provider
+      .send({
+        to: 'user@example.com',
+        subject: 'Magic link',
+        html: '<p>Sign in</p>',
+      })
+      .catch(() => {})
+
+    // Assert
+    expect(emitter.emit).toHaveBeenCalledWith('email.send.failed', expect.any(EmailSendFailedEvent))
+
+    const event = emitter.emit.mock.calls[0]![1] as EmailSendFailedEvent
+    expect(event.recipient).toBe('user@example.com')
+    expect(event.subject).toBe('Magic link')
+    expect(event.error).toBe(resendError)
   })
 })
