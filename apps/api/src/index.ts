@@ -5,6 +5,7 @@ import { NestFactory } from '@nestjs/core'
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { AppModule } from './app.module.js'
+import { parseCorsOrigins } from './cors.js'
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -13,6 +14,7 @@ async function bootstrap() {
       logger: {
         level: process.env.LOG_LEVEL || 'debug',
       },
+      bodyLimit: 1_048_576, // 1 MiB — explicit limit
     })
   )
 
@@ -67,9 +69,15 @@ async function bootstrap() {
   )
 
   // CORS
-  app.enableCors({
-    origin: configService.get<string>('CORS_ORIGIN', 'http://localhost:3000'),
-  })
+  const nodeEnv = configService.get<string>('NODE_ENV', 'development')
+  const isProduction = nodeEnv === 'production'
+  const rawOrigins = configService.get<string>('CORS_ORIGIN', 'http://localhost:3000')
+  const corsResult = parseCorsOrigins(rawOrigins, isProduction)
+
+  if (corsResult.warning) {
+    logger.warn(corsResult.warning)
+  }
+  app.enableCors({ origin: corsResult.origins })
 
   // Swagger setup
   const config = new DocumentBuilder()
