@@ -1,4 +1,5 @@
-import { APP_FILTER, Module } from '@nestjs/common'
+import { Module } from '@nestjs/common'
+import { APP_FILTER } from '@nestjs/core'
 import { AuthModule } from '../auth/auth.module.js'
 import { UserNotFoundFilter } from './filters/user-not-found.filter.js'
 import { UserController } from './user.controller.js'

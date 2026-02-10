@@ -11,7 +11,7 @@ import type { FastifyRequest } from 'fastify'
 import { AuthService } from './auth.service.js'
 
 type AuthSession = {
-  user: { id: string; role?: string }
+  user: { id: string; role?: Role }
   session: { id: string; activeOrganizationId?: string | null }
 }
 
