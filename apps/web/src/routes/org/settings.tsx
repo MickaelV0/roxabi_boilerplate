@@ -159,7 +159,7 @@ function OrgSettingsPage() {
                 </DialogHeader>
                 <DialogFooter>
                   <DialogClose asChild>
-                    <Button variant="outline">Cancel</Button>
+                    <Button variant="outline">{m.common_cancel()}</Button>
                   </DialogClose>
                   <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
                     {deleting ? m.org_deleting() : m.org_delete()}

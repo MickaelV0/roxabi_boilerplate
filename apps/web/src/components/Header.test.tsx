@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { mockParaglideMessages } from '@/test/mock-messages'
 
 vi.mock('@repo/ui', () => ({
   Button: ({
@@ -54,20 +55,7 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }))
 
-vi.mock('@/paraglide/messages', () => ({
-  m: {
-    nav_home: () => 'Home',
-    nav_demos: () => 'Demos',
-    nav_docs: () => 'Docs',
-    nav_sign_in: () => 'Sign In',
-    nav_sign_up: () => 'Sign Up',
-    menu_open: () => 'Open menu',
-    menu_close: () => 'Close menu',
-    github_label: () => 'GitHub',
-    language_label: () => 'Language',
-    theme_toggle: () => 'Toggle theme',
-  },
-}))
+mockParaglideMessages()
 
 vi.mock('@/lib/auth-client', () => ({
   useSession: () => ({ data: null }),
@@ -112,24 +100,24 @@ describe('Header', () => {
   it('renders navigation links', () => {
     render(<Header />)
 
-    expect(screen.getAllByText('Home').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Docs').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('nav_home').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('nav_docs').length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders the mobile menu toggle button', () => {
     render(<Header />)
 
-    const menuButton = screen.getByLabelText('Open menu')
+    const menuButton = screen.getByLabelText('menu_open')
     expect(menuButton).toBeInTheDocument()
   })
 
   it('toggles mobile menu when clicking the menu button', () => {
     render(<Header />)
 
-    const menuButton = screen.getByLabelText('Open menu')
+    const menuButton = screen.getByLabelText('menu_open')
     fireEvent.click(menuButton)
 
-    expect(screen.getByLabelText('Close menu')).toBeInTheDocument()
+    expect(screen.getByLabelText('menu_close')).toBeInTheDocument()
   })
 
   it('links the logo to the home page', () => {
@@ -153,7 +141,7 @@ describe('Header', () => {
     render(<Header />)
 
     // Open mobile menu
-    const menuButton = screen.getByLabelText('Open menu')
+    const menuButton = screen.getByLabelText('menu_open')
     fireEvent.click(menuButton)
 
     // Both desktop and mobile links should exist
@@ -165,23 +153,23 @@ describe('Header', () => {
     render(<Header />)
 
     // Open mobile menu
-    fireEvent.click(screen.getByLabelText('Open menu'))
-    expect(screen.getByLabelText('Close menu')).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('menu_open'))
+    expect(screen.getByLabelText('menu_close')).toBeInTheDocument()
 
     // Press Escape
     fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.getByLabelText('Open menu')).toBeInTheDocument()
+    expect(screen.getByLabelText('menu_open')).toBeInTheDocument()
   })
 
   it('closes mobile menu when clicking outside', () => {
     render(<Header />)
 
     // Open mobile menu
-    fireEvent.click(screen.getByLabelText('Open menu'))
-    expect(screen.getByLabelText('Close menu')).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('menu_open'))
+    expect(screen.getByLabelText('menu_close')).toBeInTheDocument()
 
     // Click outside (on document body)
     fireEvent.click(document.body)
-    expect(screen.getByLabelText('Open menu')).toBeInTheDocument()
+    expect(screen.getByLabelText('menu_open')).toBeInTheDocument()
   })
 })

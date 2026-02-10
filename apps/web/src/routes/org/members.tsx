@@ -189,7 +189,7 @@ function OrgMembersPage() {
                 <DialogFooter>
                   <DialogClose asChild>
                     <Button type="button" variant="outline">
-                      Cancel
+                      {m.common_cancel()}
                     </Button>
                   </DialogClose>
                   <Button type="submit" disabled={inviting}>

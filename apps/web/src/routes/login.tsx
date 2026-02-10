@@ -1,5 +1,5 @@
 import { Button, Checkbox, Input, Label, OAuthButton } from '@repo/ui'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
@@ -7,6 +7,12 @@ import { m } from '@/paraglide/messages'
 import { AuthLayout } from '../components/AuthLayout'
 
 export const Route = createFileRoute('/login')({
+  beforeLoad: async () => {
+    const { data } = await authClient.getSession()
+    if (data) {
+      throw redirect({ to: '/' })
+    }
+  },
   component: LoginPage,
 })
 

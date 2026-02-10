@@ -226,5 +226,7 @@
   "org_invitations_role": "Role",
   "org_invitations_status": "Status",
   "org_invitations_revoke": "Revoke",
-  "org_toast_invitation_revoked": "Invitation revoked"
+  "org_toast_invitation_revoked": "Invitation revoked",
+
+  "common_cancel": "Cancel"
 }
