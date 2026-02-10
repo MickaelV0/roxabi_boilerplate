@@ -10,10 +10,17 @@
     },
     "build": {
       "dependsOn": ["codegen", "^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!**/*.test.{ts,tsx}",
+        "!**/*.spec.{ts,tsx}",
+        "!**/*.stories.{tsx,mdx}"
+      ],
       "outputs": ["dist/**", ".output/**", ".next/**", "build/**"]
     },
     "typecheck": {
-      "dependsOn": ["codegen", "^typecheck", "^build"]
+      "dependsOn": ["codegen", "^typecheck", "^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.test.{ts,tsx}", "!**/*.spec.{ts,tsx}"]
     },
     "lint": {
       "dependsOn": ["^lint"]
