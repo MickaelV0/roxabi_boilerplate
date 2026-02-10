@@ -35,7 +35,7 @@ cp .env.example .env
 |----------|-------------|---------|
 | `NODE_ENV` | Environment mode | `development` |
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://roxabi:roxabi@localhost:5432/roxabi` |
-| `JWT_SECRET` | Secret for JWT tokens | Random string |
+| `BETTER_AUTH_SECRET` | Secret for BetterAuth | Random 32+ character string |
 
 ### Optional Variables
 
@@ -121,8 +121,8 @@ Configure in Vercel dashboard under **Settings &gt; Environment Variables**:
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `API_URL` | Vercel API project URL | `https://roxabi-api.vercel.app` |
-| `APP_URL` | This project's URL | `https://roxabi.vercel.app` |
+| `API_URL` | Vercel API project URL | `https://api.roxabi.vercel.app` |
+| `APP_URL` | This project's URL | `https://app.roxabi.vercel.app` |
 
 ### Vercel — API Project
 
@@ -130,13 +130,14 @@ Configure in Vercel dashboard under **Settings &gt; Environment Variables**:
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection (OVH CloudDB) | `postgresql://user:pass@host:5432/roxabi` |
-| `CORS_ORIGIN` | Web project URL | `https://roxabi.vercel.app` |
+| `DATABASE_URL` | PostgreSQL connection (Neon) | `postgresql://user:pass@host/neondb?sslmode=require` |
+| `CORS_ORIGIN` | Web project URL | `https://app.roxabi.vercel.app` |
 | `BETTER_AUTH_SECRET` | Auth secret (random 32+ chars) | `&lt;random-string&gt;` |
-| `BETTER_AUTH_URL` | This project's URL | `https://roxabi-api.vercel.app` |
-| `APP_URL` | Web project URL | `https://roxabi.vercel.app` |
-| `API_URL` | This project's URL | `https://roxabi-api.vercel.app` |
+| `BETTER_AUTH_URL` | This project's URL | `https://api.roxabi.vercel.app` |
+| `APP_URL` | Web project URL | `https://app.roxabi.vercel.app` |
+| `API_URL` | This project's URL | `https://api.roxabi.vercel.app` |
 | `EMAIL_FROM` | Sender email address | `noreply@example.com` |
+| `RESEND_API_KEY` | Resend API key for transactional emails | `re_...` |
 
 > **Note:** Vercel auto-sets `NODE_ENV=production`. NestJS runs as a Vercel Function with Fluid compute.
 

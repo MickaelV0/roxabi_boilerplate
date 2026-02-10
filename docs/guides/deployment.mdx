@@ -18,7 +18,7 @@ Push to main
 |-----------|----------|---------|
 | Web (TanStack Start + Nitro) | Vercel | SSR, edge caching, Fluid compute |
 | API (NestJS + Fastify) | Vercel | Zero-config NestJS, Fluid compute, auto-scaling |
-| Database | OVH CloudDB | External PostgreSQL, not managed by Vercel |
+| Database | Neon | Serverless PostgreSQL, not managed by Vercel |
 
 No Docker is needed for deployment. Docker configurations (Dockerfiles, `docker-compose.prod.yml`, Nginx configs, `deploy/`) remain in the repo for local development only.
 
@@ -72,10 +72,12 @@ Select the matching project when prompted. This creates `.vercel/project.json` i
 ```bash
 cd apps/web
 for env in production preview development; do
-  echo "https://api.roxabi.vercel.app" | vercel env add API_URL "$env"
-  echo "https://app.roxabi.vercel.app" | vercel env add APP_URL "$env"
+  printf '%s' "https://api.roxabi.vercel.app" | vercel env add API_URL "$env"
+  printf '%s' "https://app.roxabi.vercel.app" | vercel env add APP_URL "$env"
 done
 ```
+
+> **Warning:** Always use `printf '%s'` instead of `echo` when piping values to `vercel env add`. `echo` appends a trailing newline that becomes part of the stored value, which causes `ERR_INVALID_CHAR` errors when the values are used in HTTP headers (e.g., CORS origin).
 
 | Variable | Description |
 |----------|-------------|
@@ -91,12 +93,12 @@ cd apps/api
 SECRET=$(openssl rand -base64 32)
 
 for env in production preview development; do
-  echo "https://app.roxabi.vercel.app" | vercel env add CORS_ORIGIN "$env"
-  echo "$SECRET"                       | vercel env add BETTER_AUTH_SECRET "$env"
-  echo "https://api.roxabi.vercel.app" | vercel env add BETTER_AUTH_URL "$env"
-  echo "https://app.roxabi.vercel.app" | vercel env add APP_URL "$env"
-  echo "https://api.roxabi.vercel.app" | vercel env add API_URL "$env"
-  echo "noreply@yourdomain.com"        | vercel env add EMAIL_FROM "$env"
+  printf '%s' "https://app.roxabi.vercel.app" | vercel env add CORS_ORIGIN "$env"
+  printf '%s' "$SECRET"                       | vercel env add BETTER_AUTH_SECRET "$env"
+  printf '%s' "https://api.roxabi.vercel.app" | vercel env add BETTER_AUTH_URL "$env"
+  printf '%s' "https://app.roxabi.vercel.app" | vercel env add APP_URL "$env"
+  printf '%s' "https://api.roxabi.vercel.app" | vercel env add API_URL "$env"
+  printf '%s' "noreply@yourdomain.com"        | vercel env add EMAIL_FROM "$env"
 done
 ```
 
@@ -165,7 +167,7 @@ vercel promote &lt;url&gt;                       # Promote it to production
 ### Redeploy
 
 ```bash
-vercel redeploy
+vercel redeploy &lt;deployment-url&gt;
 ```
 
 ### Manage Environment Variables
@@ -238,6 +240,8 @@ Then configure DNS with a CNAME record pointing to `cname.vercel-dns.com`. Verce
 
 - Vercel automatically sets `NODE_ENV=production`
 - NestJS runs as a [Vercel Function](https://vercel.com/docs/functions) with [Fluid compute](https://vercel.com/docs/fluid-compute) — auto-scaling, reduced cold starts
+- The API entrypoint is `src/index.ts` (not the NestJS default `src/main.ts`), configured via `entryFile` in `nest-cli.json`
+- NestJS middlewares with the Fastify adapter receive raw Node.js `ServerResponse` objects — use `res.setHeader()`, not `res.header()`
 - Free tier: 10s execution limit per request. Pro tier: 60s
 - 250MB max application size (Vercel Functions limitation)
 - `API_URL` and `APP_URL` are declared in `turbo.json` build env to ensure Turbo invalidates cache when they change
@@ -252,4 +256,4 @@ The repository includes Docker configurations for VPS-based deployment:
 - `docker-compose.prod.yml` for container orchestration
 - Nginx reverse proxy configs in `deploy/nginx/`
 
-If you have a VPS with Docker, you can use the Docker build/push/SSH deploy pipeline instead of Vercel. See the full specification at [docs/specs/52-vps-deployment.mdx](/docs/specs/52-vps-deployment).
+If you have a VPS with Docker, you can use the Docker build/push/SSH deploy pipeline instead of Vercel.

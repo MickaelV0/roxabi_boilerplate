@@ -18,8 +18,11 @@ roxabi_boilerplate/
 │   │   └── source.config.ts  # Fumadocs MDX configuration
 │   └── api/                  # Backend API (NestJS + Fastify)
 │       └── src/
-│           ├── modules/      # Feature modules
-│           └── common/       # Shared utilities
+│           ├── auth/         # Authentication module
+│           ├── user/         # User module
+│           ├── database/     # Database providers
+│           ├── common/       # Shared utilities & filters
+│           └── config/       # Environment validation
 ├── packages/
 │   ├── ui/                   # Shared UI components (@repo/ui)
 │   ├── config/               # Shared configurations (@repo/config)
@@ -33,6 +36,8 @@ roxabi_boilerplate/
 │   └── specs/                # Feature specifications
 └── .claude/                  # Claude Code configuration
     ├── settings.json         # Project settings and hooks
+    ├── agents/               # Agent team definitions
+    ├── hooks/                # Git hook scripts
     └── skills/               # Custom skills
 ```
 
@@ -50,7 +55,7 @@ Frontend application built with TanStack Start.
 
 Backend API built with NestJS and Fastify.
 
-- REST + optional GraphQL
+- REST API
 - Modular architecture
 - OpenAPI documentation
 
@@ -123,7 +128,7 @@ bun docs
 │  │  Renderer  │◀▶│  Functions │◀▶│  & Actions │  │   (Docs)   │          │
 │  └────────────┘  └─────┬──────┘  └────────────┘  └────────────┘          │
 └────────────────────────┼─────────────────────────────────────────────────┘
-                         │ HTTP (REST/GraphQL)
+                         │ HTTP (REST)
                          ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                          API (NestJS + Fastify)                           │
@@ -136,10 +141,10 @@ bun docs
                          ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                              Database Layer                               │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐                          │
-│  │  Drizzle   │─▶│  Database  │  │   Redis    │                          │
-│  │    ORM     │◀─│ (Postgres) │  │  (Cache)   │                          │
-│  └────────────┘  └────────────┘  └────────────┘                          │
+│  ┌────────────┐  ┌────────────┐                                          │
+│  │  Drizzle   │─▶│  Database  │                                          │
+│  │    ORM     │◀─│ (Postgres) │                                          │
+│  └────────────┘  └────────────┘                                          │
 └──────────────────────────────────────────────────────────────────────────┘
 
 Shared Packages (@repo/*)
@@ -187,7 +192,7 @@ Production uses **Vercel** for both web and API with automatic deploys from GitH
                                     │
                                     ▼
                           ┌──────────────────┐
-                          │  OVH CloudDB     │
+                          │      Neon        │
                           │  (PostgreSQL)    │
                           └──────────────────┘
 ```
@@ -196,5 +201,5 @@ Key decisions:
 - **Single platform** — Both apps on Vercel, one dashboard, automatic SSL
 - **Vercel for SSR** — TanStack Start + Nitro has native Vercel support
 - **Vercel for API** — Zero-config NestJS support with Fluid compute
-- **No database hosting** — PostgreSQL managed by OVH CloudDB
+- **Serverless PostgreSQL** — Managed by Neon
 - **Docker configs included** — For local dev and self-hosted VPS alternative

@@ -16,6 +16,7 @@
     "12-claude-code-skills",
     "70-design-system",
     "78-agent-teams-architecture",
-    "80-license-checker"
+    "80-license-checker",
+    "68-auth-ui-ux"
   ]
 }
