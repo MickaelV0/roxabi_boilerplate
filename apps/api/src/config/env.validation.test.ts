@@ -34,7 +34,10 @@ describe('env validation', () => {
 
   it('should accept all valid NODE_ENV values', () => {
     for (const env of ['development', 'production', 'test']) {
-      const result = validate({ NODE_ENV: env })
+      const result = validate({
+        NODE_ENV: env,
+        BETTER_AUTH_SECRET: 'a-safe-secret-for-testing-purposes',
+      })
       expect(result.NODE_ENV).toBe(env)
     }
   })
@@ -55,5 +58,43 @@ describe('env validation', () => {
   it('should accept a numeric PORT', () => {
     const result = validate({ PORT: 8080 })
     expect(result.PORT).toBe(8080)
+  })
+
+  describe('BETTER_AUTH_SECRET production guard', () => {
+    it('should throw when using default secret in production', () => {
+      expect(() =>
+        validate({
+          NODE_ENV: 'production',
+          BETTER_AUTH_SECRET: 'dev-secret-do-not-use-in-production',
+        })
+      ).toThrow('BETTER_AUTH_SECRET must be set to a secure value in production')
+    })
+
+    it('should throw when using placeholder secret in production', () => {
+      expect(() =>
+        validate({
+          NODE_ENV: 'production',
+          BETTER_AUTH_SECRET: 'change-me-to-a-random-32-char-string',
+        })
+      ).toThrow('BETTER_AUTH_SECRET must be set to a secure value in production')
+    })
+
+    it('should allow default secret in development', () => {
+      const result = validate({ NODE_ENV: 'development' })
+      expect(result.BETTER_AUTH_SECRET).toBe('dev-secret-do-not-use-in-production')
+    })
+
+    it('should allow default secret in test environment', () => {
+      const result = validate({ NODE_ENV: 'test' })
+      expect(result.BETTER_AUTH_SECRET).toBe('dev-secret-do-not-use-in-production')
+    })
+
+    it('should allow custom secret in production', () => {
+      const result = validate({
+        NODE_ENV: 'production',
+        BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
+      })
+      expect(result.BETTER_AUTH_SECRET).toBe('a-real-secret-that-is-safe-for-prod')
+    })
   })
 })
