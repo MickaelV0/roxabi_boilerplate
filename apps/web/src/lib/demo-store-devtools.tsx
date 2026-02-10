@@ -52,7 +52,7 @@ function DevtoolPanel() {
   )
 }
 
-export default {
+export const demoStoreDevtools = {
   name: 'TanStack Store',
   render: <DevtoolPanel />,
 }

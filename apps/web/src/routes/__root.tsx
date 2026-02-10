@@ -14,12 +14,18 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { getLocale } from '@/paraglide/runtime'
 import { Header } from '../components/Header'
 import { TanStackQueryDevtools } from '../integrations/tanstack-query/devtools'
-import StoreDevtools from '../lib/demo-store-devtools'
+import { demoStoreDevtools } from '../lib/demo-store-devtools'
 import appCss from '../styles.css?url'
 
-export interface MyRouterContext {
+export type MyRouterContext = {
   queryClient: QueryClient
 }
+
+const LABELS = {
+  errorTitle: 'Something went wrong',
+  notFoundCode: '404',
+  notFoundTitle: 'Page not found',
+} as const
 
 function ErrorFallback({
   error,
@@ -32,7 +38,7 @@ function ErrorFallback({
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="max-w-md p-8 bg-card rounded-lg shadow-lg text-center">
-        <h2 className="text-2xl font-bold text-destructive mb-4">Something went wrong</h2>
+        <h2 className="text-2xl font-bold text-destructive mb-4">{LABELS.errorTitle}</h2>
         <p className="text-muted-foreground mb-4">{message}</p>
         <button
           type="button"
@@ -83,8 +89,8 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 function NotFound() {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
-      <h1 className="text-6xl font-bold text-muted-foreground">404</h1>
-      <p className="mt-4 text-xl text-muted-foreground">Page not found</p>
+      <h1 className="text-6xl font-bold text-muted-foreground">{LABELS.notFoundCode}</h1>
+      <p className="mt-4 text-xl text-muted-foreground">{LABELS.notFoundTitle}</p>
       <Link to="/" className="mt-6 text-primary underline underline-offset-4 hover:text-primary/80">
         Go back home
       </Link>
@@ -123,7 +129,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 name: 'Tanstack Router',
                 render: <TanStackRouterDevtoolsPanel />,
               },
-              StoreDevtools,
+              demoStoreDevtools,
               TanStackQueryDevtools,
             ]}
           />
