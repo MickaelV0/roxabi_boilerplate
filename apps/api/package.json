@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "bunx nest start --watch",
     "build": "bunx nest build",
-    "start": "node dist/main",
-    "start:prod": "NODE_ENV=production node dist/main",
+    "start": "node dist/index",
+    "start:prod": "NODE_ENV=production node dist/index",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",

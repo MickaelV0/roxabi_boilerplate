@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto'
+import type { ServerResponse } from 'node:http'
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { APP_FILTER } from '@nestjs/core'
 import { EventEmitterModule } from '@nestjs/event-emitter'
-import type { FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyRequest } from 'fastify'
 import { ClsModule } from 'nestjs-cls'
 import { AppController } from './app.controller.js'
 import { AuthModule } from './auth/auth.module.js'
@@ -28,8 +29,8 @@ import { UserModule } from './user/user.module.js'
         idGenerator: (req: FastifyRequest) => {
           return extractCorrelationId(req.headers['x-correlation-id']) ?? randomUUID()
         },
-        setup: (cls, _req: FastifyRequest, res: FastifyReply) => {
-          res.header('x-correlation-id', cls.getId())
+        setup: (cls, _req: FastifyRequest, res: ServerResponse) => {
+          res.setHeader('x-correlation-id', cls.getId())
         },
       },
     }),
