@@ -1,3 +1,4 @@
+import { Button, Input } from '@repo/ui'
 import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import { compareItems, rankItem } from '@tanstack/match-sorter-utils'
 import { createFileRoute } from '@tanstack/react-router'
@@ -205,38 +206,46 @@ function TableDemo() {
       </div>
       <div className="h-4" />
       <div className="flex flex-wrap items-center gap-2 text-gray-200">
-        <button
+        <Button
           type="button"
-          className="px-3 py-1 bg-gray-800 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          variant="secondary"
+          size="sm"
+          className="bg-gray-800 hover:bg-gray-700"
           onClick={() => table.setPageIndex(0)}
           disabled={!table.getCanPreviousPage()}
         >
           {'<<'}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="px-3 py-1 bg-gray-800 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          variant="secondary"
+          size="sm"
+          className="bg-gray-800 hover:bg-gray-700"
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
         >
           {'<'}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="px-3 py-1 bg-gray-800 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          variant="secondary"
+          size="sm"
+          className="bg-gray-800 hover:bg-gray-700"
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
         >
           {'>'}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="px-3 py-1 bg-gray-800 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          variant="secondary"
+          size="sm"
+          className="bg-gray-800 hover:bg-gray-700"
           onClick={() => table.setPageIndex(table.getPageCount() - 1)}
           disabled={!table.getCanNextPage()}
         >
           {'>>'}
-        </button>
+        </Button>
         <span className="flex items-center gap-1">
           <div>Page</div>
           <strong>
@@ -245,14 +254,14 @@ function TableDemo() {
         </span>
         <span className="flex items-center gap-1">
           | Go to page:
-          <input
+          <Input
             type="number"
             defaultValue={table.getState().pagination.pageIndex + 1}
             onChange={(e) => {
               const page = e.target.value ? Number(e.target.value) - 1 : 0
               table.setPageIndex(page)
             }}
-            className="w-16 px-2 py-1 bg-gray-800 rounded-md border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            className="w-16 bg-gray-800 rounded-md border-gray-700"
           />
         </span>
         <select
@@ -271,20 +280,12 @@ function TableDemo() {
       </div>
       <div className="mt-4 text-gray-400">{table.getPrePaginationRowModel().rows.length} Rows</div>
       <div className="mt-4 flex gap-2">
-        <button
-          type="button"
-          onClick={() => rerender()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
+        <Button type="button" onClick={() => rerender()}>
           Force Rerender
-        </button>
-        <button
-          type="button"
-          onClick={() => refreshData()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
+        </Button>
+        <Button type="button" onClick={() => refreshData()}>
           Refresh Data
-        </button>
+        </Button>
       </div>
       <pre className="mt-4 p-4 bg-gray-800 rounded-lg text-gray-300 overflow-auto">
         {JSON.stringify(
@@ -339,5 +340,5 @@ function DebouncedInput({
     return () => clearTimeout(timeout)
   }, [value, debounce, onChange])
 
-  return <input {...props} value={value} onChange={(e) => setValue(e.target.value)} />
+  return <Input {...props} value={value} onChange={(e) => setValue(e.target.value)} />
 }
