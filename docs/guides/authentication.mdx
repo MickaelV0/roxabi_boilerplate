@@ -1,0 +1,34 @@
+---
+title: Authentication Guide
+description: Better Auth setup, guard system, decorators, session management, and frontend integration.
+---
+
+# Authentication Guide
+
+## Overview
+
+<!-- TODO: Describe Better Auth with Drizzle adapter, email+password, OAuth (Google, GitHub), magic link, organization & admin plugins. -->
+
+## Architecture
+
+<!-- TODO: Document two-layer design: auth.instance.ts (Better Auth config, pure function) + auth.service.ts (NestJS wrapper, injectable). AuthModule registers both and sets global guard. -->
+
+## Auth Guard &amp; Decorators
+
+<!-- TODO: Document global deny-by-default via APP_GUARD. Decorators: @Public() (PUBLIC metadata), @OptionalAuth() (OPTIONAL_AUTH), @Roles('admin') (ROLES), @RequireOrg() (REQUIRE_ORG), @Session() parameter decorator. -->
+
+## Session Management
+
+<!-- TODO: Document cookie-based sessions, 7-day expiry, daily refresh (updateAge), 5-minute cookie cache. Frontend uses Vite proxy (/api/* → localhost:3001) to keep cookies same-origin. -->
+
+## Email Provider
+
+<!-- TODO: Document EMAIL_PROVIDER injection token, ResendEmailProvider as default. Sends verification, password reset, and magic link emails. -->
+
+## Frontend Client
+
+<!-- TODO: Document createAuthClient from better-auth/react with organizationClient, adminClient, magicLinkClient plugins. Exports useSession, signIn, signUp, signOut. -->
+
+## Environment Variables
+
+<!-- TODO: Document BETTER_AUTH_SECRET (required, 32+ chars), OAuth client ID/secret pairs (optional, conditionally enabled). -->

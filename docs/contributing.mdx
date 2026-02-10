@@ -17,10 +17,10 @@ We use **GitHub Flow** - a simple, trunk-based workflow optimized for continuous
 
 | Type | Pattern | Example |
 |------|---------|---------|
-| Feature | `feature/<issue-id>-<description>` | `feature/42-user-auth` |
-| Bug fix | `fix/<issue-id>-<description>` | `fix/15-login-timeout` |
-| Hotfix | `hotfix/<issue-id>-<description>` | `hotfix/99-security-patch` |
-| Docs | `docs/<description>` | `docs/api-reference` |
+| Feature | `feat/<issue-id>-<slug>` | `feat/42-user-auth` |
+| Bug fix | `fix/<issue-id>-<slug>` | `fix/15-login-timeout` |
+| Hotfix | `hotfix/<issue-id>-<slug>` | `hotfix/99-security-patch` |
+| Docs | `docs/<slug>` | `docs/api-reference` |
 
 ### Workflow
 
@@ -168,9 +168,10 @@ The `main` branch is protected with:
 
 | Label | Description |
 |-------|-------------|
-| `P1` | Critical - fix immediately |
-| `P2` | High - current sprint |
-| `P3` | Medium - next sprint |
+| `P0` | Urgent — blocking or critical, do immediately |
+| `P1` | High — important for current milestone |
+| `P2` | Medium — should be done soon |
+| `P3` | Low — nice to have, backlog |
 
 ### Size
 
