@@ -21,23 +21,19 @@ async function bootstrap() {
   const configService = app.get(ConfigService)
   const logger = new Logger('Bootstrap')
 
-  const nodeEnv = configService.get<string>('NODE_ENV', 'development')
-  const isProduction = nodeEnv === 'production'
-
   // Security headers (must be registered before routes)
   await app.register(helmet, {
     global: true,
-    contentSecurityPolicy: isProduction
-      ? { directives: { defaultSrc: ["'none'"] } }
-      : {
-          directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            imgSrc: ["'self'", 'data:'],
-            fontSrc: ["'self'"],
-          },
-        },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'none'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:'],
+        fontSrc: ["'self'"],
+        connectSrc: ["'self'"],
+      },
+    },
     hsts: { maxAge: 31536000, includeSubDomains: true },
     frameguard: { action: 'deny' },
     referrerPolicy: { policy: 'no-referrer' },
@@ -75,17 +71,15 @@ async function bootstrap() {
     origin: configService.get<string>('CORS_ORIGIN', 'http://localhost:3000'),
   })
 
-  // Swagger setup (non-production only)
-  if (!isProduction) {
-    const config = new DocumentBuilder()
-      .setTitle('Roxabi API')
-      .setDescription('Roxabi SaaS Backend API')
-      .setVersion('1.0')
-      .addBearerAuth()
-      .build()
-    const document = SwaggerModule.createDocument(app, config)
-    SwaggerModule.setup('api/docs', app, document)
-  }
+  // Swagger setup
+  const config = new DocumentBuilder()
+    .setTitle('Roxabi API')
+    .setDescription('Roxabi SaaS Backend API')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build()
+  const document = SwaggerModule.createDocument(app, config)
+  SwaggerModule.setup('api/docs', app, document)
 
   const port = configService.get<number>('PORT', 3001)
   await app.listen(port, '0.0.0.0')
