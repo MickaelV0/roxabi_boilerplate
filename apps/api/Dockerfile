@@ -5,7 +5,7 @@
 # =============================================================================
 
 # ---------------------------------------------------------------------------
-# Stage 1: Install dependencies
+# Stage 1: Install all dependencies (dev included for build step)
 # ---------------------------------------------------------------------------
 FROM oven/bun:1.3 AS deps
 
@@ -17,49 +17,54 @@ COPY apps/api/package.json apps/api/
 COPY packages/types/package.json packages/types/
 COPY packages/config/package.json packages/config/
 
-# Install production + dev dependencies (dev needed for build step)
 RUN bun install --frozen-lockfile
 
 # ---------------------------------------------------------------------------
-# Stage 2: Build
+# Stage 2: Build the NestJS application
 # ---------------------------------------------------------------------------
 FROM oven/bun:1.3 AS build
 
 WORKDIR /app
 
-# Copy installed dependencies from previous stage
+# Copy hoisted node_modules from deps
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=deps /app/packages/types/node_modules ./packages/types/node_modules
-COPY --from=deps /app/packages/config/node_modules ./packages/config/node_modules
 
-# Copy source code
+# Copy source code (workspace packages needed for type resolution during build)
 COPY packages/types/ packages/types/
 COPY packages/config/ packages/config/
 COPY apps/api/ apps/api/
 
-# Build the API
 WORKDIR /app/apps/api
 RUN bunx nest build
 
 # ---------------------------------------------------------------------------
-# Stage 3: Production runtime
+# Stage 3: Production-only dependencies
+# ---------------------------------------------------------------------------
+FROM oven/bun:1.3 AS prod-deps
+
+WORKDIR /app
+
+COPY bun.lock package.json turbo.json ./
+COPY apps/api/package.json apps/api/
+COPY packages/types/package.json packages/types/
+COPY packages/config/package.json packages/config/
+
+RUN bun install --frozen-lockfile --production
+
+# ---------------------------------------------------------------------------
+# Stage 4: Production runtime (minimal image)
 # ---------------------------------------------------------------------------
 FROM node:24-slim AS runtime
 
 WORKDIR /app
 
-# TODO: verify minimal node_modules needed for runtime
-# Copy built output and production dependencies
+# Copy compiled JS output
 COPY --from=build /app/apps/api/dist ./dist
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
 
-# TODO: verify if packages/types dist output is needed at runtime
-COPY --from=build /app/packages/types ./packages/types
+# Copy production-only node_modules (hoisted at root)
+COPY --from=prod-deps /app/node_modules ./node_modules
 
 ENV NODE_ENV=production
-# Default port — override via .env on VPS
 ENV PORT=4000
 
 EXPOSE 4000

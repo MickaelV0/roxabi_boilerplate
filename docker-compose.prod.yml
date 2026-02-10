@@ -9,8 +9,7 @@
 
 services:
   api:
-    # TODO: replace <owner> with GitHub org/user name
-    image: ghcr.io/<owner>/roxabi/api:latest
+    image: ghcr.io/mickaelv0/roxabi/api:latest
     container_name: roxabi-api
     restart: unless-stopped
     ports:
@@ -24,8 +23,7 @@ services:
       start_period: 10s
 
   web:
-    # TODO: replace <owner> with GitHub org/user name
-    image: ghcr.io/<owner>/roxabi/web:latest
+    image: ghcr.io/mickaelv0/roxabi/web:latest
     container_name: roxabi-web
     restart: unless-stopped
     ports:
