@@ -8,9 +8,6 @@ const mockUser = {
   emailVerified: true,
   image: null,
   role: 'user',
-  banned: false,
-  banReason: null,
-  banExpires: null,
   createdAt: new Date('2025-01-01'),
   updatedAt: new Date('2025-01-01'),
 }
@@ -37,7 +34,7 @@ function createMockDb() {
 
 describe('UserService', () => {
   describe('getProfile', () => {
-    it('should return user from DB', async () => {
+    it('should return user profile without sensitive fields', async () => {
       const { db, chains } = createMockDb()
       chains.select.limit.mockResolvedValue([mockUser])
 
@@ -45,7 +42,10 @@ describe('UserService', () => {
       const result = await service.getProfile('user-1')
 
       expect(result).toEqual(mockUser)
-      expect(db.select).toHaveBeenCalled()
+      expect(result).not.toHaveProperty('banned')
+      expect(result).not.toHaveProperty('banReason')
+      expect(result).not.toHaveProperty('banExpires')
+      expect(db.select).toHaveBeenCalledWith(expect.objectContaining({ id: expect.anything() }))
       expect(chains.select.limit).toHaveBeenCalledWith(1)
     })
 
@@ -61,7 +61,7 @@ describe('UserService', () => {
   })
 
   describe('updateProfile', () => {
-    it('should update and return user', async () => {
+    it('should update and return user without sensitive fields', async () => {
       const updatedUser = { ...mockUser, name: 'Jane Doe', updatedAt: new Date('2025-06-01') }
       const { db, chains } = createMockDb()
       chains.update.returning.mockResolvedValue([updatedUser])
@@ -70,8 +70,13 @@ describe('UserService', () => {
       const result = await service.updateProfile('user-1', { name: 'Jane Doe' })
 
       expect(result).toEqual(updatedUser)
+      expect(result).not.toHaveProperty('banned')
+      expect(result).not.toHaveProperty('banReason')
+      expect(result).not.toHaveProperty('banExpires')
       expect(db.update).toHaveBeenCalled()
-      expect(chains.update.returning).toHaveBeenCalled()
+      expect(chains.update.returning).toHaveBeenCalledWith(
+        expect.objectContaining({ id: expect.anything() })
+      )
     })
   })
 })

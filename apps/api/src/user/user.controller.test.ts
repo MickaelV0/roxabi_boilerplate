@@ -17,9 +17,6 @@ describe('UserController', () => {
     emailVerified: true,
     image: null,
     role: 'user',
-    banned: false,
-    banReason: null,
-    banExpires: null,
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
   }
