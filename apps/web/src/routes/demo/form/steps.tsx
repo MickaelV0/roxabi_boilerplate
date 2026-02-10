@@ -71,7 +71,6 @@ function StepsFormPage() {
   }
 
   const handleSubmit = () => {
-    console.log('Form submitted:', formData)
     setIsSubmitted(true)
   }
 
@@ -285,6 +284,8 @@ function StepsFormPage() {
                   </div>
                   <button
                     type="button"
+                    role="switch"
+                    aria-checked={formData.notifications}
                     onClick={() => updateField('notifications', !formData.notifications)}
                     className={`relative h-6 w-11 rounded-full transition-colors ${
                       formData.notifications ? 'bg-primary' : 'bg-muted'
