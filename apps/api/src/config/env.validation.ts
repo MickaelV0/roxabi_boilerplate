@@ -60,6 +60,11 @@ export class EnvironmentVariables {
   EMAIL_FROM = 'noreply@yourdomain.com'
 }
 
+const INSECURE_SECRETS: readonly string[] = [
+  'dev-secret-do-not-use-in-production',
+  'change-me-to-a-random-32-char-string',
+]
+
 export function validate(config: Record<string, unknown>) {
   const validatedConfig = plainToInstance(EnvironmentVariables, config, {
     enableImplicitConversion: true,
@@ -71,5 +76,16 @@ export function validate(config: Record<string, unknown>) {
   if (errors.length > 0) {
     throw new Error(errors.toString())
   }
+
+  if (
+    validatedConfig.NODE_ENV === Environment.Production &&
+    INSECURE_SECRETS.includes(validatedConfig.BETTER_AUTH_SECRET)
+  ) {
+    throw new Error(
+      'BETTER_AUTH_SECRET must be set to a secure value in production. ' +
+        'Generate one with: openssl rand -base64 32'
+    )
+  }
+
   return validatedConfig
 }
