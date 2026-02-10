@@ -14,8 +14,8 @@ permissions:
   statuses: write
 
 env:
-  BUN_VERSION: "1.3.6"
-  NODE_VERSION: "20"
+  BUN_VERSION: "1.3.9"
+  NODE_VERSION: "24"
 
 jobs:
   ci:
