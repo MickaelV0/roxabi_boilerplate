@@ -11,11 +11,16 @@ concurrency:
 
 permissions:
   contents: read
+  packages: write
   statuses: write
 
 env:
   BUN_VERSION: "1.3.6"
   NODE_VERSION: "20"
+  # TODO: replace with actual GHCR registry path
+  REGISTRY: ghcr.io
+  API_IMAGE: ghcr.io/${{ github.repository_owner }}/roxabi/api
+  WEB_IMAGE: ghcr.io/${{ github.repository_owner }}/roxabi/web
 
 jobs:
   ci:
@@ -23,117 +28,97 @@ jobs:
     uses: ./.github/workflows/ci.yml
     secrets: inherit
 
-  build-production:
-    name: Production Build
+  build-and-push:
+    name: Build & Push Docker Images
     runs-on: ubuntu-latest
     needs: ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          bun-version: ${{ env.BUN_VERSION }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Extract short SHA
+        id: sha
+        run: echo "short=$(echo ${{ github.sha }} | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
+      # Build API and Web images in parallel using Buildx bake or sequential steps
+      - name: Build & push API image
+        uses: docker/build-push-action@v6
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.API_IMAGE }}:latest
+            ${{ env.API_IMAGE }}:sha-${{ steps.sha.outputs.short }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
 
-      - name: Cache Bun dependencies
-        uses: actions/cache@v4
-        id: cache-deps
+      - name: Build & push Web image
+        uses: docker/build-push-action@v6
         with:
-          path: node_modules
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: |
+            ${{ env.WEB_IMAGE }}:latest
+            ${{ env.WEB_IMAGE }}:sha-${{ steps.sha.outputs.short }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
 
-      - name: Install dependencies
-        if: steps.cache-deps.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
-
-      - name: Cache Turbo
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: turbo-build-prod-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            turbo-build-prod-${{ runner.os }}-
-
-      - name: Production Build
-        run: bun run build
-        env:
-          NODE_ENV: production
-          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ vars.TURBO_TEAM }}
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: production-build
-          path: |
-            apps/web/dist
-            apps/api/dist
-          retention-days: 7
-          if-no-files-found: warn
-
-  deploy-web:
-    name: Deploy Web
+  deploy:
+    name: Deploy to VPS
     runs-on: ubuntu-latest
-    needs: build-production
+    needs: build-and-push
     environment: production
     steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
         with:
-          name: production-build
-          path: build
+          # TODO: configure these GitHub Secrets
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/roxabi
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker image prune -f
 
-      - name: Deploy Web (placeholder)
-        run: |
-          echo "Web deployment placeholder"
-          echo "Future: Deploy to Vercel/Cloudflare Pages"
-          echo "Build artifacts available at: build/"
-
-  deploy-api:
-    name: Deploy API
-    runs-on: ubuntu-latest
-    needs: build-production
-    environment: production
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: production-build
-          path: build
-
-      - name: Deploy API (placeholder)
-        run: |
-          echo "API deployment placeholder"
-          echo "Future: Deploy to Railway/Fly.io"
-          echo "Build artifacts available at: build/"
+      # TODO: add optional migration step
+      # - name: Run database migrations
+      #   uses: appleboy/ssh-action@v1
+      #   with:
+      #     host: ${{ secrets.VPS_HOST }}
+      #     username: ${{ secrets.VPS_USER }}
+      #     key: ${{ secrets.VPS_SSH_KEY }}
+      #     script: |
+      #       docker exec roxabi-api node -e "require('child_process').execSync('npx drizzle-kit migrate', {stdio: 'inherit'})"
 
   notify:
     name: Notify
     runs-on: ubuntu-latest
-    needs: [deploy-web, deploy-api]
+    needs: [deploy]
     if: always()
     steps:
       - name: Deployment Status
         run: |
-          WEB_RESULT="${{ needs.deploy-web.result }}"
-          API_RESULT="${{ needs.deploy-api.result }}"
+          DEPLOY_RESULT="${{ needs.deploy.result }}"
+          echo "Deploy: $DEPLOY_RESULT"
 
-          echo "Web: $WEB_RESULT"
-          echo "API: $API_RESULT"
-
-          # Fail only if any deployment actually failed (not skipped or cancelled)
-          if [ "$WEB_RESULT" == "failure" ] || [ "$API_RESULT" == "failure" ]; then
+          if [ "$DEPLOY_RESULT" == "failure" ]; then
             echo "::error::Deployment failed"
             exit 1
-          elif [ "$WEB_RESULT" == "success" ] && [ "$API_RESULT" == "success" ]; then
+          elif [ "$DEPLOY_RESULT" == "success" ]; then
             echo "Deployment successful!"
           else
             echo "Deployment skipped or cancelled"
@@ -141,7 +126,7 @@ jobs:
 
       - name: Create GitHub deployment status
         uses: actions/github-script@v7
-        if: needs.deploy-web.result == 'success' && needs.deploy-api.result == 'success'
+        if: needs.deploy.result == 'success'
         with:
           script: |
             github.rest.repos.createCommitStatus({
