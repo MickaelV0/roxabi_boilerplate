@@ -215,7 +215,7 @@ describe('ResendEmailProvider', () => {
     // Assert
     expect(emitter.emit).toHaveBeenCalledWith(EMAIL_SEND_FAILED, expect.any(EmailSendFailedEvent))
 
-    const event = emitter.emit.mock.calls[0]![1] as EmailSendFailedEvent
+    const event = emitter.emit.mock.calls[0]?.[1] as EmailSendFailedEvent
     expect(event.recipient).toBe('user@example.com')
     expect(event.subject).toBe('Magic link')
     expect(event.error).toBe(resendError)
