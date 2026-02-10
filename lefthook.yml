@@ -19,4 +19,4 @@ pre-push:
     typecheck:
       run: CI=true bun run typecheck
     test:
-      run: CI=true bun run test
+      run: CI=true bun test:coverage

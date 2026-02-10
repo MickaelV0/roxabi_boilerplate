@@ -27,8 +27,8 @@ async function bootstrap() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'none'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
         imgSrc: ["'self'", 'data:'],
         fontSrc: ["'self'"],
         connectSrc: ["'self'"],
@@ -79,7 +79,13 @@ async function bootstrap() {
     .addBearerAuth()
     .build()
   const document = SwaggerModule.createDocument(app, config)
-  SwaggerModule.setup('api/docs', app, document)
+  SwaggerModule.setup('api/docs', app, document, {
+    customCssUrl: 'https://unpkg.com/swagger-ui-dist@5.31.0/swagger-ui.css',
+    customJs: [
+      'https://unpkg.com/swagger-ui-dist@5.31.0/swagger-ui-bundle.js',
+      'https://unpkg.com/swagger-ui-dist@5.31.0/swagger-ui-standalone-preset.js',
+    ],
+  })
 
   const port = configService.get<number>('PORT', 3001)
   await app.listen(port, '0.0.0.0')
