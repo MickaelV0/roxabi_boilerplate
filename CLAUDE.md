@@ -22,6 +22,7 @@
 | Agent Teams guide | [docs/guides/agent-teams.mdx](docs/guides/agent-teams.mdx) |
 | Agent Teams coordination | [AGENTS.md](AGENTS.md) |
 | Hooks | [docs/hooks.mdx](docs/hooks.mdx) |
+| Deployment | [docs/guides/deployment.mdx](docs/guides/deployment.mdx) |
 
 ---
 
@@ -165,8 +166,34 @@ For project vision, principles, and roadmap: see [docs/vision.mdx](docs/vision.m
 - **Linting/Formatting**: Biome
 - **Frontend**: TanStack Start
 - **Backend**: NestJS + Fastify
+- **Deployment**: Vercel (both web + API)
 
 For full architecture, monorepo structure, and commands: MUST read [docs/architecture/](docs/architecture/) and [docs/configuration.mdx](docs/configuration.mdx).
+
+## Deployment
+
+Both apps deploy to **Vercel** automatically on push to `main`. See [docs/guides/deployment.mdx](docs/guides/deployment.mdx) for full setup.
+
+| Project | Root Directory | Framework |
+|---------|---------------|-----------|
+| Web | `apps/web` | TanStack Start / Nitro |
+| API | `apps/api` | NestJS (zero-config) |
+
+### Vercel CLI
+
+The `vercel` CLI is available for deployment management:
+
+```bash
+vercel ls                        # List deployments
+vercel env ls                    # List environment variables
+vercel env add SECRET_NAME       # Add environment variable
+vercel logs <url>                # View deployment logs
+vercel inspect <url>             # Inspect a deployment
+vercel promote <url>             # Promote to production
+vercel redeploy                  # Trigger a redeploy
+```
+
+**Prefer Vercel CLI over browser automation** for deployment tasks (env vars, redeploys, logs, rollbacks). Use Playwright only when CLI cannot achieve the task (e.g., initial project creation, visual verification).
 
 ## Agent Teams (Experimental)
 
