@@ -138,6 +138,17 @@ All PRs must pass before merge:
 | Coverage | - | Minimum threshold met |
 | Review | - | At least 1 approval |
 
+### After Merge
+
+When a PR is merged to `main`, the CD pipeline automatically:
+
+1. Builds Docker images (API + Web)
+2. Pushes to GitHub Container Registry (GHCR)
+3. Deploys to VPS via SSH (`docker compose pull` + `up -d`)
+4. Reports deployment status on the commit
+
+If deployment fails, check GitHub Actions for details. See the [Deployment Guide](/docs/guides/deployment) for troubleshooting and rollback procedures.
+
 ---
 
 ## Branch Protection

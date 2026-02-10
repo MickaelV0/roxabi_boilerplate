@@ -110,3 +110,36 @@ Settings:
   "editor.formatOnSave": true
 }
 ```
+
+## Production Environment
+
+Production uses Docker containers deployed to a VPS. Environment variables are stored in `/opt/roxabi/.env` on the VPS (not baked into Docker images).
+
+### Production Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `NODE_ENV` | Must be `production` | `production` |
+| `PORT` | API server port | `4000` |
+| `WEB_PORT` | Web server port | `3000` |
+| `DATABASE_URL` | PostgreSQL connection (OVH CloudDB) | `postgresql://user:pass@host:5432/roxabi` |
+| `CORS_ORIGIN` | Frontend URL for CORS | `https://app.example.com` |
+| `BETTER_AUTH_SECRET` | Auth secret (random 32+ chars) | `<random-string>` |
+| `BETTER_AUTH_URL` | Auth callback URL | `https://api.example.com` |
+| `APP_URL` | Public frontend URL | `https://app.example.com` |
+| `API_URL` | Public API URL | `https://api.example.com` |
+| `EMAIL_FROM` | Sender email address | `noreply@example.com` |
+
+> **Security:** The `.env` file on VPS should have `chmod 600` permissions. Never commit production secrets to the repository.
+
+### GitHub Secrets (for CD Pipeline)
+
+Configure these in **Settings** &gt; **Secrets and variables** &gt; **Actions**:
+
+| Secret | Description |
+|--------|-------------|
+| `VPS_HOST` | VPS IP address or hostname |
+| `VPS_USER` | SSH deploy user (e.g., `deploy`) |
+| `VPS_SSH_KEY` | Ed25519 private key for SSH access |
+
+These secrets are used by the CD workflow to deploy via SSH. See the [Deployment Guide](/docs/guides/deployment) for full setup instructions.

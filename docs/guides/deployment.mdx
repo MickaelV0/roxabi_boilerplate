@@ -1,0 +1,467 @@
+---
+title: VPS Deployment
+description: Deploy Roxabi to a VPS with Docker, GitHub Actions CD, and Nginx
+---
+
+## Overview
+
+Roxabi uses a fully automated CD pipeline to deploy to a VPS. The architecture flows as follows:
+
+```
+Push to main
+  -> GitHub Actions CI (lint, typecheck, test)
+  -> Build Docker images (multi-stage, Bun build / Node.js runtime)
+  -> Push to GHCR (ghcr.io)
+  -> SSH into VPS
+  -> docker compose pull + up
+  -> Nginx reverse proxy serves traffic
+  -> Internet
+```
+
+Key design decisions:
+
+- **No database container** -- PostgreSQL is managed externally by OVH CloudDB, keeping the VPS stateless.
+- **Multi-stage Docker builds** -- Bun handles dependency installation and builds; Node.js slim runs the production artifacts for maximum compatibility and minimal image size.
+- **Images are tagged** with both `latest` and `sha-&lt;commit&gt;` for easy rollback.
+- **Ports bind to 127.0.0.1 only** -- containers are not directly accessible from the internet; Nginx handles all external traffic.
+
+---
+
+## Prerequisites
+
+### VPS Requirements
+
+| Resource | Minimum |
+|----------|---------|
+| RAM | 4 GB |
+| vCPU | 2 cores |
+| Disk | 20 GB SSD |
+| OS | Ubuntu 22.04+ |
+
+### DNS
+
+Configure two A records pointing to your VPS IP:
+
+| Record | Value |
+|--------|-------|
+| `app.&lt;domain&gt;` | VPS IP |
+| `api.&lt;domain&gt;` | VPS IP |
+
+### Access
+
+- SSH access to the VPS (key-based authentication recommended)
+- A GitHub account with access to the repository (for GHCR image pulls)
+
+---
+
+## VPS Setup
+
+### 1. Create a Deploy User
+
+```bash
+# On the VPS as root
+adduser deploy
+usermod -aG sudo deploy
+usermod -aG docker deploy
+```
+
+### 2. Install Docker
+
+```bash
+# Install Docker Engine (official method)
+curl -fsSL https://get.docker.com | sh
+
+# Verify
+docker --version
+docker compose version
+```
+
+### 3. Create the Application Directory
+
+```bash
+sudo mkdir -p /opt/roxabi
+sudo chown deploy:deploy /opt/roxabi
+```
+
+### 4. Copy `docker-compose.prod.yml`
+
+Transfer the compose file to the VPS:
+
+```bash
+# From your local machine
+scp docker-compose.prod.yml deploy@&lt;VPS_IP&gt;:/opt/roxabi/
+```
+
+### 5. Create the `.env` File
+
+Create `/opt/roxabi/.env` with all production environment variables:
+
+```bash
+# /opt/roxabi/.env
+
+# Runtime
+NODE_ENV=production
+PORT=4000
+WEB_PORT=3000
+
+# Database (OVH CloudDB — no local container)
+DATABASE_URL=postgresql://&lt;user&gt;:&lt;password&gt;@&lt;host&gt;:&lt;port&gt;/&lt;database&gt;?sslmode=require
+
+# CORS
+CORS_ORIGIN=https://app.&lt;domain&gt;
+
+# Authentication (Better Auth)
+BETTER_AUTH_SECRET=&lt;generate-a-strong-secret&gt;
+BETTER_AUTH_URL=https://api.&lt;domain&gt;
+
+# Application URLs
+APP_URL=https://app.&lt;domain&gt;
+API_URL=https://api.&lt;domain&gt;
+```
+
+Generate `BETTER_AUTH_SECRET` with:
+
+```bash
+openssl rand -base64 32
+```
+
+### 6. Authenticate with GHCR
+
+The deploy user needs to pull images from GitHub Container Registry:
+
+```bash
+# Create a GitHub Personal Access Token (classic) with read:packages scope
+# Then log in:
+echo "&lt;YOUR_GITHUB_PAT&gt;" | docker login ghcr.io -u &lt;GITHUB_USERNAME&gt; --password-stdin
+```
+
+---
+
+## Nginx and SSL
+
+### 1. Install Nginx and Certbot
+
+```bash
+sudo apt update
+sudo apt install -y nginx certbot python3-certbot-nginx
+```
+
+### 2. Copy Nginx Configurations
+
+The project includes Nginx templates in `deploy/nginx/`. Copy them to the VPS and update the domain names:
+
+```bash
+# Copy from local machine
+scp deploy/nginx/api.conf deploy@&lt;VPS_IP&gt;:/tmp/roxabi-api.conf
+scp deploy/nginx/app.conf deploy@&lt;VPS_IP&gt;:/tmp/roxabi-app.conf
+```
+
+On the VPS, move them into place and update the `server_name` directives:
+
+```bash
+# Replace example.com with your actual domain
+sudo cp /tmp/roxabi-api.conf /etc/nginx/sites-available/roxabi-api
+sudo cp /tmp/roxabi-app.conf /etc/nginx/sites-available/roxabi-app
+
+sudo sed -i 's/api.example.com/api.&lt;domain&gt;/' /etc/nginx/sites-available/roxabi-api
+sudo sed -i 's/app.example.com/app.&lt;domain&gt;/' /etc/nginx/sites-available/roxabi-app
+```
+
+### 3. Enable Sites
+
+```bash
+sudo ln -s /etc/nginx/sites-available/roxabi-api /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/roxabi-app /etc/nginx/sites-enabled/
+```
+
+### 4. Test and Reload Nginx
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 5. Obtain SSL Certificates
+
+```bash
+sudo certbot --nginx -d api.&lt;domain&gt;
+sudo certbot --nginx -d app.&lt;domain&gt;
+```
+
+Certbot will automatically modify the Nginx configs to handle HTTPS and set up auto-renewal.
+
+### Nginx Configuration Reference
+
+Both configs use the same pattern -- reverse proxy to the local Docker container with WebSocket support and forwarded headers:
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:&lt;PORT&gt;;
+    proxy_http_version 1.1;
+
+    # WebSocket support
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+
+    # Forward client info
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    # Timeouts
+    proxy_connect_timeout 60s;
+    proxy_send_timeout 60s;
+    proxy_read_timeout 60s;
+}
+```
+
+The API proxies to port **4000**, the web app to port **3000**.
+
+---
+
+## GitHub Secrets
+
+In your GitHub repository, navigate to **Settings > Secrets and variables > Actions** and add the following repository secrets:
+
+| Secret | Description | Example |
+|--------|-------------|---------|
+| `VPS_HOST` | VPS IP address or hostname | `203.0.113.42` |
+| `VPS_USER` | SSH user on the VPS | `deploy` |
+| `VPS_SSH_KEY` | Private SSH key for the deploy user | Contents of `~/.ssh/id_ed25519` |
+
+### SSH Key Setup
+
+Generate a dedicated deploy key:
+
+```bash
+# On your local machine
+ssh-keygen -t ed25519 -C "github-cd-deploy" -f ~/.ssh/roxabi-deploy
+
+# Copy public key to VPS
+ssh-copy-id -i ~/.ssh/roxabi-deploy.pub deploy@&lt;VPS_IP&gt;
+
+# The PRIVATE key (~/.ssh/roxabi-deploy) goes into VPS_SSH_KEY secret
+```
+
+---
+
+## First Deploy
+
+The CD pipeline triggers automatically on every push to `main`. You can also trigger it manually.
+
+### Automatic (Push to Main)
+
+Any merged PR or direct push to `main` will:
+
+1. Run CI checks (lint, typecheck, tests)
+2. Build and push Docker images to GHCR (tagged `latest` + `sha-&lt;commit&gt;`)
+3. SSH into the VPS and run the deploy script
+4. Report deployment status as a GitHub commit status
+
+### Manual (Workflow Dispatch)
+
+1. Go to **Actions** in your GitHub repository
+2. Select the **CD** workflow
+3. Click **Run workflow** and choose the `main` branch
+4. Monitor the pipeline in the Actions tab
+
+### Verify Deployment
+
+After the pipeline completes:
+
+```bash
+# SSH into VPS
+ssh deploy@&lt;VPS_IP&gt;
+
+# Check container status
+cd /opt/roxabi
+docker compose -f docker-compose.prod.yml ps
+
+# Check API health
+curl http://127.0.0.1:4000/health
+
+# Check external access
+curl -I https://api.&lt;domain&gt;/health
+curl -I https://app.&lt;domain&gt;
+```
+
+---
+
+## Rollback
+
+Each image is tagged with `sha-&lt;commit&gt;` in addition to `latest`. To roll back to a specific version:
+
+### 1. Find the Target SHA
+
+```bash
+# List available image tags
+docker images ghcr.io/mickaelv0/roxabi/api --format "{{.Tag}}"
+docker images ghcr.io/mickaelv0/roxabi/web --format "{{.Tag}}"
+
+# Or check GitHub: Packages > roxabi/api > Tags
+```
+
+### 2. Pin the Image Tags
+
+Edit `/opt/roxabi/docker-compose.prod.yml` on the VPS:
+
+```yaml
+services:
+  api:
+    image: ghcr.io/mickaelv0/roxabi/api:sha-abc1234  # Pin to specific commit
+  web:
+    image: ghcr.io/mickaelv0/roxabi/web:sha-abc1234  # Pin to specific commit
+```
+
+### 3. Deploy the Pinned Version
+
+```bash
+cd /opt/roxabi
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d --remove-orphans
+```
+
+### 4. Restore Latest After Fix
+
+Once the issue is fixed and a new image is pushed, revert the tags back to `latest`:
+
+```yaml
+services:
+  api:
+    image: ghcr.io/mickaelv0/roxabi/api:latest
+  web:
+    image: ghcr.io/mickaelv0/roxabi/web:latest
+```
+
+Then pull and redeploy again.
+
+---
+
+## Troubleshooting
+
+### SSH Connection Fails During Deploy
+
+**Symptom**: The `deploy` job in GitHub Actions fails with a connection timeout or authentication error.
+
+**Possible causes**:
+
+- `VPS_SSH_KEY` secret contains the wrong key or has extra whitespace
+- The deploy user does not have the corresponding public key in `~/.ssh/authorized_keys`
+- The VPS firewall blocks port 22
+
+**Fix**:
+
+```bash
+# Test SSH from your local machine first
+ssh -i ~/.ssh/roxabi-deploy deploy@&lt;VPS_IP&gt;
+
+# Check sshd logs on VPS
+sudo journalctl -u sshd -n 50
+```
+
+### Image Not Found (Pull Fails)
+
+**Symptom**: `docker compose pull` fails with "manifest not found" or "unauthorized".
+
+**Possible causes**:
+
+- GHCR authentication has expired on the VPS
+- The image has not been built yet (first deploy before any push to main)
+- The GitHub PAT used for `docker login` lacks `read:packages` scope
+
+**Fix**:
+
+```bash
+# Re-authenticate
+echo "&lt;PAT&gt;" | docker login ghcr.io -u &lt;USERNAME&gt; --password-stdin
+
+# Verify image exists
+docker manifest inspect ghcr.io/mickaelv0/roxabi/api:latest
+```
+
+### Container Crashes on Startup
+
+**Symptom**: Containers start and immediately exit or restart loop.
+
+**Possible causes**:
+
+- Missing or incorrect environment variables in `.env`
+- Database connection string is wrong (OVH CloudDB host/port/credentials)
+- Port already in use
+
+**Fix**:
+
+```bash
+# Check logs
+docker compose -f docker-compose.prod.yml logs api --tail 50
+docker compose -f docker-compose.prod.yml logs web --tail 50
+
+# Verify .env is loaded
+docker compose -f docker-compose.prod.yml config
+
+# Test database connectivity from inside the container
+docker exec roxabi-api node -e "
+  const url = process.env.DATABASE_URL;
+  console.log('DB host:', new URL(url).hostname);
+"
+```
+
+### Port Conflicts (WordPress or Other Services)
+
+**Symptom**: Docker containers fail to bind to ports 3000 or 4000 because another service already uses them.
+
+**Possible causes**:
+
+- An existing WordPress installation, Apache, or another application occupies the same ports
+
+**Fix**:
+
+```bash
+# Find what is using the port
+sudo lsof -i :3000
+sudo lsof -i :4000
+
+# If Apache is running and not needed
+sudo systemctl stop apache2
+sudo systemctl disable apache2
+```
+
+If you must coexist with other services, change the host-side ports in `docker-compose.prod.yml` and update the Nginx configs to match.
+
+### Nginx Returns 502 Bad Gateway
+
+**Symptom**: The site is accessible but returns 502 errors.
+
+**Possible causes**:
+
+- The Docker containers are not running or not yet healthy
+- Nginx is proxying to the wrong port
+
+**Fix**:
+
+```bash
+# Check if containers are up and healthy
+docker compose -f docker-compose.prod.yml ps
+
+# Test direct container access
+curl http://127.0.0.1:4000/health
+curl http://127.0.0.1:3000
+
+# Check Nginx error logs
+sudo tail -f /var/log/nginx/error.log
+```
+
+### SSL Certificate Renewal Fails
+
+**Symptom**: Certbot auto-renewal fails and certificates expire.
+
+**Fix**:
+
+```bash
+# Test renewal
+sudo certbot renew --dry-run
+
+# Check timer
+sudo systemctl status certbot.timer
+```

@@ -234,14 +234,16 @@ Idea → GitHub Issue → Branch → Dev → PR → Review → Merge → Deploy 
 
 ### Deployment Strategy
 
-**Continuous Deployment**
-- Merge to main = automatic deploy to production
-- Feature flags for progressive rollouts (via PostHog)
+**Continuous Deployment to VPS**
+- Merge to main = Docker images built → pushed to GHCR → deployed to VPS via SSH
+- Docker Compose orchestrates API and Web containers
+- Nginx reverse proxy with SSL (Certbot)
+- Rollback by pinning a previous image SHA tag
 
 ### Hotfix Process
 
 - Direct commit to `main` with post-deploy validation
-- Automatic rollback if health checks fail
+- Rollback: pin previous `sha-&lt;commit&gt;` tag in `docker-compose.prod.yml`
 
 ---
 

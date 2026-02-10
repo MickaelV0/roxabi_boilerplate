@@ -165,3 +165,41 @@ Workspaces configuration:
   "workspaces": ["apps/*", "packages/*"]
 }
 ```
+
+## Deployment Architecture
+
+Production deployment uses Docker containers on a VPS, with GitHub Actions for CI/CD.
+
+```txt
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│   Developer  │────▶│   GitHub     │────▶│    GHCR      │
+│  Push/Merge  │     │   Actions    │     │  (Registry)  │
+└──────────────┘     └──────────────┘     └──────┬───────┘
+                                                  │ docker pull
+                                                  ▼
+┌──────────────────────────────────────────────────────────┐
+│                        VPS (OVH)                          │
+│                                                            │
+│  ┌─────────┐    ┌───────────────┐    ┌───────────────┐    │
+│  │  Nginx  │───▶│  roxabi-web   │    │  roxabi-api   │    │
+│  │ :80/443 │    │  :3000        │    │  :4000        │    │
+│  │         │───▶│  (Nitro SSR)  │───▶│  (NestJS)     │    │
+│  └─────────┘    └───────────────┘    └───────┬───────┘    │
+│                                               │            │
+│  ┌─────────────┐                              │            │
+│  │  WordPress  │  (existing, untouched)       │            │
+│  └─────────────┘                              │            │
+└───────────────────────────────────────────────┼────────────┘
+                                                │
+                                                ▼
+                                     ┌──────────────────┐
+                                     │  OVH CloudDB     │
+                                     │  (PostgreSQL)    │
+                                     └──────────────────┘
+```
+
+Key decisions:
+- **Docker images built in CI** — VPS has limited resources (4 GB RAM)
+- **Ports bound to 127.0.0.1** — Nginx handles external traffic and SSL
+- **No database container** — PostgreSQL managed by OVH CloudDB
+- **WordPress coexistence** — Fully containerized, no port or filesystem conflicts
