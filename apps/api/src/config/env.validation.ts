@@ -1,4 +1,4 @@
-import { plainToInstance } from 'class-transformer'
+import { plainToInstance, Type } from 'class-transformer'
 import { IsEnum, IsNumber, IsOptional, IsString, validateSync } from 'class-validator'
 
 enum Environment {
@@ -12,6 +12,7 @@ export class EnvironmentVariables {
   @IsOptional()
   NODE_ENV: Environment = Environment.Development
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   PORT = 3001

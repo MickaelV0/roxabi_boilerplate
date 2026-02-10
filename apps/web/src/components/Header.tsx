@@ -10,6 +10,8 @@ import { OrgSwitcher } from './OrgSwitcher'
 import { ThemeToggle } from './ThemeToggle'
 import { UserMenu } from './UserMenu'
 
+const isDemoEnabled = import.meta.env.VITE_ENABLE_DEMO === 'true'
+
 export function Header() {
   const { data: session } = useSession()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -53,11 +55,13 @@ export function Header() {
               {m.nav_home()}
             </Link>
           </Button>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/demo" activeProps={{ className: 'bg-accent' }}>
-              {m.nav_demos()}
-            </Link>
-          </Button>
+          {isDemoEnabled && (
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/demo" activeProps={{ className: 'bg-accent' }}>
+                {m.nav_demos()}
+              </Link>
+            </Button>
+          )}
           <Button variant="ghost" size="sm" asChild>
             <Link to="/design-system" activeProps={{ className: 'bg-accent' }}>
               Design System
@@ -122,15 +126,17 @@ export function Header() {
                 {m.nav_home()}
               </Link>
             </Button>
-            <Button variant="ghost" size="sm" className="justify-start" asChild>
-              <Link
-                to="/demo"
-                activeProps={{ className: 'bg-accent' }}
-                onClick={() => setMobileOpen(false)}
-              >
-                {m.nav_demos()}
-              </Link>
-            </Button>
+            {isDemoEnabled && (
+              <Button variant="ghost" size="sm" className="justify-start" asChild>
+                <Link
+                  to="/demo"
+                  activeProps={{ className: 'bg-accent' }}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {m.nav_demos()}
+                </Link>
+              </Button>
+            )}
             <Button variant="ghost" size="sm" className="justify-start" asChild>
               <Link
                 to="/design-system"

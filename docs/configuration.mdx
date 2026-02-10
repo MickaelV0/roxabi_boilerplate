@@ -45,6 +45,13 @@ cp .env.example .env
 | `API_URL` | Backend URL | `http://localhost:3001` |
 | `GITHUB_TOKEN` | GitHub API access | - |
 
+### Public Variables (exposed to client)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VITE_ENABLE_DEMO` | Enable/disable demo pages and navigation | `true` |
+| `VITE_GITHUB_REPO_URL` | GitHub repository URL shown in UI | - |
+
 ### Claude Code Agent Teams
 
 | Variable | Description | Default |
@@ -88,9 +95,19 @@ Tasks defined in `turbo.json`:
 
 - `dev` - Run development servers
 - `build` - Build all packages
+- `codegen` - Generate routes and i18n files
 - `typecheck` - Type checking
 - `lint` - Run linter
 - `test` - Run tests
+
+### Environment Variables in Turbo
+
+The root `turbo.json` declares `env` arrays for variables that affect build output — changing these values invalidates the Turbo cache:
+
+- `codegen` and `build`: `API_URL`, `APP_URL`, `VITE_ENABLE_DEMO`
+- `test`: `CI`, `VITEST`
+
+The API app extends the root config via `apps/api/turbo.json` with `passThroughEnv` for runtime secrets (database, auth). These are available at runtime but don't affect the build cache, preventing unnecessary rebuilds when only secrets change.
 
 ## IDE Setup
 

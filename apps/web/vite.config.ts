@@ -14,6 +14,9 @@ const apiTarget = process.env.API_URL || `http://localhost:${process.env.API_POR
 
 const config = defineConfig(async () => ({
   envDir: '../..',
+  build: {
+    chunkSizeWarningLimit: 1000,
+  },
   server: {
     port: Number(process.env.WEB_PORT) || 3000,
   },

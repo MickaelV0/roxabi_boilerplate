@@ -189,6 +189,7 @@ Build settings are version-controlled in `vercel.json` files — no dashboard co
 
 ```json
 {
+  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" = \"main\" ]",
   "installCommand": "bun install",
   "buildCommand": "turbo run build"
 }
@@ -198,6 +199,7 @@ Build settings are version-controlled in `vercel.json` files — no dashboard co
 
 ```json
 {
+  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" = \"main\" ]",
   "installCommand": "bun install",
   "buildCommand": "turbo run build"
 }
@@ -205,22 +207,29 @@ Build settings are version-controlled in `vercel.json` files — no dashboard co
 
 Nitro (TanStack Start) outputs to `.vercel/output/` using the Vercel Build Output API — no `outputDirectory` override needed.
 
+> **Important:** Dashboard build settings (Install Command, Build Command) must match `vercel.json` values. If they diverge, Vercel shows a "Configuration Settings differ" warning. Use the Vercel API to sync them if needed:
+> ```bash
+> curl -X PATCH -H "Authorization: Bearer $TOKEN" \
+>   "https://api.vercel.com/v9/projects/$PROJECT_ID?teamId=$TEAM_ID" \
+>   -H "Content-Type: application/json" \
+>   -d '{"buildCommand":"turbo run build","installCommand":"bun install"}'
+> ```
+
 ---
 
-## Ignoring Paths (Avoid Duplicate Deploys)
+## Build-Only on Main (Avoid Duplicate Deploys)
 
-Since both projects share the same repo, configure **Ignored Build Step** so each project only redeploys when its own code changes.
+Both projects use `ignoreCommand` in `vercel.json` to only trigger Vercel builds on the `main` branch. This is version-controlled and prevents excessive preview deployments from rate-limiting.
 
-In each project's **Settings &gt; Git &gt; Ignored Build Step**, use:
-
-**Web project:**
-```bash
-git diff --quiet HEAD^ HEAD -- apps/web/ packages/ docs/
+```json
+"ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" = \"main\" ]"
 ```
 
-**API project:**
+Manual preview deploys can still be triggered via the CLI:
+
 ```bash
-git diff --quiet HEAD^ HEAD -- apps/api/ packages/types/
+cd apps/web && vercel        # Preview deploy
+cd apps/api && vercel        # Preview deploy
 ```
 
 ---
@@ -244,7 +253,8 @@ Then configure DNS with a CNAME record pointing to `cname.vercel-dns.com`. Verce
 - NestJS middlewares with the Fastify adapter receive raw Node.js `ServerResponse` objects — use `res.setHeader()`, not `res.header()`
 - Free tier: 10s execution limit per request. Pro tier: 60s
 - 250MB max application size (Vercel Functions limitation)
-- `API_URL` and `APP_URL` are declared in `turbo.json` build env to ensure Turbo invalidates cache when they change
+- `API_URL`, `APP_URL`, and `VITE_ENABLE_DEMO` are declared in `turbo.json` build env to ensure Turbo invalidates cache when they change
+- `apps/api/turbo.json` declares runtime secrets (database, auth) as `passThroughEnv` — these are available at runtime but don't affect build cache
 
 ---
 
