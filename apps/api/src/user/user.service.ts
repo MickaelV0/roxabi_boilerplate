@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { users } from '../database/schema/auth.schema.js'
+import { UserNotFoundException } from './exceptions/user-not-found.exception.js'
 
 const profileColumns = {
   id: users.id,
@@ -24,7 +25,8 @@ export class UserService {
       .from(users)
       .where(eq(users.id, userId))
       .limit(1)
-    return user ?? null
+    if (!user) throw new UserNotFoundException(userId)
+    return user
   }
 
   async updateProfile(userId: string, data: { name?: string; image?: string }) {
@@ -33,6 +35,7 @@ export class UserService {
       .set({ ...data, updatedAt: new Date() })
       .where(eq(users.id, userId))
       .returning(profileColumns)
-    return updated ?? null
+    if (!updated) throw new UserNotFoundException(userId)
+    return updated
   }
 }
