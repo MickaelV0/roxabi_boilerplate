@@ -1,13 +1,54 @@
 ---
-title: Claude Code Hooks
-description: Guide to configured hooks for automating development tasks in Roxabi Boilerplate
+title: Hooks
+description: Guide to Git hooks (Lefthook) and Claude Code hooks configured in Roxabi Boilerplate
 ---
 
 ## Overview
 
-Hooks are configured in `.claude/settings.json` to automate common tasks during development.
+Roxabi Boilerplate uses two layers of hooks: **Lefthook** for Git hooks (commit-msg, pre-commit, pre-push) and **Claude Code hooks** for in-editor automation during development.
 
-## Configured Hooks
+## Git Hooks (Lefthook)
+
+[Lefthook](https://github.com/evilmartians/lefthook) manages Git hooks to enforce code quality at three stages of the Git workflow. Configuration lives in `lefthook.yml` at the repository root.
+
+### Hook Stages
+
+| Stage | Hook | What It Does |
+|-------|------|--------------|
+| `commit-msg` | **commitlint** | Validates commit messages against the Conventional Commits format |
+| `pre-commit` | **biome** | Runs `biome check --write` on staged JS/TS/JSON files, auto-fixes issues, and re-stages the corrected files |
+| `pre-push` | **lint** | Runs `bun run lint` (Biome lint on the full repo) |
+| `pre-push` | **typecheck** | Runs `bun run typecheck` (TypeScript strict mode) |
+| `pre-push` | **test** | Runs `bun test:coverage` (full test suite with coverage) |
+
+The `pre-commit` and `pre-push` stages run their commands in parallel for faster execution.
+
+### Installation
+
+Lefthook installs automatically when you run `bun install` thanks to the `prepare` script in `package.json`. To install manually:
+
+```bash
+bunx lefthook install
+```
+
+### Skipping Hooks
+
+To bypass hooks for a single operation:
+
+```bash
+git commit --no-verify
+git push --no-verify
+```
+
+**Warning:** `--no-verify` skips all hooks for that operation. Use sparingly -- these checks exist to prevent broken code from reaching the remote.
+
+### Pre-commit Auto-fix Behavior
+
+The pre-commit Biome hook runs with `--write` and `stage_fixed: true`. This means if Biome auto-fixes formatting issues in your staged files, the corrected versions are automatically re-staged. You do not need to manually `git add` after a formatting fix.
+
+## Claude Code Hooks
+
+Hooks configured in `.claude/settings.json` automate common tasks during Claude Code development sessions.
 
 ### Biome Auto-Format
 

@@ -6,13 +6,13 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: roxabi
-      POSTGRES_PASSWORD: roxabi
-      POSTGRES_DB: roxabi
+      POSTGRES_USER: ${POSTGRES_USER:-roxabi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-roxabi}
+      POSTGRES_DB: ${POSTGRES_DB:-roxabi}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U roxabi"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-roxabi}"]
       interval: 5s
       timeout: 5s
       retries: 5

@@ -2,6 +2,18 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { mockParaglideMessages } from '@/test/mock-messages'
 
+function closestOrThrow(element: Element, selector: string): Element {
+  const result = element.closest(selector)
+  if (!result) throw new Error(`No ancestor matching "${selector}" found`)
+  return result
+}
+
+function findOrThrow<T>(items: T[], predicate: (item: T) => boolean): T {
+  const result = items.find(predicate)
+  if (!result) throw new Error('No item matching the predicate was found')
+  return result
+}
+
 vi.mock('@repo/ui', () => ({
   Button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
     <button {...props}>{children}</button>
@@ -123,7 +135,7 @@ describe('OrgSwitcher', () => {
     render(<OrgSwitcher />)
 
     // Act - click the non-active org (Beta Inc)
-    const betaItem = screen.getByText('Beta Inc').closest('button')!
+    const betaItem = closestOrThrow(screen.getByText('Beta Inc'), 'button')
     fireEvent.click(betaItem)
 
     // Assert
@@ -142,7 +154,7 @@ describe('OrgSwitcher', () => {
     render(<OrgSwitcher />)
 
     // Act
-    const betaItem = screen.getByText('Beta Inc').closest('button')!
+    const betaItem = closestOrThrow(screen.getByText('Beta Inc'), 'button')
     fireEvent.click(betaItem)
 
     // Assert
@@ -162,7 +174,10 @@ describe('OrgSwitcher', () => {
 
     // Act - click the active org (Acme Corp) via its menuitem
     const menuItems = screen.getAllByRole('menuitem')
-    const acmeItem = menuItems.find((item) => item.textContent?.includes('Acme Corp'))!
+    const acmeItem = findOrThrow(
+      menuItems,
+      (item) => item.textContent?.includes('Acme Corp') ?? false
+    )
     fireEvent.click(acmeItem)
 
     // Assert
@@ -177,7 +192,7 @@ describe('OrgSwitcher', () => {
     render(<OrgSwitcher />)
 
     // Act
-    const betaItem = screen.getByText('Beta Inc').closest('button')!
+    const betaItem = closestOrThrow(screen.getByText('Beta Inc'), 'button')
     fireEvent.click(betaItem)
 
     // Assert
@@ -219,7 +234,7 @@ describe('CreateOrgDialogContent', () => {
     // Act
     fireEvent.change(nameInput, { target: { value: 'New Org' } })
     fireEvent.change(slugInput, { target: { value: 'new-org' } })
-    fireEvent.submit(nameInput.closest('form')!)
+    fireEvent.submit(closestOrThrow(nameInput, 'form'))
 
     // Assert
     await waitFor(() => {
@@ -245,7 +260,7 @@ describe('CreateOrgDialogContent', () => {
     // Act
     fireEvent.change(nameInput, { target: { value: 'New Org' } })
     fireEvent.change(slugInput, { target: { value: 'new-org' } })
-    fireEvent.submit(nameInput.closest('form')!)
+    fireEvent.submit(closestOrThrow(nameInput, 'form'))
 
     // Assert
     await waitFor(() => {
@@ -270,7 +285,7 @@ describe('CreateOrgDialogContent', () => {
     // Act
     fireEvent.change(nameInput, { target: { value: 'New Org' } })
     fireEvent.change(slugInput, { target: { value: 'new-org' } })
-    fireEvent.submit(nameInput.closest('form')!)
+    fireEvent.submit(closestOrThrow(nameInput, 'form'))
 
     // Assert
     await waitFor(() => {
@@ -293,7 +308,7 @@ describe('CreateOrgDialogContent', () => {
     // Act
     fireEvent.change(nameInput, { target: { value: 'New Org' } })
     fireEvent.change(slugInput, { target: { value: 'new-org' } })
-    fireEvent.submit(nameInput.closest('form')!)
+    fireEvent.submit(closestOrThrow(nameInput, 'form'))
 
     // Assert
     await waitFor(() => {

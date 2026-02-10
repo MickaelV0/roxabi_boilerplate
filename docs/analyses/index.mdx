@@ -1,21 +1,42 @@
 ---
-title: Infrastructure Analyses
-description: Technical analyses for Issues #8-#13 covering CI/CD, testing, git hooks, documentation, Claude Code agents, and workflow conventions
+title: Analyses
+description: Pre-spec technical analyses and research for Roxabi Boilerplate
 ---
 
-Technical analyses prepared for the Roxabi Boilerplate infrastructure setup (Issues #8-#13).
+Pre-spec technical analyses and research documents informing architecture decisions and feature planning.
 
-## Documents
+## Infrastructure Setup
 
-- [Summary](./00-infrastructure-setup-summary) - Executive summary of all analyses
-- [CI/CD GitHub Actions](./08-cicd-github-actions) - Issue #8 analysis
-- [Testing Infrastructure](./09-testing-infrastructure) - Issue #9 analysis
-- [Git Hooks](./10-git-hooks) - Issue #10 analysis
-- [Documentation Structure](./11-documentation-structure) - Issue #11 analysis
-- [Claude Code Agents](./12-claude-code-agents) - Issue #12 analysis
-- [Workflow & Branching](./13-workflow-branching) - Issue #13 analysis
-- [CLI for AI Agents](./cli-for-ai-agents) - Strategic analysis for API CLI
+- [Infrastructure Setup Summary](./00-infrastructure-setup-summary) — Executive summary of all infrastructure analyses (Issues #8-#13)
+- [CI/CD GitHub Actions](./08-cicd-github-actions) — Issue #8 technical analysis
+- [Testing Infrastructure](./09-testing-infrastructure) — Issue #9 testing setup analysis
+- [Git Hooks](./10-git-hooks) — Issue #10 git hooks analysis
+- [Documentation Structure](./11-documentation-structure) — Issue #11 documentation analysis
+- [Claude Code Agents &amp; Skills Setup](./12-claude-code-agents) — Issue #12 agents analysis
+- [Workflow &amp; Branching Conventions](./13-workflow-branching) — Issue #13 branching analysis
 
-## Key Findings
+## Features
 
-All six analyses converge on the "Balanced Approach" recommendation, validating a consistent philosophy: implement enough infrastructure to enforce quality and enable scale, without over-engineering for the current project stage.
+- [Auth + Users (Better Auth)](./19-auth-users) — Authentication and user management with Better Auth
+- [Coding Standards &amp; Best Practices](./28-coding-standards) — Coding standards documentation needs
+- [Auth UI/UX](./68-auth-ui-ux) — Authentication UI/UX polish, new auth pages, and organization UI
+- [Design System &amp; Theme Customization](./70-design-system) — Design system page, interactive playground, and branding customization
+
+## Security &amp; Quality
+
+- [Pre-Production Security Hardening](./89-security-hardening) — 7 medium-severity security items from the project audit
+- [Documentation Audit Remediation](./92-docs-audit-remediation) — Findings M-20 to M-25 from the project audit
+- [Project Audit — Full Health Check](./project-audit-2026-02-09) — Comprehensive audit covering architecture, security, code quality, and more
+
+## AI &amp; Agents
+
+- [Agent Teams Architecture](./78-agent-teams-architecture) — 10-agent team architecture design for Claude Code Agent Teams
+- [Claude Code Usage Insights &amp; Optimization](./claude-code-usage-insights) — Executive summary of 808 sessions of Claude Code usage
+- [On the Horizon — Autonomous Workflows](./claude-code-on-the-horizon) — Advanced Claude Code workflow proposals for autonomous pipelines
+- [Claude Code, AI Agents &amp; Telegram Bot Recommendations](./claude-code-ai-agents-recommendations-20260201) — Recommendations based on 45+ documents
+- [CLI pour Agents IA](./cli-for-ai-agents) — Strategic analysis for API CLI for AI agents
+
+## Research
+
+- [API Client Research](./api-client-research) — HTTP client comparison and architecture decisions
+- [License Checker](./license-checker) — Approaches for scanning monorepo dependencies and enforcing license compliance

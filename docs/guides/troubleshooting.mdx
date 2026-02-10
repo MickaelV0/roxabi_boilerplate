@@ -9,24 +9,90 @@ Common issues encountered during development and their solutions.
 
 ## Database Connection Failures
 
-{/* TODO: Document Docker not running, wrong port, connection refused scenarios */}
+**Symptom:** `connection refused` or `ECONNREFUSED` errors on port 5432 when starting the API or running migrations.
+
+**Cause:** The PostgreSQL Docker container is not running, or is mapped to a different port than the app expects.
+
+**Fix:** Start the Docker services and verify the container is healthy:
+
+```bash
+docker compose up -d
+docker compose ps
+```
+
+Confirm the `DATABASE_URL` in your `.env` file matches the port and credentials defined in `docker-compose.yml`.
 
 ## Bun Version Mismatch
 
-{/* TODO: Document packageManager mismatch, bun install failures */}
+**Symptom:** `error: package manager mismatch` during install, or unexpected runtime behavior.
+
+**Cause:** Your local Bun version does not match the `packageManager` field declared in the root `package.json`.
+
+**Fix:** Upgrade Bun to the latest version, or install the exact version the project expects:
+
+```bash
+bun upgrade
+```
+
+If the project pins a specific version, check `package.json` for the `packageManager` field and install that version.
 
 ## Port Already in Use
 
-{/* TODO: Document EADDRINUSE for dev server and API */}
+**Symptom:** `EADDRINUSE` error when starting the dev server or API.
+
+**Cause:** Another process is already listening on port 3000 (web) or 3001 (API).
+
+**Fix:** Kill the process occupying the port, or start on a different port:
+
+```bash
+lsof -ti:3000 | xargs kill
+lsof -ti:3001 | xargs kill
+```
+
+Alternatively, set the `PORT` environment variable to use a different port.
 
 ## Pre-commit Hook Failures
 
-{/* TODO: Document lefthook failures, biome errors, commitlint rejections */}
+**Symptom:** Commit is rejected by Lefthook with Biome formatting errors or commitlint violations.
+
+**Cause:** Staged files have formatting issues, or the commit message does not follow the Conventional Commits format.
+
+**Fix:** For formatting issues, run Biome auto-fix across the project:
+
+```bash
+bunx biome check --write .
+```
+
+For commit message rejections, use the Conventional Commits format: `type(scope): description` (e.g., `feat(web): add login page`). See the [Contributing guide](/docs/contributing) for the full list of types.
 
 ## TypeScript Build Errors After Dependency Updates
 
-{/* TODO: Document stale .tsbuildinfo, type version conflicts */}
+**Symptom:** Type errors appear after running `bun install` or updating packages, even though the code has not changed.
+
+**Cause:** Stale `.tsbuildinfo` incremental compilation files or cached type definitions from previous dependency versions.
+
+**Fix:** Clear the build cache and re-run the type checker:
+
+```bash
+bun run clean:cache && bun run typecheck
+```
 
 ## Turbo Cache Staleness
 
-{/* TODO: Document when to clear turbo cache, symptoms of stale cache */}
+**Symptom:** Build succeeds but your changes do not appear in the output, or Turbo reports "cache hit" for code you just modified.
+
+**Cause:** Turbo's content hash does not capture all inputs (e.g., environment variables or files outside the declared inputs).
+
+**Fix:** Clear the Turbo cache and rebuild:
+
+```bash
+bun run clean:cache
+```
+
+Or remove the cache directory manually:
+
+```bash
+rm -rf .turbo
+```
+
+Then run your build command again.

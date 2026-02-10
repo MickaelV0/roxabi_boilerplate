@@ -34,11 +34,13 @@ const config = defineConfig(async () => ({
       strategy: ['url'],
     }),
     nitro({
-      devProxy: {
-        '/api/**': { target: apiTarget, changeOrigin: true },
-      },
-      routeRules: {
-        '/api/**': { proxy: `${apiTarget}/api/**` },
+      config: {
+        devProxy: {
+          '/api/**': { target: apiTarget, changeOrigin: true },
+        },
+        routeRules: {
+          '/api/**': { proxy: `${apiTarget}/api/**` },
+        },
       },
     }),
     contentCollections(),
