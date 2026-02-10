@@ -1,4 +1,4 @@
 {
   "title": "Guides",
-  "pages": ["i18n", "agent-teams", "deployment", "authentication"]
+  "pages": ["i18n", "agent-teams", "deployment", "authentication", "troubleshooting"]
 }

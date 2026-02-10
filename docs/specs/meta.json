@@ -19,6 +19,8 @@
     "80-license-checker",
     "68-auth-ui-ux",
     "89-security-hardening",
-    "92-docs-audit-remediation"
+    "92-docs-audit-remediation",
+    "94-low-priority-audit-backlog",
+    "90-code-quality-fixes"
   ]
 }
