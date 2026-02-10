@@ -19,11 +19,11 @@ jobs:
     uses: ./.github/workflows/ci.yml
     secrets: inherit
 
-  # Deployment is handled by platform integrations:
+  # Deployment is handled by Vercel:
   #   - Web (TanStack Start): Vercel auto-deploys on push to main
-  #   - API (NestJS): Render auto-deploys on push to main
+  #   - API (NestJS): Vercel auto-deploys on push to main (zero-config NestJS support)
   #
-  # No deploy jobs needed — both platforms watch the GitHub repo directly.
+  # No deploy jobs needed — Vercel watches the GitHub repo directly.
 
   notify:
     name: Notify
@@ -37,10 +37,10 @@ jobs:
           echo "CI: $CI_RESULT"
 
           if [ "$CI_RESULT" == "failure" ]; then
-            echo "::error::CI failed — Vercel and Render will still deploy from main. Fix the issue."
+            echo "::error::CI failed — Vercel will still deploy from main. Fix the issue."
             exit 1
           elif [ "$CI_RESULT" == "success" ]; then
-            echo "CI passed. Vercel and Render will auto-deploy."
+            echo "CI passed. Vercel will auto-deploy both web and API."
           else
             echo "CI skipped or cancelled"
           fi
@@ -55,6 +55,6 @@ jobs:
               repo: context.repo.repo,
               sha: context.sha,
               state: 'success',
-              description: 'CI passed — deploying via Vercel + Render',
+              description: 'CI passed — deploying via Vercel',
               context: 'deployment/production'
             })

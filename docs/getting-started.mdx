@@ -193,14 +193,14 @@ To run E2E tests on a PR, add the `e2e` label.
 
 ### CD Pipeline
 
-Deployment runs automatically on pushes to `main` via platform integrations:
+Deployment runs automatically on pushes to `main` via Vercel:
 
-- **Web** (TanStack Start) — auto-deploys to **Vercel** (free, SSR, no cold starts)
-- **API** (NestJS) — auto-deploys to **Render** (free tier, cold starts after 15min idle)
+- **Web** (TanStack Start) — auto-deploys to **Vercel** (SSR, edge caching, Fluid compute)
+- **API** (NestJS) — auto-deploys to **Vercel** (zero-config NestJS, Fluid compute)
 
-No Docker or SSH needed — both platforms watch the GitHub repo directly.
+No Docker or SSH needed — Vercel watches the GitHub repo directly.
 
-> **First-time setup:** Connect your repo to Vercel and Render. See the [Deployment Guide](/docs/guides/deployment).
+> **First-time setup:** Create two Vercel projects (web + API) from the same repo. See the [Deployment Guide](/docs/guides/deployment).
 
 ## 6. Install Dependencies
 

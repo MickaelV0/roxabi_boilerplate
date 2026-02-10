@@ -168,7 +168,7 @@ Workspaces configuration:
 
 ## Deployment Architecture
 
-Production uses **Vercel** (web) and **Render** (API) with automatic deploys from GitHub.
+Production uses **Vercel** for both web and API with automatic deploys from GitHub.
 
 ```txt
 ┌──────────────┐     ┌──────────────┐
@@ -179,7 +179,7 @@ Production uses **Vercel** (web) and **Render** (API) with automatic deploys fro
                   ┌─────────┴─────────┐
                   ▼                   ▼
          ┌──────────────┐    ┌──────────────┐
-         │   Vercel     │    │   Render     │
+         │   Vercel     │    │   Vercel     │
          │   (Web)      │    │   (API)      │
          │  TanStack    │    │  NestJS +    │
          │  Start SSR   │───▶│  Fastify     │
@@ -193,8 +193,8 @@ Production uses **Vercel** (web) and **Render** (API) with automatic deploys fro
 ```
 
 Key decisions:
-- **Platform-managed deployment** — No servers to maintain, automatic SSL
+- **Single platform** — Both apps on Vercel, one dashboard, automatic SSL
 - **Vercel for SSR** — TanStack Start + Nitro has native Vercel support
-- **Render for API** — Free tier with Node.js, auto-deploy from GitHub
+- **Vercel for API** — Zero-config NestJS support with Fluid compute
 - **No database hosting** — PostgreSQL managed by OVH CloudDB
 - **Docker configs included** — For local dev and self-hosted VPS alternative

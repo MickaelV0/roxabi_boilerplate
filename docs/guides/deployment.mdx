@@ -1,37 +1,41 @@
 ---
 title: Deployment
-description: Deploy Roxabi with Vercel (web) and Render (API) — free tier
+description: Deploy Roxabi on Vercel — both web and API on one platform
 ---
 
 ## Overview
 
-Roxabi uses a push-to-deploy architecture with two managed platforms.
+Roxabi uses a push-to-deploy architecture with **Vercel** as the single deployment platform for both the web app and API.
 
 ```
 Push to main
   -> GitHub Actions CI (lint, typecheck, test)
-  -> Vercel auto-deploys web app
-  -> Render auto-deploys API
+  -> Vercel auto-deploys web app (TanStack Start)
+  -> Vercel auto-deploys API (NestJS — zero-config support)
 ```
 
 | Component | Platform | Details |
 |-----------|----------|---------|
-| Web (TanStack Start + Nitro) | Vercel (free) | SSR, edge caching, no cold starts |
-| API (NestJS + Fastify) | Render (free tier) | Node.js runtime, cold starts after 15 min idle |
-| Database | OVH CloudDB | External PostgreSQL, not managed by either platform |
+| Web (TanStack Start + Nitro) | Vercel | SSR, edge caching, Fluid compute |
+| API (NestJS + Fastify) | Vercel | Zero-config NestJS, Fluid compute, auto-scaling |
+| Database | OVH CloudDB | External PostgreSQL, not managed by Vercel |
 
 No Docker is needed for deployment. Docker configurations (Dockerfiles, `docker-compose.prod.yml`, Nginx configs, `deploy/`) remain in the repo for local development only.
 
 ---
 
-## Vercel Setup (Web)
+## Vercel Setup
 
-### 1. Connect Your Repository
+You need **two Vercel projects** pointing to the same GitHub repository — one for the web app and one for the API.
+
+### Project 1: Web (TanStack Start)
+
+#### 1. Create the Project
 
 1. Sign up at [vercel.com](https://vercel.com) and connect your GitHub account
-2. Click **Add New Project** and import the repository (`MickaelV0/roxabi_boilerplate`)
+2. Click **Add New Project** and import the repository
 
-### 2. Configure Build Settings
+#### 2. Configure Build Settings
 
 | Setting | Value |
 |---------|-------|
@@ -41,54 +45,52 @@ No Docker is needed for deployment. Docker configurations (Dockerfiles, `docker-
 | Output Directory | `.output` |
 | Install Command | Leave empty (handled in build command) |
 
-### 3. Add Environment Variables
+#### 3. Add Environment Variables
 
-In the Vercel dashboard, go to **Settings &gt; Environment Variables** and add:
+In **Settings &gt; Environment Variables**:
 
-| Variable | Value | Example |
-|----------|-------|---------|
-| `API_URL` | Render API URL | `https://roxabi-api.onrender.com` |
-| `APP_URL` | Vercel URL | `https://roxabi.vercel.app` |
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `API_URL` | Vercel API project URL | `https://roxabi-api.vercel.app` |
+| `APP_URL` | This project's URL | `https://roxabi.vercel.app` |
 
-### 4. Deploy
+#### 4. Deploy
 
-Click **Deploy**. Vercel will build and deploy your web app. After this initial deploy, every push to `main` triggers an automatic redeployment.
+Click **Deploy**. Every subsequent push to `main` triggers automatic redeployment.
 
 ---
 
-## Render Setup (API)
+### Project 2: API (NestJS)
 
-### 1. Connect Your Repository
+#### 1. Create a Second Project
 
-1. Sign up at [render.com](https://render.com) and connect your GitHub account
-2. Choose one of the following approaches:
+1. In the Vercel dashboard, click **Add New Project** again
+2. Import the **same repository**
 
-**Option A -- Blueprint (recommended):** Click **New &gt; Blueprint**, select the repository. Render auto-detects `render.yaml` and provisions the service.
+#### 2. Configure Build Settings
 
-**Option B -- Manual Web Service:** Click **New &gt; Web Service**, select the repository, and configure manually (see step 2).
-
-### 2. Configure Build Settings (Manual Only)
+Vercel auto-detects `src/main.ts` as the NestJS entrypoint. Override the root directory:
 
 | Setting | Value |
 |---------|-------|
 | Root Directory | `apps/api` |
-| Build Command | `cd ../.. && bun install --frozen-lockfile && cd apps/api && bunx nest build` |
-| Start Command | `node dist/main.js` |
-| Health Check Path | `/health` |
+| Framework Preset | Auto-detected (NestJS) |
+| Build Command | `cd ../.. && bun install && cd apps/api && bunx nest build` |
+| Install Command | Leave empty (handled in build command) |
 
-### 3. Add Environment Variables
+#### 3. Add Environment Variables
 
-In the Render dashboard, go to **Environment** and add:
+In **Settings &gt; Environment Variables**:
 
-| Variable | Value |
-|----------|-------|
-| `DATABASE_URL` | OVH CloudDB connection string |
-| `CORS_ORIGIN` | Vercel web URL (e.g., `https://roxabi.vercel.app`) |
-| `BETTER_AUTH_SECRET` | Random 32+ character string |
-| `BETTER_AUTH_URL` | Render API URL (e.g., `https://roxabi-api.onrender.com`) |
-| `EMAIL_FROM` | Sender email address |
-| `APP_URL` | Vercel web URL |
-| `API_URL` | Render API URL |
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DATABASE_URL` | OVH CloudDB connection string | `postgresql://user:pass@host:5432/roxabi` |
+| `CORS_ORIGIN` | Web project URL | `https://roxabi.vercel.app` |
+| `BETTER_AUTH_SECRET` | Random 32+ character string | `<random-string>` |
+| `BETTER_AUTH_URL` | This project's URL | `https://roxabi-api.vercel.app` |
+| `APP_URL` | Web project URL | `https://roxabi.vercel.app` |
+| `API_URL` | This project's URL | `https://roxabi-api.vercel.app` |
+| `EMAIL_FROM` | Sender email address | `noreply@example.com` |
 
 Generate `BETTER_AUTH_SECRET` with:
 
@@ -96,39 +98,50 @@ Generate `BETTER_AUTH_SECRET` with:
 openssl rand -base64 32
 ```
 
-### 4. Important Notes
+#### 4. Important Notes
 
-- Render automatically sets `PORT` (default `10000`) and `NODE_ENV=production`. You do not need to configure these.
-- The free tier sleeps after 15 minutes of inactivity. The first request after sleep takes approximately 10--15 seconds while the service spins back up.
+- Vercel automatically sets `NODE_ENV=production`
+- NestJS runs as a [Vercel Function](https://vercel.com/docs/functions) with [Fluid compute](https://vercel.com/docs/fluid-compute) — auto-scaling, reduced cold starts
+- Free tier: 10s execution limit per request. Pro tier: 60s
+- 250MB max application size (Vercel Functions limitation)
+
+---
+
+## Ignoring Paths (Avoid Duplicate Deploys)
+
+Since both projects share the same repo, configure **Ignored Build Step** so each project only redeploys when its own code changes.
+
+In each project's **Settings &gt; Git &gt; Ignored Build Step**, use:
+
+**Web project:**
+```bash
+git diff --quiet HEAD^ HEAD -- apps/web/ packages/ docs/
+```
+
+**API project:**
+```bash
+git diff --quiet HEAD^ HEAD -- apps/api/ packages/types/
+```
 
 ---
 
 ## Custom Domains (Optional)
 
-Both platforms handle SSL certificates automatically.
+Vercel handles SSL certificates automatically.
 
-| Platform | Steps |
-|----------|-------|
-| Vercel | **Settings &gt; Domains** &gt; add `app.&lt;domain&gt;` |
-| Render | **Settings &gt; Custom Domains** &gt; add `api.&lt;domain&gt;` |
-
-Configure DNS records to point each subdomain to the respective platform. Vercel provides a CNAME target; Render provides a CNAME or A record.
+1. Go to **Settings &gt; Domains** in each project
+2. Add your domain:
+   - Web: `app.yourdomain.com`
+   - API: `api.yourdomain.com`
+3. Configure DNS with a CNAME record pointing to Vercel's target
 
 ---
 
 ## Rollback
 
-### Vercel (Web)
-
-1. Go to the **Deployments** tab in your Vercel project
+1. Go to the **Deployments** tab in the affected Vercel project
 2. Find the previous working deployment
 3. Click the three-dot menu and select **Promote to Production**
-
-### Render (API)
-
-1. Go to the **Events** tab in your Render service
-2. Click **Manual Deploy**
-3. Select a previous commit to deploy
 
 ---
 
@@ -141,4 +154,4 @@ The repository includes Docker configurations for VPS-based deployment:
 - Nginx reverse proxy configs in `deploy/nginx/`
 - GitHub Actions CD workflow for automated SSH deploy
 
-If you have a VPS with Docker, you can use the Docker build/push/SSH deploy pipeline instead of Vercel and Render. See the full specification at [docs/specs/52-vps-deployment.mdx](/docs/specs/52-vps-deployment).
+If you have a VPS with Docker, you can use the Docker build/push/SSH deploy pipeline instead of Vercel. See the full specification at [docs/specs/52-vps-deployment.mdx](/docs/specs/52-vps-deployment).

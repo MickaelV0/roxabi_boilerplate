@@ -113,31 +113,31 @@ Settings:
 
 ## Production Environment
 
-Production is split across two platforms: **Vercel** (web) and **Render** (API). Environment variables are configured in each platform's dashboard.
+Production runs entirely on **Vercel** with two projects (web + API). Environment variables are configured in each project's dashboard.
 
-### Vercel Environment Variables (Web)
+### Vercel — Web Project
 
 Configure in Vercel dashboard under **Settings &gt; Environment Variables**:
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `API_URL` | Render API URL | `https://roxabi-api.onrender.com` |
-| `APP_URL` | Vercel app URL | `https://roxabi.vercel.app` |
+| `API_URL` | Vercel API project URL | `https://roxabi-api.vercel.app` |
+| `APP_URL` | This project's URL | `https://roxabi.vercel.app` |
 
-### Render Environment Variables (API)
+### Vercel — API Project
 
-Configure in Render dashboard under **Environment**:
+Configure in Vercel dashboard under **Settings &gt; Environment Variables**:
 
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `DATABASE_URL` | PostgreSQL connection (OVH CloudDB) | `postgresql://user:pass@host:5432/roxabi` |
-| `CORS_ORIGIN` | Vercel web URL | `https://roxabi.vercel.app` |
-| `BETTER_AUTH_SECRET` | Auth secret (random 32+ chars) | `<random-string>` |
-| `BETTER_AUTH_URL` | Render API URL | `https://roxabi-api.onrender.com` |
-| `APP_URL` | Vercel web URL | `https://roxabi.vercel.app` |
-| `API_URL` | Render API URL | `https://roxabi-api.onrender.com` |
+| `CORS_ORIGIN` | Web project URL | `https://roxabi.vercel.app` |
+| `BETTER_AUTH_SECRET` | Auth secret (random 32+ chars) | `&lt;random-string&gt;` |
+| `BETTER_AUTH_URL` | This project's URL | `https://roxabi-api.vercel.app` |
+| `APP_URL` | Web project URL | `https://roxabi.vercel.app` |
+| `API_URL` | This project's URL | `https://roxabi-api.vercel.app` |
 | `EMAIL_FROM` | Sender email address | `noreply@example.com` |
 
-> **Note:** Render auto-sets `PORT` (default 10000) and `NODE_ENV=production`. Do not override these.
+> **Note:** Vercel auto-sets `NODE_ENV=production`. NestJS runs as a Vercel Function with Fluid compute.
 
 See the [Deployment Guide](/docs/guides/deployment) for full setup instructions.
