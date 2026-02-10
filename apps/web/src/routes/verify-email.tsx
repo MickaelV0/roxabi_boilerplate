@@ -1,46 +1,108 @@
 import { Button } from '@repo/ui'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState } from 'react'
+import { Loader2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { authClient } from '@/lib/auth-client'
+import { m } from '@/paraglide/messages'
+import { AuthLayout } from '../components/AuthLayout'
 
-// TODO: import AuthLayout from '@/components/AuthLayout'
-// TODO: import authClient from '@/lib/auth-client'
-// TODO: import toast from 'sonner'
-// TODO: import Paraglide messages
+type VerifySearch = {
+  token?: string
+}
 
 export const Route = createFileRoute('/verify-email')({
+  validateSearch: (search: Record<string, unknown>): VerifySearch => ({
+    token: typeof search.token === 'string' ? search.token : undefined,
+  }),
   component: VerifyEmailPage,
 })
 
-/**
- * Email Verification page.
- *
- * Reads `token` from URL search params and automatically submits to Better Auth.
- * Shows success/failure status with appropriate actions.
- */
 function VerifyEmailPage() {
-  // TODO: read token from URL search params
-  // TODO: auto-submit token to Better Auth on mount (useEffect)
-  // TODO: handle missing token → show error
-  // TODO: implement success state → "Email verified" + continue link
-  // TODO: implement error state → "Verification failed" + resend option
-  // TODO: implement loading state during verification
-  // TODO: implement i18n with Paraglide messages
+  const { token } = Route.useSearch()
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
+  const [resending, setResending] = useState(false)
 
-  const [_status, _setStatus] = useState<'loading' | 'success' | 'error'>('loading')
+  useEffect(() => {
+    if (!token) {
+      setStatus('error')
+      return
+    }
+
+    async function verify() {
+      try {
+        const { error } = await authClient.verifyEmail({ query: { token: token as string } })
+        if (error) {
+          setStatus('error')
+        } else {
+          setStatus('success')
+        }
+      } catch {
+        setStatus('error')
+      }
+    }
+
+    verify()
+  }, [token])
+
+  async function handleResend() {
+    setResending(true)
+    try {
+      const { error } = await authClient.sendVerificationEmail({
+        email: '',
+        callbackURL: `${window.location.origin}/verify-email`,
+      })
+      if (error) {
+        toast.error(error.message ?? m.auth_toast_error())
+      } else {
+        toast.success(m.auth_toast_verification_resent())
+      }
+    } catch {
+      toast.error(m.auth_toast_error())
+    } finally {
+      setResending(false)
+    }
+  }
+
+  if (status === 'loading') {
+    return (
+      <AuthLayout title={m.auth_verify_email_title()} description={m.auth_verify_email_desc()}>
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">{m.auth_verifying_email()}</p>
+        </div>
+      </AuthLayout>
+    )
+  }
+
+  if (status === 'success') {
+    return (
+      <AuthLayout title={m.auth_email_verified_title()}>
+        <div className="text-center space-y-4">
+          <p className="text-sm text-muted-foreground">{m.auth_email_verified()}</p>
+          <Button asChild className="w-full">
+            <Link to="/">{m.auth_continue_to_app()}</Link>
+          </Button>
+        </div>
+      </AuthLayout>
+    )
+  }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      {/* TODO: replace with <AuthLayout title="Email Verification"> */}
-      <div className="w-full max-w-md space-y-6 text-center">
-        <h1 className="text-2xl font-bold">Verify Email</h1>
-        {/* TODO: show loading spinner while verifying */}
-        {/* TODO: show success message + continue button */}
-        {/* TODO: show error message + resend button */}
-        <p className="text-muted-foreground">Verifying your email...</p>
-        <Button asChild>
-          <Link to="/">Continue to app</Link>
+    <AuthLayout title={m.auth_verify_email_title()}>
+      <div className="text-center space-y-4">
+        <p className="text-sm text-destructive">
+          {!token ? m.auth_missing_token() : m.auth_verification_failed()}
+        </p>
+        <Button variant="outline" onClick={handleResend} disabled={resending} className="w-full">
+          {resending ? m.auth_resending() : m.auth_resend_verification()}
         </Button>
+        <p className="text-sm text-muted-foreground">
+          <Link to="/login" className="underline hover:text-foreground">
+            {m.auth_back_to_sign_in()}
+          </Link>
+        </p>
       </div>
-    </div>
+    </AuthLayout>
   )
 }

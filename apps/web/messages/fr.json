@@ -127,5 +127,35 @@
   "auth_toast_error": "Une erreur est survenue. Veuillez réessayer.",
   "auth_check_email_verify": "Consultez vos emails pour vérifier votre compte.",
   "auth_check_email_reset": "Consultez vos emails pour un lien de réinitialisation.",
-  "auth_check_email_magic_link": "Consultez vos emails pour un lien magique."
+  "auth_check_email_magic_link": "Consultez vos emails pour un lien magique.",
+
+  "auth_reset_confirm_title": "Nouveau mot de passe",
+  "auth_reset_confirm_desc": "Entrez votre nouveau mot de passe ci-dessous",
+  "auth_new_password": "Nouveau mot de passe",
+  "auth_reset_password_button": "Réinitialiser le mot de passe",
+  "auth_resetting_password": "Réinitialisation…",
+  "auth_toast_password_updated": "Mot de passe mis à jour avec succès",
+  "auth_invalid_reset_link": "Ce lien de réinitialisation est invalide ou a expiré.",
+  "auth_request_new_reset": "Demander un nouveau lien",
+  "auth_back_to_sign_in": "Retour à la connexion",
+  "auth_missing_token": "Lien invalide. Veuillez en demander un nouveau.",
+
+  "auth_verify_email_title": "Vérification de l'email",
+  "auth_verify_email_desc": "Vérification de votre adresse email",
+  "auth_verifying_email": "Vérification de votre email…",
+  "auth_email_verified": "Votre email a été vérifié avec succès.",
+  "auth_email_verified_title": "Email vérifié",
+  "auth_verification_failed": "La vérification a échoué. Le lien est peut-être invalide ou expiré.",
+  "auth_resend_verification": "Renvoyer l'email de vérification",
+  "auth_resending": "Renvoi en cours…",
+  "auth_toast_verification_resent": "Email de vérification envoyé",
+  "auth_continue_to_app": "Continuer vers l'application",
+
+  "auth_magic_link_sent_title": "Consultez vos emails",
+  "auth_magic_link_sent_desc": "Nous avons envoyé un lien magique pour vous connecter",
+  "auth_magic_link_sent_message": "Nous avons envoyé un lien magique à {email}. Cliquez sur le lien dans votre email pour vous connecter.",
+  "auth_didnt_receive": "Vous n'avez rien reçu ?",
+  "auth_resend_magic_link": "Renvoyer le lien magique",
+  "auth_resend_in": "Renvoyer dans {seconds}s",
+  "auth_toast_magic_link_resent": "Lien magique renvoyé"
 }

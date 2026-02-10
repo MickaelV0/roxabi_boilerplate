@@ -1,58 +1,97 @@
-import { Button, Input, Label } from '@repo/ui'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { Button, Label, PasswordInput } from '@repo/ui'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
+import { toast } from 'sonner'
+import { authClient } from '@/lib/auth-client'
+import { m } from '@/paraglide/messages'
+import { AuthLayout } from '../../components/AuthLayout'
 
-// TODO: import AuthLayout from '@/components/AuthLayout'
-// TODO: import PasswordInput from '@repo/ui'
-// TODO: import authClient from '@/lib/auth-client'
-// TODO: import toast from 'sonner'
-// TODO: import Paraglide messages
+type ConfirmSearch = {
+  token?: string
+}
 
 export const Route = createFileRoute('/reset-password/confirm')({
+  validateSearch: (search: Record<string, unknown>): ConfirmSearch => ({
+    token: typeof search.token === 'string' ? search.token : undefined,
+  }),
   component: ResetPasswordConfirmPage,
 })
 
-/**
- * Reset Password Confirmation page.
- *
- * Reads `token` from URL search params, allows user to set a new password.
- * Shows error for invalid/expired tokens with link to request a new reset.
- */
 function ResetPasswordConfirmPage() {
-  // TODO: read token from URL search params
-  // TODO: handle missing token → show error
-  // TODO: implement password reset submission via authClient
-  // TODO: implement PasswordInput with strength indicator
-  // TODO: implement loading state
-  // TODO: implement success → toast + redirect to /login
-  // TODO: implement error → inline error + "Request new reset" link
-  // TODO: implement i18n with Paraglide messages
+  const { token } = Route.useSearch()
+  const navigate = useNavigate()
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const [_password, _setPassword] = useState('')
-  const [_loading, _setLoading] = useState(false)
-  const [_error, _setError] = useState('')
+  if (!token) {
+    return (
+      <AuthLayout title={m.auth_reset_confirm_title()} description={m.auth_reset_confirm_desc()}>
+        <div className="text-center space-y-4">
+          <p className="text-sm text-destructive">{m.auth_missing_token()}</p>
+          <Button asChild variant="outline">
+            <Link to="/reset-password">{m.auth_request_new_reset()}</Link>
+          </Button>
+        </div>
+      </AuthLayout>
+    )
+  }
+
+  async function handleReset(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const { error: resetError } = await authClient.resetPassword({
+        newPassword: password,
+        token,
+      })
+      if (resetError) {
+        setError(resetError.message ?? m.auth_invalid_reset_link())
+      } else {
+        toast.success(m.auth_toast_password_updated())
+        navigate({ to: '/login' })
+      }
+    } catch {
+      toast.error(m.auth_toast_error())
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      {/* TODO: replace with <AuthLayout title="Reset Password"> */}
-      <div className="w-full max-w-md space-y-6">
-        <h1 className="text-2xl font-bold text-center">Set New Password</h1>
-        <form className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="new-password">New Password</Label>
-            {/* TODO: replace with PasswordInput showStrength */}
-            <Input id="new-password" type="password" required />
-          </div>
-          <Button type="submit" className="w-full">
-            Reset password
+    <AuthLayout title={m.auth_reset_confirm_title()} description={m.auth_reset_confirm_desc()}>
+      {error && (
+        <div className="text-center space-y-2">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button asChild variant="link" className="h-auto p-0">
+            <Link to="/reset-password">{m.auth_request_new_reset()}</Link>
           </Button>
-        </form>
-        <p className="text-center text-sm text-muted-foreground">
-          <Link to="/login" className="underline hover:text-foreground">
-            Back to sign in
-          </Link>
-        </p>
-      </div>
-    </div>
+        </div>
+      )}
+
+      <form onSubmit={handleReset} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="new-password">{m.auth_new_password()}</Label>
+          <PasswordInput
+            id="new-password"
+            value={password}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+            required
+            disabled={loading}
+            showStrength
+          />
+        </div>
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? m.auth_resetting_password() : m.auth_reset_password_button()}
+        </Button>
+      </form>
+
+      <p className="text-center text-sm text-muted-foreground">
+        <Link to="/login" className="underline hover:text-foreground">
+          {m.auth_back_to_sign_in()}
+        </Link>
+      </p>
+    </AuthLayout>
   )
 }

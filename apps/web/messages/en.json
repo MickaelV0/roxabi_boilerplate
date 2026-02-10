@@ -127,5 +127,35 @@
   "auth_toast_error": "Something went wrong. Please try again.",
   "auth_check_email_verify": "Check your email to verify your account.",
   "auth_check_email_reset": "Check your email for a password reset link.",
-  "auth_check_email_magic_link": "Check your email for a magic link."
+  "auth_check_email_magic_link": "Check your email for a magic link.",
+
+  "auth_reset_confirm_title": "Set New Password",
+  "auth_reset_confirm_desc": "Enter your new password below",
+  "auth_new_password": "New Password",
+  "auth_reset_password_button": "Reset password",
+  "auth_resetting_password": "Resetting…",
+  "auth_toast_password_updated": "Password updated successfully",
+  "auth_invalid_reset_link": "This reset link is invalid or has expired.",
+  "auth_request_new_reset": "Request a new reset link",
+  "auth_back_to_sign_in": "Back to sign in",
+  "auth_missing_token": "Invalid link. Please request a new one.",
+
+  "auth_verify_email_title": "Email Verification",
+  "auth_verify_email_desc": "Verifying your email address",
+  "auth_verifying_email": "Verifying your email…",
+  "auth_email_verified": "Your email has been verified successfully.",
+  "auth_email_verified_title": "Email Verified",
+  "auth_verification_failed": "Email verification failed. The link may be invalid or expired.",
+  "auth_resend_verification": "Resend verification email",
+  "auth_resending": "Resending…",
+  "auth_toast_verification_resent": "Verification email sent",
+  "auth_continue_to_app": "Continue to app",
+
+  "auth_magic_link_sent_title": "Check Your Email",
+  "auth_magic_link_sent_desc": "We sent a magic link to sign you in",
+  "auth_magic_link_sent_message": "We sent a magic link to {email}. Click the link in your email to sign in.",
+  "auth_didnt_receive": "Didn't receive it?",
+  "auth_resend_magic_link": "Resend magic link",
+  "auth_resend_in": "Resend in {seconds}s",
+  "auth_toast_magic_link_resent": "Magic link resent"
 }

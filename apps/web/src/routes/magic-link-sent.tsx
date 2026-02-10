@@ -1,50 +1,86 @@
 import { Button } from '@repo/ui'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { authClient } from '@/lib/auth-client'
+import { m } from '@/paraglide/messages'
+import { AuthLayout } from '../components/AuthLayout'
 
-// TODO: import AuthLayout from '@/components/AuthLayout'
-// TODO: import authClient from '@/lib/auth-client'
-// TODO: import toast from 'sonner'
-// TODO: import Paraglide messages
+type MagicLinkSearch = {
+  email?: string
+}
+
+const COOLDOWN_SECONDS = 60
 
 export const Route = createFileRoute('/magic-link-sent')({
+  validateSearch: (search: Record<string, unknown>): MagicLinkSearch => ({
+    email: typeof search.email === 'string' ? search.email : undefined,
+  }),
   component: MagicLinkSentPage,
 })
 
-/**
- * Magic Link Sent confirmation page.
- *
- * Shows "Check your email" message with the email address.
- * Provides "Didn't receive it?" resend option.
- */
 function MagicLinkSentPage() {
-  // TODO: read email from router state or search params
-  // TODO: implement resend magic link via authClient.signIn.magicLink()
-  // TODO: implement cooldown timer for resend button
-  // TODO: implement loading state for resend
-  // TODO: implement i18n with Paraglide messages
+  const { email } = Route.useSearch()
+  const [loading, setLoading] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
 
-  const [_loading, _setLoading] = useState(false)
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setTimeout(() => setCooldown((c) => c - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [cooldown])
+
+  async function handleResend() {
+    if (!email) return
+    setLoading(true)
+    try {
+      const { error } = await authClient.signIn.magicLink({ email })
+      if (error) {
+        toast.error(error.message ?? m.auth_toast_error())
+      } else {
+        toast.success(m.auth_toast_magic_link_resent())
+        setCooldown(COOLDOWN_SECONDS)
+      }
+    } catch {
+      toast.error(m.auth_toast_error())
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const canResend = !loading && cooldown <= 0
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      {/* TODO: replace with <AuthLayout title="Check Your Email"> */}
-      <div className="w-full max-w-md space-y-6 text-center">
-        <h1 className="text-2xl font-bold">Check Your Email</h1>
-        {/* TODO: show email address from state */}
-        <p className="text-muted-foreground">
-          We sent a magic link to your email. Click the link to sign in.
+    <AuthLayout title={m.auth_magic_link_sent_title()} description={m.auth_magic_link_sent_desc()}>
+      <div className="text-center space-y-4">
+        <p className="text-sm text-muted-foreground">
+          {email ? m.auth_magic_link_sent_message({ email }) : m.auth_check_email_magic_link()}
         </p>
-        {/* TODO: "Didn't receive it?" resend button */}
-        <Button variant="outline" disabled>
-          Resend magic link
-        </Button>
+
+        {email && (
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">{m.auth_didnt_receive()}</p>
+            <Button
+              variant="outline"
+              onClick={handleResend}
+              disabled={!canResend}
+              className="w-full"
+            >
+              {loading
+                ? m.auth_sending()
+                : cooldown > 0
+                  ? m.auth_resend_in({ seconds: String(cooldown) })
+                  : m.auth_resend_magic_link()}
+            </Button>
+          </div>
+        )}
+
         <p className="text-sm text-muted-foreground">
           <Link to="/login" className="underline hover:text-foreground">
-            Back to sign in
+            {m.auth_back_to_sign_in()}
           </Link>
         </p>
       </div>
-    </div>
+    </AuthLayout>
   )
 }
