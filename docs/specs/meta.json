@@ -17,6 +17,8 @@
     "70-design-system",
     "78-agent-teams-architecture",
     "80-license-checker",
-    "68-auth-ui-ux"
+    "68-auth-ui-ux",
+    "89-security-hardening",
+    "92-docs-audit-remediation"
   ]
 }
