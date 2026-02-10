@@ -81,17 +81,14 @@ describe('AuthGuard', () => {
     expect((req as Record<string, unknown>).user).toBe(session.user)
   })
 
-  it('should set request.user to null when session exists but has no user', async () => {
+  it('should throw UnauthorizedException when session has no user', async () => {
     const session = {
       session: { id: 'sess-1', activeOrganizationId: null },
     }
     const { guard } = createGuard(session)
-    const { context, req } = createMockContext()
+    const { context } = createMockContext()
 
-    const result = await guard.canActivate(context as never)
-
-    expect(result).toBe(true)
-    expect((req as Record<string, unknown>).user).toBeNull()
+    await expect(guard.canActivate(context as never)).rejects.toThrow(UnauthorizedException)
   })
 
   it('should throw ForbiddenException when role does not match', async () => {

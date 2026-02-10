@@ -55,12 +55,11 @@ const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
 const fuzzySort: SortingFn<any> = (rowA, rowB, columnId) => {
   let dir = 0
 
-  // Only sort by rank if the column has ranking information
-  if (rowA.columnFiltersMeta[columnId]) {
-    dir = compareItems(
-      rowA.columnFiltersMeta[columnId]?.itemRank as RankingInfo,
-      rowB.columnFiltersMeta[columnId]?.itemRank as RankingInfo
-    )
+  // Only sort by rank if both rows have ranking information
+  const rankA = rowA.columnFiltersMeta[columnId]?.itemRank
+  const rankB = rowB.columnFiltersMeta[columnId]?.itemRank
+  if (rankA && rankB) {
+    dir = compareItems(rankA, rankB)
   }
 
   // Provide an alphanumeric fallback for when the item ranks are equal
@@ -125,8 +124,8 @@ function TableDemo() {
     getFilteredRowModel: getFilteredRowModel(), //client side filtering
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    debugTable: true,
-    debugHeaders: true,
+    debugTable: false,
+    debugHeaders: false,
     debugColumns: false,
   })
 
@@ -147,6 +146,7 @@ function TableDemo() {
           onChange={(value) => setGlobalFilter(String(value))}
           className="w-full p-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           placeholder="Search all columns..."
+          aria-label="Search all columns"
         />
       </div>
       <div className="h-4" />
@@ -156,8 +156,19 @@ function TableDemo() {
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
+                  const sortDir = header.column.getIsSorted()
+                  const ariaSortValue = sortDir
+                    ? sortDir === 'asc'
+                      ? ('ascending' as const)
+                      : ('descending' as const)
+                    : ('none' as const)
                   return (
-                    <th key={header.id} colSpan={header.colSpan} className="px-4 py-3 text-left">
+                    <th
+                      key={header.id}
+                      colSpan={header.colSpan}
+                      className="px-4 py-3 text-left"
+                      aria-sort={header.column.getCanSort() ? ariaSortValue : undefined}
+                    >
                       {header.isPlaceholder ? null : (
                         <>
                           <div
@@ -169,10 +180,7 @@ function TableDemo() {
                             }}
                           >
                             {flexRender(header.column.columnDef.header, header.getContext())}
-                            {{
-                              asc: ' 🔼',
-                              desc: ' 🔽',
-                            }[header.column.getIsSorted() as string] ?? null}
+                            {sortDir ? { asc: ' 🔼', desc: ' 🔽' }[sortDir] : null}
                           </div>
                           {header.column.getCanFilter() ? (
                             <div className="mt-2">
@@ -307,9 +315,10 @@ function Filter({ column }: { column: Column<Person, unknown> }) {
   return (
     <DebouncedInput
       type="text"
-      value={(columnFilterValue ?? '') as string}
+      value={typeof columnFilterValue === 'string' ? columnFilterValue : ''}
       onChange={(value) => column.setFilterValue(value)}
       placeholder={`Search...`}
+      aria-label={`Filter ${column.id}`}
       className="w-full px-2 py-1 bg-gray-700 text-white rounded-md border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
     />
   )

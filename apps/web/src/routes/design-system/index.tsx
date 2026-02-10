@@ -649,10 +649,11 @@ function ComponentsSection() {
           ]}
         >
           {(props) => (
+            // TODO(#90): type preview props properly — ComponentShowcase children receive Record<string, unknown>
             <Button
               variant={props.variant as 'default'}
               size={props.size as 'default'}
-              disabled={props.disabled as boolean}
+              disabled={Boolean(props.disabled)}
             >
               {props.size === 'icon' ? 'A' : 'Click me'}
             </Button>
@@ -673,7 +674,8 @@ function ComponentsSection() {
             { name: 'text', type: 'text', defaultValue: 'Badge' },
           ]}
         >
-          {(props) => <Badge variant={props.variant as 'default'}>{props.text as string}</Badge>}
+          {/* TODO(#90): type preview props properly — ComponentShowcase children receive Record<string, unknown> */}
+          {(props) => <Badge variant={props.variant as 'default'}>{String(props.text)}</Badge>}
         </ComponentShowcase>
 
         {/* Input */}
@@ -687,8 +689,8 @@ function ComponentsSection() {
         >
           {(props) => (
             <Input
-              placeholder={props.placeholder as string}
-              disabled={props.disabled as boolean}
+              placeholder={String(props.placeholder)}
+              disabled={Boolean(props.disabled)}
               className="max-w-sm"
             />
           )}
@@ -705,8 +707,8 @@ function ComponentsSection() {
         >
           {(props) => (
             <Textarea
-              placeholder={props.placeholder as string}
-              disabled={props.disabled as boolean}
+              placeholder={String(props.placeholder)}
+              disabled={Boolean(props.disabled)}
               className="max-w-sm"
             />
           )}
@@ -720,7 +722,7 @@ function ComponentsSection() {
         >
           {(props) => (
             <div className="flex items-center gap-2">
-              <Checkbox id="demo-cb" disabled={props.disabled as boolean} />
+              <Checkbox id="demo-cb" disabled={Boolean(props.disabled)} />
               <Label htmlFor="demo-cb">Accept terms and conditions</Label>
             </div>
           )}
@@ -734,7 +736,7 @@ function ComponentsSection() {
         >
           {(props) => (
             <div className="flex items-center gap-2">
-              <Switch id="demo-sw" disabled={props.disabled as boolean} />
+              <Switch id="demo-sw" disabled={Boolean(props.disabled)} />
               <Label htmlFor="demo-sw">Airplane Mode</Label>
             </div>
           )}
@@ -767,7 +769,7 @@ function ComponentsSection() {
               defaultValue={[50]}
               max={100}
               step={1}
-              disabled={props.disabled as boolean}
+              disabled={Boolean(props.disabled)}
               className="max-w-sm"
             />
           )}

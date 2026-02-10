@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { UserNotFoundException } from './exceptions/user-not-found.exception.js'
 import { UserService } from './user.service.js'
 
 const mockUser = {
@@ -49,14 +50,13 @@ describe('UserService', () => {
       expect(chains.select.limit).toHaveBeenCalledWith(1)
     })
 
-    it('should return null when user not found', async () => {
+    it('should throw UserNotFoundException when user not found', async () => {
       const { db, chains } = createMockDb()
       chains.select.limit.mockResolvedValue([])
 
       const service = new UserService(db as never)
-      const result = await service.getProfile('nonexistent')
 
-      expect(result).toBeNull()
+      await expect(service.getProfile('nonexistent')).rejects.toThrow(UserNotFoundException)
     })
   })
 
@@ -76,6 +76,17 @@ describe('UserService', () => {
       expect(db.update).toHaveBeenCalled()
       expect(chains.update.returning).toHaveBeenCalledWith(
         expect.objectContaining({ id: expect.anything() })
+      )
+    })
+
+    it('should throw UserNotFoundException when user not found', async () => {
+      const { db, chains } = createMockDb()
+      chains.update.returning.mockResolvedValue([])
+
+      const service = new UserService(db as never)
+
+      await expect(service.updateProfile('nonexistent', { name: 'Jane' })).rejects.toThrow(
+        UserNotFoundException
       )
     })
   })

@@ -13,6 +13,7 @@ function FirstName() {
   return (
     <Input
       type="text"
+      aria-label="First name"
       value={firstName}
       onChange={(e) => store.setState((state) => ({ ...state, firstName: e.target.value }))}
       className="bg-muted/10 rounded-lg border-muted-foreground/20 hover:border-muted-foreground/40 focus:border-muted-foreground/60 transition-colors duration-200 placeholder:text-muted-foreground/40"
@@ -25,6 +26,7 @@ function LastName() {
   return (
     <Input
       type="text"
+      aria-label="Last name"
       value={lastName}
       onChange={(e) => store.setState((state) => ({ ...state, lastName: e.target.value }))}
       className="bg-muted/10 rounded-lg border-muted-foreground/20 hover:border-muted-foreground/40 focus:border-muted-foreground/60 transition-colors duration-200 placeholder:text-muted-foreground/40"

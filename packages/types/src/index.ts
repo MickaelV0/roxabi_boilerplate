@@ -4,21 +4,14 @@ export type User = {
   name: string
   emailVerified: boolean
   image: string | null
-  role: string | null
+  role: Role | null
   banned: boolean | null
   banReason: string | null
   createdAt: Date
   updatedAt: Date
 }
 
-export type ApiResponse<T> = {
-  data: T
-  error?: string
-  meta?: {
-    page?: number
-    total?: number
-  }
-}
+export type Role = 'user' | 'admin' | 'superadmin'
 
 export type ApiErrorResponse = {
   statusCode: number

@@ -66,14 +66,14 @@ describe('OptionalAuth', () => {
 describe('Roles', () => {
   it('should set ROLES metadata with provided roles array', () => {
     // Arrange
-    @Roles('admin', 'editor')
+    @Roles('admin', 'user')
     class TestTarget {}
 
     // Act
     const result = Reflect.getMetadata('ROLES', TestTarget)
 
     // Assert
-    expect(result).toEqual(['admin', 'editor'])
+    expect(result).toEqual(['admin', 'user'])
   })
 
   it('should set ROLES metadata with a single role', () => {

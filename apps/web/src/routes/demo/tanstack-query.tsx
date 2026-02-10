@@ -15,7 +15,11 @@ type Todo = {
 function TanStackQueryDemo() {
   const { data, refetch } = useQuery<Todo[]>({
     queryKey: ['todos'],
-    queryFn: () => fetch('/demo/api/tq-todos').then((res) => res.json()),
+    queryFn: () =>
+      fetch('/demo/api/tq-todos').then((res) => {
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`)
+        return res.json()
+      }),
     initialData: [],
   })
 
@@ -24,7 +28,10 @@ function TanStackQueryDemo() {
       fetch('/demo/api/tq-todos', {
         method: 'POST',
         body: JSON.stringify(todo),
-      }).then((res) => res.json()),
+      }).then((res) => {
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`)
+        return res.json()
+      }),
     onSuccess: () => refetch(),
   })
 
