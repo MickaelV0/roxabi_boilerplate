@@ -15,10 +15,12 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@fastify/helmet": "^13.0.2",
     "@fastify/static": "^9.0.0",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.0",
+    "@nestjs/event-emitter": "^3.0.1",
     "@nestjs/platform-fastify": "^11.0.0",
     "@nestjs/swagger": "^11.2.5",
     "@repo/types": "workspace:*",

@@ -1,3 +1,4 @@
+import helmet from '@fastify/helmet'
 import { Logger, ValidationPipe } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { NestFactory } from '@nestjs/core'
@@ -20,6 +21,46 @@ async function bootstrap() {
   const configService = app.get(ConfigService)
   const logger = new Logger('Bootstrap')
 
+  const nodeEnv = configService.get<string>('NODE_ENV', 'development')
+  const isProduction = nodeEnv === 'production'
+
+  // Security headers (must be registered before routes)
+  await app.register(helmet, {
+    global: true,
+    contentSecurityPolicy: isProduction
+      ? { directives: { defaultSrc: ["'none'"] } }
+      : {
+          directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", 'data:'],
+            fontSrc: ["'self'"],
+          },
+        },
+    hsts: { maxAge: 31536000, includeSubDomains: true },
+    frameguard: { action: 'deny' },
+    referrerPolicy: { policy: 'no-referrer' },
+    crossOriginEmbedderPolicy: false, // disabled to allow cross-origin resources (fonts, images)
+  })
+
+  // Permissions-Policy (not included in helmet v8)
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .addHook(
+      'onSend',
+      (
+        _request: unknown,
+        reply: { header: (k: string, v: string) => void },
+        _payload: unknown,
+        done: () => void
+      ) => {
+        reply.header('permissions-policy', 'camera=(), microphone=(), geolocation=()')
+        done()
+      }
+    )
+
   // Global pipes
   app.useGlobalPipes(
     new ValidationPipe({
@@ -35,8 +76,7 @@ async function bootstrap() {
   })
 
   // Swagger setup (non-production only)
-  const nodeEnv = configService.get<string>('NODE_ENV', 'development')
-  if (nodeEnv !== 'production') {
+  if (!isProduction) {
     const config = new DocumentBuilder()
       .setTitle('Roxabi API')
       .setDescription('Roxabi SaaS Backend API')
