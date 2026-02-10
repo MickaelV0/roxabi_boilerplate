@@ -54,7 +54,6 @@ export default defineConfig({
         '**/paraglide/**',
       ],
       thresholds: {
-        autoUpdate: true,
         lines: 90,
         functions: 86,
         branches: 76,

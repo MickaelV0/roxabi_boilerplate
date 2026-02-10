@@ -8,18 +8,21 @@ import {
   Logger,
 } from '@nestjs/common'
 import type { FastifyReply, FastifyRequest } from 'fastify'
+import { ClsService } from 'nestjs-cls'
 
 @Catch()
 @Injectable()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name)
 
+  constructor(private readonly cls: ClsService) {}
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp()
     const response = ctx.getResponse<FastifyReply>()
     const request = ctx.getRequest<FastifyRequest>()
 
-    const correlationId = request.headers['x-correlation-id'] || 'unknown'
+    const correlationId = this.cls.getId()
 
     const status =
       exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR
@@ -51,6 +54,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       exception instanceof Error ? exception.stack : undefined
     )
 
+    response.header('x-correlation-id', correlationId)
     response.status(status).send(errorResponse)
   }
 }
