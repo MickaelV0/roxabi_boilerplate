@@ -1,9 +1,10 @@
 -- RLS Infrastructure Migration
--- Issue: #21 — Multi-tenant Row-Level Security
+-- Issue: #21 - Multi-tenant Row-Level Security
 --
--- This SQL is intended to be used as a Drizzle custom migration.
--- Copy this content into a generated migration file, or run it
--- as part of the migration pipeline.
+-- This migration sets up the foundational RLS infrastructure:
+-- 1. Creates the app_user role (used by the application connection)
+-- 2. Creates a reusable function for applying RLS policies to tables
+-- 3. Grants basic permissions to the app_user role
 
 -- 1. Create application role (idempotent)
 -- The app_user role is used by the application connection.
@@ -39,10 +40,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- TODO: Grant appropriate permissions to app_user role
--- GRANT USAGE ON SCHEMA public TO app_user;
--- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user;
+-- 3. Grant permissions to app_user role
+GRANT USAGE ON SCHEMA public TO app_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user;
 
--- TODO: Decide on FORCE ROW LEVEL SECURITY based on deployment role setup
--- If the Drizzle connection uses the table owner role, FORCE is needed.
--- If it uses app_user, FORCE is optional but adds defense-in-depth.
+-- Ensure future tables also get permissions
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
