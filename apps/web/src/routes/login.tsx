@@ -1,18 +1,18 @@
-import {
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  Input,
-  Label,
-} from '@repo/ui'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { Button, Checkbox, Input, Label, OAuthButton, PasswordInput } from '@repo/ui'
+import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
+import { m } from '@/paraglide/messages'
+import { AuthLayout } from '../components/AuthLayout'
 
 export const Route = createFileRoute('/login')({
+  beforeLoad: async () => {
+    const { data } = await authClient.getSession()
+    if (data) {
+      throw redirect({ to: '/' })
+    }
+  },
   component: LoginPage,
 })
 
@@ -21,21 +21,29 @@ function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [magicLinkEmail, setMagicLinkEmail] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const [oauthLoading, setOauthLoading] = useState<string | null>(null)
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      const { error: signInError } = await authClient.signIn.email({ email, password })
+      const { error: signInError } = await authClient.signIn.email({
+        email,
+        password,
+        rememberMe,
+      })
       if (signInError) {
         setError(signInError.message ?? 'Sign in failed')
       } else {
+        toast.success(m.auth_toast_signed_in())
         navigate({ to: '/' })
       }
+    } catch {
+      toast.error(m.auth_toast_error())
     } finally {
       setLoading(false)
     }
@@ -44,111 +52,140 @@ function LoginPage() {
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault()
     setError('')
-    setMessage('')
     setLoading(true)
     try {
       const { error: mlError } = await authClient.signIn.magicLink({ email: magicLinkEmail })
       if (mlError) {
         setError(mlError.message ?? 'Failed to send magic link')
       } else {
-        setMessage('Check your email for a magic link.')
+        toast.success(m.auth_toast_magic_link_sent())
+        navigate({
+          to: '/magic-link-sent',
+          search: { email: magicLinkEmail },
+        })
       }
+    } catch {
+      toast.error(m.auth_toast_error())
     } finally {
       setLoading(false)
     }
   }
 
   async function handleOAuth(provider: 'google' | 'github') {
-    await authClient.signIn.social({ provider })
+    setOauthLoading(provider)
+    try {
+      await authClient.signIn.social({ provider })
+    } catch {
+      toast.error(m.auth_toast_error())
+      setOauthLoading(null)
+    }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Sign In</CardTitle>
-          <CardDescription>Sign in to your account</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {error && <p className="text-sm text-destructive text-center">{error}</p>}
-          {message && <p className="text-sm text-muted-foreground text-center">{message}</p>}
+    <AuthLayout title={m.auth_sign_in_title()} description={m.auth_sign_in_desc()}>
+      {error && (
+        <p role="alert" aria-live="polite" className="text-sm text-destructive text-center">
+          {error}
+        </p>
+      )}
 
-          <form onSubmit={handleEmailLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign in'}
-            </Button>
-          </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" type="button" onClick={() => handleOAuth('google')}>
-              Google
-            </Button>
-            <Button variant="outline" type="button" onClick={() => handleOAuth('github')}>
-              GitHub
-            </Button>
-          </div>
-
-          <form onSubmit={handleMagicLink} className="space-y-2">
-            <Label htmlFor="magic-email">Magic Link</Label>
-            <div className="flex gap-2">
-              <Input
-                id="magic-email"
-                type="email"
-                placeholder="your@email.com"
-                value={magicLinkEmail}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setMagicLinkEmail(e.target.value)
-                }
-                required
-              />
-              <Button type="submit" variant="outline" disabled={loading}>
-                Send
-              </Button>
-            </div>
-          </form>
-
-          <p className="text-center text-sm text-muted-foreground">
-            Don't have an account?{' '}
-            <Link to="/register" className="underline hover:text-foreground">
-              Register
+      <form onSubmit={handleEmailLogin} aria-busy={loading} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">{m.auth_email()}</Label>
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+            required
+            disabled={loading}
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">{m.auth_password()}</Label>
+            <Link
+              to="/reset-password"
+              className="text-sm text-muted-foreground underline hover:text-foreground"
+            >
+              {m.auth_forgot_password()}
             </Link>
-          </p>
-          <p className="text-center text-sm text-muted-foreground">
-            <Link to="/reset-password" className="underline hover:text-foreground">
-              Forgot password?
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+          </div>
+          <PasswordInput
+            id="password"
+            value={password}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+            required
+            disabled={loading}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="remember"
+            checked={rememberMe}
+            onCheckedChange={(checked) => setRememberMe(checked === true)}
+          />
+          <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
+            {m.auth_remember_me()}
+          </Label>
+        </div>
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? m.auth_signing_in() : m.auth_sign_in_button()}
+        </Button>
+      </form>
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-card px-2 text-muted-foreground">{m.auth_or()}</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <OAuthButton
+          provider="google"
+          loading={oauthLoading === 'google'}
+          disabled={loading || oauthLoading !== null}
+          onClick={() => handleOAuth('google')}
+        >
+          {m.auth_sign_in_with_google()}
+        </OAuthButton>
+        <OAuthButton
+          provider="github"
+          loading={oauthLoading === 'github'}
+          disabled={loading || oauthLoading !== null}
+          onClick={() => handleOAuth('github')}
+        >
+          {m.auth_sign_in_with_github()}
+        </OAuthButton>
+      </div>
+
+      <form onSubmit={handleMagicLink} aria-busy={loading} className="space-y-2">
+        <Label htmlFor="magic-email">{m.auth_magic_link()}</Label>
+        <div className="flex gap-2">
+          <Input
+            id="magic-email"
+            type="email"
+            placeholder={m.auth_magic_link_placeholder()}
+            value={magicLinkEmail}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMagicLinkEmail(e.target.value)}
+            required
+            disabled={loading}
+          />
+          <Button type="submit" variant="outline" disabled={loading}>
+            {m.auth_send_magic_link()}
+          </Button>
+        </div>
+      </form>
+
+      <p className="text-center text-sm text-muted-foreground">
+        {m.auth_no_account()}{' '}
+        <Link to="/register" className="underline hover:text-foreground">
+          {m.auth_register_link()}
+        </Link>
+      </p>
+    </AuthLayout>
   )
 }

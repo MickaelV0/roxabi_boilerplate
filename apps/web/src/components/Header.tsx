@@ -2,12 +2,16 @@ import { Button } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
 import { BookOpenIcon, Menu, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useSession } from '@/lib/auth-client'
 import { m } from '@/paraglide/messages'
 import { GithubIcon } from './GithubIcon'
 import { LocaleSwitcher } from './LocaleSwitcher'
+import { OrgSwitcher } from './OrgSwitcher'
 import { ThemeToggle } from './ThemeToggle'
+import { UserMenu } from './UserMenu'
 
 export function Header() {
+  const { data: session } = useSession()
   const [mobileOpen, setMobileOpen] = useState(false)
   const mobileRef = useRef<HTMLDivElement>(null)
 
@@ -67,11 +71,31 @@ export function Header() {
           </Button>
         </div>
 
-        {/* Right side: switchers + mobile toggle */}
+        {/* Right side */}
         <div className="flex items-center gap-1">
           <LocaleSwitcher />
           <ThemeToggle />
           <GithubIcon />
+          {session ? (
+            <div className="hidden items-center gap-1 md:flex">
+              <OrgSwitcher />
+              <UserMenu />
+            </div>
+          ) : (
+            <div className="hidden items-center gap-1 md:flex">
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/login">{m.nav_sign_in()}</Link>
+              </Button>
+              <Button size="sm" asChild>
+                <Link to="/register">{m.nav_sign_up()}</Link>
+              </Button>
+            </div>
+          )}
+          {session && (
+            <div className="md:hidden">
+              <UserMenu />
+            </div>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -122,6 +146,21 @@ export function Header() {
                 {m.nav_docs()}
               </a>
             </Button>
+            {!session && (
+              <>
+                <hr className="my-1 border-border" />
+                <Button variant="ghost" size="sm" className="justify-start" asChild>
+                  <Link to="/login" onClick={() => setMobileOpen(false)}>
+                    {m.nav_sign_in()}
+                  </Link>
+                </Button>
+                <Button size="sm" className="justify-start" asChild>
+                  <Link to="/register" onClick={() => setMobileOpen(false)}>
+                    {m.nav_sign_up()}
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       )}

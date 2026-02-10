@@ -68,6 +68,10 @@ export {
   NavigationMenuViewport,
   navigationMenuTriggerStyle,
 } from './components/NavigationMenu'
+export type { OAuthButtonProps, OAuthProvider } from './components/OAuthButton'
+export { OAuthButton, oAuthButtonVariants } from './components/OAuthButton'
+export type { PasswordInputProps, PasswordStrength } from './components/PasswordInput'
+export { calculateStrength, PASSWORD_RULES, PasswordInput } from './components/PasswordInput'
 export {
   Select,
   SelectContent,
@@ -83,6 +87,8 @@ export {
 export { Separator } from './components/Separator'
 export { Skeleton } from './components/Skeleton'
 export { Slider } from './components/Slider'
+export type { ToasterProps } from './components/Sonner'
+export { Toaster } from './components/Sonner'
 export { Switch } from './components/Switch'
 export { Textarea } from './components/Textarea'
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './components/Tooltip'

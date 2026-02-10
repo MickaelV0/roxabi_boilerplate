@@ -18,6 +18,7 @@ export class AuthService {
     this.auth = createBetterAuth(db, emailProvider, {
       secret: config.getOrThrow<string>('BETTER_AUTH_SECRET'),
       baseURL: config.get<string>('BETTER_AUTH_URL', 'http://localhost:3001'),
+      appURL: config.get<string>('APP_URL', 'http://localhost:3000'),
       googleClientId: config.get<string>('GOOGLE_CLIENT_ID'),
       googleClientSecret: config.get<string>('GOOGLE_CLIENT_SECRET'),
       githubClientId: config.get<string>('GITHUB_CLIENT_ID'),
