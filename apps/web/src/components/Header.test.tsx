@@ -59,12 +59,31 @@ vi.mock('@/paraglide/messages', () => ({
     nav_home: () => 'Home',
     nav_demos: () => 'Demos',
     nav_docs: () => 'Docs',
+    nav_sign_in: () => 'Sign In',
+    nav_sign_up: () => 'Sign Up',
     menu_open: () => 'Open menu',
     menu_close: () => 'Close menu',
     github_label: () => 'GitHub',
     language_label: () => 'Language',
     theme_toggle: () => 'Toggle theme',
   },
+}))
+
+vi.mock('@/lib/auth-client', () => ({
+  useSession: () => ({ data: null }),
+  authClient: {
+    useActiveOrganization: () => ({ data: null }),
+    useListOrganizations: () => ({ data: null }),
+    organization: { setActive: vi.fn(), create: vi.fn() },
+  },
+}))
+
+vi.mock('./UserMenu', () => ({
+  UserMenu: () => <div data-testid="user-menu" />,
+}))
+
+vi.mock('./OrgSwitcher', () => ({
+  OrgSwitcher: () => <div data-testid="org-switcher" />,
 }))
 
 vi.mock('@/lib/config', () => ({

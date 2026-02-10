@@ -11,6 +11,8 @@
   "nav_docs": "Docs",
   "theme_toggle": "Toggle theme",
   "github_label": "GitHub",
+  "nav_sign_in": "Sign In",
+  "nav_sign_up": "Sign Up",
   "menu_open": "Open menu",
   "menu_close": "Close menu",
   "hero_badge": "Open-Source SaaS Boilerplate",
@@ -89,6 +91,13 @@
   "cta_subtitle": "Clone the repo and ship your first feature in under 5 minutes.",
   "cta_button": "Get Started",
   "footer_copyright": "© {year} Roxabi. Open-source under MIT.",
+
+  "user_menu_label": "User menu",
+  "user_menu_profile": "Profile",
+  "user_menu_org_settings": "Organization Settings",
+  "user_menu_org_members": "Members",
+  "user_menu_sign_out": "Sign Out",
+  "user_menu_signing_out": "Signing out…",
 
   "auth_sign_in_title": "Sign In",
   "auth_sign_in_desc": "Sign in to your account",

@@ -11,6 +11,8 @@
   "nav_docs": "Docs",
   "theme_toggle": "Changer le thème",
   "github_label": "GitHub",
+  "nav_sign_in": "Connexion",
+  "nav_sign_up": "Inscription",
   "menu_open": "Ouvrir le menu",
   "menu_close": "Fermer le menu",
   "hero_badge": "Boilerplate SaaS Open-Source",
@@ -89,6 +91,13 @@
   "cta_subtitle": "Clonez le repo et livrez votre première feature en moins de 5 minutes.",
   "cta_button": "Commencer",
   "footer_copyright": "© {year} Roxabi. Open-source sous licence MIT.",
+
+  "user_menu_label": "Menu utilisateur",
+  "user_menu_profile": "Profil",
+  "user_menu_org_settings": "Paramètres de l'organisation",
+  "user_menu_org_members": "Membres",
+  "user_menu_sign_out": "Déconnexion",
+  "user_menu_signing_out": "Déconnexion…",
 
   "auth_sign_in_title": "Connexion",
   "auth_sign_in_desc": "Connectez-vous à votre compte",
