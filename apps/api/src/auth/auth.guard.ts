@@ -6,12 +6,23 @@ import {
   UnauthorizedException,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
+import type { Role } from '@repo/types'
 import type { FastifyRequest } from 'fastify'
 import { AuthService } from './auth.service.js'
 
 type AuthSession = {
   user: { id: string; role?: string }
   session: { id: string; activeOrganizationId?: string | null }
+}
+
+function isAuthSession(value: unknown): value is AuthSession {
+  if (value === null || value === undefined) return false
+  const v = value as Record<string, unknown>
+  if (typeof v.user !== 'object' || v.user === null) return false
+  if (typeof v.session !== 'object' || v.session === null) return false
+  const user = v.user as Record<string, unknown>
+  const session = v.session as Record<string, unknown>
+  return typeof user.id === 'string' && typeof session.id === 'string'
 }
 
 type AuthenticatedRequest = FastifyRequest & {
@@ -34,7 +45,8 @@ export class AuthGuard implements CanActivate {
     if (isPublic) return true
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>()
-    const session = (await this.authService.getSession(request)) as AuthSession | null
+    const raw = await this.authService.getSession(request)
+    const session = isAuthSession(raw) ? raw : null
 
     request.session = session
     request.user = session?.user ?? null
@@ -46,7 +58,7 @@ export class AuthGuard implements CanActivate {
     if (!session && isOptional) return true
     if (!session) throw new UnauthorizedException()
 
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>('ROLES', [
+    const requiredRoles = this.reflector.getAllAndOverride<Role[]>('ROLES', [
       context.getHandler(),
       context.getClass(),
     ])
