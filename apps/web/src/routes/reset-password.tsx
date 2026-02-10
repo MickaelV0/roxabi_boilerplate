@@ -38,10 +38,18 @@ function ResetPasswordPage() {
 
   return (
     <AuthLayout title={m.auth_reset_password_title()} description={m.auth_reset_password_desc()}>
-      {error && <p className="text-sm text-destructive text-center">{error}</p>}
-      {message && <p className="text-sm text-muted-foreground text-center">{message}</p>}
+      {error && (
+        <p role="alert" aria-live="polite" className="text-sm text-destructive text-center">
+          {error}
+        </p>
+      )}
+      {message && (
+        <p aria-live="polite" className="text-sm text-muted-foreground text-center">
+          {message}
+        </p>
+      )}
 
-      <form onSubmit={handleRequestReset} className="space-y-4">
+      <form onSubmit={handleRequestReset} aria-busy={loading} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">{m.auth_email()}</Label>
           <Input

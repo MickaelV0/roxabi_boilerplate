@@ -77,9 +77,13 @@ function LoginPage() {
 
   return (
     <AuthLayout title={m.auth_sign_in_title()} description={m.auth_sign_in_desc()}>
-      {error && <p className="text-sm text-destructive text-center">{error}</p>}
+      {error && (
+        <p role="alert" aria-live="polite" className="text-sm text-destructive text-center">
+          {error}
+        </p>
+      )}
 
-      <form onSubmit={handleEmailLogin} className="space-y-4">
+      <form onSubmit={handleEmailLogin} aria-busy={loading} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">{m.auth_email()}</Label>
           <Input
@@ -153,7 +157,7 @@ function LoginPage() {
         </OAuthButton>
       </div>
 
-      <form onSubmit={handleMagicLink} className="space-y-2">
+      <form onSubmit={handleMagicLink} aria-busy={loading} className="space-y-2">
         <Label htmlFor="magic-email">{m.auth_magic_link()}</Label>
         <div className="flex gap-2">
           <Input

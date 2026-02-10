@@ -28,7 +28,9 @@ function ResetPasswordConfirmPage() {
     return (
       <AuthLayout title={m.auth_reset_confirm_title()} description={m.auth_reset_confirm_desc()}>
         <div className="text-center space-y-4">
-          <p className="text-sm text-destructive">{m.auth_missing_token()}</p>
+          <p role="alert" aria-live="polite" className="text-sm text-destructive">
+            {m.auth_missing_token()}
+          </p>
           <Button asChild variant="outline">
             <Link to="/reset-password">{m.auth_request_new_reset()}</Link>
           </Button>
@@ -63,14 +65,16 @@ function ResetPasswordConfirmPage() {
     <AuthLayout title={m.auth_reset_confirm_title()} description={m.auth_reset_confirm_desc()}>
       {error && (
         <div className="text-center space-y-2">
-          <p className="text-sm text-destructive">{error}</p>
+          <p role="alert" aria-live="polite" className="text-sm text-destructive">
+            {error}
+          </p>
           <Button asChild variant="link" className="h-auto p-0">
             <Link to="/reset-password">{m.auth_request_new_reset()}</Link>
           </Button>
         </div>
       )}
 
-      <form onSubmit={handleReset} className="space-y-4">
+      <form onSubmit={handleReset} aria-busy={loading} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="new-password">{m.auth_new_password()}</Label>
           <PasswordInput

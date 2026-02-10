@@ -55,10 +55,18 @@ function RegisterPage() {
 
   return (
     <AuthLayout title={m.auth_register_title()} description={m.auth_register_desc()}>
-      {error && <p className="text-sm text-destructive text-center">{error}</p>}
-      {message && <p className="text-sm text-muted-foreground text-center">{message}</p>}
+      {error && (
+        <p role="alert" aria-live="polite" className="text-sm text-destructive text-center">
+          {error}
+        </p>
+      )}
+      {message && (
+        <p aria-live="polite" className="text-sm text-muted-foreground text-center">
+          {message}
+        </p>
+      )}
 
-      <form onSubmit={handleRegister} className="space-y-4">
+      <form onSubmit={handleRegister} aria-busy={loading} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="name">{m.auth_name()}</Label>
           <Input

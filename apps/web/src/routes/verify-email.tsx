@@ -91,7 +91,7 @@ function VerifyEmailPage() {
   return (
     <AuthLayout title={m.auth_verify_email_title()}>
       <div className="text-center space-y-4">
-        <p className="text-sm text-destructive">
+        <p role="alert" aria-live="polite" className="text-sm text-destructive">
           {!token ? m.auth_missing_token() : m.auth_verification_failed()}
         </p>
         <Button variant="outline" onClick={handleResend} disabled={resending} className="w-full">
