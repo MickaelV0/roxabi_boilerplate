@@ -1,10 +1,13 @@
+import { randomUUID } from 'node:crypto'
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core'
+import { APP_FILTER } from '@nestjs/core'
+import type { FastifyReply, FastifyRequest } from 'fastify'
+import { ClsModule } from 'nestjs-cls'
 import { AppController } from './app.controller.js'
 import { AuthModule } from './auth/auth.module.js'
+import { extractCorrelationId } from './common/correlation-id.util.js'
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js'
-import { CorrelationIdInterceptor } from './common/interceptors/correlation-id.interceptor.js'
 import { validate } from './config/env.validation.js'
 import { DatabaseModule } from './database/database.module.js'
 import { UserModule } from './user/user.module.js'
@@ -13,17 +16,27 @@ import { UserModule } from './user/user.module.js'
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
+      envFilePath: ['../../.env.local', '../../.env', '.env.local', '.env'],
       validate,
+    }),
+    ClsModule.forRoot({
+      global: true,
+      middleware: {
+        mount: true,
+        generateId: true,
+        idGenerator: (req: FastifyRequest) => {
+          return extractCorrelationId(req.headers['x-correlation-id']) ?? randomUUID()
+        },
+        setup: (cls, _req: FastifyRequest, res: FastifyReply) => {
+          res.header('x-correlation-id', cls.getId())
+        },
+      },
     }),
     DatabaseModule,
     AuthModule,
     UserModule,
   ],
   controllers: [AppController],
-  providers: [
-    { provide: APP_FILTER, useClass: AllExceptionsFilter },
-    { provide: APP_INTERCEPTOR, useClass: CorrelationIdInterceptor },
-  ],
+  providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
 })
 export class AppModule {}

@@ -3,16 +3,20 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { AllExceptionsFilter } from './all-exceptions.filter.js'
 
-function createMockHost(headers: Record<string, string> = {}) {
+function createMockCls(id = 'test-id') {
+  return { getId: vi.fn().mockReturnValue(id) }
+}
+
+function createMockHost() {
   const sendFn = vi.fn()
+  const headerFn = vi.fn()
   const statusFn = vi.fn().mockReturnValue({ send: sendFn })
 
   const request = {
     url: '/test',
     method: 'GET',
-    headers: { 'x-correlation-id': 'test-id', ...headers },
   }
-  const response = { status: statusFn }
+  const response = { status: statusFn, header: headerFn }
 
   const host = {
     switchToHttp: () => ({
@@ -27,11 +31,12 @@ function createMockHost(headers: Record<string, string> = {}) {
     return call?.[0] as Record<string, unknown>
   }
 
-  return { host, statusFn, getSentBody } as const
+  return { host, statusFn, headerFn, getSentBody } as const
 }
 
 describe('AllExceptionsFilter', () => {
-  const filter = new AllExceptionsFilter()
+  const cls = createMockCls()
+  const filter = new AllExceptionsFilter(cls as never)
 
   it('should handle HttpException with string response', () => {
     const { host, statusFn, getSentBody } = createMockHost()
@@ -85,13 +90,24 @@ describe('AllExceptionsFilter', () => {
     expect(body.message).toBe('Internal server error')
   })
 
-  it('should use "unknown" when no correlation ID header', () => {
-    const { host, getSentBody } = createMockHost({ 'x-correlation-id': '' })
+  it('should use correlation ID from ClsService', () => {
+    const customCls = createMockCls('custom-correlation-id')
+    const customFilter = new AllExceptionsFilter(customCls as never)
+    const { host, getSentBody } = createMockHost()
+
+    customFilter.catch(new Error('fail'), host as never)
+
+    const body = getSentBody()
+    expect(body.correlationId).toBe('custom-correlation-id')
+    expect(customCls.getId).toHaveBeenCalled()
+  })
+
+  it('should set x-correlation-id response header on errors', () => {
+    const { host, headerFn } = createMockHost()
 
     filter.catch(new Error('fail'), host as never)
 
-    const body = getSentBody()
-    expect(body.correlationId).toBe('unknown')
+    expect(headerFn).toHaveBeenCalledWith('x-correlation-id', 'test-id')
   })
 
   it('should include timestamp and path', () => {
