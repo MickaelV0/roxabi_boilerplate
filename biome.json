@@ -84,7 +84,8 @@
       "!**/*.css",
       "!**/playwright-report",
       "!**/test-results",
-      "!**/reports/licenses.json"
+      "!**/reports/licenses.json",
+      "!**/.vercel"
     ]
   }
 }
