@@ -1,71 +1,169 @@
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label } from '@repo/ui'
-import { createFileRoute } from '@tanstack/react-router'
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  Input,
+  Label,
+} from '@repo/ui'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-
-// TODO: import authClient from '@/lib/auth-client'
-// TODO: import toast from 'sonner'
-// TODO: import Dialog for delete confirmation
-// TODO: import Paraglide messages
+import { toast } from 'sonner'
+import { authClient } from '@/lib/auth-client'
+import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/org/settings')({
   component: OrgSettingsPage,
 })
 
-/**
- * Organization Settings page.
- *
- * Owner can edit org name, slug, and delete the organization.
- * Non-owners see a read-only view.
- */
 function OrgSettingsPage() {
-  // TODO: fetch current organization from auth session
-  // TODO: check user role (owner vs non-owner)
-  // TODO: implement name/slug edit form
-  // TODO: implement save with authClient.organization.update()
-  // TODO: implement delete with confirmation dialog
-  // TODO: implement loading states
-  // TODO: implement i18n with Paraglide messages
+  const navigate = useNavigate()
+  const { data: activeOrg } = authClient.useActiveOrganization()
+  const { data: activeMember } = authClient.useActiveMember()
 
-  const [_name, _setName] = useState('')
-  const [_slug, _setSlug] = useState('')
-  const [_loading, _setLoading] = useState(false)
+  const isOwner = activeMember?.role === 'owner'
+
+  const [name, setName] = useState(activeOrg?.name ?? '')
+  const [slug, setSlug] = useState(activeOrg?.slug ?? '')
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+
+  // Sync state when activeOrg changes
+  if (activeOrg && name === '' && slug === '') {
+    setName(activeOrg.name)
+    setSlug(activeOrg.slug)
+  }
+
+  if (!activeOrg) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6 p-6">
+        <h1 className="text-2xl font-bold">{m.org_settings_title()}</h1>
+        <p className="text-muted-foreground">{m.org_switcher_no_org()}</p>
+      </div>
+    )
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      const { error } = await authClient.organization.update({
+        data: { name, slug },
+      })
+      if (error) {
+        toast.error(error.message ?? m.auth_toast_error())
+      } else {
+        toast.success(m.org_toast_updated())
+      }
+    } catch {
+      toast.error(m.auth_toast_error())
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      const { error } = await authClient.organization.delete({
+        organizationId: activeOrg?.id ?? '',
+      })
+      if (error) {
+        toast.error(error.message ?? m.auth_toast_error())
+      } else {
+        toast.success(m.org_toast_deleted())
+        setDeleteOpen(false)
+        navigate({ to: '/' })
+      }
+    } catch {
+      toast.error(m.auth_toast_error())
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-6">
-      <h1 className="text-2xl font-bold">Organization Settings</h1>
+      <h1 className="text-2xl font-bold">{m.org_settings_title()}</h1>
 
       <Card>
         <CardHeader>
-          <CardTitle>General</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="org-name">Organization Name</Label>
-            {/* TODO: bind to state, read-only for non-owners */}
-            <Input id="org-name" placeholder="My Organization" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="org-slug">Slug</Label>
-            {/* TODO: bind to state, read-only for non-owners */}
-            <Input id="org-slug" placeholder="my-org" />
-          </div>
-          {/* TODO: show save button only for owners */}
-          <Button>Save changes</Button>
-        </CardContent>
-      </Card>
-
-      {/* TODO: danger zone — delete organization (owner only, with confirmation) */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-destructive">Danger Zone</CardTitle>
+          <CardTitle>{m.org_settings_general()}</CardTitle>
+          {!isOwner && <CardDescription>{m.org_settings_read_only()}</CardDescription>}
         </CardHeader>
         <CardContent>
-          {/* TODO: implement delete with Dialog confirmation */}
-          <Button variant="destructive" disabled>
-            Delete organization
-          </Button>
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="org-name">{m.org_name()}</Label>
+              <Input
+                id="org-name"
+                value={name}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+                placeholder={m.org_name_placeholder()}
+                disabled={!isOwner || saving}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="org-slug">{m.org_slug()}</Label>
+              <Input
+                id="org-slug"
+                value={slug}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSlug(e.target.value)}
+                placeholder={m.org_slug_placeholder()}
+                disabled={!isOwner || saving}
+                required
+              />
+            </div>
+            {isOwner && (
+              <Button type="submit" disabled={saving}>
+                {saving ? m.org_settings_saving() : m.org_settings_save()}
+              </Button>
+            )}
+          </form>
         </CardContent>
       </Card>
+
+      {isOwner && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-destructive">{m.org_settings_danger()}</CardTitle>
+            <CardDescription>{m.org_settings_danger_desc()}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+              <DialogTrigger asChild>
+                <Button variant="destructive">{m.org_delete()}</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{m.org_delete_title()}</DialogTitle>
+                  <DialogDescription>{m.org_delete_confirm()}</DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogClose>
+                  <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                    {deleting ? m.org_deleting() : m.org_delete()}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

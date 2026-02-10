@@ -2,12 +2,15 @@ import { Button } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
 import { BookOpenIcon, Menu, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useSession } from '@/lib/auth-client'
 import { m } from '@/paraglide/messages'
 import { GithubIcon } from './GithubIcon'
 import { LocaleSwitcher } from './LocaleSwitcher'
+import { OrgSwitcher } from './OrgSwitcher'
 import { ThemeToggle } from './ThemeToggle'
 
 export function Header() {
+  const { data: session } = useSession()
   const [mobileOpen, setMobileOpen] = useState(false)
   const mobileRef = useRef<HTMLDivElement>(null)
 
@@ -69,6 +72,7 @@ export function Header() {
 
         {/* Right side: switchers + mobile toggle */}
         <div className="flex items-center gap-1">
+          {session && <OrgSwitcher />}
           <LocaleSwitcher />
           <ThemeToggle />
           <GithubIcon />
