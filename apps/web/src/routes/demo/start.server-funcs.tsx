@@ -34,11 +34,19 @@ async function readTodos() {
 
 const getTodos = createServerFn({
   method: 'GET',
-}).handler(async () => await readTodos())
+}).handler(async () => {
+  if (import.meta.env.VITE_ENABLE_DEMO !== 'true') {
+    throw new Error('Not Found')
+  }
+  return await readTodos()
+})
 
 const addTodo = createServerFn({ method: 'POST' })
   .inputValidator((d: string) => d)
   .handler(async ({ data }) => {
+    if (import.meta.env.VITE_ENABLE_DEMO !== 'true') {
+      throw new Error('Not Found')
+    }
     const todos = await readTodos()
     todos.push({ id: todos.length + 1, name: data })
     await fs.promises.writeFile(TODOS_FILE, JSON.stringify(todos, null, 2))

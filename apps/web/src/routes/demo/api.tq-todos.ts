@@ -20,13 +20,13 @@ export const Route = createFileRoute('/demo/api/tq-todos')({
     handlers: {
       GET: () => {
         if (import.meta.env.VITE_ENABLE_DEMO !== 'true') {
-          return new Response('Not Found', { status: 404 })
+          return Response.json({ error: 'Not Found' }, { status: 404 })
         }
         return Response.json(todos)
       },
       POST: async ({ request }) => {
         if (import.meta.env.VITE_ENABLE_DEMO !== 'true') {
-          return new Response('Not Found', { status: 404 })
+          return Response.json({ error: 'Not Found' }, { status: 404 })
         }
         const name = await request.json()
         const todo = {

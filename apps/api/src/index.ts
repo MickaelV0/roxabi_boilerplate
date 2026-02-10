@@ -5,6 +5,7 @@ import { NestFactory } from '@nestjs/core'
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { AppModule } from './app.module.js'
+import { parseCorsOrigins } from './cors.js'
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -71,18 +72,12 @@ async function bootstrap() {
   const nodeEnv = configService.get<string>('NODE_ENV', 'development')
   const isProduction = nodeEnv === 'production'
   const rawOrigins = configService.get<string>('CORS_ORIGIN', 'http://localhost:3000')
-  const origins = rawOrigins
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean)
+  const corsResult = parseCorsOrigins(rawOrigins, isProduction)
 
-  if (isProduction && origins.includes('*')) {
-    logger.warn("CORS wildcard '*' is not allowed in production — ignoring wildcard")
-    const safeOrigins = origins.filter((o) => o !== '*')
-    app.enableCors({ origin: safeOrigins.length > 0 ? safeOrigins : false })
-  } else {
-    app.enableCors({ origin: origins.length === 1 ? origins[0] : origins })
+  if (corsResult.warning) {
+    logger.warn(corsResult.warning)
   }
+  app.enableCors({ origin: corsResult.origins })
 
   // Swagger setup
   const config = new DocumentBuilder()

@@ -6,7 +6,7 @@ import { organization } from 'better-auth/plugins/organization'
 import type { DrizzleDB } from '../database/drizzle.provider.js'
 import type { EmailProvider } from './email/email.provider.js'
 
-function escapeHtml(str: string): string {
+export function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
