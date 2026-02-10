@@ -13,6 +13,7 @@ async function bootstrap() {
       logger: {
         level: process.env.LOG_LEVEL || 'debug',
       },
+      bodyLimit: 1_048_576, // 1 MiB — explicit limit
     })
   )
 
@@ -67,9 +68,21 @@ async function bootstrap() {
   )
 
   // CORS
-  app.enableCors({
-    origin: configService.get<string>('CORS_ORIGIN', 'http://localhost:3000'),
-  })
+  const nodeEnv = configService.get<string>('NODE_ENV', 'development')
+  const isProduction = nodeEnv === 'production'
+  const rawOrigins = configService.get<string>('CORS_ORIGIN', 'http://localhost:3000')
+  const origins = rawOrigins
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean)
+
+  if (isProduction && origins.includes('*')) {
+    logger.warn("CORS wildcard '*' is not allowed in production — ignoring wildcard")
+    const safeOrigins = origins.filter((o) => o !== '*')
+    app.enableCors({ origin: safeOrigins.length > 0 ? safeOrigins : false })
+  } else {
+    app.enableCors({ origin: origins.length === 1 ? origins[0] : origins })
+  }
 
   // Swagger setup
   const config = new DocumentBuilder()

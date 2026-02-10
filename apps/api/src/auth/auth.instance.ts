@@ -6,6 +6,15 @@ import { organization } from 'better-auth/plugins/organization'
 import type { DrizzleDB } from '../database/drizzle.provider.js'
 import type { EmailProvider } from './email/email.provider.js'
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export interface AuthInstanceConfig {
   secret: string
   baseURL: string
@@ -56,7 +65,7 @@ export function createBetterAuth(
         await emailProvider.send({
           to: user.email,
           subject: 'Reset your password',
-          html: `<p>Click <a href="${url}">here</a> to reset your password.</p>`,
+          html: `<p>Click <a href="${escapeHtml(url)}">here</a> to reset your password.</p>`,
         })
       },
     },
@@ -65,7 +74,7 @@ export function createBetterAuth(
         await emailProvider.send({
           to: user.email,
           subject: 'Verify your email',
-          html: `<p>Click <a href="${url}">here</a> to verify your email.</p>`,
+          html: `<p>Click <a href="${escapeHtml(url)}">here</a> to verify your email.</p>`,
         })
       },
     },
@@ -86,7 +95,7 @@ export function createBetterAuth(
           await emailProvider.send({
             to: email,
             subject: 'Sign in to Roxabi',
-            html: `<p>Click <a href="${url}">here</a> to sign in.</p>`,
+            html: `<p>Click <a href="${escapeHtml(url)}">here</a> to sign in.</p>`,
           })
         },
       }),
