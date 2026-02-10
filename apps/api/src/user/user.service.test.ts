@@ -78,5 +78,16 @@ describe('UserService', () => {
         expect.objectContaining({ id: expect.anything() })
       )
     })
+
+    it('should throw UserNotFoundException when user not found', async () => {
+      const { db, chains } = createMockDb()
+      chains.update.returning.mockResolvedValue([])
+
+      const service = new UserService(db as never)
+
+      await expect(service.updateProfile('nonexistent', { name: 'Jane' })).rejects.toThrow(
+        UserNotFoundException
+      )
+    })
   })
 })
