@@ -41,9 +41,9 @@ You need **two Vercel projects** pointing to the same GitHub repository — one 
 |---------|-------|
 | Root Directory | `apps/web` |
 | Framework Preset | Auto-detected (TanStack Start / Nitro) |
-| Build Command | `cd ../.. && bun install && cd apps/web && bun run build` |
-| Output Directory | `.output` |
-| Install Command | Leave empty (handled in build command) |
+| Build Command | `turbo run build` (auto-detected) |
+| Output Directory | `.output` (override the default `dist`) |
+| Install Command | `bun install` (auto-detected) |
 
 #### 3. Add Environment Variables
 
@@ -75,8 +75,8 @@ Vercel auto-detects `src/main.ts` as the NestJS entrypoint. Override the root di
 |---------|-------|
 | Root Directory | `apps/api` |
 | Framework Preset | Auto-detected (NestJS) |
-| Build Command | `cd ../.. && bun install && cd apps/api && bunx nest build` |
-| Install Command | Leave empty (handled in build command) |
+| Build Command | `turbo run build` (auto-detected) |
+| Install Command | `bun install` (auto-detected) |
 
 #### 3. Add Environment Variables
 
