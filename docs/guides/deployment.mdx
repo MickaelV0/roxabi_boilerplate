@@ -24,86 +24,184 @@ No Docker is needed for deployment. Docker configurations (Dockerfiles, `docker-
 
 ---
 
-## Vercel Setup
+## Prerequisites
 
-You need **two Vercel projects** pointing to the same GitHub repository — one for the web app and one for the API.
+Install the Vercel CLI globally:
 
-### Project 1: Web (TanStack Start)
+```bash
+bun add -g vercel
+```
 
-#### 1. Create the Project
+Authenticate:
 
-1. Sign up at [vercel.com](https://vercel.com) and connect your GitHub account
-2. Click **Add New Project** and import the repository
-
-#### 2. Configure Build Settings
-
-| Setting | Value |
-|---------|-------|
-| Root Directory | `apps/web` |
-| Framework Preset | Auto-detected (TanStack Start / Nitro) |
-| Build Command | `turbo run build` (auto-detected) |
-| Output Directory | Auto-detected (`.vercel/output` via Nitro vercel preset) |
-| Install Command | `bun install` (auto-detected) |
-
-#### 3. Add Environment Variables
-
-In **Settings &gt; Environment Variables**:
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `API_URL` | Vercel API project URL | `https://api.roxabi.vercel.app` |
-| `APP_URL` | This project's URL | `https://app.roxabi.vercel.app` |
-
-#### 4. Deploy
-
-Click **Deploy**. Every subsequent push to `main` triggers automatic redeployment.
+```bash
+vercel login
+```
 
 ---
 
-### Project 2: API (NestJS)
+## Initial Setup
 
-#### 1. Create a Second Project
+You need **two Vercel projects** pointing to the same GitHub repository — one for the web app and one for the API.
 
-1. In the Vercel dashboard, click **Add New Project** again
-2. Import the **same repository**
+### 1. Create Projects
 
-#### 2. Configure Build Settings
+Create both projects from the Vercel dashboard (one-time setup):
 
-Vercel auto-detects `src/main.ts` as the NestJS entrypoint. Override the root directory:
+1. Sign up at [vercel.com](https://vercel.com) and connect your GitHub account
+2. Click **Add New Project**, import the repository, set Root Directory to `apps/web`
+3. Repeat for `apps/api`
 
-| Setting | Value |
-|---------|-------|
-| Root Directory | `apps/api` |
-| Framework Preset | Auto-detected (NestJS) |
-| Build Command | `turbo run build` (auto-detected) |
-| Install Command | `bun install` (auto-detected) |
+Build settings are version-controlled in `apps/web/vercel.json` and `apps/api/vercel.json` — no manual configuration needed.
 
-#### 3. Add Environment Variables
+### 2. Link Projects Locally
 
-In **Settings &gt; Environment Variables**:
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DATABASE_URL` | OVH CloudDB connection string | `postgresql://user:pass@host:5432/roxabi` |
-| `CORS_ORIGIN` | Web project URL | `https://app.roxabi.vercel.app` |
-| `BETTER_AUTH_SECRET` | Random 32+ character string | `<random-string>` |
-| `BETTER_AUTH_URL` | This project's URL | `https://api.roxabi.vercel.app` |
-| `APP_URL` | Web project URL | `https://app.roxabi.vercel.app` |
-| `API_URL` | This project's URL | `https://api.roxabi.vercel.app` |
-| `EMAIL_FROM` | Sender email address | `noreply@example.com` |
-
-Generate `BETTER_AUTH_SECRET` with:
+Link each app directory to its Vercel project:
 
 ```bash
-openssl rand -base64 32
+cd apps/web && vercel link
+cd apps/api && vercel link
 ```
 
-#### 4. Important Notes
+Select the matching project when prompted. This creates `.vercel/project.json` in each directory (gitignored).
 
-- Vercel automatically sets `NODE_ENV=production`
-- NestJS runs as a [Vercel Function](https://vercel.com/docs/functions) with [Fluid compute](https://vercel.com/docs/fluid-compute) — auto-scaling, reduced cold starts
-- Free tier: 10s execution limit per request. Pro tier: 60s
-- 250MB max application size (Vercel Functions limitation)
+### 3. Configure Environment Variables
+
+#### Web project
+
+```bash
+cd apps/web
+for env in production preview development; do
+  echo "https://api.roxabi.vercel.app" | vercel env add API_URL "$env"
+  echo "https://app.roxabi.vercel.app" | vercel env add APP_URL "$env"
+done
+```
+
+| Variable | Description |
+|----------|-------------|
+| `API_URL` | Vercel API project URL |
+| `APP_URL` | This project's URL |
+
+#### API project
+
+```bash
+cd apps/api
+
+# Generate auth secret
+SECRET=$(openssl rand -base64 32)
+
+for env in production preview development; do
+  echo "https://app.roxabi.vercel.app" | vercel env add CORS_ORIGIN "$env"
+  echo "$SECRET"                       | vercel env add BETTER_AUTH_SECRET "$env"
+  echo "https://api.roxabi.vercel.app" | vercel env add BETTER_AUTH_URL "$env"
+  echo "https://app.roxabi.vercel.app" | vercel env add APP_URL "$env"
+  echo "https://api.roxabi.vercel.app" | vercel env add API_URL "$env"
+  echo "noreply@yourdomain.com"        | vercel env add EMAIL_FROM "$env"
+done
+```
+
+Add secrets interactively (values not stored in shell history):
+
+```bash
+vercel env add DATABASE_URL production
+vercel env add RESEND_API_KEY production
+```
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `CORS_ORIGIN` | Web project URL (for CORS) |
+| `BETTER_AUTH_SECRET` | Random 32+ character string |
+| `BETTER_AUTH_URL` | This project's URL |
+| `APP_URL` | Web project URL |
+| `API_URL` | This project's URL |
+| `EMAIL_FROM` | Sender email address |
+| `RESEND_API_KEY` | Resend API key for transactional emails |
+
+### 4. Verify
+
+```bash
+cd apps/web && vercel env ls
+cd apps/api && vercel env ls
+```
+
+---
+
+## Daily Operations
+
+### Check Deployment Status
+
+```bash
+cd apps/web && vercel ls    # Web deployments
+cd apps/api && vercel ls    # API deployments
+```
+
+### View Logs
+
+```bash
+vercel logs &lt;deployment-url&gt;
+```
+
+### Inspect a Deployment
+
+```bash
+vercel inspect &lt;deployment-url&gt;
+vercel inspect &lt;deployment-url&gt; --logs   # With build logs
+```
+
+### Rollback
+
+```bash
+vercel promote &lt;previous-deployment-url&gt;
+```
+
+Or find the URL first:
+
+```bash
+vercel ls                                  # Find the working deployment
+vercel promote &lt;url&gt;                       # Promote it to production
+```
+
+### Redeploy
+
+```bash
+vercel redeploy
+```
+
+### Manage Environment Variables
+
+```bash
+vercel env ls                              # List all
+vercel env add SECRET_NAME production      # Add (interactive)
+vercel env rm SECRET_NAME production       # Remove
+vercel env pull .env.local                 # Pull to local file
+```
+
+---
+
+## Build Settings
+
+Build settings are version-controlled in `vercel.json` files — no dashboard configuration needed.
+
+**`apps/web/vercel.json`:**
+
+```json
+{
+  "installCommand": "bun install",
+  "buildCommand": "turbo run build"
+}
+```
+
+**`apps/api/vercel.json`:**
+
+```json
+{
+  "installCommand": "bun install",
+  "buildCommand": "turbo run build"
+}
+```
+
+Nitro (TanStack Start) outputs to `.vercel/output/` using the Vercel Build Output API — no `outputDirectory` override needed.
 
 ---
 
@@ -125,23 +223,24 @@ git diff --quiet HEAD^ HEAD -- apps/api/ packages/types/
 
 ---
 
-## Custom Domains (Optional)
+## Custom Domains
 
-Vercel handles SSL certificates automatically.
+```bash
+cd apps/web && vercel domains add app.yourdomain.com
+cd apps/api && vercel domains add api.yourdomain.com
+```
 
-1. Go to **Settings &gt; Domains** in each project
-2. Add your domain:
-   - Web: `app.yourdomain.com`
-   - API: `api.yourdomain.com`
-3. Configure DNS with a CNAME record pointing to Vercel's target
+Then configure DNS with a CNAME record pointing to `cname.vercel-dns.com`. Vercel handles SSL certificates automatically.
 
 ---
 
-## Rollback
+## Important Notes
 
-1. Go to the **Deployments** tab in the affected Vercel project
-2. Find the previous working deployment
-3. Click the three-dot menu and select **Promote to Production**
+- Vercel automatically sets `NODE_ENV=production`
+- NestJS runs as a [Vercel Function](https://vercel.com/docs/functions) with [Fluid compute](https://vercel.com/docs/fluid-compute) — auto-scaling, reduced cold starts
+- Free tier: 10s execution limit per request. Pro tier: 60s
+- 250MB max application size (Vercel Functions limitation)
+- `API_URL` and `APP_URL` are declared in `turbo.json` build env to ensure Turbo invalidates cache when they change
 
 ---
 
@@ -152,6 +251,5 @@ The repository includes Docker configurations for VPS-based deployment:
 - Multi-stage Dockerfiles for API and web
 - `docker-compose.prod.yml` for container orchestration
 - Nginx reverse proxy configs in `deploy/nginx/`
-- GitHub Actions CD workflow for automated SSH deploy
 
 If you have a VPS with Docker, you can use the Docker build/push/SSH deploy pipeline instead of Vercel. See the full specification at [docs/specs/52-vps-deployment.mdx](/docs/specs/52-vps-deployment).
