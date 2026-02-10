@@ -175,7 +175,9 @@ function OrgMembersPage() {
                   <Label htmlFor="invite-role">{m.org_invite_role()}</Label>
                   <Select
                     value={inviteRole}
-                    onValueChange={(v) => setInviteRole(v as 'admin' | 'member')}
+                    onValueChange={(v) => {
+                      if (v === 'admin' || v === 'member') setInviteRole(v)
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />

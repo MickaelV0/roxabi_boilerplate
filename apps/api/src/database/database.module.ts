@@ -15,12 +15,12 @@ import {
   postgresClientProvider,
 } from './drizzle.provider.js'
 
-interface JournalEntry {
+type JournalEntry = {
   idx: number
   tag: string
 }
 
-interface MigrationJournal {
+type MigrationJournal = {
   entries: JournalEntry[]
 }
 

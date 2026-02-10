@@ -15,7 +15,7 @@ export function escapeHtml(str: string): string {
     .replace(/'/g, '&#39;')
 }
 
-export interface AuthInstanceConfig {
+export type AuthInstanceConfig = {
   secret: string
   baseURL: string
   appURL?: string

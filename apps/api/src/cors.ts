@@ -16,8 +16,8 @@ export function parseCorsOrigins(rawOrigins: string, isProduction: boolean): Cor
         warning: "CORS wildcard '*' is not allowed in production — ignoring wildcard",
       }
     }
-    return { origins: safeOrigins.length === 1 ? (safeOrigins[0] as string) : safeOrigins }
+    return { origins: safeOrigins.length === 1 ? safeOrigins[0]! : safeOrigins }
   }
 
-  return { origins: origins.length === 1 ? (origins[0] as string) : origins }
+  return { origins: origins.length === 1 ? origins[0]! : origins }
 }

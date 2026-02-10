@@ -10,6 +10,16 @@ import {
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { ClsService } from 'nestjs-cls'
 
+function hasMessage(body: unknown): body is { message: string | string[] } {
+  return (
+    typeof body === 'object' &&
+    body !== null &&
+    'message' in body &&
+    (typeof (body as Record<string, unknown>).message === 'string' ||
+      Array.isArray((body as Record<string, unknown>).message))
+  )
+}
+
 @Catch()
 @Injectable()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -32,8 +42,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const body = exception.getResponse()
       if (typeof body === 'string') {
         message = body
-      } else if (typeof body === 'object' && body !== null && 'message' in body) {
-        message = (body as { message: string | string[] }).message
+      } else if (hasMessage(body)) {
+        message = body.message
       } else {
         message = HttpStatus[status] || 'Error'
       }
