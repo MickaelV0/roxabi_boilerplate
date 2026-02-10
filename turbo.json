@@ -16,7 +16,8 @@
         "!**/*.spec.{ts,tsx}",
         "!**/*.stories.{tsx,mdx}"
       ],
-      "outputs": ["dist/**", ".output/**", ".next/**", "build/**"]
+      "outputs": ["dist/**", ".output/**", ".vercel/output/**", ".next/**", "build/**"],
+      "env": ["API_URL", "APP_URL"]
     },
     "typecheck": {
       "dependsOn": ["codegen", "^typecheck", "^build"],
