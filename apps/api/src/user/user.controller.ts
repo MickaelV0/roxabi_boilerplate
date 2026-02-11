@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Patch, UsePipes } from '@nestjs/common'
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 import { Session } from '../auth/decorators/session.decorator.js'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
@@ -13,13 +13,31 @@ const updateProfileSchema = z.object({
 type UpdateProfileDto = z.infer<typeof updateProfileSchema>
 
 @ApiTags('Users')
+@ApiBearerAuth()
 @Controller('api/users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get('me')
   @ApiOperation({ summary: 'Get current user profile' })
-  @ApiResponse({ status: 200, description: 'User profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'User profile',
+    // TODO: Extract a UserProfileDto class once shared DTOs are established
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string', nullable: true },
+        email: { type: 'string' },
+        emailVerified: { type: 'boolean' },
+        image: { type: 'string', nullable: true },
+        role: { type: 'string' },
+        createdAt: { type: 'string', format: 'date-time' },
+        updatedAt: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   async getMe(@Session() session: { user: { id: string } }) {
     return this.userService.getProfile(session.user.id)
@@ -27,7 +45,24 @@ export class UserController {
 
   @Patch('me')
   @ApiOperation({ summary: 'Update current user profile' })
-  @ApiResponse({ status: 200, description: 'Updated user profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'Updated user profile',
+    // TODO: Extract a UserProfileDto class once shared DTOs are established
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string', nullable: true },
+        email: { type: 'string' },
+        emailVerified: { type: 'boolean' },
+        image: { type: 'string', nullable: true },
+        role: { type: 'string' },
+        createdAt: { type: 'string', format: 'date-time' },
+        updatedAt: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   @UsePipes(new ZodValidationPipe(updateProfileSchema))
   async updateMe(@Session() session: { user: { id: string } }, @Body() body: UpdateProfileDto) {
