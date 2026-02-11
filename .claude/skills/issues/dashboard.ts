@@ -313,7 +313,7 @@ interface DepNode {
   targets: number[]
 }
 
-function buildDepGraph(issues: Issue[]): DepNode[] {
+function flattenIssues(issues: Issue[]): Map<number, Issue> {
   const flat = new Map<number, Issue>()
   const collect = (list: Issue[]) => {
     for (const i of list) {
@@ -322,6 +322,11 @@ function buildDepGraph(issues: Issue[]): DepNode[] {
     }
   }
   collect(issues)
+  return flat
+}
+
+function buildDepGraph(issues: Issue[]): DepNode[] {
+  const flat = flattenIssues(issues)
 
   const nodes: DepNode[] = []
   for (const issue of flat.values()) {
@@ -458,44 +463,34 @@ function shortTitle(title: string, max = 22): string {
   return cleaned.length > max ? `${cleaned.slice(0, max - 1)}...` : cleaned
 }
 
-function renderDepGraph(nodes: DepNode[], allIssues: Issue[]): string {
-  if (nodes.length === 0) return '<p class="empty-state">No dependency chains</p>'
+interface GraphDims {
+  nodeWidth: number
+  nodeHeight: number
+  hGap: number
+  vGap: number
+}
 
-  const flat = new Map<number, Issue>()
-  const collect = (list: Issue[]) => {
-    for (const i of list) {
-      flat.set(i.number, i)
-      collect(i.children)
-    }
-  }
-  collect(allIssues)
-
-  // Collect all node numbers that appear in the graph
+function collectGraphNumbers(nodes: DepNode[]): Set<number> {
   const allNumbers = new Set<number>()
   for (const n of nodes) {
     allNumbers.add(n.number)
     for (const t of n.targets) allNumbers.add(t)
   }
+  return allNumbers
+}
 
-  // Build SVG-based graph
-  const nodeWidth = 180
-  const nodeHeight = 36
-  const hGap = 60
-  const vGap = 24
-
-  // Assign columns via topological layers
+function bfsAssignLayers(nodes: DepNode[]): Map<number, number> {
   const col = new Map<number, number>()
-  // Sources (nodes that block others but aren't blocked by anyone in graph)
   const blockedNumbers = new Set(nodes.flatMap((n) => n.targets))
   const sources = nodes.filter((n) => !blockedNumbers.has(n.number))
 
-  // BFS layering
   const queue = sources.map((n) => n.number)
   for (const num of queue) col.set(num, 0)
   const visited = new Set(queue)
 
   while (queue.length > 0) {
-    const num = queue.shift()!
+    const num = queue.shift()
+    if (num === undefined) continue
     const node = nodes.find((n) => n.number === num)
     if (!node) continue
     const myCol = col.get(num) ?? 0
@@ -509,78 +504,124 @@ function renderDepGraph(nodes: DepNode[], allIssues: Issue[]): string {
     }
   }
 
-  // Assign targets that are only targets (never source) a column
+  return col
+}
+
+function groupByColumn(col: Map<number, number>, allNumbers: Set<number>): Map<number, number[]> {
   for (const num of allNumbers) {
     if (!col.has(num)) col.set(num, 0)
   }
 
-  // Group by column
   const columns = new Map<number, number[]>()
   for (const [num, c] of col) {
     if (!columns.has(c)) columns.set(c, [])
-    columns.get(c)!.push(num)
+    columns.get(c)?.push(num)
   }
 
-  const maxCol = Math.max(...columns.keys(), 0)
-  const maxRowCount = Math.max(...[...columns.values()].map((v) => v.length), 1)
+  return columns
+}
 
-  const svgWidth = (maxCol + 1) * (nodeWidth + hGap) + 40
-  const svgHeight = maxRowCount * (nodeHeight + vGap) + 40
-
-  // Position each node
+function computeNodePositions(
+  columns: Map<number, number[]>,
+  dims: GraphDims,
+  svgHeight: number
+): Map<number, { x: number; y: number }> {
   const pos = new Map<number, { x: number; y: number }>()
   for (const [c, nums] of columns) {
-    const x = 20 + c * (nodeWidth + hGap)
-    const totalH = nums.length * nodeHeight + (nums.length - 1) * vGap
+    const x = 20 + c * (dims.nodeWidth + dims.hGap)
+    const totalH = nums.length * dims.nodeHeight + (nums.length - 1) * dims.vGap
     const startY = (svgHeight - totalH) / 2
     nums.forEach((num, i) => {
-      pos.set(num, { x, y: startY + i * (nodeHeight + vGap) })
+      pos.set(num, { x, y: startY + i * (dims.nodeHeight + dims.vGap) })
     })
   }
+  return pos
+}
 
-  const blockColor: Record<string, string> = {
-    blocking: '#d29922',
-    blocked: '#f85149',
-    ready: '#3fb950',
-  }
-
-  let svg = `<svg width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" class="dep-graph">`
-  svg += `<defs><marker id="arrow" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="6" orient="auto"><path d="M0,0 L10,3 L0,6" fill="#8b949e"/></marker></defs>`
-
-  // Draw edges
+function renderSvgEdges(
+  nodes: DepNode[],
+  pos: Map<number, { x: number; y: number }>,
+  dims: GraphDims
+): string {
+  let svg = ''
   for (const node of nodes) {
     const from = pos.get(node.number)
     if (!from) continue
     for (const t of node.targets) {
       const to = pos.get(t)
       if (!to) continue
-      const x1 = from.x + nodeWidth
-      const y1 = from.y + nodeHeight / 2
+      const x1 = from.x + dims.nodeWidth
+      const y1 = from.y + dims.nodeHeight / 2
       const x2 = to.x
-      const y2 = to.y + nodeHeight / 2
-      const cx1 = x1 + hGap / 2
-      const cx2 = x2 - hGap / 2
+      const y2 = to.y + dims.nodeHeight / 2
+      const cx1 = x1 + dims.hGap / 2
+      const cx2 = x2 - dims.hGap / 2
       svg += `<path d="M${x1},${y1} C${cx1},${y1} ${cx2},${y2} ${x2},${y2}" fill="none" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6"/>`
     }
   }
+  return svg
+}
 
-  // Draw nodes
+const BLOCK_COLOR: Record<string, string> = {
+  blocking: '#d29922',
+  blocked: '#f85149',
+  ready: '#3fb950',
+}
+
+function renderSvgNodes(
+  allNumbers: Set<number>,
+  pos: Map<number, { x: number; y: number }>,
+  flat: Map<number, Issue>,
+  dims: GraphDims
+): string {
+  let svg = ''
   for (const num of allNumbers) {
     const p = pos.get(num)
     if (!p) continue
     const issue = flat.get(num)
     const label = issue ? `#${num} ${shortTitle(issue.title, 16)}` : `#${num}`
     const status = issue?.blockStatus ?? 'ready'
-    const color = blockColor[status] ?? '#8b949e'
+    const color = BLOCK_COLOR[status] ?? '#8b949e'
 
     svg += `<g>`
-    svg += `<rect x="${p.x}" y="${p.y}" width="${nodeWidth}" height="${nodeHeight}" rx="6" fill="#161b22" stroke="${color}" stroke-width="1.5"/>`
-    svg += `<text x="${p.x + 10}" y="${p.y + nodeHeight / 2 + 4}" fill="#e6edf3" font-size="12" font-family="-apple-system, sans-serif">${escHtml(label)}</text>`
+    svg += `<rect x="${p.x}" y="${p.y}" width="${dims.nodeWidth}" height="${dims.nodeHeight}" rx="6" fill="#161b22" stroke="${color}" stroke-width="1.5"/>`
+    svg += `<text x="${p.x + 10}" y="${p.y + dims.nodeHeight / 2 + 4}" fill="#e6edf3" font-size="12" font-family="-apple-system, sans-serif">${escHtml(label)}</text>`
     svg += `</g>`
   }
+  return svg
+}
 
+function renderDepGraph(nodes: DepNode[], allIssues: Issue[]): string {
+  if (nodes.length === 0) return '<p class="empty-state">No dependency chains</p>'
+
+  const flat = flattenIssues(allIssues)
+  const allNumbers = collectGraphNumbers(nodes)
+
+  const dims: GraphDims = { nodeWidth: 180, nodeHeight: 36, hGap: 60, vGap: 24 }
+  const col = bfsAssignLayers(nodes)
+  const columns = groupByColumn(col, allNumbers)
+
+  const maxCol = Math.max(...columns.keys(), 0)
+  const maxRowCount = Math.max(...[...columns.values()].map((v) => v.length), 1)
+
+  const svgWidth = (maxCol + 1) * (dims.nodeWidth + dims.hGap) + 40
+  const svgHeight = maxRowCount * (dims.nodeHeight + dims.vGap) + 40
+
+  const pos = computeNodePositions(columns, dims, svgHeight)
+
+  let svg = `<svg width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" class="dep-graph">`
+  svg += `<defs><marker id="arrow" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="6" orient="auto"><path d="M0,0 L10,3 L0,6" fill="#8b949e"/></marker></defs>`
+  svg += renderSvgEdges(nodes, pos, dims)
+  svg += renderSvgNodes(allNumbers, pos, flat, dims)
   svg += `</svg>`
   return svg
+}
+
+function getPRDisplay(pr: PR): { label: string; cssClass: string } {
+  if (pr.isDraft) return { label: 'Draft', cssClass: 'status-backlog' }
+  if (pr.reviewDecision === 'APPROVED') return { label: 'Approved', cssClass: 'status-done' }
+  if (pr.reviewDecision === 'CHANGES_REQUESTED') return { label: 'Changes', cssClass: 'pri-p1' }
+  return { label: 'Open', cssClass: 'status-progress' }
 }
 
 function renderPRs(prs: PR[]): string {
@@ -591,20 +632,7 @@ function renderPRs(prs: PR[]): string {
   </tr></thead><tbody>`
 
   for (const pr of prs) {
-    const statusLabel = pr.isDraft
-      ? 'Draft'
-      : pr.reviewDecision === 'APPROVED'
-        ? 'Approved'
-        : pr.reviewDecision === 'CHANGES_REQUESTED'
-          ? 'Changes'
-          : 'Open'
-    const statusClass = pr.isDraft
-      ? 'status-backlog'
-      : pr.reviewDecision === 'APPROVED'
-        ? 'status-done'
-        : pr.reviewDecision === 'CHANGES_REQUESTED'
-          ? 'pri-p1'
-          : 'status-progress'
+    const { label: statusLabel, cssClass: statusClass } = getPRDisplay(pr)
     const age = timeAgo(pr.updatedAt)
     html += `<tr>
       <td><a href="${escHtml(pr.url)}" target="_blank" rel="noopener">#${pr.number}</a></td>

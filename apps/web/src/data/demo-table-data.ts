@@ -71,12 +71,12 @@ function createRng(seed: number) {
 const newPerson = (num: number, rand: () => number): Person => {
   return {
     id: num,
-    firstName: firstNames[Math.floor(rand() * firstNames.length)]!,
-    lastName: lastNames[Math.floor(rand() * lastNames.length)]!,
+    firstName: firstNames[Math.floor(rand() * firstNames.length)] ?? 'Alice',
+    lastName: lastNames[Math.floor(rand() * lastNames.length)] ?? 'Smith',
     age: Math.floor(rand() * 40),
     visits: Math.floor(rand() * 1000),
     progress: Math.floor(rand() * 100),
-    status: statuses[Math.floor(rand() * statuses.length)]!,
+    status: statuses[Math.floor(rand() * statuses.length)] ?? 'single',
   }
 }
 

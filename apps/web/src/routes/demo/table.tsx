@@ -7,6 +7,7 @@ import type {
   ColumnDef,
   ColumnFiltersState,
   FilterFn,
+  Header,
   SortingFn,
 } from '@tanstack/react-table'
 import {
@@ -155,43 +156,9 @@ function TableDemo() {
           <thead className="bg-muted text-foreground">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  const sortDir = header.column.getIsSorted()
-                  const ariaSortValue = sortDir
-                    ? sortDir === 'asc'
-                      ? ('ascending' as const)
-                      : ('descending' as const)
-                    : ('none' as const)
-                  return (
-                    <th
-                      key={header.id}
-                      colSpan={header.colSpan}
-                      className="px-4 py-3 text-left"
-                      aria-sort={header.column.getCanSort() ? ariaSortValue : undefined}
-                    >
-                      {header.isPlaceholder ? null : (
-                        <>
-                          <div
-                            {...{
-                              className: header.column.getCanSort()
-                                ? 'cursor-pointer select-none hover:text-primary transition-colors'
-                                : '',
-                              onClick: header.column.getToggleSortingHandler(),
-                            }}
-                          >
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                            {sortDir ? { asc: ' 🔼', desc: ' 🔽' }[sortDir] : null}
-                          </div>
-                          {header.column.getCanFilter() ? (
-                            <div className="mt-2">
-                              <Filter column={header.column} />
-                            </div>
-                          ) : null}
-                        </>
-                      )}
-                    </th>
-                  )
-                })}
+                {headerGroup.headers.map((header) => (
+                  <HeaderCell key={header.id} header={header} />
+                ))}
               </tr>
             ))}
           </thead>
@@ -308,6 +275,43 @@ function TableDemo() {
         )}
       </pre>
     </div>
+  )
+}
+
+function HeaderCell({ header }: { header: Header<Person, unknown> }) {
+  const sortDir = header.column.getIsSorted()
+  const ariaSortValue = sortDir
+    ? sortDir === 'asc'
+      ? ('ascending' as const)
+      : ('descending' as const)
+    : ('none' as const)
+  return (
+    <th
+      colSpan={header.colSpan}
+      className="px-4 py-3 text-left"
+      aria-sort={header.column.getCanSort() ? ariaSortValue : undefined}
+    >
+      {header.isPlaceholder ? null : (
+        <>
+          <div
+            {...{
+              className: header.column.getCanSort()
+                ? 'cursor-pointer select-none hover:text-primary transition-colors'
+                : '',
+              onClick: header.column.getToggleSortingHandler(),
+            }}
+          >
+            {flexRender(header.column.columnDef.header, header.getContext())}
+            {sortDir ? { asc: ' 🔼', desc: ' 🔽' }[sortDir] : null}
+          </div>
+          {header.column.getCanFilter() ? (
+            <div className="mt-2">
+              <Filter column={header.column} />
+            </div>
+          ) : null}
+        </>
+      )}
+    </th>
   )
 }
 
