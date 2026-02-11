@@ -89,47 +89,8 @@ gh issue view <number> --json number,title,state 2>/dev/null
 If a GitHub issue is associated, move it to **In Progress** on the project board:
 
 ```bash
-# Get the project item ID for the issue
-ITEM_ID=$(gh api graphql -F query=@- -f projectId="PVT_kwHODEqYK84BOId3" <<'GQL' | jq -r --argjson num <ISSUE_NUMBER> '.data.node.items.nodes[] | select(.content.number == $num) | .id'
-query($projectId: ID!) {
-  node(id: $projectId) {
-    ... on ProjectV2 {
-      items(first: 100) {
-        nodes {
-          id
-          content { ... on Issue { number } }
-        }
-      }
-    }
-  }
-}
-GQL
-)
-
-# Set Status to "In Progress" (use heredoc to avoid shell expansion of GraphQL $ variables)
-gh api graphql -F query=@- \
-  -f projectId="PVT_kwHODEqYK84BOId3" \
-  -f itemId="$ITEM_ID" \
-  -f fieldId="PVTSSF_lAHODEqYK84BOId3zg87HNM" \
-  -f optionId="331d27a4" <<'GQL'
-mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
-  updateProjectV2ItemFieldValue(input: {projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: {singleSelectOptionId: $optionId}}) {
-    projectV2Item { id }
-  }
-}
-GQL
+.claude/skills/issue-triage/triage.sh set <ISSUE_NUMBER> --status "In Progress"
 ```
-
-**Status option IDs reference:**
-
-| Status | Option ID |
-|--------|-----------|
-| Backlog | `df6ee93b` |
-| Analysis | `bec91bb0` |
-| Specs | `ad9a9195` |
-| In Progress | `331d27a4` |
-| Review | `ee30a001` |
-| Done | `bfdc35bd` |
 
 Skip this step if no issue is associated with the scaffold.
 
@@ -137,18 +98,48 @@ Skip this step if no issue is associated with the scaffold.
 
 Extract a slug from the spec title (kebab-case, 3-4 words max).
 
+#### 5.0 Pre-flight: Check for Conflicts
+
+Before creating anything, check for existing branches and worktrees:
+
+```bash
+# Check if branch already exists
+git branch --list "feat/<issue_number>-*"
+
+# Check if worktree directory already exists (Tier M/L)
+ls -d ../roxabi-<issue_number> 2>/dev/null
+
+# Ensure staging is up to date
+git fetch origin staging
+```
+
+**If branch exists:** ask via `AskUserQuestion`:
+- **Reuse existing branch** — switch to it (and its worktree if present)
+- **Delete and recreate** — remove old branch/worktree and start fresh
+- **Abort** — stop scaffolding
+
+**If worktree directory exists but branch doesn't:** clean up with `git worktree remove` first, then proceed.
+
+#### 5.1 Create Branch
+
 **Tier M or L — Worktree:**
 
 ```bash
-git worktree add ../roxabi-<issue_number> -b feat/<issue_number>-<slug>
+git worktree add ../roxabi-<issue_number> -b feat/<issue_number>-<slug> staging
 ```
 
 All subsequent operations run in the worktree directory: `../roxabi-<issue_number>`
 
+Install dependencies in the worktree:
+
+```bash
+cd ../roxabi-<issue_number> && bun install
+```
+
 **Tier S — Direct branch:**
 
 ```bash
-git checkout -b feat/<issue_number>-<slug>
+git checkout -b feat/<issue_number>-<slug> staging
 ```
 
 Stay in the current directory.
@@ -193,6 +184,34 @@ Each stub should:
 - Be syntactically valid TypeScript
 
 **Do NOT generate implementation logic.** Stubs contain only the skeleton: imports, exports, type signatures, and TODO comments.
+
+#### 5.2b Generate Spec-Aware Test Stubs
+
+If a spec exists (found in Step 1 or from the `--spec` argument), read its **Success Criteria** and **Expected Behavior** sections to generate meaningful test stubs instead of empty `describe` blocks.
+
+For each success criterion or expected behavior, create an `it()` block with a descriptive name and a `// TODO: implement` body:
+
+```typescript
+describe('UserProfile', () => {
+  it('should display user avatar', () => {
+    // TODO: implement — Success Criterion: "User avatar is visible on profile page"
+  });
+
+  it('should show edit button for own profile', () => {
+    // TODO: implement — Expected: "Owner sees edit controls"
+  });
+
+  it('should return 404 for non-existent user', () => {
+    // TODO: implement — Edge case: "Non-existent user ID returns 404"
+  });
+});
+```
+
+**Rules:**
+- Map each success criterion to one or more `it()` blocks
+- Map edge cases from the spec to error-path `it()` blocks
+- Keep the `// TODO` comment referencing the spec criterion for traceability
+- If no spec exists, fall back to empty `describe` blocks as before
 
 #### 5.3 Present Scaffold Summary
 

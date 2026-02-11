@@ -108,7 +108,32 @@ Present the complete plan via `AskUserQuestion`:
 1. Task {N} — {reason} (e.g., "defines types used by all other tasks")
 2. Task {N} — {reason}
 3. Task {N} — {reason}
+
+### Recommended Agents (Tier M/L only)
+{agent list} + reviewer + tester
+
+> To spawn: `/teammates add {agent1} {agent2} reviewer tester`
 ```
+
+### Agent Recommendation Logic
+
+For Tier M and L plans, analyze the file paths to recommend agents:
+
+| File path prefix | Agent |
+|-----------------|-------|
+| `apps/web/`, `packages/ui/` | `frontend-dev` |
+| `apps/api/`, `packages/types/` | `backend-dev` |
+| `packages/config/`, root configs | `infra-ops` |
+| `docs/` | `doc-writer` |
+
+**Always include:** `reviewer` + `tester`
+
+**Add if applicable:**
+- `architect` — if the plan involves new modules, cross-domain types, or structural changes
+- `security-auditor` — if the plan touches auth, input validation, or data access
+- `doc-writer` — if the plan creates new architecture or public APIs
+
+**Skip agent recommendation** for Tier S plans (single-agent session).
 
 ## Edge Cases
 

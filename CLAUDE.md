@@ -145,6 +145,8 @@ cd ../roxabi-XXX
 | adr, architecture decision | `adr` | "create an ADR", "list ADRs", "/adr --list" |
 | browser, open website, screenshot | `agent-browser` | "open a website", "take a screenshot", "/agent-browser" |
 | documentation, library docs, lookup | `context7` | "look up React docs", "check API reference", "/context7" |
+| promote, release, staging to main | `promote` | "promote staging", "release to production", "/promote" |
+| deploy, vercel, setup vercel | `vercel:*` | "deploy to Vercel", "set up Vercel", "check Vercel logs" |
 
 **Important notes:**
 - ALWAYS use the appropriate skill even if user doesn't explicitly mention the slash command
@@ -193,7 +195,7 @@ vercel promote <url>             # Promote to production
 vercel redeploy                  # Trigger a redeploy
 ```
 
-**Prefer Vercel CLI over browser automation** for deployment tasks (env vars, redeploys, logs, rollbacks). When browser interaction is needed (e.g., initial project creation, visual verification), use the `/agent-browser` skill instead of Playwright directly.
+**Prefer Vercel CLI over browser automation** for deployment tasks (env vars, redeploys, logs, rollbacks). When browser interaction is needed (e.g., initial project creation, visual verification), use the `/agent-browser` skill.
 
 ## Agent Teams (Experimental)
 

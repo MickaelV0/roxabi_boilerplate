@@ -11,7 +11,7 @@ Review current branch changes (or a specific PR) against the project standards. 
 ## Usage
 
 ```
-/review                    → Review current branch changes vs main
+/review                    → Review current branch changes vs staging
 /review --fix              → Review + apply fixes (no auto-commit)
 /review #42                → Review a specific PR by number
 /review --fix #42          → Review + fix a specific PR
@@ -22,13 +22,13 @@ Review current branch changes (or a specific PR) against the project standards. 
 ### Phase 1 — Gather Changes
 
 1. **Determine the target:**
-   - No PR number: use `git diff main...HEAD` to get all changes on the current branch
+   - No PR number: use `git diff staging...HEAD` to get all changes on the current branch
    - PR number provided: use `gh pr diff <number>` to get the PR diff
 
 2. **List changed files:**
    ```bash
    # Branch mode
-   git diff --name-only main...HEAD
+   git diff --name-only staging...HEAD
 
    # PR mode
    gh pr diff <number> --name-only
@@ -39,6 +39,30 @@ Review current branch changes (or a specific PR) against the project standards. 
 4. **Early exit if no changes:** If the diff is empty, inform the user there is nothing to review and stop.
 
 5. **Large PR warning:** If more than 50 files changed, warn that review quality may degrade and suggest splitting the PR.
+
+### Phase 1.5 — Spec Compliance Check
+
+Check if a spec exists for the linked issue and verify acceptance criteria are met.
+
+1. **Detect the issue number** from the branch name or PR:
+   ```bash
+   # Extract issue number from branch: feat/42-slug → 42
+   git branch --show-current | grep -oP '\d+' | head -1
+   ```
+
+2. **Look for a matching spec:**
+   ```bash
+   ls docs/specs/<issue_number>-*.mdx 2>/dev/null
+   ```
+
+3. **If a spec exists:**
+   - Read the spec file
+   - Extract the **Success Criteria** section (checklist items)
+   - For each criterion, check whether the changed files and diff evidence that it has been implemented
+   - Flag unmet criteria as `issue(blocking):` findings with the criterion text
+   - If all criteria are met, add a `praise:` noting spec compliance
+
+4. **If no spec exists:** skip this phase silently. Not all changes require a spec (Tier S fixes, docs, chores).
 
 ### Phase 2 — Structured Review
 
@@ -63,6 +87,7 @@ Review current branch changes (or a specific PR) against the project standards. 
    |----------|----------|-------|---------------|
    | **Bug** | Blocker | `issue:` / `todo:` | Yes |
    | **Security** | Blocker | `issue:` / `todo:` | Yes |
+   | **Spec gap** | Blocker | `issue:` / `todo:` | Yes |
    | **Standard violation** | Warning | `suggestion(blocking):` | Yes |
    | **Style** | Suggestion | `suggestion(non-blocking):` / `nitpick:` | No |
    | **Architecture** | Discussion | `thought:` / `question:` | No |

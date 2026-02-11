@@ -98,47 +98,8 @@ After creation, display the PR URL.
 If an issue number was detected (from the branch name or user input), move it to **Review** on the project board:
 
 ```bash
-# Get the project item ID for the issue
-ITEM_ID=$(gh api graphql -F query=@- -f projectId="PVT_kwHODEqYK84BOId3" <<'GQL' | jq -r --argjson num <ISSUE_NUMBER> '.data.node.items.nodes[] | select(.content.number == $num) | .id'
-query($projectId: ID!) {
-  node(id: $projectId) {
-    ... on ProjectV2 {
-      items(first: 100) {
-        nodes {
-          id
-          content { ... on Issue { number } }
-        }
-      }
-    }
-  }
-}
-GQL
-)
-
-# Set Status to "Review"
-gh api graphql -F query=@- \
-  -f projectId="PVT_kwHODEqYK84BOId3" \
-  -f itemId="$ITEM_ID" \
-  -f fieldId="PVTSSF_lAHODEqYK84BOId3zg87HNM" \
-  -f optionId="ee30a001" <<'GQL'
-mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
-  updateProjectV2ItemFieldValue(input: {projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: {singleSelectOptionId: $optionId}}) {
-    projectV2Item { id }
-  }
-}
-GQL
+.claude/skills/issue-triage/triage.sh set <ISSUE_NUMBER> --status Review
 ```
-
-**Status option IDs reference:**
-
-| Status | Option ID |
-|--------|-----------|
-| Backlog | `df6ee93b` |
-| Analysis | `bec91bb0` |
-| Specs | `ad9a9195` |
-| In Progress | `331d27a4` |
-| Review | `ee30a001` |
-| Done | `bfdc35bd` |
 
 Skip this step if no issue is associated with the PR.
 
