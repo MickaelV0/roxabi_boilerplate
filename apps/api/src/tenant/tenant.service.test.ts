@@ -1,5 +1,6 @@
-import { ForbiddenException } from '@nestjs/common'
 import { describe, expect, it, vi } from 'vitest'
+import { DatabaseUnavailableException } from './exceptions/database-unavailable.exception.js'
+import { TenantContextMissingException } from './exceptions/tenant-context-missing.exception.js'
 import { TenantService } from './tenant.service.js'
 
 function createMockCls(tenantId: string | null = null) {
@@ -62,17 +63,17 @@ describe('TenantService', () => {
       expect(cls.get).toHaveBeenCalledWith('tenantId')
     })
 
-    it('should throw ForbiddenException when tenantId is null in CLS', async () => {
+    it('should throw TenantContextMissingException when tenantId is null in CLS', async () => {
       // Arrange
       const cls = createMockCls(null)
       const db = createMockDb()
       const service = new TenantService(cls as never, db as never)
 
       // Act & Assert
-      await expect(service.query(vi.fn())).rejects.toThrow(ForbiddenException)
+      await expect(service.query(vi.fn())).rejects.toThrow(TenantContextMissingException)
     })
 
-    it('should throw ForbiddenException with descriptive message when no tenant context', async () => {
+    it('should throw TenantContextMissingException with descriptive message when no tenant context', async () => {
       // Arrange
       const cls = createMockCls(null)
       const db = createMockDb()
@@ -285,22 +286,22 @@ describe('TenantService', () => {
   })
 
   describe('database not available', () => {
-    it('should throw Error when database is null via query()', async () => {
+    it('should throw DatabaseUnavailableException when database is null via query()', async () => {
       // Arrange
       const cls = createMockCls('org-1')
       const service = new TenantService(cls as never, null)
 
       // Act & Assert
-      await expect(service.query(vi.fn())).rejects.toThrow('Database not available')
+      await expect(service.query(vi.fn())).rejects.toThrow(DatabaseUnavailableException)
     })
 
-    it('should throw Error when database is null via queryAs()', async () => {
+    it('should throw DatabaseUnavailableException when database is null via queryAs()', async () => {
       // Arrange
       const cls = createMockCls(null)
       const service = new TenantService(cls as never, null)
 
       // Act & Assert
-      await expect(service.queryAs('org-1', vi.fn())).rejects.toThrow('Database not available')
+      await expect(service.queryAs('org-1', vi.fn())).rejects.toThrow(DatabaseUnavailableException)
     })
   })
 })

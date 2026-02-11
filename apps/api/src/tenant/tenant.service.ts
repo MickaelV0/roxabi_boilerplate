@@ -1,7 +1,16 @@
-import { ForbiddenException, Inject, Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { sql } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
+import { DatabaseUnavailableException } from './exceptions/database-unavailable.exception.js'
+import { TenantContextMissingException } from './exceptions/tenant-context-missing.exception.js'
+
+/** Transaction context passed to tenant-scoped callbacks. */
+type TenantTx = Parameters<NonNullable<DrizzleDB>['transaction']>[0] extends (
+  tx: infer TX
+) => unknown
+  ? TX
+  : never
 
 @Injectable()
 export class TenantService {
@@ -15,19 +24,13 @@ export class TenantService {
    * Reads tenantId from CLS (set by TenantInterceptor).
    * Sets `app.tenant_id` via `set_config()` before running the callback.
    *
-   * @throws ForbiddenException if no tenantId is available in CLS
+   * @throws TenantContextMissingException if no tenantId is available in CLS
    */
-  async query<T>(
-    callback: (
-      tx: Parameters<NonNullable<DrizzleDB>['transaction']>[0] extends (tx: infer TX) => unknown
-        ? TX
-        : never
-    ) => Promise<T>
-  ): Promise<T> {
+  async query<T>(callback: (tx: TenantTx) => Promise<T>): Promise<T> {
     const tenantId = this.cls.get('tenantId') as string | null
 
     if (!tenantId) {
-      throw new ForbiddenException('No tenant context available')
+      throw new TenantContextMissingException()
     }
 
     return this.executeWithTenant(tenantId, callback)
@@ -38,28 +41,16 @@ export class TenantService {
    * Use this for cron jobs, background tasks, or cross-tenant admin operations
    * where no HTTP request (and thus no CLS context) exists.
    */
-  async queryAs<T>(
-    tenantId: string,
-    callback: (
-      tx: Parameters<NonNullable<DrizzleDB>['transaction']>[0] extends (tx: infer TX) => unknown
-        ? TX
-        : never
-    ) => Promise<T>
-  ): Promise<T> {
+  async queryAs<T>(tenantId: string, callback: (tx: TenantTx) => Promise<T>): Promise<T> {
     return this.executeWithTenant(tenantId, callback)
   }
 
-  // TODO: implement the transactional wrapper
   private async executeWithTenant<T>(
     tenantId: string,
-    callback: (
-      tx: Parameters<NonNullable<DrizzleDB>['transaction']>[0] extends (tx: infer TX) => unknown
-        ? TX
-        : never
-    ) => Promise<T>
+    callback: (tx: TenantTx) => Promise<T>
   ): Promise<T> {
     if (!this.db) {
-      throw new Error('Database not available')
+      throw new DatabaseUnavailableException()
     }
 
     return this.db.transaction(async (tx) => {
