@@ -1,4 +1,23 @@
+import { Card, CardDescription, CardHeader, CardTitle } from '@repo/ui'
 import { createFileRoute, Link } from '@tanstack/react-router'
+
+const ssrModes = [
+  {
+    to: '/demo/start/ssr/spa-mode' as const,
+    title: 'SPA Mode',
+    desc: 'Client-side rendered with ssr: false',
+  },
+  {
+    to: '/demo/start/ssr/full-ssr' as const,
+    title: 'Full SSR',
+    desc: 'Server-side rendered with loader data',
+  },
+  {
+    to: '/demo/start/ssr/data-only' as const,
+    title: 'Data Only',
+    desc: 'Data fetched on server, rendered on client',
+  },
+]
 
 export const Route = createFileRoute('/demo/start/ssr/')({
   component: RouteComponent,
@@ -6,36 +25,26 @@ export const Route = createFileRoute('/demo/start/ssr/')({
 
 function RouteComponent() {
   return (
-    <div
-      className="flex items-center justify-center min-h-screen bg-gradient-to-br from-zinc-900 to-black p-4 text-white"
-      style={{
-        backgroundImage:
-          'radial-gradient(50% 50% at 20% 60%, #1a1a1a 0%, #0a0a0a 50%, #000000 100%)',
-      }}
-    >
-      <div className="w-full max-w-2xl p-8 rounded-xl backdrop-blur-md bg-black/50 shadow-xl border-8 border-black/10">
-        <h1 className="text-4xl font-bold mb-8 text-center bg-gradient-to-r from-pink-500 via-purple-500 to-green-400 bg-clip-text text-transparent">
-          SSR Demos
-        </h1>
-        <div className="flex flex-col gap-4">
-          <Link
-            to="/demo/start/ssr/spa-mode"
-            className="text-2xl font-bold py-6 px-8 rounded-lg bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-700 hover:to-pink-600 text-white text-center shadow-lg transform transition-all hover:scale-105 hover:shadow-pink-500/50 border-2 border-pink-400"
-          >
-            SPA Mode
-          </Link>
-          <Link
-            to="/demo/start/ssr/full-ssr"
-            className="text-2xl font-bold py-6 px-8 rounded-lg bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white text-center shadow-lg transform transition-all hover:scale-105 hover:shadow-purple-500/50 border-2 border-purple-400"
-          >
-            Full SSR
-          </Link>
-          <Link
-            to="/demo/start/ssr/data-only"
-            className="text-2xl font-bold py-6 px-8 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white text-center shadow-lg transform transition-all hover:scale-105 hover:shadow-green-500/50 border-2 border-green-400"
-          >
-            Data Only
-          </Link>
+    <div className="min-h-screen bg-background py-12">
+      <div className="mx-auto max-w-2xl px-6">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold">SSR Demos</h1>
+          <p className="mt-2 text-muted-foreground">
+            Compare different server-side rendering strategies
+          </p>
+        </div>
+
+        <div className="grid gap-4">
+          {ssrModes.map((mode) => (
+            <Link key={mode.to} to={mode.to} className="group">
+              <Card className="transition-colors group-hover:border-primary/50">
+                <CardHeader>
+                  <CardTitle className="text-base">{mode.title}</CardTitle>
+                  <CardDescription>{mode.desc}</CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
+          ))}
         </div>
       </div>
     </div>
