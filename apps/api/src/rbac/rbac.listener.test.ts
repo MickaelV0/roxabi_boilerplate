@@ -7,7 +7,8 @@ function chain(terminal: string, value: unknown) {
   for (const m of ['select', 'from', 'where', 'limit', 'update', 'set']) {
     obj[m] = vi.fn().mockReturnValue(obj)
   }
-  obj[terminal].mockResolvedValue(value)
+  // biome-ignore lint: terminal is always a valid key from the list above
+  obj[terminal]!.mockResolvedValue(value)
   return obj
 }
 
