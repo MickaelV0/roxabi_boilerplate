@@ -1,16 +1,8 @@
-import { text, timestamp } from 'drizzle-orm/pg-core'
+import { text } from 'drizzle-orm/pg-core'
 import { organizations } from './auth.schema.js'
 
-/**
- * Reusable timestamp columns for all tables
- */
-export const timestamps = {
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
-    .defaultNow()
-    .notNull()
-    .$onUpdateFn(() => new Date()),
-}
+// Re-export timestamps from dedicated module (avoids circular deps)
+export { timestamps } from './timestamps.js'
 
 /**
  * Tenant column for Row-Level Security (RLS).

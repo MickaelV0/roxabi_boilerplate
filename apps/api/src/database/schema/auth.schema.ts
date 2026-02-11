@@ -1,4 +1,5 @@
-import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core'
+import { timestamps } from './timestamps.js'
 
 const genId = () => crypto.randomUUID()
 
@@ -12,49 +13,53 @@ export const users = pgTable('users', {
   banned: boolean('banned').default(false),
   banReason: text('ban_reason'),
   banExpires: timestamp('ban_expires'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  ...timestamps,
 })
 
-export const sessions = pgTable('sessions', {
-  id: text('id').primaryKey().$defaultFn(genId),
-  userId: text('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  token: text('token').notNull().unique(),
-  expiresAt: timestamp('expires_at').notNull(),
-  ipAddress: text('ip_address'),
-  userAgent: text('user_agent'),
-  activeOrganizationId: text('active_organization_id'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-})
+export const sessions = pgTable(
+  'sessions',
+  {
+    id: text('id').primaryKey().$defaultFn(genId),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    token: text('token').notNull().unique(),
+    expiresAt: timestamp('expires_at').notNull(),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    activeOrganizationId: text('active_organization_id'),
+    ...timestamps,
+  },
+  (table) => [index('sessions_user_id_idx').on(table.userId)]
+)
 
-export const accounts = pgTable('accounts', {
-  id: text('id').primaryKey().$defaultFn(genId),
-  userId: text('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  accountId: text('account_id').notNull(),
-  providerId: text('provider_id').notNull(),
-  accessToken: text('access_token'),
-  refreshToken: text('refresh_token'),
-  accessTokenExpiresAt: timestamp('access_token_expires_at'),
-  refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
-  scope: text('scope'),
-  idToken: text('id_token'),
-  password: text('password'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-})
+export const accounts = pgTable(
+  'accounts',
+  {
+    id: text('id').primaryKey().$defaultFn(genId),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    accountId: text('account_id').notNull(),
+    providerId: text('provider_id').notNull(),
+    accessToken: text('access_token'),
+    refreshToken: text('refresh_token'),
+    accessTokenExpiresAt: timestamp('access_token_expires_at'),
+    refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
+    scope: text('scope'),
+    idToken: text('id_token'),
+    password: text('password'),
+    ...timestamps,
+  },
+  (table) => [index('accounts_user_id_idx').on(table.userId)]
+)
 
 export const verifications = pgTable('verifications', {
   id: text('id').primaryKey().$defaultFn(genId),
   identifier: text('identifier').notNull(),
   value: text('value').notNull(),
   expiresAt: timestamp('expires_at').notNull(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  ...timestamps,
 })
 
 export const organizations = pgTable('organizations', {
@@ -63,31 +68,46 @@ export const organizations = pgTable('organizations', {
   slug: text('slug').unique(),
   logo: text('logo'),
   metadata: text('metadata'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
+  ...timestamps,
 })
 
-export const members = pgTable('members', {
-  id: text('id').primaryKey().$defaultFn(genId),
-  userId: text('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  organizationId: text('organization_id')
-    .notNull()
-    .references(() => organizations.id, { onDelete: 'cascade' }),
-  role: text('role').notNull().default('member'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-})
+export const members = pgTable(
+  'members',
+  {
+    id: text('id').primaryKey().$defaultFn(genId),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    role: text('role').notNull().default('member'),
+    ...timestamps,
+  },
+  (table) => [
+    index('members_user_id_idx').on(table.userId),
+    index('members_organization_id_idx').on(table.organizationId),
+  ]
+)
 
-export const invitations = pgTable('invitations', {
-  id: text('id').primaryKey().$defaultFn(genId),
-  organizationId: text('organization_id')
-    .notNull()
-    .references(() => organizations.id, { onDelete: 'cascade' }),
-  email: text('email').notNull(),
-  role: text('role').notNull().default('member'),
-  status: text('status').notNull().default('pending'),
-  inviterId: text('inviter_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  expiresAt: timestamp('expires_at').notNull(),
-})
+export const invitations = pgTable(
+  'invitations',
+  {
+    id: text('id').primaryKey().$defaultFn(genId),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    role: text('role').notNull().default('member'),
+    status: text('status').notNull().default('pending'),
+    inviterId: text('inviter_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    expiresAt: timestamp('expires_at').notNull(),
+  },
+  (table) => [
+    index('invitations_organization_id_idx').on(table.organizationId),
+    index('invitations_inviter_id_idx').on(table.inviterId),
+    unique('invitations_org_email_unique').on(table.organizationId, table.email),
+  ]
+)
