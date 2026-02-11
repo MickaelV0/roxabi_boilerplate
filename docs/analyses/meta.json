@@ -23,6 +23,8 @@
     "68-auth-ui-ux",
     "89-security-hardening",
     "92-docs-audit-remediation",
-    "21-multi-tenant-rls"
+    "21-multi-tenant-rls",
+    "95-tech-debt-audit-remediation",
+    "24-rbac"
   ]
 }

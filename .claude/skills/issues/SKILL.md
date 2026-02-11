@@ -1,5 +1,5 @@
 ---
-argument-hint: [--json | --priority]
+argument-hint: [--dashboard | --stop | --json | --priority]
 description: List open issues from GitHub project with Status, Size, Priority, and dependencies.
 allowed-tools: Bash, Read
 ---
@@ -9,6 +9,67 @@ allowed-tools: Bash, Read
 List open GitHub issues from the project board with their Status, Size, Priority, and dependency relationships.
 
 ## Instructions
+
+**If `--dashboard` flag is present** (or `$ARGUMENTS` contains `--dashboard`):
+
+1. **Stop any existing instance**, then **launch as a daemon**:
+   ```bash
+   DASH_DIR=".claude/skills/issues"
+   PID_FILE="$DASH_DIR/.dashboard.pid"
+   LOG_FILE="$DASH_DIR/.dashboard.log"
+
+   # Kill previous instance if running
+   if [ -f "$PID_FILE" ]; then
+     OLD_PID=$(cat "$PID_FILE")
+     kill "$OLD_PID" 2>/dev/null && echo "Stopped previous dashboard (PID $OLD_PID)" || true
+     rm -f "$PID_FILE"
+     sleep 1
+   fi
+
+   # Launch as detached daemon
+   nohup bun "$DASH_DIR/dashboard.ts" > "$LOG_FILE" 2>&1 &
+   disown
+
+   # Wait for PID file to appear (confirms server started)
+   for i in 1 2 3 4 5; do
+     [ -f "$PID_FILE" ] && break
+     sleep 1
+   done
+
+   if [ -f "$PID_FILE" ]; then
+     echo "Dashboard running (PID $(cat "$PID_FILE"))"
+   else
+     echo "ERROR: Dashboard failed to start. Check $LOG_FILE"
+   fi
+   ```
+
+2. **Verify** the server responds:
+   ```bash
+   curl -s -o /dev/null -w "HTTP %{http_code}" http://localhost:3333
+   ```
+
+3. Tell the user: "Dashboard running at http://localhost:3333 — refresh for latest data. Stop with `/issues --stop`."
+4. **Stop here** — do NOT run the CLI table below.
+
+---
+
+**If `--stop` flag is present** (or `$ARGUMENTS` contains `--stop`):
+
+1. Stop the running dashboard:
+   ```bash
+   PID_FILE=".claude/skills/issues/.dashboard.pid"
+   if [ -f "$PID_FILE" ]; then
+     kill "$(cat "$PID_FILE")" 2>/dev/null && echo "Dashboard stopped." || echo "Dashboard was not running."
+     rm -f "$PID_FILE"
+   else
+     echo "No dashboard running."
+   fi
+   ```
+2. **Stop here.**
+
+---
+
+**Otherwise (default — CLI table output):**
 
 1. **Run the script** to fetch issues:
    ```bash
@@ -43,6 +104,8 @@ List open GitHub issues from the project board with their Status, Size, Priority
 
 | Flag | Description |
 |------|-------------|
+| `--dashboard` | Launch a live HTML dashboard as a background daemon |
+| `--stop` | Stop the running dashboard daemon |
 | (none) | Table output sorted by Priority, then Size |
 | `--json` | Raw JSON output for programmatic use |
 | `--priority` | Sort by priority (default) |

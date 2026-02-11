@@ -57,3 +57,5 @@ reports/
 # Misc
 *.pem
 .vercel
+.dashboard.pid
+.playwright-mcp/
