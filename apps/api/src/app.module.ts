@@ -12,6 +12,7 @@ import { extractCorrelationId } from './common/correlation-id.util.js'
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js'
 import { validate } from './config/env.validation.js'
 import { DatabaseModule } from './database/database.module.js'
+import { TenantModule } from './tenant/tenant.module.js'
 import { UserModule } from './user/user.module.js'
 
 @Module({
@@ -37,6 +38,7 @@ import { UserModule } from './user/user.module.js'
     EventEmitterModule.forRoot(),
     DatabaseModule,
     AuthModule,
+    TenantModule,
     UserModule,
   ],
   controllers: [AppController],
