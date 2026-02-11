@@ -1,11 +1,5 @@
-import 'reflect-metadata'
 import { describe, expect, it } from 'vitest'
 import { validate } from './env.validation.js'
-
-// Note: enableImplicitConversion in class-transformer relies on emitDecoratorMetadata
-// to coerce strings to numbers. Vitest uses esbuild which doesn't emit decorator metadata,
-// so PORT must be passed as a number in tests. In the real NestJS app (compiled with tsc),
-// string-to-number coercion works automatically.
 
 describe('env validation', () => {
   it('should pass with valid config', () => {
@@ -30,6 +24,7 @@ describe('env validation', () => {
     expect(result.CORS_ORIGIN).toBe('http://localhost:3000')
     expect(result.LOG_LEVEL).toBe('debug')
     expect(result.DATABASE_URL).toBeUndefined()
+    expect(result.APP_URL).toBeUndefined()
   })
 
   it('should accept all valid NODE_ENV values', () => {
@@ -58,6 +53,38 @@ describe('env validation', () => {
   it('should accept a numeric PORT', () => {
     const result = validate({ PORT: 8080 })
     expect(result.PORT).toBe(8080)
+  })
+
+  it('should coerce a string PORT to number', () => {
+    const result = validate({ PORT: '9090' })
+    expect(result.PORT).toBe(9090)
+  })
+
+  describe('APP_URL validation', () => {
+    it('should accept a valid APP_URL', () => {
+      const result = validate({ APP_URL: 'https://app.example.com' })
+      expect(result.APP_URL).toBe('https://app.example.com')
+    })
+
+    it('should throw on invalid APP_URL', () => {
+      expect(() => validate({ APP_URL: 'not-a-url' })).toThrow()
+    })
+
+    it('should allow APP_URL to be omitted', () => {
+      const result = validate({})
+      expect(result.APP_URL).toBeUndefined()
+    })
+  })
+
+  describe('BETTER_AUTH_URL validation', () => {
+    it('should default to http://localhost:3001', () => {
+      const result = validate({})
+      expect(result.BETTER_AUTH_URL).toBe('http://localhost:3001')
+    })
+
+    it('should throw on invalid BETTER_AUTH_URL', () => {
+      expect(() => validate({ BETTER_AUTH_URL: 'not-a-url' })).toThrow()
+    })
   })
 
   describe('BETTER_AUTH_SECRET production guard', () => {

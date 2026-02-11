@@ -1,5 +1,4 @@
 export const baseConfig = {
-  globals: true,
   passWithNoTests: false,
   watch: false,
   reporters: ['default'],

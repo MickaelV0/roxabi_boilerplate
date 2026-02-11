@@ -139,20 +139,20 @@ function TableDemo() {
   }, [table])
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div>
         <DebouncedInput
           value={globalFilter ?? ''}
           onChange={(value) => setGlobalFilter(String(value))}
-          className="w-full p-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          className="w-full p-3 bg-muted text-foreground rounded-lg border border-border focus:ring-2 focus:ring-ring focus:border-transparent outline-none"
           placeholder="Search all columns..."
           aria-label="Search all columns"
         />
       </div>
       <div className="h-4" />
-      <div className="overflow-x-auto rounded-lg border border-gray-700">
-        <table className="w-full text-sm text-gray-200">
-          <thead className="bg-gray-800 text-gray-100">
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="w-full text-sm text-foreground">
+          <thead className="bg-muted text-foreground">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
@@ -174,7 +174,7 @@ function TableDemo() {
                           <div
                             {...{
                               className: header.column.getCanSort()
-                                ? 'cursor-pointer select-none hover:text-blue-400 transition-colors'
+                                ? 'cursor-pointer select-none hover:text-primary transition-colors'
                                 : '',
                               onClick: header.column.getToggleSortingHandler(),
                             }}
@@ -195,10 +195,10 @@ function TableDemo() {
               </tr>
             ))}
           </thead>
-          <tbody className="divide-y divide-gray-700">
+          <tbody className="divide-y divide-border">
             {table.getRowModel().rows.map((row) => {
               return (
-                <tr key={row.id} className="hover:bg-gray-800 transition-colors">
+                <tr key={row.id} className="hover:bg-accent transition-colors">
                   {row.getVisibleCells().map((cell) => {
                     return (
                       <td key={cell.id} className="px-4 py-3">
@@ -213,12 +213,12 @@ function TableDemo() {
         </table>
       </div>
       <div className="h-4" />
-      <div className="flex flex-wrap items-center gap-2 text-gray-200">
+      <div className="flex flex-wrap items-center gap-2 text-foreground">
         <Button
           type="button"
           variant="secondary"
           size="sm"
-          className="bg-gray-800 hover:bg-gray-700"
+          className="bg-muted hover:bg-muted"
           onClick={() => table.setPageIndex(0)}
           disabled={!table.getCanPreviousPage()}
         >
@@ -228,7 +228,7 @@ function TableDemo() {
           type="button"
           variant="secondary"
           size="sm"
-          className="bg-gray-800 hover:bg-gray-700"
+          className="bg-muted hover:bg-muted"
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
         >
@@ -238,7 +238,7 @@ function TableDemo() {
           type="button"
           variant="secondary"
           size="sm"
-          className="bg-gray-800 hover:bg-gray-700"
+          className="bg-muted hover:bg-muted"
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
         >
@@ -248,7 +248,7 @@ function TableDemo() {
           type="button"
           variant="secondary"
           size="sm"
-          className="bg-gray-800 hover:bg-gray-700"
+          className="bg-muted hover:bg-muted"
           onClick={() => table.setPageIndex(table.getPageCount() - 1)}
           disabled={!table.getCanNextPage()}
         >
@@ -269,7 +269,7 @@ function TableDemo() {
               const page = e.target.value ? Number(e.target.value) - 1 : 0
               table.setPageIndex(page)
             }}
-            className="w-16 bg-gray-800 rounded-md border-gray-700"
+            className="w-16 bg-muted rounded-md border-border"
           />
         </span>
         <select
@@ -277,7 +277,7 @@ function TableDemo() {
           onChange={(e) => {
             table.setPageSize(Number(e.target.value))
           }}
-          className="px-2 py-1 bg-gray-800 rounded-md border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          className="px-2 py-1 bg-muted rounded-md border border-border focus:ring-2 focus:ring-ring focus:border-transparent outline-none"
         >
           {[10, 20, 30, 40, 50].map((pageSize) => (
             <option key={pageSize} value={pageSize}>
@@ -286,7 +286,9 @@ function TableDemo() {
           ))}
         </select>
       </div>
-      <div className="mt-4 text-gray-400">{table.getPrePaginationRowModel().rows.length} Rows</div>
+      <div className="mt-4 text-muted-foreground">
+        {table.getPrePaginationRowModel().rows.length} Rows
+      </div>
       <div className="mt-4 flex gap-2">
         <Button type="button" onClick={() => rerender()}>
           Force Rerender
@@ -295,7 +297,7 @@ function TableDemo() {
           Refresh Data
         </Button>
       </div>
-      <pre className="mt-4 p-4 bg-gray-800 rounded-lg text-gray-300 overflow-auto">
+      <pre className="mt-4 p-4 bg-muted rounded-lg text-muted-foreground overflow-auto">
         {JSON.stringify(
           {
             columnFilters: table.getState().columnFilters,
@@ -319,7 +321,7 @@ function Filter({ column }: { column: Column<Person, unknown> }) {
       onChange={(value) => column.setFilterValue(value)}
       placeholder={`Search...`}
       aria-label={`Filter ${column.id}`}
-      className="w-full px-2 py-1 bg-gray-700 text-white rounded-md border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+      className="w-full px-2 py-1 bg-muted text-foreground rounded-md border border-border focus:ring-2 focus:ring-ring focus:border-transparent outline-none"
     />
   )
 }

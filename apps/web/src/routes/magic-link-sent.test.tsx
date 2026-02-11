@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { mockParaglideMessages } from '@/test/mock-messages'
+import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
 const { captured, useSearchFn } = vi.hoisted(() => ({
   captured: { Component: (() => null) as React.ComponentType },

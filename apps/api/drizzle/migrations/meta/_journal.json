@@ -8,6 +8,13 @@
       "when": 1739145600000,
       "tag": "0000_rls_infrastructure",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1770805128340,
+      "tag": "0001_tech-debt-timestamps-indexes",
+      "breakpoints": true
     }
   ]
 }

@@ -12,11 +12,11 @@ Shared TypeScript rules (const assertions, derived unions, type guards, `satisfi
 | Pattern | Example | Source |
 |---------|---------|--------|
 | Symbol injection tokens | `const DRIZZLE = Symbol('DRIZZLE')` | `apps/api/src/database/drizzle.provider.ts` |
-| Decorator validation | `@IsEnum()`, `@IsString()`, `@IsOptional()` | `apps/api/src/config/env.validation.ts` |
+| Zod schema validation | `z.object()`, `z.enum()`, `z.coerce` | `apps/api/src/config/env.validation.ts` |
 
-### Note on `class-validator`
+### Validation with Zod
 
-`class-validator` is currently used for environment variable validation (`env.validation.ts`). It is effectively in maintenance mode. Plan to migrate to Zod when validation needs grow beyond env config. For all new DTO validation, use Zod with a custom `ZodValidationPipe`.
+Use Zod for all validation: environment variables, DTOs, and request bodies. The `ZodValidationPipe` (`apps/api/src/common/pipes/zod-validation.pipe.ts`) applies Zod schemas at the controller boundary via `@UsePipes()`.
 
 ---
 
@@ -291,7 +291,7 @@ Compressed imperative rules for AI agent consumption. No examples, no rationale.
 - `@Global()` only for read-only infrastructure
 - Correlation ID as middleware, not interceptor
 - `OnModuleDestroy` for resource cleanup
-- Zod for new DTO validation, not class-validator
+- Zod for all validation (env, DTOs, request bodies)
 - `useFactory` + `inject` for config-dependent providers
 - Validate all input at controller boundary
 - Always include correlation ID in error logs
