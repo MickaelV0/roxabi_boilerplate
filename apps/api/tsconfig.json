@@ -10,7 +10,8 @@
     "emitDecoratorMetadata": true,
     "noEmit": false,
     "composite": false,
-    "incremental": false
+    "incremental": false,
+    "preserveWatchOutput": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
