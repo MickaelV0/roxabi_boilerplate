@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@repo/ui'
 import { createFileRoute } from '@tanstack/react-router'
 import { Globe } from 'lucide-react'
 import { m } from '@/paraglide/messages'
-import { LocaleSwitcher } from './components/LocaleSwitcher'
+import { LocaleSwitcher } from '../components/LocaleSwitcher'
 
 export const Route = createFileRoute('/demo/i18n')({
   component: I18nDemo,
