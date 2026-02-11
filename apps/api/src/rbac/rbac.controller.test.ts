@@ -25,7 +25,6 @@ describe('RbacController', () => {
 
   describe('listRoles', () => {
     it('should call rbacService.listRoles', async () => {
-      // TODO: implement test
       vi.mocked(mockRbacService.listRoles).mockResolvedValue([])
       const result = await controller.listRoles()
       expect(result).toEqual([])
@@ -33,9 +32,45 @@ describe('RbacController', () => {
     })
   })
 
+  describe('createRole', () => {
+    it('should call rbacService.createRole with body', async () => {
+      const body = { name: 'Editor', permissions: ['roles:read'] }
+      const createdRole = { id: 'r-1', name: 'Editor', slug: 'editor' }
+      vi.mocked(mockRbacService.createRole).mockResolvedValue(createdRole as never)
+
+      const result = await controller.createRole(body)
+
+      expect(result).toEqual(createdRole)
+      expect(mockRbacService.createRole).toHaveBeenCalledWith(body)
+    })
+  })
+
+  describe('updateRole', () => {
+    it('should call rbacService.updateRole with id and body', async () => {
+      const body = { name: 'New Name' }
+      const updatedRole = { id: 'r-1', name: 'New Name', slug: 'new-name' }
+      vi.mocked(mockRbacService.updateRole).mockResolvedValue(updatedRole as never)
+
+      const result = await controller.updateRole('r-1', body)
+
+      expect(result).toEqual(updatedRole)
+      expect(mockRbacService.updateRole).toHaveBeenCalledWith('r-1', body)
+    })
+  })
+
+  describe('deleteRole', () => {
+    it('should call rbacService.deleteRole with id', async () => {
+      vi.mocked(mockRbacService.deleteRole).mockResolvedValue({ deleted: true })
+
+      const result = await controller.deleteRole('r-1')
+
+      expect(result).toEqual({ deleted: true })
+      expect(mockRbacService.deleteRole).toHaveBeenCalledWith('r-1')
+    })
+  })
+
   describe('getRolePermissions', () => {
     it('should call rbacService.getRolePermissions with role id', async () => {
-      // TODO: implement test
       vi.mocked(mockRbacService.getRolePermissions).mockResolvedValue([])
       const result = await controller.getRolePermissions('role-1')
       expect(result).toEqual([])
@@ -45,7 +80,6 @@ describe('RbacController', () => {
 
   describe('listPermissions', () => {
     it('should call permissionService.getAllPermissions', async () => {
-      // TODO: implement test
       vi.mocked(mockPermissionService.getAllPermissions).mockResolvedValue([])
       const result = await controller.listPermissions()
       expect(result).toEqual([])
@@ -55,11 +89,26 @@ describe('RbacController', () => {
 
   describe('transferOwnership', () => {
     it('should call rbacService.transferOwnership with correct args', async () => {
-      // TODO: implement test
       const session = { user: { id: 'user-1' } }
       const body = { targetMemberId: 'member-2' }
-      await controller.transferOwnership(session, body)
+      vi.mocked(mockRbacService.transferOwnership).mockResolvedValue({ transferred: true })
+
+      const result = await controller.transferOwnership(session, body)
+
+      expect(result).toEqual({ transferred: true })
       expect(mockRbacService.transferOwnership).toHaveBeenCalledWith('user-1', 'member-2')
+    })
+  })
+
+  describe('changeMemberRole', () => {
+    it('should call rbacService.changeMemberRole with correct args', async () => {
+      const body = { roleId: 'r-1' }
+      vi.mocked(mockRbacService.changeMemberRole).mockResolvedValue({ updated: true })
+
+      const result = await controller.changeMemberRole('m-1', body)
+
+      expect(result).toEqual({ updated: true })
+      expect(mockRbacService.changeMemberRole).toHaveBeenCalledWith('m-1', 'r-1')
     })
   })
 })

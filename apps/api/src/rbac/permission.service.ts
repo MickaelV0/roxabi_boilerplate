@@ -1,44 +1,55 @@
 import { Inject, Injectable } from '@nestjs/common'
+import { and, eq } from 'drizzle-orm'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
-import { TenantService } from '../tenant/tenant.service.js'
+import { members } from '../database/schema/auth.schema.js'
+import { permissions, rolePermissions } from '../database/schema/rbac.schema.js'
 
 @Injectable()
 export class PermissionService {
-  constructor(
-    @Inject(DRIZZLE) readonly _db: DrizzleDB,
-    readonly _tenantService: TenantService
-  ) {}
+  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
   /**
    * Resolve permissions for a user in an organization.
    * Used by AuthGuard and session extension.
    */
-  async getPermissions(_userId: string, _organizationId: string): Promise<string[]> {
-    // TODO: implement
-    // 1. Look up the member's role_id from members table
-    // 2. Load all permissions for that role via role_permissions join
-    // 3. Return as "resource:action" string array
-    // 4. If role_id is null, return empty array (treated as Viewer fallback)
-    return []
+  async getPermissions(userId: string, organizationId: string): Promise<string[]> {
+    const member = await this.db
+      .select({ roleId: members.roleId })
+      .from(members)
+      .where(and(eq(members.userId, userId), eq(members.organizationId, organizationId)))
+      .limit(1)
+
+    const roleId = member[0]?.roleId
+    if (!roleId) return []
+
+    const rows = await this.db
+      .select({
+        resource: permissions.resource,
+        action: permissions.action,
+      })
+      .from(rolePermissions)
+      .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+      .where(eq(rolePermissions.roleId, roleId))
+
+    return rows.map((r) => `${r.resource}:${r.action}`)
   }
 
   /**
    * Check if a user has a specific permission in an organization.
    */
   async hasPermission(
-    _userId: string,
-    _organizationId: string,
-    _permission: string
+    userId: string,
+    organizationId: string,
+    permission: string
   ): Promise<boolean> {
-    // TODO: implement
-    return false
+    const perms = await this.getPermissions(userId, organizationId)
+    return perms.includes(permission)
   }
 
   /**
    * Get all available permissions (for role management endpoints).
    */
   async getAllPermissions() {
-    // TODO: implement — query the global permissions table
-    return []
+    return this.db.select().from(permissions)
   }
 }

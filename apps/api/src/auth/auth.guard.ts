@@ -2,12 +2,15 @@ import {
   type CanActivate,
   type ExecutionContext,
   ForbiddenException,
+  forwardRef,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import type { Role } from '@repo/types'
 import type { FastifyRequest } from 'fastify'
+import { PermissionService } from '../rbac/permission.service.js'
 import { AuthService } from './auth.service.js'
 
 type AuthSession = {
@@ -34,7 +37,9 @@ type AuthenticatedRequest = FastifyRequest & {
 export class AuthGuard implements CanActivate {
   constructor(
     private readonly authService: AuthService,
-    private readonly reflector: Reflector
+    private readonly reflector: Reflector,
+    @Inject(forwardRef(() => PermissionService))
+    private readonly permissionService: PermissionService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -73,6 +78,29 @@ export class AuthGuard implements CanActivate {
     ])
     if (requireOrg && !session.session.activeOrganizationId) {
       throw new ForbiddenException('No active organization')
+    }
+
+    // RBAC permission check
+    const requiredPermissions = this.reflector.getAllAndOverride<string[]>('PERMISSIONS', [
+      context.getHandler(),
+      context.getClass(),
+    ])
+    if (requiredPermissions?.length) {
+      const orgId = session.session.activeOrganizationId
+      if (!orgId) {
+        throw new ForbiddenException('No active organization')
+      }
+
+      // Superadmin bypass
+      if (session.user.role === 'superadmin') {
+        return true
+      }
+
+      const userPermissions = await this.permissionService.getPermissions(session.user.id, orgId)
+      const hasAll = requiredPermissions.every((p) => userPermissions.includes(p))
+      if (!hasAll) {
+        throw new ForbiddenException('Insufficient permissions')
+      }
     }
 
     return true

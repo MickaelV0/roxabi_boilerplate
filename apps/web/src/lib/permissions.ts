@@ -18,8 +18,6 @@ export function hasPermission(
   session: SessionWithPermissions | null | undefined,
   permission: PermissionString
 ): boolean {
-  // TODO: implement
-  // Check session.permissions array includes the requested permission
   if (!session?.permissions) return false
   return session.permissions.includes(permission)
 }
@@ -31,7 +29,6 @@ export function hasAllPermissions(
   session: SessionWithPermissions | null | undefined,
   permissions: PermissionString[]
 ): boolean {
-  // TODO: implement
   return permissions.every((p) => hasPermission(session, p))
 }
 
@@ -42,6 +39,5 @@ export function hasAnyPermission(
   session: SessionWithPermissions | null | undefined,
   permissions: PermissionString[]
 ): boolean {
-  // TODO: implement
   return permissions.some((p) => hasPermission(session, p))
 }

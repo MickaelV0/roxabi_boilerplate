@@ -1,9 +1,36 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Patch, Post, UsePipes } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { z } from 'zod'
 import { Permissions } from '../auth/decorators/permissions.decorator.js'
 import { Session } from '../auth/decorators/session.decorator.js'
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
 import { PermissionService } from './permission.service.js'
 import { RbacService } from './rbac.service.js'
+
+const createRoleSchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
+  permissions: z.array(z.string()).min(1),
+})
+
+const updateRoleSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).optional(),
+  permissions: z.array(z.string()).optional(),
+})
+
+const transferOwnershipSchema = z.object({
+  targetMemberId: z.string().min(1),
+})
+
+const changeMemberRoleSchema = z.object({
+  roleId: z.string().min(1),
+})
+
+type CreateRoleDto = z.infer<typeof createRoleSchema>
+type UpdateRoleDto = z.infer<typeof updateRoleSchema>
+type TransferOwnershipDto = z.infer<typeof transferOwnershipSchema>
+type ChangeMemberRoleDto = z.infer<typeof changeMemberRoleSchema>
 
 @ApiTags('RBAC')
 @ApiBearerAuth()
@@ -19,55 +46,14 @@ export class RbacController {
   @ApiOperation({ summary: 'List roles for the current organization' })
   @ApiResponse({ status: 200, description: 'List of roles' })
   async listRoles() {
-    // TODO: implement
     return this.rbacService.listRoles()
   }
 
-  @Post()
-  @Permissions('roles:write')
-  @ApiOperation({ summary: 'Create a custom role' })
-  @ApiResponse({ status: 201, description: 'Role created' })
-  @ApiResponse({ status: 409, description: 'Role slug already exists' })
-  async createRole(@Body() _body: { name: string; description?: string; permissions: string[] }) {
-    // TODO: implement — validate body with Zod, call service
-  }
-
-  @Patch(':id')
-  @Permissions('roles:write')
-  @ApiOperation({ summary: 'Update a role' })
-  @ApiResponse({ status: 200, description: 'Role updated' })
-  @ApiResponse({ status: 404, description: 'Role not found' })
-  async updateRole(
-    @Param('id') _id: string,
-    @Body() _body: { name?: string; description?: string; permissions?: string[] }
-  ) {
-    // TODO: implement
-  }
-
-  @Delete(':id')
-  @Permissions('roles:delete')
-  @ApiOperation({ summary: 'Delete a custom role (members fallback to Viewer)' })
-  @ApiResponse({ status: 200, description: 'Role deleted' })
-  @ApiResponse({ status: 404, description: 'Role not found' })
-  async deleteRole(@Param('id') _id: string) {
-    // TODO: implement
-  }
-
-  @Get(':id/permissions')
-  @Permissions('roles:read')
-  @ApiOperation({ summary: 'Get permissions for a specific role' })
-  @ApiResponse({ status: 200, description: 'List of permissions' })
-  async getRolePermissions(@Param('id') _id: string) {
-    // TODO: implement
-    return this.rbacService.getRolePermissions(_id)
-  }
-
-  @Get('/permissions')
+  @Get('permissions')
   @Permissions('roles:read')
   @ApiOperation({ summary: 'List all available permissions' })
   @ApiResponse({ status: 200, description: 'List of all permissions' })
   async listPermissions() {
-    // TODO: implement
     return this.permissionService.getAllPermissions()
   }
 
@@ -75,20 +61,57 @@ export class RbacController {
   @ApiOperation({ summary: 'Transfer organization ownership to another Admin' })
   @ApiResponse({ status: 200, description: 'Ownership transferred' })
   @ApiResponse({ status: 400, description: 'Ownership constraint violated' })
+  @UsePipes(new ZodValidationPipe(transferOwnershipSchema))
   async transferOwnership(
     @Session() session: { user: { id: string } },
-    @Body() _body: { targetMemberId: string }
+    @Body() body: TransferOwnershipDto
   ) {
-    // TODO: implement — Owner-only check (not just permission-based)
-    return this.rbacService.transferOwnership(session.user.id, _body.targetMemberId)
+    return this.rbacService.transferOwnership(session.user.id, body.targetMemberId)
   }
 
-  @Patch('/members/:id/role')
+  @Post()
+  @Permissions('roles:write')
+  @ApiOperation({ summary: 'Create a custom role' })
+  @ApiResponse({ status: 201, description: 'Role created' })
+  @ApiResponse({ status: 409, description: 'Role slug already exists' })
+  @UsePipes(new ZodValidationPipe(createRoleSchema))
+  async createRole(@Body() body: CreateRoleDto) {
+    return this.rbacService.createRole(body)
+  }
+
+  @Get(':id/permissions')
+  @Permissions('roles:read')
+  @ApiOperation({ summary: 'Get permissions for a specific role' })
+  @ApiResponse({ status: 200, description: 'List of permissions' })
+  async getRolePermissions(@Param('id') id: string) {
+    return this.rbacService.getRolePermissions(id)
+  }
+
+  @Patch(':id')
+  @Permissions('roles:write')
+  @ApiOperation({ summary: 'Update a role' })
+  @ApiResponse({ status: 200, description: 'Role updated' })
+  @ApiResponse({ status: 404, description: 'Role not found' })
+  @UsePipes(new ZodValidationPipe(updateRoleSchema))
+  async updateRole(@Param('id') id: string, @Body() body: UpdateRoleDto) {
+    return this.rbacService.updateRole(id, body)
+  }
+
+  @Delete(':id')
+  @Permissions('roles:delete')
+  @ApiOperation({ summary: 'Delete a custom role (members fallback to Viewer)' })
+  @ApiResponse({ status: 200, description: 'Role deleted' })
+  @ApiResponse({ status: 404, description: 'Role not found' })
+  async deleteRole(@Param('id') id: string) {
+    return this.rbacService.deleteRole(id)
+  }
+
+  @Patch('members/:id/role')
   @Permissions('members:write')
   @ApiOperation({ summary: "Change a member's role" })
   @ApiResponse({ status: 200, description: 'Member role updated' })
-  async changeMemberRole(@Param('id') _id: string, @Body() _body: { roleId: string }) {
-    // TODO: implement
-    return this.rbacService.changeMemberRole(_id, _body.roleId)
+  @UsePipes(new ZodValidationPipe(changeMemberRoleSchema))
+  async changeMemberRole(@Param('id') id: string, @Body() body: ChangeMemberRoleDto) {
+    return this.rbacService.changeMemberRole(id, body.roleId)
   }
 }

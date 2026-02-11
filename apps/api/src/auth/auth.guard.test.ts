@@ -15,6 +15,14 @@ function createMockReflector(metadata: Record<string, unknown> = {}) {
   }
 }
 
+function createMockPermissionService(permissions: string[] = []) {
+  return {
+    getPermissions: vi.fn().mockResolvedValue(permissions),
+    hasPermission: vi.fn(),
+    getAllPermissions: vi.fn(),
+  }
+}
+
 function createMockContext(request: Record<string, unknown> = {}) {
   const req = { ...request }
 
@@ -31,13 +39,15 @@ function createMockContext(request: Record<string, unknown> = {}) {
 
 function createGuard(
   session: Record<string, unknown> | null = null,
-  metadata: Record<string, unknown> = {}
+  metadata: Record<string, unknown> = {},
+  permissions: string[] = []
 ) {
   const authService = createMockAuthService(session)
   const reflector = createMockReflector(metadata)
-  const guard = new AuthGuard(authService as never, reflector as never)
+  const permissionService = createMockPermissionService(permissions)
+  const guard = new AuthGuard(authService as never, reflector as never, permissionService as never)
 
-  return { guard, authService, reflector }
+  return { guard, authService, reflector, permissionService }
 }
 
 describe('AuthGuard', () => {
@@ -152,5 +162,76 @@ describe('AuthGuard', () => {
     const result = await guard.canActivate(context as never)
 
     expect(result).toBe(true)
+  })
+
+  describe('PERMISSIONS check', () => {
+    it('should throw ForbiddenException when no active org and permissions required', async () => {
+      const session = {
+        user: { id: 'user-1', role: 'user' },
+        session: { id: 'sess-1', activeOrganizationId: null },
+      }
+      const { guard } = createGuard(session, { PERMISSIONS: ['roles:read'] })
+      const { context } = createMockContext()
+
+      await expect(guard.canActivate(context as never)).rejects.toThrow(ForbiddenException)
+    })
+
+    it('should bypass permission check for superadmin', async () => {
+      const session = {
+        user: { id: 'user-1', role: 'superadmin' },
+        session: { id: 'sess-1', activeOrganizationId: 'org-1' },
+      }
+      const { guard, permissionService } = createGuard(session, {
+        PERMISSIONS: ['roles:read'],
+      })
+      const { context } = createMockContext()
+
+      const result = await guard.canActivate(context as never)
+
+      expect(result).toBe(true)
+      expect(permissionService.getPermissions).not.toHaveBeenCalled()
+    })
+
+    it('should allow when user has required permissions', async () => {
+      const session = {
+        user: { id: 'user-1', role: 'user' },
+        session: { id: 'sess-1', activeOrganizationId: 'org-1' },
+      }
+      const { guard } = createGuard(session, { PERMISSIONS: ['roles:read'] }, [
+        'roles:read',
+        'members:read',
+      ])
+      const { context } = createMockContext()
+
+      const result = await guard.canActivate(context as never)
+
+      expect(result).toBe(true)
+    })
+
+    it('should throw ForbiddenException when user lacks required permissions', async () => {
+      const session = {
+        user: { id: 'user-1', role: 'user' },
+        session: { id: 'sess-1', activeOrganizationId: 'org-1' },
+      }
+      const { guard } = createGuard(session, { PERMISSIONS: ['roles:write'] }, ['roles:read'])
+      const { context } = createMockContext()
+
+      await expect(guard.canActivate(context as never)).rejects.toThrow(
+        new ForbiddenException('Insufficient permissions')
+      )
+    })
+
+    it('should require all permissions when multiple are specified', async () => {
+      const session = {
+        user: { id: 'user-1', role: 'user' },
+        session: { id: 'sess-1', activeOrganizationId: 'org-1' },
+      }
+      const { guard } = createGuard(session, { PERMISSIONS: ['roles:read', 'members:write'] }, [
+        'roles:read',
+      ])
+      const { context } = createMockContext()
+
+      await expect(guard.canActivate(context as never)).rejects.toThrow(ForbiddenException)
+    })
   })
 })
