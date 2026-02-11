@@ -5,12 +5,17 @@ description: Workflow conventions, branching strategy, and contribution guidelin
 
 ## Branching Strategy
 
-We use **GitHub Flow** - a simple, trunk-based workflow optimized for continuous delivery.
+We use a **staging-based flow** — feature branches merge into `staging` for integration, then `staging` is promoted to `main` for production deployment.
 
-### Main Branch
+### Branches
 
-- `main` is always production-ready
-- All changes go through Pull Requests
+| Branch | Purpose | Auto-deploys? |
+|--------|---------|---------------|
+| `main` | Production — always deployable | Yes (Vercel) |
+| `staging` | Integration — default PR target | No (use Deploy Preview action) |
+
+- All feature/fix PRs target `staging`
+- Only `hotfix/*` branches may target `main` directly
 - Protected with required reviews and status checks
 
 ### Branch Naming
@@ -24,15 +29,29 @@ We use **GitHub Flow** - a simple, trunk-based workflow optimized for continuous
 
 ### Workflow
 
+**Normal flow:**
+
 ```
 1. Pick a GitHub Issue
-2. Create feature branch from main
+2. Create feature branch from staging
 3. Implement changes (with tests)
-4. Open Pull Request
+4. Open Pull Request targeting staging
 5. Pass all quality gates
 6. Get review approval
-7. Merge to main
-8. Auto-deploy to production
+7. Merge to staging
+8. (Optional) Trigger Deploy Preview from Actions tab
+9. When ready, promote staging → main for production deploy
+```
+
+**Hotfix flow:**
+
+```
+1. Create hotfix/* branch from main
+2. Implement minimal fix
+3. Open Pull Request targeting main
+4. Pass all quality gates + review
+5. Merge to main → auto-deploys to production
+6. Cherry-pick or merge fix back into staging
 ```
 
 ---
@@ -101,7 +120,7 @@ ci: add coverage reporting to pipeline
 
 ### Before Opening a PR
 
-- [ ] Branch is up-to-date with `main`
+- [ ] Branch is up-to-date with `staging` (or `main` for hotfixes)
 - [ ] All tests pass locally (`bun test`)
 - [ ] Linting passes (`bun lint`)
 - [ ] Types check (`bun typecheck`)
@@ -140,24 +159,30 @@ All PRs must pass before merge:
 
 ### After Merge
 
-When a PR is merged to `main`, deployment happens automatically:
+**Merge to `staging`:**
+- CI runs on the push to staging
+- No automatic deployment — use the **Deploy Preview** GitHub Action to create on-demand preview URLs
 
-1. **Web** (TanStack Start) — Vercel detects the push and deploys
-2. **API** (NestJS) — Vercel detects the push and deploys (zero-config NestJS support)
-3. GitHub Actions runs CI and reports status on the commit
-
-If something breaks, roll back via the Vercel dashboard (Deployments &gt; Promote previous). See the [Deployment Guide](/docs/guides/deployment) for details.
+**Merge to `main`:**
+- Vercel auto-deploys both web and API to production
+- If something breaks, roll back via the Vercel dashboard (Deployments &gt; Promote previous). See the [Deployment Guide](/docs/guides/deployment) for details.
 
 ---
 
 ## Branch Protection
 
-The `main` branch is protected with:
+**`main` branch:**
 
 - Required pull request reviews (1 minimum)
 - Required status checks (CI must pass)
 - Dismiss stale approvals on new commits
 - Require conversation resolution
+- No direct pushes
+- Only `hotfix/*` and `staging` merges allowed
+
+**`staging` branch:**
+
+- Required status checks (CI must pass)
 - No direct pushes
 
 ---

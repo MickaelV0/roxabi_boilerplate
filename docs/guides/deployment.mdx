@@ -5,13 +5,12 @@ description: Deploy Roxabi on Vercel — both web and API on one platform
 
 ## Overview
 
-Roxabi uses a push-to-deploy architecture with **Vercel** as the single deployment platform for both the web app and API.
+Roxabi uses a **staging-based** deployment architecture with **Vercel** as the single platform for both the web app and API.
 
 ```
-Push to main
-  -> GitHub Actions CI (lint, typecheck, test)
-  -> Vercel auto-deploys web app (TanStack Start)
-  -> Vercel auto-deploys API (NestJS — zero-config support)
+Feature branch → PR to staging → CI runs
+                                → (optional) Deploy Preview via GitHub Actions
+staging → PR to main → CI runs → Vercel auto-deploys to production
 ```
 
 | Component | Platform | Details |
@@ -21,6 +20,57 @@ Push to main
 | Database | Neon | Serverless PostgreSQL, not managed by Vercel |
 
 No Docker is needed for deployment. Docker configurations (Dockerfiles, `docker-compose.prod.yml`, Nginx configs, `deploy/`) remain in the repo for local development only.
+
+---
+
+## Branch Strategy
+
+| Flow | Branch path | Deploys? |
+|------|-------------|----------|
+| **Normal** | `feat/*` → PR to `staging` → PR to `main` | Only `main` merges auto-deploy |
+| **Hotfix** | `hotfix/*` → PR to `main` | Auto-deploys immediately |
+
+- `staging` is the default integration branch — all feature PRs target it
+- Merging to `staging` does **not** trigger a Vercel deploy
+- Use the **Deploy Preview** GitHub Action for on-demand preview URLs from staging
+- Only merges to `main` trigger production auto-deploys
+
+---
+
+## Preview Deploys
+
+Preview deploys are **manual only**, triggered via the GitHub Actions tab.
+
+### How to trigger
+
+1. Go to **Actions** → **Deploy Preview**
+2. Click **Run workflow**
+3. Select the branch (typically `staging`)
+4. Choose a target: `web`, `api`, or `both`
+5. Click **Run workflow**
+
+The workflow builds and deploys a Vercel preview. The preview URL appears in the **workflow run summary**.
+
+### When to use
+
+- Before promoting `staging` → `main`, to verify the integration build
+- To share a preview URL with stakeholders for review
+- To smoke-test a specific branch without deploying to production
+
+---
+
+## GitHub Actions Secrets
+
+The **Deploy Preview** workflow requires these repository secrets:
+
+| Secret | Description | Where to find |
+|--------|-------------|---------------|
+| `VERCEL_TOKEN` | Vercel personal access token | [vercel.com/account/tokens](https://vercel.com/account/tokens) |
+| `VERCEL_ORG_ID` | Vercel team/org ID | `.vercel/project.json` → `orgId` (after `vercel link`) |
+| `VERCEL_PROJECT_ID_WEB` | Vercel project ID for web | `apps/web/.vercel/project.json` → `projectId` |
+| `VERCEL_PROJECT_ID_API` | Vercel project ID for API | `apps/api/.vercel/project.json` → `projectId` |
+
+Add them at **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
 
 ---
 
@@ -225,7 +275,7 @@ Both projects use `ignoreCommand` in `vercel.json` to only trigger Vercel builds
 "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" = \"main\" ]"
 ```
 
-Manual preview deploys can still be triggered via the CLI:
+Preview deploys are handled via the **Deploy Preview** GitHub Action (see [Preview Deploys](#preview-deploys) above). You can also trigger them locally via the CLI:
 
 ```bash
 cd apps/web && vercel        # Preview deploy

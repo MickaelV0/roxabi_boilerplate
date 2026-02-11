@@ -23,6 +23,8 @@ Otherwise ───────────────────────�
 | **M** | Feature Light | 3-10 files, local arch | Worktree + light review |
 | **S** | Quick Fix | ≤3 files, no arch, no risk | Direct branch + PR |
 
+> **Branch Strategy:** `staging` is the default integration branch. All feature and fix branches are created from `staging` and PRs target `staging`. Only `hotfix/*` branches may target `main` directly. Merges to `main` trigger production deploys; merges to `staging` do not auto-deploy (use the **Deploy Preview** GitHub Action for on-demand previews).
+
 ---
 
 ## Development Checklist
@@ -92,7 +94,7 @@ Follow this order:
 
 ```bash
 # 1. Create branch
-git checkout -b fix/XXX-description
+git checkout -b fix/XXX-description staging
 
 # 2. Check changes
 git status
@@ -137,7 +139,7 @@ For Tier M and L tasks, consider using **Agent Teams** to parallelize work acros
 ### M.2 — Create Worktree
 
 ```bash
-git worktree add ../roxabi-XXX -b feat/XXX-slug
+git worktree add ../roxabi-XXX -b feat/XXX-slug staging
 cd ../roxabi-XXX
 ```
 
@@ -187,7 +189,7 @@ git worktree remove ../roxabi-XXX
 ### L.2 — Create Worktree
 
 ```bash
-git worktree add ../roxabi-XXX -b feat/XXX-slug
+git worktree add ../roxabi-XXX -b feat/XXX-slug staging
 cd ../roxabi-XXX
 ```
 
@@ -203,7 +205,7 @@ cd ../roxabi-XXX
 4. Update documentation
 
 ### L.5 — Self-Review
-- Review all changes: `git diff main...HEAD`
+- Review all changes: `git diff staging...HEAD`
 - Verify all checklist items
 - Run full test suite: `bun test`
 
