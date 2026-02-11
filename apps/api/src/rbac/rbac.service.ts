@@ -94,6 +94,29 @@ export class RbacService {
   ) {}
 
   /**
+   * Resolve permission strings to IDs and insert into role_permissions.
+   * Shared by createRole, updateRole, and seedDefaultRoles.
+   */
+  private async syncPermissions(
+    tx: { select: DrizzleDB['select']; insert: DrizzleDB['insert'] },
+    roleId: string,
+    permissionStrings: string[]
+  ) {
+    if (permissionStrings.length === 0) return
+
+    const allPerms = await tx.select().from(permissions)
+    const permMap = new Map(allPerms.map((p) => [`${p.resource}:${p.action}`, p.id]))
+
+    const inserts = permissionStrings
+      .map((perm) => ({ roleId, permissionId: permMap.get(perm) }))
+      .filter((e): e is { roleId: string; permissionId: string } => Boolean(e.permissionId))
+
+    if (inserts.length > 0) {
+      await tx.insert(rolePermissions).values(inserts)
+    }
+  }
+
+  /**
    * List all roles for the current tenant organization.
    */
   async listRoles() {
@@ -133,24 +156,7 @@ export class RbacService {
 
       if (!role) throw new Error('Failed to insert role')
 
-      // Resolve permission IDs from permission strings
-      if (data.permissions.length > 0) {
-        const allPerms = await tx.select().from(permissions)
-        const permMap = new Map(allPerms.map((p) => [`${p.resource}:${p.action}`, p.id]))
-
-        const permissionInserts = data.permissions
-          .map((perm) => ({
-            roleId: role.id,
-            permissionId: permMap.get(perm),
-          }))
-          .filter((entry): entry is { roleId: string; permissionId: string } =>
-            Boolean(entry.permissionId)
-          )
-
-        if (permissionInserts.length > 0) {
-          await tx.insert(rolePermissions).values(permissionInserts)
-        }
-      }
+      await this.syncPermissions(tx, role.id, data.permissions)
 
       return role
     })
@@ -187,24 +193,7 @@ export class RbacService {
       // Re-sync permissions if provided
       if (data.permissions) {
         await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId))
-
-        if (data.permissions.length > 0) {
-          const allPerms = await tx.select().from(permissions)
-          const permMap = new Map(allPerms.map((p) => [`${p.resource}:${p.action}`, p.id]))
-
-          const permissionInserts = data.permissions
-            .map((perm) => ({
-              roleId,
-              permissionId: permMap.get(perm),
-            }))
-            .filter((entry): entry is { roleId: string; permissionId: string } =>
-              Boolean(entry.permissionId)
-            )
-
-          if (permissionInserts.length > 0) {
-            await tx.insert(rolePermissions).values(permissionInserts)
-          }
-        }
+        await this.syncPermissions(tx, roleId, data.permissions)
       }
 
       // Return updated role
@@ -409,10 +398,6 @@ export class RbacService {
    * Called on org creation event.
    */
   async seedDefaultRoles(organizationId: string) {
-    // Load all global permissions
-    const allPerms = await this.db.select().from(permissions)
-    const permMap = new Map(allPerms.map((p) => [`${p.resource}:${p.action}`, p.id]))
-
     await this.tenantService.queryAs(organizationId, async (tx) => {
       for (const def of DEFAULT_ROLES) {
         const [role] = await tx
@@ -428,18 +413,7 @@ export class RbacService {
 
         if (!role) continue
 
-        const permissionInserts = def.permissions
-          .map((perm) => ({
-            roleId: role.id,
-            permissionId: permMap.get(perm),
-          }))
-          .filter((entry): entry is { roleId: string; permissionId: string } =>
-            Boolean(entry.permissionId)
-          )
-
-        if (permissionInserts.length > 0) {
-          await tx.insert(rolePermissions).values(permissionInserts)
-        }
+        await this.syncPermissions(tx, role.id, def.permissions)
       }
     })
   }

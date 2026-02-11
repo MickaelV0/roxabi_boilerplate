@@ -63,6 +63,14 @@ export class AuthGuard implements CanActivate {
     if (!session && isOptional) return true
     if (!session) throw new UnauthorizedException()
 
+    this.checkRoles(context, session)
+    this.checkOrgRequired(context, session)
+    await this.checkPermissions(context, session)
+
+    return true
+  }
+
+  private checkRoles(context: ExecutionContext, session: AuthSession) {
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>('ROLES', [
       context.getHandler(),
       context.getClass(),
@@ -71,7 +79,9 @@ export class AuthGuard implements CanActivate {
       const userRole = session.user.role ?? 'user'
       if (!requiredRoles.includes(userRole)) throw new ForbiddenException()
     }
+  }
 
+  private checkOrgRequired(context: ExecutionContext, session: AuthSession) {
     const requireOrg = this.reflector.getAllAndOverride<boolean>('REQUIRE_ORG', [
       context.getHandler(),
       context.getClass(),
@@ -79,30 +89,26 @@ export class AuthGuard implements CanActivate {
     if (requireOrg && !session.session.activeOrganizationId) {
       throw new ForbiddenException('No active organization')
     }
+  }
 
-    // RBAC permission check
+  private async checkPermissions(context: ExecutionContext, session: AuthSession) {
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>('PERMISSIONS', [
       context.getHandler(),
       context.getClass(),
     ])
-    if (requiredPermissions?.length) {
-      const orgId = session.session.activeOrganizationId
-      if (!orgId) {
-        throw new ForbiddenException('No active organization')
-      }
+    if (!requiredPermissions?.length) return
 
-      // Superadmin bypass
-      if (session.user.role === 'superadmin') {
-        return true
-      }
-
-      const userPermissions = await this.permissionService.getPermissions(session.user.id, orgId)
-      const hasAll = requiredPermissions.every((p) => userPermissions.includes(p))
-      if (!hasAll) {
-        throw new ForbiddenException('Insufficient permissions')
-      }
+    const orgId = session.session.activeOrganizationId
+    if (!orgId) {
+      throw new ForbiddenException('No active organization')
     }
 
-    return true
+    if (session.user.role === 'superadmin') return
+
+    const userPermissions = await this.permissionService.getPermissions(session.user.id, orgId)
+    const hasAll = requiredPermissions.every((p) => userPermissions.includes(p))
+    if (!hasAll) {
+      throw new ForbiddenException('Insufficient permissions')
+    }
   }
 }

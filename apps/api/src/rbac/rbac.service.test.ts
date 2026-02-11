@@ -7,9 +7,24 @@ import { OwnershipConstraintException } from './exceptions/ownership-constraint.
 import { RoleNotFoundException } from './exceptions/role-not-found.exception.js'
 import { RbacService } from './rbac.service.js'
 
+type MockFn = ReturnType<typeof vi.fn>
+type MockChain = Record<
+  | 'select'
+  | 'from'
+  | 'where'
+  | 'limit'
+  | 'insert'
+  | 'values'
+  | 'returning'
+  | 'update'
+  | 'set'
+  | 'delete'
+  | 'innerJoin',
+  MockFn
+>
+
 /** Creates a chainable mock where every method returns `this` and the terminal method resolves. */
-function chain(terminal: string, value: unknown) {
-  const obj: Record<string, ReturnType<typeof vi.fn>> = {}
+function chain(terminal: string, value: unknown): MockChain {
   const methods = [
     'select',
     'from',
@@ -22,16 +37,12 @@ function chain(terminal: string, value: unknown) {
     'set',
     'delete',
     'innerJoin',
-  ]
-  for (const m of methods) {
-    obj[m] = vi.fn()
-  }
-  // All non-terminal methods return the chain
+  ] as const
+  const obj = Object.fromEntries(methods.map((m) => [m, vi.fn()])) as MockChain
   for (const m of methods) {
     if (m !== terminal) obj[m].mockReturnValue(obj)
   }
-  // Terminal method resolves
-  obj[terminal].mockResolvedValue(value)
+  obj[terminal as keyof MockChain].mockResolvedValue(value)
   return obj
 }
 
@@ -484,7 +495,13 @@ describe('RbacService', () => {
           return Promise.resolve([{ id: `role-${insertCount}` }])
         })
 
-        const tx = { insert: vi.fn().mockReturnValue(insertChain) }
+        // syncPermissions calls tx.select().from(permissions) to resolve permission IDs
+        const permSelectChain = chain('from', allPerms)
+
+        const tx = {
+          insert: vi.fn().mockReturnValue(insertChain),
+          select: vi.fn().mockReturnValue(permSelectChain),
+        }
         return cb(tx)
       })
 
