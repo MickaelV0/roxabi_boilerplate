@@ -92,7 +92,7 @@ When detecting a large workload (3+ complex tasks, migrations, or multi-componen
 **If Tier M or L, create worktree BEFORE coding:**
 
 ```bash
-git worktree add ../roxabi-XXX -b feat/XXX-slug
+git worktree add ../roxabi-XXX -b feat/XXX-slug staging
 cd ../roxabi-XXX
 ```
 

@@ -2,9 +2,9 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, staging]
   push:
-    branches: [main]
+    branches: [main, staging]
   workflow_call:
 
 permissions:
@@ -220,6 +220,7 @@ jobs:
       needs.build.result == 'success' &&
       (
         github.ref == 'refs/heads/main' ||
+        github.ref == 'refs/heads/staging' ||
         contains(github.event.pull_request.labels.*.name, 'e2e') ||
         needs.check-e2e-paths.outputs.should-run == 'true'
       )
