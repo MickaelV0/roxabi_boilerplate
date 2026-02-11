@@ -70,15 +70,13 @@ git diff main...HEAD --stat
 
 **Generate body** using the template below.
 
-### 4. Present for Approval
+### 4. Create by Default
 
-Use **AskUserQuestion** to present the generated title and body to the user:
+Show the generated title and body to the user, then **create the PR immediately** (unless `--draft` was passed, in which case create as draft).
 
-- Show the full PR title
-- Show the full PR body
-- Options: **Create PR** / **Create as Draft** / **Edit title/body** / **Cancel**
+Do NOT ask the user how they want to create it — just create it.
 
-If user chooses "Edit title/body", ask what they want to change and regenerate.
+If creation fails or the user explicitly asks to edit before creating, use `AskUserQuestion` with options: **Edit title/body** / **Cancel**.
 
 ### 5. Create PR
 
@@ -147,7 +145,7 @@ Generated with [Claude Code](https://claude.com/claude-code) via `/pr`
 
 1. **NEVER create a PR from `main` or `master`**
 2. **NEVER force-push** as part of this skill
-3. **ALWAYS present the PR content for user approval** before creating
+3. **ALWAYS show the PR content** to the user when creating
 4. **ALWAYS use `AskUserQuestion`** for decisions (proceed despite warnings, edit content, etc.)
 5. **ALWAYS display the PR URL** after successful creation
 

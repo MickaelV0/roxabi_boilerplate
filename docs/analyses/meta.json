@@ -22,6 +22,7 @@
     "project-audit-2026-02-09",
     "68-auth-ui-ux",
     "89-security-hardening",
-    "92-docs-audit-remediation"
+    "92-docs-audit-remediation",
+    "21-multi-tenant-rls"
   ]
 }
