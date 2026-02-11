@@ -1,4 +1,14 @@
-import { Button, Card, CardContent, Input } from '@repo/ui'
+import {
+  Button,
+  Card,
+  CardContent,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@repo/ui'
 import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import { compareItems, rankItem } from '@tanstack/match-sorter-utils'
 import { createFileRoute } from '@tanstack/react-router'
@@ -242,19 +252,21 @@ function TableDemo() {
                   className="w-16"
                 />
               </span>
-              <select
-                value={table.getState().pagination.pageSize}
-                onChange={(e) => {
-                  table.setPageSize(Number(e.target.value))
-                }}
-                className="rounded-md border border-border bg-muted px-2 py-1 outline-none focus:border-transparent focus:ring-2 focus:ring-ring"
+              <Select
+                value={String(table.getState().pagination.pageSize)}
+                onValueChange={(value) => table.setPageSize(Number(value))}
               >
-                {[10, 20, 30, 40, 50].map((pageSize) => (
-                  <option key={pageSize} value={pageSize}>
-                    Show {pageSize}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[10, 20, 30, 40, 50].map((pageSize) => (
+                    <SelectItem key={pageSize} value={String(pageSize)}>
+                      Show {pageSize}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="mt-4 text-muted-foreground">
               {table.getPrePaginationRowModel().rows.length} Rows
