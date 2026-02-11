@@ -25,8 +25,6 @@
     "@nestjs/swagger": "^11.2.5",
     "@repo/types": "workspace:*",
     "better-auth": "^1.4.18",
-    "class-transformer": "^0.5.1",
-    "class-validator": "^0.14.3",
     "drizzle-orm": "^0.45.1",
     "fastify": "^5.6.2",
     "nestjs-cls": "^6.2.0",
