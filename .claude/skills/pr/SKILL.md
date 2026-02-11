@@ -19,11 +19,11 @@ Run all these commands and collect the output:
 BRANCH=$(git branch --show-current)
 echo "Branch: $BRANCH"
 
-# All commits on this branch vs main
-git log main..HEAD --oneline
+# All commits on this branch vs staging
+git log staging..HEAD --oneline
 
 # Changed files summary
-git diff main...HEAD --stat
+git diff staging...HEAD --stat
 
 # Check if PR already exists for this branch
 gh pr list --head "$BRANCH" --json number,title,url,state
@@ -35,11 +35,11 @@ Check each condition **before** proceeding:
 
 | Check | Condition | Action |
 |-------|-----------|--------|
-| **Branch is main/master** | `$BRANCH` is `main` or `master` | **REFUSE.** Tell user to create a feature branch first. Stop here. |
-| **No commits ahead** | `git log main..HEAD` is empty | **REFUSE.** Nothing to PR. Stop here. |
+| **Branch is staging/main/master** | `$BRANCH` is `staging`, `main`, or `master` | **REFUSE.** Tell user to create a feature branch first. Stop here. |
+| **No commits ahead** | `git log staging..HEAD` is empty | **REFUSE.** Nothing to PR. Stop here. |
 | **PR already exists** | `gh pr list` returned a result | Offer to **update** the existing PR description with `gh pr edit` instead of creating a new one. Use `AskUserQuestion` to confirm. |
 | **Branch not pushed** | `git ls-remote --heads origin $BRANCH` is empty | Push with `git push -u origin $BRANCH` before creating PR. |
-| **Behind main** | `git rev-list HEAD..main --count` > 0 | **Warn** the user that the branch is behind main and suggest rebasing. Use `AskUserQuestion` to ask whether to continue anyway or rebase first. |
+| **Behind staging** | `git rev-list HEAD..staging --count` > 0 | **Warn** the user that the branch is behind staging and suggest rebasing. Use `AskUserQuestion` to ask whether to continue anyway or rebase first. |
 | **Quality gates** | Run `bun lint && bun typecheck` | **Warn** if failing but do NOT block. Show the output and note it in the PR body if user chooses to proceed. |
 
 ### 3. Generate PR Content
@@ -48,10 +48,10 @@ Check each condition **before** proceeding:
 
 ```bash
 # Full commit messages
-git log main..HEAD --format="%h %s%n%b"
+git log staging..HEAD --format="%h %s%n%b"
 
 # Diff stat for scope
-git diff main...HEAD --stat
+git diff staging...HEAD --stat
 ```
 
 **Detect issue number** from the branch name:
@@ -128,14 +128,14 @@ Generated with [Claude Code](https://claude.com/claude-code) via `/pr`
 
 | Flag | Description |
 |------|-------------|
-| (none) | Create PR targeting `main` |
+| (none) | Create PR targeting `staging` (default branch) |
 | `--draft` | Create as draft PR |
-| `--base <branch>` | Target a specific base branch instead of `main` |
+| `--base <branch>` | Target a specific base branch instead of `staging` |
 
 ## Edge Cases
 
-- **Branch is main/master:** Refuse immediately. Tell user: "Cannot create a PR from main. Create a feature branch first: `git checkout -b feature/<issue>-<description>`"
-- **No commits ahead of main:** Refuse. Tell user: "No commits ahead of main. Nothing to create a PR for."
+- **Branch is staging/main/master:** Refuse immediately. Tell user: "Cannot create a PR from staging. Create a feature branch first: `git checkout -b feature/<issue>-<description>`"
+- **No commits ahead of staging:** Refuse. Tell user: "No commits ahead of staging. Nothing to create a PR for."
 - **PR already exists:** Offer to update the existing PR description with `gh pr edit`. Show the existing PR URL.
 - **No issue number in branch name:** Ask the user via `AskUserQuestion` if they want to link an issue (provide issue number) or skip issue linking.
 - **Multiple types of changes:** If commits span multiple types (e.g., feat + test + docs), use the primary type (the one representing the main purpose of the PR).
@@ -143,7 +143,7 @@ Generated with [Claude Code](https://claude.com/claude-code) via `/pr`
 
 ## Safety Rules
 
-1. **NEVER create a PR from `main` or `master`**
+1. **NEVER create a PR from `staging`, `main`, or `master`**
 2. **NEVER force-push** as part of this skill
 3. **ALWAYS show the PR content** to the user when creating
 4. **ALWAYS use `AskUserQuestion`** for decisions (proceed despite warnings, edit content, etc.)
