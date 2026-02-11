@@ -30,7 +30,9 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
   const result = envSchema.safeParse(config)
 
   if (!result.success) {
-    throw new Error(`Environment validation failed:\n${result.error.format()._errors.join('\n')}`)
+    throw new Error(
+      `Environment validation failed:\n${result.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`).join('\n')}`
+    )
   }
 
   const validatedConfig = result.data

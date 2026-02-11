@@ -18,7 +18,7 @@ export function createMockUser(overrides: Partial<MockUser> = {}): MockUser {
   }
 }
 
-export interface MockUser {
+export type MockUser = {
   id: string
   name: string
   email: string

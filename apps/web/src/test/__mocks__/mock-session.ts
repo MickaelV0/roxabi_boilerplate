@@ -19,7 +19,7 @@ export function createMockSession(overrides: Partial<MockSession> = {}): MockSes
   }
 }
 
-export interface MockSession {
+export type MockSession = {
   id: string
   userId: string
   token: string
