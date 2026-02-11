@@ -1,4 +1,4 @@
-import { Button, Input } from '@repo/ui'
+import { Button, Card, CardContent, Input } from '@repo/ui'
 import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import { compareItems, rankItem } from '@tanstack/match-sorter-utils'
 import { createFileRoute } from '@tanstack/react-router'
@@ -140,140 +140,146 @@ function TableDemo() {
   }, [table])
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div>
-        <DebouncedInput
-          value={globalFilter ?? ''}
-          onChange={(value) => setGlobalFilter(String(value))}
-          className="w-full p-3 bg-muted text-foreground rounded-lg border border-border focus:ring-2 focus:ring-ring focus:border-transparent outline-none"
-          placeholder="Search all columns..."
-          aria-label="Search all columns"
-        />
-      </div>
-      <div className="h-4" />
-      <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="w-full text-sm text-foreground">
-          <thead className="bg-muted text-foreground">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <HeaderCell key={header.id} header={header} />
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody className="divide-y divide-border">
-            {table.getRowModel().rows.map((row) => {
-              return (
-                <tr key={row.id} className="hover:bg-accent transition-colors">
-                  {row.getVisibleCells().map((cell) => {
+    <div className="min-h-screen bg-background py-12">
+      <div className="mx-auto max-w-5xl px-6">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold">Table</h1>
+          <p className="mt-2 text-muted-foreground">
+            TanStack Table with sorting, filtering, and pagination
+          </p>
+        </div>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div>
+              <DebouncedInput
+                value={globalFilter ?? ''}
+                onChange={(value) => setGlobalFilter(String(value))}
+                placeholder="Search all columns..."
+                aria-label="Search all columns"
+              />
+            </div>
+            <div className="mt-4 overflow-x-auto rounded-lg border border-border">
+              <table className="w-full text-sm text-foreground">
+                <thead className="bg-muted text-foreground">
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <HeaderCell key={header.id} header={header} />
+                      ))}
+                    </tr>
+                  ))}
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {table.getRowModel().rows.map((row) => {
                     return (
-                      <td key={cell.id} className="px-4 py-3">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
+                      <tr key={row.id} className="transition-colors hover:bg-accent">
+                        {row.getVisibleCells().map((cell) => {
+                          return (
+                            <td key={cell.id} className="px-4 py-3">
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </td>
+                          )
+                        })}
+                      </tr>
                     )
                   })}
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => table.setPageIndex(0)}
+                disabled={!table.getCanPreviousPage()}
+              >
+                {'<<'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                {'<'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                {'>'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                disabled={!table.getCanNextPage()}
+              >
+                {'>>'}
+              </Button>
+              <span className="flex items-center gap-1">
+                <div>Page</div>
+                <strong>
+                  {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                </strong>
+              </span>
+              <span className="flex items-center gap-1">
+                | Go to page:
+                <Input
+                  type="number"
+                  defaultValue={table.getState().pagination.pageIndex + 1}
+                  onChange={(e) => {
+                    const page = e.target.value ? Number(e.target.value) - 1 : 0
+                    table.setPageIndex(page)
+                  }}
+                  className="w-16"
+                />
+              </span>
+              <select
+                value={table.getState().pagination.pageSize}
+                onChange={(e) => {
+                  table.setPageSize(Number(e.target.value))
+                }}
+                className="rounded-md border border-border bg-muted px-2 py-1 outline-none focus:border-transparent focus:ring-2 focus:ring-ring"
+              >
+                {[10, 20, 30, 40, 50].map((pageSize) => (
+                  <option key={pageSize} value={pageSize}>
+                    Show {pageSize}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="mt-4 text-muted-foreground">
+              {table.getPrePaginationRowModel().rows.length} Rows
+            </div>
+            <div className="mt-4 flex gap-2">
+              <Button type="button" variant="outline" onClick={() => rerender()}>
+                Force Rerender
+              </Button>
+              <Button type="button" variant="outline" onClick={() => refreshData()}>
+                Refresh Data
+              </Button>
+            </div>
+            <pre className="mt-4 overflow-auto rounded-lg bg-muted p-4 text-muted-foreground">
+              {JSON.stringify(
+                {
+                  columnFilters: table.getState().columnFilters,
+                  globalFilter: table.getState().globalFilter,
+                },
+                null,
+                2
+              )}
+            </pre>
+          </CardContent>
+        </Card>
       </div>
-      <div className="h-4" />
-      <div className="flex flex-wrap items-center gap-2 text-foreground">
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="bg-muted hover:bg-muted"
-          onClick={() => table.setPageIndex(0)}
-          disabled={!table.getCanPreviousPage()}
-        >
-          {'<<'}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="bg-muted hover:bg-muted"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          {'<'}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="bg-muted hover:bg-muted"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          {'>'}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="bg-muted hover:bg-muted"
-          onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-          disabled={!table.getCanNextPage()}
-        >
-          {'>>'}
-        </Button>
-        <span className="flex items-center gap-1">
-          <div>Page</div>
-          <strong>
-            {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-          </strong>
-        </span>
-        <span className="flex items-center gap-1">
-          | Go to page:
-          <Input
-            type="number"
-            defaultValue={table.getState().pagination.pageIndex + 1}
-            onChange={(e) => {
-              const page = e.target.value ? Number(e.target.value) - 1 : 0
-              table.setPageIndex(page)
-            }}
-            className="w-16 bg-muted rounded-md border-border"
-          />
-        </span>
-        <select
-          value={table.getState().pagination.pageSize}
-          onChange={(e) => {
-            table.setPageSize(Number(e.target.value))
-          }}
-          className="px-2 py-1 bg-muted rounded-md border border-border focus:ring-2 focus:ring-ring focus:border-transparent outline-none"
-        >
-          {[10, 20, 30, 40, 50].map((pageSize) => (
-            <option key={pageSize} value={pageSize}>
-              Show {pageSize}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="mt-4 text-muted-foreground">
-        {table.getPrePaginationRowModel().rows.length} Rows
-      </div>
-      <div className="mt-4 flex gap-2">
-        <Button type="button" onClick={() => rerender()}>
-          Force Rerender
-        </Button>
-        <Button type="button" onClick={() => refreshData()}>
-          Refresh Data
-        </Button>
-      </div>
-      <pre className="mt-4 p-4 bg-muted rounded-lg text-muted-foreground overflow-auto">
-        {JSON.stringify(
-          {
-            columnFilters: table.getState().columnFilters,
-            globalFilter: table.getState().globalFilter,
-          },
-          null,
-          2
-        )}
-      </pre>
     </div>
   )
 }
@@ -325,7 +331,6 @@ function Filter({ column }: { column: Column<Person, unknown> }) {
       onChange={(value) => column.setFilterValue(value)}
       placeholder={`Search...`}
       aria-label={`Filter ${column.id}`}
-      className="w-full px-2 py-1 bg-muted text-foreground rounded-md border border-border focus:ring-2 focus:ring-ring focus:border-transparent outline-none"
     />
   )
 }

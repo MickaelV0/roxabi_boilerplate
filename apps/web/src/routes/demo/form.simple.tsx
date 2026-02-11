@@ -1,3 +1,4 @@
+import { Card, CardContent, CardHeader, CardTitle } from '@repo/ui'
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 
@@ -25,34 +26,44 @@ function SimpleForm() {
   })
 
   return (
-    <div
-      className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-100 to-blue-100 p-4 text-white"
-      style={{
-        backgroundImage:
-          'radial-gradient(50% 50% at 5% 40%, #add8e6 0%, #0000ff 70%, #00008b 100%)',
-      }}
-    >
-      <div className="w-full max-w-2xl p-8 rounded-xl backdrop-blur-md bg-black/50 shadow-xl border-8 border-black/10">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            form.handleSubmit()
-          }}
-          className="space-y-6"
-        >
-          <form.AppField name="title">{(field) => <field.TextField label="Title" />}</form.AppField>
+    <div className="min-h-screen bg-background py-12">
+      <div className="mx-auto max-w-2xl px-6">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold">Simple Form</h1>
+          <p className="mt-2 text-muted-foreground">
+            Basic form with TanStack Form and Zod validation
+          </p>
+        </div>
 
-          <form.AppField name="description">
-            {(field) => <field.TextArea label="Description" />}
-          </form.AppField>
+        <Card>
+          <CardHeader>
+            <CardTitle>Create Item</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                form.handleSubmit()
+              }}
+              className="space-y-6"
+            >
+              <form.AppField name="title">
+                {(field) => <field.TextField label="Title" />}
+              </form.AppField>
 
-          <div className="flex justify-end">
-            <form.AppForm>
-              <form.SubscribeButton label="Submit" />
-            </form.AppForm>
-          </div>
-        </form>
+              <form.AppField name="description">
+                {(field) => <field.TextArea label="Description" />}
+              </form.AppField>
+
+              <div className="flex justify-end">
+                <form.AppForm>
+                  <form.SubscribeButton label="Submit" />
+                </form.AppForm>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
