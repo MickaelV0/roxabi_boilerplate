@@ -24,7 +24,7 @@ description: |
   </example>
 model: inherit
 color: purple
-tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate
+tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage
 permissionMode: bypassPermissions
 memory: project
 skills: interview, issue-triage, issues, adr, commit, pr, scaffold, agent-browser, context7, 1b1, bootstrap
