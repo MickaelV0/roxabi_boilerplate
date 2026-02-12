@@ -213,10 +213,11 @@ META Organization (super admin)
 
 ### Branching Strategy
 
-**GitHub Flow**
-- `main` = production-ready
-- Feature branches for each change
-- PR required for merge
+**Staging-based workflow (Git Flow lite)**
+- `main` = production — merges trigger auto-deploy
+- `staging` = integration branch — all feature/fix branches branch from here and PR back
+- `hotfix/*` branches may target `main` directly for urgent production fixes
+- PR required for all merges
 
 ### Development Workflow
 

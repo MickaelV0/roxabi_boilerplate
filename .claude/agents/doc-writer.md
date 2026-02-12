@@ -17,11 +17,11 @@ description: |
   </example>
 model: inherit
 color: gray
-tools: Read, Write, Edit, Glob, Grep
+tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch
 permissionMode: bypassPermissions
 maxTurns: 30
 memory: project
-skills: commit
+skills: commit, context7
 ---
 
 # Documentation Writer Agent
