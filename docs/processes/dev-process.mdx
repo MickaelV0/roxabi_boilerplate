@@ -205,6 +205,98 @@ Two modes are available depending on task complexity. See the [Agent Teams Guide
 
 Tier F follows four phases: **Assess, Implement, Review, Fix/Merge**. The human is the decision-maker at every gate. Main Claude is the orchestrator.
 
+```
+Human: "develop #XXX"
+        |
+        v
+========================================
+  PHASE 1 — ASSESSMENT
+========================================
+        |
+  Main Claude: fetch issue, check docs
+        |
+  Spec exists? ---- Yes --+
+        |                  |
+        No                 |
+        |                  |
+  product-lead: interview  |
+  (+ architect if needed)  |
+        |                  |
+  Write analysis           |
+        |                  |
+  * Human approves *       |
+        |                  |
+  Write spec               |
+        |                  |
+  * Human approves *       |
+        |                  |
+        +------------------+
+        |
+        v
+========================================
+  PHASE 2 — IMPLEMENTATION
+========================================
+        |
+  Main Claude: create worktree + spawn agents
+        |
+  tester: write failing tests (RED)
+        |
+     +--+--+--+
+     |  |  |  |
+    FE BE infra doc-writer   <-- parallel (GREEN)
+     |  |  |  |
+     +--+--+--+
+        |
+  tester: verify coverage + edge cases
+        |
+  All tests pass? --- No --> team fixes, loop
+        |
+       Yes
+        |
+  Commit + create PR
+        |
+        v
+========================================
+  PHASE 3 — REVIEW
+========================================
+        |
+  Main Claude: /review
+        |
+  Fresh agents (never the authors):
+  +- security-auditor
+  +- architect
+  +- product-lead
+  +- tester
+  +- frontend-dev  (if FE changes)
+  +- backend-dev   (if BE changes)
+        |
+  Conventional Comments collected
+        |
+  Main Claude: /1b1
+        |
+  Human decides per comment:
+  accept / reject / defer
+        |
+        v
+========================================
+  PHASE 4 — FIX & MERGE
+========================================
+        |
+  fixer: fix accepted comments
+        |
+  Push + CI runs
+        |
+  CI green? --- No --> fixer fixes, loop
+        |
+       Yes
+        |
+  * Human approves merge *
+        |
+  Cleanup worktree
+        |
+       DONE
+```
+
 ### Phase 1 — Assessment
 
 1. Human says "develop issue #XXX"
