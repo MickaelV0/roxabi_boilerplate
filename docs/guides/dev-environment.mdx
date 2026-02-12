@@ -64,6 +64,12 @@ alias cdb='cd ~/projects/roxabi_boilerplate; clear'
 alias cc='claude'
 alias ccc='claude --dangerously-skip-permissions'
 alias ccusage='npx ccusage@latest'
+
+# Agent-specific sessions
+alias cc-front='claude --agent frontend-dev'
+alias cc-back='claude --agent backend-dev'
+alias cc-test='claude --agent tester'
+alias cc-pa='claude --agent product-analyst'
 ```
 
 > **Tip:** Keep aliases in `~/.bash_aliases` rather than `.bashrc` — it keeps things organized and `.bashrc` sources it automatically on Ubuntu.
@@ -164,7 +170,24 @@ npm install -g @anthropic-ai/claude-code
 alias cc='claude'                              # Quick launch
 alias ccc='claude --dangerously-skip-permissions'  # Skip permission prompts (use with caution)
 alias ccusage='npx ccusage@latest'             # Check API usage
+
+# Agent-specific sessions (run as a specific agent role)
+alias cc-front='claude --agent frontend-dev'   # Frontend-focused session
+alias cc-back='claude --agent backend-dev'     # Backend-focused session
+alias cc-test='claude --agent tester'          # Testing-focused session
+alias cc-pa='claude --agent product-analyst'    # Product analyst session
 ```
+
+### `--agent` flag
+
+Start Claude Code as a pre-defined agent. The main conversation uses the agent's system prompt, tools, and permissions:
+
+```bash
+claude --agent backend-dev     # Use agent from .claude/agents/backend-dev.md
+claude --agent my-agent        # Use agent from ~/.claude/agents/my-agent.md
+```
+
+See [Agent Teams Guide](/docs/guides/agent-teams) for details on `--agent` vs `--agents` and all session modes.
 
 ### Agent teams
 
@@ -257,6 +280,10 @@ alias cdb='cd ~/projects/roxabi_boilerplate; clear'
 alias cc='claude'
 alias ccc='claude --dangerously-skip-permissions'
 alias ccusage='npx ccusage@latest'
+alias cc-front='claude --agent frontend-dev'
+alias cc-back='claude --agent backend-dev'
+alias cc-test='claude --agent tester'
+alias cc-pa='claude --agent product-analyst'
 EOF
 
 # 8. Add to ~/.bashrc (if not already present)

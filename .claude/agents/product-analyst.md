@@ -27,7 +27,7 @@ tools: Read, Glob, Grep, Bash, WebSearch
 permissionMode: plan
 maxTurns: 20
 memory: project
-skills: interview
+skills: interview, issue-triage, issues
 disallowedTools: Write, Edit
 ---
 
