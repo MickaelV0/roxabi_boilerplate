@@ -1,6 +1,7 @@
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpStatus } from '@nestjs/common'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { ClsService } from 'nestjs-cls'
+import { DefaultRoleException } from '../exceptions/default-role.exception.js'
 import { MemberNotFoundException } from '../exceptions/member-not-found.exception.js'
 import { OwnershipConstraintException } from '../exceptions/ownership-constraint.exception.js'
 import { RoleNotFoundException } from '../exceptions/role-not-found.exception.js'
@@ -9,12 +10,14 @@ import { RoleSlugConflictException } from '../exceptions/role-slug-conflict.exce
 type RbacException =
   | RoleNotFoundException
   | OwnershipConstraintException
+  | DefaultRoleException
   | RoleSlugConflictException
   | MemberNotFoundException
 
 @Catch(
   RoleNotFoundException,
   OwnershipConstraintException,
+  DefaultRoleException,
   RoleSlugConflictException,
   MemberNotFoundException
 )

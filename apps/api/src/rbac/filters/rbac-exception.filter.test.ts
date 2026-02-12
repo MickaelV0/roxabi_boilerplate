@@ -1,5 +1,6 @@
 import { HttpStatus } from '@nestjs/common'
 import { describe, expect, it, vi } from 'vitest'
+import { DefaultRoleException } from '../exceptions/default-role.exception.js'
 import { MemberNotFoundException } from '../exceptions/member-not-found.exception.js'
 import { OwnershipConstraintException } from '../exceptions/ownership-constraint.exception.js'
 import { RoleNotFoundException } from '../exceptions/role-not-found.exception.js'
@@ -65,6 +66,12 @@ describe('RbacExceptionFilter', () => {
     const { host, statusFn } = createMockHost()
     filter.catch(new RoleSlugConflictException('admin'), host as never)
     expect(statusFn).toHaveBeenCalledWith(HttpStatus.CONFLICT)
+  })
+
+  it('should return 400 for DefaultRoleException', () => {
+    const { host, statusFn } = createMockHost()
+    filter.catch(new DefaultRoleException('Cannot delete a default role'), host as never)
+    expect(statusFn).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST)
   })
 
   it('should return 404 for MemberNotFoundException', () => {

@@ -2,7 +2,7 @@
 -- Issue: #24 - Role-Based Access Control
 --
 -- Changes:
--- 1. Create global permissions table + seed 14 resource:action rows
+-- 1. Create global permissions table + seed 15 resource:action rows
 -- 2. Create tenant-scoped roles table with RLS
 -- 3. Create role_permissions join table
 -- 4. Add role_id column to members with FK to roles

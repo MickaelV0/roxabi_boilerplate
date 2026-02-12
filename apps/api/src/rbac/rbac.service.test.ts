@@ -2,6 +2,7 @@ import type { ClsService } from 'nestjs-cls'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DrizzleDB } from '../database/drizzle.provider.js'
 import type { TenantService } from '../tenant/tenant.service.js'
+import { DefaultRoleException } from './exceptions/default-role.exception.js'
 import { MemberNotFoundException } from './exceptions/member-not-found.exception.js'
 import { OwnershipConstraintException } from './exceptions/ownership-constraint.exception.js'
 import { RoleNotFoundException } from './exceptions/role-not-found.exception.js'
@@ -124,6 +125,10 @@ describe('RbacService', () => {
       ;(mockTenantService.query as ReturnType<typeof vi.fn>).mockImplementation((cb) => {
         // Exists check
         const existsChain = chain('limit', [{ id: 'r-1', name: 'Old', slug: 'old' }])
+        // Slug collision check → no collision
+        const collisionChain = chain('limit', [])
+        collisionChain.from.mockReturnValue(collisionChain)
+        collisionChain.where.mockReturnValue(collisionChain)
         // Update
         const updateChain = chain('where', undefined)
         // Return updated
@@ -133,7 +138,9 @@ describe('RbacService', () => {
         const tx = {
           select: vi.fn().mockImplementation(() => {
             selectCallCount.n++
-            return selectCallCount.n === 1 ? existsChain : returnChain
+            if (selectCallCount.n === 1) return existsChain
+            if (selectCallCount.n === 2) return collisionChain
+            return returnChain
           }),
           update: vi.fn().mockReturnValue(updateChain),
         }
@@ -170,15 +177,6 @@ describe('RbacService', () => {
       const updateChain = chain('where', undefined)
       const deleteChain = chain('where', undefined)
 
-      const mockDb = {
-        transaction: vi.fn().mockImplementation((cb) =>
-          cb({
-            update: vi.fn().mockReturnValue(updateChain),
-            delete: vi.fn().mockReturnValue(deleteChain),
-          })
-        ),
-      } as unknown as DrizzleDB
-
       ;(mockTenantService.query as ReturnType<typeof vi.fn>).mockImplementation((cb) => {
         // Exists check
         const existsChain = chain('limit', [
@@ -193,6 +191,8 @@ describe('RbacService', () => {
             selectCallCount.n++
             return selectCallCount.n === 1 ? existsChain : viewerChain
           }),
+          update: vi.fn().mockReturnValue(updateChain),
+          delete: vi.fn().mockReturnValue(deleteChain),
         }
         existsChain.from.mockReturnValue(existsChain)
         existsChain.where.mockReturnValue(existsChain)
@@ -201,7 +201,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      const service = new RbacService(mockTenantService, mockDb, mockCls)
+      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
       const result = await service.deleteRole('r-custom')
 
       expect(result).toEqual({ deleted: true })
@@ -219,7 +219,7 @@ describe('RbacService', () => {
       })
 
       const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
-      await expect(service.deleteRole('r-owner')).rejects.toThrow(OwnershipConstraintException)
+      await expect(service.deleteRole('r-owner')).rejects.toThrow(DefaultRoleException)
     })
 
     it('should throw RoleNotFoundException if not found', async () => {
@@ -283,41 +283,37 @@ describe('RbacService', () => {
       const ownerRole = { id: 'r-owner', slug: 'owner', isDefault: true }
       const adminRole = { id: 'r-admin', slug: 'admin', isDefault: true }
 
-      // tx: query default roles
+      const updateChain = chain('where', undefined)
+
+      // tx: query default roles + member lookups + swap
       ;(mockTenantService.query as ReturnType<typeof vi.fn>).mockImplementation((cb) => {
         const rolesChain = chain('where', [ownerRole, adminRole])
-        const tx = {
-          select: vi.fn().mockReturnValue(rolesChain),
-        }
         rolesChain.from.mockReturnValue(rolesChain)
+        const currentMemberChain = chain('limit', [
+          { id: 'm-1', userId: 'user-1', roleId: 'r-owner' },
+        ])
+        currentMemberChain.from.mockReturnValue(currentMemberChain)
+        currentMemberChain.where.mockReturnValue(currentMemberChain)
+        const targetMemberChain = chain('limit', [
+          { id: 'm-2', userId: 'user-2', roleId: 'r-admin' },
+        ])
+        targetMemberChain.from.mockReturnValue(targetMemberChain)
+        targetMemberChain.where.mockReturnValue(targetMemberChain)
+
+        const txSelectCount = { n: 0 }
+        const tx = {
+          select: vi.fn().mockImplementation(() => {
+            txSelectCount.n++
+            if (txSelectCount.n === 1) return rolesChain
+            if (txSelectCount.n === 2) return currentMemberChain
+            return targetMemberChain
+          }),
+          update: vi.fn().mockReturnValue(updateChain),
+        }
         return cb(tx)
       })
 
-      // db: member lookups + transaction for swap
-      const dbSelectCount = { n: 0 }
-      const currentMemberChain = chain('limit', [
-        { id: 'm-1', userId: 'user-1', roleId: 'r-owner' },
-      ])
-      currentMemberChain.from.mockReturnValue(currentMemberChain)
-      currentMemberChain.where.mockReturnValue(currentMemberChain)
-      const targetMemberChain = chain('limit', [{ id: 'm-2', userId: 'user-2', roleId: 'r-admin' }])
-      targetMemberChain.from.mockReturnValue(targetMemberChain)
-      targetMemberChain.where.mockReturnValue(targetMemberChain)
-      const updateChain = chain('where', undefined)
-
-      const mockDb = {
-        select: vi.fn().mockImplementation(() => {
-          dbSelectCount.n++
-          return dbSelectCount.n === 1 ? currentMemberChain : targetMemberChain
-        }),
-        transaction: vi.fn().mockImplementation((cb) =>
-          cb({
-            update: vi.fn().mockReturnValue(updateChain),
-          })
-        ),
-      } as unknown as DrizzleDB
-
-      const service = new RbacService(mockTenantService, mockDb, mockCls)
+      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
       const result = await service.transferOwnership('user-1', 'm-2')
 
       expect(result).toEqual({ transferred: true })
@@ -330,18 +326,21 @@ describe('RbacService', () => {
       ;(mockTenantService.query as ReturnType<typeof vi.fn>).mockImplementation((cb) => {
         const rolesChain = chain('where', [ownerRole, adminRole])
         rolesChain.from.mockReturnValue(rolesChain)
-        return cb({ select: vi.fn().mockReturnValue(rolesChain) })
+        const currentMemberChain = chain('limit', []) // not found as Owner
+        currentMemberChain.from.mockReturnValue(currentMemberChain)
+        currentMemberChain.where.mockReturnValue(currentMemberChain)
+
+        const txSelectCount = { n: 0 }
+        const tx = {
+          select: vi.fn().mockImplementation(() => {
+            txSelectCount.n++
+            return txSelectCount.n === 1 ? rolesChain : currentMemberChain
+          }),
+        }
+        return cb(tx)
       })
 
-      const currentMemberChain = chain('limit', []) // not found as Owner
-      currentMemberChain.from.mockReturnValue(currentMemberChain)
-      currentMemberChain.where.mockReturnValue(currentMemberChain)
-
-      const mockDb = {
-        select: vi.fn().mockReturnValue(currentMemberChain),
-      } as unknown as DrizzleDB
-
-      const service = new RbacService(mockTenantService, mockDb, mockCls)
+      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
       await expect(service.transferOwnership('user-1', 'm-2')).rejects.toThrow(
         OwnershipConstraintException
       )
@@ -354,27 +353,28 @@ describe('RbacService', () => {
       ;(mockTenantService.query as ReturnType<typeof vi.fn>).mockImplementation((cb) => {
         const rolesChain = chain('where', [ownerRole, adminRole])
         rolesChain.from.mockReturnValue(rolesChain)
-        return cb({ select: vi.fn().mockReturnValue(rolesChain) })
+        const currentMemberChain = chain('limit', [
+          { id: 'm-1', userId: 'user-1', roleId: 'r-owner' },
+        ])
+        currentMemberChain.from.mockReturnValue(currentMemberChain)
+        currentMemberChain.where.mockReturnValue(currentMemberChain)
+        const targetMemberChain = chain('limit', []) // target not Admin
+        targetMemberChain.from.mockReturnValue(targetMemberChain)
+        targetMemberChain.where.mockReturnValue(targetMemberChain)
+
+        const txSelectCount = { n: 0 }
+        const tx = {
+          select: vi.fn().mockImplementation(() => {
+            txSelectCount.n++
+            if (txSelectCount.n === 1) return rolesChain
+            if (txSelectCount.n === 2) return currentMemberChain
+            return targetMemberChain
+          }),
+        }
+        return cb(tx)
       })
 
-      const dbSelectCount = { n: 0 }
-      const currentMemberChain = chain('limit', [
-        { id: 'm-1', userId: 'user-1', roleId: 'r-owner' },
-      ])
-      currentMemberChain.from.mockReturnValue(currentMemberChain)
-      currentMemberChain.where.mockReturnValue(currentMemberChain)
-      const targetMemberChain = chain('limit', []) // target not Admin
-      targetMemberChain.from.mockReturnValue(targetMemberChain)
-      targetMemberChain.where.mockReturnValue(targetMemberChain)
-
-      const mockDb = {
-        select: vi.fn().mockImplementation(() => {
-          dbSelectCount.n++
-          return dbSelectCount.n === 1 ? currentMemberChain : targetMemberChain
-        }),
-      } as unknown as DrizzleDB
-
-      const service = new RbacService(mockTenantService, mockDb, mockCls)
+      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
       await expect(service.transferOwnership('user-1', 'm-2')).rejects.toThrow(
         OwnershipConstraintException
       )
@@ -383,37 +383,33 @@ describe('RbacService', () => {
 
   describe('changeMemberRole', () => {
     it('should change a member role', async () => {
-      // tx: verify role exists, lookup current role
+      // tx: verify role exists + member lookup + current role lookup + update
       ;(mockTenantService.query as ReturnType<typeof vi.fn>).mockImplementation((cb) => {
-        const txSelectCount = { n: 0 }
         const roleExistsChain = chain('limit', [{ id: 'r-new', slug: 'member' }])
         roleExistsChain.from.mockReturnValue(roleExistsChain)
         roleExistsChain.where.mockReturnValue(roleExistsChain)
+        const memberChain = chain('limit', [{ id: 'm-1', roleId: 'r-old' }])
+        memberChain.from.mockReturnValue(memberChain)
+        memberChain.where.mockReturnValue(memberChain)
         const currentRoleChain = chain('limit', [{ id: 'r-old', slug: 'admin' }])
         currentRoleChain.from.mockReturnValue(currentRoleChain)
         currentRoleChain.where.mockReturnValue(currentRoleChain)
+        const updateChain = chain('where', undefined)
 
+        const txSelectCount = { n: 0 }
         const tx = {
           select: vi.fn().mockImplementation(() => {
             txSelectCount.n++
-            return txSelectCount.n === 1 ? roleExistsChain : currentRoleChain
+            if (txSelectCount.n === 1) return roleExistsChain
+            if (txSelectCount.n === 2) return memberChain
+            return currentRoleChain
           }),
+          update: vi.fn().mockReturnValue(updateChain),
         }
         return cb(tx)
       })
 
-      // db: member lookup + update
-      const memberChain = chain('limit', [{ id: 'm-1', roleId: 'r-old' }])
-      memberChain.from.mockReturnValue(memberChain)
-      memberChain.where.mockReturnValue(memberChain)
-      const updateChain = chain('where', undefined)
-
-      const mockDb = {
-        select: vi.fn().mockReturnValue(memberChain),
-        update: vi.fn().mockReturnValue(updateChain),
-      } as unknown as DrizzleDB
-
-      const service = new RbacService(mockTenantService, mockDb, mockCls)
+      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
       const result = await service.changeMemberRole('m-1', 'r-new')
 
       expect(result).toEqual({ updated: true })
@@ -438,61 +434,55 @@ describe('RbacService', () => {
         const roleChain = chain('limit', [{ id: 'r-new', slug: 'member' }])
         roleChain.from.mockReturnValue(roleChain)
         roleChain.where.mockReturnValue(roleChain)
-        return cb({ select: vi.fn().mockReturnValue(roleChain) })
+        const memberChain = chain('limit', []) // member not found
+        memberChain.from.mockReturnValue(memberChain)
+        memberChain.where.mockReturnValue(memberChain)
+
+        const txSelectCount = { n: 0 }
+        const tx = {
+          select: vi.fn().mockImplementation(() => {
+            txSelectCount.n++
+            return txSelectCount.n === 1 ? roleChain : memberChain
+          }),
+        }
+        return cb(tx)
       })
 
-      // db: member lookup returns empty
-      const memberChain = chain('limit', [])
-      memberChain.from.mockReturnValue(memberChain)
-      memberChain.where.mockReturnValue(memberChain)
-
-      const mockDb = {
-        select: vi.fn().mockReturnValue(memberChain),
-      } as unknown as DrizzleDB
-
-      const service = new RbacService(mockTenantService, mockDb, mockCls)
+      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
       await expect(service.changeMemberRole('m-invalid', 'r-new')).rejects.toThrow(
         MemberNotFoundException
       )
     })
 
     it('should block removing last Owner', async () => {
-      // tx: role exists + current role is owner
+      // tx: role exists + member lookup + current role + owner count
       ;(mockTenantService.query as ReturnType<typeof vi.fn>).mockImplementation((cb) => {
-        const txSelectCount = { n: 0 }
         const roleExistsChain = chain('limit', [{ id: 'r-member', slug: 'member' }])
         roleExistsChain.from.mockReturnValue(roleExistsChain)
         roleExistsChain.where.mockReturnValue(roleExistsChain)
+        const memberChain = chain('limit', [{ id: 'm-1', roleId: 'r-owner' }])
+        memberChain.from.mockReturnValue(memberChain)
+        memberChain.where.mockReturnValue(memberChain)
         const currentRoleChain = chain('limit', [{ id: 'r-owner', slug: 'owner' }])
         currentRoleChain.from.mockReturnValue(currentRoleChain)
         currentRoleChain.where.mockReturnValue(currentRoleChain)
+        const ownerCountChain = chain('where', [{ id: 'm-1' }])
+        ownerCountChain.from.mockReturnValue(ownerCountChain)
 
+        const txSelectCount = { n: 0 }
         const tx = {
           select: vi.fn().mockImplementation(() => {
             txSelectCount.n++
-            return txSelectCount.n === 1 ? roleExistsChain : currentRoleChain
+            if (txSelectCount.n === 1) return roleExistsChain
+            if (txSelectCount.n === 2) return memberChain
+            if (txSelectCount.n === 3) return currentRoleChain
+            return ownerCountChain
           }),
         }
         return cb(tx)
       })
 
-      // db: member lookup (has owner role) + count owners (only 1)
-      const dbSelectCount = { n: 0 }
-      const memberChain = chain('limit', [{ id: 'm-1', roleId: 'r-owner' }])
-      memberChain.from.mockReturnValue(memberChain)
-      memberChain.where.mockReturnValue(memberChain)
-      // Owner count query returns just the member being changed
-      const ownerCountChain = chain('where', [{ id: 'm-1' }])
-      ownerCountChain.from.mockReturnValue(ownerCountChain)
-
-      const mockDb = {
-        select: vi.fn().mockImplementation(() => {
-          dbSelectCount.n++
-          return dbSelectCount.n === 1 ? memberChain : ownerCountChain
-        }),
-      } as unknown as DrizzleDB
-
-      const service = new RbacService(mockTenantService, mockDb, mockCls)
+      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
       await expect(service.changeMemberRole('m-1', 'r-member')).rejects.toThrow(
         OwnershipConstraintException
       )

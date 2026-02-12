@@ -5,6 +5,7 @@ import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { members } from '../database/schema/auth.schema.js'
 import { permissions, rolePermissions, roles } from '../database/schema/rbac.schema.js'
 import { TenantService } from '../tenant/tenant.service.js'
+import { DefaultRoleException } from './exceptions/default-role.exception.js'
 import { MemberNotFoundException } from './exceptions/member-not-found.exception.js'
 import { OwnershipConstraintException } from './exceptions/ownership-constraint.exception.js'
 import { RoleNotFoundException } from './exceptions/role-not-found.exception.js'
@@ -76,7 +77,13 @@ const DEFAULT_ROLES: DefaultRoleDefinition[] = [
     name: 'Viewer',
     slug: 'viewer',
     description: 'Read-only access',
-    permissions: ['users:read', 'organizations:read', 'members:read', 'roles:read'],
+    permissions: [
+      'users:read',
+      'organizations:read',
+      'members:read',
+      'invitations:read',
+      'roles:read',
+    ],
   },
 ]
 
@@ -181,8 +188,24 @@ export class RbacService {
       // Update role fields
       const updates: Record<string, unknown> = {}
       if (data.name !== undefined) {
+        const newSlug = slugify(data.name)
+        const tenantId = this.cls.get('tenantId') as string
+
+        // Check for slug collision (skip if same slug)
+        if (newSlug !== existing[0]!.slug) {
+          const collision = await tx
+            .select({ id: roles.id })
+            .from(roles)
+            .where(and(eq(roles.tenantId, tenantId), eq(roles.slug, newSlug)))
+            .limit(1)
+
+          if (collision.length > 0) {
+            throw new RoleSlugConflictException(newSlug)
+          }
+        }
+
         updates.name = data.name
-        updates.slug = slugify(data.name)
+        updates.slug = newSlug
       }
       if (data.description !== undefined) {
         updates.description = data.description
@@ -217,7 +240,7 @@ export class RbacService {
       }
 
       if (role.isDefault) {
-        throw new OwnershipConstraintException('Cannot delete a default role')
+        throw new DefaultRoleException('Cannot delete a default role')
       }
 
       // Find the Viewer role to reassign members
@@ -227,17 +250,12 @@ export class RbacService {
         .where(and(eq(roles.tenantId, role.tenantId), eq(roles.slug, 'viewer')))
         .limit(1)
 
-      // Reassign members to Viewer + delete role atomically
-      await this.db.transaction(async (deleteTx) => {
-        if (viewerRole) {
-          await deleteTx
-            .update(members)
-            .set({ roleId: viewerRole.id })
-            .where(eq(members.roleId, roleId))
-        }
+      // Reassign members to Viewer + delete role (atomic via tenant tx)
+      if (viewerRole) {
+        await tx.update(members).set({ roleId: viewerRole.id }).where(eq(members.roleId, roleId))
+      }
 
-        await deleteTx.delete(roles).where(eq(roles.id, roleId))
-      })
+      await tx.delete(roles).where(eq(roles.id, roleId))
 
       return { deleted: true }
     })
@@ -290,7 +308,7 @@ export class RbacService {
       }
 
       // Verify current user is Owner
-      const [currentMember] = await this.db
+      const [currentMember] = await tx
         .select()
         .from(members)
         .where(
@@ -307,7 +325,7 @@ export class RbacService {
       }
 
       // Verify target is an Admin
-      const [targetMember] = await this.db
+      const [targetMember] = await tx
         .select()
         .from(members)
         .where(
@@ -323,18 +341,10 @@ export class RbacService {
         throw new OwnershipConstraintException('Target must be an Admin in the same organization')
       }
 
-      // Swap: current Owner → Admin, target Admin → Owner (atomic)
-      await this.db.transaction(async (swapTx) => {
-        await swapTx
-          .update(members)
-          .set({ roleId: adminRole.id })
-          .where(eq(members.id, currentMember.id))
+      // Swap: current Owner → Admin, target Admin → Owner (atomic via tenant tx)
+      await tx.update(members).set({ roleId: adminRole.id }).where(eq(members.id, currentMember.id))
 
-        await swapTx
-          .update(members)
-          .set({ roleId: ownerRole.id })
-          .where(eq(members.id, targetMember.id))
-      })
+      await tx.update(members).set({ roleId: ownerRole.id }).where(eq(members.id, targetMember.id))
 
       return { transferred: true }
     })
@@ -359,7 +369,7 @@ export class RbacService {
       }
 
       // Get the member being changed
-      const [member] = await this.db
+      const [member] = await tx
         .select()
         .from(members)
         .where(and(eq(members.id, memberId), eq(members.organizationId, tenantId)))
@@ -379,7 +389,7 @@ export class RbacService {
 
         if (currentRole?.slug === 'owner' && role.slug !== 'owner') {
           // Count Owners
-          const ownerMembers = await this.db
+          const ownerMembers = await tx
             .select({ id: members.id })
             .from(members)
             .where(and(eq(members.organizationId, tenantId), eq(members.roleId, currentRole.id)))
@@ -392,7 +402,7 @@ export class RbacService {
         }
       }
 
-      await this.db.update(members).set({ roleId }).where(eq(members.id, memberId))
+      await tx.update(members).set({ roleId }).where(eq(members.id, memberId))
 
       return { updated: true }
     })
