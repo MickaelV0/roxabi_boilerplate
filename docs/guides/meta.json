@@ -1,4 +1,11 @@
 {
   "title": "Guides",
-  "pages": ["i18n", "agent-teams", "deployment", "authentication", "troubleshooting"]
+  "pages": [
+    "dev-environment",
+    "i18n",
+    "agent-teams",
+    "deployment",
+    "authentication",
+    "troubleshooting"
+  ]
 }
