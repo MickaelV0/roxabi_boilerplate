@@ -147,7 +147,7 @@ type LocaleSwitcherProps = {
 }
 ```
 
-- **Extract logic into companion hooks** when a component's logic grows beyond simple event handlers. See `useLocaleSwitcher` in `LocaleSwitcher.tsx`.
+- **Extract logic into companion hooks** when a component's logic grows beyond simple event handlers.
 - **Named exports only.** Never use default exports. Exception: framework conventions that require them (e.g., route components if mandated by the framework).
 - **Variant pattern** for multi-mode components. Use a `variant` prop with a union type rather than separate components or boolean flags:
 
