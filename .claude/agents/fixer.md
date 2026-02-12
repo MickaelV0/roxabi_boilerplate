@@ -60,7 +60,7 @@ After all findings are fixed:
 
 1. **Run full quality checks**: `bun lint && bun typecheck && bun test`
 2. **Commit** using `/commit` with a descriptive message referencing the review findings
-3. **Push** only if explicitly requested
+3. **Push** the changes to update the PR
 
 ## Deliverables
 

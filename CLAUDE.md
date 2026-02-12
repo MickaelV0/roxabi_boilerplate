@@ -130,7 +130,7 @@ cd ../roxabi-XXX
 | cleanup, git cleanup | `cleanup` | "clean branches", "cleanup worktrees", "/cleanup" |
 | commit, stage, git commit | `commit` | "commit changes", "commit staged files", "/commit --all" |
 | pull request, PR, create PR | `pr` | "create a PR", "open pull request", "/pr --draft" |
-| review, code review | `review` | "review my changes", "review PR #42", "/review --fix" |
+| review, code review | `review` | "review my changes", "review PR #42", "/review" |
 | test, generate tests | `test` | "write tests", "test this file", "/test --e2e" |
 | bootstrap, plan feature, start feature | `bootstrap` | "bootstrap avatar upload", "/bootstrap --issue 42" |
 | scaffold, setup feature | `scaffold` | "scaffold from spec", "/scaffold --spec 42" |
