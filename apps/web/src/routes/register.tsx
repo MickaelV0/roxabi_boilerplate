@@ -13,10 +13,21 @@ export const Route = createFileRoute('/register')({
       throw redirect({ to: '/' })
     }
   },
+  loader: async () => {
+    try {
+      const res = await fetch('/api/auth/providers')
+      if (!res.ok) return { google: false, github: false }
+      return (await res.json()) as { google: boolean; github: boolean }
+    } catch {
+      return { google: false, github: false }
+    }
+  },
   component: RegisterPage,
 })
 
 function RegisterPage() {
+  const providers = Route.useLoaderData()
+  const hasOAuth = providers.google || providers.github
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -111,33 +122,43 @@ function RegisterPage() {
         </Button>
       </form>
 
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">{m.auth_or()}</span>
-        </div>
-      </div>
+      {hasOAuth && (
+        <>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">{m.auth_or()}</span>
+            </div>
+          </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <OAuthButton
-          provider="google"
-          loading={oauthLoading === 'google'}
-          disabled={loading || oauthLoading !== null}
-          onClick={() => handleOAuth('google')}
-        >
-          {m.auth_sign_up_with_google()}
-        </OAuthButton>
-        <OAuthButton
-          provider="github"
-          loading={oauthLoading === 'github'}
-          disabled={loading || oauthLoading !== null}
-          onClick={() => handleOAuth('github')}
-        >
-          {m.auth_sign_up_with_github()}
-        </OAuthButton>
-      </div>
+          <div
+            className={`grid gap-2 ${providers.google && providers.github ? 'grid-cols-2' : 'grid-cols-1'}`}
+          >
+            {providers.google && (
+              <OAuthButton
+                provider="google"
+                loading={oauthLoading === 'google'}
+                disabled={loading || oauthLoading !== null}
+                onClick={() => handleOAuth('google')}
+              >
+                {m.auth_sign_up_with_google()}
+              </OAuthButton>
+            )}
+            {providers.github && (
+              <OAuthButton
+                provider="github"
+                loading={oauthLoading === 'github'}
+                disabled={loading || oauthLoading !== null}
+                onClick={() => handleOAuth('github')}
+              >
+                {m.auth_sign_up_with_github()}
+              </OAuthButton>
+            )}
+          </div>
+        </>
+      )}
 
       <p className="text-center text-sm text-muted-foreground">
         {m.auth_have_account()}{' '}
