@@ -38,7 +38,7 @@ Each agent operates within specific packages. **Never modify files outside your 
 | frontend-dev | `apps/web/`, `packages/ui/` | `apps/api/`, `packages/config/`, `docs/` |
 | backend-dev | `apps/api/`, `packages/types/` | `apps/web/`, `packages/config/`, `docs/` |
 | infra-ops | `packages/config/`, root configs, `.github/` | `apps/*/src/`, `docs/` |
-| reviewer | Read-only on all packages | Never writes files |
+| reviewer | All packages (review + fix) | Fixes review findings and CI failures only |
 | tester | Test files in all packages | Never modifies source files |
 | security-auditor | Read-only + `Bash` for auditing | Never modifies source files |
 | architect | `docs/architecture/`, ADR files | Never writes application code |

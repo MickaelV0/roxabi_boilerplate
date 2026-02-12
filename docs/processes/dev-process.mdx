@@ -238,22 +238,26 @@ EOF
 gh pr create --title "feat: description" --body "Closes #XXX"
 ```
 
-### F.7 — Review
+### F.7 — Review → Fix → CI
 
-Run `/review` on the PR to spawn the **reviewer** agent. It reviews all changes against [code review standards](/docs/standards/code-review) and produces Conventional Comments feedback. Fix any issues raised.
+Run `/review` on the PR to spawn the **reviewer** agent. The reviewer:
 
-### F.8 — Wait for CI
+1. Reviews all changes against [code review standards](/docs/standards/code-review)
+2. Fixes all blocking and warning findings
+3. Commits and pushes the fixes
+4. Waits for CI — `gh pr checks <pr-number> --watch`
+5. If CI fails: fixes the failure, commits, pushes, and waits again
+6. Once CI is green: notifies the **product-lead** that the PR is ready to merge
 
-**MANDATORY:** Wait for all CI checks to pass before merging.
+### F.8 — Merge
+
+The **product-lead** merges the PR once the reviewer confirms CI is green.
 
 ```bash
-# Watch CI status until completion
-gh pr checks <pr-number> --watch
+gh pr merge <pr-number> --squash --delete-branch
 ```
 
-CI runs: **lint → typecheck → test → build** (+ E2E if relevant paths changed).
-
-If CI fails: fix the issue, push a new commit, and wait for CI again. **Never merge with failing checks.**
+**Never merge with failing checks.**
 
 ### F.9 — Cleanup Worktree (after merge)
 
