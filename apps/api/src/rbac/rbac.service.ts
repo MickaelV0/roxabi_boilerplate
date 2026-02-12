@@ -1,7 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { and, eq } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
-import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
+import type { DrizzleDB } from '../database/drizzle.provider.js'
 import { members } from '../database/schema/auth.schema.js'
 import { permissions, rolePermissions, roles } from '../database/schema/rbac.schema.js'
 import { TenantService } from '../tenant/tenant.service.js'
@@ -98,7 +98,6 @@ function slugify(name: string): string {
 export class RbacService {
   constructor(
     private readonly tenantService: TenantService,
-    @Inject(DRIZZLE) private readonly db: DrizzleDB,
     private readonly cls: ClsService
   ) {}
 
@@ -172,6 +171,27 @@ export class RbacService {
   }
 
   /**
+   * Ensure the new slug doesn't collide with an existing role in the tenant.
+   */
+  private async ensureUniqueSlug(
+    tx: { select: DrizzleDB['select'] },
+    tenantId: string,
+    newSlug: string,
+    currentSlug: string | undefined
+  ) {
+    if (newSlug === currentSlug) return
+    const collision = await tx
+      .select({ id: roles.id })
+      .from(roles)
+      .where(and(eq(roles.tenantId, tenantId), eq(roles.slug, newSlug)))
+      .limit(1)
+
+    if (collision.length > 0) {
+      throw new RoleSlugConflictException(newSlug)
+    }
+  }
+
+  /**
    * Update a role's fields and/or permissions.
    */
   async updateRole(
@@ -190,20 +210,7 @@ export class RbacService {
       if (data.name !== undefined) {
         const newSlug = slugify(data.name)
         const tenantId = this.cls.get('tenantId') as string
-
-        // Check for slug collision (skip if same slug)
-        if (newSlug !== existing[0]!.slug) {
-          const collision = await tx
-            .select({ id: roles.id })
-            .from(roles)
-            .where(and(eq(roles.tenantId, tenantId), eq(roles.slug, newSlug)))
-            .limit(1)
-
-          if (collision.length > 0) {
-            throw new RoleSlugConflictException(newSlug)
-          }
-        }
-
+        await this.ensureUniqueSlug(tx, tenantId, newSlug, existing[0]?.slug)
         updates.name = data.name
         updates.slug = newSlug
       }
