@@ -34,12 +34,13 @@
 
 This applies to ALL development work: specs, features, bug fixes, refactoring, docs, tests, PR reviews. **NO EXCEPTIONS.**
 
-**Tier determination:**
+**Tier determination (judgment-based):**
 
 | Tier | Name | Criteria | Process |
 |------|------|----------|---------|
-| **F** | Feature | >3 files, or arch/regression risk | Bootstrap (if needed) + worktree + agents + /review |
-| **S** | Quick Fix | ≤3 files, no arch, no risk | Worktree + PR |
+| **S** | Quick Fix | <=3 files, no arch, no risk | Worktree + PR |
+| **F-lite** | Feature (lite) | Clear scope, documented requirements, single domain | Worktree + agents + /review (skip bootstrap) |
+| **F-full** | Feature (full) | New arch concepts, unclear requirements, or >2 domain boundaries | Bootstrap + worktree + agents + /review |
 
 ---
 
@@ -129,7 +130,7 @@ cd ../roxabi-XXX
 | cleanup, git cleanup | `cleanup` | "clean branches", "cleanup worktrees", "/cleanup" |
 | commit, stage, git commit | `commit` | "commit changes", "commit staged files", "/commit --all" |
 | pull request, PR, create PR | `pr` | "create a PR", "open pull request", "/pr --draft" |
-| review, code review | `review` | "review my changes", "review PR #42", "/review --fix" |
+| review, code review | `review` | "review my changes", "review PR #42", "/review" |
 | test, generate tests | `test` | "write tests", "test this file", "/test --e2e" |
 | bootstrap, plan feature, start feature | `bootstrap` | "bootstrap avatar upload", "/bootstrap --issue 42" |
 | scaffold, setup feature | `scaffold` | "scaffold from spec", "/scaffold --spec 42" |
@@ -201,7 +202,7 @@ Specialized agents for multi-agent coordination. Requires `CLAUDE_CODE_EXPERIMEN
 | `frontend-dev` | Domain | `apps/web`, `packages/ui` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
 | `backend-dev` | Domain | `apps/api`, `packages/types` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
 | `infra-ops` | Domain | `packages/config`, root configs | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
-| `reviewer` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
+| `fixer` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, SendMessage |
 | `tester` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
 | `security-auditor` | Quality | All packages | plan | Read, Glob, Grep, Bash, WebSearch, Task, SendMessage |
 | `architect` | Strategy | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage |
@@ -216,11 +217,21 @@ Specialized agents for multi-agent coordination. Requires `CLAUDE_CODE_EXPERIMEN
 Is this a code change?
 ├── No (docs only) → doc-writer subagent
 └── Yes
-    ├── Tier S (≤3 files, no arch risk)
+    ├── Tier S (<=3 files, no arch risk)
     │   └── Single session + optional tester subagent
     │
-    └── Tier F (>3 files, or arch/regression risk)
-        ├── Bootstrap (/bootstrap, if needed): product-lead + architect + doc-writer
+    ├── Tier F-lite (clear scope, documented requirements)
+    │   ├── Spawn agents (skip bootstrap):
+    │   │   ├── Single-domain → subagents (Task tool)
+    │   │   └── Multi-domain  → Agent Teams (TeamCreate)
+    │   │   ├── Frontend? → frontend-dev + tester
+    │   │   ├── Backend?  → backend-dev + tester
+    │   │   ├── Full-stack? → frontend-dev + backend-dev + tester
+    │   │   └── Security-sensitive? → + security-auditor
+    │   └── Then /review (fresh domain reviewers + 1b1 + fixer)
+    │
+    └── Tier F-full (new arch, unclear requirements, >2 domains)
+        ├── Bootstrap (/bootstrap): product-lead + architect + doc-writer
         ├── Spawn agents:
         │   ├── Single-domain → subagents (Task tool)
         │   └── Multi-domain  → Agent Teams (TeamCreate)
@@ -229,7 +240,7 @@ Is this a code change?
         │   ├── Full-stack? → frontend-dev + backend-dev + tester
         │   ├── Large scope? → + architect + doc-writer
         │   └── Security-sensitive? → + security-auditor
-        └── Then /review after PR (spawns reviewer on the PR)
+        └── Then /review (fresh domain reviewers + 1b1 + fixer)
 ```
 
 Agent definitions: `.claude/agents/*.md`
