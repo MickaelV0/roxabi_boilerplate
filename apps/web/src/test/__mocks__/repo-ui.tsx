@@ -3,6 +3,15 @@
  *
  * Usage in test files:
  *   vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
+ *
+ * When to add a component here:
+ *   - Component is used in 3+ test files
+ *   - Component is presentational (no business logic)
+ *   - A semantic HTML element accurately represents the component
+ *
+ * When to use an inline mock instead:
+ *   - Component is used in only 1-2 tests
+ *   - Test needs custom mock behavior (e.g., tracking calls, conditional rendering)
  */
 export const Button = ({
   children,
