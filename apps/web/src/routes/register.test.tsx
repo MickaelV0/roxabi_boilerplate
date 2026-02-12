@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { authClient } from '@/lib/auth-client'
 import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
@@ -56,6 +56,7 @@ vi.mock('@/lib/auth-client', () => ({
       social: vi.fn(),
     },
   },
+  fetchEnabledProviders: vi.fn(),
 }))
 
 vi.mock('sonner', () => ({
@@ -82,6 +83,10 @@ mockParaglideMessages()
 import './register'
 
 describe('RegisterPage', () => {
+  beforeEach(() => {
+    captured.loaderData = { google: true, github: true }
+  })
+
   it('should render name, email, and password inputs', () => {
     const RegisterPage = captured.Component
     render(<RegisterPage />)
@@ -122,7 +127,6 @@ describe('RegisterPage', () => {
 
     expect(screen.queryByText('auth_sign_up_with_google')).not.toBeInTheDocument()
     expect(screen.queryByText('auth_sign_up_with_github')).not.toBeInTheDocument()
-    captured.loaderData = { google: true, github: true }
   })
 
   it('should display error message when signUp.email returns an error', async () => {

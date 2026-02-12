@@ -2,7 +2,7 @@ import { Button, Input, Label, OAuthButton, PasswordInput } from '@repo/ui'
 import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { authClient } from '@/lib/auth-client'
+import { authClient, fetchEnabledProviders } from '@/lib/auth-client'
 import { m } from '@/paraglide/messages'
 import { AuthLayout } from '../components/AuthLayout'
 
@@ -13,15 +13,7 @@ export const Route = createFileRoute('/register')({
       throw redirect({ to: '/' })
     }
   },
-  loader: async () => {
-    try {
-      const res = await fetch('/api/auth/providers')
-      if (!res.ok) return { google: false, github: false }
-      return (await res.json()) as { google: boolean; github: boolean }
-    } catch {
-      return { google: false, github: false }
-    }
-  },
+  loader: fetchEnabledProviders,
   component: RegisterPage,
 })
 
