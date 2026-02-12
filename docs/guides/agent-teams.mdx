@@ -50,10 +50,13 @@ The `.md` files in `.claude/agents/` serve **both** purposes:
 
 Before spawning agents, check the [Development Process](/docs/processes/dev-process) to classify your task:
 
-| Tier | Files | Agent Mode |
-|------|-------|------------|
-| **S** | 1-3 | Single session + optional tester subagent |
-| **F** | >3 | Bootstrap (if needed) → subagents or Agent Teams → /review |
+| Tier | Criteria | Agent Mode |
+|------|----------|------------|
+| **S** | &lt;=3 files, no arch risk | Single session + optional tester subagent |
+| **F-lite** | Clear scope, documented requirements, single domain | Worktree + agents + /review (skip bootstrap) |
+| **F-full** | New arch concepts, unclear requirements, or >2 domain boundaries | Bootstrap + worktree + agents + /review |
+
+F-lite vs F-full is **judgment-based**, not file-count-based. Human always validates.
 
 ### 2. Pick your agents
 
@@ -63,11 +66,21 @@ Use the routing decision tree:
 Is this a code change?
 ├── No (docs only) → doc-writer subagent
 └── Yes
-    ├── Tier S (≤3 files, no arch risk)
+    ├── Tier S (&lt;=3 files, no arch risk)
     │   └── Single session + optional tester subagent
     │
-    └── Tier F (>3 files, or arch/regression risk)
-        ├── Bootstrap (/bootstrap, if needed): product-lead + architect + doc-writer
+    ├── Tier F-lite (clear scope, documented requirements)
+    │   ├── Spawn agents (skip bootstrap):
+    │   │   ├── Single-domain → subagents (Task tool)
+    │   │   └── Multi-domain  → Agent Teams (TeamCreate)
+    │   │   ├── Frontend? → frontend-dev + tester
+    │   │   ├── Backend?  → backend-dev + tester
+    │   │   ├── Full-stack? → frontend-dev + backend-dev + tester
+    │   │   └── Security-sensitive? → + security-auditor
+    │   └── Then /review (spawns fresh domain reviewers + 1b1 + fixer)
+    │
+    └── Tier F-full (new arch, unclear requirements, >2 domains)
+        ├── Bootstrap (/bootstrap): product-lead + architect + doc-writer
         ├── Spawn agents:
         │   ├── Single-domain → subagents (Task tool)
         │   └── Multi-domain  → Agent Teams (TeamCreate)
@@ -76,7 +89,7 @@ Is this a code change?
         │   ├── Full-stack? → frontend-dev + backend-dev + tester
         │   ├── Large scope? → + architect + doc-writer
         │   └── Security-sensitive? → + security-auditor
-        └── Then /review after PR (spawns reviewer on the PR)
+        └── Then /review (spawns fresh domain reviewers + 1b1 + fixer)
 ```
 
 ### 3. Start a session
@@ -161,11 +174,11 @@ Once all tasks are complete, review the deliverables and create the PR.
 | **backend-dev** | green | `apps/api/`, `packages/types/` | [Backend Patterns](/docs/standards/backend-patterns) |
 | **infra-ops** | yellow | `packages/config/`, root configs | [Configuration](/docs/configuration) |
 
-### Quality Agents (verification)
+### Quality Agents (verification and fixing)
 
 | Agent | Color | Role | Standards |
 |-------|-------|------|-----------|
-| **reviewer** | magenta | Code review, fix, CI verification | [Code Review](/docs/standards/code-review) |
+| **fixer** | magenta | Fullstack quick fixer — applies accepted review comments across FE + BE + tests + config | [Code Review](/docs/standards/code-review) |
 | **tester** | blue | Test generation &amp; validation | [Testing](/docs/standards/testing) |
 | **security-auditor** | red | Vulnerability detection | OWASP Top 10 |
 
@@ -189,7 +202,7 @@ Controls what the agent can do without user approval.
 
 | Mode | Meaning | Used by |
 |------|---------|---------|
-| `bypassPermissions` | Agent can execute all its tools freely — appropriate for agents that write code or fix issues | frontend-dev, backend-dev, infra-ops, tester, doc-writer, product-lead, architect, reviewer |
+| `bypassPermissions` | Agent can execute all its tools freely — appropriate for agents that write code or fix issues | frontend-dev, backend-dev, infra-ops, tester, doc-writer, product-lead, architect, fixer |
 | `plan` | Agent can only read and analyze — it proposes changes but cannot execute them | security-auditor |
 
 ### `maxTurns`
@@ -198,8 +211,8 @@ Maximum number of agentic turns (API round-trips) before the agent stops. Preven
 
 | Value | Used by |
 |-------|---------|
-| `50` | Domain agents and tester (may need many iterations) |
-| `30` | Reviewer, security-auditor, doc-writer |
+| `50` | Domain agents, tester, and fixer (may need many iterations) |
+| `30` | Security-auditor, doc-writer |
 | `20` | Architect (analysis-focused) |
 | none | Product-lead (unbounded — owns the full pipeline) |
 
@@ -215,7 +228,7 @@ Each agent has a core skill preloaded, matching its primary function:
 |-------|-------|---------|
 | frontend-dev, backend-dev, infra-ops | `commit`, `context7` | Conventional Commits + library docs |
 | doc-writer | `commit`, `context7` | Conventional Commits + library docs |
-| reviewer | `review`, `commit`, `agent-browser` | Code review + fix + commit + deployed verification |
+| fixer | `commit`, `context7` | Fix accepted review comments + commit |
 | tester | `test`, `context7` | Test generation + library docs |
 | architect | `plan`, `adr`, `commit`, `context7` | Planning, ADRs, commits, library docs |
 | product-lead | `interview`, `issue-triage`, `issues`, `adr`, `commit`, `pr`, `scaffold`, `agent-browser`, `context7`, `1b1`, `bootstrap` | Full product ownership toolkit |
@@ -231,74 +244,136 @@ Defense-in-depth: even if an agent's `tools` list doesn't include certain tools,
 
 ---
 
+## Review Model
+
+Review is performed by **fresh agent instances** — not the agents that wrote the code. This prevents bias and ensures independent verification.
+
+### How it works
+
+1. After a PR is created, Main Claude runs `/review`
+2. The review skill spawns fresh review agents via the `Task` tool:
+
+   | Always spawned | Conditionally spawned |
+   |----------------|----------------------|
+   | security-auditor | frontend-dev (if FE files changed) |
+   | architect | backend-dev (if BE files changed) |
+   | product-lead | infra-ops (if config files changed) |
+   | tester | |
+
+3. Each agent reviews the diff from its area of expertise, producing Conventional Comments
+4. Main Claude merges findings, deduplicates, and walks the human through each one via `/1b1`
+5. Human accepts, rejects, or defers each finding
+6. Accepted findings are sent to the **fixer** agent, which applies fixes across the stack
+7. Fixer commits, pushes, and CI runs
+
+### Why fresh agents?
+
+- No agent reviews code it wrote (eliminates confirmation bias)
+- Each reviewer is scoped to what it knows best (security-auditor focuses on OWASP, architect on design patterns, etc.)
+- The old single "reviewer" agent tried to cover all domains — splitting review from fixing gives better separation of concerns
+
+### Fixer vs old reviewer
+
+The **fixer** agent replaces the old reviewer agent. Key differences:
+
+| Old reviewer | New fixer |
+|--------------|-----------|
+| Reviewed AND fixed AND verified CI | Only fixes accepted review comments |
+| Single agent covering all domains | Fullstack — fixes across FE + BE + tests + config |
+| Reviewed its own work | Never reviews — fresh agents handle review |
+| Spawned automatically by /review | Spawned after human validates findings via /1b1 |
+
+---
+
 ## Playbooks
 
-### Playbook 1: Frontend Feature
+### Playbook 1: Frontend Feature (F-lite)
 
-**Scenario:** Add a new page with components, no API changes.
+**Scenario:** Add a new page with components, no API changes. Clear requirements.
 
 ```bash
-# 1. Create worktree
+# Phase 2 — Create worktree and spawn agents
 git worktree add ../roxabi-XXX -b feat/XXX-slug staging
 cd ../roxabi-XXX && bun install
 
-# 2. Start Claude Code and spawn agents
 claude
 /teammates add frontend-dev tester
 ```
 
-**Task flow:**
+**Task flow (test-first):**
 
 ```
-[frontend-dev: Implement page + components]
-        │
-        └──→ [tester: Write component tests]
-        │
-        └──→ Commit & PR
-        │
-        └──→ /review (spawns reviewer on the PR)
+[tester: Write failing tests from spec (RED)]
+        |
+[frontend-dev: Implement to pass tests (GREEN)]
+        |
+[frontend-dev: Refactor (REFACTOR)]
+        |
+[tester: Verify coverage + edge cases]
+        |
+Commit & PR
+        |
+/review (spawns fresh reviewers)
+        |
+/1b1 (human walks through findings)
+        |
+[fixer: Fix accepted comments]
+        |
+Merge
 ```
 
 **As the lead, you:**
-1. Describe the feature and create the task list
-2. frontend-dev implements the UI
-3. tester writes tests once implementation is done
+1. Confirm spec exists (Phase 1 — assessment)
+2. tester writes failing tests from the spec
+3. frontend-dev implements to pass the tests
 4. Create the PR
-5. Run `/review` — reviewer fixes issues, commits, pushes, and waits for CI
-6. Product-lead merges once reviewer confirms CI is green
+5. Run `/review` — fresh agents review the code
+6. Walk through findings with `/1b1` — accept, reject, or defer each
+7. fixer applies accepted fixes
+8. Approve merge once CI is green
 
-### Playbook 2: Full-Stack Feature
+### Playbook 2: Full-Stack Feature (F-lite)
 
-**Scenario:** New API endpoint + frontend page that consumes it.
+**Scenario:** New API endpoint + frontend page that consumes it. Requirements documented.
 
 ```bash
 /teammates add frontend-dev backend-dev tester
 ```
 
-**Task flow:**
+**Task flow (test-first):**
 
 ```
-[backend-dev: Implement API endpoint + types]
-        │
-[frontend-dev: Implement UI consuming the API]
-        │
-   [tester: Write tests]
-        │
-   Commit & PR
-        │
-   /review (spawns reviewer on the PR)
+[tester: Write failing API + UI tests (RED)]
+        |
+[backend-dev: Implement API endpoint + types (GREEN)]
+        |
+[frontend-dev: Implement UI consuming the API (GREEN)]
+        |
+[tester: Verify coverage + edge cases]
+        |
+Commit & PR
+        |
+/review (spawns fresh reviewers)
+        |
+/1b1 (human walks through findings)
+        |
+[fixer: Fix accepted comments]
+        |
+Merge
 ```
 
 **As the lead, you:**
-1. Create tasks with dependencies — frontend is blocked by backend (needs the API and types)
-2. backend-dev implements the endpoint and shared types
-3. frontend-dev implements the UI once the API is ready
-4. tester writes tests for the completed code
+1. Confirm spec exists (Phase 1)
+2. tester writes failing tests for both API and UI
+3. backend-dev implements the endpoint and shared types to pass API tests
+4. frontend-dev implements the UI to pass UI tests
 5. Create the PR
-6. Run `/review` — reviewer fixes issues, commits, pushes, and waits for CI
-7. Product-lead merges once reviewer confirms CI is green
+6. Run `/review` — fresh agents review
+7. Walk through findings via `/1b1`
+8. fixer applies accepted fixes
+9. Approve merge once CI is green
 
-### Playbook 3: Bug Fix with Validation
+### Playbook 3: Bug Fix with Regression Test
 
 **Scenario:** Backend bug that needs a fix and regression test.
 
@@ -306,39 +381,48 @@ claude
 /teammates add backend-dev tester
 ```
 
-**Task flow:**
+**Task flow (test-first):**
 
 ```
-[backend-dev: Fix the bug]
-        │
-[tester: Write regression test]
-        │
+[tester: Write failing regression test that reproduces the bug (RED)]
+        |
+[backend-dev: Fix the bug to pass the test (GREEN)]
+        |
 Commit & PR
-        │
-/review (spawns reviewer on the PR)
+        |
+/review (spawns fresh reviewers)
+        |
+/1b1 (human walks through findings)
+        |
+[fixer: Fix accepted comments]
+        |
+Merge
 ```
 
 **As the lead, you:**
 1. Describe the bug with reproduction steps
-2. backend-dev investigates and fixes
-3. tester writes a regression test that would have caught it
+2. tester writes a regression test that reproduces the bug
+3. backend-dev fixes the bug to pass the test
 4. Create the PR
-5. Run `/review` — reviewer fixes issues, commits, pushes, and waits for CI
-6. Product-lead merges once reviewer confirms CI is green
+5. Run `/review`, walk through findings via `/1b1`
+6. fixer applies accepted fixes
+7. Approve merge once CI is green
 
-### Playbook 4: Large Feature (Full Team with Bootstrap)
+### Playbook 4: Large Feature (F-full with Bootstrap)
 
-**Scenario:** Major feature spanning frontend, backend, and infrastructure.
+**Scenario:** Major feature spanning frontend, backend, and infrastructure. New arch concepts or unclear requirements.
 
-**Phase 1 — Bootstrap (planning):**
+**Phase 1 — Assessment (bootstrap):**
 
 ```bash
 /bootstrap
 # Spawns: product-lead, architect, doc-writer
-# Outputs: spec, issue, analysis
+# Product-lead interacts with human to write analysis + spec
+# Architect provides technical analysis if needed
+# Human approves spec before proceeding
 ```
 
-**Phase 2 — Implementation:**
+**Phase 2 — Implementation (test-first):**
 
 ```bash
 /teammates add architect frontend-dev backend-dev infra-ops tester doc-writer
@@ -349,30 +433,49 @@ Commit & PR
 
 ```
 [architect: Design + break into tasks]
-        │
-   ┌────┼────────┐
-[front] [back] [infra]     ← parallel implementation
-   └────┼────────┘
-        │
-   ┌────┼────┐
-[tester] [security-auditor]  ← parallel verification
-        │
-   [doc-writer: Update docs]
-        │
-   Commit & PR
-        │
-   /review (spawns reviewer on the PR)
+        |
+[tester: Write failing tests from spec (RED)]
+        |
+   +----+--------+
+[front] [back] [infra]     &lt;- parallel implementation (GREEN)
+   +----+--------+
+        |
+[tester: Verify coverage + edge cases]
+        |
+[doc-writer: Update docs]
+        |
+Commit & PR
+```
+
+**Phase 3 — Review:**
+
+```
+/review (spawns fresh domain reviewers)
+        |
+/1b1 (human walks through all findings)
+```
+
+**Phase 4 — Fix and Merge:**
+
+```
+[fixer: Fix accepted comments across stack]
+        |
+CI runs (loop until green)
+        |
+Human approves merge
 ```
 
 **As the lead, you:**
-1. Run `/bootstrap` — product-lead gathers requirements, architect designs the system, doc-writer drafts the spec
-2. Let architect design the approach and create the task dependency graph
-3. Domain agents implement in parallel (each in their own packages)
-4. tester and security-auditor verify in parallel once implementation is complete
+1. Run `/bootstrap` — product-lead gathers requirements, architect designs, doc-writer drafts spec
+2. Human approves the spec
+3. tester writes failing tests from spec
+4. Domain agents implement in parallel (each in their own packages) to pass tests
 5. doc-writer updates documentation
 6. Create the PR
-7. Run `/review` — reviewer fixes issues, commits, pushes, and waits for CI
-8. Product-lead merges once reviewer confirms CI is green
+7. Run `/review` — fresh agents review from each domain
+8. Walk through all findings via `/1b1`
+9. fixer applies accepted fixes
+10. Approve merge once CI is green
 
 ---
 
@@ -409,7 +512,8 @@ Recommended model-per-role mapping for cost optimization. **Not applied yet** �
 |------|-------|--------|-----------|
 | **Heavy** | Opus | product-lead, architect | Complex analysis, planning, product decisions |
 | **Standard** | Sonnet | frontend-dev, backend-dev, infra-ops, tester, doc-writer | Implementation, testing, documentation |
-| **Light** | Haiku | reviewer, security-auditor | Read-only analysis, checklist verification |
+| **Standard** | Sonnet | fixer | Cross-stack fixes on identified issues |
+| **Light** | Haiku | security-auditor | Read-only analysis, checklist verification |
 
 This tiering will be applied when cost optimization becomes a priority. For now, all agents inherit the parent session's model.
 
