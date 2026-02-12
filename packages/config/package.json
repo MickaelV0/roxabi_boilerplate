@@ -9,8 +9,7 @@
     ".": "./src/index.ts",
     "./vitest": "./src/vitest.ts",
     "./tsconfig": "./tsconfig.json",
-    "./tsconfig.base": "./tsconfig.base.json",
-    "./biome": "./biome.json"
+    "./tsconfig.base": "./tsconfig.base.json"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
