@@ -107,7 +107,7 @@ export default defineConfig({
   test: {
     ...nodeConfig,
     name: 'api',
-    root: __dirname,
+    root: import.meta.dirname,
     setupFiles: ['./src/test/setup.ts'],
   },
 })
@@ -222,13 +222,20 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  reporter: 'html',
+  workers: process.env.CI ? 1 : undefined,
+  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'html',
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
   },
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ],
   webServer: {
-    command: 'bun run dev',
+    command: process.env.CI ? 'node apps/web/.output/server/index.mjs' : 'bun run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
