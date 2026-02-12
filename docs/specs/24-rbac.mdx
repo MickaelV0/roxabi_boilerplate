@@ -173,21 +173,22 @@ Existing `role` text column is **kept** for Better Auth compatibility. `role_id`
 | Permission | Owner | Admin | Member | Viewer |
 |------------|:-----:|:-----:|:------:|:------:|
 | `users:read` | x | x | x | x |
-| `users:write` | x | x | x | |
+| `users:write` | x | x | | |
 | `users:delete` | x | x | | |
 | `organizations:read` | x | x | x | x |
 | `organizations:write` | x | x | | |
+| `organizations:delete` | x | | | |
 | `members:read` | x | x | x | x |
 | `members:write` | x | x | | |
 | `members:delete` | x | x | | |
 | `invitations:read` | x | x | x | x |
 | `invitations:write` | x | x | | |
 | `invitations:delete` | x | x | | |
-| `roles:read` | x | x | | |
+| `roles:read` | x | x | x | x |
 | `roles:write` | x | x | | |
 | `roles:delete` | x | x | | |
 
-Owner always has all permissions (enforced by code, not by the permission table — Owner gets `*` or all permissions are auto-included).
+Owner has all 15 permissions assigned explicitly via the permission table.
 
 ### NestJS guard integration
 
@@ -235,14 +236,14 @@ export class PermissionService {
 
 | Method | Path | Permission Required | Description |
 |--------|------|-------------------|-------------|
-| `GET` | `/roles` | `roles:read` | List roles for current org |
-| `POST` | `/roles` | `roles:write` | Create custom role |
-| `PATCH` | `/roles/:id` | `roles:write` | Update role permissions |
-| `DELETE` | `/roles/:id` | `roles:delete` | Delete custom role (fallback members to Viewer) |
-| `GET` | `/roles/:id/permissions` | `roles:read` | Get permissions for a role |
-| `GET` | `/permissions` | `roles:read` | List all available permissions |
-| `POST` | `/roles/transfer-ownership` | Owner only | Transfer ownership to another Admin |
-| `PATCH` | `/members/:id/role` | `members:write` | Change a member's role |
+| `GET` | `/api/roles` | `roles:read` | List roles for current org |
+| `POST` | `/api/roles` | `roles:write` | Create custom role |
+| `PATCH` | `/api/roles/:id` | `roles:write` | Update role permissions |
+| `DELETE` | `/api/roles/:id` | `roles:delete` | Delete custom role (fallback members to Viewer) |
+| `GET` | `/api/roles/:id/permissions` | `roles:read` | Get permissions for a role |
+| `GET` | `/api/roles/permissions` | `roles:read` | List all available permissions |
+| `POST` | `/api/roles/transfer-ownership` | `members:write` | Transfer ownership (service verifies caller is Owner) |
+| `PATCH` | `/api/roles/members/:id/role` | `members:write` | Change a member's role |
 
 ### Frontend integration
 
@@ -294,7 +295,7 @@ Permissions are available on `session.permissions` as `string[]`. No additional 
 
 ## Open Questions
 
-- **Better Auth session extension**: What is the cleanest way to inject `permissions[]` into the Better Auth session response? May need a session hook or custom session endpoint wrapper.
-- **Permission caching**: Should resolved permissions be cached per-request (CLS) or per-session? Per-request is simpler but re-queries on every request. Per-session requires cache invalidation on role changes.
-- **`role_permissions` RLS**: This table references `roles` which is tenant-scoped. Should it have its own `tenant_id` column and RLS policy, or rely on the FK join to `roles`? Own column is simpler for RLS but denormalized.
-- **Org creation hook**: Better Auth creates organizations. Where do we hook in to seed default roles? A database trigger, a Better Auth plugin hook, or a NestJS event listener?
+- ~~**Org creation hook**: What is the cleanest way to hook into org creation?~~ **Resolved** — NestJS `@OnEvent(ORGANIZATION_CREATED)` listener in `RbacListener`. Seeds default roles and assigns Owner to creator.
+- **Better Auth session extension**: What is the cleanest way to inject `permissions[]` into the Better Auth session response? May need a session hook or custom session endpoint wrapper. *(Not yet implemented — permissions resolved server-side in guard, but not exposed to frontend session.)*
+- **Permission caching**: Should resolved permissions be cached per-request (CLS) or per-session? Per-request is simpler but re-queries on every request. Per-session requires cache invalidation on role changes. *(Not yet implemented — queries on every request.)*
+- **`role_permissions` RLS**: Should it have its own `tenant_id` column and RLS policy, or rely on the FK join to `roles`? *(Current implementation relies on FK join to `roles` which has RLS. No separate policy.)*
