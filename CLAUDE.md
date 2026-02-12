@@ -38,9 +38,8 @@ This applies to ALL development work: specs, features, bug fixes, refactoring, d
 
 | Tier | Name | Criteria | Process |
 |------|------|----------|---------|
-| **L** | Feature/Migration | >10 files, system arch | Full spec + worktree |
-| **M** | Feature Light | 3-10 files, local arch | Worktree + light review |
-| **S** | Quick Fix | ≤3 files, no arch, no risk | Direct branch + PR |
+| **F** | Feature | >3 files, or arch/regression risk | Bootstrap (if needed) + worktree + agents + /review |
+| **S** | Quick Fix | ≤3 files, no arch, no risk | Worktree + PR |
 
 ---
 
@@ -79,17 +78,9 @@ When detecting a large workload (3+ complex tasks, migrations, or multi-componen
 
 ---
 
-### 5. Mandatory Worktree (Tier M/L) (CRITICAL)
+### 5. Mandatory Worktree (All Tiers) (CRITICAL)
 
-**BEFORE writing code, determine the tier:**
-
-| Criteria | Tier | Action |
-|----------|------|--------|
-| ≤3 files, no risk | **S** | Branch + direct PR |
-| 3-10 files | **M** | **WORKTREE MANDATORY** |
-| >10 files or system arch | **L** | **WORKTREE MANDATORY** |
-
-**If Tier M or L, create worktree BEFORE coding:**
+**ALL code changes require a worktree. Create worktree BEFORE coding:**
 
 ```bash
 git worktree add ../roxabi-XXX -b feat/XXX-slug staging
@@ -98,7 +89,7 @@ cd ../roxabi-XXX
 
 > XXX = GitHub issue number (e.g., 123), slug = short description
 
-**FORBIDDEN: Modifying more than 3 files on main without worktree.**
+**FORBIDDEN: Modifying files on main/staging without a worktree.**
 
 ---
 
@@ -212,8 +203,7 @@ Specialized agents for multi-agent coordination. Requires `CLAUDE_CODE_EXPERIMEN
 | `tester` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash |
 | `security-auditor` | Quality | All packages | plan | Read, Glob, Grep, Bash |
 | `architect` | Strategy | All packages | plan | Read, Glob, Grep, Bash |
-| `business-analyst` | Strategy | `docs/` | plan | Read, Glob, Grep, WebSearch |
-| `product-manager` | Strategy | `docs/`, GitHub issues | plan | Read, Glob, Grep, Bash |
+| `product-analyst` | Strategy | `docs/`, GitHub issues | plan | Read, Glob, Grep, Bash, WebSearch |
 | `doc-writer` | Strategy | `docs/`, `CLAUDE.md` | bypassPermissions | Read, Write, Edit, Glob, Grep |
 
 ### Routing Decision Tree
@@ -222,23 +212,22 @@ Specialized agents for multi-agent coordination. Requires `CLAUDE_CODE_EXPERIMEN
 
 ```
 Is this a code change?
-├── No (docs only) → doc-writer alone (or single agent)
+├── No (docs only) → doc-writer subagent
 └── Yes
     ├── Tier S (≤3 files, no arch risk)
-    │   └── Single agent session (no agent teams)
+    │   └── Single session + optional tester subagent
     │
-    ├── Tier M (3-10 files, local arch)
-    │   ├── Frontend only? → frontend-dev + reviewer + tester
-    │   ├── Backend only?  → backend-dev + reviewer + tester
-    │   ├── Full-stack?    → frontend-dev + backend-dev + reviewer + tester
-    │   └── + architect (if design decisions needed)
-    │
-    └── Tier L (>10 files, system arch)
-        └── Full team or near-full team:
-            ├── Always: architect + domain agents + reviewer + tester
-            ├── If new feature: + business-analyst + product-manager
-            ├── If security-sensitive: + security-auditor
-            └── If docs impact: + doc-writer
+    └── Tier F (>3 files, or arch/regression risk)
+        ├── Bootstrap (/bootstrap, if needed): product-analyst + architect + doc-writer
+        ├── Spawn agents:
+        │   ├── Single-domain → subagents (Task tool)
+        │   └── Multi-domain  → Agent Teams (TeamCreate)
+        │   ├── Frontend? → frontend-dev + tester
+        │   ├── Backend?  → backend-dev + tester
+        │   ├── Full-stack? → frontend-dev + backend-dev + tester
+        │   ├── Large scope? → + architect + doc-writer
+        │   └── Security-sensitive? → + security-auditor
+        └── Then /review after PR (spawns reviewer on the PR)
 ```
 
 Agent definitions: `.claude/agents/*.md`

@@ -50,11 +50,10 @@ The `.md` files in `.claude/agents/` serve **both** purposes:
 
 Before spawning agents, check the [Development Process](/docs/processes/dev-process) to classify your task:
 
-| Tier | Files | Agents |
-|------|-------|--------|
-| **S** | 1-3 | None — use a single Claude Code session |
-| **M** | 3-10 | 3-5 agents based on domain |
-| **L** | >10 | 6-10 agents (full or near-full team) |
+| Tier | Files | Agent Mode |
+|------|-------|------------|
+| **S** | 1-3 | Single session + optional tester subagent |
+| **F** | >3 | Bootstrap (if needed) → subagents or Agent Teams → /review |
 
 ### 2. Pick your agents
 
@@ -62,17 +61,22 @@ Use the routing decision tree:
 
 ```
 Is this a code change?
-├── No (docs only) → doc-writer alone
+├── No (docs only) → doc-writer subagent
 └── Yes
-    ├── Tier S → Single session (no agents)
-    ├── Tier M
-    │   ├── Frontend only? → frontend-dev + reviewer + tester
-    │   ├── Backend only?  → backend-dev + reviewer + tester
-    │   ├── Full-stack?    → frontend-dev + backend-dev + reviewer + tester
-    │   └── + architect (if design decisions needed)
-    └── Tier L
-        └── architect + domain agents + reviewer + tester
-            + business-analyst, product-manager, security-auditor, doc-writer as needed
+    ├── Tier S (≤3 files, no arch risk)
+    │   └── Single session + optional tester subagent
+    │
+    └── Tier F (>3 files, or arch/regression risk)
+        ├── Bootstrap (/bootstrap, if needed): product-analyst + architect + doc-writer
+        ├── Spawn agents:
+        │   ├── Single-domain → subagents (Task tool)
+        │   └── Multi-domain  → Agent Teams (TeamCreate)
+        │   ├── Frontend? → frontend-dev + tester
+        │   ├── Backend?  → backend-dev + tester
+        │   ├── Full-stack? → frontend-dev + backend-dev + tester
+        │   ├── Large scope? → + architect + doc-writer
+        │   └── Security-sensitive? → + security-auditor
+        └── Then /review after PR (spawns reviewer on the PR)
 ```
 
 ### 3. Start a session
@@ -99,7 +103,7 @@ export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
 claude
 
 # Spawn teammates as independent sessions
-/teammates add frontend-dev backend-dev reviewer tester
+/teammates add frontend-dev backend-dev tester
 ```
 
 ### 4. Create tasks and assign
@@ -111,7 +115,7 @@ Create a task list for implementing the user profile page:
 1. "Implement GET /api/users/:id endpoint" → assign to backend-dev
 2. "Create UserProfile component" → assign to frontend-dev, blocked by task 1
 3. "Write tests for user profile" → assign to tester, blocked by tasks 1 and 2
-4. "Review all changes" → assign to reviewer, blocked by task 3
+4. Create PR, then run /review
 ```
 
 Agents will claim tasks matching their domain and execute within their boundaries.
@@ -145,8 +149,7 @@ Once all tasks are complete, review the deliverables and create the PR.
 | Agent | Color | Role | Standards |
 |-------|-------|------|-----------|
 | **architect** | white | System design, tier classification | [Architecture](/docs/architecture/) |
-| **business-analyst** | orange | Requirements, acceptance criteria | Interview framework |
-| **product-manager** | purple | Issue triage, prioritization | [Issue Management](/docs/processes/issue-management) |
+| **product-analyst** | purple | Requirements, triage, prioritization | [Issue Management](/docs/processes/issue-management) |
 | **doc-writer** | gray | Documentation maintenance | [Contributing](/docs/contributing) |
 
 ---
@@ -162,7 +165,7 @@ Controls what the agent can do without user approval.
 | Mode | Meaning | Used by |
 |------|---------|---------|
 | `bypassPermissions` | Agent can execute all its tools freely — appropriate for domain agents that write code | frontend-dev, backend-dev, infra-ops, tester, doc-writer |
-| `plan` | Agent can only read and analyze — it proposes changes but cannot execute them | reviewer, security-auditor, architect, business-analyst, product-manager |
+| `plan` | Agent can only read and analyze — it proposes changes but cannot execute them | reviewer, security-auditor, architect, product-analyst |
 
 ### `maxTurns`
 
@@ -172,7 +175,7 @@ Maximum number of agentic turns (API round-trips) before the agent stops. Preven
 |-------|---------|
 | `50` | Domain agents and tester (may need many iterations) |
 | `30` | Reviewer, security-auditor, doc-writer |
-| `20` | Architect, business-analyst, product-manager (analysis-focused) |
+| `20` | Architect, product-analyst (analysis-focused) |
 
 ### `memory: project`
 
@@ -188,8 +191,7 @@ Each agent has a core skill preloaded, matching its primary function:
 | reviewer | `review` | Code review with Conventional Comments |
 | tester | `test` | Test generation and validation |
 | architect | `plan` | Implementation planning |
-| business-analyst | `interview` | Requirements gathering |
-| product-manager | `issue-triage` | Issue prioritization |
+| product-analyst | `interview` | Requirements gathering and issue triage |
 | security-auditor | — | No skill (pure analysis) |
 
 ### `disallowedTools`
@@ -201,14 +203,13 @@ Defense-in-depth for read-only agents. Even if an agent's `tools` list doesn't i
 | reviewer | Write, Edit, Bash |
 | security-auditor | Write, Edit |
 | architect | Write, Edit |
-| business-analyst | Write, Edit, Bash |
-| product-manager | Write, Edit |
+| product-analyst | Write, Edit |
 
 ---
 
 ## Playbooks
 
-### Playbook 1: Tier M Frontend Feature
+### Playbook 1: Frontend Feature
 
 **Scenario:** Add a new page with components, no API changes.
 
@@ -219,7 +220,7 @@ cd ../roxabi-XXX && bun install
 
 # 2. Start Claude Code and spawn agents
 claude
-/teammates add frontend-dev reviewer tester
+/teammates add frontend-dev tester
 ```
 
 **Task flow:**
@@ -227,23 +228,27 @@ claude
 ```
 [frontend-dev: Implement page + components]
         │
-        ├──→ [tester: Write component tests]
+        └──→ [tester: Write component tests]
         │
-        └──→ [reviewer: Review changes]
+        └──→ Commit & PR
+        │
+        └──→ /review (spawns reviewer on the PR)
 ```
 
 **As the lead, you:**
 1. Describe the feature and create the task list
 2. frontend-dev implements the UI
-3. Once done, tester writes tests and reviewer reviews in parallel
-4. You resolve any feedback, then create the PR
+3. tester writes tests once implementation is done
+4. Create the PR
+5. Run `/review` on the PR for structured code review
+6. Resolve any issues
 
-### Playbook 2: Tier M Full-Stack Feature
+### Playbook 2: Full-Stack Feature
 
 **Scenario:** New API endpoint + frontend page that consumes it.
 
 ```bash
-/teammates add frontend-dev backend-dev reviewer tester
+/teammates add frontend-dev backend-dev tester
 ```
 
 **Task flow:**
@@ -253,16 +258,21 @@ claude
         │
 [frontend-dev: Implement UI consuming the API]
         │
-   ┌────┴────┐
-[tester]  [reviewer]
+   [tester: Write tests]
+        │
+   Commit & PR
+        │
+   /review (spawns reviewer on the PR)
 ```
 
 **As the lead, you:**
 1. Create tasks with dependencies — frontend is blocked by backend (needs the API and types)
 2. backend-dev implements the endpoint and shared types
 3. frontend-dev implements the UI once the API is ready
-4. tester and reviewer work in parallel on the completed code
-5. You review findings and create the PR
+4. tester writes tests for the completed code
+5. Create the PR
+6. Run `/review` on the PR for structured code review
+7. Resolve any issues
 
 ### Playbook 3: Bug Fix with Validation
 
@@ -278,21 +288,37 @@ claude
 [backend-dev: Fix the bug]
         │
 [tester: Write regression test]
+        │
+Commit & PR
+        │
+/review (spawns reviewer on the PR)
 ```
 
 **As the lead, you:**
 1. Describe the bug with reproduction steps
 2. backend-dev investigates and fixes
 3. tester writes a regression test that would have caught it
-4. You verify and create the PR
+4. Create the PR
+5. Run `/review` on the PR for a quick code review
+6. Resolve any issues
 
-### Playbook 4: Tier L Feature (Full Team)
+### Playbook 4: Large Feature (Full Team with Bootstrap)
 
 **Scenario:** Major feature spanning frontend, backend, and infrastructure.
 
+**Phase 1 — Bootstrap (planning):**
+
 ```bash
-/teammates add architect frontend-dev backend-dev infra-ops reviewer tester doc-writer
-# Add business-analyst, product-manager, security-auditor if needed
+/bootstrap
+# Spawns: product-analyst, architect, doc-writer
+# Outputs: spec, issue, analysis
+```
+
+**Phase 2 — Implementation:**
+
+```bash
+/teammates add architect frontend-dev backend-dev infra-ops tester doc-writer
+# Add security-auditor if security-sensitive
 ```
 
 **Task flow:**
@@ -305,17 +331,24 @@ claude
    └────┼────────┘
         │
    ┌────┼────┐
-[tester] [reviewer] [security-auditor]  ← parallel verification
+[tester] [security-auditor]  ← parallel verification
         │
    [doc-writer: Update docs]
+        │
+   Commit & PR
+        │
+   /review (spawns reviewer on the PR)
 ```
 
 **As the lead, you:**
-1. Let architect design the approach and create the task dependency graph
-2. Domain agents implement in parallel (each in their own packages)
-3. Quality agents verify in parallel once implementation is complete
-4. doc-writer updates documentation
-5. You review everything and create the PR
+1. Run `/bootstrap` — product-analyst gathers requirements, architect designs the system, doc-writer drafts the spec
+2. Let architect design the approach and create the task dependency graph
+3. Domain agents implement in parallel (each in their own packages)
+4. tester and security-auditor verify in parallel once implementation is complete
+5. doc-writer updates documentation
+6. Create the PR
+7. Run `/review` on the PR for structured code review
+8. Resolve any issues
 
 ---
 
@@ -338,7 +371,7 @@ All agents follow these rules (baked into their system prompts):
 | Context window exhausted | Restart the agent. The task list persists across sessions. |
 | Agent teams feature not working | Verify `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` is set. Check Claude Code version. |
 | Two agents conflict on a file | Add a `blockedBy` dependency to serialize access. |
-| Too expensive for small tasks | Use single-agent mode for Tier S. Agent teams are for Tier M/L only. |
+| Too expensive for small tasks | Use subagents (Task tool) for Tier S. Reserve full Agent Teams for Tier F multi-domain. |
 
 ## Fallback: Single Agent Mode
 
