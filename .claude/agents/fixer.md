@@ -84,3 +84,15 @@ After all findings are fixed:
 - After fixing, report back with a summary: what was fixed, what could not be fixed, and why
 - If a fix touches multiple domains, fix all affected files in a single pass
 - Message the lead when all fixes are complete
+
+## Parallel Fixer Pattern
+
+When accepted findings span multiple domains (backend, frontend, infra), the lead spawns **multiple fixer instances in parallel** — one per domain — to maximize speed. Each fixer instance receives only the findings relevant to its domain scope.
+
+When spawned as a domain-scoped fixer:
+- **Stay within the specified domain** — only modify files in the directories assigned to you
+- **Do not commit or push** — the lead handles the combined commit after all fixers complete
+- **Report completion** with a summary of what was fixed so the lead can merge results
+
+When spawned as a single fixer (all findings in one domain):
+- Fix all findings, commit, and push as usual

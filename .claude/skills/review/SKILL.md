@@ -208,12 +208,23 @@ For each finding:
 After the walkthrough:
 
 - **Accepted findings** are collected into a fix list
-- The **fixer** agent (`.claude/agents/fixer.md`) receives the accepted findings and applies fixes across the stack
-- The fixer commits and pushes the fixes
-- CI runs; if it fails, the fixer investigates and fixes until green
+- **Spawn parallel fixer agents by domain** to maximize speed:
+
+  | Fixer | When to spawn | Scope |
+  |-------|---------------|-------|
+  | **Backend fixer** | If accepted findings touch `apps/api/` or `packages/types/` | Backend test/source fixes only |
+  | **Frontend fixer** | If accepted findings touch `apps/web/` or `packages/ui/` | Frontend test/source fixes only |
+  | **Infra fixer** | If accepted findings touch `packages/config/`, root configs, or CI | Config/infra fixes only |
+
+  If all accepted findings fall within a **single domain**, spawn one fixer. If findings span **2+ domains**, spawn one fixer per domain in parallel.
+
+  Each fixer receives only the findings relevant to its domain. All fixers use the `fixer` agent definition (`.claude/agents/fixer.md`) with their domain scope specified in the prompt.
+
+- After all fixers complete, **stage, commit, and push** the combined fixes in a single commit
+- CI runs; if it fails, spawn the relevant domain fixer to investigate and fix until green
 - Human approves the merge
 
-> **Note:** The `/review` skill no longer includes a `--fix` flag. Fixing is handled separately by the fixer agent after the human validates findings via `/1b1`.
+> **Note:** The `/review` skill no longer includes a `--fix` flag. Fixing is handled separately by the fixer agent(s) after the human validates findings via `/1b1`.
 
 ## Edge Cases
 

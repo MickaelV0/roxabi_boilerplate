@@ -178,7 +178,7 @@ Once all tasks are complete, review the deliverables and create the PR.
 
 | Agent | Color | Role | Standards |
 |-------|-------|------|-----------|
-| **fixer** | magenta | Fullstack quick fixer — applies accepted review comments across FE + BE + tests + config | [Code Review](/docs/standards/code-review) |
+| **fixer** | magenta | Fullstack quick fixer — applies accepted review comments. Spawned in parallel (one per domain) when fixes span multiple domains. | [Code Review](/docs/standards/code-review) |
 | **tester** | blue | Test generation &amp; validation | [Testing](/docs/standards/testing) |
 | **security-auditor** | red | Vulnerability detection | OWASP Top 10 |
 
@@ -263,8 +263,8 @@ Review is performed by **fresh agent instances** — not the agents that wrote t
 3. Each agent reviews the diff from its area of expertise, producing Conventional Comments
 4. Main Claude merges findings, deduplicates, and walks the human through each one via `/1b1`
 5. Human accepts, rejects, or defers each finding
-6. Accepted findings are sent to the **fixer** agent, which applies fixes across the stack
-7. Fixer commits, pushes, and CI runs
+6. Accepted findings are split by domain and sent to **parallel fixer agents** — one per affected domain (backend, frontend, infra). Single-domain fixes use one fixer.
+7. Fixers run in parallel, then the lead commits, pushes, and CI runs
 
 ### Why fresh agents?
 
@@ -282,6 +282,24 @@ The **fixer** agent replaces the old reviewer agent. Key differences:
 | Single agent covering all domains | Fullstack — fixes across FE + BE + tests + config |
 | Reviewed its own work | Never reviews — fresh agents handle review |
 | Spawned automatically by /review | Spawned after human validates findings via /1b1 |
+
+### Parallel Fixers
+
+When accepted findings span **2+ domains** (e.g., backend + frontend + config), the lead spawns **one fixer per domain in parallel** instead of a single sequential fixer. This cuts fix time proportionally.
+
+| Domain | Fixer scope | Files |
+|--------|-------------|-------|
+| **Backend** | `apps/api/`, `packages/types/` | Backend source + tests |
+| **Frontend** | `apps/web/`, `packages/ui/` | Frontend source + tests |
+| **Infra** | `packages/config/`, root configs, CI | Config + infrastructure |
+
+Each parallel fixer:
+- Receives only its domain's accepted findings
+- Edits only files within its scope
+- Does **not** commit — the lead combines all fixes into a single commit after all fixers complete
+- Reports what was fixed and any issues
+
+Single-domain fixes still use one fixer that commits and pushes directly.
 
 ---
 
@@ -458,7 +476,12 @@ Commit & PR
 **Phase 4 — Fix and Merge:**
 
 ```
-[fixer: Fix accepted comments across stack]
+[parallel fixers by domain]
+   +--------+--------+
+[BE fixer] [FE fixer] [Infra fixer]   ← parallel (one per affected domain)
+   +--------+--------+
+        |
+Combined commit & push
         |
 CI runs (loop until green)
         |
