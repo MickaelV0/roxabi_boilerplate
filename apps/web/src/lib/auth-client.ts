@@ -7,3 +7,15 @@ export const authClient = createAuthClient({
 })
 
 export const { useSession, signIn, signUp, signOut } = authClient
+
+export type EnabledProviders = { google: boolean; github: boolean }
+
+export async function fetchEnabledProviders(): Promise<EnabledProviders> {
+  try {
+    const res = await fetch('/api/auth/providers')
+    if (!res.ok) return { google: false, github: false }
+    return (await res.json()) as EnabledProviders
+  } catch {
+    return { google: false, github: false }
+  }
+}

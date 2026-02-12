@@ -1,16 +1,20 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { authClient } from '@/lib/auth-client'
 import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
+  loaderData: { google: true, github: true } as { google: boolean; github: boolean },
 }))
 
 vi.mock('@tanstack/react-router', () => ({
   createFileRoute: () => (config: { component: React.ComponentType }) => {
     captured.Component = config.component
-    return { component: config.component }
+    return {
+      component: config.component,
+      useLoaderData: () => captured.loaderData,
+    }
   },
   Link: ({
     children,
@@ -52,6 +56,7 @@ vi.mock('@/lib/auth-client', () => ({
       social: vi.fn(),
     },
   },
+  fetchEnabledProviders: vi.fn(),
 }))
 
 vi.mock('sonner', () => ({
@@ -78,6 +83,10 @@ mockParaglideMessages()
 import './register'
 
 describe('RegisterPage', () => {
+  beforeEach(() => {
+    captured.loaderData = { google: true, github: true }
+  })
+
   it('should render name, email, and password inputs', () => {
     const RegisterPage = captured.Component
     render(<RegisterPage />)
@@ -109,6 +118,15 @@ describe('RegisterPage', () => {
     const link = screen.getByText('auth_sign_in_link')
     expect(link).toBeInTheDocument()
     expect(link.closest('a')).toHaveAttribute('href', '/login')
+  })
+
+  it('should hide OAuth buttons when providers are not configured', () => {
+    captured.loaderData = { google: false, github: false }
+    const RegisterPage = captured.Component
+    render(<RegisterPage />)
+
+    expect(screen.queryByText('auth_sign_up_with_google')).not.toBeInTheDocument()
+    expect(screen.queryByText('auth_sign_up_with_github')).not.toBeInTheDocument()
   })
 
   it('should display error message when signUp.email returns an error', async () => {
