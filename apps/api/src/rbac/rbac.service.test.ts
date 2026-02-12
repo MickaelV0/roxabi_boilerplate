@@ -1,6 +1,6 @@
 import type { ClsService } from 'nestjs-cls'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { DrizzleDB } from '../database/drizzle.provider.js'
+
 import type { TenantService } from '../tenant/tenant.service.js'
 import { DefaultRoleException } from './exceptions/default-role.exception.js'
 import { MemberNotFoundException } from './exceptions/member-not-found.exception.js'
@@ -66,7 +66,7 @@ describe('RbacService', () => {
       const txChain = chain('from', mockRoles)
       ;(mockTenantService.query as ReturnType<typeof vi.fn>).mockImplementation((cb) => cb(txChain))
 
-      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       const result = await service.listRoles()
 
       expect(result).toEqual(mockRoles)
@@ -96,7 +96,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       const result = await service.createRole({ name: 'Custom', permissions: ['roles:read'] })
 
       expect(result).toEqual(newRole)
@@ -111,7 +111,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       await expect(
         service.createRole({ name: 'Owner', permissions: ['roles:read'] })
       ).rejects.toThrow(RoleSlugConflictException)
@@ -150,7 +150,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       const result = await service.updateRole('r-1', { name: 'New' })
 
       expect(result).toEqual(updatedRole)
@@ -165,7 +165,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       await expect(service.updateRole('r-missing', { name: 'New' })).rejects.toThrow(
         RoleNotFoundException
       )
@@ -201,7 +201,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       const result = await service.deleteRole('r-custom')
 
       expect(result).toEqual({ deleted: true })
@@ -218,7 +218,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       await expect(service.deleteRole('r-owner')).rejects.toThrow(DefaultRoleException)
     })
 
@@ -231,7 +231,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       await expect(service.deleteRole('r-missing')).rejects.toThrow(RoleNotFoundException)
     })
   })
@@ -258,7 +258,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       const result = await service.getRolePermissions('r-1')
 
       expect(result).toEqual(perms)
@@ -273,7 +273,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       await expect(service.getRolePermissions('r-missing')).rejects.toThrow(RoleNotFoundException)
     })
   })
@@ -313,7 +313,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       const result = await service.transferOwnership('user-1', 'm-2')
 
       expect(result).toEqual({ transferred: true })
@@ -340,7 +340,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       await expect(service.transferOwnership('user-1', 'm-2')).rejects.toThrow(
         OwnershipConstraintException
       )
@@ -374,7 +374,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       await expect(service.transferOwnership('user-1', 'm-2')).rejects.toThrow(
         OwnershipConstraintException
       )
@@ -409,7 +409,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       const result = await service.changeMemberRole('m-1', 'r-new')
 
       expect(result).toEqual({ updated: true })
@@ -423,7 +423,7 @@ describe('RbacService', () => {
         return cb({ select: vi.fn().mockReturnValue(roleChain) })
       })
 
-      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       await expect(service.changeMemberRole('m-1', 'r-invalid')).rejects.toThrow(
         RoleNotFoundException
       )
@@ -448,7 +448,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       await expect(service.changeMemberRole('m-invalid', 'r-new')).rejects.toThrow(
         MemberNotFoundException
       )
@@ -482,7 +482,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       await expect(service.changeMemberRole('m-1', 'r-member')).rejects.toThrow(
         OwnershipConstraintException
       )
@@ -498,12 +498,6 @@ describe('RbacService', () => {
         { id: 'p-4', resource: 'members', action: 'read' },
         { id: 'p-5', resource: 'roles', action: 'read' },
       ]
-
-      const mockDb = {
-        select: vi.fn().mockReturnValue({
-          from: vi.fn().mockResolvedValue(allPerms),
-        }),
-      } as unknown as DrizzleDB
 
       let insertCount = 0
       ;(mockTenantService.queryAs as ReturnType<typeof vi.fn>).mockImplementation((_id, cb) => {
@@ -524,7 +518,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      const service = new RbacService(mockTenantService, mockDb, mockCls)
+      const service = new RbacService(mockTenantService, mockCls)
       await service.seedDefaultRoles('org-1')
 
       expect(mockTenantService.queryAs).toHaveBeenCalledWith('org-1', expect.any(Function))
