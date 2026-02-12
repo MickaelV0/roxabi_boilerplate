@@ -1,27 +1,23 @@
 ---
 title: Development Process
-description: Development workflow with three tiers adapted to task complexity
+description: Development workflow with two tiers adapted to task complexity
 ---
 
 # Development Process
 
-Adapts to task complexity through three tiers. **Determine tier before starting.**
+Adapts to task complexity through two tiers. **Determine tier before starting.**
 
 ## Step 0: Determine Tier
 
 ```
-New architecture or system-wide change? ─────────────────► Tier L
-More than 10 files? ─────────────────────────────────────► Tier L
-More than 3 files? ──────────────────────────────────────► Tier M
-Regression risk or complex logic? ───────────────────────► Tier M
-Otherwise ───────────────────────────────────────────────► Tier S
+≤3 files, no arch risk, no regression risk? ────────► Tier S
+Otherwise ──────────────────────────────────────────► Tier F
 ```
 
 | Tier | Name | Criteria | Process |
 |------|------|----------|---------|
-| **L** | Feature/Migration | >10 files, system arch | Full spec + worktree |
-| **M** | Feature Light | 3-10 files, local arch | Worktree + light review |
-| **S** | Quick Fix | ≤3 files, no arch, no risk | Direct branch + PR |
+| **F** | Feature | >3 files, or arch/regression risk | Bootstrap (if needed) + worktree + agents + /review |
+| **S** | Quick Fix | ≤3 files, no arch, no risk | Worktree + PR |
 
 > **Branch Strategy:** `staging` is the default integration branch. All feature and fix branches are created from `staging` and PRs target `staging`. Only `hotfix/*` branches may target `main` directly. Merges to `main` trigger production deploys; merges to `staging` do not auto-deploy (use the **Deploy Preview** GitHub Action for on-demand previews).
 
@@ -76,12 +72,19 @@ Otherwise ───────────────────────�
 - Confirm no regression risk
 - **List all impacted artifacts** (see checklist above)
 
-### S.2 — Validate
+### S.2 — Create Worktree
+
+```bash
+git worktree add ../roxabi-XXX -b fix/XXX-description staging
+cd ../roxabi-XXX
+```
+
+### S.3 — Validate
 - Present approach with `AskUserQuestion`
 - Include: files to modify, related artifacts (tests, docs)
 - Wait for explicit approval
 
-### S.3 — Implement
+### S.4 — Implement
 Follow this order:
 
 1. **Read** existing files before modifying
@@ -89,21 +92,24 @@ Follow this order:
 3. **Update tests**
 4. **Run quality checks**: `bun lint && bun typecheck && bun test`
 5. **Verify** all checks pass
+6. *(Optional)* Delegate to **tester** subagent for a quick quality check
 
-### S.4 — Branch, Commit & PR
+### S.5 — Verify & PR
+
+Before creating the PR, verify **all applicable items** from the [Quality Checklist](#quality-checklist):
+- All impacted artifacts are included (code, tests, docs, config)
+- `bun lint && bun typecheck && bun test` pass locally
+- No debug code or console.log left behind
 
 ```bash
-# 1. Create branch
-git checkout -b fix/XXX-description staging
-
-# 2. Check changes
+# 1. Check changes — verify nothing is missing
 git status
 git diff --stat
 
-# 3. Add files (NEVER git add -A)
+# 2. Add files (NEVER git add -A)
 git add <file1> <file2> ...
 
-# 4. Commit with standard format
+# 3. Commit with standard format
 git commit -m "$(cat <<'EOF'
 <type>(<scope>): <description>
 
@@ -113,49 +119,110 @@ Co-Authored-By: Claude <model> <noreply@anthropic.com>
 EOF
 )"
 
-# 5. Create PR
+# 4. Create PR
 gh pr create --title "<type>: description" --body "Closes #XXX"
+```
+
+### S.6 — Wait for CI
+
+**MANDATORY:** Wait for all CI checks to pass before merging.
+
+```bash
+# Watch CI status until completion
+gh pr checks <pr-number> --watch
+```
+
+CI runs: **lint → typecheck → test → build** (+ E2E if relevant paths changed).
+
+If CI fails: fix the issue, push a new commit, and wait for CI again. **Never merge with failing checks.**
+
+### S.7 — Cleanup Worktree (after merge)
+
+```bash
+# Return to main project directory
+cd ../roxabi_boilerplate
+git worktree remove ../roxabi-XXX
 ```
 
 **Commit types:** `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`
 
 ---
 
-## Agent Teams (Tier M/L)
+## Agent Coordination
 
-For Tier M and L tasks, consider using **Agent Teams** to parallelize work across specialized agents. See the [Agent Teams Guide](/docs/guides/agent-teams) for setup, playbooks, and routing.
+Two modes are available depending on task complexity. See the [Agent Teams Guide](/docs/guides/agent-teams) for full setup and playbooks.
 
-**Quick decision:** If your task touches multiple domains (frontend + backend, or code + tests + docs), agent teams will speed things up significantly. Use the [routing decision tree](/docs/guides/agent-teams#2-pick-your-agents) to select agents.
+| Mode | Mechanism | When | Overhead |
+|------|-----------|------|----------|
+| **Subagents** | `Task` tool (single session) | Tier S or Tier F single-domain | Low — results return to your context |
+| **Agent Teams** | `TeamCreate` (multi-process swarm) | Tier F multi-domain or large scope | High — each agent is a separate Claude instance |
+
+**Quick decision:**
+- Tier S: single session, optionally delegate to **tester** subagent
+- Tier F single-domain: subagents via `Task` tool
+- Tier F multi-domain: agent teams via `TeamCreate`
 
 ---
 
-## Tier M: Feature Light
+## Tier F: Feature
 
-### M.1 — Scope
-- Identify all files (3-10)
-- List all impacted artifacts
-- Confirm it's not system-wide
+### F.1 — Scope
+- Identify all impacted files and artifacts
+- Determine if bootstrap is needed:
 
-### M.2 — Create Worktree
+| Condition | Bootstrap |
+|-----------|-----------|
+| New feature, system-wide change, or >10 files | **Required** — run `/bootstrap` |
+| Local scope, 3-10 files, clear requirements | **Optional** — skip to F.3 |
+
+### F.2 — Bootstrap (if needed)
+
+Run `/bootstrap` to spawn planning agents:
+- `product-analyst` — requirements gathering, acceptance criteria, issue triage
+- `architect` — system design, architecture decisions, task breakdown
+- `doc-writer` — spec and analysis drafting
+
+Outputs:
+- Specification in `docs/specs/XXX-slug.mdx`
+- Architecture decisions documented
+- Spec approval before coding
+
+### F.3 — Create Worktree & Spawn Agents
 
 ```bash
 git worktree add ../roxabi-XXX -b feat/XXX-slug staging
 cd ../roxabi-XXX
 ```
 
-### M.3 — Validate
+Spawn agents based on domain (subagents or agent teams):
+- Frontend only → `frontend-dev` + `tester`
+- Backend only → `backend-dev` + `tester`
+- Full-stack → `frontend-dev` + `backend-dev` + `tester`
+- Large scope → + `architect` + `doc-writer`
+- Security-sensitive → + `security-auditor`
+
+> **Note:** `reviewer` is not pre-spawned — it is invoked on-demand via `/review` after PR creation (step F.7).
+
+### F.4 — Validate Plan
 - Present approach with `AskUserQuestion`
 - Include: files to modify, architecture impact, tests, docs
 - Wait for explicit approval
 
-### M.4 — Implement
-1. Read existing files
+### F.5 — Implement
+1. Read existing files before modifying
 2. Implement in logical order (types → logic → UI)
-3. Update/create tests
-4. Update documentation if needed
-5. Run quality checks: `bun lint && bun typecheck && bun test`
+3. Commit atomic changes as you go
+4. Update/create tests
+5. Update documentation if needed
+6. Run quality checks: `bun lint && bun typecheck && bun test`
 
-### M.5 — Commit & PR
+### F.6 — Verify & PR
+
+**Self-review** all changes before creating the PR:
+- `git diff staging...HEAD` — review every change
+- Verify **all applicable items** from the [Quality Checklist](#quality-checklist)
+- Confirm all impacted artifacts are included (code, tests, docs, config)
+- Run full quality checks: `bun lint && bun typecheck && bun test`
 
 ```bash
 git add <files>
@@ -169,57 +236,28 @@ EOF
 gh pr create --title "feat: description" --body "Closes #XXX"
 ```
 
-### M.6 — Cleanup Worktree (after merge)
+### F.7 — Review
+
+Run `/review` on the PR to spawn the **reviewer** agent. It reviews all changes against [code review standards](/docs/standards/code-review) and produces Conventional Comments feedback. Fix any issues raised.
+
+### F.8 — Wait for CI
+
+**MANDATORY:** Wait for all CI checks to pass before merging.
+
+```bash
+# Watch CI status until completion
+gh pr checks <pr-number> --watch
+```
+
+CI runs: **lint → typecheck → test → build** (+ E2E if relevant paths changed).
+
+If CI fails: fix the issue, push a new commit, and wait for CI again. **Never merge with failing checks.**
+
+### F.9 — Cleanup Worktree (after merge)
 
 ```bash
 # Return to main project directory
-cd ../roxabi-web  # or your project folder name
-git worktree remove ../roxabi-XXX
-```
-
----
-
-## Tier L: Feature/Migration
-
-### L.1 — Scope & Spec
-- Create specification in `docs/specs/XXX-slug.mdx`
-- Document architecture decisions
-- Get spec approval before coding
-
-### L.2 — Create Worktree
-
-```bash
-git worktree add ../roxabi-XXX -b feat/XXX-slug staging
-cd ../roxabi-XXX
-```
-
-### L.3 — Validate Plan
-- Present detailed implementation plan
-- Use `AskUserQuestion` for approach validation
-- Consider parallel execution for complex tasks
-
-### L.4 — Implement
-1. Follow spec step by step
-2. Commit atomic changes as you go
-3. Update tests for each component
-4. Update documentation
-
-### L.5 — Self-Review
-- Review all changes: `git diff staging...HEAD`
-- Verify all checklist items
-- Run full test suite: `bun test`
-
-### L.6 — PR & Review
-
-```bash
-gh pr create --title "feat: description" --body "Closes #XXX"
-```
-
-### L.7 — Cleanup (after merge)
-
-```bash
-# Return to main project directory
-cd ../roxabi-web  # or your project folder name
+cd ../roxabi_boilerplate
 git worktree remove ../roxabi-XXX
 ```
 
@@ -241,20 +279,20 @@ git worktree remove ../roxabi-XXX
 ## Principles
 
 1. **Validate before implementing** — Always get user approval on approach before writing code
-2. **Match process to complexity** — Tier S for fixes, Tier L for migrations
+2. **Match process to complexity** — Tier S for fixes, Tier F for features
 3. **Understand before building** — Read code before modifying
 4. **Complete the checklist** — Every applicable artifact must be updated
 5. **Test new code** — New functions must have tests
 6. **Track progress** — Keep GitHub issue updated
 7. **Respect patterns** — Use shared packages, follow conventions
 8. **No speculative complexity** — Build what's requested
-9. **Review depth matches risk** — Light for M, structured for L
 
 ---
 
 ## Quality Checklist
 
-Before creating PR:
+**Before creating PR:**
+- [ ] All impacted artifacts included (code, tests, docs, config)
 - [ ] Code follows conventions (Biome)
 - [ ] Tests pass (`bun test`)
 - [ ] Linting passes (`bun lint`)
@@ -262,3 +300,7 @@ Before creating PR:
 - [ ] No console.log or debug code
 - [ ] PR description is clear
 - [ ] Documentation updated if needed
+
+**Before merging PR:**
+- [ ] CI checks pass (`gh pr checks <pr-number> --watch`)
+- [ ] `/review` feedback addressed (Tier F)
