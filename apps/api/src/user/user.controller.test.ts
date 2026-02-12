@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { UserNotFoundException } from './exceptions/user-not-found.exception.js'
 import { UserController } from './user.controller.js'
 import type { UserService } from './user.service.js'
 
@@ -31,6 +32,17 @@ describe('UserController', () => {
       expect(result).toEqual(mockUser)
       expect(mockUserService.getProfile).toHaveBeenCalledWith('user-1')
     })
+
+    it('should propagate UserNotFoundException when user not found', async () => {
+      // Arrange
+      const session = { user: { id: 'nonexistent' } }
+      vi.mocked(mockUserService.getProfile).mockRejectedValue(
+        new UserNotFoundException('nonexistent')
+      )
+
+      // Act & Assert
+      await expect(controller.getMe(session)).rejects.toThrow(UserNotFoundException)
+    })
   })
 
   describe('updateMe', () => {
@@ -44,6 +56,18 @@ describe('UserController', () => {
 
       expect(result).toEqual(updatedUser)
       expect(mockUserService.updateProfile).toHaveBeenCalledWith('user-1', updateData)
+    })
+
+    it('should propagate UserNotFoundException when user not found', async () => {
+      // Arrange
+      const session = { user: { id: 'nonexistent' } }
+      const updateData = { name: 'Ghost' }
+      vi.mocked(mockUserService.updateProfile).mockRejectedValue(
+        new UserNotFoundException('nonexistent')
+      )
+
+      // Act & Assert
+      await expect(controller.updateMe(session, updateData)).rejects.toThrow(UserNotFoundException)
     })
   })
 })
