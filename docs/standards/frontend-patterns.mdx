@@ -88,7 +88,7 @@ Apply this structure when creating new feature directories in `apps/web/src/lib/
 
 **Rules:**
 
-- **No barrel files in app code.** Import directly from the source file: `@/lib/i18n/hooks`, not `@/lib/i18n`. Barrel files increase bundle size and create circular dependency risks.
+- **No barrel files in app code.** Import directly from the source file: `@/lib/feature/hooks`, not `@/lib/feature`. Barrel files increase bundle size and create circular dependency risks.
 - **Barrel files allowed only in `packages/*/src/index.ts`** for public API surfaces of shared packages.
 - **Separate client and server files** for isomorphic features. Never import server-only code (e.g., cookie parsing, database calls) into client modules.
 - **Hooks in a dedicated file.** Do not mix hook definitions with utility functions. `hooks.ts` contains React hooks; `client.ts` and `server.ts` contain plain functions.
