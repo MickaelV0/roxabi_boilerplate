@@ -184,8 +184,8 @@ CI/CD workflows are included and work out of the box. For faster builds, configu
 ### CI Pipeline
 
 The CI pipeline runs automatically on:
-- Pull requests to `main`
-- Pushes to `main`
+- Pull requests to `main` or `staging`
+- Pushes to `main` or `staging`
 
 Jobs: `lint` / `typecheck` / `test` (parallel) → `build` → `e2e` (conditional)
 

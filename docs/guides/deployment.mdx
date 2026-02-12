@@ -239,7 +239,7 @@ Build settings are version-controlled in `vercel.json` files — no dashboard co
 
 ```json
 {
-  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" = \"main\" ]",
+  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ] || npx turbo-ignore @repo/web",
   "installCommand": "bun install",
   "buildCommand": "turbo run build"
 }
@@ -249,7 +249,7 @@ Build settings are version-controlled in `vercel.json` files — no dashboard co
 
 ```json
 {
-  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" = \"main\" ]",
+  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ] || npx turbo-ignore @repo/api",
   "installCommand": "bun install",
   "buildCommand": "turbo run build"
 }
@@ -269,10 +269,10 @@ Nitro (TanStack Start) outputs to `.vercel/output/` using the Vercel Build Outpu
 
 ## Build-Only on Main (Avoid Duplicate Deploys)
 
-Both projects use `ignoreCommand` in `vercel.json` to only trigger Vercel builds on the `main` branch. This is version-controlled and prevents excessive preview deployments from rate-limiting.
+Both projects use `ignoreCommand` in `vercel.json` to only trigger Vercel builds on the `main` branch. The command first checks if the branch is `main`, then uses `turbo-ignore` to skip builds when no relevant files changed:
 
 ```json
-"ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" = \"main\" ]"
+"ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ] || npx turbo-ignore @repo/web"
 ```
 
 Preview deploys are handled via the **Deploy Preview** GitHub Action (see [Preview Deploys](#preview-deploys) above). You can also trigger them locally via the CLI:
