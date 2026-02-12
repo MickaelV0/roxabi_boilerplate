@@ -165,7 +165,7 @@ Once all tasks are complete, review the deliverables and create the PR.
 
 | Agent | Color | Role | Standards |
 |-------|-------|------|-----------|
-| **reviewer** | magenta | Code review (read-only) | [Code Review](/docs/standards/code-review) |
+| **reviewer** | magenta | Code review, fix, CI verification | [Code Review](/docs/standards/code-review) |
 | **tester** | blue | Test generation &amp; validation | [Testing](/docs/standards/testing) |
 | **security-auditor** | red | Vulnerability detection | OWASP Top 10 |
 
@@ -214,7 +214,7 @@ Each agent has a core skill preloaded, matching its primary function:
 | Agent | Skill | Purpose |
 |-------|-------|---------|
 | frontend-dev, backend-dev, infra-ops | `commit`, `context7` | Conventional Commits + library docs |
-| doc-writer | `commit` | Conventional Commits workflow |
+| doc-writer | `commit`, `context7` | Conventional Commits + library docs |
 | reviewer | `review`, `commit`, `agent-browser` | Code review + fix + commit + deployed verification |
 | tester | `test`, `context7` | Test generation + library docs |
 | architect | `plan`, `adr`, `commit`, `context7` | Planning, ADRs, commits, library docs |
@@ -223,7 +223,7 @@ Each agent has a core skill preloaded, matching its primary function:
 
 ### `disallowedTools`
 
-Defense-in-depth for read-only agents. Even if an agent's `tools` list doesn't include write tools, `disallowedTools` provides an explicit deny list:
+Defense-in-depth: even if an agent's `tools` list doesn't include certain tools, `disallowedTools` provides an explicit deny list as an extra safety layer:
 
 | Agent | Disallowed |
 |-------|------------|

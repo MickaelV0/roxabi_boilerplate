@@ -58,11 +58,11 @@ Every agent must follow:
 
 Each agent's `.md` file in `.claude/agents/` defines its behavior through YAML frontmatter:
 
-- **`permissionMode`** — `bypassPermissions` for domain agents (can write code), `plan` for read-only agents (can only analyze)
+- **`permissionMode`** — `bypassPermissions` (agent can execute tools freely) or `plan` (agent proposes changes but cannot execute them)
 - **`maxTurns`** — Maximum API round-trips before stopping (20-50 depending on role)
 - **`memory: project`** — Enables persistent learnings across sessions in `.claude/agent-memory/`
 - **`skills`** — Core skill preloaded per agent (e.g., `commit`, `review`, `test`)
-- **`disallowedTools`** — Explicit deny list for read-only agents (defense-in-depth)
+- **`disallowedTools`** — Explicit deny list for tools an agent should never use (defense-in-depth)
 
 See the [Agent Teams Guide](docs/guides/agent-teams.mdx) for full details on each configuration field.
 
