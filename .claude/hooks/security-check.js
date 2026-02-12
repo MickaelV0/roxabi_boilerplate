@@ -3,6 +3,8 @@
 const fs = require('node:fs')
 const path = require('node:path')
 
+const BLOCKING_RULES = new Set(['hardcoded-secret', 'sql-injection', 'command-injection'])
+
 const SECURITY_PATTERNS = [
   {
     id: 'github-actions-injection',
@@ -22,21 +24,24 @@ const SECURITY_PATTERNS = [
   {
     id: 'hardcoded-secret',
     pattern: /(api[_-]?key|secret|password|token)\s*[:=]\s*['"][^'"]{8,}['"]/gi,
-    message: 'Potential hardcoded secret detected',
+    message: 'BLOCKED: Potential hardcoded secret detected',
   },
   {
     id: 'sql-injection',
     pattern: /`SELECT.*\$\{|`INSERT.*\$\{|`UPDATE.*\$\{|`DELETE.*\$\{/gi,
-    message: 'Potential SQL injection via template literal interpolation',
+    message: 'BLOCKED: Potential SQL injection via template literal interpolation',
   },
   {
     id: 'command-injection',
     pattern: /exec\s*\(\s*`|spawn\s*\(\s*`|execSync\s*\(\s*`/gi,
-    message: 'Potential command injection via template literal',
+    message: 'BLOCKED: Potential command injection via template literal',
   },
 ]
 
-const STATE_FILE = path.join(process.env.HOME || '/tmp', '.claude-security-warnings.json')
+const PROJECT_ROOT = path.resolve(__dirname, '..', '..')
+const STATE_DIR = path.resolve(__dirname, '..', 'security_warnings')
+const today = new Date().toISOString().slice(0, 10)
+const STATE_FILE = path.join(STATE_DIR, `${today}.json`)
 
 function loadState() {
   try {
@@ -47,22 +52,32 @@ function loadState() {
 }
 
 function saveState(state) {
+  fs.mkdirSync(STATE_DIR, { recursive: true })
   fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2))
 }
 
+function toRelativePath(filePath) {
+  return path.relative(PROJECT_ROOT, filePath) || filePath
+}
+
 function getWarningKey(file, ruleId) {
-  return `${file}:${ruleId}`
+  return `${toRelativePath(file)}:${ruleId}`
 }
 
 function checkContent(content, filePath) {
   const state = loadState()
   const warnings = []
+  const blocked = []
 
   for (const rule of SECURITY_PATTERNS) {
     if (rule.pattern.test(content)) {
       const key = getWarningKey(filePath, rule.id)
       if (!state.warnings[key]) {
-        warnings.push(rule.message)
+        if (BLOCKING_RULES.has(rule.id)) {
+          blocked.push(rule.message)
+        } else {
+          warnings.push(rule.message)
+        }
         state.warnings[key] = Date.now()
       }
     }
@@ -70,7 +85,7 @@ function checkContent(content, filePath) {
   }
 
   saveState(state)
-  return warnings
+  return { warnings, blocked }
 }
 
 function main() {
@@ -88,13 +103,14 @@ function main() {
       process.exit(0)
     }
 
-    const warnings = checkContent(content, filePath)
+    const { warnings, blocked } = checkContent(content, filePath)
+    const allMessages = [...blocked, ...warnings]
 
-    if (warnings.length > 0) {
+    if (allMessages.length > 0) {
       console.log(
         JSON.stringify({
-          decision: 'allow',
-          message: `Security warnings:\n${warnings.map((w) => `- ${w}`).join('\n')}`,
+          decision: blocked.length > 0 ? 'block' : 'allow',
+          message: `Security check:\n${allMessages.map((w) => `- ${w}`).join('\n')}`,
         })
       )
     }

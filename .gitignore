@@ -54,6 +54,9 @@ test-results/
 # Reports (generated artifacts)
 reports/
 
+# Claude Code hooks state
+.claude/security_warnings/
+
 # Misc
 *.pem
 .vercel
