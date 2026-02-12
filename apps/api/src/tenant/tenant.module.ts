@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common'
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core'
+import { DatabaseUnavailableFilter } from './filters/database-unavailable.filter.js'
 import { TenantContextMissingFilter } from './filters/tenant-context-missing.filter.js'
 import { TenantInterceptor } from './tenant.interceptor.js'
 import { TenantService } from './tenant.service.js'
@@ -15,6 +16,10 @@ import { TenantService } from './tenant.service.js'
     {
       provide: APP_FILTER,
       useClass: TenantContextMissingFilter,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: DatabaseUnavailableFilter,
     },
   ],
   exports: [TenantService],
