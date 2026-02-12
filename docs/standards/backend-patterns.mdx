@@ -63,6 +63,8 @@ feature/
 | Exception Filter | `all-exceptions.filter.ts` | Global fallback error formatting with structured responses |
 | Domain Exception Filter | `feature/filters/*.filter.ts` | Maps domain exceptions to HTTP responses |
 | Lifecycle Hook | `database.module.ts` | `OnModuleDestroy` for connection cleanup |
+| Auth Guard | `auth.guard.ts` | Global guard: session validation, role checks, permission enforcement |
+| Permission Decorator | `auth/decorators/permissions.decorator.ts` | `@Permissions('resource:action')` for endpoint-level access control |
 
 ### Design Principles
 
@@ -80,6 +82,44 @@ Middleware → Guards → Interceptors (pre) → Pipes → Handler → Intercept
 ```
 
 Correlation IDs belong in **middleware** (earliest). Authentication belongs in **guards**. Input validation belongs in **pipes**. Error formatting belongs in **filters**.
+
+### Authorization Decorators
+
+The `AuthGuard` is registered globally and supports several decorators for access control:
+
+| Decorator | Purpose | Example |
+|-----------|---------|---------|
+| `@AllowAnonymous()` | Skip all auth checks | Public endpoints |
+| `@OptionalAuth()` | Allow unauthenticated, attach session if present | Landing pages with conditional UI |
+| `@Roles('admin')` | Require global user role | Super-admin endpoints |
+| `@RequireOrg()` | Require active organization context | Tenant-scoped endpoints |
+| `@Permissions('resource:action')` | Require specific RBAC permission | `@Permissions('members:write')` |
+
+**Evaluation order:**
+
+1. `@AllowAnonymous()` &rarr; allow immediately
+2. Validate session &rarr; 401 if missing
+3. `@OptionalAuth()` &rarr; allow if no session
+4. `@Roles()` &rarr; check global user role
+5. `@RequireOrg()` or `@Permissions()` &rarr; require active organization
+6. Super-admin (`user.role === 'superadmin'`) &rarr; bypass permission checks
+7. `@Permissions()` &rarr; resolve member's role &rarr; load permissions &rarr; check &rarr; 403 if missing
+
+**Usage:**
+
+```typescript
+// Single permission
+@Permissions('members:write')
+@Post('invite')
+inviteMember() { ... }
+
+// Multiple permissions (all required)
+@Permissions('members:write', 'invitations:write')
+@Post('invite')
+inviteMember() { ... }
+```
+
+`@Permissions()` implies `@RequireOrg()` -- no need to add both. The guard automatically requires an active organization when permissions are checked.
 
 ---
 

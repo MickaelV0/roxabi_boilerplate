@@ -20,3 +20,13 @@ export type ApiErrorResponse = {
   correlationId: string
   message: string | string[]
 }
+
+export type {
+  DefaultRoleSlug,
+  OrgRole,
+  Permission,
+  PermissionAction,
+  PermissionResource,
+  PermissionString,
+  RolePermission,
+} from './rbac.js'

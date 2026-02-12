@@ -12,6 +12,7 @@ import { extractCorrelationId } from './common/correlation-id.util.js'
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js'
 import { validate } from './config/env.validation.js'
 import { DatabaseModule } from './database/database.module.js'
+import { RbacModule } from './rbac/rbac.module.js'
 import { TenantModule } from './tenant/tenant.module.js'
 import { UserModule } from './user/user.module.js'
 
@@ -40,6 +41,7 @@ import { UserModule } from './user/user.module.js'
     AuthModule,
     TenantModule,
     UserModule,
+    RbacModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],

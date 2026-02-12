@@ -86,6 +86,7 @@ All schema files re-export through `database/schema/index.ts`:
 ```ts
 export * from './auth.schema.js'
 export * from './base.js'
+export * from './rbac.schema.js'
 ```
 
 The Drizzle provider imports `* as schema` from this index.
@@ -105,6 +106,38 @@ Better Auth manages its own database tables via the Drizzle adapter (`usePlural:
 | `invitations` | Pending org invites | `organizationId`, `email`, `role`, `status`, `expiresAt` |
 
 These tables use `text` primary keys with UUID generation (`advanced.database.generateId: 'uuid'` in Better Auth config). The auth schema does **not** use the shared `timestamps` helper — most tables define `createdAt` / `updatedAt` inline (without timezone or `$onUpdateFn`), `organizations` and `members` only have `createdAt`, and `invitations` has no timestamps at all. This inconsistency is tracked as tech debt.
+
+## RBAC Schema
+
+RBAC tables are defined in `database/schema/rbac.schema.ts` and manage per-tenant roles and permissions. The schema follows the existing conventions (text PKs with UUID, snake_case columns, timestamps).
+
+### Tables
+
+| Table | Scope | Purpose | Key columns |
+|-------|-------|---------|-------------|
+| `permissions` | Global | Available permission definitions | `id`, `resource`, `action`, `description` |
+| `roles` | Tenant (RLS) | Roles per organization | `id`, `tenant_id`, `name`, `slug`, `is_default` |
+| `role_permissions` | Via FK | Maps roles to permissions | `role_id`, `permission_id` (composite PK) |
+
+**`members` table extension:** A `role_id` FK column was added to the existing `members` table, referencing `roles.id` with `ON DELETE SET NULL`. This column is the source of truth for RBAC; the original `role` text column is kept for Better Auth compatibility.
+
+### Constraints
+
+- `permissions`: unique on `(resource, action)` — seeded via migration, not editable by tenants
+- `roles`: unique on `(tenant_id, slug)` — default roles (`owner`, `admin`, `member`, `viewer`) seeded per org on creation
+- `role_permissions`: composite PK on `(role_id, permission_id)`, cascades on delete
+- `roles` has RLS via `create_tenant_rls_policy('roles')`. `permissions` is global (no RLS). `role_permissions` inherits isolation through the FK to `roles`.
+
+### Default roles
+
+Each organization gets four default roles seeded automatically via `RbacListener` on the `ORGANIZATION_CREATED` event:
+
+| Role | Slug | Permissions |
+|------|------|-------------|
+| Owner | `owner` | All 15 permissions |
+| Admin | `admin` | All except `organizations:delete` |
+| Member | `member` | Read-only: `users`, `organizations`, `members`, `invitations`, `roles` |
+| Viewer | `viewer` | Read-only: `users`, `organizations`, `members`, `roles` |
 
 ## Drizzle Kit Configuration
 
