@@ -28,10 +28,11 @@ process.on('SIGTERM', () => {
 })
 
 const QUERY = `
-query($projectId: ID!) {
+query($projectId: ID!, $cursor: String) {
   node(id: $projectId) {
     ... on ProjectV2 {
-      items(first: 100) {
+      items(first: 100, after: $cursor) {
+        pageInfo { hasNextPage endCursor }
         nodes {
           content {
             ... on Issue {
@@ -107,12 +108,13 @@ interface Issue {
 // Data fetching via gh CLI
 // ---------------------------------------------------------------------------
 
-async function fetchIssues(): Promise<Issue[]> {
-  const proc = Bun.spawn(
-    ['gh', 'api', 'graphql', '-f', `query=${QUERY}`, '-f', `projectId=${PROJECT_ID}`],
-    { stdout: 'pipe', stderr: 'pipe' }
-  )
+async function fetchPage(
+  cursor?: string
+): Promise<{ items: RawItem[]; hasNextPage: boolean; endCursor: string | null }> {
+  const args = ['gh', 'api', 'graphql', '-f', `query=${QUERY}`, '-f', `projectId=${PROJECT_ID}`]
+  if (cursor) args.push('-f', `cursor=${cursor}`)
 
+  const proc = Bun.spawn(args, { stdout: 'pipe', stderr: 'pipe' })
   const stdout = await new Response(proc.stdout).text()
   const stderr = await new Response(proc.stderr).text()
   const code = await proc.exited
@@ -122,7 +124,24 @@ async function fetchIssues(): Promise<Issue[]> {
   }
 
   const data = JSON.parse(stdout)
-  const items: RawItem[] = data.data.node.items.nodes
+  const pageInfo = data.data.node.items.pageInfo
+  return {
+    items: data.data.node.items.nodes as RawItem[],
+    hasNextPage: pageInfo.hasNextPage,
+    endCursor: pageInfo.endCursor,
+  }
+}
+
+async function fetchIssues(): Promise<Issue[]> {
+  const allItems: RawItem[] = []
+  let cursor: string | undefined
+  do {
+    const page = await fetchPage(cursor)
+    allItems.push(...page.items)
+    cursor = page.hasNextPage ? (page.endCursor ?? undefined) : undefined
+  } while (cursor)
+
+  const items: RawItem[] = allItems
 
   const openItems = items.filter((i) => i.content?.state === 'OPEN')
 
