@@ -37,4 +37,15 @@ describe('UserNotFoundException', () => {
     // Assert
     expect(exception).toBeInstanceOf(Error)
   })
+
+  it('should have errorCode property set to USER_NOT_FOUND', () => {
+    const exception = new UserNotFoundException('any-id')
+    expect(exception.errorCode).toBe('USER_NOT_FOUND')
+  })
+
+  it('should have static errorCode matching instance errorCode', () => {
+    expect(UserNotFoundException.errorCode).toBe('USER_NOT_FOUND')
+    const exception = new UserNotFoundException('any-id')
+    expect(exception.errorCode).toBe(UserNotFoundException.errorCode)
+  })
 })

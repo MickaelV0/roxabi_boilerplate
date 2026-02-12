@@ -20,6 +20,7 @@ export class TenantContextMissingFilter implements ExceptionFilter {
       path: request.url,
       correlationId,
       message: exception.message,
+      errorCode: exception.errorCode,
     })
   }
 }

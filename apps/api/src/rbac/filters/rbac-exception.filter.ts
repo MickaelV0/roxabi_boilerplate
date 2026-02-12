@@ -49,6 +49,7 @@ export class RbacExceptionFilter implements ExceptionFilter {
       path: request.url,
       correlationId,
       message: exception.message,
+      errorCode: exception.errorCode,
     })
   }
 }

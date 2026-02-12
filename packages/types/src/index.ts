@@ -19,6 +19,7 @@ export type ApiErrorResponse = {
   path: string
   correlationId: string
   message: string | string[]
+  errorCode?: string
 }
 
 export type {

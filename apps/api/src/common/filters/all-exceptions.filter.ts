@@ -51,12 +51,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message = 'Internal server error'
     }
 
+    const errorCode =
+      exception instanceof Error && 'errorCode' in exception
+        ? (exception as Error & { errorCode: string }).errorCode
+        : undefined
+
     const errorResponse = {
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
       correlationId,
       message,
+      ...(errorCode && { errorCode }),
     }
 
     this.logger.error(

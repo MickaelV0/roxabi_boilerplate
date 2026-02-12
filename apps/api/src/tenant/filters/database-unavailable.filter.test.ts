@@ -60,6 +60,7 @@ describe('DatabaseUnavailableFilter', () => {
     expect(body.path).toBe('/api/tenants/query')
     expect(body.correlationId).toBe('test-correlation-id')
     expect(body.message).toBe('Database not available')
+    expect(body.errorCode).toBe('DATABASE_UNAVAILABLE')
   })
 
   it('should set x-correlation-id header on response', () => {

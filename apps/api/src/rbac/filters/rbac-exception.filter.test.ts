@@ -51,7 +51,7 @@ describe('RbacExceptionFilter', () => {
     expect(statusFn).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST)
   })
 
-  it('should include structured error body with message', () => {
+  it('should include structured error body with message and errorCode', () => {
     const { host, getSentBody } = createMockHost()
     filter.catch(new RoleNotFoundException('r-456'), host as never)
     const body = getSentBody()
@@ -59,7 +59,30 @@ describe('RbacExceptionFilter', () => {
     expect(body.path).toBe('/rbac/roles/r-123')
     expect(body.correlationId).toBe('test-correlation-id')
     expect(body.message).toBe('Role r-456 not found')
+    expect(body.errorCode).toBe('ROLE_NOT_FOUND')
     expect(body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+  })
+
+  it('should include correct errorCode for each exception type', () => {
+    const cases = [
+      { exception: new RoleNotFoundException('r-1'), expectedCode: 'ROLE_NOT_FOUND' },
+      { exception: new RoleSlugConflictException('admin'), expectedCode: 'ROLE_SLUG_CONFLICT' },
+      {
+        exception: new DefaultRoleException('Cannot delete'),
+        expectedCode: 'DEFAULT_ROLE_CONSTRAINT',
+      },
+      {
+        exception: new OwnershipConstraintException('Not allowed'),
+        expectedCode: 'OWNERSHIP_CONSTRAINT',
+      },
+      { exception: new MemberNotFoundException('m-1'), expectedCode: 'MEMBER_NOT_FOUND' },
+    ]
+
+    for (const { exception, expectedCode } of cases) {
+      const { host, getSentBody } = createMockHost()
+      filter.catch(exception, host as never)
+      expect(getSentBody().errorCode).toBe(expectedCode)
+    }
   })
 
   it('should return 409 for RoleSlugConflictException', () => {
