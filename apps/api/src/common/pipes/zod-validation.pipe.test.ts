@@ -43,6 +43,8 @@ describe('ZodValidationPipe', () => {
   })
 
   it('should include field errors in the exception response', () => {
+    expect.assertions(2)
+
     // Arrange
     const input = { name: '', age: 'not-a-number' }
 
@@ -52,9 +54,7 @@ describe('ZodValidationPipe', () => {
       expect.unreachable('Should have thrown')
     } catch (error) {
       expect(error).toBeInstanceOf(BadRequestException)
-      const response = (error as BadRequestException).getResponse() as Record<string, unknown>
-      // BadRequestException wraps the field errors — find them in the response
-      const fieldErrors = (response.message ?? response) as Record<string, unknown>
+      const fieldErrors = (error as BadRequestException).getResponse() as Record<string, unknown>
       expect(fieldErrors).toEqual(
         expect.objectContaining({
           name: expect.any(Array),

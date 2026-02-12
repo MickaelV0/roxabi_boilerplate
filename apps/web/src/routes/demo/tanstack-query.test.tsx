@@ -12,18 +12,7 @@ vi.mock('@tanstack/react-router', () => ({
   },
 }))
 
-vi.mock('@repo/ui', () => ({
-  Button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <button {...props}>{children}</button>
-  ),
-  Card: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <div {...props}>{children}</div>
-  ),
-  CardContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardHeader: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardTitle: ({ children }: React.PropsWithChildren) => <h3>{children}</h3>,
-  Input: (props: Record<string, unknown>) => <input {...props} />,
-}))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: () => ({ data: [], refetch: vi.fn() }),
@@ -56,5 +45,13 @@ describe('TanStackQueryDemo', () => {
     // Assert
     expect(screen.getByPlaceholderText('Enter a new todo...')).toBeInTheDocument()
     expect(screen.getByText('Add todo')).toBeInTheDocument()
+  })
+
+  it('should render the add button as disabled when input is empty', () => {
+    // Arrange & Act
+    render(<captured.Component />)
+
+    // Assert
+    expect(screen.getByRole('button', { name: 'Add todo' })).toBeDisabled()
   })
 })

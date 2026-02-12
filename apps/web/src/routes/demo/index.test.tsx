@@ -17,14 +17,7 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }))
 
-vi.mock('@repo/ui', () => ({
-  Card: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <div {...props}>{children}</div>
-  ),
-  CardDescription: ({ children }: React.PropsWithChildren) => <p>{children}</p>,
-  CardHeader: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardTitle: ({ children }: React.PropsWithChildren) => <h3>{children}</h3>,
-}))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 import './index'
 
@@ -52,14 +45,14 @@ describe('DemoIndex', () => {
     // Arrange & Act
     render(<captured.Component />)
 
-    // Assert
-    const storeLink = screen.getByText('Store').closest('a')
+    // Assert — link accessible names include description text, so use regex
+    const storeLink = screen.getByRole('link', { name: /Store/ })
     expect(storeLink).toHaveAttribute('href', '/demo/store')
 
-    const queryLink = screen.getByText('Query').closest('a')
+    const queryLink = screen.getByRole('link', { name: /Query/ })
     expect(queryLink).toHaveAttribute('href', '/demo/tanstack-query')
 
-    const tableLink = screen.getByText('Table').closest('a')
+    const tableLink = screen.getByRole('link', { name: /Table/ })
     expect(tableLink).toHaveAttribute('href', '/demo/table')
   })
 

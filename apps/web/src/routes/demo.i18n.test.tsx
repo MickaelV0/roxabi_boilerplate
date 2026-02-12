@@ -12,14 +12,7 @@ vi.mock('@tanstack/react-router', () => ({
   },
 }))
 
-vi.mock('@repo/ui', () => ({
-  Card: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <div {...props}>{children}</div>
-  ),
-  CardContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardHeader: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardTitle: ({ children }: React.PropsWithChildren) => <h3>{children}</h3>,
-}))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 vi.mock('@/paraglide/messages', () => ({
   m: new Proxy(

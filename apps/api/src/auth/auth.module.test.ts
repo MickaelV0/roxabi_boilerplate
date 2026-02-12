@@ -8,9 +8,15 @@ import { EMAIL_PROVIDER } from './email/email.provider.js'
 import { ResendEmailProvider } from './email/resend.provider.js'
 
 describe('AuthModule', () => {
+  const imports: unknown[] = Reflect.getMetadata('imports', AuthModule) ?? []
   const controllers: unknown[] = Reflect.getMetadata('controllers', AuthModule) ?? []
   const providers: unknown[] = Reflect.getMetadata('providers', AuthModule) ?? []
   const exports_: unknown[] = Reflect.getMetadata('exports', AuthModule) ?? []
+
+  it('should import RbacModule', () => {
+    // Assert — forwardRef wraps the module, so check the resolved value
+    expect(imports).toHaveLength(1)
+  })
 
   it('should declare AuthController', () => {
     // Assert

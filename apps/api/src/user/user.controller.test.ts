@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { UserNotFoundException } from './exceptions/user-not-found.exception.js'
 import { UserController } from './user.controller.js'
 import type { UserService } from './user.service.js'
@@ -10,6 +10,10 @@ const mockUserService: UserService = {
 
 describe('UserController', () => {
   const controller = new UserController(mockUserService)
+
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
 
   const mockUser = {
     id: 'user-1',

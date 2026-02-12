@@ -12,23 +12,7 @@ vi.mock('@tanstack/react-router', () => ({
   },
 }))
 
-vi.mock('@repo/ui', () => ({
-  Button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <button {...props}>{children}</button>
-  ),
-  Card: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <div {...props}>{children}</div>
-  ),
-  CardContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  Input: (props: Record<string, unknown>) => <input {...props} />,
-  Select: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  SelectContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  SelectItem: ({ children }: React.PropsWithChildren<{ value: string }>) => (
-    <option>{children}</option>
-  ),
-  SelectTrigger: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  SelectValue: () => <span />,
-}))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 vi.mock('@/data/demo-table-data', () => ({
   makeData: () => [
@@ -72,7 +56,7 @@ describe('TableDemo', () => {
     expect(screen.getByText('Lovelace')).toBeInTheDocument()
   })
 
-  it('should render pagination buttons', () => {
+  it('should render action buttons', () => {
     // Arrange & Act
     render(<captured.Component />)
 

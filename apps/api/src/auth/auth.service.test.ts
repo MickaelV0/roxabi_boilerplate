@@ -1,9 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthService } from './auth.service.js'
 
 const mockHandler = vi.fn()
 const mockGetSession = vi.fn()
 
+// vi.mock is required here because createBetterAuth is called inside the constructor,
+// not injected via DI, so it cannot be stubbed through dependency injection.
 vi.mock('./auth.instance.js', () => ({
   createBetterAuth: vi.fn(() => ({
     handler: mockHandler,
@@ -29,6 +31,11 @@ const baseConfigValues = {
 }
 
 describe('AuthService', () => {
+  beforeEach(() => {
+    mockHandler.mockReset()
+    mockGetSession.mockReset()
+  })
+
   describe('constructor', () => {
     it('should detect enabled OAuth providers from config', () => {
       // Arrange
@@ -39,6 +46,7 @@ describe('AuthService', () => {
       })
 
       // Act
+      // db and emailProvider are passed through to mocked createBetterAuth, so empty stubs are safe
       const service = new AuthService({} as never, {} as never, config as never)
 
       // Assert
