@@ -8,7 +8,7 @@ Team-wide coordination rules for all agents. Every agent reads this file.
 |------|--------|------|
 | **Domain** | frontend-dev, backend-dev, infra-ops | Write code in their packages |
 | **Quality** | reviewer, tester, security-auditor | Verify code quality and security |
-| **Strategy** | architect, product-analyst, doc-writer | Plan, analyze, document |
+| **Strategy** | architect, product-lead, doc-writer | Plan, analyze, document |
 
 ## Coordination Protocol
 
@@ -41,8 +41,8 @@ Each agent operates within specific packages. **Never modify files outside your 
 | reviewer | Read-only on all packages | Never writes files |
 | tester | Test files in all packages | Never modifies source files |
 | security-auditor | Read-only + `Bash` for auditing | Never modifies source files |
-| architect | Read-only on all packages | Never writes application code |
-| product-analyst | `docs/analyses/`, GitHub issues via `gh` | Never writes code |
+| architect | `docs/architecture/`, ADR files | Never writes application code |
+| product-lead | `docs/analyses/`, `docs/specs/`, GitHub issues via `gh` | Never writes application code |
 | doc-writer | `docs/`, `CLAUDE.md` | Never writes application code |
 
 ### Standards

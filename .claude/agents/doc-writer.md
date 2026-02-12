@@ -17,7 +17,7 @@ description: |
   </example>
 model: inherit
 color: gray
-tools: Read, Write, Edit, Glob, Grep
+tools: Read, Write, Edit, Glob, Grep, WebSearch
 permissionMode: bypassPermissions
 maxTurns: 30
 memory: project

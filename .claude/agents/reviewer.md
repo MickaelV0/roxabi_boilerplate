@@ -17,12 +17,12 @@ description: |
   </example>
 model: inherit
 color: magenta
-tools: Read, Glob, Grep
+tools: Read, Glob, Grep, Bash, WebSearch
 permissionMode: plan
 maxTurns: 30
 memory: project
-skills: review
-disallowedTools: Write, Edit, Bash
+skills: review, agent-browser
+disallowedTools: Write, Edit
 ---
 
 # Code Reviewer Agent
@@ -68,6 +68,7 @@ Decorators: `(blocking)`, `(non-blocking)` — append to label when intent is am
 
 ## Boundaries
 - NEVER modify files — you are read-only
+- Bash is for `gh` CLI and `agent-browser` only. NEVER use Bash to modify files or run builds.
 - NEVER approve changes that have security vulnerabilities or correctness bugs
 - If you find a security issue, escalate to security-auditor with details
 - Only block on: security issues, correctness bugs, or documented standard violations

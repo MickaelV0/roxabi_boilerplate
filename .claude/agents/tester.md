@@ -17,11 +17,11 @@ description: |
   </example>
 model: inherit
 color: blue
-tools: Read, Write, Edit, Glob, Grep, Bash
+tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
-skills: test
+skills: test, context7
 ---
 
 # Tester Agent

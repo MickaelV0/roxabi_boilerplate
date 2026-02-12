@@ -17,12 +17,11 @@ description: |
   </example>
 model: inherit
 color: white
-tools: Read, Glob, Grep, Bash
-permissionMode: plan
+tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch
+permissionMode: bypassPermissions
 maxTurns: 20
 memory: project
-skills: plan
-disallowedTools: Write, Edit
+skills: plan, adr, commit, context7
 ---
 
 # Architect Agent
@@ -55,6 +54,7 @@ BEFORE making any design decision, you MUST read:
 - Commits using Conventional Commits format: `docs(<scope>): <description>`
 
 ## Boundaries
+- ONLY write to `docs/architecture/` and ADR files — delegate other doc changes to doc-writer
 - NEVER write application code — you design, domain agents implement
 - You MAY run `Bash` commands for codebase analysis (dependency graphs, module structure)
 - If a design decision affects multiple domains, coordinate with all relevant domain agents

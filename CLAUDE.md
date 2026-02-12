@@ -196,15 +196,15 @@ Specialized agents for multi-agent coordination. Requires `CLAUDE_CODE_EXPERIMEN
 
 | Agent | Tier | Domain | Permission | Tools |
 |-------|------|--------|------------|-------|
-| `frontend-dev` | Domain | `apps/web`, `packages/ui` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash |
-| `backend-dev` | Domain | `apps/api`, `packages/types` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash |
-| `infra-ops` | Domain | `packages/config`, root configs | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash |
-| `reviewer` | Quality | All packages (read-only) | plan | Read, Glob, Grep |
-| `tester` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash |
-| `security-auditor` | Quality | All packages | plan | Read, Glob, Grep, Bash |
-| `architect` | Strategy | All packages | plan | Read, Glob, Grep, Bash |
-| `product-analyst` | Strategy | `docs/`, GitHub issues | plan | Read, Glob, Grep, Bash, WebSearch |
-| `doc-writer` | Strategy | `docs/`, `CLAUDE.md` | bypassPermissions | Read, Write, Edit, Glob, Grep |
+| `frontend-dev` | Domain | `apps/web`, `packages/ui` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch |
+| `backend-dev` | Domain | `apps/api`, `packages/types` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch |
+| `infra-ops` | Domain | `packages/config`, root configs | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch |
+| `reviewer` | Quality | All packages (read-only) | plan | Read, Glob, Grep, Bash, WebSearch |
+| `tester` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch |
+| `security-auditor` | Quality | All packages | plan | Read, Glob, Grep, Bash, WebSearch |
+| `architect` | Strategy | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch |
+| `product-lead` | Strategy | `docs/analyses/`, `docs/specs/`, GitHub issues | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch |
+| `doc-writer` | Strategy | `docs/`, `CLAUDE.md` | bypassPermissions | Read, Write, Edit, Glob, Grep, WebSearch |
 
 ### Routing Decision Tree
 
@@ -218,7 +218,7 @@ Is this a code change?
     │   └── Single session + optional tester subagent
     │
     └── Tier F (>3 files, or arch/regression risk)
-        ├── Bootstrap (/bootstrap, if needed): product-analyst + architect + doc-writer
+        ├── Bootstrap (/bootstrap, if needed): product-lead + architect + doc-writer
         ├── Spawn agents:
         │   ├── Single-domain → subagents (Task tool)
         │   └── Multi-domain  → Agent Teams (TeamCreate)

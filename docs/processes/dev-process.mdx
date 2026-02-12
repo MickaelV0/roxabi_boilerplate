@@ -72,6 +72,8 @@ Otherwise ───────────────────────�
 - Confirm no regression risk
 - **List all impacted artifacts** (see checklist above)
 
+> **XS exception:** For Size XS changes (single file, &lt;1h, zero risk), use `AskUserQuestion` to confirm with the lead. If approved, direct branch from staging is acceptable without worktree.
+
 ### S.2 — Create Worktree
 
 ```bash
@@ -178,7 +180,7 @@ Two modes are available depending on task complexity. See the [Agent Teams Guide
 ### F.2 — Bootstrap (if needed)
 
 Run `/bootstrap` to spawn planning agents:
-- `product-analyst` — requirements gathering, acceptance criteria, issue triage
+- `product-lead` — requirements gathering, acceptance criteria, issue triage
 - `architect` — system design, architecture decisions, task breakdown
 - `doc-writer` — spec and analysis drafting
 
