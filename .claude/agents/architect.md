@@ -17,7 +17,7 @@ description: |
   </example>
 model: inherit
 color: white
-tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch
+tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate
 permissionMode: bypassPermissions
 maxTurns: 20
 memory: project

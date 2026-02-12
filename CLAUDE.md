@@ -204,8 +204,8 @@ Specialized agents for multi-agent coordination. Requires `CLAUDE_CODE_EXPERIMEN
 | `reviewer` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch |
 | `tester` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch |
 | `security-auditor` | Quality | All packages | plan | Read, Glob, Grep, Bash, WebSearch |
-| `architect` | Strategy | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch |
-| `product-lead` | Strategy | `docs/analyses/`, `docs/specs/`, GitHub issues | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch |
+| `architect` | Strategy | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate |
+| `product-lead` | Strategy | `docs/analyses/`, `docs/specs/`, GitHub issues | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate |
 | `doc-writer` | Strategy | `docs/`, `CLAUDE.md` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch |
 
 ### Routing Decision Tree
