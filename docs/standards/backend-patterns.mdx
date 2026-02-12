@@ -184,6 +184,7 @@ All error responses follow this shape:
   path: string
   correlationId: string
   message: string | string[]
+  errorCode?: string      // Machine-readable code for frontend i18n (see common/error-codes.ts)
 }
 ```
 

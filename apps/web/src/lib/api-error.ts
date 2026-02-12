@@ -1,6 +1,5 @@
 import type { ApiErrorResponse } from '@repo/types'
 import { m } from '@/paraglide/messages'
-import { getApiErrorData } from './api-client.server.js'
 
 const errorCodeToMessage: Record<string, () => string> = {
   ROLE_NOT_FOUND: m.error_ROLE_NOT_FOUND,
@@ -23,14 +22,4 @@ export function translateApiError(error: ApiErrorResponse): string {
     return messageFn()
   }
   return Array.isArray(error.message) ? error.message.join(', ') : error.message
-}
-
-/**
- * Extracts and translates an API error to a localized message.
- * Returns null if the error is not a FetchError or has no data.
- */
-export function getTranslatedApiError(error: unknown): string | null {
-  const data = getApiErrorData(error)
-  if (!data) return null
-  return translateApiError(data)
 }
