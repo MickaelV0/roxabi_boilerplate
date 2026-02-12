@@ -5,12 +5,16 @@ import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
+  loaderData: { google: true, github: true } as { google: boolean; github: boolean },
 }))
 
 vi.mock('@tanstack/react-router', () => ({
   createFileRoute: () => (config: { component: React.ComponentType }) => {
     captured.Component = config.component
-    return { component: config.component }
+    return {
+      component: config.component,
+      useLoaderData: () => captured.loaderData,
+    }
   },
   Link: ({
     children,
@@ -109,6 +113,16 @@ describe('RegisterPage', () => {
     const link = screen.getByText('auth_sign_in_link')
     expect(link).toBeInTheDocument()
     expect(link.closest('a')).toHaveAttribute('href', '/login')
+  })
+
+  it('should hide OAuth buttons when providers are not configured', () => {
+    captured.loaderData = { google: false, github: false }
+    const RegisterPage = captured.Component
+    render(<RegisterPage />)
+
+    expect(screen.queryByText('auth_sign_up_with_google')).not.toBeInTheDocument()
+    expect(screen.queryByText('auth_sign_up_with_github')).not.toBeInTheDocument()
+    captured.loaderData = { google: true, github: true }
   })
 
   it('should display error message when signUp.email returns an error', async () => {
