@@ -98,10 +98,10 @@ Apply this structure when creating new feature directories in `apps/web/src/lib/
 
 | Pattern | Source | Example |
 |---------|--------|---------|
-| Hook Composition | Paraglide runtime (`apps/web/src/paraglide/`) | `getLocale`, `setLocale` -- focused, single-purpose utilities |
+| Focused Utilities | Paraglide runtime (`apps/web/src/paraglide/`) | `getLocale`, `setLocale` -- single-purpose functions with one job each |
 | Companion Hook | `apps/web/src/components/LocaleSwitcher.tsx` | Logic co-located with the component it serves |
 | Error Boundary | `react-error-boundary` package | `&lt;ErrorBoundary>` with `fallbackRender` prop |
-| Component Composition | `apps/web/src/components/LocaleSwitcher.tsx` | Variant props + companion hook for flexible rendering |
+| Component Composition | `apps/web/src/components/LocaleSwitcher.tsx` | App component built by composing `@repo/ui` primitives (DropdownMenu, Button) |
 | Module Namespace | `apps/web/src/paraglide/` directory | Related files grouped in a dedicated directory |
 
 **Design principles:**
