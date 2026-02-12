@@ -41,9 +41,8 @@ BEFORE making any design decision, you MUST read:
 
 ## Tier Classification
 ```
->10 files or system-wide change  → Tier L (full spec + worktree)
-3-10 files                       → Tier M (worktree + light review)
-≤3 files, no arch risk           → Tier S (direct branch + PR)
+>3 files, or arch/regression risk  → Tier F (Feature: bootstrap + worktree + agents + /review)
+≤3 files, no arch risk             → Tier S (Quick Fix: worktree + PR)
 ```
 
 ## Deliverables

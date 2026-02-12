@@ -89,6 +89,8 @@ cd ../roxabi-XXX
 
 > XXX = GitHub issue number (e.g., 123), slug = short description
 
+**XS exception:** For Size XS changes (single file, &lt;1h, zero risk), use `AskUserQuestion` to confirm with the lead. If approved, a direct branch from staging is acceptable without worktree.
+
 **FORBIDDEN: Modifying files on main/staging without a worktree.**
 
 ---
@@ -204,7 +206,7 @@ Specialized agents for multi-agent coordination. Requires `CLAUDE_CODE_EXPERIMEN
 | `security-auditor` | Quality | All packages | plan | Read, Glob, Grep, Bash, WebSearch |
 | `architect` | Strategy | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch |
 | `product-lead` | Strategy | `docs/analyses/`, `docs/specs/`, GitHub issues | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch |
-| `doc-writer` | Strategy | `docs/`, `CLAUDE.md` | bypassPermissions | Read, Write, Edit, Glob, Grep, WebSearch |
+| `doc-writer` | Strategy | `docs/`, `CLAUDE.md` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch |
 
 ### Routing Decision Tree
 
