@@ -1,10 +1,11 @@
-import { ConflictException } from '@nestjs/common'
 import type { ClsService } from 'nestjs-cls'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DrizzleDB } from '../database/drizzle.provider.js'
 import type { TenantService } from '../tenant/tenant.service.js'
+import { MemberNotFoundException } from './exceptions/member-not-found.exception.js'
 import { OwnershipConstraintException } from './exceptions/ownership-constraint.exception.js'
 import { RoleNotFoundException } from './exceptions/role-not-found.exception.js'
+import { RoleSlugConflictException } from './exceptions/role-slug-conflict.exception.js'
 import { RbacService } from './rbac.service.js'
 
 type MockFn = ReturnType<typeof vi.fn>
@@ -112,7 +113,7 @@ describe('RbacService', () => {
       const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
       await expect(
         service.createRole({ name: 'Owner', permissions: ['roles:read'] })
-      ).rejects.toThrow(ConflictException)
+      ).rejects.toThrow(RoleSlugConflictException)
     })
   })
 
@@ -166,12 +167,16 @@ describe('RbacService', () => {
 
   describe('deleteRole', () => {
     it('should delete a custom role and fallback members to Viewer', async () => {
+      const updateChain = chain('where', undefined)
+      const deleteChain = chain('where', undefined)
+
       const mockDb = {
-        update: vi.fn().mockReturnValue({
-          set: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue(undefined),
-          }),
-        }),
+        transaction: vi.fn().mockImplementation((cb) =>
+          cb({
+            update: vi.fn().mockReturnValue(updateChain),
+            delete: vi.fn().mockReturnValue(deleteChain),
+          })
+        ),
       } as unknown as DrizzleDB
 
       ;(mockTenantService.query as ReturnType<typeof vi.fn>).mockImplementation((cb) => {
@@ -181,8 +186,6 @@ describe('RbacService', () => {
         ])
         // Viewer lookup
         const viewerChain = chain('limit', [{ id: 'r-viewer' }])
-        // Delete
-        const deleteChain = chain('where', undefined)
 
         const selectCallCount = { n: 0 }
         const tx = {
@@ -190,7 +193,6 @@ describe('RbacService', () => {
             selectCallCount.n++
             return selectCallCount.n === 1 ? existsChain : viewerChain
           }),
-          delete: vi.fn().mockReturnValue(deleteChain),
         }
         existsChain.from.mockReturnValue(existsChain)
         existsChain.where.mockReturnValue(existsChain)
@@ -291,7 +293,7 @@ describe('RbacService', () => {
         return cb(tx)
       })
 
-      // db: member lookups + updates
+      // db: member lookups + transaction for swap
       const dbSelectCount = { n: 0 }
       const currentMemberChain = chain('limit', [
         { id: 'm-1', userId: 'user-1', roleId: 'r-owner' },
@@ -308,7 +310,11 @@ describe('RbacService', () => {
           dbSelectCount.n++
           return dbSelectCount.n === 1 ? currentMemberChain : targetMemberChain
         }),
-        update: vi.fn().mockReturnValue(updateChain),
+        transaction: vi.fn().mockImplementation((cb) =>
+          cb({
+            update: vi.fn().mockReturnValue(updateChain),
+          })
+        ),
       } as unknown as DrizzleDB
 
       const service = new RbacService(mockTenantService, mockDb, mockCls)
@@ -424,6 +430,29 @@ describe('RbacService', () => {
       const service = new RbacService(mockTenantService, {} as DrizzleDB, mockCls)
       await expect(service.changeMemberRole('m-1', 'r-invalid')).rejects.toThrow(
         RoleNotFoundException
+      )
+    })
+
+    it('should throw MemberNotFoundException for invalid member', async () => {
+      ;(mockTenantService.query as ReturnType<typeof vi.fn>).mockImplementation((cb) => {
+        const roleChain = chain('limit', [{ id: 'r-new', slug: 'member' }])
+        roleChain.from.mockReturnValue(roleChain)
+        roleChain.where.mockReturnValue(roleChain)
+        return cb({ select: vi.fn().mockReturnValue(roleChain) })
+      })
+
+      // db: member lookup returns empty
+      const memberChain = chain('limit', [])
+      memberChain.from.mockReturnValue(memberChain)
+      memberChain.where.mockReturnValue(memberChain)
+
+      const mockDb = {
+        select: vi.fn().mockReturnValue(memberChain),
+      } as unknown as DrizzleDB
+
+      const service = new RbacService(mockTenantService, mockDb, mockCls)
+      await expect(service.changeMemberRole('m-invalid', 'r-new')).rejects.toThrow(
+        MemberNotFoundException
       )
     })
 

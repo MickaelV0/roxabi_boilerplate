@@ -1,7 +1,9 @@
 import { HttpStatus } from '@nestjs/common'
 import { describe, expect, it, vi } from 'vitest'
+import { MemberNotFoundException } from '../exceptions/member-not-found.exception.js'
 import { OwnershipConstraintException } from '../exceptions/ownership-constraint.exception.js'
 import { RoleNotFoundException } from '../exceptions/role-not-found.exception.js'
+import { RoleSlugConflictException } from '../exceptions/role-slug-conflict.exception.js'
 import { RbacExceptionFilter } from './rbac-exception.filter.js'
 
 function createMockCls(id = 'test-correlation-id') {
@@ -57,6 +59,18 @@ describe('RbacExceptionFilter', () => {
     expect(body.correlationId).toBe('test-correlation-id')
     expect(body.message).toBe('Role r-456 not found')
     expect(body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+  })
+
+  it('should return 409 for RoleSlugConflictException', () => {
+    const { host, statusFn } = createMockHost()
+    filter.catch(new RoleSlugConflictException('admin'), host as never)
+    expect(statusFn).toHaveBeenCalledWith(HttpStatus.CONFLICT)
+  })
+
+  it('should return 404 for MemberNotFoundException', () => {
+    const { host, statusFn } = createMockHost()
+    filter.catch(new MemberNotFoundException('m-123'), host as never)
+    expect(statusFn).toHaveBeenCalledWith(HttpStatus.NOT_FOUND)
   })
 
   it('should set x-correlation-id header', () => {

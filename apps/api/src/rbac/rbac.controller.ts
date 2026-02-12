@@ -58,6 +58,7 @@ export class RbacController {
   }
 
   @Post('transfer-ownership')
+  @Permissions('members:write')
   @ApiOperation({ summary: 'Transfer organization ownership to another Admin' })
   @ApiResponse({ status: 200, description: 'Ownership transferred' })
   @ApiResponse({ status: 400, description: 'Ownership constraint violated' })

@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS "permissions" (
   CONSTRAINT "permissions_resource_action_unique" UNIQUE ("resource", "action")
 );
 
--- Seed the 14 resource:action permissions (+ 1 billing:read)
+-- Seed the 15 resource:action permissions (5 resources × 3 actions)
 INSERT INTO "permissions" ("resource", "action", "description") VALUES
   ('users', 'read', 'View user profiles'),
   ('users', 'write', 'Edit user profiles'),

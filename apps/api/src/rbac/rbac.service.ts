@@ -1,12 +1,14 @@
-import { ConflictException, Inject, Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { and, eq } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { members } from '../database/schema/auth.schema.js'
 import { permissions, rolePermissions, roles } from '../database/schema/rbac.schema.js'
 import { TenantService } from '../tenant/tenant.service.js'
+import { MemberNotFoundException } from './exceptions/member-not-found.exception.js'
 import { OwnershipConstraintException } from './exceptions/ownership-constraint.exception.js'
 import { RoleNotFoundException } from './exceptions/role-not-found.exception.js'
+import { RoleSlugConflictException } from './exceptions/role-slug-conflict.exception.js'
 
 type DefaultRoleDefinition = {
   name: string
@@ -139,7 +141,7 @@ export class RbacService {
         .limit(1)
 
       if (existing.length > 0) {
-        throw new ConflictException(`Role with slug "${slug}" already exists`)
+        throw new RoleSlugConflictException(slug)
       }
 
       // Insert the role
@@ -225,16 +227,17 @@ export class RbacService {
         .where(and(eq(roles.tenantId, role.tenantId), eq(roles.slug, 'viewer')))
         .limit(1)
 
-      // Reassign members to Viewer (members table is not RLS-scoped, use db directly)
-      if (viewerRole) {
-        await this.db
-          .update(members)
-          .set({ roleId: viewerRole.id })
-          .where(eq(members.roleId, roleId))
-      }
+      // Reassign members to Viewer + delete role atomically
+      await this.db.transaction(async (deleteTx) => {
+        if (viewerRole) {
+          await deleteTx
+            .update(members)
+            .set({ roleId: viewerRole.id })
+            .where(eq(members.roleId, roleId))
+        }
 
-      // Delete the role (role_permissions cascade)
-      await tx.delete(roles).where(eq(roles.id, roleId))
+        await deleteTx.delete(roles).where(eq(roles.id, roleId))
+      })
 
       return { deleted: true }
     })
@@ -320,16 +323,18 @@ export class RbacService {
         throw new OwnershipConstraintException('Target must be an Admin in the same organization')
       }
 
-      // Swap: current Owner → Admin, target Admin → Owner
-      await this.db
-        .update(members)
-        .set({ roleId: adminRole.id })
-        .where(eq(members.id, currentMember.id))
+      // Swap: current Owner → Admin, target Admin → Owner (atomic)
+      await this.db.transaction(async (swapTx) => {
+        await swapTx
+          .update(members)
+          .set({ roleId: adminRole.id })
+          .where(eq(members.id, currentMember.id))
 
-      await this.db
-        .update(members)
-        .set({ roleId: ownerRole.id })
-        .where(eq(members.id, targetMember.id))
+        await swapTx
+          .update(members)
+          .set({ roleId: ownerRole.id })
+          .where(eq(members.id, targetMember.id))
+      })
 
       return { transferred: true }
     })
@@ -361,7 +366,7 @@ export class RbacService {
         .limit(1)
 
       if (!member) {
-        throw new RoleNotFoundException(memberId)
+        throw new MemberNotFoundException(memberId)
       }
 
       // Check if removing last Owner
