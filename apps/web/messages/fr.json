@@ -228,5 +228,14 @@
   "org_invitations_revoke": "Révoquer",
   "org_toast_invitation_revoked": "Invitation révoquée",
 
-  "common_cancel": "Annuler"
+  "common_cancel": "Annuler",
+
+  "error_ROLE_NOT_FOUND": "Rôle introuvable",
+  "error_ROLE_SLUG_CONFLICT": "Un rôle avec ce nom existe déjà",
+  "error_DEFAULT_ROLE_CONSTRAINT": "Impossible de modifier un rôle par défaut",
+  "error_OWNERSHIP_CONSTRAINT": "Seul le propriétaire peut effectuer cette action",
+  "error_MEMBER_NOT_FOUND": "Membre introuvable",
+  "error_TENANT_CONTEXT_MISSING": "Contexte d'organisation manquant",
+  "error_DATABASE_UNAVAILABLE": "Service temporairement indisponible",
+  "error_USER_NOT_FOUND": "Utilisateur introuvable"
 }

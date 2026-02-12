@@ -66,6 +66,7 @@ describe('UserNotFoundFilter', () => {
     expect(body.path).toBe('/users/user-123')
     expect(body.correlationId).toBe('test-correlation-id')
     expect(body.message).toBe('User user-456 not found')
+    expect(body.errorCode).toBe('USER_NOT_FOUND')
   })
 
   it('should set x-correlation-id header on response', () => {

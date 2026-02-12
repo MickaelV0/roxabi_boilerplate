@@ -1,8 +1,8 @@
 import { HttpStatus } from '@nestjs/common'
 import { describe, expect, it, vi } from 'vitest'
 
-import { DatabaseUnavailableException } from '../exceptions/database-unavailable.exception.js'
-import { DatabaseUnavailableFilter } from './database-unavailable.filter.js'
+import { TenantContextMissingException } from '../exceptions/tenant-context-missing.exception.js'
+import { TenantContextMissingFilter } from './tenant-context-missing.filter.js'
 
 function createMockCls(id = 'test-correlation-id') {
   return { getId: vi.fn().mockReturnValue(id) }
@@ -14,8 +14,8 @@ function createMockHost() {
   const statusFn = vi.fn().mockReturnValue({ send: sendFn })
 
   const request = {
-    url: '/api/tenants/query',
-    method: 'POST',
+    url: '/api/tenants/settings',
+    method: 'GET',
   }
   const response = { status: statusFn, header: headerFn }
 
@@ -35,37 +35,37 @@ function createMockHost() {
   return { host, statusFn, headerFn, getSentBody } as const
 }
 
-describe('DatabaseUnavailableFilter', () => {
+describe('TenantContextMissingFilter', () => {
   const cls = createMockCls()
-  const filter = new DatabaseUnavailableFilter(cls as never)
+  const filter = new TenantContextMissingFilter(cls as never)
 
-  it('should catch DatabaseUnavailableException and return 503 status', () => {
+  it('should catch TenantContextMissingException and return 403 status', () => {
     const { host, statusFn } = createMockHost()
-    const exception = new DatabaseUnavailableException()
+    const exception = new TenantContextMissingException()
 
     filter.catch(exception, host as never)
 
-    expect(statusFn).toHaveBeenCalledWith(HttpStatus.SERVICE_UNAVAILABLE)
+    expect(statusFn).toHaveBeenCalledWith(HttpStatus.FORBIDDEN)
   })
 
   it('should return structured error response body', () => {
     const { host, getSentBody } = createMockHost()
-    const exception = new DatabaseUnavailableException()
+    const exception = new TenantContextMissingException()
 
     filter.catch(exception, host as never)
 
     const body = getSentBody()
-    expect(body.statusCode).toBe(503)
+    expect(body.statusCode).toBe(403)
     expect(body.timestamp).toBeDefined()
-    expect(body.path).toBe('/api/tenants/query')
+    expect(body.path).toBe('/api/tenants/settings')
     expect(body.correlationId).toBe('test-correlation-id')
-    expect(body.message).toBe('Database not available')
-    expect(body.errorCode).toBe('DATABASE_UNAVAILABLE')
+    expect(body.message).toBe('No tenant context available')
+    expect(body.errorCode).toBe('TENANT_CONTEXT_MISSING')
   })
 
   it('should set x-correlation-id header on response', () => {
     const { host, headerFn } = createMockHost()
-    const exception = new DatabaseUnavailableException()
+    const exception = new TenantContextMissingException()
 
     filter.catch(exception, host as never)
 
@@ -74,9 +74,9 @@ describe('DatabaseUnavailableFilter', () => {
 
   it('should use correlation ID from ClsService', () => {
     const customCls = createMockCls('custom-id-abc')
-    const customFilter = new DatabaseUnavailableFilter(customCls as never)
+    const customFilter = new TenantContextMissingFilter(customCls as never)
     const { host, getSentBody } = createMockHost()
-    const exception = new DatabaseUnavailableException()
+    const exception = new TenantContextMissingException()
 
     customFilter.catch(exception, host as never)
 
@@ -87,7 +87,7 @@ describe('DatabaseUnavailableFilter', () => {
 
   it('should include timestamp as ISO string in response body', () => {
     const { host, getSentBody } = createMockHost()
-    const exception = new DatabaseUnavailableException()
+    const exception = new TenantContextMissingException()
 
     filter.catch(exception, host as never)
 

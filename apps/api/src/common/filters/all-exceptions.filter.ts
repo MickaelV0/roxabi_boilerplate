@@ -20,6 +20,15 @@ function hasMessage(body: unknown): body is { message: string | string[] } {
   )
 }
 
+function hasErrorCode(value: unknown): value is { errorCode: string } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'errorCode' in value &&
+    typeof (value as Record<string, unknown>).errorCode === 'string'
+  )
+}
+
 @Catch()
 @Injectable()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -51,12 +60,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message = 'Internal server error'
     }
 
+    const errorCode = hasErrorCode(exception) ? exception.errorCode : undefined
+
     const errorResponse = {
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
       correlationId,
       message,
+      ...(errorCode !== undefined && { errorCode }),
     }
 
     this.logger.error(

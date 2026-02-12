@@ -119,4 +119,23 @@ describe('AllExceptionsFilter', () => {
     expect(body.timestamp).toBeDefined()
     expect(body.path).toBe('/test')
   })
+
+  it('should include errorCode when exception has one', () => {
+    const { host, getSentBody } = createMockHost()
+    const exception = Object.assign(new Error('fail'), { errorCode: 'ROLE_NOT_FOUND' })
+
+    filter.catch(exception, host as never)
+
+    const body = getSentBody()
+    expect(body.errorCode).toBe('ROLE_NOT_FOUND')
+  })
+
+  it('should omit errorCode when exception does not have one', () => {
+    const { host, getSentBody } = createMockHost()
+
+    filter.catch(new Error('plain error'), host as never)
+
+    const body = getSentBody()
+    expect(body.errorCode).toBeUndefined()
+  })
 })
