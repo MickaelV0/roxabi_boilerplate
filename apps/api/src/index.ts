@@ -77,7 +77,7 @@ async function bootstrap() {
   if (corsResult.warning) {
     logger.warn(corsResult.warning)
   }
-  app.enableCors({ origin: corsResult.origins })
+  app.enableCors({ origin: corsResult.origins, credentials: true })
 
   // Swagger setup
   const config = new DocumentBuilder()
