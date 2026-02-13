@@ -8,9 +8,9 @@
     "build": "bunx nest build",
     "start": "node dist/index",
     "start:prod": "NODE_ENV=production node dist/index",
+    "//db": "tsx wraps drizzle-kit to resolve NodeNext .js→.ts imports (https://github.com/drizzle-team/drizzle-orm/issues/2705)",
     "db:generate": "tsx node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "tsx node_modules/drizzle-kit/bin.cjs migrate",
-    "db:push": "tsx node_modules/drizzle-kit/bin.cjs push",
     "db:studio": "tsx node_modules/drizzle-kit/bin.cjs studio",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
