@@ -31,6 +31,8 @@
     "ux-audit",
     "design-audit",
     "132-ci-db-migrations",
-    "presentation-claude-code"
+    "presentation-claude-code",
+    "53-rate-limiting-api-security",
+    "user-profile"
   ]
 }

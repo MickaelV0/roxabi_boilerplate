@@ -163,9 +163,22 @@ Use the triage helper to update status. Replace `<ISSUE_NUMBER>` with the actual
 
 Once both gates are passed:
 
-1. **Commit** the analysis and spec documents:
+1. **Update `meta.json` and `index.mdx`** for each new document:
+
+   For each new analysis (`docs/analyses/<slug>.mdx`):
+   - Add `"<slug>"` to `docs/analyses/meta.json` → `pages` array
+   - Add a link entry to `docs/analyses/index.mdx` under the appropriate category section
+
+   For each new spec (`docs/specs/<issue>-<slug>.mdx`):
+   - Add `"<issue>-<slug>"` to `docs/specs/meta.json` → `pages` array
+   - Add a link entry to `docs/specs/index.mdx` under the appropriate category section
+
+   Follow the existing format in each file. Place new entries in a logical position within their category.
+
+2. **Commit** all documents together:
    ```bash
-   git add docs/analyses/<slug>.mdx docs/specs/<issue>-<slug>.mdx
+   git add docs/analyses/<slug>.mdx docs/analyses/meta.json docs/analyses/index.mdx \
+           docs/specs/<issue>-<slug>.mdx docs/specs/meta.json docs/specs/index.mdx
    git commit -m "$(cat <<'EOF'
    docs(<scope>): add analysis and spec for <feature>
 
@@ -175,9 +188,9 @@ Once both gates are passed:
    EOF
    )"
    ```
-   Include `meta.json` files if they were updated.
+   Only include the files that were actually created or modified (e.g., if only an analysis was produced, omit the spec files).
 
-2. **Inform the user:**
+3. **Inform the user:**
 
 > "Bootstrap complete. You have an approved analysis and spec (committed). Run `/scaffold --spec <N>` to execute."
 
