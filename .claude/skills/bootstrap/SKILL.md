@@ -1,12 +1,12 @@
 ---
 argument-hint: ["idea" | --issue <N> | --spec <N>]
 description: Planning orchestrator from idea to approved spec, with two validation gates.
-allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Task, TeamCreate, TeamDelete, SendMessage
+allowed-tools: Bash, AskUserQuestion, Read, Write, Edit, Glob, Grep, Task
 ---
 
 # Bootstrap
 
-Orchestrate the planning pipeline from a raw idea (or existing issue/spec) to an approved spec. Spawns a planning team (product-lead + architect + doc-writer) to produce analysis and spec documents. Enforces two user-approval gates. Stops at the approved spec -- execution is handled by `/scaffold`.
+Orchestrate the planning pipeline from a raw idea (or existing issue/spec) to an approved spec. You drive the interviews and write documents directly — no team spawn needed. You may spawn an **architect** subagent (via `Task`) on-demand when you need technical consultation. Enforces two user-approval gates. Stops at the approved spec — execution is handled by `/scaffold`.
 
 ## Entry Points
 
@@ -76,24 +76,16 @@ Use **Glob** to search for files matching the topic. For `--issue N`, also match
 
 ---
 
-## Spawn Planning Team
+## How It Works (No Team — Direct Orchestration)
 
-Before entering any gate, create the planning team:
+You (the bootstrap orchestrator) drive the entire pipeline yourself:
 
-1. **Create team** using `TeamCreate` with name `bootstrap-{issue-or-slug}`.
-2. **Spawn agents** using the `Task` tool with `team_name`:
+- **You** conduct interviews with the user via `/interview` skill (which uses `AskUserQuestion`)
+- **You** write analysis and spec documents
+- **You** present gates to the user via `AskUserQuestion`
+- **You** spawn an `architect` subagent via `Task` **only when you need technical consultation** (e.g., trade-off analysis, feasibility check, architecture decisions). Do NOT spawn it upfront.
 
-| Agent | Role | Spawned as |
-|-------|------|------------|
-| **product-lead** | Leads interviews, writes analysis and spec, interacts with human | Active — starts working immediately |
-| **architect** | Available for technical consultation (depth, trade-offs, architecture) | Idle — product-lead messages when needed |
-| **doc-writer** | Available for documentation quality review | Idle — product-lead messages when needed |
-
-3. **Create tasks** for the team:
-   - Task for Gate 1 (analysis) assigned to product-lead
-   - Task for Gate 2 (spec) assigned to product-lead, blocked by Gate 1
-
-Product-lead uses `/interview` skill internally to conduct structured interviews with the human. When product-lead needs technical depth, it messages architect via `SendMessage`. When it needs doc review, it messages doc-writer.
+**Do NOT use `TeamCreate`. Do NOT spawn `product-lead` or `doc-writer` agents.**
 
 ---
 
@@ -104,8 +96,8 @@ Product-lead uses `/interview` skill internally to conduct structured interviews
 ### 1a. Generate or Locate Analysis
 
 - **If an analysis already exists** (found in Step 1): read it and present it to the user.
-- **If no analysis exists**: product-lead conducts a structured interview with the human (using `/interview` in Analysis mode) to produce `docs/analyses/{slug}.mdx`.
-  - Product-lead may consult architect for technical depth or trade-off analysis.
+- **If no analysis exists**: conduct a structured interview with the user (using `/interview` in Analysis mode) to produce `docs/analyses/{slug}.mdx`.
+  - If you need technical depth (architecture trade-offs, feasibility, integration concerns), spawn an `architect` subagent via `Task` to research the question and return findings. Use those findings to enrich the analysis.
 
 ### 1b. User Approval
 
@@ -117,7 +109,7 @@ Options:
 - **Approve** -- Proceed to Gate 2 (Spec)
 - **Reject** -- Provide feedback and re-enter Gate 1
 
-**If rejected:** Collect user feedback, product-lead revises the analysis (may consult architect/doc-writer). Re-present for approval. Do not proceed until approved.
+**If rejected:** Collect user feedback, revise the analysis (spawn architect via `Task` if the feedback requires technical research). Re-present for approval. Do not proceed until approved.
 
 ---
 
@@ -126,8 +118,8 @@ Options:
 ### 2a. Generate or Locate Spec
 
 - **If a spec already exists** (found in Step 1, or entry point is `--spec N`): read it and present it to the user.
-- **If no spec exists**: product-lead promotes the approved analysis to a spec (using `/interview` with `--promote <path-to-analysis>`) to produce `docs/specs/{issue}-{slug}.mdx`.
-  - Product-lead may consult architect for implementation strategy and doc-writer for spec quality.
+- **If no spec exists**: promote the approved analysis to a spec (using `/interview` with `--promote <path-to-analysis>`) to produce `docs/specs/{issue}-{slug}.mdx`.
+  - If you need technical consultation for implementation strategy, spawn an `architect` subagent via `Task`.
 
 ### 2b. User Approval
 
@@ -139,7 +131,7 @@ Options:
 - **Approve** -- Bootstrap complete, proceed to completion
 - **Reject** -- Provide feedback and re-enter Gate 2
 
-**If rejected:** Collect user feedback, product-lead revises the spec (may consult team). Re-present for approval. Do not proceed until approved.
+**If rejected:** Collect user feedback, revise the spec (spawn architect if needed). Re-present for approval. Do not proceed until approved.
 
 ---
 
@@ -199,25 +191,30 @@ Once both gates are passed:
 | Issue already has an analysis | Skip analysis generation, present existing analysis at Gate 1 for validation |
 | User rejects at any gate | Stop, collect feedback, re-enter the same gate |
 | `--spec N` but no spec found | Inform user: "No spec found matching issue #N. Try `/bootstrap --issue N` or `/bootstrap 'your idea'` to start from scratch." |
-| Analysis exists but is a brainstorm | Treat as "no analysis" -- product-lead promotes brainstorm to analysis |
-| Agent fails or is unresponsive | Report the error to the user and stop |
+| Analysis exists but is a brainstorm | Treat as "no analysis" -- promote brainstorm to analysis |
+| Architect subagent fails | Report the error to the user and continue without technical consultation |
 | Issue already has a branch or open PR | Stop and propose `/review` or `/scaffold` instead (Step 0b) |
-
-## Team Teardown
-
-After completion (or early exit), shut down the planning team:
-
-1. Send `shutdown_request` to all agents (product-lead, architect, doc-writer)
-2. Wait for shutdown confirmations
-3. Call `TeamDelete` to clean up
 
 ## Skill Invocation Reference
 
-Product-lead uses the `/interview` skill internally:
+You use the `/interview` skill directly:
 
 | Sub-skill | Invocation | When |
 |-----------|------------|------|
 | `/interview` (Analysis) | `skill: "interview", args: "topic text"` | Gate 1, no existing analysis |
 | `/interview` (Spec promotion) | `skill: "interview", args: "--promote docs/analyses/{slug}.mdx"` | Gate 2, no existing spec |
+
+## Architect Consultation (On-Demand Only)
+
+When you need technical depth during analysis or spec writing, spawn an architect subagent:
+
+```
+Task tool:
+  subagent_type: architect
+  prompt: "Research and answer: <specific technical question>. Return findings as bullet points."
+```
+
+Use this for: trade-off analysis, feasibility checks, architecture decisions, integration concerns.
+Do NOT spawn architect upfront — only when a specific technical question arises.
 
 $ARGUMENTS
