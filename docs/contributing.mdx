@@ -203,7 +203,7 @@ All PRs must pass before merge:
 | Label | Description |
 |-------|-------------|
 | `XS` | Trivial change (&lt;1 hour) |
-| `S` | Small change (few hours) |
+| `S` | Small task, &lt;4 hours |
 | `M` | Medium change (1-2 days) |
 | `L` | Large change (3-5 days) |
 | `XL` | Epic (needs breakdown) |
@@ -278,7 +278,15 @@ docs/
 
 1. Create `.mdx` file with frontmatter
 2. Add filename (without extension) to `meta.json` in the `pages` array
-3. Run `bun docs` to preview
+3. Add an entry to the section's `index.mdx` page (with link and one-line description)
+4. Run `bun docs` to preview
+
+### Removing or Deprecating Pages
+
+1. Add a `> **Deprecated**` callout at the top of the file
+2. Remove the filename from `meta.json` (hides from sidebar)
+3. Remove the entry from the section's `index.mdx`
+4. Keep the file on disk for historical reference
 
 ### Special Characters in MDX
 

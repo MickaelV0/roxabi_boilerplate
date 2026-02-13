@@ -147,7 +147,9 @@ cd ../roxabi-XXX
 | browser, open website, screenshot | `agent-browser` | "open a website", "take a screenshot", "/agent-browser" |
 | documentation, library docs, lookup | `context7` | "look up React docs", "check API reference", "/context7" |
 | promote, release, staging to main, finalize | `promote` | "promote staging", "release to production", "/promote", "/promote --finalize" |
-| deploy, vercel, setup vercel | `vercel:*` | "deploy to Vercel", "set up Vercel", "check Vercel logs" |
+| deploy, vercel deploy | `vercel:deploy` | "deploy to Vercel", "push to production", "go live" |
+| vercel setup, configure vercel | `vercel:setup` | "set up Vercel", "configure Vercel", "link to Vercel" |
+| vercel logs, check logs | `vercel:logs` | "show Vercel logs", "check deployment logs" |
 
 **Important notes:**
 - ALWAYS use the appropriate skill even if user doesn't explicitly mention the slash command

@@ -42,13 +42,16 @@ The `DatabaseModule` is registered as `@Global()` so every module can inject `DR
 @Inject(DRIZZLE) private readonly db: DrizzleDB | null
 ```
 
-The module implements `OnModuleDestroy` to close the postgres connection on shutdown.
+The module implements `OnModuleInit` and `OnModuleDestroy`:
+
+- **`onModuleInit`**: Pings the database (`SELECT 1`) to verify the connection, then checks for pending migrations by comparing `drizzle/migrations/meta/_journal.json` against the `__drizzle_migrations` table. Logs a warning if migrations are pending.
+- **`onModuleDestroy`**: Closes the postgres connection on shutdown.
 
 ## Schema Conventions
 
 ### Shared helpers
 
-`database/schema/base.ts` exports reusable column definitions:
+`database/schema/timestamps.ts` defines reusable timestamp columns, re-exported from `database/schema/base.ts`:
 
 ```ts
 // Timestamps with timezone and auto-update
@@ -103,7 +106,7 @@ Better Auth manages its own database tables via the Drizzle adapter (`usePlural:
 | `members` | Org membership | `userId`, `organizationId`, `role` |
 | `invitations` | Pending org invites | `organizationId`, `email`, `role`, `status`, `expiresAt` |
 
-These tables use `text` primary keys with UUID generation (`advanced.database.generateId: 'uuid'` in Better Auth config). The auth schema does **not** use the shared `timestamps` helper — most tables define `createdAt` / `updatedAt` inline (without timezone or `$onUpdateFn`), `organizations` and `members` only have `createdAt`, and `invitations` has no timestamps at all. This inconsistency is tracked as tech debt.
+These tables use `text` primary keys with UUID generation (`advanced.database.generateId: 'uuid'` in Better Auth config). All auth tables now use the shared `...timestamps` spread (with timezone and `$onUpdateFn`), **except `invitations`** which only has `expiresAt` and lacks `createdAt`/`updatedAt`.
 
 ## RBAC Schema
 
