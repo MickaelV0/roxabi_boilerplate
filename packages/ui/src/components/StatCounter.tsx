@@ -29,6 +29,7 @@ export function StatCounter({ value, label, suffix = '', className }: StatCounte
 
     const duration = 1500
     const startTime = performance.now()
+    let rafId: number
 
     function animate(currentTime: number) {
       const elapsed = currentTime - startTime
@@ -39,11 +40,12 @@ export function StatCounter({ value, label, suffix = '', className }: StatCounte
       setDisplayValue(Math.round(eased * value))
 
       if (progress < 1) {
-        requestAnimationFrame(animate)
+        rafId = requestAnimationFrame(animate)
       }
     }
 
-    requestAnimationFrame(animate)
+    rafId = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(rafId)
   }, [value, inView])
 
   return (

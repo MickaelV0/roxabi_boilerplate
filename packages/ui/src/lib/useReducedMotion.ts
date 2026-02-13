@@ -8,13 +8,12 @@ function getMatchMedia(query: string): MediaQueryList | null {
 }
 
 export function useReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(() => {
-    return getMatchMedia(QUERY)?.matches ?? false
-  })
+  const [reduced, setReduced] = useState(false)
 
   useEffect(() => {
     const mql = getMatchMedia(QUERY)
     if (!mql) return
+    setReduced(mql.matches)
     const handler = (e: MediaQueryListEvent) => setReduced(e.matches)
     mql.addEventListener('change', handler)
     return () => mql.removeEventListener('change', handler)

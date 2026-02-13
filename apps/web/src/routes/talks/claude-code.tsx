@@ -1,5 +1,6 @@
 import { PresentationNav } from '@repo/ui'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { useCallback } from 'react'
 import { AgentTeamsSection } from '@/components/presentation/AgentTeamsSection'
 import { BuildingBlocksSection } from '@/components/presentation/BuildingBlocksSection'
 import { DevProcessSection } from '@/components/presentation/DevProcessSection'
@@ -28,9 +29,10 @@ const SECTIONS = [
 
 export function ClaudeCodePresentation() {
   const navigate = useNavigate()
+  const handleEscape = useCallback(() => navigate({ to: '/' }), [navigate])
 
   return (
-    <div className="relative bg-background text-foreground">
+    <div data-presentation className="relative bg-background text-foreground">
       {/* Roxabi wordmark */}
       <div className="fixed left-6 top-6 z-50">
         <Link
@@ -47,7 +49,7 @@ export function ClaudeCodePresentation() {
       </div>
 
       {/* Section navigation dots */}
-      <PresentationNav sections={SECTIONS} onEscape={() => navigate({ to: '/' })} />
+      <PresentationNav sections={SECTIONS} onEscape={handleEscape} />
 
       {/* Scroll-snap container — disabled on mobile */}
       <div className="md:h-dvh md:overflow-y-auto md:snap-y md:snap-mandatory">

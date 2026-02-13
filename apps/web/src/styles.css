@@ -2,6 +2,7 @@
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
 @import '@repo/ui/theme.css';
+@import '@fontsource-variable/plus-jakarta-sans';
 
 @source "../node_modules/@repo/ui/src";
 
@@ -24,10 +25,10 @@ code {
     source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
-/* Heading font */
-h1,
-h2,
-h3 {
+/* Presentation heading font — scoped to /talks pages */
+[data-presentation] h1,
+[data-presentation] h2,
+[data-presentation] h3 {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 

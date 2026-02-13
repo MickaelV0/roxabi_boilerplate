@@ -41,6 +41,7 @@ const agentFiles = [
   'doc-writer.md',
 ] as const
 
+// Static data — JSX in `visual` is safe at module scope since it contains no hooks or dynamic state
 const blocks = [
   {
     icon: FileText,

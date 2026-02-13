@@ -9,6 +9,7 @@ type CodeBlockProps = {
   className?: string
 }
 
+/** @security children MUST be developer-controlled string literals. Never pass user input. */
 export function CodeBlock({
   children,
   language = 'bash',
@@ -29,11 +30,15 @@ export function CodeBlock({
         light: 'github-light',
         dark: 'github-dark',
       },
-    }).then((html) => {
-      if (!cancelled) {
-        setHighlightedHtml(html)
-      }
     })
+      .then((html) => {
+        if (!cancelled) {
+          setHighlightedHtml(html)
+        }
+      })
+      .catch(() => {
+        // Fall through to plain <pre> fallback
+      })
 
     return () => {
       cancelled = true
