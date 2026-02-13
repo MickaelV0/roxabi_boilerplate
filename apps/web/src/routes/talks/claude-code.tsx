@@ -40,7 +40,7 @@ export function ClaudeCodePresentation() {
       <PresentationNav sections={SECTIONS} />
 
       {/* Scroll-snap container — disabled on mobile */}
-      <div className="md:h-dvh md:h-screen md:overflow-y-auto md:snap-y md:snap-mandatory">
+      <div className="md:h-screen md:h-dvh md:overflow-y-auto md:snap-y md:snap-mandatory">
         <SectionContainer id="intro">
           <IntroSection />
         </SectionContainer>

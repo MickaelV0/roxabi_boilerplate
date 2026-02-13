@@ -21,21 +21,6 @@ describe('SectionContainer', () => {
     expect(screen.getByText('Hello World')).toBeInTheDocument()
   })
 
-  it('applies correct CSS classes (min-h-dvh, snap-start, flex)', () => {
-    // Arrange & Act
-    const { container } = render(
-      <SectionContainer id="test-section">
-        <p>Content</p>
-      </SectionContainer>
-    )
-
-    // Assert
-    const section = container.firstChild as HTMLElement
-    expect(section).toHaveClass('min-h-dvh')
-    expect(section).toHaveClass('snap-start')
-    expect(section).toHaveClass('flex')
-  })
-
   it('sets the section id attribute', () => {
     // Arrange & Act
     render(

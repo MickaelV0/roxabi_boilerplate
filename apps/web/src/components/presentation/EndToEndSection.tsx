@@ -1,8 +1,8 @@
 import { cn } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
 import { ArrowRight } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
 import { AnimatedSection } from '@/components/AnimatedSection'
+import { useIntersectionVisibility } from '@/components/presentation/hooks'
 
 const pipelineSteps = [
   {
@@ -38,31 +38,9 @@ const pipelineSteps = [
 ] as const
 
 export function EndToEndSection() {
-  const pipelineRef = useRef<HTMLDivElement>(null)
-  const [isVisible, setIsVisible] = useState(false)
-
-  useEffect(() => {
-    const el = pipelineRef.current
-    if (!el) return
-
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setIsVisible(true)
-      return
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) {
-          setIsVisible(true)
-          observer.disconnect()
-        }
-      },
-      { threshold: 0.3 }
-    )
-
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
+  const { ref: pipelineRef, isVisible } = useIntersectionVisibility<HTMLDivElement>({
+    threshold: 0.3,
+  })
 
   return (
     <div className="mx-auto max-w-7xl w-full">

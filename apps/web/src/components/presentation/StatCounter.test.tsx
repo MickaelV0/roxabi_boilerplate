@@ -22,28 +22,10 @@ Object.defineProperty(window, 'matchMedia', {
   value: mockMatchMedia,
 })
 
-// Mock IntersectionObserver to trigger immediately
-class MockIntersectionObserver {
-  private callback: IntersectionObserverCallback
+// Mock IntersectionObserver (active — triggers callback to start animation)
+import { setupIntersectionObserverMock } from '@/test/mocks/intersection-observer'
 
-  constructor(callback: IntersectionObserverCallback) {
-    this.callback = callback
-  }
-
-  observe = vi.fn().mockImplementation(() => {
-    queueMicrotask(() => {
-      this.callback(
-        [{ isIntersecting: true } as IntersectionObserverEntry],
-        this as unknown as IntersectionObserver
-      )
-    })
-  })
-
-  disconnect = vi.fn()
-  unobserve = vi.fn()
-}
-
-vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
+setupIntersectionObserverMock('active')
 
 // Mock requestAnimationFrame to run callbacks synchronously
 let rafCallbacks: Array<FrameRequestCallback> = []

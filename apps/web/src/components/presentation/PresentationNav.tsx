@@ -1,6 +1,6 @@
 import { cn } from '@repo/ui'
 import { useNavigate } from '@tanstack/react-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 type Section = {
   id: string
@@ -13,6 +13,8 @@ type PresentationNavProps = {
 
 export function PresentationNav({ sections }: PresentationNavProps) {
   const [activeIndex, setActiveIndex] = useState(0)
+  const activeIndexRef = useRef(activeIndex)
+  activeIndexRef.current = activeIndex
   const navigate = useNavigate()
 
   // Track current section via IntersectionObserver
@@ -56,8 +58,13 @@ export function PresentationNav({ sections }: PresentationNavProps) {
   // Keyboard navigation
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      // Don't intercept when user is typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      // Don't intercept when user is typing in an input or activating a button/link
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLButtonElement ||
+        e.target instanceof HTMLAnchorElement
+      ) {
         return
       }
 
@@ -65,21 +72,21 @@ export function PresentationNav({ sections }: PresentationNavProps) {
         case 'ArrowDown':
         case 'PageDown': {
           e.preventDefault()
-          const nextIndex = Math.min(activeIndex + 1, sections.length - 1)
+          const nextIndex = Math.min(activeIndexRef.current + 1, sections.length - 1)
           scrollToSection(nextIndex)
           break
         }
         case ' ': {
           // Space scrolls to next section (like presentation software)
           e.preventDefault()
-          const nextIdx = Math.min(activeIndex + 1, sections.length - 1)
+          const nextIdx = Math.min(activeIndexRef.current + 1, sections.length - 1)
           scrollToSection(nextIdx)
           break
         }
         case 'ArrowUp':
         case 'PageUp': {
           e.preventDefault()
-          const prevIndex = Math.max(activeIndex - 1, 0)
+          const prevIndex = Math.max(activeIndexRef.current - 1, 0)
           scrollToSection(prevIndex)
           break
         }
@@ -111,7 +118,7 @@ export function PresentationNav({ sections }: PresentationNavProps) {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [activeIndex, sections, scrollToSection, navigate])
+  }, [sections, scrollToSection, navigate])
 
   return (
     <nav

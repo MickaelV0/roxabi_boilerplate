@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@repo/ui', () => ({
@@ -24,14 +24,10 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
-// Mock IntersectionObserver
-class MockIntersectionObserver {
-  observe = vi.fn()
-  disconnect = vi.fn()
-  unobserve = vi.fn()
-}
+// Mock IntersectionObserver (passive — no callback needed for page render tests)
+import { setupIntersectionObserverMock } from '@/test/mocks/intersection-observer'
 
-vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
+setupIntersectionObserverMock('passive')
 
 // Mock requestAnimationFrame
 vi.stubGlobal(
@@ -76,5 +72,23 @@ describe('ClaudeCodePresentation page', () => {
       const section = document.getElementById(sectionId)
       expect(section, `Section with id "${sectionId}" should exist`).toBeInTheDocument()
     }
+  })
+
+  it('renders key section headings', () => {
+    // Arrange & Act
+    render(<ClaudeCodePresentation />)
+
+    // Assert — verify key headings are rendered with correct roles
+    expect(screen.getByRole('heading', { name: /Your AI Development Team/i })).toBeInTheDocument()
+
+    expect(screen.getByRole('heading', { name: /Prerequisites & Setup/i })).toBeInTheDocument()
+
+    expect(screen.getByRole('heading', { name: /Building Blocks/i })).toBeInTheDocument()
+
+    expect(screen.getByRole('heading', { name: /Agent Teams/i })).toBeInTheDocument()
+
+    expect(
+      screen.getByRole('heading', { name: /End-to-End: Idea to Production/i })
+    ).toBeInTheDocument()
   })
 })

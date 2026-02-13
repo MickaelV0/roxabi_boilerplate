@@ -23,7 +23,7 @@ const tiers = [
   {
     name: 'Tier F-full',
     label: 'Feature (full)',
-    criteria: 'New architecture, unclear requirements, multi-domain',
+    criteria: 'New architecture, unclear requirements, >2 domains',
     process: 'Bootstrap + worktree + agents + /review',
     color: 'border-purple-500/50 bg-purple-500/5',
     dotColor: 'bg-purple-500',
@@ -35,6 +35,7 @@ const stats = [
   { value: 12110, label: 'Bash Calls', suffix: '' },
   { value: 3647, label: 'Edit Calls', suffix: '' },
   { value: 6572, label: 'Messages', suffix: '' },
+  { value: 991, label: 'Human Decisions', suffix: '' },
 ] as const
 
 export function DevProcessSection() {
@@ -93,7 +94,7 @@ export function DevProcessSection() {
 
       {/* Stats row */}
       <AnimatedSection className="mt-12">
-        <div className="grid grid-cols-2 gap-6 lg:grid-cols-4 lg:gap-8">
+        <div className="grid grid-cols-2 gap-6 lg:grid-cols-5 lg:gap-8">
           {stats.map((stat) => (
             <div
               key={stat.label}

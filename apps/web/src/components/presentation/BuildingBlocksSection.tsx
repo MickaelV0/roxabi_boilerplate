@@ -11,15 +11,25 @@ const skills = [
   'promote',
   'test',
   'issues',
+  'issue-triage',
+  'interview',
   'cleanup',
   '1b1',
   'adr',
+  'agent-browser',
+  'context7',
+  'vercel:deploy',
+  'vercel:setup',
+  'vercel:logs',
+  'frontend-design',
 ] as const
 
 const hooks = [
   { name: 'PostToolUse', desc: 'Biome auto-format on every file change' },
   { name: 'PreToolUse', desc: 'Security warnings before file writes' },
   { name: 'pre-commit', desc: 'Lint + format staged files' },
+  { name: 'commit-msg', desc: 'Commitlint validates Conventional Commits' },
+  { name: 'pre-push', desc: 'Lint, typecheck, and test coverage' },
 ] as const
 
 const agentFiles = [
@@ -53,7 +63,7 @@ const blocks = [
   },
   {
     icon: Zap,
-    title: '17 Skills',
+    title: '19 Skills',
     subtitle: 'Slash commands',
     description: 'Reusable workflows: /commit, /review, /bootstrap, /scaffold, /pr, /promote...',
     visual: (

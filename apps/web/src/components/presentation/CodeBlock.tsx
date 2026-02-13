@@ -1,5 +1,6 @@
 import { cn } from '@repo/ui'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useIntersectionVisibility } from '@/components/presentation/hooks'
 
 type CodeBlockProps = {
   children: string
@@ -7,10 +8,20 @@ type CodeBlockProps = {
   className?: string
 }
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 function highlightBash(code: string): string {
   return code
     .split('\n')
-    .map((line) => {
+    .map((rawLine) => {
+      const line = escapeHtml(rawLine)
+
       // Comments
       if (line.trimStart().startsWith('#')) {
         return `<span class="text-muted-foreground/70 italic">${line}</span>`
@@ -39,39 +50,17 @@ function highlightBash(code: string): string {
 }
 
 export function CodeBlock({ children, typing = false, className }: CodeBlockProps) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [isVisible, setIsVisible] = useState(false)
+  const { ref, isVisible } = useIntersectionVisibility<HTMLDivElement>({ threshold: 0.2 })
   const [typingComplete, setTypingComplete] = useState(!typing)
 
+  // Start typing animation timer when visible
   useEffect(() => {
-    const el = ref.current
-    if (!el) return
-
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setIsVisible(true)
-      setTypingComplete(true)
-      return
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) {
-          setIsVisible(true)
-          observer.disconnect()
-
-          if (typing) {
-            const lines = children.split('\n').length
-            const duration = Math.min(lines * 300, 3000)
-            setTimeout(() => setTypingComplete(true), duration)
-          }
-        }
-      },
-      { threshold: 0.2 }
-    )
-
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [children, typing])
+    if (!isVisible || !typing || typingComplete) return
+    const lines = children.split('\n').length
+    const duration = Math.min(lines * 300, 3000)
+    const timer = setTimeout(() => setTypingComplete(true), duration)
+    return () => clearTimeout(timer)
+  }, [isVisible, typing, typingComplete, children])
 
   const highlighted = highlightBash(children)
 
@@ -101,19 +90,6 @@ export function CodeBlock({ children, typing = false, className }: CodeBlockProp
           <code dangerouslySetInnerHTML={{ __html: highlighted }} />
         </pre>
       </div>
-
-      {typing && isVisible && !typingComplete && (
-        <style>{`
-          @keyframes typing-reveal {
-            from { max-height: 0; }
-            to { max-height: 500px; }
-          }
-          .animate-typing-reveal {
-            overflow: hidden;
-            animation: typing-reveal 2.5s steps(20, end) forwards;
-          }
-        `}</style>
-      )}
     </div>
   )
 }

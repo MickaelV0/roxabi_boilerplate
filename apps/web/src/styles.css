@@ -49,6 +49,21 @@ html {
   animation: hero-fade-in 0.8s ease-out 0.2s both;
 }
 
+/* Code block typing reveal animation */
+@keyframes typing-reveal {
+  from {
+    max-height: 0;
+  }
+  to {
+    max-height: 500px;
+  }
+}
+
+.animate-typing-reveal {
+  overflow: hidden;
+  animation: typing-reveal 2.5s steps(20, end) forwards;
+}
+
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -56,9 +71,15 @@ html {
   }
 
   .animate-hero-in,
-  .animate-hero-in-delayed {
+  .animate-hero-in-delayed,
+  .animate-typing-reveal {
     animation: none;
     opacity: 1;
     transform: none;
+  }
+
+  .animate-typing-reveal {
+    max-height: none;
+    overflow: visible;
   }
 }
