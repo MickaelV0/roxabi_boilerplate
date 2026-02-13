@@ -1,6 +1,10 @@
 import { render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('@repo/ui', () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
+}))
+
 // Mock matchMedia — default: no reduced motion preference
 const mockMatchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,

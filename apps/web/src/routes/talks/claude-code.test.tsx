@@ -1,6 +1,14 @@
 import { render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
+vi.mock('@repo/ui', () => ({
+  Badge: ({ children }: React.PropsWithChildren) => <span>{children}</span>,
+  Button: ({ children }: React.PropsWithChildren) => <button type="button">{children}</button>,
+  Card: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+  CardContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
+}))
+
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
