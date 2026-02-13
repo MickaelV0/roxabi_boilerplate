@@ -3,8 +3,13 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useCallback, useState } from 'react'
 
+import { m } from '@/paraglide/messages'
+
 export const Route = createFileRoute('/demo/tanstack-query')({
   component: TanStackQueryDemo,
+  head: () => ({
+    meta: [{ title: `${m.demo_query_heading()} | Roxabi` }],
+  }),
 })
 
 type Todo = {
@@ -46,13 +51,13 @@ function TanStackQueryDemo() {
     <div className="min-h-screen bg-background py-12">
       <div className="mx-auto max-w-2xl px-6">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold">TanStack Query</h1>
-          <p className="mt-2 text-muted-foreground">CRUD operations with TanStack Query</p>
+          <h1 className="text-3xl font-bold">{m.demo_query_heading()}</h1>
+          <p className="mt-2 text-muted-foreground">{m.demo_query_subtitle()}</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Todos</CardTitle>
+            <CardTitle>{m.demo_query_todos()}</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="mb-4 space-y-2">
@@ -72,10 +77,10 @@ function TanStackQueryDemo() {
                     submitTodo()
                   }
                 }}
-                placeholder="Enter a new todo..."
+                placeholder={m.demo_query_placeholder()}
               />
               <Button type="button" disabled={todo.trim().length === 0} onClick={submitTodo}>
-                Add todo
+                {m.demo_query_add()}
               </Button>
             </div>
           </CardContent>
