@@ -144,7 +144,7 @@ Email sending is abstracted behind an injection token:
 export const EMAIL_PROVIDER = Symbol('EMAIL_PROVIDER')
 
 export interface EmailProvider {
-  send(options: { to: string; subject: string; html: string }): Promise&lt;void>
+  send(options: { to: string; subject: string; html: string }): Promise<void>
 }
 ```
 
@@ -198,10 +198,10 @@ function UserMenu() {
   if (!session) return null
 
   return (
-    &lt;div>
-      &lt;span>{session.user.name}&lt;/span>
-      &lt;button onClick={() => signOut()}>Sign out&lt;/button>
-    &lt;/div>
+    <div>
+      <span>{session.user.name}</span>
+      <button onClick={() => signOut()}>Sign out</button>
+    </div>
   )
 }
 ```
