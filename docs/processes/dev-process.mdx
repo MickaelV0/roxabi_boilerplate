@@ -408,9 +408,10 @@ Human: "develop #XXX"
 After features have been validated on staging:
 
 19. Human runs `/promote` to merge staging → main.
-20. `/promote` creates a PR from staging to main, verifies Vercel preview, and generates a changelog.
-21. Human reviews and approves the promotion PR.
-22. After merge, run `/promote --finalize` to tag the release and generate release notes.
+20. `/promote` computes the version, generates the changelog and release notes, commits them to staging, and creates a PR from staging to main.
+21. Human reviews the promotion PR (which includes the changelog).
+22. Merge → Vercel auto-deploys with changelog and release notes already included.
+23. Run `/promote --finalize` to tag the release and create the GitHub Release.
 
 > Promotion is **not per-feature** — it batches all staging changes into a single release. See the `/promote` skill for details.
 
