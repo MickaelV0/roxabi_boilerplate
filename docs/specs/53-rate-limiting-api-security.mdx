@@ -14,7 +14,7 @@ Production APIs need protection against brute force attacks, abuse, and resource
 - Request body limit is set to 1 MB via Fastify's `bodyLimit` option (`apps/api/src/index.ts`)
 - Health endpoint at `GET /health` with `@AllowAnonymous()` bypass (`apps/api/src/app.controller.ts`)
 
-**What this spec adds:** Application-level rate limiting via `@nestjs/throttler` backed by Upstash Redis.
+**What this spec adds:** Application-level rate limiting via `@nestjs/throttler` backed by Upstash Redis, `trustProxy` configuration for correct client IP extraction, and env-var-gated Swagger UI for production protection.
 
 **Depends on:** [#19 Auth + Users](https://github.com/AikidoSec/roxabi_boilerplate/issues/19) (for user-based identification in the hybrid strategy).
 
@@ -27,56 +27,61 @@ Ship always-on, distributed rate limiting with configurable tiers so that the AP
 | Actor | Interaction |
 |-------|-------------|
 | **End user** | Transparent — never sees rate limiting unless abusing. Gets `429` with `Retry-After` header if limits are hit. |
-| **Attacker / bot** | Blocked after exceeding tier threshold. Auth endpoints have aggressive limits to prevent credential stuffing. |
-| **SaaS consumer (developer)** | Adjusts rate limits via env vars. No code changes needed. Can exempt custom endpoints with `@SkipThrottle()`. |
-| **Monitoring / infra** | Health and readiness endpoints are exempt. Rate limit headers on all responses enable observability dashboards. |
+| **Attacker / bot** | Blocked after exceeding tier threshold. Auth endpoints have aggressive limits and a 5-minute block duration to prevent credential stuffing. |
+| **SaaS consumer (developer)** | Adjusts rate limits via env vars. No code changes needed. Can exempt custom endpoints with `@SkipThrottle()`. Can disable all rate limiting via `RATE_LIMIT_ENABLED=false`. |
+| **Monitoring / infra** | Health and readiness endpoints are exempt. Rate limit headers on non-auth responses enable observability. Every 429 is logged with structured context. |
 
 ## Expected Behavior
 
 ### Happy path
 
-1. API starts → `ThrottlerModule` registers with Upstash Redis storage and three named throttler configs (global, auth, public-api).
-2. Every incoming request passes through `CustomThrottlerGuard` (registered as `APP_GUARD`).
-3. Guard determines tracker key:
-   - If request has authenticated user → key = `user:{userId}`
-   - Otherwise → key = `ip:{clientIp}` (from `x-forwarded-for`)
-4. Guard checks the appropriate throttler tier:
-   - Auth endpoints (decorated with `@Throttle({ auth: { limit, ttl } })`) → auth tier
-   - Default → global tier
-5. If under limit: request proceeds. Response includes `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` headers.
-6. If over limit: `ThrottlerException` is thrown → `ThrottlerExceptionFilter` catches it and returns:
+1. API starts with `trustProxy: true` on the Fastify adapter. `ThrottlerModule` registers with Upstash Redis storage and two active throttler configs (global, auth). Public API tier is configured but not registered until API keys are implemented.
+2. Every incoming request passes through `CustomThrottlerGuard` (registered as `APP_GUARD`). The guard runs **after** `AuthGuard` because `ThrottlerModule` is imported after `AuthModule` in `AppModule`.
+3. Guard determines tracker key using `req.ip` (which respects `trustProxy`):
+   - If request has authenticated user &rarr; key = `user:{userId}`
+   - Otherwise &rarr; key = `ip:{clientIp}`
+4. Guard determines the applicable throttler tier:
+   - Auth-sensitive paths (`/api/auth/sign-in/*`, `/api/auth/sign-up`, `/api/auth/request-password-reset`, `/api/auth/reset-password`, `/api/auth/magic-link/*`) &rarr; auth tier (path-based discrimination in the guard, since the auth controller uses a catch-all `@All('api/auth/*')` handler)
+   - Health/readiness endpoints with `@SkipThrottle()` &rarr; bypassed
+   - All other endpoints &rarr; global tier only
+5. If under limit: request proceeds. Response includes `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` headers (omitted on auth-sensitive paths to avoid leaking remaining attempts to attackers).
+6. If over limit: `ThrottlerException` is thrown &rarr; the existing `AllExceptionsFilter` detects it and returns:
    ```
    HTTP 429
-   Retry-After: &lt;seconds&gt;
-   X-RateLimit-Limit: &lt;limit&gt;
+   Retry-After: <seconds>
+   X-RateLimit-Limit: <limit>
    X-RateLimit-Remaining: 0
-   X-RateLimit-Reset: &lt;unix-timestamp&gt;
+   X-RateLimit-Reset: <unix-timestamp>
    ```
-   Body follows the existing error format with `errorCode: "RATE_LIMIT_EXCEEDED"`.
+   Body follows the existing error format with `errorCode: "RATE_LIMIT_EXCEEDED"`. The 429 event is logged at `warn` level with tracker key, endpoint path, and tier name.
 
 ### Edge cases
 
 | Scenario | Behavior |
 |----------|----------|
-| **Redis unavailable** | Fail open — allow the request, log a warning. Availability over protection. |
-| **Missing `x-forwarded-for`** | Fall back to socket remote address (`request.ip`). |
+| **Redis unavailable (global tier)** | Fail open — allow the request, log a warning. Availability over protection. Return value: `{ totalHits: 0, timeToExpire: 0, isBlocked: false, timeToBlockExpire: 0 }`. |
+| **Redis unavailable (auth tier)** | Fail closed — return `503 Service Unavailable`. Brute force protection must not silently disappear. |
+| **`RATE_LIMIT_ENABLED=false`** | All throttling disabled. Logged at startup as a warning. Operational kill switch for emergencies. |
+| **No Upstash configured (development)** | Falls back to in-memory storage. Logged at startup as a warning: "Rate limiting using in-memory storage — not suitable for production." |
 | **`@SkipThrottle()` endpoint** | Bypasses all throttler checks (used on `/health`). |
 | **Authenticated user on auth endpoint** | Uses user ID as tracker (not IP), preventing shared-IP false positives on login retry. |
-| **Multiple throttler tiers match** | `@nestjs/throttler` evaluates all named throttlers. The most restrictive (lowest remaining) applies. |
+| **Auth tier exceeded** | Client is blocked for `blockDuration` (default 5 minutes). Subsequent requests within the block period receive 429 without consuming additional Redis commands. |
 | **Clock skew in `X-RateLimit-Reset`** | Use server-side UTC timestamp. Redis TTL is authoritative. |
 
 ## Constraints
 
 - **Serverless deployment**: No persistent in-memory state between invocations. All rate limit state must live in Redis.
-- **Upstash free tier**: 10,000 commands/day. Sufficient for development; production needs a paid plan (~$0.2/100K commands).
-- **Cold start latency**: Redis lookup adds ~1-5ms per request. Acceptable for API calls.
+- **Upstash free tier**: 10,000 commands/day. Each rate-limited request costs ~2 Redis commands (increment + TTL check). A single user testing locally exhausts the free tier in ~1.4 hours of continuous requests. Development should default to in-memory fallback; free tier is for staging/preview only.
+- **Cold start latency**: Warm invocations add ~1-5ms per request. First request on a cold start adds 50-150ms (DNS + TLS to Upstash). Vercel Fluid Compute mitigates this by keeping functions warm longer.
 - **Dependency on #19**: User-based identification requires the auth system to populate the request context with user info. IP-based limiting works independently.
 
 ## Non-goals
 
 - **WAF / DDoS protection** — Network-level protection is handled by Vercel/Cloudflare, not application code.
+- **Distributed attack detection** — Global aggregate rate limiting (total failed auth attempts across all IPs) is a future enhancement. Per-IP/user limiting is the scope of this feature.
+- **Account lockout** — Tracking failed login attempts per target account and locking after N failures is a separate feature that complements rate limiting. Documented as a recommended follow-up.
 - **RFC 7807 Problem Details** — The existing error format is consistent and sufficient. Migration is a separate concern.
-- **API key issuance and management** — The public API tier config is stubbed but API keys are a separate feature.
+- **API key issuance and management** — The public API tier config is defined but not registered until API keys are implemented.
 - **Per-endpoint custom limits UI** — Consumers configure via env vars or decorators, no admin UI.
 - **Helmet or body limit changes** — Already implemented and configured.
 
@@ -88,86 +93,248 @@ Use the official NestJS throttler module with a custom `ThrottlerStorageService`
 
 **Why not `@fastify/rate-limit`?** The NestJS throttler integrates with the NestJS guard/decorator ecosystem, supports named throttlers for multi-tier configs, and follows the project's existing patterns (guards registered via `APP_GUARD`).
 
-### 2. Three named throttler tiers
+### 2. Two active throttler tiers (global + auth)
 
 ```typescript
 ThrottlerModule.forRootAsync({
   inject: [ConfigService],
   useFactory: (config: ConfigService) => ({
     throttlers: [
-      { name: 'global', ttl: config.get('RATE_LIMIT_GLOBAL_TTL'), limit: config.get('RATE_LIMIT_GLOBAL_LIMIT') },
-      { name: 'auth', ttl: config.get('RATE_LIMIT_AUTH_TTL'), limit: config.get('RATE_LIMIT_AUTH_LIMIT') },
-      { name: 'public-api', ttl: config.get('RATE_LIMIT_API_TTL'), limit: config.get('RATE_LIMIT_API_LIMIT') },
+      {
+        name: 'global',
+        ttl: config.get('RATE_LIMIT_GLOBAL_TTL', 60_000),
+        limit: config.get('RATE_LIMIT_GLOBAL_LIMIT', 60),
+      },
+      {
+        name: 'auth',
+        ttl: config.get('RATE_LIMIT_AUTH_TTL', 60_000),
+        limit: config.get('RATE_LIMIT_AUTH_LIMIT', 5),
+        blockDuration: config.get('RATE_LIMIT_AUTH_BLOCK_DURATION', 300_000), // 5 min
+      },
     ],
-    storage: new UpstashThrottlerStorage(config.get('UPSTASH_REDIS_URL'), config.get('UPSTASH_REDIS_TOKEN')),
+    storage: upstashConfigured
+      ? new UpstashThrottlerStorage(
+          config.get('UPSTASH_REDIS_REST_URL'),
+          config.get('UPSTASH_REDIS_REST_TOKEN'),
+        )
+      : undefined, // falls back to in-memory
   }),
 })
 ```
 
-Auth endpoints override the default tier via `@Throttle({ auth: { limit: X, ttl: Y } })` decorator. The global tier applies to everything else by default.
+The **public-api tier** is defined in configuration but **not registered** in the throttlers array until API key authentication is implemented. This avoids incurring extra Redis `INCR` commands on every request for no benefit.
 
-### 3. Hybrid IP + User identification
+**Import order in `AppModule`:** `ThrottlerModule` must be imported **after** `AuthModule` to ensure `AuthGuard` runs before `CustomThrottlerGuard`. NestJS executes `APP_GUARD` providers in module import order.
 
-Custom `ThrottlerGuard` override:
+### 3. `trustProxy` configuration
+
+The FastifyAdapter must be created with `trustProxy: true`:
 
 ```typescript
-protected async getTracker(req: FastifyRequest): Promise&lt;string&gt; {
-  const user = req['user'] // populated by AuthGuard
+new FastifyAdapter({
+  logger: { level: process.env.LOG_LEVEL || 'debug' },
+  bodyLimit: 1_048_576,
+  trustProxy: true, // required for correct client IP behind Vercel proxy
+})
+```
+
+This ensures `req.ip` returns the client IP from `x-forwarded-for` rather than the load balancer IP. Without this, IP-based rate limiting is bypassable via header spoofing.
+
+### 4. Hybrid IP + User identification
+
+Custom `ThrottlerGuard` override using `req.ip` (which respects `trustProxy`):
+
+```typescript
+protected async getTracker(req: Record<string, any>): Promise<string> {
+  const user = req['user'] // populated by AuthGuard (runs first)
   if (user?.id) return `user:${user.id}`
-  return `ip:${req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() || req.ip}`
+  return `ip:${req.ip}`
 }
 ```
 
-### 4. Fail-open on Redis errors
+**Note:** The `getTracker` signature uses `Record<string, any>` to match the `@nestjs/throttler` v6+ interface.
 
-The custom storage adapter wraps Redis calls in try/catch. On failure, it returns a result indicating the request is under the limit, and logs a warning via NestJS Logger.
+### 5. Path-based auth tier discrimination
 
-### 5. New files and modifications
+The auth controller uses a catch-all `@All('api/auth/*')` handler that proxies to better-auth. Individual auth methods cannot be decorated with `@Throttle()`. Instead, the custom guard applies the auth tier based on request path:
+
+```typescript
+const AUTH_SENSITIVE_PATHS = [
+  '/api/auth/sign-in',
+  '/api/auth/sign-up',
+  '/api/auth/request-password-reset',
+  '/api/auth/reset-password',
+  '/api/auth/magic-link',
+  '/api/auth/change-password',
+  '/api/auth/verify-email',
+  '/api/auth/send-verification-email',
+]
+
+protected shouldApplyAuthTier(req: Record<string, any>): boolean {
+  const path = req.url?.split('?')[0] // strip query string
+  return AUTH_SENSITIVE_PATHS.some((p) => path?.startsWith(p))
+}
+```
+
+Non-sensitive auth endpoints (e.g., `GET /api/auth/session`, `GET /api/auth/providers`) are subject to the global tier only.
+
+**Integration point:** `shouldApplyAuthTier` is invoked within the overridden `handleRequest` method. When `handleRequest` is called for the `auth` named throttler and `shouldApplyAuthTier` returns `false`, the method returns `true` (skip) to bypass auth-tier checks for non-sensitive paths.
+
+### 6. Tier-aware fail strategy
+
+The Upstash storage adapter implements different failure modes per tier:
+
+- **Global tier**: Fail open — return `{ totalHits: 0, timeToExpire: 0, isBlocked: false, timeToBlockExpire: 0 }`, log warning.
+- **Auth tier**: Fail closed — throw an exception that results in `503 Service Unavailable`. Brute force protection must not silently disappear during Redis outages.
+
+The tier name is passed to the storage `increment` method, enabling this distinction.
+
+### 7. Rate limit response headers via Fastify `onSend` hook
+
+The throttler module is configured with `setHeaders: false` to disable the built-in header setting (which appends throttler-name suffixes like `X-RateLimit-Limit-auth`). Instead, all rate limit headers are managed via a single Fastify `onSend` hook, following the existing pattern for `permissions-policy` in `apps/api/src/index.ts`.
+
+The custom guard stores rate limit metadata on the request object (as `req.throttlerMeta: { limit, remaining, reset }`) during `handleRequest`. The `onSend` hook reads this metadata and sets `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` headers.
+
+**Auth-sensitive paths are excluded** from rate limit headers on success responses to avoid leaking remaining attempts to attackers. The `onSend` hook checks the path and omits headers for auth-sensitive routes. The 429 response still includes all headers (set by the `AllExceptionsFilter`, not the hook).
+
+### 8. Exception handling via enhanced `AllExceptionsFilter`
+
+Instead of a separate `ThrottlerExceptionFilter`, the existing `AllExceptionsFilter` (registered as `APP_FILTER` in `AppModule`) is enhanced to detect `ThrottlerException` via `instanceof` check:
+
+- When `ThrottlerException` is caught, read rate limit metadata from `req.throttlerMeta` (stored by the custom guard) and add `Retry-After` and `X-RateLimit-*` headers to the 429 response.
+- Use `errorCode: "RATE_LIMIT_EXCEEDED"` in the response body (hardcoded in the instanceof branch, since `ThrottlerException` does not carry `errorCode` natively).
+- Log the 429 at `warn` level (not `error`) with: anonymized tracker key, endpoint path, tier name.
+
+**Header ownership:** The custom guard overrides `throwThrottlingException` to prevent the built-in `Retry-After` header setting. The `AllExceptionsFilter` is the sole owner of 429 response headers, reading metadata from `req.throttlerMeta`. This avoids duplicate headers.
+
+This approach avoids exception filter precedence issues — `AllExceptionsFilter` already catches all `HttpException` subclasses.
+
+### 9. Swagger UI gated by environment variable
+
+Swagger UI at `/api/docs` exposes the full API surface. It must be disabled in production by default:
+
+```typescript
+const swaggerEnabled = configService.get<string>('SWAGGER_ENABLED', nodeEnv !== 'production' ? 'true' : 'false')
+if (swaggerEnabled === 'true') {
+  const config = new DocumentBuilder()/* ... */.build()
+  const document = SwaggerModule.createDocument(app, config)
+  SwaggerModule.setup('api/docs', app, document, { /* ... */ })
+  logger.log('Swagger UI enabled at /api/docs')
+} else {
+  logger.log('Swagger UI disabled (set SWAGGER_ENABLED=true to enable)')
+}
+```
+
+- **Default**: enabled in development/staging, disabled in production
+- **Override**: set `SWAGGER_ENABLED=true` in production if you need API docs accessible (e.g., for internal tooling behind a VPN)
+
+### 10. Atomic Redis operations
+
+The Upstash storage adapter uses atomic `INCR` + `EXPIRE` via `@upstash/redis` pipeline to prevent race conditions where concurrent requests read the same counter before either increments it.
+
+### 11. CI/CD updates
+
+**Preview deploys (`deploy-preview.yml`):**
+The API preview deploy step already passes `DATABASE_URL` as a deploy-time env var. Add the following env vars for preview deployments:
+
+```yaml
+# In the deploy-api "Deploy" step
+URL=$(vercel deploy --prebuilt \
+  --env DATABASE_URL=${{ needs.create-neon-branch.outputs.database_url }} \
+  --env SWAGGER_ENABLED=true \
+  --env RATE_LIMIT_ENABLED=true \
+  --token=${{ secrets.VERCEL_TOKEN }})
+```
+
+Preview deployments use in-memory rate limiting (no Upstash) since `UPSTASH_REDIS_REST_URL` is not set. Swagger is enabled in previews for testing.
+
+**Production deploys (Vercel Git integration):**
+Production env vars are managed in the Vercel dashboard (or via `vercel env add`). The following must be configured as **Production** environment variables on the API project before the first production deploy of this feature:
+
+| Variable | Value | Source |
+|----------|-------|--------|
+| `UPSTASH_REDIS_REST_URL` | Auto-injected | Vercel Marketplace &rarr; Upstash Redis |
+| `UPSTASH_REDIS_REST_TOKEN` | Auto-injected | Vercel Marketplace &rarr; Upstash Redis |
+| `SWAGGER_ENABLED` | `false` | Manual (default, can omit — code defaults to `false` in production) |
+| `RATE_LIMIT_ENABLED` | `true` | Manual (default, can omit — code defaults to `true`) |
+
+Rate limit tuning variables (`RATE_LIMIT_*_TTL`, `RATE_LIMIT_*_LIMIT`, `RATE_LIMIT_AUTH_BLOCK_DURATION`) can be set to override defaults but are optional — defaults apply if not configured.
+
+**CI (`ci.yml`):**
+No changes needed. The test job runs against in-memory rate limiting storage (no Redis service). `SWAGGER_ENABLED` and `RATE_LIMIT_ENABLED` are not set in CI — both default to enabled, which is fine for tests.
+
+### 12. New files and modifications
 
 | File | Action | Purpose |
 |------|--------|---------|
 | `apps/api/src/throttler/throttler.module.ts` | Create | Module registering ThrottlerModule with Upstash storage |
-| `apps/api/src/throttler/upstash-throttler-storage.ts` | Create | Custom `ThrottlerStorage` implementation using `@upstash/redis` |
-| `apps/api/src/throttler/custom-throttler.guard.ts` | Create | Guard with hybrid IP/user tracker and rate limit response headers |
-| `apps/api/src/throttler/throttler-exception.filter.ts` | Create | Exception filter mapping `ThrottlerException` to standard error format |
+| `apps/api/src/throttler/upstash-throttler-storage.ts` | Create | Custom `ThrottlerStorage` using `@upstash/redis` with atomic pipeline and tier-aware fail strategy |
+| `apps/api/src/throttler/custom-throttler.guard.ts` | Create | Guard with hybrid IP/user tracker, path-based auth tier discrimination, and rate limit metadata on request |
 | `apps/api/src/throttler/index.ts` | Create | Barrel export |
 | `apps/api/src/common/error-codes.ts` | Modify | Add `RATE_LIMIT_EXCEEDED` |
-| `apps/api/src/config/env.validation.ts` | Modify | Add rate limit + Upstash env vars with defaults |
-| `apps/api/src/app.module.ts` | Modify | Import `ThrottlerModule` |
-| `apps/api/src/app.controller.ts` | Modify | Add `@SkipThrottle()` to health endpoint |
-| Auth controllers | Modify | Add `@Throttle({ auth: ... })` decorator to login, register, password reset, magic link endpoints |
+| `apps/api/src/common/filters/all-exceptions.filter.ts` | Modify | Add `ThrottlerException` detection with `Retry-After` header and structured 429 logging |
+| `apps/api/src/config/env.validation.ts` | Modify | Add rate limit + Upstash env vars (optional in dev, required in production) |
+| `apps/api/src/index.ts` | Modify | Add `trustProxy: true` to FastifyAdapter, add `onSend` hook for rate limit headers, gate Swagger UI behind `SWAGGER_ENABLED` |
+| `apps/api/src/app.module.ts` | Modify | Import `ThrottlerModule` **after** `AuthModule` |
+| `apps/api/src/app.controller.ts` | Modify | Add `@SkipThrottle()` to health endpoint (alongside existing `@AllowAnonymous()`) |
+| `.env.example` | Modify | Add Upstash and rate limit env vars (commented out) |
+| `apps/api/turbo.json` | Modify | Add to `passThroughEnv`: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `RATE_LIMIT_ENABLED`, `SWAGGER_ENABLED`, `RATE_LIMIT_GLOBAL_TTL`, `RATE_LIMIT_GLOBAL_LIMIT`, `RATE_LIMIT_AUTH_TTL`, `RATE_LIMIT_AUTH_LIMIT`, `RATE_LIMIT_AUTH_BLOCK_DURATION`, `RATE_LIMIT_API_TTL`, `RATE_LIMIT_API_LIMIT` |
+| `docs/configuration.mdx` | Modify | Document new env vars in the Vercel API Project table |
+| `.github/workflows/deploy-preview.yml` | Modify | Add `SWAGGER_ENABLED` and `RATE_LIMIT_ENABLED` env vars to API preview deploy step |
 
-### 6. Environment variables
+### 13. Environment variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `UPSTASH_REDIS_URL` | (required in production) | Upstash Redis REST URL |
-| `UPSTASH_REDIS_TOKEN` | (required in production) | Upstash Redis REST token |
-| `RATE_LIMIT_GLOBAL_TTL` | `60000` (60s) | Global tier window in ms |
-| `RATE_LIMIT_GLOBAL_LIMIT` | `60` | Global tier max requests per window |
-| `RATE_LIMIT_AUTH_TTL` | `60000` (60s) | Auth tier window in ms |
-| `RATE_LIMIT_AUTH_LIMIT` | `5` | Auth tier max requests per window |
-| `RATE_LIMIT_API_TTL` | `60000` (60s) | Public API tier window in ms |
-| `RATE_LIMIT_API_LIMIT` | `100` | Public API tier max requests per window |
+| Variable | Default | Required | Description |
+|----------|---------|----------|-------------|
+| `UPSTASH_REDIS_REST_URL` | — | Production only | Upstash Redis REST URL (Vercel Marketplace auto-injects this name) |
+| `UPSTASH_REDIS_REST_TOKEN` | — | Production only | Upstash Redis REST token (Vercel Marketplace auto-injects this name) |
+| `SWAGGER_ENABLED` | `true` (dev), `false` (prod) | No | Gate Swagger UI at `/api/docs`. Disabled in production by default. |
+| `RATE_LIMIT_ENABLED` | `true` | No | Master kill switch. Set to `false` to disable all rate limiting. |
+| `RATE_LIMIT_GLOBAL_TTL` | `60000` (60s) | No | Global tier window in ms |
+| `RATE_LIMIT_GLOBAL_LIMIT` | `60` | No | Global tier max requests per window |
+| `RATE_LIMIT_AUTH_TTL` | `60000` (60s) | No | Auth tier window in ms |
+| `RATE_LIMIT_AUTH_LIMIT` | `5` | No | Auth tier max requests per window |
+| `RATE_LIMIT_AUTH_BLOCK_DURATION` | `300000` (5 min) | No | How long a client is blocked after exceeding the auth limit |
+| `RATE_LIMIT_API_TTL` | `60000` (60s) | No | Public API tier window in ms (reserved for future use) |
+| `RATE_LIMIT_API_LIMIT` | `100` | No | Public API tier max requests per window (reserved for future use) |
 
-In development (no Upstash configured), rate limiting falls back to in-memory storage from `@nestjs/throttler` default.
+**Env validation strategy:** `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are validated as optional in development (falls back to in-memory with a startup warning) and required in production, following the same conditional pattern used for `BETTER_AUTH_SECRET`.
+
+In development (no Upstash configured), rate limiting falls back to in-memory storage from `@nestjs/throttler` default. A warning is logged at startup: "Rate limiting using in-memory storage — not suitable for production."
 
 ## Success Criteria
 
 - [ ] `@nestjs/throttler` and `@upstash/redis` installed as dependencies
+- [ ] `trustProxy: true` configured on the FastifyAdapter
 - [ ] Rate limiting active on all endpoints (global tier)
-- [ ] Auth endpoints have stricter limits (auth tier, 5 req/min default)
-- [ ] Health endpoint exempt via `@SkipThrottle()`
-- [ ] `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` headers on all responses
+- [ ] Auth-sensitive paths have stricter limits (auth tier, 5 req/min default, 5-min block duration)
+- [ ] Non-sensitive auth endpoints (`/api/auth/session`, `/api/auth/providers`) use global tier only
+- [ ] Health endpoint exempt via `@SkipThrottle()` (alongside `@AllowAnonymous()`)
+- [ ] `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` headers on non-auth responses
+- [ ] Rate limit headers omitted from auth-sensitive endpoint success responses
 - [ ] `Retry-After` header on 429 responses
 - [ ] 429 response body matches existing API error format with `errorCode: "RATE_LIMIT_EXCEEDED"`
-- [ ] Hybrid IP/user identification works (IP for anonymous, user ID for authenticated)
-- [ ] Fail-open when Redis is unavailable (logged warning, request proceeds)
+- [ ] Every 429 is logged at `warn` level with tracker key, path, and tier name
+- [ ] Hybrid IP/user identification works (`req.ip` with `trustProxy` for anonymous, user ID for authenticated)
+- [ ] Fail-open for global tier when Redis is unavailable (logged warning, request proceeds)
+- [ ] Fail-closed for auth tier when Redis is unavailable (503 returned)
+- [ ] `RATE_LIMIT_ENABLED=false` disables all throttling (logged warning at startup)
 - [ ] All rate limit values configurable via environment variables
-- [ ] Public API tier config exists but is not applied to any endpoints (stubbed)
-- [ ] Unit tests for custom guard, storage adapter, and exception filter
-- [ ] Integration test verifying 429 is returned after exceeding limit
+- [ ] Public API tier config defined but not registered (reserved for future API key feature)
+- [ ] Env vars added to `.env.example`, `turbo.json`, `configuration.mdx`, and `env.validation.ts`
+- [ ] In-memory fallback logs a startup warning in development
+- [ ] Unit tests for custom guard, storage adapter, and exception filter enhancement
+- [ ] Swagger UI disabled in production by default (`SWAGGER_ENABLED` env var)
+- [ ] Swagger UI accessible in development without configuration
+- [ ] Integration test verifying 429 is returned after exceeding limit (runs against in-memory storage in CI)
 
 ## Open Questions
 
-- **Upstash provisioning**: Should Upstash be provisioned via Vercel Marketplace integration or standalone? (Can be decided during implementation — both work identically from the code side.)
+- **Upstash provisioning**: Should Upstash be provisioned via Vercel Marketplace integration or standalone? (Can be decided during implementation — both work identically from the code side. Marketplace auto-injects `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.)
+
+## Recommended Follow-ups
+
+These items are explicitly out of scope but should be tracked as separate issues:
+
+- **Account lockout**: Track failed login attempts per target email/username and lock after N failures. Complements per-source rate limiting with per-target protection against distributed credential stuffing.
+- **Distributed attack detection**: Global aggregate rate limiting — total failed auth attempts across all IPs within a time window.
