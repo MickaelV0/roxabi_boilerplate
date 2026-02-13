@@ -45,7 +45,7 @@ describe('I18nDemo', () => {
     render(<captured.Component />)
 
     // Assert
-    expect(screen.getByText('Internationalization')).toBeInTheDocument()
+    expect(screen.getByText('demo_i18n_heading')).toBeInTheDocument()
   })
 
   it('should render the globe icon', () => {
