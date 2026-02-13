@@ -68,7 +68,9 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
 
       - name: Summary
-        run: echo "### Web Preview\n${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          echo "### Web Preview" >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
 
   create-neon-branch:
     name: Create Neon Branch
@@ -82,6 +84,8 @@ jobs:
         id: create
         run: |
           BRANCH_NAME="preview/${GITHUB_REF_NAME}"
+          # Sanitize: keep only alphanumeric, hyphens, underscores, slashes, dots
+          BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._/-]//g')
 
           # Delete existing branch with same name (if any) to avoid conflicts
           EXISTING=$(curl -s -H "Authorization: Bearer ${{ secrets.NEON_API_KEY }}" \
@@ -90,12 +94,12 @@ jobs:
 
           if [ -n "$EXISTING" ]; then
             echo "Deleting existing branch: $EXISTING"
-            curl -s -X DELETE -H "Authorization: Bearer ${{ secrets.NEON_API_KEY }}" \
+            curl -sf -X DELETE -H "Authorization: Bearer ${{ secrets.NEON_API_KEY }}" \
               "https://console.neon.tech/api/v2/projects/${{ secrets.NEON_PROJECT_ID }}/branches/$EXISTING"
           fi
 
           # Create new branch from the main branch
-          RESPONSE=$(curl -s -X POST \
+          RESPONSE=$(curl -sf -X POST \
             -H "Authorization: Bearer ${{ secrets.NEON_API_KEY }}" \
             -H "Content-Type: application/json" \
             "https://console.neon.tech/api/v2/projects/${{ secrets.NEON_PROJECT_ID }}/branches" \
@@ -107,7 +111,7 @@ jobs:
           BRANCH_ID=$(echo "$RESPONSE" | jq -r '.branch.id')
 
           if [ "$BRANCH_ID" = "null" ] || [ -z "$BRANCH_ID" ]; then
-            echo "::error::Failed to create Neon branch. Response: $RESPONSE"
+            echo "::error::Failed to create Neon branch (branch_id was null or empty)"
             exit 1
           fi
 
@@ -115,7 +119,7 @@ jobs:
           CONNECTION_URI=$(echo "$RESPONSE" | jq -r '.connection_uris[0].connection_uri')
 
           if [ "$CONNECTION_URI" = "null" ] || [ -z "$CONNECTION_URI" ]; then
-            echo "::error::Failed to get connection URI. Response: $RESPONSE"
+            echo "::error::Failed to get connection URI from Neon branch response"
             exit 1
           fi
 
@@ -131,6 +135,9 @@ jobs:
     needs: [create-neon-branch]
     if: inputs.target == 'api' || inputs.target == 'both'
     steps:
+      - name: Mask database URL
+        run: echo "::add-mask::${{ needs.create-neon-branch.outputs.database_url }}"
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -163,7 +170,7 @@ jobs:
       - name: Deploy
         id: deploy
         run: |
-          URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          URL=$(vercel deploy --prebuilt --env DATABASE_URL=${{ needs.create-neon-branch.outputs.database_url }} --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$URL" >> "$GITHUB_OUTPUT"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -186,6 +193,8 @@ jobs:
       - name: Delete Neon branch
         run: |
           BRANCH_NAME="preview/${GITHUB_REF_NAME}"
+          # Sanitize: keep only alphanumeric, hyphens, underscores, slashes, dots
+          BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._/-]//g')
 
           BRANCH_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.NEON_API_KEY }}" \
             "https://console.neon.tech/api/v2/projects/${{ secrets.NEON_PROJECT_ID }}/branches" \
@@ -196,7 +205,7 @@ jobs:
             exit 0
           fi
 
-          curl -s -X DELETE -H "Authorization: Bearer ${{ secrets.NEON_API_KEY }}" \
+          curl -sf -X DELETE -H "Authorization: Bearer ${{ secrets.NEON_API_KEY }}" \
             "https://console.neon.tech/api/v2/projects/${{ secrets.NEON_PROJECT_ID }}/branches/$BRANCH_ID"
 
           echo "Deleted Neon branch: $BRANCH_NAME ($BRANCH_ID)"

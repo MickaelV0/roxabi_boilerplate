@@ -93,11 +93,6 @@ jobs:
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
-      - name: Validate Drizzle schema loading
-        run: cd apps/api && bun run db:generate
-        env:
-          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
-
       - name: Check for schema drift
         run: |
           cd apps/api && bun run db:generate
