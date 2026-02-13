@@ -6,6 +6,9 @@ import { LocaleSwitcher } from '../components/LocaleSwitcher'
 
 export const Route = createFileRoute('/demo/i18n')({
   component: I18nDemo,
+  head: () => ({
+    meta: [{ title: `${m.demo_i18n_heading()} | Roxabi` }],
+  }),
 })
 
 function I18nDemo() {
@@ -13,8 +16,8 @@ function I18nDemo() {
     <div className="min-h-screen bg-background py-12">
       <div className="mx-auto max-w-2xl px-6">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold">Internationalization</h1>
-          <p className="mt-2 text-muted-foreground">Paraglide JS locale switching</p>
+          <h1 className="text-3xl font-bold">{m.demo_i18n_heading()}</h1>
+          <p className="mt-2 text-muted-foreground">{m.demo_i18n_subtitle()}</p>
         </div>
 
         <Card>

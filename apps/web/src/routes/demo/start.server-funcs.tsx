@@ -3,6 +3,7 @@ import { Button, Card, CardContent, CardHeader, CardTitle, Input } from '@repo/u
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useCallback, useState } from 'react'
+import { m } from '@/paraglide/messages'
 
 /*
 const loggingMiddleware = createMiddleware().server(
@@ -57,6 +58,9 @@ const addTodo = createServerFn({ method: 'POST' })
 export const Route = createFileRoute('/demo/start/server-funcs')({
   component: Home,
   loader: async () => await getTodos(),
+  head: () => ({
+    meta: [{ title: `${m.demo_server_heading()} | Roxabi` }],
+  }),
 })
 
 function Home() {
@@ -75,15 +79,13 @@ function Home() {
     <div className="min-h-screen bg-background py-12">
       <div className="mx-auto max-w-2xl px-6">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold">Server Functions</h1>
-          <p className="mt-2 text-muted-foreground">
-            TanStack Start server functions with file-based persistence
-          </p>
+          <h1 className="text-3xl font-bold">{m.demo_server_heading()}</h1>
+          <p className="mt-2 text-muted-foreground">{m.demo_server_subtitle()}</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Todos</CardTitle>
+            <CardTitle>{m.demo_server_todos()}</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="mb-4 space-y-2">
@@ -103,10 +105,10 @@ function Home() {
                     submitTodo()
                   }
                 }}
-                placeholder="Enter a new todo..."
+                placeholder={m.demo_server_placeholder()}
               />
               <Button type="button" disabled={todo.trim().length === 0} onClick={submitTodo}>
-                Add todo
+                {m.demo_server_add()}
               </Button>
             </div>
           </CardContent>

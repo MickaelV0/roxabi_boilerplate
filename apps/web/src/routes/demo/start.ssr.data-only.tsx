@@ -1,11 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@repo/ui'
 import { createFileRoute } from '@tanstack/react-router'
 import { getPunkSongs } from '@/data/demo.punk-songs'
+import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/demo/start/ssr/data-only')({
   ssr: 'data-only',
   component: RouteComponent,
   loader: async () => await getPunkSongs(),
+  head: () => ({
+    meta: [{ title: `${m.demo_ssr_data_heading()} | Roxabi` }],
+  }),
 })
 
 function RouteComponent() {
@@ -15,13 +19,13 @@ function RouteComponent() {
     <div className="min-h-screen bg-background py-12">
       <div className="mx-auto max-w-2xl px-6">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold">Data Only SSR</h1>
-          <p className="mt-2 text-muted-foreground">Data fetched on server, rendered on client</p>
+          <h1 className="text-3xl font-bold">{m.demo_ssr_data_heading()}</h1>
+          <p className="mt-2 text-muted-foreground">{m.demo_ssr_data_subtitle()}</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Punk Songs</CardTitle>
+            <CardTitle>{m.demo_ssr_punk_songs()}</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-3">
