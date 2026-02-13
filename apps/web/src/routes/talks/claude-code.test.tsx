@@ -11,6 +11,7 @@ vi.mock('@repo/ui', () => ({
   PresentationNav: () => <nav aria-label="Presentation sections" />,
   StatCounter: ({ label }: { label: string }) => <div>{label}</div>,
   useInView: () => ({ ref: () => {}, inView: true }),
+  useReducedMotion: () => false,
 }))
 
 // Mock matchMedia

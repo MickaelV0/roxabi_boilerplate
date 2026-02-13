@@ -1,4 +1,4 @@
-import { AnimatedSection, cn, useInView } from '@repo/ui'
+import { AnimatedSection, Card, cn, useInView, useReducedMotion } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
 import { ArrowRight } from 'lucide-react'
 
@@ -36,13 +36,20 @@ const pipelineSteps = [
 ] as const
 
 export function EndToEndSection() {
+  const reducedMotion = useReducedMotion()
   const { ref: pipelineRef, inView } = useInView({
     threshold: 0.3,
     triggerOnce: true,
   })
+  const visible = inView || reducedMotion
 
   return (
-    <div className="mx-auto max-w-7xl w-full">
+    <div className="relative mx-auto max-w-7xl w-full">
+      {/* Background glow */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute right-0 bottom-1/4 h-[500px] w-[500px] translate-x-1/4 rounded-full bg-primary/5 blur-[120px] dark:bg-primary/10" />
+      </div>
+
       <AnimatedSection>
         <h2 className="text-4xl font-bold tracking-tight text-center lg:text-5xl">
           End-to-End: Idea to Production
@@ -61,27 +68,27 @@ export function EndToEndSection() {
               key={step.command}
               className={cn(
                 'flex items-center gap-2 transition-all duration-700',
-                inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
               )}
               style={{
-                transitionDelay: inView ? `${index * 200}ms` : '0ms',
+                transitionDelay: visible ? `${index * 200}ms` : '0ms',
               }}
             >
-              <div className="flex flex-col items-center rounded-2xl border border-border/50 bg-card/50 p-5 text-center min-w-[150px] hover:bg-card/80 transition-colors">
+              <Card variant="subtle" className="items-center p-5 text-center min-w-[150px]">
                 <p className="font-mono text-lg font-bold text-primary">{step.command}</p>
                 <p className="mt-2 text-xs text-muted-foreground">
                   {step.from} → {step.to}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground/70">{step.description}</p>
-              </div>
+              </Card>
               {index < pipelineSteps.length - 1 && (
                 <ArrowRight
                   className={cn(
                     'h-5 w-5 text-primary/60 shrink-0 transition-all duration-500',
-                    inView ? 'opacity-100' : 'opacity-0'
+                    visible ? 'opacity-100' : 'opacity-0'
                   )}
                   style={{
-                    transitionDelay: inView ? `${index * 200 + 100}ms` : '0ms',
+                    transitionDelay: visible ? `${index * 200 + 100}ms` : '0ms',
                   }}
                 />
               )}
@@ -93,13 +100,14 @@ export function EndToEndSection() {
         <div className="lg:hidden space-y-3 max-w-md mx-auto">
           {pipelineSteps.map((step, index) => (
             <div key={step.command}>
-              <div
+              <Card
+                variant="subtle"
                 className={cn(
-                  'rounded-xl border border-border/50 bg-card/50 p-4 transition-all duration-700',
-                  inView ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-6'
+                  'p-4 transition-all duration-700',
+                  visible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-6'
                 )}
                 style={{
-                  transitionDelay: inView ? `${index * 150}ms` : '0ms',
+                  transitionDelay: visible ? `${index * 150}ms` : '0ms',
                 }}
               >
                 <div className="flex items-center gap-3">
@@ -109,7 +117,7 @@ export function EndToEndSection() {
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>
-              </div>
+              </Card>
               {index < pipelineSteps.length - 1 && (
                 <div className="flex justify-center py-1">
                   <ArrowRight className="h-4 w-4 text-muted-foreground/40 rotate-90" />
@@ -120,12 +128,10 @@ export function EndToEndSection() {
         </div>
       </div>
 
-      {/* Final stats */}
+      {/* Closing callout */}
       <AnimatedSection className="mt-14">
         <div className="rounded-2xl border border-primary/20 bg-primary/5 p-8 text-center">
-          <p className="text-xl font-semibold lg:text-2xl">
-            808 sessions. 680 hours of compute. 624 commits. 88% task completion.
-          </p>
+          <p className="text-xl font-semibold lg:text-2xl">5 commands. From idea to production.</p>
           <p className="mt-4 text-muted-foreground">
             19 PR review fixes across 4 parallel agents touching 30 files — in a single session.
           </p>

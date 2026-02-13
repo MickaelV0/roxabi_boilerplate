@@ -1,4 +1,4 @@
-import { AnimatedSection, cn } from '@repo/ui'
+import { AnimatedSection, Card, cn } from '@repo/ui'
 import { ArrowRight, GitBranch, Rocket, Shield } from 'lucide-react'
 import { CodeBlock } from '@/components/presentation/CodeBlock'
 
@@ -45,7 +45,7 @@ export function InfraWorkflowSection() {
       <div className="mt-12 grid gap-10 lg:grid-cols-2 lg:gap-16">
         {/* Left: Worktree workflow */}
         <AnimatedSection>
-          <div className="rounded-2xl border border-border/50 bg-card/50 p-6 lg:p-8 h-full">
+          <Card variant="subtle" className="p-6 lg:p-8 h-full">
             <div className="flex items-center gap-3 mb-6">
               <div className="rounded-lg bg-primary/10 p-2">
                 <GitBranch className="h-5 w-5 text-primary" />
@@ -65,12 +65,12 @@ export function InfraWorkflowSection() {
                 Each feature gets its own directory. Agents work in parallel without conflicts.
               </p>
             </div>
-          </div>
+          </Card>
         </AnimatedSection>
 
         {/* Right: CI/CD + Deployment */}
         <AnimatedSection>
-          <div className="rounded-2xl border border-border/50 bg-card/50 p-6 lg:p-8 h-full">
+          <Card variant="subtle" className="p-6 lg:p-8 h-full">
             <div className="flex items-center gap-3 mb-6">
               <div className="rounded-lg bg-primary/10 p-2">
                 <Rocket className="h-5 w-5 text-primary" />
@@ -136,7 +136,7 @@ export function InfraWorkflowSection() {
                 Vercel
               </span>
             </div>
-          </div>
+          </Card>
         </AnimatedSection>
       </div>
     </div>

@@ -1,3 +1,5 @@
+'use client'
+
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { cn } from '@/lib/utils'
@@ -120,31 +122,46 @@ export function PresentationNav({ sections, onEscape }: PresentationNavProps) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [sections, scrollToSection, onEscape])
 
+  const progress = sections.length > 1 ? (activeIndex / (sections.length - 1)) * 100 : 0
+
   return (
-    <nav
-      className="fixed right-6 top-1/2 z-50 hidden -translate-y-1/2 md:flex flex-col items-center gap-3"
-      aria-label="Presentation sections"
-    >
-      {sections.map((section, index) => (
-        <button
-          key={section.id}
-          type="button"
-          aria-label={section.label}
-          title={section.label}
-          onClick={() => scrollToSection(index)}
-          className={cn(
-            'group relative h-3 w-3 rounded-full border-2 transition-all duration-300',
-            index === activeIndex
-              ? 'border-primary bg-primary scale-125'
-              : 'border-muted-foreground/40 bg-transparent hover:border-primary/60 hover:scale-110'
-          )}
-        >
-          {/* Tooltip */}
-          <span className="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-popover px-3 py-1.5 text-xs font-medium text-popover-foreground shadow-md opacity-0 transition-opacity group-hover:opacity-100 border border-border">
-            {section.label}
-          </span>
-        </button>
-      ))}
-    </nav>
+    <>
+      {/* Progress bar */}
+      <div
+        className="fixed top-0 left-0 z-50 h-0.5 bg-primary transition-[width] duration-500 ease-out"
+        style={{ width: `${progress}%` }}
+        role="progressbar"
+        aria-valuenow={activeIndex + 1}
+        aria-valuemin={1}
+        aria-valuemax={sections.length}
+        aria-label={`Section ${activeIndex + 1} of ${sections.length}`}
+      />
+
+      <nav
+        className="fixed right-6 top-[55%] z-50 hidden -translate-y-1/2 md:flex flex-col items-center gap-3"
+        aria-label="Presentation sections"
+      >
+        {sections.map((section, index) => (
+          <button
+            key={section.id}
+            type="button"
+            aria-label={section.label}
+            title={section.label}
+            onClick={() => scrollToSection(index)}
+            className={cn(
+              'group relative h-3 w-3 rounded-full border-2 transition-all duration-300',
+              index === activeIndex
+                ? 'border-primary bg-primary scale-125'
+                : 'border-muted-foreground/40 bg-transparent hover:border-primary/60 hover:scale-110'
+            )}
+          >
+            {/* Tooltip */}
+            <span className="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-popover px-3 py-1.5 text-xs font-medium text-popover-foreground shadow-md opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 border border-border">
+              {section.label}
+            </span>
+          </button>
+        ))}
+      </nav>
+    </>
   )
 }

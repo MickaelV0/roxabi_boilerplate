@@ -1,7 +1,10 @@
+'use client'
+
 import type { ReactNode } from 'react'
 
 import { useInView } from 'react-intersection-observer'
 
+import { useReducedMotion } from '@/lib/useReducedMotion'
 import { cn } from '@/lib/utils'
 
 export function AnimatedSection({
@@ -11,11 +14,16 @@ export function AnimatedSection({
   children: ReactNode
   className?: string
 }) {
+  const reducedMotion = useReducedMotion()
   const { ref, inView } = useInView({
     threshold: 0.1,
     rootMargin: '0px 0px -40px 0px',
     triggerOnce: true,
   })
+
+  if (reducedMotion) {
+    return <div className={className}>{children}</div>
+  }
 
   return (
     <div

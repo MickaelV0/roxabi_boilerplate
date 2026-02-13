@@ -8,6 +8,8 @@ const cardVariants = cva('text-card-foreground flex flex-col', {
     variant: {
       default: 'bg-card gap-6 rounded-xl border py-6 shadow-sm',
       subtle: 'bg-card/50 rounded-2xl border border-border/50',
+      interactive:
+        'bg-card/50 rounded-2xl border border-border/50 cursor-pointer transition-colors hover:bg-card/80',
     },
   },
   defaultVariants: {

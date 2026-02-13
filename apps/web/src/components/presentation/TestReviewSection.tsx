@@ -1,5 +1,5 @@
-import { AnimatedSection, cn } from '@repo/ui'
-import { ArrowRight, CheckCircle2, MessageSquare } from 'lucide-react'
+import { AnimatedSection, Card, cn } from '@repo/ui'
+import { ArrowRight, MessageSquare } from 'lucide-react'
 
 const tddSteps = [
   {
@@ -63,7 +63,7 @@ export function TestReviewSection() {
       <div className="mt-12 grid gap-10 lg:grid-cols-2 lg:gap-16">
         {/* Left: RED-GREEN-REFACTOR */}
         <AnimatedSection>
-          <div className="rounded-2xl border border-border/50 bg-card/50 p-6 lg:p-8 h-full">
+          <Card variant="subtle" className="p-6 lg:p-8 h-full">
             <h3 className="text-2xl font-semibold mb-6">Test-First</h3>
 
             <div className="space-y-4">
@@ -99,12 +99,12 @@ export function TestReviewSection() {
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </AnimatedSection>
 
         {/* Right: Review Pipeline */}
         <AnimatedSection>
-          <div className="rounded-2xl border border-border/50 bg-card/50 p-6 lg:p-8 h-full">
+          <Card variant="subtle" className="p-6 lg:p-8 h-full">
             <h3 className="text-2xl font-semibold mb-6">Review Pipeline</h3>
 
             <div className="space-y-4">
@@ -127,17 +127,14 @@ export function TestReviewSection() {
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </AnimatedSection>
       </div>
 
       {/* Callout */}
       <AnimatedSection className="mt-10">
         <div className="flex items-start gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-6">
-          <div className="flex items-center gap-3">
-            <MessageSquare className="h-5 w-5 text-primary shrink-0" />
-            <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-          </div>
+          <MessageSquare className="h-5 w-5 text-primary shrink-0 mt-1" />
           <blockquote className="text-lg font-medium italic text-foreground/90">
             "Human decides, Claude orchestrates, agents specialize."
           </blockquote>

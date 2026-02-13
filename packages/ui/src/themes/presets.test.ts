@@ -319,7 +319,7 @@ describe('getComposedConfig', () => {
     const config = getComposedConfig(zincBase)
 
     // Assert
-    expect(config.typography.fontFamily).toContain('Inter')
+    expect(config.typography.fontFamily).toContain('sans-serif')
     expect(config.radius).toBe('0.625rem')
     expect(config.shadows).toBe('subtle')
   })

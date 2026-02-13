@@ -24,6 +24,13 @@ code {
     source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
+/* Heading font */
+h1,
+h2,
+h3 {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;

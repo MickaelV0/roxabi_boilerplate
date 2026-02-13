@@ -35,7 +35,7 @@ export function ClaudeCodePresentation() {
       <div className="fixed left-6 top-6 z-50">
         <Link
           to="/"
-          className="text-sm font-bold tracking-wider text-muted-foreground/60 hover:text-foreground transition-colors uppercase"
+          className="text-sm font-bold tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors uppercase"
         >
           Roxabi
         </Link>
@@ -50,7 +50,7 @@ export function ClaudeCodePresentation() {
       <PresentationNav sections={SECTIONS} onEscape={() => navigate({ to: '/' })} />
 
       {/* Scroll-snap container — disabled on mobile */}
-      <div className="md:h-screen md:h-dvh md:overflow-y-auto md:snap-y md:snap-mandatory">
+      <div className="md:h-dvh md:overflow-y-auto md:snap-y md:snap-mandatory">
         <SectionContainer id="intro">
           <IntroSection />
         </SectionContainer>

@@ -1,4 +1,4 @@
-import { AnimatedSection, cn, StatCounter } from '@repo/ui'
+import { AnimatedSection, Card, cn, StatCounter } from '@repo/ui'
 import { AlertTriangle, ArrowRight, CheckCircle2 } from 'lucide-react'
 
 const tiers = [
@@ -50,7 +50,7 @@ export function DevProcessSection() {
 
       {/* Decision flowchart */}
       <AnimatedSection className="mt-12">
-        <div className="rounded-2xl border border-border/50 bg-card/50 p-6 lg:p-8">
+        <Card variant="subtle" className="p-6 lg:p-8">
           {/* Root question */}
           <div className="flex items-center gap-3 text-lg font-semibold">
             <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0" />
@@ -76,7 +76,7 @@ export function DevProcessSection() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       </AnimatedSection>
 
       {/* Key insight */}
@@ -94,17 +94,14 @@ export function DevProcessSection() {
       <AnimatedSection className="mt-12">
         <div className="grid grid-cols-2 gap-6 lg:grid-cols-5 lg:gap-8">
           {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-xl border border-border/50 bg-card/50 p-6 text-center"
-            >
+            <Card variant="subtle" key={stat.label} className="p-6 text-center">
               <StatCounter
                 value={stat.value}
                 label={stat.label}
                 suffix={stat.suffix}
                 className="[&>p:first-child]:text-3xl [&>p:first-child]:lg:text-4xl"
               />
-            </div>
+            </Card>
           ))}
         </div>
       </AnimatedSection>
