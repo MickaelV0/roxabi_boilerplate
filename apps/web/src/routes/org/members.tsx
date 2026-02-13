@@ -23,7 +23,8 @@ import {
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { authClient } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/auth-client'
+import { hasPermission } from '@/lib/permissions'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/org/members')({
@@ -45,6 +46,8 @@ function roleLabel(role: string) {
       return m.org_role_owner()
     case 'admin':
       return m.org_role_admin()
+    case 'viewer':
+      return m.org_role_viewer()
     default:
       return m.org_role_member()
   }
@@ -62,10 +65,10 @@ function roleBadgeVariant(role: string) {
 }
 
 function OrgMembersPage() {
+  const { data: session } = useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
-  const { data: activeMember } = authClient.useActiveMember()
 
-  const canManage = activeMember?.role === 'owner' || activeMember?.role === 'admin'
+  const canManage = hasPermission(session, 'members:write')
   const members = activeOrg?.members ?? []
   const invitations = activeOrg?.invitations?.filter((inv) => inv.status === 'pending') ?? []
 
@@ -107,6 +110,7 @@ function OrgMembersPage() {
   }
 
   async function handleRemoveMember(memberId: string) {
+    if (!window.confirm(m.org_members_remove_confirm())) return
     try {
       const { error } = await authClient.organization.removeMember({ memberIdOrEmail: memberId })
       if (error) {

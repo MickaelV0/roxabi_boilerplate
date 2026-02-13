@@ -34,20 +34,22 @@ function VerifyEmailPage() {
       return
     }
 
+    let isMounted = true
+
     async function verify(t: string) {
       try {
         const { error } = await authClient.verifyEmail({ query: { token: t } })
-        if (error) {
-          setStatus('error')
-        } else {
-          setStatus('success')
-        }
+        if (!isMounted) return
+        setStatus(error ? 'error' : 'success')
       } catch {
-        setStatus('error')
+        if (isMounted) setStatus('error')
       }
     }
 
     verify(token)
+    return () => {
+      isMounted = false
+    }
   }, [token])
 
   async function handleResend() {

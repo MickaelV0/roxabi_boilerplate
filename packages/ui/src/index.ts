@@ -77,7 +77,12 @@ export {
 } from './components/NavigationMenu'
 export type { OAuthButtonProps, OAuthProvider } from './components/OAuthButton'
 export { OAuthButton, oAuthButtonVariants } from './components/OAuthButton'
-export type { PasswordInputProps, PasswordStrength } from './components/PasswordInput'
+export type {
+  PasswordInputProps,
+  PasswordStrength,
+  RuleLabels,
+  StrengthLabels,
+} from './components/PasswordInput'
 export { calculateStrength, PASSWORD_RULES, PasswordInput } from './components/PasswordInput'
 export { PresentationNav } from './components/PresentationNav'
 export {

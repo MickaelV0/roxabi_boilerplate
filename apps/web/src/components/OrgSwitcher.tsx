@@ -1,4 +1,5 @@
 import {
+  Badge,
   Button,
   Dialog,
   DialogClose,
@@ -20,13 +21,42 @@ import {
 import { Check, ChevronDown, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { authClient } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/auth-client'
 import { m } from '@/paraglide/messages'
 
+function roleBadgeVariant(role: string) {
+  switch (role) {
+    case 'owner':
+      return 'default' as const
+    case 'admin':
+      return 'secondary' as const
+    default:
+      return 'outline' as const
+  }
+}
+
+function roleLabel(role: string) {
+  switch (role) {
+    case 'owner':
+      return m.org_role_owner()
+    case 'admin':
+      return m.org_role_admin()
+    case 'viewer':
+      return m.org_role_viewer()
+    default:
+      return m.org_role_member()
+  }
+}
+
 export function OrgSwitcher() {
+  const { data: session } = useSession()
   const { data: orgs } = authClient.useListOrganizations()
   const { data: activeOrg } = authClient.useActiveOrganization()
   const [createOpen, setCreateOpen] = useState(false)
+
+  const activeMember = activeOrg?.members?.find(
+    (member: { userId: string }) => member.userId === session?.user?.id
+  )
 
   if (!orgs || orgs.length === 0) {
     return (
@@ -72,6 +102,14 @@ export function OrgSwitcher() {
             >
               <span className="truncate">{org.name}</span>
               <span className="flex items-center gap-1.5">
+                {activeOrg?.id === org.id && activeMember?.role && (
+                  <Badge
+                    variant={roleBadgeVariant(activeMember.role)}
+                    className="text-[10px] px-1 py-0"
+                  >
+                    {roleLabel(activeMember.role)}
+                  </Badge>
+                )}
                 {activeOrg?.id === org.id && <Check className="size-3 text-primary" />}
               </span>
             </DropdownMenuItem>

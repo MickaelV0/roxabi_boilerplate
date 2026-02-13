@@ -12,7 +12,7 @@ FROM oven/bun:1.3 AS deps
 WORKDIR /app
 
 # Copy lockfile and workspace package manifests for dependency resolution
-COPY bun.lock package.json turbo.json ./
+COPY bun.lock package.json turbo.jsonc ./
 COPY apps/api/package.json apps/api/
 COPY packages/types/package.json packages/types/
 COPY packages/config/package.json packages/config/
@@ -44,7 +44,7 @@ FROM oven/bun:1.3 AS prod-deps
 
 WORKDIR /app
 
-COPY bun.lock package.json turbo.json ./
+COPY bun.lock package.json turbo.jsonc ./
 COPY apps/api/package.json apps/api/
 COPY packages/types/package.json packages/types/
 COPY packages/config/package.json packages/config/

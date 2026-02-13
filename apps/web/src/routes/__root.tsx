@@ -11,6 +11,7 @@ import {
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { RootProvider } from 'fumadocs-ui/provider/tanstack'
 import { ErrorBoundary } from 'react-error-boundary'
+import { m } from '@/paraglide/messages'
 import { getLocale } from '@/paraglide/runtime'
 import { Header } from '../components/Header'
 import { TanStackQueryDevtools } from '../integrations/tanstack-query/devtools'
@@ -20,12 +21,6 @@ import appCss from '../styles.css?url'
 export type MyRouterContext = {
   queryClient: QueryClient
 }
-
-const LABELS = {
-  errorTitle: 'Something went wrong',
-  notFoundCode: '404',
-  notFoundTitle: 'Page not found',
-} as const
 
 function ErrorFallback({
   error,
@@ -38,14 +33,16 @@ function ErrorFallback({
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="max-w-md p-8 bg-card rounded-lg shadow-lg text-center">
-        <h2 className="text-2xl font-bold text-destructive mb-4">{LABELS.errorTitle}</h2>
+        <h2 className="text-2xl font-bold text-destructive mb-4">
+          {m.error_something_went_wrong()}
+        </h2>
         <p className="text-muted-foreground mb-4">{message}</p>
         <button
           type="button"
           onClick={resetErrorBoundary}
           className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
         >
-          Try again
+          {m.error_try_again()}
         </button>
       </div>
     </div>
@@ -89,10 +86,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 function NotFound() {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
-      <h1 className="text-6xl font-bold text-muted-foreground">{LABELS.notFoundCode}</h1>
-      <p className="mt-4 text-xl text-muted-foreground">{LABELS.notFoundTitle}</p>
+      <h1 className="text-6xl font-bold text-muted-foreground">{m.error_page_not_found_title()}</h1>
+      <p className="mt-4 text-xl text-muted-foreground">{m.error_page_not_found_description()}</p>
       <Link to="/" className="mt-6 text-primary underline underline-offset-4 hover:text-primary/80">
-        Go back home
+        {m.error_go_home()}
       </Link>
     </div>
   )

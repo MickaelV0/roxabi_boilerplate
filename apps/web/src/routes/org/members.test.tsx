@@ -60,7 +60,6 @@ vi.mock('@repo/ui', () => ({
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
     useActiveOrganization: vi.fn(() => ({ data: null })),
-    useActiveMember: vi.fn(() => ({ data: null })),
     organization: {
       inviteMember: vi.fn(),
       removeMember: vi.fn(),
@@ -68,6 +67,7 @@ vi.mock('@/lib/auth-client', () => ({
       cancelInvitation: vi.fn(),
     },
   },
+  useSession: vi.fn(() => ({ data: null })),
 }))
 
 vi.mock('sonner', () => ({
@@ -78,7 +78,7 @@ mockParaglideMessages()
 
 // Import after mocks to trigger createFileRoute and capture the component
 import './members'
-import { authClient } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/auth-client'
 
 // ---------------------------------------------------------------------------
 // Test data factories
@@ -116,6 +116,16 @@ function createInvitation(
   }
 }
 
+function permissionsForRole(role: string): string[] {
+  switch (role) {
+    case 'owner':
+    case 'admin':
+      return ['members:read', 'members:write', 'members:delete']
+    default:
+      return ['members:read']
+  }
+}
+
 function setupOrg({
   members = [createMember()],
   invitations = [] as ReturnType<typeof createInvitation>[],
@@ -135,9 +145,9 @@ function setupOrg({
     },
   } as unknown as ReturnType<typeof authClient.useActiveOrganization>)
 
-  vi.mocked(authClient.useActiveMember).mockReturnValue({
-    data: { id: 'me', role: activeMemberRole },
-  } as unknown as ReturnType<typeof authClient.useActiveMember>)
+  vi.mocked(useSession).mockReturnValue({
+    data: { permissions: permissionsForRole(activeMemberRole) },
+  } as unknown as ReturnType<typeof useSession>)
 }
 
 // ---------------------------------------------------------------------------

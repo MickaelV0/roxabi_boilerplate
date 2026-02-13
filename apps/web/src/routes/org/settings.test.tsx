@@ -53,9 +53,9 @@ vi.mock('@repo/ui', () => ({
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
     useActiveOrganization: vi.fn(() => ({ data: null })),
-    useActiveMember: vi.fn(() => ({ data: null })),
     organization: { update: vi.fn(), delete: vi.fn() },
   },
+  useSession: vi.fn(() => ({ data: null })),
 }))
 
 vi.mock('sonner', () => ({
@@ -66,7 +66,7 @@ mockParaglideMessages()
 
 // Import after mocks to trigger createFileRoute and capture the component
 import { toast } from 'sonner'
-import { authClient } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/auth-client'
 import './settings'
 
 function setupActiveOrg() {
@@ -76,15 +76,15 @@ function setupActiveOrg() {
 }
 
 function setupOwnerMember() {
-  vi.mocked(authClient.useActiveMember).mockReturnValue({
-    data: { role: 'owner' },
-  } as ReturnType<typeof authClient.useActiveMember>)
+  vi.mocked(useSession).mockReturnValue({
+    data: { permissions: ['organizations:read', 'organizations:write', 'organizations:delete'] },
+  } as unknown as ReturnType<typeof useSession>)
 }
 
 function setupMemberRole() {
-  vi.mocked(authClient.useActiveMember).mockReturnValue({
-    data: { role: 'member' },
-  } as ReturnType<typeof authClient.useActiveMember>)
+  vi.mocked(useSession).mockReturnValue({
+    data: { permissions: ['organizations:read'] },
+  } as unknown as ReturnType<typeof useSession>)
 }
 
 describe('OrgSettingsPage', () => {

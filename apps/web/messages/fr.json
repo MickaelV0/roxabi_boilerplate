@@ -530,5 +530,30 @@
   "ds_demo_content_below": "Contenu en-dessous du séparateur.",
   "ds_demo_hover_me": "Survolez-moi",
   "ds_demo_tooltip_text": "Ceci est une infobulle",
-  "ds_demo_user": "Utilisateur"
+  "ds_demo_user": "Utilisateur",
+
+  "nav_design_system": "Systeme de design",
+
+  "error_something_went_wrong": "Une erreur est survenue",
+  "error_page_not_found_title": "404",
+  "error_page_not_found_description": "Page introuvable",
+  "error_go_home": "Retour a l'accueil",
+  "error_try_again": "Reessayer",
+
+  "docs_error_title": "Erreur",
+  "docs_error_something_went_wrong": "Une erreur est survenue",
+  "docs_error_loading_page": "Une erreur est survenue lors du chargement de cette page de documentation.",
+  "docs_error_try_again": "Reessayer",
+  "docs_error_back_to_docs": "Retour a la documentation",
+
+  "org_role_viewer": "Lecteur",
+
+  "password_strength_weak": "Faible",
+  "password_strength_fair": "Moyen",
+  "password_strength_good": "Bon",
+  "password_strength_strong": "Fort",
+  "password_rule_min_length": "8+ caracteres",
+  "password_rule_uppercase": "Lettre majuscule",
+  "password_rule_number": "Chiffre",
+  "password_rule_symbol": "Symbole"
 }

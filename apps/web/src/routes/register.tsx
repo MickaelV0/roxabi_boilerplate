@@ -110,6 +110,18 @@ function RegisterPage() {
             required
             disabled={loading}
             showStrength
+            strengthLabels={{
+              weak: m.password_strength_weak(),
+              fair: m.password_strength_fair(),
+              good: m.password_strength_good(),
+              strong: m.password_strength_strong(),
+            }}
+            ruleLabels={{
+              minLength: m.password_rule_min_length(),
+              uppercase: m.password_rule_uppercase(),
+              number: m.password_rule_number(),
+              symbol: m.password_rule_symbol(),
+            }}
           />
         </div>
         <Button type="submit" className="w-full" disabled={loading}>

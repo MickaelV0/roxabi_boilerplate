@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { PermissionService } from '../rbac/permission.service.js'
 import { AuthService } from './auth.service.js'
 
 const mockHandler = vi.fn()
@@ -24,16 +25,35 @@ function createMockConfig(values: Record<string, string | undefined> = {}) {
   }
 }
 
+const mockEventEmitter = { emit: vi.fn() }
+const mockPermissionService = {
+  getPermissions: vi.fn().mockResolvedValue([]),
+} as unknown as PermissionService
+
 const baseConfigValues = {
   BETTER_AUTH_SECRET: 'test-secret',
   BETTER_AUTH_URL: 'http://localhost:3001',
   APP_URL: 'http://localhost:3000',
 }
 
+function createService(config: ReturnType<typeof createMockConfig>) {
+  return new AuthService(
+    {} as never,
+    {} as never,
+    config as never,
+    mockEventEmitter as never,
+    mockPermissionService
+  )
+}
+
 describe('AuthService', () => {
   beforeEach(() => {
     mockHandler.mockReset()
     mockGetSession.mockReset()
+    mockEventEmitter.emit.mockReset()
+    ;(mockPermissionService.getPermissions as ReturnType<typeof vi.fn>)
+      .mockReset()
+      .mockResolvedValue([])
   })
 
   describe('constructor', () => {
@@ -47,7 +67,7 @@ describe('AuthService', () => {
 
       // Act
       // db and emailProvider are passed through to mocked createBetterAuth, so empty stubs are safe
-      const service = new AuthService({} as never, {} as never, config as never)
+      const service = createService(config)
 
       // Assert
       expect(service.enabledProviders).toEqual({
@@ -61,7 +81,7 @@ describe('AuthService', () => {
       const config = createMockConfig(baseConfigValues)
 
       // Act
-      const service = new AuthService({} as never, {} as never, config as never)
+      const service = createService(config)
 
       // Assert
       expect(service.enabledProviders).toEqual({
@@ -78,7 +98,7 @@ describe('AuthService', () => {
       })
 
       // Act
-      const service = new AuthService({} as never, {} as never, config as never)
+      const service = createService(config)
 
       // Assert
       expect(service.enabledProviders.github).toBe(false)
@@ -89,9 +109,7 @@ describe('AuthService', () => {
       const config = createMockConfig({})
 
       // Act & Assert
-      expect(() => new AuthService({} as never, {} as never, config as never)).toThrow(
-        'Missing config key: BETTER_AUTH_SECRET'
-      )
+      expect(() => createService(config)).toThrow('Missing config key: BETTER_AUTH_SECRET')
     })
   })
 
@@ -99,7 +117,7 @@ describe('AuthService', () => {
     it('should delegate to the BetterAuth handler', async () => {
       // Arrange
       const config = createMockConfig(baseConfigValues)
-      const service = new AuthService({} as never, {} as never, config as never)
+      const service = createService(config)
       const mockRequest = new Request('http://localhost:3001/api/auth/signin')
       const mockResponse = new Response('ok')
       mockHandler.mockResolvedValue(mockResponse)
@@ -117,7 +135,7 @@ describe('AuthService', () => {
     it('should convert Fastify headers and delegate to BetterAuth API', async () => {
       // Arrange
       const config = createMockConfig(baseConfigValues)
-      const service = new AuthService({} as never, {} as never, config as never)
+      const service = createService(config)
       const mockFastifyRequest = {
         headers: {
           cookie: 'session=abc123',
@@ -136,13 +154,13 @@ describe('AuthService', () => {
       })
       const calledHeaders = mockGetSession.mock.calls[0]?.[0]?.headers as Headers
       expect(calledHeaders.get('cookie')).toBe('session=abc123')
-      expect(result).toBe(mockSession)
+      expect(result).toEqual({ ...mockSession, permissions: [] })
     })
 
     it('should return null when no session exists', async () => {
       // Arrange
       const config = createMockConfig(baseConfigValues)
-      const service = new AuthService({} as never, {} as never, config as never)
+      const service = createService(config)
       const mockFastifyRequest = { headers: {} }
       mockGetSession.mockResolvedValue(null)
 

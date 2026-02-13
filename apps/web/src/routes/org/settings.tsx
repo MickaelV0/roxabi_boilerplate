@@ -19,7 +19,8 @@ import {
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { authClient } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/auth-client'
+import { hasPermission } from '@/lib/permissions'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/org/settings')({
@@ -37,10 +38,10 @@ export const Route = createFileRoute('/org/settings')({
 
 function OrgSettingsPage() {
   const navigate = useNavigate()
+  const { data: session } = useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
-  const { data: activeMember } = authClient.useActiveMember()
 
-  const isOwner = activeMember?.role === 'owner'
+  const isOwner = hasPermission(session, 'organizations:delete')
 
   const [name, setName] = useState(activeOrg?.name ?? '')
   const [slug, setSlug] = useState(activeOrg?.slug ?? '')

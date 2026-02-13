@@ -6,9 +6,27 @@ import { cn } from '@/lib/utils'
 
 type PasswordStrength = 0 | 1 | 2 | 3 | 4
 
+type StrengthLabels = {
+  weak: string
+  fair: string
+  good: string
+  strong: string
+}
+
+type RuleLabels = {
+  minLength: string
+  uppercase: string
+  number: string
+  symbol: string
+}
+
 type PasswordInputProps = Omit<React.ComponentProps<'input'>, 'type'> & {
   /** Show strength indicator bar + rules checklist below the input */
   showStrength?: boolean
+  /** Override default English strength labels */
+  strengthLabels?: StrengthLabels
+  /** Override default English rule labels */
+  ruleLabels?: RuleLabels
 }
 
 const strengthColors: Record<PasswordStrength, string> = {
@@ -19,7 +37,7 @@ const strengthColors: Record<PasswordStrength, string> = {
   4: 'bg-green-500',
 }
 
-const strengthLabels: Record<PasswordStrength, string> = {
+const DEFAULT_STRENGTH_LABELS: Record<PasswordStrength, string> = {
   0: '',
   1: 'Weak',
   2: 'Fair',
@@ -27,16 +45,23 @@ const strengthLabels: Record<PasswordStrength, string> = {
   4: 'Strong',
 }
 
+const DEFAULT_RULE_LABELS: RuleLabels = {
+  minLength: '8+ characters',
+  uppercase: 'Uppercase letter',
+  number: 'Number',
+  symbol: 'Symbol',
+}
+
 type PasswordRule = {
-  label: string
+  key: keyof RuleLabels
   test: (password: string) => boolean
 }
 
 const PASSWORD_RULES: PasswordRule[] = [
-  { label: '8+ characters', test: (p) => p.length >= 8 },
-  { label: 'Uppercase letter', test: (p) => /[A-Z]/.test(p) },
-  { label: 'Number', test: (p) => /\d/.test(p) },
-  { label: 'Symbol', test: (p) => /[^A-Za-z0-9]/.test(p) },
+  { key: 'minLength', test: (p) => p.length >= 8 },
+  { key: 'uppercase', test: (p) => /[A-Z]/.test(p) },
+  { key: 'number', test: (p) => /\d/.test(p) },
+  { key: 'symbol', test: (p) => /[^A-Za-z0-9]/.test(p) },
 ]
 
 /** Calculate password strength (0-4) based on rules met. */
@@ -58,10 +83,27 @@ function calculateStrength(password: string): PasswordStrength {
  * />
  * ```
  */
-function PasswordInput({ className, showStrength = false, value, ...props }: PasswordInputProps) {
+function PasswordInput({
+  className,
+  showStrength = false,
+  strengthLabels,
+  ruleLabels,
+  value,
+  ...props
+}: PasswordInputProps) {
   const [visible, setVisible] = useState(false)
   const password = typeof value === 'string' ? value : ''
   const strength = showStrength ? calculateStrength(password) : 0
+  const resolvedStrengthLabels: Record<PasswordStrength, string> = strengthLabels
+    ? {
+        0: '',
+        1: strengthLabels.weak,
+        2: strengthLabels.fair,
+        3: strengthLabels.good,
+        4: strengthLabels.strong,
+      }
+    : DEFAULT_STRENGTH_LABELS
+  const resolvedRuleLabels: RuleLabels = ruleLabels ?? DEFAULT_RULE_LABELS
 
   return (
     <div data-slot="password-input" className="space-y-2">
@@ -101,14 +143,15 @@ function PasswordInput({ className, showStrength = false, value, ...props }: Pas
             ))}
           </div>
           {strength > 0 && (
-            <p className="text-xs text-muted-foreground">{strengthLabels[strength]}</p>
+            <p className="text-xs text-muted-foreground">{resolvedStrengthLabels[strength]}</p>
           )}
           <ul className="space-y-1">
             {PASSWORD_RULES.map((rule) => {
               const passed = rule.test(password)
+              const label = resolvedRuleLabels[rule.key]
               return (
                 <li
-                  key={rule.label}
+                  key={rule.key}
                   className={cn(
                     'flex items-center gap-1.5 text-xs',
                     passed ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
@@ -117,7 +160,7 @@ function PasswordInput({ className, showStrength = false, value, ...props }: Pas
                   <span className="inline-block size-1.5 rounded-full" aria-hidden="true">
                     {passed ? '\u2713' : '\u2022'}
                   </span>
-                  {rule.label}
+                  {label}
                 </li>
               )
             })}
@@ -129,4 +172,4 @@ function PasswordInput({ className, showStrength = false, value, ...props }: Pas
 }
 
 export { PasswordInput, calculateStrength, PASSWORD_RULES }
-export type { PasswordInputProps, PasswordStrength }
+export type { PasswordInputProps, PasswordStrength, RuleLabels, StrengthLabels }
