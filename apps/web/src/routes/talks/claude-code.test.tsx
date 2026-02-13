@@ -1,0 +1,72 @@
+import { render } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+
+// Mock matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+})
+
+// Mock IntersectionObserver
+class MockIntersectionObserver {
+  observe = vi.fn()
+  disconnect = vi.fn()
+  unobserve = vi.fn()
+}
+
+vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
+
+// Mock requestAnimationFrame
+vi.stubGlobal(
+  'requestAnimationFrame',
+  vi.fn((cb: FrameRequestCallback) => {
+    cb(performance.now())
+    return 1
+  })
+)
+vi.stubGlobal('cancelAnimationFrame', vi.fn())
+
+// Mock TanStack Router hooks used by the page component
+vi.mock('@tanstack/react-router', () => ({
+  createFileRoute: () => () => ({}),
+  useNavigate: () => vi.fn(),
+  Link: ({ children }: React.PropsWithChildren) => children,
+}))
+
+// Import the page component — the default export from the route module
+// The actual component is the function composed inside the route, which we
+// extract here. If the route file exports the component separately (e.g.,
+// as a named export), adjust the import accordingly.
+import { ClaudeCodePresentation } from './claude-code'
+
+const EXPECTED_SECTION_IDS = [
+  'intro',
+  'setup',
+  'building-blocks',
+  'dev-process',
+  'agent-teams',
+  'test-review',
+  'end-to-end',
+]
+
+describe('ClaudeCodePresentation page', () => {
+  it('renders all 7 sections with correct ids', () => {
+    // Arrange & Act
+    render(<ClaudeCodePresentation />)
+
+    // Assert — each section id should be present in the document
+    for (const sectionId of EXPECTED_SECTION_IDS) {
+      const section = document.getElementById(sectionId)
+      expect(section, `Section with id "${sectionId}" should exist`).toBeInTheDocument()
+    }
+  })
+})

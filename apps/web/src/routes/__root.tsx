@@ -101,10 +101,11 @@ function NotFound() {
 function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const isDocsPage = pathname.startsWith('/docs')
+  const isTalksPage = pathname.startsWith('/talks')
 
   return (
     <RootProvider>
-      {!isDocsPage && <Header />}
+      {!isDocsPage && !isTalksPage && <Header />}
       <ErrorBoundary FallbackComponent={ErrorFallback}>{children}</ErrorBoundary>
       <Toaster richColors />
     </RootProvider>
