@@ -96,10 +96,10 @@ jobs:
       - name: Check for schema drift
         run: |
           cd apps/api && bun run db:generate
-          if ! git diff --exit-code --quiet apps/api/drizzle/; then
+          if ! git diff --exit-code --quiet -- drizzle/; then
             echo "::error::Schema drift detected! Your Drizzle schema has changes that are not captured in a migration file."
             echo "::error::Run 'cd apps/api && bun run db:generate' locally and commit the generated migration."
-            git diff --stat apps/api/drizzle/
+            git diff --stat -- drizzle/
             exit 1
           fi
         env:
