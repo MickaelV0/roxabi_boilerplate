@@ -150,6 +150,7 @@ cd ../roxabi-XXX
 | deploy, vercel deploy | `vercel:deploy` | "deploy to Vercel", "push to production", "go live" |
 | vercel setup, configure vercel | `vercel:setup` | "set up Vercel", "configure Vercel", "link to Vercel" |
 | vercel logs, check logs | `vercel:logs` | "show Vercel logs", "check deployment logs" |
+| frontend design, build UI, create page | `frontend-design` | "design a landing page", "build this component", "/frontend-design" |
 
 **Important notes:**
 - ALWAYS use the appropriate skill even if user doesn't explicitly mention the slash command
