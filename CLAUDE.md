@@ -17,10 +17,13 @@
 | Code review | [docs/standards/code-review.mdx](docs/standards/code-review.mdx) |
 | Vision & roadmap | [docs/vision.mdx](docs/vision.mdx) |
 | Configuration & setup | [docs/configuration.mdx](docs/configuration.mdx) |
+| Getting started | [docs/getting-started.mdx](docs/getting-started.mdx) |
 | Contributing & MDX guide | [docs/contributing.mdx](docs/contributing.mdx) |
 | Guides | [docs/guides/](docs/guides/) |
+| Authentication guide | [docs/guides/authentication.mdx](docs/guides/authentication.mdx) |
 | Agent Teams guide | [docs/guides/agent-teams.mdx](docs/guides/agent-teams.mdx) |
 | Agent Teams coordination | [AGENTS.md](AGENTS.md) |
+| Troubleshooting | [docs/guides/troubleshooting.mdx](docs/guides/troubleshooting.mdx) |
 | Hooks | [docs/hooks.mdx](docs/hooks.mdx) |
 | Deployment | [docs/guides/deployment.mdx](docs/guides/deployment.mdx) |
 
@@ -249,8 +252,13 @@ Agent definitions: `.claude/agents/*.md`
 
 ## Hooks
 
-Claude Code hooks are configured in `.claude/settings.json`:
+### Claude Code Hooks (`.claude/settings.json`)
 
-- **Biome**: Auto-format on file changes
-- **TypeCheck**: Validate types on file changes
-- **Security**: Warn about dangerous patterns
+- **Biome** (PostToolUse): Auto-format + lint on every file Edit/Write (`.ts/.tsx/.js/.jsx/.json`)
+- **Security** (PreToolUse): Warn about dangerous patterns before file changes
+
+### Git Hooks (Lefthook — `lefthook.yml`)
+
+- **pre-commit**: Biome check + auto-fix on staged files
+- **commit-msg**: Commitlint validates Conventional Commits format
+- **pre-push**: Full lint, typecheck (`bun run typecheck`), and test coverage

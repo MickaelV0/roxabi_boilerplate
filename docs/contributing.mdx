@@ -165,7 +165,7 @@ All PRs must pass before merge:
 
 **Merge to `main`:**
 - Vercel auto-deploys both web and API to production
-- If something breaks, roll back via the Vercel dashboard (Deployments &gt; Promote previous). See the [Deployment Guide](/docs/guides/deployment) for details.
+- If something breaks, roll back via the Vercel dashboard (Deployments &gt; Promote previous). See the [Deployment Guide](./guides/deployment) for details.
 
 ---
 
@@ -282,7 +282,18 @@ docs/
 
 ### Special Characters in MDX
 
-Escape `<` as `&lt;` to avoid JSX parsing errors (e.g., `&lt;50KB` instead of `<50KB`).
+Escape `<` as `&lt;` in **prose text** to avoid JSX parsing errors (e.g., `&lt;50KB` instead of `<50KB`). Inside fenced code blocks (` ``` `), always use raw `<` — escaping is not needed and renders as literal `&lt;` text.
+
+### Heading Hierarchy
+
+Do **not** use `# Title` as the first content line. Fumadocs renders the frontmatter `title` as the page H1 automatically. Adding `# Title` creates a duplicate H1 (bad for accessibility and SEO). Start your content with `##` headings or prose text.
+
+### Internal Links
+
+Use **relative paths** for all internal documentation links:
+- Same directory: `./getting-started`
+- Parent directory: `../guides/authentication`
+- Never use absolute paths like `/docs/guides/authentication`
 
 ---
 

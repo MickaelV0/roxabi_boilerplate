@@ -40,7 +40,9 @@ BEFORE writing any documentation, you MUST read:
 ## MDX Conventions
 - Use `.mdx` extension with YAML frontmatter (`title`, `description`)
 - Use kebab-case slugs for filenames
-- Escape `<` as `&lt;` in MDX content to avoid JSX parsing errors
+- Escape `<` as `&lt;` in MDX **prose text** to avoid JSX parsing errors — but NEVER escape inside fenced code blocks (``` ``` ```), where raw `<` must be used
+- NEVER use `# Title` as first content line — Fumadocs renders the frontmatter `title` as the page H1. Adding `# Title` creates a duplicate H1 (bad for accessibility and SEO). Start content with `##` or prose text.
+- Use **relative paths** for internal links (e.g., `./getting-started`, `../guides/authentication`) — never absolute paths like `/docs/guides/authentication`
 - After creating a new doc, update the corresponding `meta.json` to include it in navigation
 - Specs use `docs/specs/{issue}-{slug}.mdx` format
 - Analyses use `docs/analyses/{slug}.mdx` format (prefix with issue number if applicable)

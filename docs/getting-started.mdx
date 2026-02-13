@@ -79,7 +79,7 @@ In the project settings, add:
 
 | Field | Type | Values |
 |-------|------|--------|
-| Priority | Single select | P1, P2, P3 |
+| Priority | Single select | P0, P1, P2, P3 |
 | Size | Single select | XS, S, M, L, XL |
 | Sprint | Iteration | 2 weeks |
 
@@ -98,6 +98,7 @@ gh label create ai --color "FBCA04" --description "AI agents & skills"
 gh label create workflow --color "C2E0C6" --description "Workflow & processes"
 
 # Priority labels
+gh label create P0 --color "7A0000" --description "Priority 0 - Urgent (blocking)"
 gh label create P1 --color "B60205" --description "Priority 1 - Critical"
 gh label create P2 --color "D93F0B" --description "Priority 2 - Important"
 gh label create P3 --color "FBCA04" --description "Priority 3 - Nice to have"
@@ -200,7 +201,7 @@ Deployment runs automatically on pushes to `main` via Vercel:
 
 No Docker or SSH needed — Vercel watches the GitHub repo directly.
 
-> **First-time setup:** Create two Vercel projects (web + API) from the same repo. See the [Deployment Guide](/docs/guides/deployment).
+> **First-time setup:** Create two Vercel projects (web + API) from the same repo. See the [Deployment Guide](./guides/deployment).
 
 ## 6. Install Dependencies
 
