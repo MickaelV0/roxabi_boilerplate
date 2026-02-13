@@ -220,11 +220,31 @@ Present the computed version to the user via `AskUserQuestion`:
 - **Use {computed version}** (Recommended)
 - **Custom version** — let user type a version
 
-#### 7d. Create annotated git tag
+After the user confirms or provides a custom version, validate the SemVer format:
 
 ```bash
-git tag -a $VERSION -m "Release $VERSION"
-git push origin $VERSION
+# Validate SemVer format
+if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "Invalid version format: $VERSION (expected vX.Y.Z)"
+  exit 1
+fi
+```
+
+If validation fails, ask the user to provide a valid version.
+
+#### 7d. Create annotated git tag
+
+Before tagging, check if the tag already exists (idempotency guard for repeated `--finalize` runs):
+
+```bash
+# Check if tag already exists
+if git tag -l "$VERSION" | grep -q "$VERSION"; then
+  echo "Tag $VERSION already exists. Aborting."
+  exit 1
+fi
+
+git tag -a "$VERSION" -m "Release $VERSION"
+git push origin "$VERSION"
 ```
 
 #### 7e. Generate changelog content
@@ -246,7 +266,7 @@ Format into sections: **Features**, **Fixes**, **Other** (group by conventional 
 #### 7f. Create GitHub Release
 
 ```bash
-gh release create $VERSION --title "$VERSION" --notes "$CHANGELOG_CONTENT"
+gh release create "$VERSION" --title "$VERSION" --notes "$CHANGELOG_CONTENT"
 ```
 
 #### 7g. Update CHANGELOG.md
@@ -307,9 +327,11 @@ Use the Edit tool to update the file.
 
 #### 7j. Commit and push
 
+> **Note:** This step pushes directly to `main`. This is an intentional exception to the "never push to main without PR" rule — the `--finalize` flow runs post-merge on code already reviewed and merged via PR. The only changes pushed are release notes and changelog entries.
+
 ```bash
 git add CHANGELOG.md docs/changelog/
-git commit -m "docs: add release notes for $VERSION"
+git commit -m "docs: add release notes for \"$VERSION\""
 git push origin main
 ```
 
@@ -344,6 +366,8 @@ Inform the user:
 | `--dry-run` | Show summary and changelog, do not create PR |
 | Promotion PR not merged (`--finalize`) | Refuse, tell user to merge the promotion PR first |
 | No commits since last tag (`--finalize`) | Refuse, nothing to release |
+| Tag already exists (`--finalize`) | Refuse, inform user the tag already exists |
+| Invalid version format (`--finalize`) | Refuse, ask user to provide a valid `vX.Y.Z` version |
 
 ## Safety Rules
 
