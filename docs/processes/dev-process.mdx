@@ -346,11 +346,11 @@ Human: "develop #XXX"
 
 9. Create PR:
    ```bash
-   git add &lt;files&gt;
-   git commit -m "$(cat &lt;&lt;'EOF'
-   feat(&lt;scope&gt;): description
+   git add <files>
+   git commit -m "$(cat <<'EOF'
+   feat(<scope>): description
 
-   Co-Authored-By: Claude &lt;model&gt; &lt;noreply@anthropic.com&gt;
+   Co-Authored-By: Claude <model> <noreply@anthropic.com>
    EOF
    )"
 
@@ -385,7 +385,7 @@ Human: "develop #XXX"
     - **Fail** — fixer investigates and fixes, CI again, loop until green
 16. Human approves merge:
     ```bash
-    gh pr merge &lt;pr-number&gt; --squash --delete-branch
+    gh pr merge <pr-number> --squash --delete-branch
     ```
 17. Cleanup:
     ```bash

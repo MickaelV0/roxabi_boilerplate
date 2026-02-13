@@ -116,7 +116,7 @@ import { paraglideMiddleware } from './paraglide/server.js'
 import handler from '@tanstack/react-start/server-entry'
 
 export default {
-  fetch(req: Request): Promise&lt;Response> {
+  fetch(req: Request): Promise<Response> {
     // IMPORTANT: Pass the original `req` to handler.fetch(), NOT the middleware's
     // modified `request`. This avoids the Request cloning bug (TanStack/router#6089)
     // where undici cannot access private #state fields from TanStack's Request wrapper.

@@ -34,25 +34,25 @@ All demo pages use `@repo/ui` components and semantic design tokens consistently
 Each demo page follows this layout pattern (derived from `form/steps.tsx`):
 
 ```tsx
-&lt;div className="min-h-screen bg-background py-12">
-  &lt;div className="mx-auto max-w-2xl px-6">
+<div className="min-h-screen bg-background py-12">
+  <div className="mx-auto max-w-2xl px-6">
     {/* Header */}
-    &lt;div className="mb-8 text-center">
-      &lt;h1 className="text-3xl font-bold">Demo Title&lt;/h1>
-      &lt;p className="mt-2 text-muted-foreground">Brief description&lt;/p>
-    &lt;/div>
+    <div className="mb-8 text-center">
+      <h1 className="text-3xl font-bold">Demo Title</h1>
+      <p className="mt-2 text-muted-foreground">Brief description</p>
+    </div>
 
     {/* Content in Card */}
-    &lt;Card>
-      &lt;CardHeader>
-        &lt;CardTitle>...&lt;/CardTitle>
-      &lt;/CardHeader>
-      &lt;CardContent>
+    <Card>
+      <CardHeader>
+        <CardTitle>...</CardTitle>
+      </CardHeader>
+      <CardContent>
         {/* Demo-specific content */}
-      &lt;/CardContent>
-    &lt;/Card>
-  &lt;/div>
-&lt;/div>
+      </CardContent>
+    </Card>
+  </div>
+</div>
 ```
 
 **Token mapping for replacements:**

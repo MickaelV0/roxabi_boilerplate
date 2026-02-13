@@ -66,7 +66,7 @@ Use the routing decision tree:
 Is this a code change?
 ├── No (docs only) → doc-writer subagent
 └── Yes
-    ├── Tier S (&lt;=3 files, no arch risk)
+    ├── Tier S (<=3 files, no arch risk)
     │   └── Single session + optional tester subagent
     │
     ├── Tier F-lite (clear scope, documented requirements)
@@ -455,7 +455,7 @@ Merge
 [tester: Write failing tests from spec (RED)]
         |
    +----+--------+
-[front] [back] [infra]     &lt;- parallel implementation (GREEN)
+[front] [back] [infra]     <- parallel implementation (GREEN)
    +----+--------+
         |
 [tester: Verify coverage + edge cases]

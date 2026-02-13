@@ -45,16 +45,16 @@ Each item has a specific, testable outcome:
 **Before:**
 ```typescript
 app.enableCors({
-  origin: configService.get&lt;string>('CORS_ORIGIN', 'http://localhost:3000'),
+  origin: configService.get<string>('CORS_ORIGIN', 'http://localhost:3000'),
 })
 ```
 
 **After:**
 ```typescript
-const rawOrigins = configService.get&lt;string>('CORS_ORIGIN', 'http://localhost:3000')
+const rawOrigins = configService.get<string>('CORS_ORIGIN', 'http://localhost:3000')
 const origins = rawOrigins.split(',').map((o) => o.trim()).filter(Boolean)
 
-if (isProduction &amp;&amp; origins.includes('*')) {
+if (isProduction && origins.includes('*')) {
   logger.warn("CORS wildcard '*' is not allowed in production — ignoring wildcard")
   const safeOrigins = origins.filter((o) => o !== '*')
   app.enableCors({ origin: safeOrigins.length > 0 ? safeOrigins : false })
@@ -96,11 +96,11 @@ new FastifyAdapter({
 Wrap the `&lt;TanStackDevtools>` block in a `DEV` check:
 
 ```tsx
-{import.meta.env.DEV &amp;&amp; (
-  &lt;TanStackDevtools
+{import.meta.env.DEV && (
+  <TanStackDevtools
     config={{ position: 'bottom-right' }}
     plugins={[
-      { name: 'Tanstack Router', render: &lt;TanStackRouterDevtoolsPanel /> },
+      { name: 'Tanstack Router', render: <TanStackRouterDevtoolsPanel /> },
       StoreDevtools,
       TanStackQueryDevtools,
     ]}
@@ -136,20 +136,20 @@ The devtools imports can remain — Vite will tree-shake them out of the product
 ```typescript
 function escapeHtml(str: string): string {
   return str
-    .replace(/&/g, '&amp;amp;')
-    .replace(/</g, '&amp;lt;')
-    .replace(/>/g, '&amp;gt;')
-    .replace(/"/g, '&amp;quot;')
-    .replace(/'/g, '&amp;#39;')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }
 ```
 
 2. Apply to all three email templates:
 
 ```typescript
-html: `&lt;p>Click &lt;a href="${escapeHtml(url)}">here&lt;/a> to reset your password.&lt;/p>`
-html: `&lt;p>Click &lt;a href="${escapeHtml(url)}">here&lt;/a> to verify your email.&lt;/p>`
-html: `&lt;p>Click &lt;a href="${escapeHtml(url)}">here&lt;/a> to sign in.&lt;/p>`
+html: `<p>Click <a href="${escapeHtml(url)}">here</a> to reset your password.</p>`
+html: `<p>Click <a href="${escapeHtml(url)}">here</a> to verify your email.</p>`
+html: `<p>Click <a href="${escapeHtml(url)}">here</a> to sign in.</p>`
 ```
 
 ### Edge cases

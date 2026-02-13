@@ -222,13 +222,13 @@ inviteMember() { ... }
 @Injectable()
 export class PermissionService {
   // Resolve permissions for a user in an org (used by guard and session)
-  async getPermissions(userId: string, organizationId: string): Promise&lt;string[]>
+  async getPermissions(userId: string, organizationId: string): Promise<string[]>
 
   // Check if a user has a specific permission
-  async hasPermission(userId: string, organizationId: string, permission: string): Promise&lt;boolean>
+  async hasPermission(userId: string, organizationId: string, permission: string): Promise<boolean>
 
   // Get all available permissions (for role management UI)
-  async getAllPermissions(): Promise&lt;Permission[]>
+  async getAllPermissions(): Promise<Permission[]>
 }
 ```
 
@@ -255,7 +255,7 @@ const canInvite = hasPermission(session, 'members:write')
 
 // Guard a route or component
 if (!hasPermission(session, 'members:read')) {
-  return &lt;Forbidden />
+  return <Forbidden />
 }
 ```
 

@@ -408,7 +408,7 @@ test.describe('Feature Name', () => {
 ```typescript
 import { vi } from 'vitest'
 
-function createMockHost(headers: Record&lt;string, string> = {}) {
+function createMockHost(headers: Record<string, string> = {}) {
   const sendFn = vi.fn()
   const statusFn = vi.fn().mockReturnValue({ send: sendFn })
   // ... return structured mock

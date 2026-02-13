@@ -318,7 +318,7 @@ apps/web/
 
 ```bash
 # Better Auth
-BETTER_AUTH_SECRET=&lt;random-32-char-string&gt;    # Required: signing + encryption key
+BETTER_AUTH_SECRET=<random-32-char-string>    # Required: signing + encryption key
 BETTER_AUTH_URL=http://localhost:3001          # API base URL
 
 # OAuth - Google
@@ -350,15 +350,15 @@ export const auth = betterAuth({
     usePlural: true,
   }),
   advanced: {
-    generateId: () =&gt; crypto.randomUUID(), // UUID primary keys
+    generateId: () => crypto.randomUUID(), // UUID primary keys
   },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
-    sendResetPassword: async ({ user, url }) =&gt; { /* email provider */ },
+    sendResetPassword: async ({ user, url }) => { /* email provider */ },
   },
   emailVerification: {
-    sendVerificationEmail: async ({ user, url }) =&gt; { /* email provider */ },
+    sendVerificationEmail: async ({ user, url }) => { /* email provider */ },
   },
   socialProviders: {
     google: {
@@ -385,7 +385,7 @@ export const auth = betterAuth({
     organization(),
     admin(),
     magicLink({
-      sendMagicLink: async ({ email, url }) =&gt; { /* email provider */ },
+      sendMagicLink: async ({ email, url }) => { /* email provider */ },
     }),
   ],
 });
@@ -407,7 +407,7 @@ export class AuthController {
       if (value) headers.set(key, String(value));
     }
 
-    const body = req.method !== 'GET' &amp;&amp; req.method !== 'HEAD'
+    const body = req.method !== 'GET' && req.method !== 'HEAD'
       ? JSON.stringify(req.body)
       : undefined;
 
@@ -420,7 +420,7 @@ export class AuthController {
     const response = await this.authService.handler(fetchRequest);
 
     reply.status(response.status);
-    response.headers.forEach((value, key) =&gt; reply.header(key, value));
+    response.headers.forEach((value, key) => reply.header(key, value));
     return reply.send(await response.text());
   }
 }
@@ -433,27 +433,27 @@ export class AuthController {
 export class AuthGuard implements CanActivate {
   constructor(private authService: AuthService, private reflector: Reflector) {}
 
-  async canActivate(context: ExecutionContext): Promise&lt;boolean&gt; {
-    const isPublic = this.reflector.getAllAndOverride&lt;boolean&gt;('PUBLIC', [
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>('PUBLIC', [
       context.getHandler(), context.getClass(),
     ]);
     if (isPublic) return true;
 
-    const request = context.switchToHttp().getRequest&lt;FastifyRequest&gt;();
+    const request = context.switchToHttp().getRequest<FastifyRequest>();
     const session = await this.authService.getSession(request);
 
     request.session = session;
     request.user = session?.user ?? null;
 
     // Check @OptionalAuth()
-    const isOptional = this.reflector.getAllAndOverride&lt;boolean&gt;('OPTIONAL_AUTH', [
+    const isOptional = this.reflector.getAllAndOverride<boolean>('OPTIONAL_AUTH', [
       context.getHandler(), context.getClass(),
     ]);
-    if (!session &amp;&amp; isOptional) return true;
+    if (!session && isOptional) return true;
     if (!session) throw new UnauthorizedException();
 
     // Check @Roles()
-    const requiredRoles = this.reflector.getAllAndOverride&lt;string[]&gt;('ROLES', [
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>('ROLES', [
       context.getHandler(), context.getClass(),
     ]);
     if (requiredRoles?.length) {
@@ -462,10 +462,10 @@ export class AuthGuard implements CanActivate {
     }
 
     // Check @RequireOrg()
-    const requireOrg = this.reflector.getAllAndOverride&lt;boolean&gt;('REQUIRE_ORG', [
+    const requireOrg = this.reflector.getAllAndOverride<boolean>('REQUIRE_ORG', [
       context.getHandler(), context.getClass(),
     ]);
-    if (requireOrg &amp;&amp; !session.session.activeOrganizationId) {
+    if (requireOrg && !session.session.activeOrganizationId) {
       throw new ForbiddenException('No active organization');
     }
 

@@ -117,7 +117,7 @@ User edits seed colors for the current mode. `deriveFullTheme()` auto-derives th
 Dark/light mode FOUC prevention is already handled by `next-themes` (via fumadocs `RootProvider`), which injects an inline `&lt;script>` as a React component inside `&lt;body>`. The custom theme uses the **same pattern**: a `ThemeScript` React component with `dangerouslySetInnerHTML` rendered at the top of `AppShell` (before any visual content). This runs synchronously before the browser paints the tree.
 
 ```
-&lt;ThemeScript /> → inline script → read localStorage("roxabi-theme") → parse JSON → setProperty() for both :root and .dark variables → done before first paint
+<ThemeScript /> → inline script → read localStorage("roxabi-theme") → parse JSON → setProperty() for both :root and .dark variables → done before first paint
 ```
 
 No modification to `&lt;HeadContent />` or `__root.tsx` `&lt;head>` is needed.

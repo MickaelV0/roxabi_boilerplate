@@ -232,13 +232,13 @@ function Button({
   size,
   asChild = false,
   ...props
-}: React.ComponentProps&lt;'button'> &
-  VariantProps&lt;typeof buttonVariants> & {
+}: React.ComponentProps<'button'> &
+  VariantProps<typeof buttonVariants> & {
     asChild?: boolean
   }) {
   const Comp = asChild ? Slot.Root : 'button'
   return (
-    &lt;Comp
+    <Comp
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
@@ -258,7 +258,7 @@ function Button({
 Add data attributes for CSS targeting and testing:
 
 ```tsx
-&lt;button
+<button
   data-slot="button"
   data-variant={variant}
   data-size={size}

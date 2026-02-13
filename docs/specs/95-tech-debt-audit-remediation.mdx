@@ -177,7 +177,7 @@ const envSchema = z.object({
   APP_URL: z.string().url().optional(),
 })
 
-export type EnvironmentVariables = z.infer&lt;typeof envSchema>
+export type EnvironmentVariables = z.infer<typeof envSchema>
 ```
 
 Keep the production secret check (INSECURE_SECRETS validation). Export the same `validate(config)` function signature for NestJS `ConfigModule.forRoot()` compatibility.

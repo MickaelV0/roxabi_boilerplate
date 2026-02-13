@@ -191,33 +191,33 @@ cd apps/api && vercel ls    # API deployments
 ### View Logs
 
 ```bash
-vercel logs &lt;deployment-url&gt;
+vercel logs <deployment-url>
 ```
 
 ### Inspect a Deployment
 
 ```bash
-vercel inspect &lt;deployment-url&gt;
-vercel inspect &lt;deployment-url&gt; --logs   # With build logs
+vercel inspect <deployment-url>
+vercel inspect <deployment-url> --logs   # With build logs
 ```
 
 ### Rollback
 
 ```bash
-vercel promote &lt;previous-deployment-url&gt;
+vercel promote <previous-deployment-url>
 ```
 
 Or find the URL first:
 
 ```bash
 vercel ls                                  # Find the working deployment
-vercel promote &lt;url&gt;                       # Promote it to production
+vercel promote <url>                       # Promote it to production
 ```
 
 ### Redeploy
 
 ```bash
-vercel redeploy &lt;deployment-url&gt;
+vercel redeploy <deployment-url>
 ```
 
 ### Manage Environment Variables
