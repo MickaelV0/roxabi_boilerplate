@@ -28,7 +28,7 @@ export type AuthInstanceConfig = {
 export type OrganizationCreatedCallback = (data: {
   organizationId: string
   creatorUserId: string
-}) => void
+}) => void | Promise<void>
 
 export function createBetterAuth(
   db: DrizzleDB,

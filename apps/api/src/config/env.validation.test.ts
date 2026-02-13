@@ -5,13 +5,13 @@ describe('env validation', () => {
   it('should pass with valid config', () => {
     const result = validate({
       NODE_ENV: 'development',
-      PORT: 3001,
+      PORT: 4000,
       CORS_ORIGIN: 'http://localhost:3000',
       LOG_LEVEL: 'debug',
     })
 
     expect(result.NODE_ENV).toBe('development')
-    expect(result.PORT).toBe(3001)
+    expect(result.PORT).toBe(4000)
     expect(result.CORS_ORIGIN).toBe('http://localhost:3000')
     expect(result.LOG_LEVEL).toBe('debug')
   })
@@ -20,7 +20,7 @@ describe('env validation', () => {
     const result = validate({})
 
     expect(result.NODE_ENV).toBe('development')
-    expect(result.PORT).toBe(3001)
+    expect(result.PORT).toBe(4000)
     expect(result.CORS_ORIGIN).toBe('http://localhost:3000')
     expect(result.LOG_LEVEL).toBe('debug')
     expect(result.DATABASE_URL).toBeUndefined()
@@ -81,9 +81,9 @@ describe('env validation', () => {
   })
 
   describe('BETTER_AUTH_URL validation', () => {
-    it('should default to http://localhost:3001', () => {
+    it('should default to http://localhost:4000', () => {
       const result = validate({})
-      expect(result.BETTER_AUTH_URL).toBe('http://localhost:3001')
+      expect(result.BETTER_AUTH_URL).toBe('http://localhost:4000')
     })
 
     it('should throw on invalid BETTER_AUTH_URL', () => {

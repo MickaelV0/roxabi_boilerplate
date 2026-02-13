@@ -25,14 +25,14 @@ function createMockConfig(values: Record<string, string | undefined> = {}) {
   }
 }
 
-const mockEventEmitter = { emit: vi.fn() }
+const mockEventEmitter = { emit: vi.fn(), emitAsync: vi.fn().mockResolvedValue([]) }
 const mockPermissionService = {
   getPermissions: vi.fn().mockResolvedValue([]),
 } as unknown as PermissionService
 
 const baseConfigValues = {
   BETTER_AUTH_SECRET: 'test-secret',
-  BETTER_AUTH_URL: 'http://localhost:3001',
+  BETTER_AUTH_URL: 'http://localhost:4000',
   APP_URL: 'http://localhost:3000',
 }
 
@@ -51,6 +51,7 @@ describe('AuthService', () => {
     mockHandler.mockReset()
     mockGetSession.mockReset()
     mockEventEmitter.emit.mockReset()
+    mockEventEmitter.emitAsync.mockReset().mockResolvedValue([])
     ;(mockPermissionService.getPermissions as ReturnType<typeof vi.fn>)
       .mockReset()
       .mockResolvedValue([])
@@ -118,7 +119,7 @@ describe('AuthService', () => {
       // Arrange
       const config = createMockConfig(baseConfigValues)
       const service = createService(config)
-      const mockRequest = new Request('http://localhost:3001/api/auth/signin')
+      const mockRequest = new Request('http://localhost:4000/api/auth/signin')
       const mockResponse = new Response('ok')
       mockHandler.mockResolvedValue(mockResponse)
 
@@ -154,6 +155,48 @@ describe('AuthService', () => {
       })
       const calledHeaders = mockGetSession.mock.calls[0]?.[0]?.headers as Headers
       expect(calledHeaders.get('cookie')).toBe('session=abc123')
+      expect(result).toEqual({ ...mockSession, permissions: [] })
+    })
+
+    it('should enrich session with permissions when activeOrganizationId and user.id exist', async () => {
+      // Arrange
+      const config = createMockConfig(baseConfigValues)
+      const service = createService(config)
+      const mockFastifyRequest = { headers: { cookie: 'session=abc' } }
+      const mockSession = {
+        user: { id: 'user-1' },
+        session: { id: 'sess-1', activeOrganizationId: 'org-1' },
+      }
+      mockGetSession.mockResolvedValue(mockSession)
+      ;(mockPermissionService.getPermissions as ReturnType<typeof vi.fn>).mockResolvedValue([
+        'roles:read',
+        'members:write',
+      ])
+
+      // Act
+      const result = await service.getSession(mockFastifyRequest as never)
+
+      // Assert
+      expect(mockPermissionService.getPermissions).toHaveBeenCalledWith('user-1', 'org-1')
+      expect(result).toEqual({ ...mockSession, permissions: ['roles:read', 'members:write'] })
+    })
+
+    it('should return empty permissions when activeOrganizationId exists but user.id is missing', async () => {
+      // Arrange
+      const config = createMockConfig(baseConfigValues)
+      const service = createService(config)
+      const mockFastifyRequest = { headers: { cookie: 'session=abc' } }
+      const mockSession = {
+        user: {},
+        session: { id: 'sess-1', activeOrganizationId: 'org-1' },
+      }
+      mockGetSession.mockResolvedValue(mockSession)
+
+      // Act
+      const result = await service.getSession(mockFastifyRequest as never)
+
+      // Assert
+      expect(mockPermissionService.getPermissions).not.toHaveBeenCalled()
       expect(result).toEqual({ ...mockSession, permissions: [] })
     })
 

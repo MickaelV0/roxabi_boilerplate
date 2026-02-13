@@ -22,31 +22,8 @@ import { Check, ChevronDown, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
+import { roleBadgeVariant, roleLabel } from '@/lib/org-utils'
 import { m } from '@/paraglide/messages'
-
-function roleBadgeVariant(role: string) {
-  switch (role) {
-    case 'owner':
-      return 'default' as const
-    case 'admin':
-      return 'secondary' as const
-    default:
-      return 'outline' as const
-  }
-}
-
-function roleLabel(role: string) {
-  switch (role) {
-    case 'owner':
-      return m.org_role_owner()
-    case 'admin':
-      return m.org_role_admin()
-    case 'viewer':
-      return m.org_role_viewer()
-    default:
-      return m.org_role_member()
-  }
-}
 
 export function OrgSwitcher() {
   const { data: session } = useSession()
@@ -102,6 +79,8 @@ export function OrgSwitcher() {
             >
               <span className="truncate">{org.name}</span>
               <span className="flex items-center gap-1.5">
+                {/* Role badge only shows for the active org because the session
+                    only provides membership info for the active organization. */}
                 {activeOrg?.id === org.id && activeMember?.role && (
                   <Badge
                     variant={roleBadgeVariant(activeMember.role)}

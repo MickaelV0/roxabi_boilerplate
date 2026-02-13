@@ -10,7 +10,7 @@ import { RbacService } from './rbac.service.js'
 const createRoleSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
-  permissions: z.array(z.string()).min(1),
+  permissions: z.array(z.string().regex(/^[a-z]+:[a-z]+$/)).min(1),
 })
 
 const updateRoleSchema = z.object({
@@ -20,11 +20,11 @@ const updateRoleSchema = z.object({
 })
 
 const transferOwnershipSchema = z.object({
-  targetMemberId: z.string().min(1),
+  targetMemberId: z.string().uuid(),
 })
 
 const changeMemberRoleSchema = z.object({
-  roleId: z.string().min(1),
+  roleId: z.string().uuid(),
 })
 
 type CreateRoleDto = z.infer<typeof createRoleSchema>
@@ -82,7 +82,7 @@ export class RbacController {
   @Permissions('roles:read')
   @ApiOperation({ summary: 'Get permissions for a specific role' })
   @ApiResponse({ status: 200, description: 'List of permissions' })
-  async getRolePermissions(@Param('id', ParseUUIDPipe) id: string) {
+  async getRolePermissions(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
     return this.rbacService.getRolePermissions(id)
   }
 
@@ -92,7 +92,7 @@ export class RbacController {
   @ApiResponse({ status: 200, description: 'Role updated' })
   @ApiResponse({ status: 404, description: 'Role not found' })
   async updateRole(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body(new ZodValidationPipe(updateRoleSchema)) body: UpdateRoleDto
   ) {
     return this.rbacService.updateRole(id, body)
@@ -103,7 +103,7 @@ export class RbacController {
   @ApiOperation({ summary: 'Delete a custom role (members fallback to Viewer)' })
   @ApiResponse({ status: 200, description: 'Role deleted' })
   @ApiResponse({ status: 404, description: 'Role not found' })
-  async deleteRole(@Param('id', ParseUUIDPipe) id: string) {
+  async deleteRole(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
     return this.rbacService.deleteRole(id)
   }
 
@@ -112,7 +112,7 @@ export class RbacController {
   @ApiOperation({ summary: "Change a member's role" })
   @ApiResponse({ status: 200, description: 'Member role updated' })
   async changeMemberRole(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body(new ZodValidationPipe(changeMemberRoleSchema)) body: ChangeMemberRoleDto
   ) {
     return this.rbacService.changeMemberRole(id, body.roleId)

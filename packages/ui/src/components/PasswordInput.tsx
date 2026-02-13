@@ -20,6 +20,11 @@ type RuleLabels = {
   symbol: string
 }
 
+type ToggleLabels = {
+  show: string
+  hide: string
+}
+
 type PasswordInputProps = Omit<React.ComponentProps<'input'>, 'type'> & {
   /** Show strength indicator bar + rules checklist below the input */
   showStrength?: boolean
@@ -27,6 +32,8 @@ type PasswordInputProps = Omit<React.ComponentProps<'input'>, 'type'> & {
   strengthLabels?: StrengthLabels
   /** Override default English rule labels */
   ruleLabels?: RuleLabels
+  /** Override default English toggle button labels for accessibility */
+  toggleLabels?: ToggleLabels
 }
 
 const strengthColors: Record<PasswordStrength, string> = {
@@ -83,11 +90,17 @@ function calculateStrength(password: string): PasswordStrength {
  * />
  * ```
  */
+const DEFAULT_TOGGLE_LABELS: ToggleLabels = {
+  show: 'Show password',
+  hide: 'Hide password',
+}
+
 function PasswordInput({
   className,
   showStrength = false,
   strengthLabels,
   ruleLabels,
+  toggleLabels,
   value,
   ...props
 }: PasswordInputProps) {
@@ -104,6 +117,7 @@ function PasswordInput({
       }
     : DEFAULT_STRENGTH_LABELS
   const resolvedRuleLabels: RuleLabels = ruleLabels ?? DEFAULT_RULE_LABELS
+  const resolvedToggleLabels: ToggleLabels = toggleLabels ?? DEFAULT_TOGGLE_LABELS
 
   return (
     <div data-slot="password-input" className="space-y-2">
@@ -124,7 +138,7 @@ function PasswordInput({
           tabIndex={-1}
           className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
           onClick={() => setVisible((v) => !v)}
-          aria-label={visible ? 'Hide password' : 'Show password'}
+          aria-label={visible ? resolvedToggleLabels.hide : resolvedToggleLabels.show}
         >
           {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
         </button>
@@ -172,4 +186,4 @@ function PasswordInput({
 }
 
 export { PasswordInput, calculateStrength, PASSWORD_RULES }
-export type { PasswordInputProps, PasswordStrength, RuleLabels, StrengthLabels }
+export type { PasswordInputProps, PasswordStrength, RuleLabels, StrengthLabels, ToggleLabels }

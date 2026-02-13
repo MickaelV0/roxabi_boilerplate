@@ -40,15 +40,15 @@ export class AuthService {
       emailProvider,
       {
         secret: config.getOrThrow<string>('BETTER_AUTH_SECRET'),
-        baseURL: config.get<string>('BETTER_AUTH_URL', 'http://localhost:3001'),
+        baseURL: config.get<string>('BETTER_AUTH_URL', 'http://localhost:4000'),
         appURL: config.get<string>('APP_URL', 'http://localhost:3000'),
         googleClientId,
         googleClientSecret,
         githubClientId,
         githubClientSecret,
       },
-      ({ organizationId, creatorUserId }) => {
-        this.eventEmitter.emit(
+      async ({ organizationId, creatorUserId }) => {
+        await this.eventEmitter.emitAsync(
           ORGANIZATION_CREATED,
           new OrganizationCreatedEvent(organizationId, creatorUserId)
         )

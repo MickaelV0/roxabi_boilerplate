@@ -1,4 +1,12 @@
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   Badge,
   Button,
   Card,
@@ -24,6 +32,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
+import { roleBadgeVariant, roleLabel } from '@/lib/org-utils'
 import { hasPermission } from '@/lib/permissions'
 import { m } from '@/paraglide/messages'
 
@@ -40,30 +49,6 @@ export const Route = createFileRoute('/org/members')({
   }),
 })
 
-function roleLabel(role: string) {
-  switch (role) {
-    case 'owner':
-      return m.org_role_owner()
-    case 'admin':
-      return m.org_role_admin()
-    case 'viewer':
-      return m.org_role_viewer()
-    default:
-      return m.org_role_member()
-  }
-}
-
-function roleBadgeVariant(role: string) {
-  switch (role) {
-    case 'owner':
-      return 'default' as const
-    case 'admin':
-      return 'secondary' as const
-    default:
-      return 'outline' as const
-  }
-}
-
 function OrgMembersPage() {
   const { data: session } = useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
@@ -76,6 +61,7 @@ function OrgMembersPage() {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<'admin' | 'member'>('member')
   const [inviting, setInviting] = useState(false)
+  const [removeMemberId, setRemoveMemberId] = useState<string | null>(null)
 
   if (!activeOrg) {
     return (
@@ -109,10 +95,12 @@ function OrgMembersPage() {
     }
   }
 
-  async function handleRemoveMember(memberId: string) {
-    if (!window.confirm(m.org_members_remove_confirm())) return
+  async function handleRemoveMember() {
+    if (!removeMemberId) return
     try {
-      const { error } = await authClient.organization.removeMember({ memberIdOrEmail: memberId })
+      const { error } = await authClient.organization.removeMember({
+        memberIdOrEmail: removeMemberId,
+      })
       if (error) {
         toast.error(error.message ?? m.auth_toast_error())
       } else {
@@ -120,6 +108,8 @@ function OrgMembersPage() {
       }
     } catch {
       toast.error(m.auth_toast_error())
+    } finally {
+      setRemoveMemberId(null)
     }
   }
 
@@ -265,7 +255,7 @@ function OrgMembersPage() {
                               variant="ghost"
                               size="sm"
                               className="text-destructive hover:text-destructive"
-                              onClick={() => handleRemoveMember(member.id)}
+                              onClick={() => setRemoveMemberId(member.id)}
                             >
                               {m.org_members_remove()}
                             </Button>
@@ -329,6 +319,29 @@ function OrgMembersPage() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog
+        open={removeMemberId !== null}
+        onOpenChange={(open: boolean) => {
+          if (!open) setRemoveMemberId(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{m.org_members_remove()}</AlertDialogTitle>
+            <AlertDialogDescription>{m.org_members_remove_confirm()}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleRemoveMember}
+            >
+              {m.org_members_remove()}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

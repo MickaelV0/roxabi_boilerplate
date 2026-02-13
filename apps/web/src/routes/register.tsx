@@ -122,6 +122,10 @@ function RegisterPage() {
               number: m.password_rule_number(),
               symbol: m.password_rule_symbol(),
             }}
+            toggleLabels={{
+              show: m.password_toggle_show(),
+              hide: m.password_toggle_hide(),
+            }}
           />
         </div>
         <Button type="submit" className="w-full" disabled={loading}>

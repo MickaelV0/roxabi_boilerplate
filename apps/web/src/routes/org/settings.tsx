@@ -41,7 +41,7 @@ function OrgSettingsPage() {
   const { data: session } = useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
 
-  const isOwner = hasPermission(session, 'organizations:delete')
+  const canDeleteOrg = hasPermission(session, 'organizations:delete')
 
   const [name, setName] = useState(activeOrg?.name ?? '')
   const [slug, setSlug] = useState(activeOrg?.slug ?? '')
@@ -112,7 +112,7 @@ function OrgSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>{m.org_settings_general()}</CardTitle>
-          {!isOwner && <CardDescription>{m.org_settings_read_only()}</CardDescription>}
+          {!canDeleteOrg && <CardDescription>{m.org_settings_read_only()}</CardDescription>}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSave} className="space-y-4">
@@ -123,7 +123,7 @@ function OrgSettingsPage() {
                 value={name}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                 placeholder={m.org_name_placeholder()}
-                disabled={!isOwner || saving}
+                disabled={!canDeleteOrg || saving}
                 required
               />
             </div>
@@ -134,11 +134,11 @@ function OrgSettingsPage() {
                 value={slug}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSlug(e.target.value)}
                 placeholder={m.org_slug_placeholder()}
-                disabled={!isOwner || saving}
+                disabled={!canDeleteOrg || saving}
                 required
               />
             </div>
-            {isOwner && (
+            {canDeleteOrg && (
               <Button type="submit" disabled={saving}>
                 {saving ? m.org_settings_saving() : m.org_settings_save()}
               </Button>
@@ -147,7 +147,7 @@ function OrgSettingsPage() {
         </CardContent>
       </Card>
 
-      {isOwner && (
+      {canDeleteOrg && (
         <Card>
           <CardHeader>
             <CardTitle className="text-destructive">{m.org_settings_danger()}</CardTitle>

@@ -15,6 +15,22 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 
 vi.mock('@repo/ui', () => ({
+  AlertDialog: ({
+    children,
+    open,
+  }: React.PropsWithChildren<{ open?: boolean; onOpenChange?: (open: boolean) => void }>) =>
+    open ? <div data-testid="alert-dialog">{children}</div> : null,
+  AlertDialogAction: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <button {...props}>{children}</button>
+  ),
+  AlertDialogCancel: ({ children }: React.PropsWithChildren) => (
+    <button type="button">{children}</button>
+  ),
+  AlertDialogContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+  AlertDialogDescription: ({ children }: React.PropsWithChildren) => <p>{children}</p>,
+  AlertDialogFooter: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+  AlertDialogHeader: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+  AlertDialogTitle: ({ children }: React.PropsWithChildren) => <h2>{children}</h2>,
   Badge: ({ children, variant, ...props }: React.PropsWithChildren<{ variant?: string }>) => (
     <span data-variant={variant} {...props}>
       {children}
