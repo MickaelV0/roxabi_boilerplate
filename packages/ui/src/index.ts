@@ -1,6 +1,6 @@
 // Components
 
-// Hooks (re-exported from react-intersection-observer)
+// Hooks
 export { useInView } from 'react-intersection-observer'
 export {
   Accordion,
@@ -8,6 +8,7 @@ export {
   AccordionItem,
   AccordionTrigger,
 } from './components/Accordion'
+export { Alert, AlertDescription, AlertTitle, alertVariants } from './components/Alert'
 export { AnimatedSection } from './components/AnimatedSection'
 export {
   Avatar,
@@ -91,12 +92,36 @@ export {
   SelectValue,
 } from './components/Select'
 export { Separator } from './components/Separator'
+export {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetOverlay,
+  SheetPortal,
+  SheetTitle,
+  SheetTrigger,
+  sheetContentVariants,
+} from './components/Sheet'
 export { Skeleton } from './components/Skeleton'
 export { Slider } from './components/Slider'
 export type { ToasterProps } from './components/Sonner'
 export { Toaster } from './components/Sonner'
 export { StatCounter } from './components/StatCounter'
 export { Switch } from './components/Switch'
+export {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from './components/Table'
+export { Tabs, TabsContent, TabsList, TabsTrigger } from './components/Tabs'
 export { Textarea } from './components/Textarea'
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './components/Tooltip'
 // Theme engine
@@ -116,6 +141,7 @@ export {
   oklchToHex,
   resetTheme,
 } from './lib/theme'
+export { useReducedMotion } from './lib/useReducedMotion'
 // Utilities
 export { cn } from './lib/utils'
 
