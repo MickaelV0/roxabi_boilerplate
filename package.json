@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "prepare": "lefthook install",
-    "dev": "turbo dev",
+    "dev": "trap 'kill 0' INT TERM; turbo dev",
     "build": "turbo build",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
