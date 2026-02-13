@@ -37,62 +37,57 @@ describe('Spinner', () => {
 
   it('applies default size classes', () => {
     // Arrange & Act
-    const { container } = render(<Spinner />)
-    const spinner = container.querySelector('[data-slot="spinner"]')
+    render(<Spinner />)
 
     // Assert
-    expect(spinner).toHaveClass('h-6', 'w-6', 'border-2')
+    expect(screen.getByRole('status')).toHaveClass('h-6', 'w-6', 'border-2')
   })
 
   it('applies sm size classes', () => {
     // Arrange & Act
-    const { container } = render(<Spinner size="sm" />)
-    const spinner = container.querySelector('[data-slot="spinner"]')
+    render(<Spinner size="sm" />)
 
     // Assert
-    expect(spinner).toHaveClass('h-4', 'w-4', 'border-2')
+    expect(screen.getByRole('status')).toHaveClass('h-4', 'w-4', 'border-2')
   })
 
   it('applies lg size classes', () => {
     // Arrange & Act
-    const { container } = render(<Spinner size="lg" />)
-    const spinner = container.querySelector('[data-slot="spinner"]')
+    render(<Spinner size="lg" />)
 
     // Assert
-    expect(spinner).toHaveClass('h-8', 'w-8')
+    expect(screen.getByRole('status')).toHaveClass('h-8', 'w-8')
   })
 
   it('applies xl size classes', () => {
     // Arrange & Act
-    const { container } = render(<Spinner size="xl" />)
-    const spinner = container.querySelector('[data-slot="spinner"]')
+    render(<Spinner size="xl" />)
 
     // Assert
-    expect(spinner).toHaveClass('h-12', 'w-12', 'border-4')
+    expect(screen.getByRole('status')).toHaveClass('h-12', 'w-12', 'border-4')
   })
 
   it('applies base animation class', () => {
     // Arrange & Act
-    const { container } = render(<Spinner />)
-    const spinner = container.querySelector('[data-slot="spinner"]')
+    render(<Spinner />)
 
     // Assert
-    expect(spinner).toHaveClass('animate-spin', 'rounded-full')
+    expect(screen.getByRole('status')).toHaveClass('animate-spin', 'rounded-full')
   })
 
   it('applies custom className', () => {
     // Arrange & Act
-    const { container } = render(<Spinner className="custom-class" />)
+    render(<Spinner className="custom-class" />)
 
     // Assert
-    expect(container.querySelector('[data-slot="spinner"]')).toHaveClass('custom-class')
+    expect(screen.getByRole('status')).toHaveClass('custom-class')
   })
 
   it('renders as output element', () => {
     // Arrange & Act
-    const { container } = render(<Spinner />)
+    render(<Spinner />)
 
     // Assert
-    expect(container.querySelector('[data-slot="spinner"]')?.tagName).toBe('OUTPUT')
+    expect(screen.getByRole('status').tagName).toBe('OUTPUT')
   })
 })
