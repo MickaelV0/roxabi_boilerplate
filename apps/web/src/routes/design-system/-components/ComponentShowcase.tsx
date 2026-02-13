@@ -11,6 +11,7 @@ import {
 } from '@repo/ui'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
+import { m } from '@/paraglide/messages'
 
 import { CodeSnippet } from './CodeSnippet'
 
@@ -108,7 +109,7 @@ export function ComponentShowcase({
         {/* Controls area */}
         {hasControls && (
           <div className="space-y-4">
-            <h4 className="text-sm font-medium">Props</h4>
+            <h4 className="text-sm font-medium">{m.ds_showcase_props()}</h4>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {propControls.map((control) => (
                 <div key={control.name} className="space-y-2">
@@ -174,7 +175,7 @@ export function ComponentShowcase({
             )}
             aria-expanded={showCode}
           >
-            {showCode ? 'Hide code' : 'Show code'}
+            {showCode ? m.ds_showcase_hide_code() : m.ds_showcase_show_code()}
           </button>
           {showCode && (
             <div className="mt-3">

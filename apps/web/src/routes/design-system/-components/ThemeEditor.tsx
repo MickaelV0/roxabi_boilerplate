@@ -15,6 +15,7 @@ import {
 } from '@repo/ui'
 import { PaletteIcon, RotateCcwIcon, XIcon } from 'lucide-react'
 import { useCallback, useEffect, useRef } from 'react'
+import { m } from '@/paraglide/messages'
 
 import { ColorPicker } from './ColorPicker'
 
@@ -41,15 +42,17 @@ const SEED_COLOR_KEYS = [
   'border',
 ] as const
 
-const SEED_COLOR_LABELS: Record<(typeof SEED_COLOR_KEYS)[number], string> = {
-  primary: 'Primary',
-  secondary: 'Secondary',
-  accent: 'Accent',
-  destructive: 'Destructive',
-  muted: 'Muted',
-  background: 'Background',
-  foreground: 'Foreground',
-  border: 'Border',
+function getSeedColorLabels(): Record<(typeof SEED_COLOR_KEYS)[number], string> {
+  return {
+    primary: m.ds_color_primary(),
+    secondary: m.ds_color_secondary(),
+    accent: m.ds_color_accent(),
+    destructive: m.ds_color_destructive(),
+    muted: m.ds_color_muted(),
+    background: m.ds_color_background(),
+    foreground: m.ds_color_foreground(),
+    border: m.ds_color_border(),
+  }
 }
 
 /** Pairs to check for WCAG AA contrast (foreground against background). */
@@ -167,22 +170,22 @@ export function ThemeEditor({
 
   function handleBaseClick(preset: ShadcnPreset) {
     onBaseSelect(preset)
-    announce(`Applied ${preset.title} base theme`)
+    announce(m.ds_theme_announce_base({ title: preset.title }))
   }
 
   function handleColorClick(preset: ShadcnPreset) {
     if (activeColor === preset.name) {
       onColorSelect(null)
-      announce(`Removed ${preset.title} color overlay`)
+      announce(m.ds_theme_announce_color_removed({ title: preset.title }))
     } else {
       onColorSelect(preset)
-      announce(`Applied ${preset.title} color`)
+      announce(m.ds_theme_announce_color_applied({ title: preset.title }))
     }
   }
 
   function handleReset() {
     onReset()
-    announce('Theme reset to default')
+    announce(m.ds_theme_announce_reset())
   }
 
   /** Parse numeric value from string like "16px" or "0.625rem" */
@@ -199,17 +202,24 @@ export function ThemeEditor({
   const currentFontSize = parseNumeric(config.typography.baseFontSize)
   const currentRadius = parseNumeric(config.radius)
 
+  const shadowLabels: Record<string, () => string> = {
+    none: m.ds_shadow_none,
+    subtle: m.ds_shadow_subtle,
+    medium: m.ds_shadow_medium,
+    strong: m.ds_shadow_strong,
+  }
+
   const sidebarContent = (
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
           <PaletteIcon className="size-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">Theme Editor</h2>
+          <h2 className="text-sm font-semibold">{m.ds_theme_editor()}</h2>
         </div>
-        <Button variant="ghost" size="sm" onClick={onToggle} aria-label="Close theme editor">
+        <Button variant="ghost" size="sm" onClick={onToggle} aria-label={m.ds_theme_close_aria()}>
           <XIcon className="size-4" />
-          Close
+          {m.ds_theme_close()}
         </Button>
       </div>
 
@@ -221,7 +231,7 @@ export function ThemeEditor({
             id="base-presets-heading"
             className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"
           >
-            Base
+            {m.ds_theme_base()}
           </h3>
           <div className="grid grid-cols-2 gap-2">
             {BASE_PRESETS.map((preset) => (
@@ -243,7 +253,7 @@ export function ThemeEditor({
             id="color-presets-heading"
             className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"
           >
-            Accent Color
+            {m.ds_theme_accent_color()}
           </h3>
           <div className="grid max-h-48 grid-cols-3 gap-2 overflow-y-auto">
             {COLOR_PRESETS.map((preset) => (
@@ -268,13 +278,13 @@ export function ThemeEditor({
             id="colors-heading"
             className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground"
           >
-            Seed Colors
+            {m.ds_theme_seed_colors()}
           </h3>
           <div className="space-y-3">
             {SEED_COLOR_KEYS.map((key) => (
               <ColorPicker
                 key={key}
-                label={SEED_COLOR_LABELS[key]}
+                label={getSeedColorLabels()[key]}
                 value={config.colors[key]}
                 onChange={(v) => handleColorChange(key, v)}
                 contrastAgainst={getContrastAgainst(key)}
@@ -291,13 +301,13 @@ export function ThemeEditor({
             id="typography-heading"
             className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground"
           >
-            Typography
+            {m.ds_theme_typography()}
           </h3>
 
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="font-family" className="text-xs">
-                Font Family
+                {m.ds_theme_font_family()}
               </Label>
               <Select value={config.typography.fontFamily} onValueChange={handleFontFamilyChange}>
                 <SelectTrigger id="font-family" className="w-full">
@@ -316,7 +326,7 @@ export function ThemeEditor({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="font-size" className="text-xs">
-                  Base Font Size
+                  {m.ds_theme_base_font_size()}
                 </Label>
                 <span className="text-xs text-muted-foreground">{currentFontSize}px</span>
               </div>
@@ -327,7 +337,7 @@ export function ThemeEditor({
                 step={1}
                 value={[currentFontSize]}
                 onValueChange={handleFontSizeChange}
-                aria-label="Base font size"
+                aria-label={m.ds_theme_base_font_size_aria()}
               />
             </div>
           </div>
@@ -341,12 +351,12 @@ export function ThemeEditor({
             id="radius-heading"
             className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground"
           >
-            Border Radius
+            {m.ds_theme_border_radius()}
           </h3>
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="radius-slider" className="text-xs">
-                Radius
+                {m.ds_theme_radius()}
               </Label>
               <span className="text-xs text-muted-foreground">{currentRadius}rem</span>
             </div>
@@ -357,7 +367,7 @@ export function ThemeEditor({
               step={0.125}
               value={[currentRadius]}
               onValueChange={handleRadiusChange}
-              aria-label="Border radius"
+              aria-label={m.ds_theme_border_radius_aria()}
             />
             <div className="mt-2 flex gap-2">
               {['sm', 'md', 'lg', 'xl'].map((size) => (
@@ -390,7 +400,7 @@ export function ThemeEditor({
             id="shadows-heading"
             className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"
           >
-            Shadows
+            {m.ds_theme_shadows()}
           </h3>
           <div className="grid grid-cols-2 gap-2">
             {SHADOW_OPTIONS.map((shadow) => (
@@ -400,7 +410,7 @@ export function ThemeEditor({
                 size="sm"
                 onClick={() => handleShadowChange(shadow)}
               >
-                {shadow.charAt(0).toUpperCase() + shadow.slice(1)}
+                {shadowLabels[shadow]?.() ?? shadow}
               </Button>
             ))}
           </div>
@@ -411,7 +421,7 @@ export function ThemeEditor({
         {/* Reset */}
         <Button variant="outline" size="sm" className="w-full" onClick={handleReset}>
           <RotateCcwIcon className="size-3.5" />
-          Reset to Default
+          {m.ds_theme_reset()}
         </Button>
       </div>
 
@@ -429,11 +439,11 @@ export function ThemeEditor({
         size="sm"
         onClick={onToggle}
         className={cn('fixed right-4 top-20 z-40', isOpen && 'hidden')}
-        aria-label="Open theme editor"
+        aria-label={m.ds_theme_open_aria()}
         aria-expanded={isOpen}
       >
         <PaletteIcon className="size-4" />
-        <span className="hidden sm:inline">Theme</span>
+        <span className="hidden sm:inline">{m.ds_theme_toggle()}</span>
       </Button>
 
       {/* Backdrop (mobile only, <1024px) */}
@@ -442,14 +452,14 @@ export function ThemeEditor({
           type="button"
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
           onClick={onToggle}
-          aria-label="Close theme editor"
+          aria-label={m.ds_theme_close_aria()}
         />
       )}
 
       {/* Sidebar panel */}
       <aside
         ref={sidebarRef}
-        aria-label="Theme editor"
+        aria-label={m.ds_theme_editor_aria()}
         tabIndex={-1}
         className={cn(
           'fixed top-0 right-0 z-[60] h-full w-80 border-l border-border bg-background shadow-lg transition-transform duration-200 ease-in-out',
