@@ -209,7 +209,7 @@ jobs:
               - 'packages/ui/src/**'
               - 'playwright.config.ts'
               - '.github/workflows/ci.yml'
-              - 'turbo.json'
+              - 'turbo.jsonc'
 
   e2e:
     name: E2E Tests
