@@ -25,7 +25,8 @@
   },
   "enabledPlugins": {
     "vercel@claude-plugins-official": true,
-    "frontend-design@claude-plugins-official": true
+    "frontend-design@claude-plugins-official": true,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": true
   },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {
