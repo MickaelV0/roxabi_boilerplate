@@ -297,7 +297,7 @@ Nitro (TanStack Start) outputs to `.vercel/output/` using the Vercel Build Outpu
 > curl -X PATCH -H "Authorization: Bearer $TOKEN" \
 >   "https://api.vercel.com/v9/projects/$PROJECT_ID?teamId=$TEAM_ID" \
 >   -H "Content-Type: application/json" \
->   -d '{"buildCommand":"turbo run build","installCommand":"bun install"}'
+>   -d '{"buildCommand":"bun run db:migrate && turbo run build","installCommand":"bun install"}'
 > ```
 
 ---
