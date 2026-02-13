@@ -1,4 +1,4 @@
-import { Toaster } from '@repo/ui'
+import { Button, Toaster } from '@repo/ui'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import type { QueryClient } from '@tanstack/react-query'
 import {
@@ -11,6 +11,7 @@ import {
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { RootProvider } from 'fumadocs-ui/provider/tanstack'
 import { ErrorBoundary } from 'react-error-boundary'
+import * as m from '@/paraglide/messages'
 import { getLocale } from '@/paraglide/runtime'
 import { Header } from '../components/Header'
 import { TanStackQueryDevtools } from '../integrations/tanstack-query/devtools'
@@ -23,8 +24,6 @@ export type MyRouterContext = {
 
 const LABELS = {
   errorTitle: 'Something went wrong',
-  notFoundCode: '404',
-  notFoundTitle: 'Page not found',
 } as const
 
 function ErrorFallback({
@@ -88,12 +87,13 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 
 function NotFound() {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
-      <h1 className="text-6xl font-bold text-muted-foreground">{LABELS.notFoundCode}</h1>
-      <p className="mt-4 text-xl text-muted-foreground">{LABELS.notFoundTitle}</p>
-      <Link to="/" className="mt-6 text-primary underline underline-offset-4 hover:text-primary/80">
-        Go back home
-      </Link>
+    <div className="flex min-h-[60vh] flex-col items-center justify-center text-center px-4">
+      <h1 className="text-7xl font-bold text-muted-foreground/50">{m.not_found_code()}</h1>
+      <h2 className="mt-4 text-2xl font-semibold">{m.not_found_title()}</h2>
+      <p className="mt-2 max-w-md text-muted-foreground">{m.not_found_description()}</p>
+      <Button asChild className="mt-8">
+        <Link to="/">{m.not_found_go_home()}</Link>
+      </Button>
     </div>
   )
 }

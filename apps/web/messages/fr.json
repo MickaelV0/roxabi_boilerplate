@@ -530,5 +530,10 @@
   "ds_demo_content_below": "Contenu en-dessous du séparateur.",
   "ds_demo_hover_me": "Survolez-moi",
   "ds_demo_tooltip_text": "Ceci est une infobulle",
-  "ds_demo_user": "Utilisateur"
+  "ds_demo_user": "Utilisateur",
+
+  "not_found_code": "404",
+  "not_found_title": "Page introuvable",
+  "not_found_description": "Désolé, la page que vous recherchez n'existe pas ou a été déplacée.",
+  "not_found_go_home": "Retour à l'accueil"
 }

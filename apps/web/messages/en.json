@@ -530,5 +530,10 @@
   "ds_demo_content_below": "Content below the separator.",
   "ds_demo_hover_me": "Hover me",
   "ds_demo_tooltip_text": "This is a tooltip",
-  "ds_demo_user": "User"
+  "ds_demo_user": "User",
+
+  "not_found_code": "404",
+  "not_found_title": "Page not found",
+  "not_found_description": "Sorry, the page you're looking for doesn't exist or has been moved.",
+  "not_found_go_home": "Go back home"
 }
