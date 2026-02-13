@@ -139,7 +139,7 @@ cd ../roxabi-XXX
 | adr, architecture decision | `adr` | "create an ADR", "list ADRs", "/adr --list" |
 | browser, open website, screenshot | `agent-browser` | "open a website", "take a screenshot", "/agent-browser" |
 | documentation, library docs, lookup | `context7` | "look up React docs", "check API reference", "/context7" |
-| promote, release, staging to main | `promote` | "promote staging", "release to production", "/promote" |
+| promote, release, staging to main, finalize | `promote` | "promote staging", "release to production", "/promote", "/promote --finalize" |
 | deploy, vercel, setup vercel | `vercel:*` | "deploy to Vercel", "set up Vercel", "check Vercel logs" |
 
 **Important notes:**
