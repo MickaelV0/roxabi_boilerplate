@@ -15,6 +15,9 @@ export const Route = createFileRoute('/register')({
   },
   loader: fetchEnabledProviders,
   component: RegisterPage,
+  head: () => ({
+    meta: [{ title: `${m.auth_register_title()} | Roxabi` }],
+  }),
 })
 
 function RegisterPage() {
