@@ -91,7 +91,7 @@
   "cta_subtitle": "Clone the repo and ship your first feature in under 5 minutes.",
   "cta_button": "Get Started",
   "footer_changelog": "Changelog",
-  "footer_copyright": "© {year} Roxabi. Open-source under MIT.",
+  "footer_copyright": "© {year} Roxabi. Licensed under BSL 1.1.",
 
   "user_menu_label": "User menu",
   "user_menu_profile": "Profile",

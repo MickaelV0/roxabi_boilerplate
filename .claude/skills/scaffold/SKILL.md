@@ -156,8 +156,10 @@ git fetch origin staging
 
 ```bash
 git worktree add ../roxabi-<issue_number> -b feat/<issue_number>-<slug> staging
-cd ../roxabi-<issue_number> && bun install
+cd ../roxabi-<issue_number> && cp .env.example .env && bun install
 ```
+
+The `.env.example` copy ensures the worktree has all required environment variables for local dev (e.g., `VITE_GITHUB_REPO_URL`, `API_URL`).
 
 All subsequent operations run in the worktree directory.
 
