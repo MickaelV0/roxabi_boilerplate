@@ -1,5 +1,6 @@
 import { cn } from '@repo/ui'
 import { useState } from 'react'
+import { m } from '@/paraglide/messages'
 
 type CodeSnippetProps = {
   /** The code string to display */
@@ -39,9 +40,9 @@ export function CodeSnippet({ code, language }: CodeSnippetProps) {
           'bg-background hover:bg-accent text-muted-foreground hover:text-foreground',
           copied && 'text-green-600 hover:text-green-600'
         )}
-        aria-label={copied ? 'Copied' : 'Copy code'}
+        aria-label={copied ? m.ds_code_copied_aria() : m.ds_code_copy_aria()}
       >
-        {copied ? '✓ Copied' : 'Copy'}
+        {copied ? `✓ ${m.ds_code_copied()}` : m.ds_code_copy()}
       </button>
       <pre className={cn('bg-muted overflow-x-auto rounded-lg p-4 text-sm', language && 'pt-8')}>
         <code className="font-mono">{code}</code>
