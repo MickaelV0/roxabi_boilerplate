@@ -75,7 +75,7 @@ Analyze file paths from the spec to recommend agents:
 |-----------------|-------|
 | `apps/web/`, `packages/ui/` | `frontend-dev` |
 | `apps/api/`, `packages/types/` | `backend-dev` |
-| `packages/config/`, root configs | `infra-ops` |
+| `packages/config/`, root configs | `devops` |
 | `docs/` | `doc-writer` |
 
 **Always include:** `tester` (for any code change)

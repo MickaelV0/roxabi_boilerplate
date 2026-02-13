@@ -6,7 +6,7 @@ allowed-tools: Bash, AskUserQuestion, Read, Write, Edit, Glob, Grep, Task
 
 # Bootstrap
 
-Orchestrate the planning pipeline from a raw idea (or existing issue/spec) to an approved spec. You drive the interviews and write documents directly — no team spawn needed. You may spawn an **architect** subagent (via `Task`) on-demand when you need technical consultation. Enforces two user-approval gates. Stops at the approved spec — execution is handled by `/scaffold`.
+Orchestrate the planning pipeline from a raw idea (or existing issue/spec) to an approved spec. You drive the interviews and write documents directly — no team spawn needed. You may spawn expert reviewers (via `Task`) to review analyses and specs before user approval. Enforces two user-approval gates. Stops at the approved spec — execution is handled by `/scaffold`.
 
 ## Entry Points
 
@@ -82,10 +82,10 @@ You (the bootstrap orchestrator) drive the entire pipeline yourself:
 
 - **You** conduct interviews with the user via `/interview` skill (which uses `AskUserQuestion`)
 - **You** write analysis and spec documents
+- **You** spawn **expert reviewers** via `Task` before each user-approval gate (configurable per document)
 - **You** present gates to the user via `AskUserQuestion`
-- **You** spawn an `architect` subagent via `Task` **only when you need technical consultation** (e.g., trade-off analysis, feasibility check, architecture decisions). Do NOT spawn it upfront.
 
-**Do NOT use `TeamCreate`. Do NOT spawn `product-lead` or `doc-writer` agents.**
+**Do NOT use `TeamCreate`.**
 
 ---
 
@@ -97,19 +97,49 @@ You (the bootstrap orchestrator) drive the entire pipeline yourself:
 
 - **If an analysis already exists** (found in Step 1): read it and present it to the user.
 - **If no analysis exists**: conduct a structured interview with the user (using `/interview` in Analysis mode) to produce `docs/analyses/{slug}.mdx`.
-  - If you need technical depth (architecture trade-offs, feasibility, integration concerns), spawn an `architect` subagent via `Task` to research the question and return findings. Use those findings to enrich the analysis.
+  - If you need domain expertise during writing, spawn the relevant expert subagent via `Task` (see [Expert Consultation](#expert-consultation-on-demand)).
 
-### 1b. User Approval
+### 1b. Expert Review
 
-Present the analysis to the user via **AskUserQuestion**:
+After generating the analysis, spawn expert reviewers to validate it before presenting to the user. Use **AskUserQuestion** (multiSelect) to let the user choose which experts to involve:
 
-> "Here is the analysis. Please review it."
+> "The analysis is ready. Which experts should review it before your final approval?"
+
+| Reviewer | When to suggest | Focus area |
+|----------|----------------|------------|
+| **architect** | Architecture decisions, trade-offs, multi-domain | Technical soundness, feasibility |
+| **doc-writer** | Always (default) | Document structure, clarity, completeness |
+| **devops** | CI/CD, deployment, infrastructure concerns | Infra feasibility, operational impact |
+| **product-lead** | User-facing features, UX decisions | Product fit, acceptance criteria quality |
+
+Options (multiSelect, pre-select based on content):
+- **architect** — Review technical soundness
+- **doc-writer** — Review structure and clarity
+- **devops** — Review infrastructure impact
+- **product-lead** — Review product alignment
+- **Skip expert review** — Go directly to user approval
+
+**For each selected reviewer**, spawn a subagent via `Task`:
+
+```
+Task tool:
+  subagent_type: <reviewer>
+  prompt: "Review this analysis document for <focus area>. Return feedback as bullet points: what's good, what needs improvement, and any concerns. Document path: docs/analyses/{slug}.mdx"
+```
+
+Spawn all selected reviewers **in parallel**. Collect their feedback, incorporate improvements into the analysis, and note any unresolved concerns for the user.
+
+### 1c. User Approval
+
+Present the analysis (with expert feedback summary) to the user via **AskUserQuestion**:
+
+> "Here is the analysis, reviewed by {reviewer list}. Key expert feedback: {summary}. Please review."
 
 Options:
 - **Approve** -- Proceed to Gate 2 (Spec)
 - **Reject** -- Provide feedback and re-enter Gate 1
 
-**If rejected:** Collect user feedback, revise the analysis (spawn architect via `Task` if the feedback requires technical research). Re-present for approval. Do not proceed until approved.
+**If rejected:** Collect user feedback, revise the analysis (re-run expert review if the changes are substantial). Re-present for approval. Do not proceed until approved.
 
 ---
 
@@ -119,19 +149,29 @@ Options:
 
 - **If a spec already exists** (found in Step 1, or entry point is `--spec N`): read it and present it to the user.
 - **If no spec exists**: promote the approved analysis to a spec (using `/interview` with `--promote <path-to-analysis>`) to produce `docs/specs/{issue}-{slug}.mdx`.
-  - If you need technical consultation for implementation strategy, spawn an `architect` subagent via `Task`.
+  - If you need domain expertise during writing, spawn the relevant expert subagent via `Task` (see [Expert Consultation](#expert-consultation-on-demand)).
 
-### 2b. User Approval
+### 2b. Expert Review
 
-Present the spec to the user via **AskUserQuestion**:
+After generating the spec, spawn expert reviewers — same mechanism as Gate 1. Use **AskUserQuestion** (multiSelect) to let the user choose reviewers:
 
-> "Here is the spec. Please review it."
+> "The spec is ready. Which experts should review it before your final approval?"
+
+Use the same reviewer table as Gate 1. Pre-select reviewers based on spec content (e.g., always suggest architect for specs with implementation details, devops if infra sections exist).
+
+Spawn selected reviewers **in parallel** via `Task`. Each reviewer receives the spec path and reviews from their focus area. Incorporate feedback and note unresolved concerns.
+
+### 2c. User Approval
+
+Present the spec (with expert feedback summary) to the user via **AskUserQuestion**:
+
+> "Here is the spec, reviewed by {reviewer list}. Key expert feedback: {summary}. Please review."
 
 Options:
 - **Approve** -- Bootstrap complete, proceed to completion
 - **Reject** -- Provide feedback and re-enter Gate 2
 
-**If rejected:** Collect user feedback, revise the spec (spawn architect if needed). Re-present for approval. Do not proceed until approved.
+**If rejected:** Collect user feedback, revise the spec (re-run expert review if substantial changes). Re-present for approval. Do not proceed until approved.
 
 ---
 
@@ -205,7 +245,8 @@ Once both gates are passed:
 | User rejects at any gate | Stop, collect feedback, re-enter the same gate |
 | `--spec N` but no spec found | Inform user: "No spec found matching issue #N. Try `/bootstrap --issue N` or `/bootstrap 'your idea'` to start from scratch." |
 | Analysis exists but is a brainstorm | Treat as "no analysis" -- promote brainstorm to analysis |
-| Architect subagent fails | Report the error to the user and continue without technical consultation |
+| Expert reviewer subagent fails | Report the error to the user and continue without that expert's review |
+| User skips expert review | Proceed directly to user approval (no expert feedback) |
 | Issue already has a branch or open PR | Stop and propose `/review` or `/scaffold` instead (Step 0b) |
 
 ## Skill Invocation Reference
@@ -217,17 +258,29 @@ You use the `/interview` skill directly:
 | `/interview` (Analysis) | `skill: "interview", args: "topic text"` | Gate 1, no existing analysis |
 | `/interview` (Spec promotion) | `skill: "interview", args: "--promote docs/analyses/{slug}.mdx"` | Gate 2, no existing spec |
 
-## Architect Consultation (On-Demand Only)
+## Expert Consultation (On-Demand)
 
-When you need technical depth during analysis or spec writing, spawn an architect subagent:
+### During Document Writing
+
+When you need domain expertise while writing the analysis or spec, spawn the relevant expert subagent:
 
 ```
 Task tool:
-  subagent_type: architect
-  prompt: "Research and answer: <specific technical question>. Return findings as bullet points."
+  subagent_type: architect | doc-writer | devops | product-lead
+  prompt: "Research and answer: <specific question>. Return findings as bullet points."
 ```
 
-Use this for: trade-off analysis, feasibility checks, architecture decisions, integration concerns.
-Do NOT spawn architect upfront — only when a specific technical question arises.
+| Expert | Use for |
+|--------|---------|
+| **architect** | Trade-off analysis, feasibility checks, architecture decisions, integration concerns |
+| **doc-writer** | Document structure advice, MDX conventions, clarity feedback |
+| **devops** | CI/CD feasibility, deployment strategy, infrastructure requirements |
+| **product-lead** | Product fit, acceptance criteria, user story validation |
+
+Do NOT spawn experts upfront — only when a specific question arises during writing.
+
+### At Review Gates (1b, 2b)
+
+Expert review at gates is driven by user selection (see Gate 1b and Gate 2b above). Spawn all selected reviewers in parallel for maximum speed.
 
 $ARGUMENTS

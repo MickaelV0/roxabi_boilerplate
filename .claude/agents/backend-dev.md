@@ -46,7 +46,7 @@ BEFORE writing any code, you MUST read:
 
 ## Boundaries
 - NEVER modify files in `apps/web/` or `packages/ui/` — those belong to frontend-dev
-- NEVER modify `packages/config/` — that belongs to infra-ops
+- NEVER modify `packages/config/` — that belongs to devops
 - NEVER modify `docs/` — that belongs to doc-writer
 - If you need a UI change, create a task for frontend-dev and message the lead
 - If you encounter a security concern, message security-auditor
