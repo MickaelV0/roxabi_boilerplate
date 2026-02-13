@@ -8,9 +8,10 @@
     "build": "bunx nest build",
     "start": "node dist/index",
     "start:prod": "NODE_ENV=production node dist/index",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio",
+    "db:generate": "tsx node_modules/drizzle-kit/bin.cjs generate",
+    "db:migrate": "tsx node_modules/drizzle-kit/bin.cjs migrate",
+    "db:push": "tsx node_modules/drizzle-kit/bin.cjs push",
+    "db:studio": "tsx node_modules/drizzle-kit/bin.cjs studio",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
@@ -40,6 +41,7 @@
     "@repo/config": "workspace:*",
     "@types/node": "^25.2.0",
     "drizzle-kit": "^0.31.8",
+    "tsx": "^4.19.4",
     "typescript": "^5.9.3"
   }
 }
