@@ -31,8 +31,8 @@ No Docker is needed for deployment. Docker configurations (Dockerfiles, `docker-
 | **Hotfix** | `hotfix/*` → PR to `main` | Auto-deploys immediately |
 
 - `staging` is the default integration branch — all feature PRs target it
-- Merging to `staging` does **not** trigger a Vercel deploy
-- Use the **Deploy Preview** GitHub Action for on-demand preview URLs from staging
+- Automatic preview deployments are **disabled** at the Vercel project level — pushes to non-`main` branches do not trigger any Vercel build
+- Use the **Deploy Preview** GitHub Action or Vercel CLI for on-demand preview URLs
 - Only merges to `main` trigger production auto-deploys
 
 ---
@@ -115,7 +115,40 @@ cd apps/api && vercel link
 
 Select the matching project when prompted. This creates `.vercel/project.json` in each directory (gitignored).
 
-### 3. Configure Environment Variables
+### 3. Disable Automatic Preview Deployments
+
+Disable Vercel's automatic preview deployments to prevent rate-limit exhaustion from canceled builds on non-production branches:
+
+```bash
+# Get your team ID and project IDs from .vercel/project.json after linking
+TEAM_ID="<your-team-id>"
+TOKEN="<your-vercel-token>"
+
+# Disable for web project
+curl -X PATCH -H "Authorization: Bearer $TOKEN" \
+  "https://api.vercel.com/v9/projects/<web-project-id>?teamId=$TEAM_ID" \
+  -H "Content-Type: application/json" \
+  -d '{"previewDeploymentsDisabled":true}'
+
+# Disable for API project
+curl -X PATCH -H "Authorization: Bearer $TOKEN" \
+  "https://api.vercel.com/v9/projects/<api-project-id>?teamId=$TEAM_ID" \
+  -H "Content-Type: application/json" \
+  -d '{"previewDeploymentsDisabled":true}'
+```
+
+Verify the setting:
+
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://api.vercel.com/v9/projects/<project-id>?teamId=$TEAM_ID" \
+  | jq '.previewDeploymentsDisabled'
+# Should return: true
+```
+
+> **Why this matters:** Even with `ignoreCommand` in `vercel.json`, Vercel still *attempts* a deployment for every push, which counts toward the rate limit. The `previewDeploymentsDisabled` setting prevents Vercel from initiating the deployment entirely. Use the [Deploy Preview](#preview-deploys) GitHub Action or Vercel CLI when you need a preview.
+
+### 4. Configure Environment Variables
 
 #### Web project
 
@@ -170,7 +203,7 @@ vercel env add RESEND_API_KEY production
 | `EMAIL_FROM` | Sender email address |
 | `RESEND_API_KEY` | Resend API key for transactional emails |
 
-### 4. Verify
+### 5. Verify
 
 ```bash
 cd apps/web && vercel env ls
@@ -269,13 +302,20 @@ Nitro (TanStack Start) outputs to `.vercel/output/` using the Vercel Build Outpu
 
 ## Build-Only on Main (Avoid Duplicate Deploys)
 
-Both projects use `ignoreCommand` in `vercel.json` to only trigger Vercel builds on the `main` branch. The command first checks if the branch is `main`, then uses `turbo-ignore` to skip builds when no relevant files changed:
+Automatic preview deployments are **disabled at the Vercel project level** via the `previewDeploymentsDisabled` API setting. This prevents Vercel from attempting (and canceling) preview builds on every push to non-production branches, which would otherwise consume the deployment rate limit.
+
+As a secondary safeguard, both projects also use `ignoreCommand` in `vercel.json` to skip builds on non-`main` branches:
 
 ```json
 "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ] || npx turbo-ignore @repo/web"
 ```
 
-Preview deploys are handled via the **Deploy Preview** GitHub Action (see [Preview Deploys](#preview-deploys) above). You can also trigger them locally via the CLI:
+| Layer | Mechanism | Purpose |
+|-------|-----------|---------|
+| **Primary** | `previewDeploymentsDisabled: true` (project setting) | Prevents Vercel from even attempting preview deployments |
+| **Secondary** | `ignoreCommand` in `vercel.json` | Skips builds on non-`main` branches if a deployment is triggered |
+
+Preview deploys are **manual only** — use the **Deploy Preview** GitHub Action (see [Preview Deploys](#preview-deploys) above) or the Vercel CLI:
 
 ```bash
 cd apps/web && vercel        # Preview deploy
