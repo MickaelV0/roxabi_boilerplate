@@ -13,6 +13,7 @@ import {
 
 describe('Table', () => {
   it('renders children correctly', () => {
+    // Arrange & Act
     render(
       <Table>
         <TableBody>
@@ -22,10 +23,13 @@ describe('Table', () => {
         </TableBody>
       </Table>
     )
+
+    // Assert
     expect(screen.getByText('Cell content')).toBeInTheDocument()
   })
 
   it('has data-slot attributes', () => {
+    // Arrange & Act
     const { container } = render(
       <Table>
         <TableBody>
@@ -35,12 +39,15 @@ describe('Table', () => {
         </TableBody>
       </Table>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="table-wrapper"]')).toBeInTheDocument()
     expect(container.querySelector('[data-slot="table"]')).toBeInTheDocument()
   })
 
   it('applies custom className to the table element', () => {
-    const { container } = render(
+    // Arrange & Act
+    render(
       <Table className="custom-class">
         <TableBody>
           <TableRow>
@@ -49,12 +56,15 @@ describe('Table', () => {
         </TableBody>
       </Table>
     )
-    expect(container.querySelector('[data-slot="table"]')).toHaveClass('custom-class')
+
+    // Assert
+    expect(screen.getByRole('table')).toHaveClass('custom-class')
   })
 })
 
 describe('TableHeader', () => {
   it('renders with data-slot attribute', () => {
+    // Arrange & Act
     const { container } = render(
       <table>
         <TableHeader>
@@ -64,12 +74,15 @@ describe('TableHeader', () => {
         </TableHeader>
       </table>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="table-header"]')).toBeInTheDocument()
   })
 })
 
 describe('TableBody', () => {
   it('renders with data-slot attribute', () => {
+    // Arrange & Act
     const { container } = render(
       <table>
         <TableBody>
@@ -79,12 +92,15 @@ describe('TableBody', () => {
         </TableBody>
       </table>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="table-body"]')).toBeInTheDocument()
   })
 })
 
 describe('TableFooter', () => {
   it('renders with data-slot attribute', () => {
+    // Arrange & Act
     const { container } = render(
       <table>
         <TableFooter>
@@ -94,12 +110,15 @@ describe('TableFooter', () => {
         </TableFooter>
       </table>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="table-footer"]')).toBeInTheDocument()
   })
 })
 
 describe('TableRow', () => {
   it('renders with data-slot attribute', () => {
+    // Arrange & Act
     const { container } = render(
       <table>
         <TableBody>
@@ -109,12 +128,15 @@ describe('TableRow', () => {
         </TableBody>
       </table>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="table-row"]')).toBeInTheDocument()
   })
 })
 
 describe('TableHead', () => {
   it('renders header text', () => {
+    // Arrange & Act
     render(
       <table>
         <thead>
@@ -124,10 +146,13 @@ describe('TableHead', () => {
         </thead>
       </table>
     )
+
+    // Assert
     expect(screen.getByText('Column Name')).toBeInTheDocument()
   })
 
   it('has data-slot attribute', () => {
+    // Arrange & Act
     const { container } = render(
       <table>
         <thead>
@@ -137,12 +162,15 @@ describe('TableHead', () => {
         </thead>
       </table>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="table-head"]')).toBeInTheDocument()
   })
 })
 
 describe('TableCell', () => {
   it('renders cell content', () => {
+    // Arrange & Act
     render(
       <table>
         <tbody>
@@ -152,10 +180,13 @@ describe('TableCell', () => {
         </tbody>
       </table>
     )
+
+    // Assert
     expect(screen.getByText('Cell data')).toBeInTheDocument()
   })
 
   it('has data-slot attribute', () => {
+    // Arrange & Act
     const { container } = render(
       <table>
         <tbody>
@@ -165,32 +196,41 @@ describe('TableCell', () => {
         </tbody>
       </table>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="table-cell"]')).toBeInTheDocument()
   })
 })
 
 describe('TableCaption', () => {
   it('renders caption text', () => {
+    // Arrange & Act
     render(
       <table>
         <TableCaption>A list of items</TableCaption>
       </table>
     )
+
+    // Assert
     expect(screen.getByText('A list of items')).toBeInTheDocument()
   })
 
   it('has data-slot attribute', () => {
+    // Arrange & Act
     const { container } = render(
       <table>
         <TableCaption>Caption</TableCaption>
       </table>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="table-caption"]')).toBeInTheDocument()
   })
 })
 
 describe('Table composed', () => {
   it('renders a full table with all subcomponents', () => {
+    // Arrange & Act
     const { container } = render(
       <Table>
         <TableCaption>Invoice list</TableCaption>
@@ -216,6 +256,8 @@ describe('Table composed', () => {
         </TableFooter>
       </Table>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="table"]')).toBeInTheDocument()
     expect(screen.getByText('Invoice list')).toBeInTheDocument()
     expect(screen.getByText('Invoice')).toBeInTheDocument()

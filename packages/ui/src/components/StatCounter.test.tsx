@@ -54,8 +54,10 @@ afterEach(() => {
 
 describe('StatCounter', () => {
   it('renders target value when animation completes', async () => {
+    // Arrange & Act
     render(<StatCounter value={808} label="Sessions" />)
 
+    // Assert
     await vi.waitFor(() => {
       flushRaf()
       expect(screen.getByText('808')).toBeInTheDocument()
@@ -65,6 +67,7 @@ describe('StatCounter', () => {
   })
 
   it('respects prefers-reduced-motion by showing final value immediately', async () => {
+    // Arrange
     mockMatchMedia.mockImplementation((query: string) => ({
       matches: query === '(prefers-reduced-motion: reduce)',
       media: query,
@@ -76,8 +79,10 @@ describe('StatCounter', () => {
       dispatchEvent: vi.fn(),
     }))
 
+    // Act
     render(<StatCounter value={624} label="Commits" />)
 
+    // Assert
     await vi.waitFor(() => {
       expect(screen.getByText('624')).toBeInTheDocument()
     })
@@ -85,8 +90,10 @@ describe('StatCounter', () => {
   })
 
   it('displays label and suffix correctly', async () => {
+    // Arrange & Act
     render(<StatCounter value={88} label="Completion Rate" suffix="%" />)
 
+    // Assert
     await vi.waitFor(() => {
       flushRaf()
       expect(screen.getByText('Completion Rate')).toBeInTheDocument()

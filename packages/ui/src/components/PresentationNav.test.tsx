@@ -68,28 +68,34 @@ afterEach(() => {
 
 describe('PresentationNav', () => {
   it('renders correct number of dots (8)', () => {
+    // Arrange & Act
     render(<PresentationNav sections={sections} />)
 
+    // Assert
     const dots = screen.getAllByRole('button')
     expect(dots).toHaveLength(8)
   })
 
   it('each dot has aria-label with section name', () => {
+    // Arrange & Act
     render(<PresentationNav sections={sections} />)
 
+    // Assert
     for (const section of sections) {
       expect(screen.getByLabelText(section.label)).toBeInTheDocument()
     }
   })
 
   it('click on dot triggers scroll behavior', () => {
+    // Arrange
     const sectionEl = createSectionElement('setup')
-
     render(<PresentationNav sections={sections} />)
 
+    // Act
     const setupDot = screen.getByLabelText('Setup')
     fireEvent.click(setupDot)
 
+    // Assert
     expect(sectionEl.scrollIntoView).toHaveBeenCalledWith(
       expect.objectContaining({ behavior: 'smooth' })
     )
@@ -97,64 +103,82 @@ describe('PresentationNav', () => {
 
   describe('keyboard navigation', () => {
     it('ArrowDown scrolls to next section', () => {
+      // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)
 
+      // Act
       fireEvent.keyDown(document, { key: 'ArrowDown' })
 
+      // Assert
       expect(elements[1]?.scrollIntoView).toHaveBeenCalledWith(
         expect.objectContaining({ behavior: 'smooth' })
       )
     })
 
     it('ArrowUp scrolls to previous section', () => {
+      // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)
 
+      // Act
       fireEvent.keyDown(document, { key: 'ArrowUp' })
 
+      // Assert
       expect(elements[0]?.scrollIntoView).toHaveBeenCalledWith(
         expect.objectContaining({ behavior: 'smooth' })
       )
     })
 
     it('Escape calls onEscape callback', () => {
+      // Arrange
       createAllSectionElements()
       render(<PresentationNav sections={sections} onEscape={mockOnEscape} />)
 
+      // Act
       fireEvent.keyDown(document, { key: 'Escape' })
 
+      // Assert
       expect(mockOnEscape).toHaveBeenCalledOnce()
     })
 
     it('number key scrolls to the correct section', () => {
+      // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)
 
+      // Act
       fireEvent.keyDown(document, { key: '2' })
 
+      // Assert
       expect(elements[1]?.scrollIntoView).toHaveBeenCalledWith(
         expect.objectContaining({ behavior: 'smooth' })
       )
     })
 
     it('Home scrolls to first section', () => {
+      // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)
 
+      // Act
       fireEvent.keyDown(document, { key: 'Home' })
 
+      // Assert
       expect(elements[0]?.scrollIntoView).toHaveBeenCalledWith(
         expect.objectContaining({ behavior: 'smooth' })
       )
     })
 
     it('End scrolls to last section', () => {
+      // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)
 
+      // Act
       fireEvent.keyDown(document, { key: 'End' })
 
+      // Assert
       expect(elements[7]?.scrollIntoView).toHaveBeenCalledWith(
         expect.objectContaining({ behavior: 'smooth' })
       )
