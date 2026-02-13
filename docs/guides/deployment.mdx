@@ -69,6 +69,8 @@ The **Deploy Preview** workflow requires these repository secrets:
 | `VERCEL_ORG_ID` | Vercel team/org ID | `.vercel/project.json` → `orgId` (after `vercel link`) |
 | `VERCEL_PROJECT_ID_WEB` | Vercel project ID for web | `apps/web/.vercel/project.json` → `projectId` |
 | `VERCEL_PROJECT_ID_API` | Vercel project ID for API | `apps/api/.vercel/project.json` → `projectId` |
+| `NEON_API_KEY` | Neon API key (for preview DB branches) | [console.neon.tech](https://console.neon.tech) → Account → API Keys |
+| `NEON_PROJECT_ID` | Neon project ID | [console.neon.tech](https://console.neon.tech) → Project Settings |
 
 Add them at **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
 
@@ -284,7 +286,7 @@ Build settings are version-controlled in `vercel.json` files — no dashboard co
 {
   "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ] || npx turbo-ignore @repo/api",
   "installCommand": "bun install",
-  "buildCommand": "turbo run build"
+  "buildCommand": "bun run db:migrate && turbo run build"
 }
 ```
 
@@ -321,6 +323,77 @@ Preview deploys are **manual only** — use the **Deploy Preview** GitHub Action
 cd apps/web && vercel        # Preview deploy
 cd apps/api && vercel        # Preview deploy
 ```
+
+---
+
+## Database Migrations
+
+Database migrations run automatically during the Vercel build and are protected by CI schema drift detection.
+
+### Automatic Migrations
+
+The API build command runs migrations before building:
+
+```json
+"buildCommand": "bun run db:migrate && turbo run build"
+```
+
+| Behavior | Details |
+|----------|---------|
+| **When** | Every API deploy to production (merge to `main`) |
+| **Idempotent** | Drizzle Kit tracks applied migrations — re-running is safe |
+| **On failure** | Build fails, Vercel keeps the previous production deployment live |
+| **On success** | Build continues, new code deploys with the updated schema |
+
+> **Note:** Because migrations run *before* the build, your database schema is always at least as new as the deployed code. There is no window where new code runs against an old schema.
+
+### Manual Rollback
+
+Drizzle Kit does not support automatic rollback (`db:rolldown`). If a migration causes issues:
+
+| Strategy | Steps |
+|----------|-------|
+| **Corrective migration** (preferred) | Write a new migration that undoes the change, commit, and push. The next deploy applies it automatically. |
+| **Revert and redeploy** | Revert the commit containing the bad migration, push to `main`. Vercel redeploys with the previous schema. Only works if the migration was additive (e.g., adding a column). Destructive migrations (dropping columns/tables) cannot be reverted this way. |
+
+### Schema Drift Detection
+
+CI automatically detects when a developer modifies Drizzle schema files but forgets to generate the corresponding migration.
+
+**How it works:**
+
+1. The `typecheck` job runs `bun run db:generate` with a dummy `DATABASE_URL`
+2. It checks `git diff` on the `apps/api/drizzle/` directory
+3. If uncommitted migration files are produced, CI fails
+
+**Error message you will see:**
+
+```
+Schema drift detected! Your Drizzle schema has changes that are not captured in a migration file.
+Run 'cd apps/api && bun run db:generate' locally and commit the generated migration.
+```
+
+**To fix:** Run `cd apps/api && bun run db:generate` locally, review the generated SQL, and commit it with your schema changes.
+
+### Preview Database Branches
+
+When deploying API previews, the Deploy Preview workflow creates an **isolated Neon database branch** so preview environments do not share the production database.
+
+| Step | What happens |
+|------|-------------|
+| `create-neon-branch` job | Creates a Neon branch named `preview/{branch}` with its own `DATABASE_URL` |
+| `deploy-api` job | Builds the API with the branch `DATABASE_URL`, runs `db:migrate` during build |
+| After review | Re-run the workflow with target `cleanup` to delete the Neon branch |
+
+**Cleanup:**
+
+1. Go to **Actions** &gt; **Deploy Preview**
+2. Click **Run workflow**
+3. Select the same branch used for the preview
+4. Choose target: **cleanup**
+5. Click **Run workflow**
+
+The workflow deletes the Neon branch named `preview/{branch}`. You can also delete branches directly from the [Neon console](https://console.neon.tech).
 
 ---
 
