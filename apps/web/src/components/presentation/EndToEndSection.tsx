@@ -1,8 +1,6 @@
-import { cn } from '@repo/ui'
+import { AnimatedSection, cn, useIntersectionVisibility } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
 import { ArrowRight } from 'lucide-react'
-import { AnimatedSection } from '@/components/AnimatedSection'
-import { useIntersectionVisibility } from '@/components/presentation/hooks'
 
 const pipelineSteps = [
   {

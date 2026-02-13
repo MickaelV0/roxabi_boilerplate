@@ -1,10 +1,5 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-
-vi.mock('@repo/ui', () => ({
-  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
-}))
-
 import { AnimatedSection } from './AnimatedSection'
 
 // Mock matchMedia
@@ -22,7 +17,7 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
-// Mock IntersectionObserver as a class
+// Mock IntersectionObserver — triggers callback on observe
 const mockObserve = vi.fn()
 const mockDisconnect = vi.fn()
 
@@ -35,8 +30,6 @@ class MockIntersectionObserver {
 
   observe = (...args: Parameters<IntersectionObserver['observe']>) => {
     mockObserve(...args)
-    // Trigger the callback after observe is called (simulating intersection)
-    // Using queueMicrotask so the observer variable is assigned in the source
     queueMicrotask(() => {
       this.callback(
         [{ isIntersecting: true } as IntersectionObserverEntry],
@@ -59,7 +52,6 @@ describe('AnimatedSection', () => {
       </AnimatedSection>
     )
 
-    // Wait for microtask to trigger intersection callback
     await vi.waitFor(() => {
       expect(screen.getByText('Hello World')).toBeInTheDocument()
     })

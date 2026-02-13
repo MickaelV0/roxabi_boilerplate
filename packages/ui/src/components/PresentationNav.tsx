@@ -1,6 +1,6 @@
-import { cn } from '@repo/ui'
-import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
+
+import { cn } from '@/lib/utils'
 
 type Section = {
   id: string
@@ -9,13 +9,13 @@ type Section = {
 
 type PresentationNavProps = {
   sections: ReadonlyArray<Section>
+  onEscape?: () => void
 }
 
-export function PresentationNav({ sections }: PresentationNavProps) {
+export function PresentationNav({ sections, onEscape }: PresentationNavProps) {
   const [activeIndex, setActiveIndex] = useState(0)
   const activeIndexRef = useRef(activeIndex)
   activeIndexRef.current = activeIndex
-  const navigate = useNavigate()
 
   // Track current section via IntersectionObserver
   useEffect(() => {
@@ -102,11 +102,11 @@ export function PresentationNav({ sections }: PresentationNavProps) {
         }
         case 'Escape': {
           e.preventDefault()
-          navigate({ to: '/' })
+          onEscape?.()
           break
         }
         default: {
-          // Number keys 1-7
+          // Number keys
           const num = Number.parseInt(e.key, 10)
           if (num >= 1 && num <= sections.length) {
             e.preventDefault()
@@ -118,7 +118,7 @@ export function PresentationNav({ sections }: PresentationNavProps) {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [sections, scrollToSection, navigate])
+  }, [sections, scrollToSection, onEscape])
 
   return (
     <nav

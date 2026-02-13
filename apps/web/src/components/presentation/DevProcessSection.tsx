@@ -1,7 +1,5 @@
-import { cn } from '@repo/ui'
+import { AnimatedSection, cn, StatCounter } from '@repo/ui'
 import { AlertTriangle, ArrowRight, CheckCircle2 } from 'lucide-react'
-import { AnimatedSection } from '@/components/AnimatedSection'
-import { StatCounter } from '@/components/presentation/StatCounter'
 
 const tiers = [
   {

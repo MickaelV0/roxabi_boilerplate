@@ -1,6 +1,7 @@
-import { cn } from '@repo/ui'
 import { useEffect, useRef, useState } from 'react'
-import { useIntersectionVisibility } from '@/components/presentation/hooks'
+
+import { useIntersectionVisibility } from '@/hooks/useIntersectionVisibility'
+import { cn } from '@/lib/utils'
 
 type StatCounterProps = {
   value: number

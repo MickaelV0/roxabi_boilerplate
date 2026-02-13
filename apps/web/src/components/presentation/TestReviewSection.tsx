@@ -1,6 +1,5 @@
-import { cn } from '@repo/ui'
+import { AnimatedSection, cn } from '@repo/ui'
 import { ArrowRight, CheckCircle2, MessageSquare } from 'lucide-react'
-import { AnimatedSection } from '@/components/AnimatedSection'
 
 const tddSteps = [
   {

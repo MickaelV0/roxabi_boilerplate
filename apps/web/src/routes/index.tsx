@@ -1,5 +1,5 @@
+import { AnimatedSection } from '@repo/ui'
 import { createFileRoute } from '@tanstack/react-router'
-import { AnimatedSection } from '@/components/AnimatedSection'
 import { Footer } from '@/components/Footer'
 import { AiTeamSection } from '@/components/landing/AiTeamSection'
 import { CtaSection } from '@/components/landing/CtaSection'

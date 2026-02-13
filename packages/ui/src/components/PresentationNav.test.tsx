@@ -1,16 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@repo/ui', () => ({
-  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
-}))
-
-// Mock TanStack Router — capture navigate calls
-const mockNavigate = vi.fn()
-vi.mock('@tanstack/react-router', () => ({
-  useNavigate: () => mockNavigate,
-}))
-
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -27,9 +17,13 @@ Object.defineProperty(window, 'matchMedia', {
 })
 
 // Mock IntersectionObserver (passive — keyboard tests don't need IO to fire)
-import { setupIntersectionObserverMock } from '@/test/mocks/intersection-observer'
+class MockIntersectionObserver {
+  observe: () => void = vi.fn()
+  disconnect: () => void = vi.fn()
+  unobserve: () => void = vi.fn()
+}
 
-setupIntersectionObserverMock('passive')
+vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
 
 import { PresentationNav } from './PresentationNav'
 
@@ -60,48 +54,42 @@ function createAllSectionElements(): HTMLElement[] {
   return sections.map((s) => createSectionElement(s.id))
 }
 
+const mockOnEscape = vi.fn()
+
 afterEach(() => {
-  // Clean up all DOM elements added during tests
   for (const el of testSectionElements) {
     if (el.parentNode) {
       el.parentNode.removeChild(el)
     }
   }
   testSectionElements = []
-  mockNavigate.mockClear()
+  mockOnEscape.mockClear()
 })
 
 describe('PresentationNav', () => {
   it('renders correct number of dots (8)', () => {
-    // Arrange & Act
     render(<PresentationNav sections={sections} />)
 
-    // Assert — one dot per section
     const dots = screen.getAllByRole('button')
     expect(dots).toHaveLength(8)
   })
 
   it('each dot has aria-label with section name', () => {
-    // Arrange & Act
     render(<PresentationNav sections={sections} />)
 
-    // Assert
     for (const section of sections) {
       expect(screen.getByLabelText(section.label)).toBeInTheDocument()
     }
   })
 
   it('click on dot triggers scroll behavior', () => {
-    // Arrange
     const sectionEl = createSectionElement('setup')
 
     render(<PresentationNav sections={sections} />)
 
-    // Act — click the "Setup" dot
     const setupDot = screen.getByLabelText('Setup')
     fireEvent.click(setupDot)
 
-    // Assert
     expect(sectionEl.scrollIntoView).toHaveBeenCalledWith(
       expect.objectContaining({ behavior: 'smooth' })
     )
@@ -109,82 +97,64 @@ describe('PresentationNav', () => {
 
   describe('keyboard navigation', () => {
     it('ArrowDown scrolls to next section', () => {
-      // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)
 
-      // Act — activeIndex starts at 0, ArrowDown should scroll to index 1
       fireEvent.keyDown(document, { key: 'ArrowDown' })
 
-      // Assert
       expect(elements[1]?.scrollIntoView).toHaveBeenCalledWith(
         expect.objectContaining({ behavior: 'smooth' })
       )
     })
 
     it('ArrowUp scrolls to previous section', () => {
-      // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)
 
-      // Act — activeIndex starts at 0, ArrowUp should clamp to 0
       fireEvent.keyDown(document, { key: 'ArrowUp' })
 
-      // Assert — scrolls to index 0 (clamped)
       expect(elements[0]?.scrollIntoView).toHaveBeenCalledWith(
         expect.objectContaining({ behavior: 'smooth' })
       )
     })
 
-    it('Escape calls navigate to go back', () => {
-      // Arrange
+    it('Escape calls onEscape callback', () => {
       createAllSectionElements()
-      render(<PresentationNav sections={sections} />)
+      render(<PresentationNav sections={sections} onEscape={mockOnEscape} />)
 
-      // Act
       fireEvent.keyDown(document, { key: 'Escape' })
 
-      // Assert
-      expect(mockNavigate).toHaveBeenCalledWith({ to: '/' })
+      expect(mockOnEscape).toHaveBeenCalledOnce()
     })
 
     it('number key scrolls to the correct section', () => {
-      // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)
 
-      // Act — press '2' to go to section index 1 (Setup)
       fireEvent.keyDown(document, { key: '2' })
 
-      // Assert
       expect(elements[1]?.scrollIntoView).toHaveBeenCalledWith(
         expect.objectContaining({ behavior: 'smooth' })
       )
     })
 
     it('Home scrolls to first section', () => {
-      // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)
 
-      // Act
       fireEvent.keyDown(document, { key: 'Home' })
 
-      // Assert
       expect(elements[0]?.scrollIntoView).toHaveBeenCalledWith(
         expect.objectContaining({ behavior: 'smooth' })
       )
     })
 
     it('End scrolls to last section', () => {
-      // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)
 
-      // Act
       fireEvent.keyDown(document, { key: 'End' })
 
-      // Assert
       expect(elements[7]?.scrollIntoView).toHaveBeenCalledWith(
         expect.objectContaining({ behavior: 'smooth' })
       )

@@ -1,10 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@repo/ui', () => ({
-  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
-}))
-
 // Mock matchMedia — default: no reduced motion preference
 const mockMatchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,
@@ -22,10 +18,28 @@ Object.defineProperty(window, 'matchMedia', {
   value: mockMatchMedia,
 })
 
-// Mock IntersectionObserver (active — triggers callback to start animation)
-import { setupIntersectionObserverMock } from '@/test/mocks/intersection-observer'
+// Mock IntersectionObserver — triggers callback on observe (active)
+class MockIntersectionObserver {
+  private callback: IntersectionObserverCallback
 
-setupIntersectionObserverMock('active')
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback
+  }
+
+  observe: () => void = () => {
+    queueMicrotask(() => {
+      this.callback(
+        [{ isIntersecting: true } as IntersectionObserverEntry],
+        this as unknown as IntersectionObserver
+      )
+    })
+  }
+
+  disconnect: () => void = vi.fn()
+  unobserve: () => void = vi.fn()
+}
+
+vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
 
 // Mock requestAnimationFrame to run callbacks synchronously
 let rafCallbacks: Array<FrameRequestCallback> = []
@@ -58,21 +72,17 @@ afterEach(() => {
 
 describe('StatCounter', () => {
   it('renders target value when animation completes', async () => {
-    // Arrange & Act
     render(<StatCounter value={808} label="Sessions" />)
 
-    // Wait for IntersectionObserver microtask to fire
     await vi.waitFor(() => {
       flushRaf()
       expect(screen.getByText('808')).toBeInTheDocument()
     })
 
-    // Assert
     expect(screen.getByText('Sessions')).toBeInTheDocument()
   })
 
   it('respects prefers-reduced-motion by showing final value immediately', async () => {
-    // Arrange — simulate reduced motion preference
     mockMatchMedia.mockImplementation((query: string) => ({
       matches: query === '(prefers-reduced-motion: reduce)',
       media: query,
@@ -84,10 +94,8 @@ describe('StatCounter', () => {
       dispatchEvent: vi.fn(),
     }))
 
-    // Act
     render(<StatCounter value={624} label="Commits" />)
 
-    // Assert — value should appear immediately without animation
     await vi.waitFor(() => {
       expect(screen.getByText('624')).toBeInTheDocument()
     })
@@ -95,16 +103,13 @@ describe('StatCounter', () => {
   })
 
   it('displays label and suffix correctly', async () => {
-    // Arrange & Act
     render(<StatCounter value={88} label="Completion Rate" suffix="%" />)
 
-    // Wait for animation to complete
     await vi.waitFor(() => {
       flushRaf()
       expect(screen.getByText('Completion Rate')).toBeInTheDocument()
     })
 
-    // Assert — suffix should appear alongside the number
     expect(screen.getByText(/%/)).toBeInTheDocument()
   })
 })

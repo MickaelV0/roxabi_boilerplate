@@ -1,6 +1,7 @@
-import { cn } from '@repo/ui'
 import type { ReactNode } from 'react'
-import { useIntersectionVisibility } from '@/components/presentation/hooks'
+
+import { useIntersectionVisibility } from '@/hooks/useIntersectionVisibility'
+import { cn } from '@/lib/utils'
 
 export function AnimatedSection({
   children,

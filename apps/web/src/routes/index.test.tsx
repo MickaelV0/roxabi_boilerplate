@@ -12,7 +12,7 @@ vi.mock('@tanstack/react-router', () => ({
   },
 }))
 
-vi.mock('@/components/AnimatedSection', () => ({
+vi.mock('@repo/ui', () => ({
   AnimatedSection: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
 }))
 

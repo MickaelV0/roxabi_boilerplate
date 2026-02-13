@@ -1,10 +1,12 @@
 // Components
+
 export {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from './components/Accordion'
+export { AnimatedSection } from './components/AnimatedSection'
 export {
   Avatar,
   AvatarBadge,
@@ -23,6 +25,7 @@ export {
   CardFooter,
   CardHeader,
   CardTitle,
+  cardVariants,
 } from './components/Card'
 export { Checkbox } from './components/Checkbox'
 export {
@@ -72,6 +75,7 @@ export type { OAuthButtonProps, OAuthProvider } from './components/OAuthButton'
 export { OAuthButton, oAuthButtonVariants } from './components/OAuthButton'
 export type { PasswordInputProps, PasswordStrength } from './components/PasswordInput'
 export { calculateStrength, PASSWORD_RULES, PasswordInput } from './components/PasswordInput'
+export { PresentationNav } from './components/PresentationNav'
 export {
   Select,
   SelectContent,
@@ -89,9 +93,12 @@ export { Skeleton } from './components/Skeleton'
 export { Slider } from './components/Slider'
 export type { ToasterProps } from './components/Sonner'
 export { Toaster } from './components/Sonner'
+export { StatCounter } from './components/StatCounter'
 export { Switch } from './components/Switch'
 export { Textarea } from './components/Textarea'
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './components/Tooltip'
+// Hooks
+export { useIntersectionVisibility } from './hooks/useIntersectionVisibility'
 // Theme engine
 export type {
   DerivedTheme,

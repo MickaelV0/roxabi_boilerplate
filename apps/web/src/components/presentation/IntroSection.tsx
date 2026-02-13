@@ -1,6 +1,4 @@
-import { Badge } from '@repo/ui'
-import { AnimatedSection } from '@/components/AnimatedSection'
-import { StatCounter } from '@/components/presentation/StatCounter'
+import { AnimatedSection, Badge, StatCounter } from '@repo/ui'
 
 export function IntroSection() {
   return (

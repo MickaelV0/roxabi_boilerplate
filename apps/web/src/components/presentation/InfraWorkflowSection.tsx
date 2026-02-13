@@ -1,6 +1,5 @@
-import { cn } from '@repo/ui'
+import { AnimatedSection, cn } from '@repo/ui'
 import { ArrowRight, GitBranch, Rocket, Shield } from 'lucide-react'
-import { AnimatedSection } from '@/components/AnimatedSection'
 import { CodeBlock } from '@/components/presentation/CodeBlock'
 
 const hooksPipeline = [

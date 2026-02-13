@@ -2,11 +2,15 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@repo/ui', () => ({
+  AnimatedSection: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
   Badge: ({ children }: React.PropsWithChildren) => <span>{children}</span>,
   Button: ({ children }: React.PropsWithChildren) => <button type="button">{children}</button>,
   Card: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
   CardContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
   cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
+  PresentationNav: () => <nav aria-label="Presentation sections" />,
+  StatCounter: ({ label }: { label: string }) => <div>{label}</div>,
+  useIntersectionVisibility: () => ({ ref: { current: null }, isVisible: true }),
 }))
 
 // Mock matchMedia

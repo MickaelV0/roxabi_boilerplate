@@ -1,11 +1,11 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { PresentationNav } from '@repo/ui'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { AgentTeamsSection } from '@/components/presentation/AgentTeamsSection'
 import { BuildingBlocksSection } from '@/components/presentation/BuildingBlocksSection'
 import { DevProcessSection } from '@/components/presentation/DevProcessSection'
 import { EndToEndSection } from '@/components/presentation/EndToEndSection'
 import { InfraWorkflowSection } from '@/components/presentation/InfraWorkflowSection'
 import { IntroSection } from '@/components/presentation/IntroSection'
-import { PresentationNav } from '@/components/presentation/PresentationNav'
 import { SectionContainer } from '@/components/presentation/SectionContainer'
 import { SetupSection } from '@/components/presentation/SetupSection'
 import { TestReviewSection } from '@/components/presentation/TestReviewSection'
@@ -27,6 +27,8 @@ const SECTIONS = [
 ] as const
 
 export function ClaudeCodePresentation() {
+  const navigate = useNavigate()
+
   return (
     <div className="relative bg-background text-foreground">
       {/* Roxabi wordmark */}
@@ -45,7 +47,7 @@ export function ClaudeCodePresentation() {
       </div>
 
       {/* Section navigation dots */}
-      <PresentationNav sections={SECTIONS} />
+      <PresentationNav sections={SECTIONS} onEscape={() => navigate({ to: '/' })} />
 
       {/* Scroll-snap container — disabled on mobile */}
       <div className="md:h-screen md:h-dvh md:overflow-y-auto md:snap-y md:snap-mandatory">

@@ -1,5 +1,4 @@
-import { cn } from '@repo/ui'
-import { AnimatedSection } from '@/components/AnimatedSection'
+import { AnimatedSection, cn } from '@repo/ui'
 
 type Agent = {
   name: string

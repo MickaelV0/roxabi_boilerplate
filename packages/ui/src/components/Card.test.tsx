@@ -25,6 +25,21 @@ describe('Card', () => {
     const { container } = render(<Card className="custom-class">Content</Card>)
     expect(container.querySelector('[data-slot="card"]')).toHaveClass('custom-class')
   })
+
+  it('uses default variant by default', () => {
+    const { container } = render(<Card>Content</Card>)
+    const card = container.querySelector('[data-slot="card"]')
+    expect(card).toHaveAttribute('data-variant', 'default')
+    expect(card).toHaveClass('shadow-sm')
+  })
+
+  it('applies subtle variant', () => {
+    const { container } = render(<Card variant="subtle">Content</Card>)
+    const card = container.querySelector('[data-slot="card"]')
+    expect(card).toHaveAttribute('data-variant', 'subtle')
+    expect(card).toHaveClass('bg-card/50')
+    expect(card).not.toHaveClass('shadow-sm')
+  })
 })
 
 describe('CardHeader', () => {

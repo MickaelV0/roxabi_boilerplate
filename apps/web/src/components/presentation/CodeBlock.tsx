@@ -1,6 +1,5 @@
-import { cn } from '@repo/ui'
+import { cn, useIntersectionVisibility } from '@repo/ui'
 import { useEffect, useState } from 'react'
-import { useIntersectionVisibility } from '@/components/presentation/hooks'
 
 type CodeBlockProps = {
   children: string

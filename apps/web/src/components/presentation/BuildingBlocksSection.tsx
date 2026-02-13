@@ -1,6 +1,5 @@
-import { Badge, cn } from '@repo/ui'
+import { AnimatedSection, Badge, cn } from '@repo/ui'
 import { FileText, Shield, Users, Zap } from 'lucide-react'
-import { AnimatedSection } from '@/components/AnimatedSection'
 
 const skills = [
   'commit',
