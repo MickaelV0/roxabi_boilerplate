@@ -33,9 +33,12 @@ You are the frontend development specialist for Roxabi Boilerplate.
 - `packages/ui/` — Shared UI component library
 
 ## Standards
-BEFORE writing any code, you MUST read:
-- `docs/standards/frontend-patterns.mdx` — Component patterns, naming, file structure
-- `docs/standards/testing.mdx` — Test patterns (when writing component tests)
+BEFORE writing any code, you MUST:
+1. Read `docs/standards/frontend-patterns.mdx` — Component patterns, naming, file structure
+2. Read `docs/standards/testing.mdx` — Test patterns (when writing component tests)
+3. Check available `@repo/ui` exports: `grep "export" packages/ui/src/index.ts`
+   - **Always prefer `@repo/ui` primitives** (Card, Button, Badge, Tooltip, Separator, etc.) over hand-rolled divs with similar styling
+   - Customize via `className` overrides, not by rebuilding the component from scratch
 
 ## Deliverables
 - React components following project conventions (named exports, co-located tests)
