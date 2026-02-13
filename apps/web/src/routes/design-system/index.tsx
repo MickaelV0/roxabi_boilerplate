@@ -662,7 +662,7 @@ function ComponentsSection() {
         {/* Button */}
         <ComponentShowcase
           name="Button"
-          category="Inputs"
+          category={m.ds_category_inputs()}
           propControls={[
             {
               name: 'variant',
@@ -686,7 +686,7 @@ function ComponentsSection() {
               size={props.size as 'default'}
               disabled={Boolean(props.disabled)}
             >
-              {props.size === 'icon' ? 'A' : 'Click me'}
+              {props.size === 'icon' ? 'A' : m.ds_demo_click_me()}
             </Button>
           )}
         </ComponentShowcase>
@@ -694,7 +694,7 @@ function ComponentsSection() {
         {/* Badge */}
         <ComponentShowcase
           name="Badge"
-          category="Data Display"
+          category={m.ds_category_data_display()}
           propControls={[
             {
               name: 'variant',
@@ -712,9 +712,9 @@ function ComponentsSection() {
         {/* Input */}
         <ComponentShowcase
           name="Input"
-          category="Inputs"
+          category={m.ds_category_inputs()}
           propControls={[
-            { name: 'placeholder', type: 'text', defaultValue: 'Type something...' },
+            { name: 'placeholder', type: 'text', defaultValue: m.ds_demo_type_something() },
             { name: 'disabled', type: 'boolean', defaultValue: false },
           ]}
         >
@@ -730,9 +730,9 @@ function ComponentsSection() {
         {/* Textarea */}
         <ComponentShowcase
           name="Textarea"
-          category="Inputs"
+          category={m.ds_category_inputs()}
           propControls={[
-            { name: 'placeholder', type: 'text', defaultValue: 'Enter a message...' },
+            { name: 'placeholder', type: 'text', defaultValue: m.ds_demo_enter_message() },
             { name: 'disabled', type: 'boolean', defaultValue: false },
           ]}
         >
@@ -748,13 +748,13 @@ function ComponentsSection() {
         {/* Checkbox */}
         <ComponentShowcase
           name="Checkbox"
-          category="Inputs"
+          category={m.ds_category_inputs()}
           propControls={[{ name: 'disabled', type: 'boolean', defaultValue: false }]}
         >
           {(props) => (
             <div className="flex items-center gap-2">
               <Checkbox id="demo-cb" disabled={Boolean(props.disabled)} />
-              <Label htmlFor="demo-cb">Accept terms and conditions</Label>
+              <Label htmlFor="demo-cb">{m.ds_demo_accept_terms()}</Label>
             </div>
           )}
         </ComponentShowcase>
@@ -762,28 +762,28 @@ function ComponentsSection() {
         {/* Switch */}
         <ComponentShowcase
           name="Switch"
-          category="Inputs"
+          category={m.ds_category_inputs()}
           propControls={[{ name: 'disabled', type: 'boolean', defaultValue: false }]}
         >
           {(props) => (
             <div className="flex items-center gap-2">
               <Switch id="demo-sw" disabled={Boolean(props.disabled)} />
-              <Label htmlFor="demo-sw">Airplane Mode</Label>
+              <Label htmlFor="demo-sw">{m.ds_demo_airplane_mode()}</Label>
             </div>
           )}
         </ComponentShowcase>
 
         {/* Select */}
-        <ComponentShowcase name="Select" category="Inputs" propControls={[]}>
+        <ComponentShowcase name="Select" category={m.ds_category_inputs()} propControls={[]}>
           {() => (
             <Select>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Pick a fruit" />
+                <SelectValue placeholder={m.ds_demo_pick_fruit()} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="apple">Apple</SelectItem>
-                <SelectItem value="banana">Banana</SelectItem>
-                <SelectItem value="cherry">Cherry</SelectItem>
+                <SelectItem value="apple">{m.ds_demo_apple()}</SelectItem>
+                <SelectItem value="banana">{m.ds_demo_banana()}</SelectItem>
+                <SelectItem value="cherry">{m.ds_demo_cherry()}</SelectItem>
               </SelectContent>
             </Select>
           )}
@@ -792,7 +792,7 @@ function ComponentsSection() {
         {/* Slider */}
         <ComponentShowcase
           name="Slider"
-          category="Inputs"
+          category={m.ds_category_inputs()}
           propControls={[{ name: 'disabled', type: 'boolean', defaultValue: false }]}
         >
           {(props) => (
@@ -807,20 +807,20 @@ function ComponentsSection() {
         </ComponentShowcase>
 
         {/* Card */}
-        <ComponentShowcase name="Card" category="Layout" propControls={[]}>
+        <ComponentShowcase name="Card" category={m.ds_category_layout()} propControls={[]}>
           {() => (
             <Card className="max-w-sm">
               <CardHeader>
-                <CardTitle>Card Title</CardTitle>
-                <CardDescription>Card description with supporting text.</CardDescription>
+                <CardTitle>{m.ds_demo_card_title()}</CardTitle>
+                <CardDescription>{m.ds_demo_card_desc()}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">Card content goes here.</p>
+                <p className="text-sm text-muted-foreground">{m.ds_demo_card_content()}</p>
               </CardContent>
               <CardFooter className="gap-2">
-                <Button size="sm">Action</Button>
+                <Button size="sm">{m.ds_demo_action()}</Button>
                 <Button size="sm" variant="outline">
-                  Cancel
+                  {m.common_cancel()}
                 </Button>
               </CardFooter>
             </Card>
@@ -828,11 +828,11 @@ function ComponentsSection() {
         </ComponentShowcase>
 
         {/* Avatar */}
-        <ComponentShowcase name="Avatar" category="Data Display" propControls={[]}>
+        <ComponentShowcase name="Avatar" category={m.ds_category_data_display()} propControls={[]}>
           {() => (
             <div className="flex items-center gap-4">
               <Avatar>
-                <AvatarImage src="https://github.com/shadcn.png" alt="User" />
+                <AvatarImage src="https://github.com/shadcn.png" alt={m.ds_demo_user()} />
                 <AvatarFallback>CN</AvatarFallback>
               </Avatar>
               <Avatar>
@@ -846,24 +846,24 @@ function ComponentsSection() {
         </ComponentShowcase>
 
         {/* Separator */}
-        <ComponentShowcase name="Separator" category="Layout" propControls={[]}>
+        <ComponentShowcase name="Separator" category={m.ds_category_layout()} propControls={[]}>
           {() => (
             <div className="max-w-sm space-y-4">
               <div>
-                <h4 className="text-sm font-medium">Section Above</h4>
-                <p className="text-sm text-muted-foreground">Content above the separator.</p>
+                <h4 className="text-sm font-medium">{m.ds_demo_section_above()}</h4>
+                <p className="text-sm text-muted-foreground">{m.ds_demo_content_above()}</p>
               </div>
               <Separator />
               <div>
-                <h4 className="text-sm font-medium">Section Below</h4>
-                <p className="text-sm text-muted-foreground">Content below the separator.</p>
+                <h4 className="text-sm font-medium">{m.ds_demo_section_below()}</h4>
+                <p className="text-sm text-muted-foreground">{m.ds_demo_content_below()}</p>
               </div>
             </div>
           )}
         </ComponentShowcase>
 
         {/* Skeleton */}
-        <ComponentShowcase name="Skeleton" category="Feedback" propControls={[]}>
+        <ComponentShowcase name="Skeleton" category={m.ds_category_feedback()} propControls={[]}>
           {() => (
             <div className="flex items-center gap-4">
               <Skeleton className="size-12 rounded-full" />
@@ -876,15 +876,15 @@ function ComponentsSection() {
         </ComponentShowcase>
 
         {/* Tooltip */}
-        <ComponentShowcase name="Tooltip" category="Feedback" propControls={[]}>
+        <ComponentShowcase name="Tooltip" category={m.ds_category_feedback()} propControls={[]}>
           {() => (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline">Hover me</Button>
+                  <Button variant="outline">{m.ds_demo_hover_me()}</Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>This is a tooltip</p>
+                  <p>{m.ds_demo_tooltip_text()}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
