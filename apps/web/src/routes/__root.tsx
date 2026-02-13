@@ -11,7 +11,7 @@ import {
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { RootProvider } from 'fumadocs-ui/provider/tanstack'
 import { ErrorBoundary } from 'react-error-boundary'
-import * as m from '@/paraglide/messages'
+import { m } from '@/paraglide/messages'
 import { getLocale } from '@/paraglide/runtime'
 import { Header } from '../components/Header'
 import { TanStackQueryDevtools } from '../integrations/tanstack-query/devtools'
@@ -22,29 +22,25 @@ export type MyRouterContext = {
   queryClient: QueryClient
 }
 
-const LABELS = {
-  errorTitle: 'Something went wrong',
-} as const
-
-function ErrorFallback({
+export function ErrorFallback({
   error,
   resetErrorBoundary,
 }: {
   error: unknown
   resetErrorBoundary: () => void
 }) {
-  const message = error instanceof Error ? error.message : 'An unexpected error occurred'
+  const message = error instanceof Error ? error.message : m.error_unexpected()
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="max-w-md p-8 bg-card rounded-lg shadow-lg text-center">
-        <h2 className="text-2xl font-bold text-destructive mb-4">{LABELS.errorTitle}</h2>
+        <h2 className="text-2xl font-bold text-destructive mb-4">{m.error_title()}</h2>
         <p className="text-muted-foreground mb-4">{message}</p>
         <button
           type="button"
           onClick={resetErrorBoundary}
           className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
         >
-          Try again
+          {m.error_try_again()}
         </button>
       </div>
     </div>
@@ -85,11 +81,13 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   shellComponent: RootDocument,
 })
 
-function NotFound() {
+export function NotFound() {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center text-center px-4">
-      <h1 className="text-7xl font-bold text-muted-foreground/50">{m.not_found_code()}</h1>
-      <h2 className="mt-4 text-2xl font-semibold">{m.not_found_title()}</h2>
+      <p className="text-7xl font-bold text-muted-foreground/50" aria-hidden="true">
+        {'404'}
+      </p>
+      <h1 className="mt-4 text-2xl font-semibold">{m.not_found_title()}</h1>
       <p className="mt-2 max-w-md text-muted-foreground">{m.not_found_description()}</p>
       <Button asChild className="mt-8">
         <Link to="/">{m.not_found_go_home()}</Link>
