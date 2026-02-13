@@ -98,6 +98,18 @@ jobs:
         env:
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
 
+      - name: Check for schema drift
+        run: |
+          cd apps/api && bun run db:generate
+          if ! git diff --exit-code --quiet apps/api/drizzle/; then
+            echo "::error::Schema drift detected! Your Drizzle schema has changes that are not captured in a migration file."
+            echo "::error::Run 'cd apps/api && bun run db:generate' locally and commit the generated migration."
+            git diff --stat apps/api/drizzle/
+            exit 1
+          fi
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
   test:
     name: Test
     runs-on: ubuntu-latest
