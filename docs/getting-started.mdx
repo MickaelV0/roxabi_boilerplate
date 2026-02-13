@@ -38,80 +38,15 @@ git remote remove origin
 gh repo create my-project --private --source=. --push
 ```
 
-## 2. Configure GitHub Project
+## 2. Configure GitHub Project & Labels
 
-### Create the project
+Set up the project board, status columns, custom fields (Size, Priority), labels, and board automation workflows.
 
-```bash
-# Create a GitHub project to track issues and PRs
-gh project create --owner @me --title "My Project"
-```
+> Full setup instructions: [Issue Management > Project Board Setup](./processes/issue-management#project-board-setup)
 
-### Enable auto-add
+Labels are included in the template repo. If creating manually, the issue management doc has the full `gh label create` commands.
 
-1. Go to https://github.com/users/YOUR_USERNAME/projects/N/settings
-2. In **Workflows** > **Auto-add to project**
-3. Enable the workflow
-4. Configure the filter: `is:issue,pr repo:YOUR_USERNAME/my-project`
-5. Save
-
-Or via API:
-```bash
-# List projects to find the ID
-gh project list --owner @me
-
-# The auto-add workflow must be configured via GitHub UI
-# as the API doesn't support this feature yet
-```
-
-### Configure project columns
-
-Recommended columns:
-- **Backlog** - Issues to prioritize
-- **Todo** - Ready to be picked up
-- **In Progress** - Currently being developed
-- **In Review** - PR open, awaiting review
-- **Done** - Completed
-
-### Add custom fields
-
-In the project settings, add:
-
-| Field | Type | Values |
-|-------|------|--------|
-| Priority | Single select | P0, P1, P2, P3 |
-| Size | Single select | XS, S, M, L, XL |
-| Sprint | Iteration | 2 weeks |
-
-## 3. Configure Labels
-
-Labels are already created if you use the template. Otherwise:
-
-```bash
-# Type labels
-gh label create setup --color "0E8A16" --description "Infrastructure & setup"
-gh label create feature --color "A2EEEF" --description "New feature"
-gh label create bug --color "D73A4A" --description "Bug fix"
-gh label create dx --color "1D76DB" --description "Developer Experience"
-gh label create docs --color "D4C5F9" --description "Documentation"
-gh label create ai --color "FBCA04" --description "AI agents & skills"
-gh label create workflow --color "C2E0C6" --description "Workflow & processes"
-
-# Priority labels
-gh label create P0 --color "7A0000" --description "Priority 0 - Urgent (blocking)"
-gh label create P1 --color "B60205" --description "Priority 1 - Critical"
-gh label create P2 --color "D93F0B" --description "Priority 2 - Important"
-gh label create P3 --color "FBCA04" --description "Priority 3 - Nice to have"
-
-# Size labels
-gh label create XS --color "E6E6E6" --description "Size: Extra Small"
-gh label create S --color "C5DEF5" --description "Size: Small"
-gh label create M --color "BFD4F2" --description "Size: Medium"
-gh label create L --color "7057FF" --description "Size: Large"
-gh label create XL --color "D876E3" --description "Size: Extra Large"
-```
-
-## 4. Configure GitHub Repository
+## 3. Configure GitHub Repository
 
 ### Rename default branch to main
 
@@ -170,7 +105,7 @@ gh api repos/OWNER/REPO/branches/main/protection -X PUT \
 EOF
 ```
 
-## 5. Configure CI/CD (Optional)
+## 4. Configure CI/CD (Optional)
 
 CI/CD workflows are included and work out of the box. For faster builds, configure Turbo Remote Cache:
 
@@ -203,14 +138,14 @@ No Docker or SSH needed — Vercel watches the GitHub repo directly.
 
 > **First-time setup:** Create two Vercel projects (web + API) from the same repo. See the [Deployment Guide](./guides/deployment).
 
-## 6. Install Dependencies
+## 5. Install Dependencies
 
 ```bash
 # Install all monorepo dependencies
 bun install
 ```
 
-## 7. Configure Environment
+## 6. Configure Environment
 
 ```bash
 # Copy the example file
@@ -220,7 +155,7 @@ cp .env.example .env
 # DATABASE_URL, API keys, etc.
 ```
 
-## 8. Start the Database
+## 7. Start the Database
 
 ```bash
 # Start PostgreSQL via Docker Compose
@@ -234,7 +169,7 @@ docker compose ps
 
 > **Troubleshooting:** If port 5432 is already in use, stop your local PostgreSQL first (`sudo systemctl stop postgresql` or `brew services stop postgresql`).
 
-## 9. Run the Project
+## 8. Run the Project
 
 ```bash
 # Run all apps in dev mode
@@ -245,7 +180,7 @@ bun --filter @repo/web dev
 bun --filter @repo/api dev
 ```
 
-## 10. Verify Installation
+## 9. Verify Installation
 
 - Frontend: http://localhost:3000
 - API: http://localhost:3001

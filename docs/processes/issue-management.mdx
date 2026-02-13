@@ -1,12 +1,70 @@
 ---
 title: Issue Management
-description: Full issue lifecycle — creation, triage, blockers, labels, and resolution
+description: GitHub project setup, issue lifecycle, triage, labels, board automation, and dependencies
 ---
 
 ## Issue Lifecycle
 
 ```
 Create → Triage → Prioritize → Assign → Implement → Review → Close
+```
+
+---
+
+## Project Board Setup
+
+### Create the project
+
+```bash
+gh project create --owner @me --title "My Project"
+```
+
+### Status columns
+
+| Status | Description |
+|--------|-------------|
+| **Backlog** | Not yet started, waiting to be picked up |
+| **Analysis** | Being researched / analyzed |
+| **Specs** | Specification in progress or done |
+| **In Progress** | Active development (has worktree/branch) |
+| **Review** | In code review / PR open |
+| **Done** | Completed and merged |
+
+### Custom fields
+
+Add these in **Project Settings > Fields**:
+
+| Field | Type | Values |
+|-------|------|--------|
+| Priority | Single select | P0 - Urgent, P1 - High, P2 - Medium, P3 - Low |
+| Size | Single select | XS, S, M, L, XL |
+
+### Labels
+
+Labels are included in the template repo. To create them manually:
+
+```bash
+# Type labels
+gh label create setup --color "0E8A16" --description "Infrastructure & setup"
+gh label create feature --color "A2EEEF" --description "New feature"
+gh label create bug --color "D73A4A" --description "Bug fix"
+gh label create dx --color "1D76DB" --description "Developer Experience"
+gh label create docs --color "D4C5F9" --description "Documentation"
+gh label create ai --color "FBCA04" --description "AI agents & skills"
+gh label create workflow --color "C2E0C6" --description "Workflow & processes"
+
+# Priority labels
+gh label create P0 --color "7A0000" --description "Priority 0 - Urgent (blocking)"
+gh label create P1 --color "B60205" --description "Priority 1 - Critical"
+gh label create P2 --color "D93F0B" --description "Priority 2 - Important"
+gh label create P3 --color "FBCA04" --description "Priority 3 - Nice to have"
+
+# Size labels
+gh label create XS --color "E6E6E6" --description "Size: Extra Small"
+gh label create S --color "C5DEF5" --description "Size: Small"
+gh label create M --color "BFD4F2" --description "Size: Medium"
+gh label create L --color "7057FF" --description "Size: Large"
+gh label create XL --color "D876E3" --description "Size: Extra Large"
 ```
 
 ---
@@ -67,6 +125,38 @@ Use the `/issue-triage` skill to identify and label untriaged issues:
 
 ---
 
+## Project Board Automation
+
+The [GitHub Project board](https://github.com/users/MickaelV0/projects/6) uses built-in workflows to automate status transitions. All 8 workflows are enabled:
+
+| Workflow | Trigger | Action |
+|----------|---------|--------|
+| **Item added to project** | Issue/PR added to board | Set Status = **Backlog** |
+| **Auto-add to project** | Issue/PR created in repo | Add to project board |
+| **Auto-add sub-issues to project** | Sub-issue created | Add to project board |
+| **Item closed** | Issue/PR closed (not planned) | Set Status = **Done** |
+| **Auto-close issue** | Issue marked Done on board | Close the GitHub issue |
+| **Pull request merged** | PR merged | Set Status = **Done** |
+| **Pull request linked to issue** | PR linked to issue | Set Status = **In Progress** |
+| **Auto-archive items** | Item closed for 2+ weeks | Archive from board |
+
+### Configuration
+
+Workflow rules are **UI-only** — the GitHub API does not support creating, updating, or reading workflow configuration. Only `name` and `enabled` status are exposed via GraphQL.
+
+To view or edit workflows: **Project Settings > Workflows**
+
+```bash
+# Read-only: list workflow names and enabled status
+gh api graphql -f query='query($pid: ID!) {
+  node(id: $pid) { ... on ProjectV2 {
+    workflows(first: 20) { nodes { name enabled } }
+  }}
+}' -f pid="PVT_kwHODEqYK84BOId3"
+```
+
+---
+
 ## Blockers & Dependencies
 
 ### Adding a Blocker
@@ -123,44 +213,22 @@ The output shows block status for each issue:
 
 ---
 
-## Labels
-
-### Priority Labels
-
-| Label | Description |
-|-------|-------------|
-| `P0` | Urgent — blocking or critical |
-| `P1` | High — current milestone |
-| `P2` | Medium — plan soon |
-| `P3` | Low — nice to have |
-
-### Size Labels
-
-| Label | Description |
-|-------|-------------|
-| `XS` | Trivial change (&lt;1 hour) |
-| `S` | Small change (few hours) |
-| `M` | Medium change (1-2 days) |
-| `L` | Large change (3-5 days) |
-| `XL` | Epic (needs breakdown) |
+## Labels Reference
 
 ### Type Labels
 
-| Label | Description |
-|-------|-------------|
-| `feature` | New functionality |
-| `bug` | Something broken |
-| `docs` | Documentation |
-| `dx` | Developer experience |
-| `ai` | AI/Agent related |
-| `workflow` | Process improvement |
-| `setup` | Infrastructure setup |
+| Label | Color | Description |
+|-------|-------|-------------|
+| `setup` | green | Infrastructure & setup |
+| `feature` | cyan | New feature |
+| `bug` | red | Bug fix |
+| `dx` | blue | Developer Experience |
+| `docs` | purple | Documentation |
+| `ai` | yellow | AI agents & skills |
+| `workflow` | green | Workflow & processes |
+| `blocked` | - | Issue is blocked by another issue |
 
-### Status Labels
-
-| Label | Description |
-|-------|-------------|
-| `blocked` | Issue is blocked by another issue |
+> Priority labels (`P0`–`P3`) and Size labels (`XS`–`XL`) mirror the project board fields. See [Triage](#triage) for definitions.
 
 ---
 
