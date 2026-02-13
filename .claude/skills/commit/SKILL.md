@@ -48,7 +48,7 @@ Run these checks on staged files before generating a commit message. If any chec
 
 If staged changes span **more than 3 files** and the working directory is NOT a worktree (i.e., the main repo checkout):
 
-> "You're modifying {N} files on `{branch}`. Consider using a worktree (Tier M+)."
+> "You're modifying {N} files on `{branch}`. Consider using a worktree (required for Tier F)."
 
 Present this as a **warning** via `AskUserQuestion` with options to continue or abort. Do NOT block.
 
@@ -115,7 +115,8 @@ Analyze the diff to determine the commit type:
 | `docs` | Documentation only (`.md`, `.mdx`, `SKILL.md`, etc.) |
 | `style` | Formatting, whitespace, linting fixes |
 | `test` | Adding or updating tests |
-| `chore` | Config, dependencies, tooling, CI |
+| `chore` | Config, dependencies, tooling |
+| `ci` | CI/CD pipeline changes |
 | `perf` | Performance improvements |
 
 #### Determine scope

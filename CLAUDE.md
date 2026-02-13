@@ -183,7 +183,7 @@ Is this a code change?
     │   └── Single session + optional tester subagent
     │
     ├── Tier F-lite (clear scope, documented requirements)
-    │   ├── Spawn agents (skip bootstrap):
+    │   ├── /scaffold (spec → PR, skip bootstrap):
     │   │   ├── Single-domain → subagents (Task tool)
     │   │   └── Multi-domain  → Agent Teams (TeamCreate)
     │   │   ├── Frontend? → frontend-dev + tester
@@ -193,8 +193,8 @@ Is this a code change?
     │   └── Then /review (fresh domain reviewers + 1b1 + fixer)
     │
     └── Tier F-full (new arch, unclear requirements, >2 domains)
-        ├── Bootstrap (/bootstrap): product-lead + architect + doc-writer
-        ├── Spawn agents:
+        ├── /bootstrap (idea → spec): product-lead + architect + doc-writer
+        ├── /scaffold (spec → PR):
         │   ├── Single-domain → subagents (Task tool)
         │   └── Multi-domain  → Agent Teams (TeamCreate)
         │   ├── Frontend? → frontend-dev + tester

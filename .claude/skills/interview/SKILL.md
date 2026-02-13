@@ -132,8 +132,6 @@ description: {One-line description of what is being explored}
 type: brainstorm
 ---
 
-# Brainstorm: {Title}
-
 ## Trigger
 
 {What started this exploration — the problem, opportunity, or question}
@@ -167,8 +165,6 @@ title: "{Title}"
 description: {One-line description of the analysis}
 ---
 
-# {Title}
-
 ## Context
 
 {Why this analysis exists — background, motivation, triggering event}
@@ -201,8 +197,6 @@ Output path: `docs/specs/{issue}-{slug}.mdx`
 title: "{Title}"
 description: {One-line description of the feature or project}
 ---
-
-# #{issue} — {Title}
 
 ## Context
 

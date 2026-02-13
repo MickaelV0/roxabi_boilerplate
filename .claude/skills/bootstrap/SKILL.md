@@ -1,6 +1,6 @@
 ---
 argument-hint: ["idea" | --issue <N> | --spec <N>]
-description: Planning orchestrator from idea to approved implementation plan, with three validation gates.
+description: Planning orchestrator from idea to approved spec, with two validation gates.
 allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Task
 ---
 
@@ -117,7 +117,7 @@ Present the spec to the user via **AskUserQuestion**:
 > "Here is the spec. Please review it."
 
 Options:
-- **Approve** -- Proceed to Gate 3 (Implementation Plan)
+- **Approve** -- Bootstrap complete, proceed to completion
 - **Reject** -- Provide feedback and re-enter Gate 2
 
 **If rejected:** Collect user feedback, adjust the spec or re-run the interview. Re-present for approval. Do not proceed until approved.
@@ -150,11 +150,27 @@ Use the triage helper to update status. Replace `<ISSUE_NUMBER>` with the actual
 
 ## Completion
 
-Once both gates are passed, inform the user:
+Once both gates are passed:
 
-> "Bootstrap complete. You have an approved analysis and spec. Run `/scaffold --spec <N>` to execute."
+1. **Commit** the analysis and spec documents:
+   ```bash
+   git add docs/analyses/<slug>.mdx docs/specs/<issue>-<slug>.mdx
+   git commit -m "$(cat <<'EOF'
+   docs(<scope>): add analysis and spec for <feature>
 
-**Do not scaffold, commit, or create PRs.** Bootstrap stops at the approved spec.
+   Refs #<issue_number>
+
+   Co-Authored-By: Claude <model> <noreply@anthropic.com>
+   EOF
+   )"
+   ```
+   Include `meta.json` files if they were updated.
+
+2. **Inform the user:**
+
+> "Bootstrap complete. You have an approved analysis and spec (committed). Run `/scaffold --spec <N>` to execute."
+
+**Do not scaffold or create PRs.** Bootstrap stops at the approved spec.
 
 ## Edge Cases
 
@@ -165,7 +181,7 @@ Once both gates are passed, inform the user:
 | User rejects at any gate | Stop, collect feedback, re-enter the same gate |
 | `--spec N` but no spec found | Inform user: "No spec found matching issue #N. Try `/bootstrap --issue N` or `/bootstrap 'your idea'` to start from scratch." |
 | Analysis exists but is a brainstorm | Treat as "no analysis" -- invoke `/interview` to promote brainstorm to analysis |
-| `/interview` or `/plan` skill fails | Report the error to the user and stop |
+| `/interview` skill fails | Report the error to the user and stop |
 | Issue already has a branch or open PR | Stop and propose `/review` or `/scaffold` instead (Step 0b) |
 
 ## Skill Invocation Reference
