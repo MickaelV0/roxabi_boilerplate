@@ -10,6 +10,7 @@ import {
   Input,
   Label,
 } from '@repo/ui'
+import { m } from '@/paraglide/messages'
 
 /**
  * Auth form composition patterns.
@@ -27,70 +28,82 @@ export function AuthForms() {
       {/* Login form */}
       <Card>
         <CardHeader>
-          <CardTitle>Login</CardTitle>
-          <CardDescription>Enter your credentials</CardDescription>
+          <CardTitle>{m.ds_auth_login()}</CardTitle>
+          <CardDescription>{m.ds_auth_login_desc()}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="login-email">Email</Label>
-            <Input id="login-email" type="email" placeholder="name@example.com" />
+            <Label htmlFor="login-email">{m.ds_auth_email()}</Label>
+            <Input id="login-email" type="email" placeholder={m.ds_auth_email_placeholder()} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="login-password">Password</Label>
-            <Input id="login-password" type="password" placeholder="Enter your password" />
+            <Label htmlFor="login-password">{m.ds_auth_password()}</Label>
+            <Input
+              id="login-password"
+              type="password"
+              placeholder={m.ds_auth_password_placeholder()}
+            />
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Checkbox id="login-remember" />
               <Label htmlFor="login-remember" className="text-sm font-normal">
-                Remember me
+                {m.ds_auth_remember_me()}
               </Label>
             </div>
             <button
               type="button"
               className="text-primary text-sm underline-offset-4 hover:underline"
             >
-              Forgot password?
+              {m.ds_auth_forgot_password()}
             </button>
           </div>
         </CardContent>
         <CardFooter>
-          <Button className="w-full">Sign in</Button>
+          <Button className="w-full">{m.ds_auth_sign_in()}</Button>
         </CardFooter>
       </Card>
 
       {/* Signup form */}
       <Card>
         <CardHeader>
-          <CardTitle>Create Account</CardTitle>
-          <CardDescription>Get started with a free account</CardDescription>
+          <CardTitle>{m.ds_auth_create_account()}</CardTitle>
+          <CardDescription>{m.ds_auth_create_account_desc()}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="signup-name">Full name</Label>
-            <Input id="signup-name" type="text" placeholder="Jane Doe" />
+            <Label htmlFor="signup-name">{m.ds_auth_full_name()}</Label>
+            <Input id="signup-name" type="text" placeholder={m.ds_auth_name_placeholder()} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="signup-email">Email</Label>
-            <Input id="signup-email" type="email" placeholder="name@example.com" />
+            <Label htmlFor="signup-email">{m.ds_auth_email()}</Label>
+            <Input id="signup-email" type="email" placeholder={m.ds_auth_email_placeholder()} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="signup-password">Password</Label>
-            <Input id="signup-password" type="password" placeholder="Create a password" />
+            <Label htmlFor="signup-password">{m.ds_auth_password()}</Label>
+            <Input
+              id="signup-password"
+              type="password"
+              placeholder={m.ds_auth_create_password_placeholder()}
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="signup-confirm">Confirm password</Label>
-            <Input id="signup-confirm" type="password" placeholder="Confirm your password" />
+            <Label htmlFor="signup-confirm">{m.ds_auth_confirm_password()}</Label>
+            <Input
+              id="signup-confirm"
+              type="password"
+              placeholder={m.ds_auth_confirm_password_placeholder()}
+            />
           </div>
           <div className="flex items-center gap-2">
             <Checkbox id="signup-terms" />
             <Label htmlFor="signup-terms" className="text-sm font-normal">
-              I agree to the Terms of Service
+              {m.ds_auth_agree_terms()}
             </Label>
           </div>
         </CardContent>
         <CardFooter>
-          <Button className="w-full">Create account</Button>
+          <Button className="w-full">{m.ds_auth_create_account_button()}</Button>
         </CardFooter>
       </Card>
     </div>
