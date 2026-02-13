@@ -20,13 +20,14 @@ const envSchema = z.object({
   // Rate limiting & Upstash Redis
   UPSTASH_REDIS_REST_URL: z.string().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
-  RATE_LIMIT_ENABLED: z.string().default('true'),
-  SWAGGER_ENABLED: z.string().optional(),
-  RATE_LIMIT_GLOBAL_TTL: z.coerce.number().default(60_000),
-  RATE_LIMIT_GLOBAL_LIMIT: z.coerce.number().default(60),
-  RATE_LIMIT_AUTH_TTL: z.coerce.number().default(60_000),
-  RATE_LIMIT_AUTH_LIMIT: z.coerce.number().default(5),
-  RATE_LIMIT_AUTH_BLOCK_DURATION: z.coerce.number().default(300_000),
+  RATE_LIMIT_ENABLED: z.enum(['true', 'false']).default('true'),
+  SWAGGER_ENABLED: z.enum(['true', 'false']).optional(),
+  RATE_LIMIT_GLOBAL_TTL: z.coerce.number().positive().default(60_000),
+  RATE_LIMIT_GLOBAL_LIMIT: z.coerce.number().positive().default(60),
+  RATE_LIMIT_AUTH_TTL: z.coerce.number().positive().default(60_000),
+  RATE_LIMIT_AUTH_LIMIT: z.coerce.number().positive().default(5),
+  RATE_LIMIT_AUTH_BLOCK_DURATION: z.coerce.number().positive().default(300_000),
+  // Reserved for the future API key rate-limit tier
   RATE_LIMIT_API_TTL: z.coerce.number().default(60_000),
   RATE_LIMIT_API_LIMIT: z.coerce.number().default(100),
 })
@@ -59,10 +60,13 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
     )
   }
 
-  if (validatedConfig.NODE_ENV === 'production' && !validatedConfig.UPSTASH_REDIS_REST_URL) {
+  if (
+    validatedConfig.NODE_ENV === 'production' &&
+    (!validatedConfig.UPSTASH_REDIS_REST_URL || !validatedConfig.UPSTASH_REDIS_REST_TOKEN)
+  ) {
     throw new Error(
-      'UPSTASH_REDIS_REST_URL is required in production for distributed rate limiting. ' +
-        'Provision Upstash Redis via Vercel Marketplace or set the URL manually.'
+      'UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production for distributed rate limiting. ' +
+        'Provision Upstash Redis via Vercel Marketplace or set them manually.'
     )
   }
 

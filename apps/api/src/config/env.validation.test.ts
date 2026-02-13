@@ -32,7 +32,10 @@ describe('env validation', () => {
       const result = validate({
         NODE_ENV: env,
         BETTER_AUTH_SECRET: 'a-safe-secret-for-testing-purposes',
-        ...(env === 'production' && { UPSTASH_REDIS_REST_URL: 'https://redis.upstash.io' }),
+        ...(env === 'production' && {
+          UPSTASH_REDIS_REST_URL: 'https://redis.upstash.io',
+          UPSTASH_REDIS_REST_TOKEN: 'test-token',
+        }),
       })
       expect(result.NODE_ENV).toBe(env)
     }
@@ -95,6 +98,7 @@ describe('env validation', () => {
           NODE_ENV: 'production',
           BETTER_AUTH_SECRET: 'dev-secret-do-not-use-in-production',
           UPSTASH_REDIS_REST_URL: 'https://redis.upstash.io',
+          UPSTASH_REDIS_REST_TOKEN: 'test-token',
         })
       ).toThrow('BETTER_AUTH_SECRET must be set to a secure value in production')
     })
@@ -105,6 +109,7 @@ describe('env validation', () => {
           NODE_ENV: 'production',
           BETTER_AUTH_SECRET: 'change-me-to-a-random-32-char-string',
           UPSTASH_REDIS_REST_URL: 'https://redis.upstash.io',
+          UPSTASH_REDIS_REST_TOKEN: 'test-token',
         })
       ).toThrow('BETTER_AUTH_SECRET must be set to a secure value in production')
     })
@@ -124,19 +129,30 @@ describe('env validation', () => {
         NODE_ENV: 'production',
         BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
         UPSTASH_REDIS_REST_URL: 'https://redis.upstash.io',
+        UPSTASH_REDIS_REST_TOKEN: 'test-token',
       })
       expect(result.BETTER_AUTH_SECRET).toBe('a-real-secret-that-is-safe-for-prod')
     })
   })
 
-  describe('UPSTASH_REDIS_REST_URL production guard', () => {
+  describe('Upstash Redis production guard', () => {
     it('should throw when UPSTASH_REDIS_REST_URL is missing in production', () => {
       expect(() =>
         validate({
           NODE_ENV: 'production',
           BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
         })
-      ).toThrow('UPSTASH_REDIS_REST_URL is required in production')
+      ).toThrow('UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production')
+    })
+
+    it('should throw when UPSTASH_REDIS_REST_TOKEN is missing in production', () => {
+      expect(() =>
+        validate({
+          NODE_ENV: 'production',
+          BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
+          UPSTASH_REDIS_REST_URL: 'https://redis.upstash.io',
+        })
+      ).toThrow('UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production')
     })
 
     it('should allow missing UPSTASH_REDIS_REST_URL in development', () => {
@@ -159,6 +175,9 @@ describe('env validation', () => {
       expect(result.RATE_LIMIT_AUTH_TTL).toBe(60_000)
       expect(result.RATE_LIMIT_AUTH_LIMIT).toBe(5)
       expect(result.RATE_LIMIT_AUTH_BLOCK_DURATION).toBe(300_000)
+      expect(result.SWAGGER_ENABLED).toBeUndefined()
+      expect(result.RATE_LIMIT_API_TTL).toBe(60_000)
+      expect(result.RATE_LIMIT_API_LIMIT).toBe(100)
     })
 
     it('should accept custom rate limit values', () => {

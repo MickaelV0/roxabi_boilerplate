@@ -5,7 +5,7 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { Test } from '@nestjs/testing'
 import { SkipThrottle, ThrottlerModule } from '@nestjs/throttler'
 import { ClsModule } from 'nestjs-cls'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { AllExceptionsFilter } from '../common/filters/all-exceptions.filter.js'
 import { CustomThrottlerGuard } from './custom-throttler.guard.js'
@@ -86,36 +86,9 @@ async function createTestApp(globalLimit = 3) {
   // Register the exception filter globally with explicitly injected ClsService
   app.useGlobalFilters(filter)
 
-  // Register the onSend hook for rate limit headers (mirrors index.ts bootstrap)
-  const { AUTH_SENSITIVE_PATHS } = await import('./custom-throttler.guard.js')
-  app
-    .getHttpAdapter()
-    .getInstance()
-    .addHook(
-      'onSend',
-      (
-        request: any,
-        reply: { header: (k: string, v: string) => void },
-        _payload: unknown,
-        done: () => void
-      ) => {
-        const meta = request.throttlerMeta as
-          | { limit: number; remaining: number; reset: number }
-          | undefined
-
-        if (meta) {
-          const path = (request.url as string)?.split('?')[0]
-          const isAuthSensitive = AUTH_SENSITIVE_PATHS.some((p: string) => path?.startsWith(p))
-          if (!isAuthSensitive) {
-            reply.header('X-RateLimit-Limit', String(meta.limit))
-            reply.header('X-RateLimit-Remaining', String(meta.remaining))
-            reply.header('X-RateLimit-Reset', String(meta.reset))
-          }
-        }
-
-        done()
-      }
-    )
+  // Register the onSend hook for rate limit headers (shared with bootstrap)
+  const { registerRateLimitHeadersHook } = await import('./index.js')
+  registerRateLimitHeadersHook(app)
 
   await app.init()
   await app.getHttpAdapter().getInstance().ready()
@@ -132,16 +105,6 @@ async function inject(app: NestFastifyApplication, method: string, url: string) 
 }
 
 describe('Rate Limiting Integration', () => {
-  let app: NestFastifyApplication
-
-  beforeAll(async () => {
-    app = await createTestApp(3)
-  })
-
-  afterAll(async () => {
-    await app?.close()
-  })
-
   it('should return 429 after exceeding global rate limit', async () => {
     // Arrange -- create a fresh app with limit of 2 to isolate this test
     const limitedApp = await createTestApp(2)

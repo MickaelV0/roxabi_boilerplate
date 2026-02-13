@@ -10,6 +10,7 @@ import {
 import { ThrottlerException } from '@nestjs/throttler'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { ClsService } from 'nestjs-cls'
+import { AUTH_SENSITIVE_PATHS, type ThrottlerMeta } from '../../throttler/index.js'
 import { ErrorCode } from '../error-codes.js'
 
 function hasMessage(body: unknown): body is { message: string | string[] } {
@@ -29,14 +30,6 @@ function hasErrorCode(value: unknown): value is { errorCode: string } {
     'errorCode' in value &&
     typeof (value as Record<string, unknown>).errorCode === 'string'
   )
-}
-
-interface ThrottlerMeta {
-  limit: number
-  remaining: number
-  reset: number
-  tierName: string
-  tracker: string
 }
 
 @Catch()
@@ -110,7 +103,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     // Set rate limit headers on 429 responses
     response.header('Retry-After', String(retryAfterSeconds))
-    if (meta) {
+
+    // Suppress X-RateLimit-* headers for auth-sensitive paths to avoid leaking rate limit state
+    const path = request.url?.split('?')[0]
+    const isAuthSensitive = AUTH_SENSITIVE_PATHS.some(
+      (p) => path === p || path?.startsWith(`${p}/`)
+    )
+    if (meta && !isAuthSensitive) {
       response.header('X-RateLimit-Limit', String(meta.limit))
       response.header('X-RateLimit-Remaining', '0')
       response.header('X-RateLimit-Reset', String(meta.reset))

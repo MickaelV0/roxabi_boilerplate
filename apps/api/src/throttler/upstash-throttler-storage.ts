@@ -1,15 +1,9 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common'
+import type { ThrottlerStorage } from '@nestjs/throttler'
 import { Redis } from '@upstash/redis'
 
-interface ThrottlerStorageRecord {
-  totalHits: number
-  timeToExpire: number
-  isBlocked: boolean
-  timeToBlockExpire: number
-}
-
 @Injectable()
-export class UpstashThrottlerStorage {
+export class UpstashThrottlerStorage implements ThrottlerStorage {
   private readonly logger = new Logger(UpstashThrottlerStorage.name)
   private readonly redis: Redis
 
@@ -23,7 +17,7 @@ export class UpstashThrottlerStorage {
     limit: number,
     blockDuration: number,
     throttlerName: string
-  ): Promise<ThrottlerStorageRecord> {
+  ) {
     const ttlSeconds = Math.ceil(ttl / 1000)
     const blockKey = `${key}:blocked`
 
@@ -39,20 +33,16 @@ export class UpstashThrottlerStorage {
         }
       }
 
-      // Atomic INCR + EXPIRE via pipeline
+      // Atomic INCR + EXPIRE + TTL via single pipeline to prevent orphaned keys without TTL
       const pipeline = this.redis.pipeline()
       pipeline.incr(key)
+      pipeline.expire(key, ttlSeconds)
       pipeline.ttl(key)
-      const results = await pipeline.exec<[number, number]>()
+      const results = await pipeline.exec<[number, number, number]>()
 
       const totalHits = results[0]
-      let currentTtl = results[1]
-
-      // If this is the first hit (TTL is -1 means no expiry set), set the expiry
-      if (currentTtl === -1) {
-        await this.redis.expire(key, ttlSeconds)
-        currentTtl = ttlSeconds
-      }
+      // results[1] is EXPIRE result (0 or 1), not needed
+      const currentTtl = results[2]
 
       const timeToExpire = currentTtl * 1000
 

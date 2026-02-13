@@ -14,6 +14,7 @@ const mockTtl = vi.fn()
 
 const mockPipeline = {
   incr: vi.fn().mockReturnThis(),
+  expire: vi.fn().mockReturnThis(),
   ttl: vi.fn().mockReturnThis(),
   exec: mockPipelineExec,
 }
@@ -46,7 +47,7 @@ describe('UpstashThrottlerStorage', () => {
       // Arrange
       const storage = createStorage()
       mockTtl.mockResolvedValue(-2) // not blocked
-      mockPipelineExec.mockResolvedValue([5, 30])
+      mockPipelineExec.mockResolvedValue([5, 1, 30]) // [totalHits, expireResult, ttl]
 
       // Act
       const result = await storage.increment('test-key', 60_000, 60, 0, 'global')
@@ -64,8 +65,8 @@ describe('UpstashThrottlerStorage', () => {
       // Arrange
       const storage = createStorage()
       mockTtl.mockResolvedValue(-2) // not blocked
-      mockPipelineExec.mockResolvedValueOnce([1, -1]) // first hit, no TTL set
-      mockPipelineExec.mockResolvedValueOnce([2, 59]) // second hit
+      mockPipelineExec.mockResolvedValueOnce([1, 1, 60]) // first hit
+      mockPipelineExec.mockResolvedValueOnce([2, 1, 59]) // second hit
 
       // Act
       const first = await storage.increment('counter-key', 60_000, 60, 0, 'global')
@@ -76,24 +77,25 @@ describe('UpstashThrottlerStorage', () => {
       expect(second.totalHits).toBe(2)
     })
 
-    it('should set expiry on first hit when TTL is -1', async () => {
+    it('should include EXPIRE in the pipeline to prevent orphaned keys', async () => {
       // Arrange
       const storage = createStorage()
       mockTtl.mockResolvedValue(-2) // not blocked
-      mockPipelineExec.mockResolvedValue([1, -1]) // first hit, no expiry
+      mockPipelineExec.mockResolvedValue([1, 1, 60]) // first hit
 
       // Act
       await storage.increment('new-key', 60_000, 60, 0, 'global')
 
-      // Assert
-      expect(mockExpire).toHaveBeenCalledWith('new-key', 60)
+      // Assert — EXPIRE is called on the pipeline, not standalone
+      expect(mockPipeline.expire).toHaveBeenCalledWith('new-key', 60)
+      expect(mockPipeline.incr).toHaveBeenCalledWith('new-key')
     })
 
     it('should set blocked state after exceeding limit with blockDuration', async () => {
       // Arrange
       const storage = createStorage()
       mockTtl.mockResolvedValue(-2) // not currently blocked
-      mockPipelineExec.mockResolvedValue([6, 55]) // 6 hits, over limit of 5
+      mockPipelineExec.mockResolvedValue([6, 1, 55]) // [totalHits, expireResult, ttl]
 
       // Act
       const result = await storage.increment('auth-key', 60_000, 5, 300_000, 'auth')

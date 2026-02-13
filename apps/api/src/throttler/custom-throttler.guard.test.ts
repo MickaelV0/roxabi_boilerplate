@@ -321,6 +321,34 @@ describe('CustomThrottlerGuard', () => {
       // Act + Assert
       await expect((guard as any).handleRequest(requestProps)).rejects.toThrow(ThrottlerException)
     })
+
+    it('should throw ThrottlerException when isBlocked is true even if under limit', async () => {
+      // Arrange
+      const { guard, storageService } = createGuard()
+      storageService.increment.mockResolvedValue({
+        totalHits: 3,
+        timeToExpire: 120_000,
+        isBlocked: true,
+        timeToBlockExpire: 120_000,
+      })
+      const { context } = createMockContext({ url: '/api/users' })
+      ;(guard as any).getRequestResponse = (ctx: any) => ({
+        req: ctx.switchToHttp().getRequest(),
+        res: ctx.switchToHttp().getResponse(),
+      })
+
+      const requestProps = {
+        context,
+        limit: 60,
+        ttl: 60_000,
+        throttler: { name: 'global' },
+        blockDuration: 300_000,
+        generateKey: vi.fn().mockReturnValue('test-key'),
+      }
+
+      // Act + Assert
+      await expect((guard as any).handleRequest(requestProps)).rejects.toThrow(ThrottlerException)
+    })
   })
 
   describe('throwThrottlingException', () => {

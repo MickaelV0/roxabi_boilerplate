@@ -62,7 +62,8 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     const remaining = Math.max(0, limit - totalHits)
     const reset = Math.floor(Date.now() / 1000) + Math.ceil(timeToExpire / 1000)
 
-    // Store rate limit metadata on request for the onSend hook and exception filter
+    // When both global and auth tiers apply, the last tier's metadata overwrites — this is intentional
+    // throttlerMeta MUST be set before throwThrottlingException — the AllExceptionsFilter reads it for 429 headers
     req.throttlerMeta = {
       limit,
       remaining,
@@ -101,7 +102,7 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
   protected shouldApplyAuthTier(context: ExecutionContext): boolean {
     const { req } = this.getRequestResponse(context)
     const path = (req.url as string)?.split('?')[0]
-    return AUTH_SENSITIVE_PATHS.some((p) => path?.startsWith(p))
+    return AUTH_SENSITIVE_PATHS.some((p) => path === p || path?.startsWith(`${p}/`))
   }
 }
 

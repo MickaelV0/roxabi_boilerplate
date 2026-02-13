@@ -164,6 +164,8 @@ Configure in Vercel dashboard under **Settings &gt; Environment Variables**:
 | `RATE_LIMIT_AUTH_TTL` | Auth rate limit window in ms | `60000` |
 | `RATE_LIMIT_AUTH_LIMIT` | Auth max requests per window | `5` |
 | `RATE_LIMIT_AUTH_BLOCK_DURATION` | Auth tier block duration in ms | `300000` |
+| `RATE_LIMIT_API_TTL` | API key tier rate limit window in ms (reserved for future use) | `60000` |
+| `RATE_LIMIT_API_LIMIT` | API key tier max requests per window (reserved for future use) | `100` |
 
 > **Note:** Vercel auto-sets `NODE_ENV=production`. NestJS runs as a Vercel Function with Fluid compute.
 

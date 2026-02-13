@@ -5,13 +5,12 @@ import { ThrottlerModule } from '@nestjs/throttler'
 import { CustomThrottlerGuard } from './custom-throttler.guard.js'
 import { UpstashThrottlerStorage } from './upstash-throttler-storage.js'
 
-const logger = new Logger('ThrottlerConfigModule')
-
 @Module({
   imports: [
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
+        const logger = new Logger('ThrottlerConfigModule')
         const rateLimitEnabled = config.get<string>('RATE_LIMIT_ENABLED', 'true')
         if (rateLimitEnabled === 'false') {
           logger.warn(
@@ -45,6 +44,7 @@ const logger = new Logger('ThrottlerConfigModule')
               setHeaders: false,
             },
           ],
+          // Intentional: UpstashThrottlerStorage is a stateless adapter (no DI dependencies), so we instantiate it directly instead of going through the NestJS container
           storage: upstashConfigured
             ? new UpstashThrottlerStorage(upstashUrl as string, upstashToken as string)
             : undefined,
