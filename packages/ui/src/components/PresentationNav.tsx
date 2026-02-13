@@ -1,5 +1,6 @@
 'use client'
 
+import type { RefObject } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { cn } from '@/lib/utils'
@@ -12,60 +13,64 @@ type Section = {
 type PresentationNavProps = {
   sections: ReadonlyArray<Section>
   onEscape?: () => void
+  scrollContainerRef?: RefObject<HTMLDivElement | null>
 }
 
-export function PresentationNav({ sections, onEscape }: PresentationNavProps) {
+export function PresentationNav({ sections, onEscape, scrollContainerRef }: PresentationNavProps) {
   const [activeIndex, setActiveIndex] = useState(0)
   const activeIndexRef = useRef(activeIndex)
   activeIndexRef.current = activeIndex
 
-  // Track current section via IntersectionObserver
+  // Track current section via a single IntersectionObserver
   useEffect(() => {
-    const observers: IntersectionObserver[] = []
+    const container = scrollContainerRef?.current ?? null
 
-    for (const [index, section] of sections.entries()) {
-      const el = document.getElementById(section.id)
-      if (!el) continue
-
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry?.isIntersecting) {
-            setActiveIndex(index)
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const index = sections.findIndex((s) => s.id === entry.target.id)
+            if (index !== -1) setActiveIndex(index)
           }
-        },
-        { threshold: 0.5 }
-      )
+        }
+      },
+      { threshold: 0.5, root: container }
+    )
 
-      observer.observe(el)
-      observers.push(observer)
+    for (const section of sections) {
+      const el = document.getElementById(section.id)
+      if (el) observer.observe(el)
     }
 
-    return () => {
-      for (const observer of observers) {
-        observer.disconnect()
-      }
-    }
-  }, [sections])
+    return () => observer.disconnect()
+  }, [sections, scrollContainerRef])
 
   const scrollToSection = useCallback(
     (index: number) => {
       const section = sections[index]
       if (!section) return
       const el = document.getElementById(section.id)
-      el?.scrollIntoView({ behavior: 'smooth' })
+      if (!el) return
+
+      const container = scrollContainerRef?.current
+      if (container) {
+        // Scroll within the snap container
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      } else {
+        el.scrollIntoView({ behavior: 'smooth' })
+      }
     },
-    [sections]
+    [sections, scrollContainerRef]
   )
 
   // Keyboard navigation
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      // Don't intercept when user is typing in an input or activating a button/link
+      // Don't intercept when user is typing in a form field
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLButtonElement ||
-        e.target instanceof HTMLAnchorElement
+        e.target instanceof HTMLSelectElement
       ) {
         return
       }
@@ -141,26 +146,30 @@ export function PresentationNav({ sections, onEscape }: PresentationNavProps) {
         className="fixed right-6 top-[55%] z-50 hidden -translate-y-1/2 md:flex flex-col items-center gap-3"
         aria-label="Presentation sections"
       >
-        {sections.map((section, index) => (
-          <button
-            key={section.id}
-            type="button"
-            aria-label={section.label}
-            title={section.label}
-            onClick={() => scrollToSection(index)}
-            className={cn(
-              'group relative h-3 w-3 rounded-full border-2 transition-all duration-300',
-              index === activeIndex
-                ? 'border-primary bg-primary scale-125'
-                : 'border-muted-foreground/40 bg-transparent hover:border-primary/60 hover:scale-110'
-            )}
-          >
-            {/* Tooltip */}
-            <span className="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-popover px-3 py-1.5 text-xs font-medium text-popover-foreground shadow-md opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 border border-border">
-              {section.label}
-            </span>
-          </button>
-        ))}
+        {sections.map((section, index) => {
+          const isActive = index === activeIndex
+          return (
+            <button
+              key={section.id}
+              type="button"
+              aria-label={section.label}
+              aria-current={isActive ? 'true' : undefined}
+              title={section.label}
+              onClick={() => scrollToSection(index)}
+              className={cn(
+                'group relative h-3 w-3 rounded-full border-2 transition-all duration-300',
+                isActive
+                  ? 'border-primary bg-primary scale-125'
+                  : 'border-muted-foreground/40 bg-transparent hover:border-primary/60 hover:scale-110'
+              )}
+            >
+              {/* Tooltip */}
+              <span className="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-popover px-3 py-1.5 text-xs font-medium text-popover-foreground shadow-md opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 border border-border">
+                {section.label}
+              </span>
+            </button>
+          )
+        })}
       </nav>
     </>
   )

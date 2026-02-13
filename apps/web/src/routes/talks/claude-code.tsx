@@ -1,6 +1,6 @@
 import { PresentationNav } from '@repo/ui'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { AgentTeamsSection } from '@/components/presentation/AgentTeamsSection'
 import { BuildingBlocksSection } from '@/components/presentation/BuildingBlocksSection'
 import { DevProcessSection } from '@/components/presentation/DevProcessSection'
@@ -30,6 +30,7 @@ const SECTIONS = [
 export function ClaudeCodePresentation() {
   const navigate = useNavigate()
   const handleEscape = useCallback(() => navigate({ to: '/' }), [navigate])
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   return (
     <div data-presentation className="relative bg-background text-foreground">
@@ -49,10 +50,17 @@ export function ClaudeCodePresentation() {
       </div>
 
       {/* Section navigation dots */}
-      <PresentationNav sections={SECTIONS} onEscape={handleEscape} />
+      <PresentationNav
+        sections={SECTIONS}
+        onEscape={handleEscape}
+        scrollContainerRef={scrollContainerRef}
+      />
 
       {/* Scroll-snap container — disabled on mobile */}
-      <div className="md:h-dvh md:overflow-y-auto md:snap-y md:snap-mandatory">
+      <div
+        ref={scrollContainerRef}
+        className="md:h-dvh md:overflow-y-auto md:snap-y md:snap-mandatory"
+      >
         <SectionContainer id="intro">
           <IntroSection />
         </SectionContainer>

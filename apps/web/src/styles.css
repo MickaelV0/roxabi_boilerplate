@@ -73,7 +73,7 @@ html.dark .shiki span {
     max-height: 0;
   }
   to {
-    max-height: 500px;
+    max-height: 9999px;
   }
 }
 

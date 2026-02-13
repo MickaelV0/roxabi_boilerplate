@@ -34,4 +34,18 @@ describe('SectionContainer', () => {
     expect(section).toBeInTheDocument()
     expect(section?.tagName.toLowerCase()).toBe('section')
   })
+
+  it('applies custom className to the section element', () => {
+    // Arrange & Act
+    render(
+      <SectionContainer id="styled-section" className="custom-class">
+        <p>Styled content</p>
+      </SectionContainer>
+    )
+
+    // Assert — className is merged into the section element via cn()
+    const section = document.getElementById('styled-section')
+    expect(section).toBeInTheDocument()
+    expect(section).toHaveClass('custom-class')
+  })
 })

@@ -1,6 +1,7 @@
 // Components
 
 // Hooks
+/** Re-exported from react-intersection-observer for convenience. */
 export { useInView } from 'react-intersection-observer'
 export {
   Accordion,

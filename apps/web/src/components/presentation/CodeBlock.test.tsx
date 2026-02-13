@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock @repo/ui — provide cn and useInView
 const mockUseInView = vi.fn()
@@ -18,9 +18,16 @@ import { CodeBlock } from './CodeBlock'
 
 describe('CodeBlock', () => {
   beforeEach(() => {
+    // Clear call history between tests while preserving mock wiring
+    mockUseInView.mockClear()
+    mockCodeToHtml.mockClear()
     // Default: not in view, shiki never resolves (stays pending)
     mockUseInView.mockReturnValue({ ref: vi.fn(), inView: false })
     mockCodeToHtml.mockReturnValue(new Promise(() => {}))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('should render children as plain code before Shiki loads', () => {
@@ -40,7 +47,8 @@ describe('CodeBlock', () => {
     // Arrange & Act
     const { container } = render(<CodeBlock>echo hi</CodeBlock>)
 
-    // Assert
+    // Assert — terminal dots are purely decorative divs with no semantic role;
+    // CSS class selectors are the only reliable way to verify their presence.
     const dots = container.querySelectorAll('.rounded-full')
     expect(dots).toHaveLength(3)
     expect(dots[0]).toHaveClass('bg-red-500/60')
@@ -49,22 +57,24 @@ describe('CodeBlock', () => {
   })
 
   it('should render Shiki highlighted HTML when codeToHtml resolves', async () => {
-    // Arrange
+    // Arrange — Shiki only loads when inView is true
+    mockUseInView.mockReturnValue({ ref: vi.fn(), inView: true })
     const highlightedOutput = '<pre><code class="shiki">highlighted</code></pre>'
     mockCodeToHtml.mockResolvedValue(highlightedOutput)
 
     // Act
-    const { container } = render(<CodeBlock>some code</CodeBlock>)
+    render(<CodeBlock>some code</CodeBlock>)
 
-    // Assert
+    // Assert — Shiki output is injected via dangerouslySetInnerHTML, so we use
+    // getByText to verify the rendered text content is present in the DOM.
     await vi.waitFor(() => {
-      const highlightedDiv = container.querySelector('[class*="font-mono"]')
-      expect(highlightedDiv?.innerHTML).toBe(highlightedOutput)
+      expect(screen.getByText('highlighted')).toBeInTheDocument()
     })
   })
 
   it('should call codeToHtml with dual themes', async () => {
-    // Arrange
+    // Arrange — Shiki only loads when inView is true
+    mockUseInView.mockReturnValue({ ref: vi.fn(), inView: true })
     mockCodeToHtml.mockResolvedValue('<pre>highlighted</pre>')
 
     // Act
@@ -89,10 +99,12 @@ describe('CodeBlock', () => {
     mockCodeToHtml.mockReturnValue(new Promise(() => {}))
 
     // Act
-    const { container } = render(<CodeBlock typing>echo hello</CodeBlock>)
+    render(<CodeBlock typing>echo hello</CodeBlock>)
 
-    // Assert
-    const preElement = container.querySelector('pre')
+    // Assert — animate-typing-reveal is a custom animation class that must be
+    // checked via className since it has no ARIA or visual equivalent in jsdom.
+    const codeElement = screen.getByText('echo hello')
+    const preElement = codeElement.closest('pre')
     expect(preElement?.className).toContain('animate-typing-reveal')
   })
 
@@ -102,10 +114,11 @@ describe('CodeBlock', () => {
     mockCodeToHtml.mockReturnValue(new Promise(() => {}))
 
     // Act
-    const { container } = render(<CodeBlock>echo hello</CodeBlock>)
+    render(<CodeBlock>echo hello</CodeBlock>)
 
-    // Assert
-    const preElement = container.querySelector('pre')
+    // Assert — animation class should not be present when typing prop is false
+    const codeElement = screen.getByText('echo hello')
+    const preElement = codeElement.closest('pre')
     expect(preElement?.className).not.toContain('animate-typing-reveal')
   })
 
@@ -115,15 +128,17 @@ describe('CodeBlock', () => {
     mockCodeToHtml.mockReturnValue(new Promise(() => {}))
 
     // Act
-    const { container } = render(<CodeBlock typing>echo hello</CodeBlock>)
+    render(<CodeBlock typing>echo hello</CodeBlock>)
 
-    // Assert
-    const preElement = container.querySelector('pre')
+    // Assert — animation class should not be applied until the element enters view
+    const codeElement = screen.getByText('echo hello')
+    const preElement = codeElement.closest('pre')
     expect(preElement?.className).not.toContain('animate-typing-reveal')
   })
 
   it('should fall back to plain code when codeToHtml rejects', async () => {
-    // Arrange
+    // Arrange — Shiki only loads when inView is true
+    mockUseInView.mockReturnValue({ ref: vi.fn(), inView: true })
     mockCodeToHtml.mockRejectedValue(new Error('Shiki failed'))
 
     // Act
@@ -146,7 +161,8 @@ describe('CodeBlock', () => {
   })
 
   it('should default language to bash', () => {
-    // Arrange
+    // Arrange — Shiki only loads when inView is true
+    mockUseInView.mockReturnValue({ ref: vi.fn(), inView: true })
     mockCodeToHtml.mockResolvedValue('<pre>highlighted</pre>')
 
     // Act
@@ -154,5 +170,30 @@ describe('CodeBlock', () => {
 
     // Assert
     expect(mockCodeToHtml).toHaveBeenCalledWith('ls -la', expect.objectContaining({ lang: 'bash' }))
+  })
+
+  it('should remove typing animation class after timer completes', () => {
+    // Arrange
+    vi.useFakeTimers()
+    mockUseInView.mockReturnValue({ ref: vi.fn(), inView: true })
+    mockCodeToHtml.mockReturnValue(new Promise(() => {}))
+    const code = 'echo hello'
+
+    // Act
+    render(<CodeBlock typing>{code}</CodeBlock>)
+
+    // Assert — animation class is present before timer fires
+    const codeElement = screen.getByText(code)
+    const preElement = codeElement.closest('pre')
+    expect(preElement?.className).toContain('animate-typing-reveal')
+
+    // Act — advance past the animation duration (1 line * 300ms = 300ms),
+    // wrapped in act() because the timer triggers a React state update.
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+
+    // Assert — animation class removed after typing completes
+    expect(preElement?.className).not.toContain('animate-typing-reveal')
   })
 })

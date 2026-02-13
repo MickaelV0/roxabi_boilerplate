@@ -1,12 +1,23 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 // Mock react-intersection-observer — always report as in view
 vi.mock('react-intersection-observer', () => ({
   useInView: () => ({ ref: vi.fn(), inView: true }),
 }))
 
+// Mock useReducedMotion — defaults to false (motion enabled)
+const mockUseReducedMotion = vi.fn(() => false)
+vi.mock('@/lib/useReducedMotion', () => ({
+  useReducedMotion: () => mockUseReducedMotion(),
+}))
+
 import { AnimatedSection } from './AnimatedSection'
+
+afterEach(() => {
+  mockUseReducedMotion.mockReset()
+  mockUseReducedMotion.mockReturnValue(false)
+})
 
 describe('AnimatedSection', () => {
   it('renders children', async () => {
@@ -64,5 +75,41 @@ describe('AnimatedSection', () => {
     expect(container.firstChild).toHaveClass('transition-[opacity,transform]')
     expect(container.firstChild).toHaveClass('duration-700')
     expect(container.firstChild).toHaveClass('ease-out')
+  })
+
+  it('renders without transition classes when reduced motion is preferred', () => {
+    // Arrange
+    mockUseReducedMotion.mockReturnValue(true)
+
+    // Act
+    render(
+      <AnimatedSection>
+        <span>Static content</span>
+      </AnimatedSection>
+    )
+
+    // Assert — reduced-motion path renders a plain div without animation classes
+    const wrapper = screen.getByText('Static content').parentElement
+    expect(wrapper).toBeInTheDocument()
+    expect(wrapper).not.toHaveClass('transition-[opacity,transform]')
+    expect(wrapper).not.toHaveClass('duration-700')
+    expect(wrapper).not.toHaveClass('opacity-0')
+    expect(wrapper).not.toHaveClass('translate-y-8')
+  })
+
+  it('preserves custom className when reduced motion is preferred', () => {
+    // Arrange
+    mockUseReducedMotion.mockReturnValue(true)
+
+    // Act
+    const { container } = render(
+      <AnimatedSection className="my-custom-class">
+        <span>Accessible content</span>
+      </AnimatedSection>
+    )
+
+    // Assert — className is still applied on the reduced-motion path
+    expect(container.firstChild).toHaveClass('my-custom-class')
+    expect(container.firstChild).not.toHaveClass('transition-[opacity,transform]')
   })
 })

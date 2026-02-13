@@ -183,5 +183,47 @@ describe('PresentationNav', () => {
         expect.objectContaining({ behavior: 'smooth' })
       )
     })
+
+    it('Space advances to next section', () => {
+      // Arrange
+      const elements = createAllSectionElements()
+      render(<PresentationNav sections={sections} />)
+
+      // Act
+      fireEvent.keyDown(document, { key: ' ' })
+
+      // Assert
+      expect(elements[1]?.scrollIntoView).toHaveBeenCalledWith(
+        expect.objectContaining({ behavior: 'smooth' })
+      )
+    })
+
+    it('PageDown advances to next section', () => {
+      // Arrange
+      const elements = createAllSectionElements()
+      render(<PresentationNav sections={sections} />)
+
+      // Act
+      fireEvent.keyDown(document, { key: 'PageDown' })
+
+      // Assert
+      expect(elements[1]?.scrollIntoView).toHaveBeenCalledWith(
+        expect.objectContaining({ behavior: 'smooth' })
+      )
+    })
+
+    it('PageUp scrolls to previous section', () => {
+      // Arrange
+      const elements = createAllSectionElements()
+      render(<PresentationNav sections={sections} />)
+
+      // Act
+      fireEvent.keyDown(document, { key: 'PageUp' })
+
+      // Assert
+      expect(elements[0]?.scrollIntoView).toHaveBeenCalledWith(
+        expect.objectContaining({ behavior: 'smooth' })
+      )
+    })
   })
 })

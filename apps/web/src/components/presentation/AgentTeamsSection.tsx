@@ -31,7 +31,7 @@ const categories: [Category, Category, Category] = [
         scope: 'apps/api/, packages/types/',
       },
       {
-        name: 'infra-ops',
+        name: 'devops',
         color: 'text-chart-3',
         borderColor: 'border-chart-3/50',
         scope: 'packages/config/, root configs',

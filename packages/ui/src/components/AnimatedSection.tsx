@@ -7,13 +7,12 @@ import { useInView } from 'react-intersection-observer'
 import { useReducedMotion } from '@/lib/useReducedMotion'
 import { cn } from '@/lib/utils'
 
-export function AnimatedSection({
-  children,
-  className = '',
-}: {
+type AnimatedSectionProps = {
   children: ReactNode
   className?: string
-}) {
+}
+
+export function AnimatedSection({ children, className = '' }: AnimatedSectionProps) {
   const reducedMotion = useReducedMotion()
   const { ref, inView } = useInView({
     threshold: 0.1,

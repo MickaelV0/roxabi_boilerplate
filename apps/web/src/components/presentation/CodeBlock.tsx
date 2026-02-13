@@ -20,8 +20,9 @@ export function CodeBlock({
   const [typingComplete, setTypingComplete] = useState(!typing)
   const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null)
 
-  // Load Shiki-highlighted HTML
+  // Load Shiki-highlighted HTML only when visible
   useEffect(() => {
+    if (!inView) return
     let cancelled = false
 
     codeToHtml(children, {
@@ -43,7 +44,7 @@ export function CodeBlock({
     return () => {
       cancelled = true
     }
-  }, [children, language])
+  }, [children, language, inView])
 
   // Start typing animation timer when visible
   useEffect(() => {

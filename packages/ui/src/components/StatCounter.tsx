@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { useInView } from 'react-intersection-observer'
 
+import { useReducedMotion } from '@/lib/useReducedMotion'
 import { cn } from '@/lib/utils'
 
 type StatCounterProps = {
@@ -17,12 +18,13 @@ export function StatCounter({ value, label, suffix = '', className }: StatCounte
   const { ref, inView } = useInView({ threshold: 0.3, triggerOnce: true })
   const [displayValue, setDisplayValue] = useState(0)
   const hasAnimatedRef = useRef(false)
+  const reducedMotion = useReducedMotion()
 
   useEffect(() => {
     if (!inView || hasAnimatedRef.current) return
     hasAnimatedRef.current = true
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (reducedMotion) {
       setDisplayValue(value)
       return
     }
@@ -46,7 +48,7 @@ export function StatCounter({ value, label, suffix = '', className }: StatCounte
 
     rafId = requestAnimationFrame(animate)
     return () => cancelAnimationFrame(rafId)
-  }, [value, inView])
+  }, [value, inView, reducedMotion])
 
   return (
     <div ref={ref} className={cn('text-center', className)}>

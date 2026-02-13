@@ -32,7 +32,7 @@ const hooks = [
 const agentFiles = [
   'frontend-dev.md',
   'backend-dev.md',
-  'infra-ops.md',
+  'devops.md',
   'tester.md',
   'fixer.md',
   'security-auditor.md',

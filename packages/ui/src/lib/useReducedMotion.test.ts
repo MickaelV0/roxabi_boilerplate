@@ -4,10 +4,10 @@ import { useReducedMotion } from './useReducedMotion'
 
 type ChangeListener = (event: { matches: boolean }) => void
 
-function createMockMatchMedia(matches: boolean) {
+function createMockMatchMedia(initialMatches: boolean) {
   const listeners: ChangeListener[] = []
   const mql = {
-    matches,
+    matches: initialMatches,
     addEventListener: vi.fn((_event: string, listener: ChangeListener) => {
       listeners.push(listener)
     }),
@@ -75,7 +75,9 @@ describe('useReducedMotion', () => {
     expect(result.current).toBe(false)
 
     // Act — simulate user enabling reduced motion
+    // Update the mock's matches property so getSnapshot reads the new value
     act(() => {
+      mql.matches = true
       for (const listener of listeners) {
         listener({ matches: true })
       }
