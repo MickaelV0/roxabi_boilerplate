@@ -34,6 +34,9 @@ export const Route = createFileRoute('/org/members')({
     }
   },
   component: OrgMembersPage,
+  head: () => ({
+    meta: [{ title: `${m.org_members_title()} | Roxabi` }],
+  }),
 })
 
 function roleLabel(role: string) {

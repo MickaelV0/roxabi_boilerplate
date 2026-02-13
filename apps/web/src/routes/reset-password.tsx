@@ -8,6 +8,9 @@ import { AuthLayout } from '../components/AuthLayout'
 
 export const Route = createFileRoute('/reset-password')({
   component: ResetPasswordPage,
+  head: () => ({
+    meta: [{ title: `${m.auth_reset_password_title()} | Roxabi` }],
+  }),
 })
 
 function ResetPasswordPage() {

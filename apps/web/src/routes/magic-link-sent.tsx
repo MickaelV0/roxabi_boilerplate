@@ -17,6 +17,9 @@ export const Route = createFileRoute('/magic-link-sent')({
     email: typeof search.email === 'string' ? search.email : undefined,
   }),
   component: MagicLinkSentPage,
+  head: () => ({
+    meta: [{ title: `${m.auth_magic_link_sent_title()} | Roxabi` }],
+  }),
 })
 
 function MagicLinkSentPage() {

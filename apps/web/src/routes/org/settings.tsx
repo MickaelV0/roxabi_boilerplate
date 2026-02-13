@@ -30,6 +30,9 @@ export const Route = createFileRoute('/org/settings')({
     }
   },
   component: OrgSettingsPage,
+  head: () => ({
+    meta: [{ title: `${m.org_settings_title()} | Roxabi` }],
+  }),
 })
 
 function OrgSettingsPage() {

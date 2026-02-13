@@ -15,6 +15,9 @@ export const Route = createFileRoute('/reset-password/confirm')({
     token: typeof search.token === 'string' ? search.token : undefined,
   }),
   component: ResetPasswordConfirmPage,
+  head: () => ({
+    meta: [{ title: `${m.auth_reset_confirm_title()} | Roxabi` }],
+  }),
 })
 
 function ResetPasswordConfirmPage() {

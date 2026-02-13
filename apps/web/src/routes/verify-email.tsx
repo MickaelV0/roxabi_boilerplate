@@ -16,6 +16,9 @@ export const Route = createFileRoute('/verify-email')({
     token: typeof search.token === 'string' ? search.token : undefined,
   }),
   component: VerifyEmailPage,
+  head: () => ({
+    meta: [{ title: `${m.auth_verify_email_title()} | Roxabi` }],
+  }),
 })
 
 function VerifyEmailPage() {

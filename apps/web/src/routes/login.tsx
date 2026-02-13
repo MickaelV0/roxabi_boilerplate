@@ -15,6 +15,9 @@ export const Route = createFileRoute('/login')({
   },
   loader: fetchEnabledProviders,
   component: LoginPage,
+  head: () => ({
+    meta: [{ title: `${m.auth_sign_in_title()} | Roxabi` }],
+  }),
 })
 
 function LoginPage() {
