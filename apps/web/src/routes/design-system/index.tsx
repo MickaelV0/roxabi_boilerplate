@@ -49,6 +49,9 @@ import { ThemeEditor } from './-components/ThemeEditor'
 
 export const Route = createFileRoute('/design-system/')({
   component: DesignSystemPage,
+  head: () => ({
+    meta: [{ title: 'Design System | Roxabi' }],
+  }),
 })
 
 // ---------------------------------------------------------------------------
@@ -206,6 +209,17 @@ function DesignSystemPage() {
         const base = findBase(data.base)
         const color = findColor(data.color ?? null)
         const derived = getComposedDerivedTheme(base, color)
+
+        // Overlay non-color settings saved alongside the preset
+        if (data.config) {
+          derived.light.radius = data.config.radius
+          derived.dark.radius = data.config.radius
+          derived.light['font-family'] = data.config.typography.fontFamily
+          derived.dark['font-family'] = data.config.typography.fontFamily
+          derived.light['font-size'] = data.config.typography.baseFontSize
+          derived.dark['font-size'] = data.config.typography.baseFontSize
+        }
+
         applyTheme(derived)
         setThemeConfig(data.config)
         setActiveBase(data.base)
@@ -225,21 +239,59 @@ function DesignSystemPage() {
     }
   }, [])
 
-  // Handle manual config changes from color pickers / sliders
-  const handleConfigChange = useCallback((newConfig: ThemeConfig) => {
-    setThemeConfig(newConfig)
-    setActiveBase('zinc')
-    setActiveColor(null)
+  // Handle manual config changes from color pickers / sliders.
+  // When only non-color settings (typography, radius, shadows) change we keep the
+  // active preset selection and compose the derived theme from the preset + overrides.
+  // When seed colors change we depart from the preset.
+  const handleConfigChange = useCallback(
+    (newConfig: ThemeConfig) => {
+      const colorsChanged = SEED_COLOR_KEYS.some(
+        (key) => newConfig.colors[key] !== themeConfig.colors[key]
+      )
 
-    const derived = deriveFullTheme(newConfig)
-    applyTheme(derived)
+      setThemeConfig(newConfig)
 
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ config: newConfig }))
-    } catch {
-      // localStorage unavailable
-    }
-  }, [])
+      if (colorsChanged) {
+        // Manual color edit — depart from preset
+        setActiveBase('zinc')
+        setActiveColor(null)
+
+        const derived = deriveFullTheme(newConfig)
+        applyTheme(derived)
+
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ config: newConfig }))
+        } catch {
+          // localStorage unavailable
+        }
+      } else {
+        // Non-color change — preserve preset selection
+        const base = findBase(activeBase)
+        const color = findColor(activeColor)
+        const derived = getComposedDerivedTheme(base, color)
+
+        // Overlay non-color settings from the updated config
+        derived.light.radius = newConfig.radius
+        derived.dark.radius = newConfig.radius
+        derived.light['font-family'] = newConfig.typography.fontFamily
+        derived.dark['font-family'] = newConfig.typography.fontFamily
+        derived.light['font-size'] = newConfig.typography.baseFontSize
+        derived.dark['font-size'] = newConfig.typography.baseFontSize
+
+        applyTheme(derived)
+
+        try {
+          localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({ base: activeBase, color: activeColor, config: newConfig })
+          )
+        } catch {
+          // localStorage unavailable
+        }
+      }
+    },
+    [themeConfig, activeBase, activeColor]
+  )
 
   // Handle base preset selection (keeps current color overlay)
   const handleBaseSelect = useCallback(
