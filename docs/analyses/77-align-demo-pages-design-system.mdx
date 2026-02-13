@@ -3,8 +3,6 @@ title: "#77 Align Demo Pages with Design System"
 description: Analysis of the 13 demo pages' visual inconsistencies and plan to align them with the shared @repo/ui design system.
 ---
 
-# #77 Align Demo Pages with Design System
-
 ## Context
 
 Issue #48 (UI Component Library) shipped 20+ Shadcn/UI components in `packages/ui` with OKLch CSS variable tokens supporting light and dark mode. However, the 13 demo pages under `apps/web/src/routes/demo/` were built before the component library existed and use three inconsistent visual styles. Only `form/steps.tsx` dogfoods the design system. The rest use hardcoded colors, inline gradients, and raw HTML — making them poor references for developers adopting the boilerplate.
