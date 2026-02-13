@@ -1,8 +1,10 @@
 import { render, screen } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/paraglide/messages', () => ({
   m: {
+    footer_changelog: () => 'Changelog',
     footer_copyright: ({ year }: { year: string }) => `Copyright ${year} Roxabi`,
     github_label: () => 'GitHub',
   },
@@ -10,6 +12,22 @@ vi.mock('@/paraglide/messages', () => ({
 
 vi.mock('@/lib/config', () => ({
   GITHUB_REPO_URL: 'https://github.com/test/repo',
+}))
+
+vi.mock('@tanstack/react-router', () => ({
+  Link: ({
+    to,
+    children,
+    ...props
+  }: {
+    to: string
+    children: ReactNode
+    [key: string]: unknown
+  }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
+  ),
 }))
 
 import { Footer } from './Footer'
@@ -27,6 +45,14 @@ describe('Footer', () => {
 
     const year = new Date().getFullYear().toString()
     expect(screen.getByText(`Copyright ${year} Roxabi`)).toBeInTheDocument()
+  })
+
+  it('renders the changelog link', () => {
+    render(<Footer />)
+
+    const link = screen.getByText('Changelog')
+    expect(link).toBeInTheDocument()
+    expect(link).toHaveAttribute('href', '/docs/$')
   })
 
   it('renders the GitHub link', () => {

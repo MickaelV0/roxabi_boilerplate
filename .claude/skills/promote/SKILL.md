@@ -1,7 +1,7 @@
 ---
-argument-hint: [--dry-run | --skip-preview]
-description: Promote staging to main for production deploy, with preview verification and changelog.
-allowed-tools: Bash, AskUserQuestion, Read, Grep
+argument-hint: [--dry-run | --skip-preview | --finalize]
+description: Promote staging to main for production deploy, with preview verification and changelog. Use --finalize after merge to tag, release, and generate docs.
+allowed-tools: Bash, AskUserQuestion, Read, Grep, Write, Edit
 ---
 
 # Promote
@@ -14,6 +14,7 @@ Promote `staging` to `main` for production deployment. Runs pre-flight checks, o
 /promote                   → Full promotion flow with preview verification
 /promote --skip-preview    → Skip deploy preview, go straight to PR creation
 /promote --dry-run         → Show what would be promoted without creating anything
+/promote --finalize        → After merge: tag, GitHub Release, CHANGELOG.md, Fumadocs page
 ```
 
 ## Instructions
@@ -173,7 +174,154 @@ After the PR is created, inform the user:
 > After merge:
 > 1. Vercel will auto-deploy to production
 > 2. Verify production at your domain
-> 3. Run `/cleanup` to clean up merged branches"
+> 3. Run `/promote --finalize` to tag the release and generate changelog
+> 4. Run `/cleanup` to clean up merged branches"
+
+### 7. Finalize Release (`--finalize`)
+
+**Only runs when `--finalize` is passed.** This step executes after the promotion PR has been merged. Skip steps 1–6 entirely.
+
+#### 7a. Verify promotion PR was merged
+
+```bash
+git fetch origin main
+git checkout main
+git pull origin main
+
+# Verify the latest promotion PR is merged
+gh pr list --base main --head staging --state merged --limit 1 --json number,title,mergedAt
+```
+
+If no merged promotion PR is found, **REFUSE** and inform the user to merge the promotion PR first.
+
+#### 7b. Compute next SemVer version
+
+```bash
+# Get latest tag (if any)
+LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+# Get commits since last tag (or all commits if no tag)
+if [ -z "$LATEST_TAG" ]; then
+  COMMITS=$(git log --oneline --format="%s")
+else
+  COMMITS=$(git log ${LATEST_TAG}..HEAD --oneline --format="%s")
+fi
+```
+
+Version bump rules:
+- If no tags exist → `v0.1.0`
+- If any commit starts with `feat` → **minor** bump (e.g., `v0.1.0` → `v0.2.0`)
+- If any commit contains `!:` (breaking) → **minor** bump while pre-1.0
+- Otherwise → **patch** bump (e.g., `v0.1.0` → `v0.1.1`)
+
+#### 7c. Confirm version with user
+
+Present the computed version to the user via `AskUserQuestion`:
+- **Use {computed version}** (Recommended)
+- **Custom version** — let user type a version
+
+#### 7d. Create annotated git tag
+
+```bash
+git tag -a $VERSION -m "Release $VERSION"
+git push origin $VERSION
+```
+
+#### 7e. Generate changelog content
+
+Reuse the changelog generation logic from step 2, but scoped to commits since the previous tag:
+
+```bash
+if [ -z "$PREVIOUS_TAG" ]; then
+  MERGE_BASE=$(git rev-list --max-parents=0 HEAD)
+else
+  MERGE_BASE=$PREVIOUS_TAG
+fi
+
+gh pr list --base main --state merged --json number,title,mergedAt,author --jq "[.[] | select(.mergedAt > \"$(git log -1 --format='%aI' $MERGE_BASE)\")]"
+```
+
+Format into sections: **Features**, **Fixes**, **Other** (group by conventional commit type).
+
+#### 7f. Create GitHub Release
+
+```bash
+gh release create $VERSION --title "$VERSION" --notes "$CHANGELOG_CONTENT"
+```
+
+#### 7g. Update CHANGELOG.md
+
+Prepend the new release entry to `CHANGELOG.md` in [Keep a Changelog](https://keepachangelog.com/) format:
+
+```markdown
+## [$VERSION] - YYYY-MM-DD
+
+### Added
+- feat(web): add user profile page (#42)
+
+### Fixed
+- fix(api): resolve timeout on large queries (#43)
+
+### Changed
+- docs: update deployment guide (#44)
+```
+
+Use the Write tool to prepend the entry after the header (after the line "Entries are generated automatically by `/promote --finalize`.").
+
+#### 7h. Create Fumadocs version page
+
+Create `docs/changelog/vX-Y-Z.mdx` (replace dots with dashes in the version for URL-friendliness):
+
+```mdx
+---
+title: vX.Y.Z
+description: Released YYYY-MM-DD
+---
+
+# vX.Y.Z
+
+Released on Month DD, YYYY.
+
+## Features
+- feat(web): add user profile page (#42)
+
+## Fixes
+- fix(api): resolve timeout on large queries (#43)
+
+## Other
+- docs: update deployment guide (#44)
+```
+
+#### 7i. Update docs/changelog/meta.json
+
+Insert the new version slug at the **beginning** of the `pages` array (newest first):
+
+```json
+{
+  "title": "Changelog",
+  "pages": ["vX-Y-Z", ...existing]
+}
+```
+
+Use the Edit tool to update the file.
+
+#### 7j. Commit and push
+
+```bash
+git add CHANGELOG.md docs/changelog/
+git commit -m "docs: add release notes for $VERSION"
+git push origin main
+```
+
+Inform the user:
+
+> "Release $VERSION finalized:
+> - Git tag: $VERSION
+> - GitHub Release: {URL}
+> - CHANGELOG.md updated
+> - Docs page: /docs/changelog/vX-Y-Z
+>
+> Run `/cleanup` to clean up merged branches."
 
 ## Options
 
@@ -182,6 +330,7 @@ After the PR is created, inform the user:
 | (none) | Full flow: pre-flight → changelog → preview → PR |
 | `--skip-preview` | Skip deploy preview verification |
 | `--dry-run` | Show what would be promoted without creating anything |
+| `--finalize` | Post-merge: tag, GitHub Release, CHANGELOG.md, Fumadocs page |
 
 ## Edge Cases
 
@@ -193,6 +342,8 @@ After the PR is created, inform the user:
 | Deploy preview fails | Show error, ask user to abort or proceed anyway |
 | Promotion PR already exists | Detect via `gh pr list --base main --head staging`, offer to update instead |
 | `--dry-run` | Show summary and changelog, do not create PR |
+| Promotion PR not merged (`--finalize`) | Refuse, tell user to merge the promotion PR first |
+| No commits since last tag (`--finalize`) | Refuse, nothing to release |
 
 ## Safety Rules
 
