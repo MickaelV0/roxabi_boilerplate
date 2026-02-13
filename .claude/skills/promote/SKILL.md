@@ -298,8 +298,6 @@ title: vX.Y.Z
 description: Released YYYY-MM-DD
 ---
 
-# vX.Y.Z
-
 Released on Month DD, YYYY.
 
 ## Features

@@ -140,7 +140,7 @@ If files span multiple scopes, pick the dominant one. If truly mixed, omit the s
 Extract issue number from the branch name:
 
 ```bash
-# Branch patterns: feat/42-auth, fix/15-login, feature/42-user-auth
+# Branch patterns: feat/42-auth, fix/15-login, hotfix/42-urgent-fix
 git branch --show-current | grep -oP '\d+' | head -1
 ```
 

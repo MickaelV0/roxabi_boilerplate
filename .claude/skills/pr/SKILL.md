@@ -56,7 +56,7 @@ git diff staging...HEAD --stat
 
 **Detect issue number** from the branch name:
 
-- Branch `feature/42-user-auth` -> issue `#42`
+- Branch `feat/42-user-auth` -> issue `#42`
 - Branch `fix/15-login-timeout` -> issue `#15`
 - Pattern: extract the first number after the `/` in the branch name
 - If no issue number found, ask the user via `AskUserQuestion`

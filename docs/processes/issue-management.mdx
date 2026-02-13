@@ -55,9 +55,12 @@ gh label create workflow --color "C2E0C6" --description "Workflow & processes"
 
 # Priority labels
 gh label create P0 --color "7A0000" --description "Priority 0 - Urgent (blocking)"
-gh label create P1 --color "B60205" --description "Priority 1 - Critical"
-gh label create P2 --color "D93F0B" --description "Priority 2 - Important"
-gh label create P3 --color "FBCA04" --description "Priority 3 - Nice to have"
+gh label create P1 --color "B60205" --description "Priority 1 - High"
+gh label create P2 --color "D93F0B" --description "Priority 2 - Medium"
+gh label create P3 --color "FBCA04" --description "Priority 3 - Low"
+
+# Status labels
+gh label create blocked --color "B60205" --description "Issue is blocked by another issue"
 
 # Size labels
 gh label create XS --color "E6E6E6" --description "Size: Extra Small"

@@ -62,8 +62,6 @@ title: "ADR-{NNN}: {Title}"
 description: {One-line summary of the decision}
 ---
 
-# ADR-{NNN}: {Title}
-
 ## Status
 
 {Proposed | Accepted | Deprecated | Superseded by ADR-XXX}

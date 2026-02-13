@@ -268,11 +268,7 @@ bun lint && bun typecheck && bun test
 
 1. Stage all implementation files (never `git add -A`)
 2. Commit using `/commit` conventions
-3. Create PR using `/pr`
-
-```bash
-gh pr create --title "feat(<scope>): <description>" --body "Closes #<issue_number>"
-```
+3. Push the branch, then create PR using `/pr`
 
 ### Step 7 — Summary
 

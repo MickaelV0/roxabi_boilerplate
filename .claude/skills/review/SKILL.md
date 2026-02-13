@@ -1,7 +1,7 @@
 ---
 argument-hint: [#PR]
 description: Multi-domain code review with fresh agents and Conventional Comments. Review findings are walked through with the human via /1b1.
-allowed-tools: Bash, AskUserQuestion, Read, Grep, Edit, Task
+allowed-tools: Bash, AskUserQuestion, Read, Grep, Task
 ---
 
 # Code Review

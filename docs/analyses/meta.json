@@ -28,6 +28,8 @@
     "77-align-demo-pages-design-system",
     "114-staging-environment-preview-deploys",
     "process-retrospective-2026-02-12",
-    "ux-audit"
+    "ux-audit",
+    "design-audit",
+    "132-ci-db-migrations"
   ]
 }

@@ -194,7 +194,7 @@ Two modes are available depending on task complexity. See the [Agent Teams Guide
 | **product-lead** | Writes analyses and specs, triages issues, interacts with human when spawned | Does not orchestrate or merge |
 | **Domain agents** (FE, BE, infra) | Implement within their domain boundaries | Do not review their own code |
 | **tester** | Writes failing tests first (RED), verifies coverage | Does not write production code |
-| **fixer** | Fixes accepted review comments across the entire stack | Does not review or write new features |
+| **fixer** (domain-scoped) | Fixes accepted review comments within its domain (parallel fixers for multi-domain) | Does not review or write new features |
 | **Fresh review agents** | Review code they did not write (security, architecture, product, tests, domain) | Do not fix code — that is the fixer's job |
 
 ---
@@ -232,6 +232,7 @@ Human: "develop #XXX"
         |
         v
 ========================================
+  PHASE 2 — SCAFFOLD & IMPLEMENTATION
   /scaffold (spec → PR)
 ========================================
         |
@@ -380,8 +381,12 @@ Human: "develop #XXX"
 
 ### Phase 4 — Fix and Merge
 
-14. **Fullstack quick fixer** receives the list of accepted comments and fixes them across the stack.
-15. Push changes, update PR.
+14. **Parallel domain fixers** receive the accepted findings scoped to their domain:
+    - **Backend fixer** — if findings touch `apps/api/` or `packages/types/`
+    - **Frontend fixer** — if findings touch `apps/web/` or `packages/ui/`
+    - **Infra fixer** — if findings touch `packages/config/`, root configs, or CI
+    - Single-domain findings → one fixer. Multi-domain → parallel fixers.
+15. Push combined fixes, update PR.
 16. CI runs:
     - **Pass** — merge and cleanup worktree
     - **Fail** — fixer investigates and fixes, CI again, loop until green
@@ -396,6 +401,17 @@ Human: "develop #XXX"
     ```
 
 **Never merge with failing checks.**
+
+### Promote to Production (`/promote`)
+
+After features have been validated on staging:
+
+19. Human runs `/promote` to merge staging → main.
+20. `/promote` creates a PR from staging to main, verifies Vercel preview, and generates a changelog.
+21. Human reviews and approves the promotion PR.
+22. After merge, run `/promote --finalize` to tag the release and generate release notes.
+
+> Promotion is **not per-feature** — it batches all staging changes into a single release. See the `/promote` skill for details.
 
 ---
 

@@ -244,7 +244,7 @@ Idea → GitHub Issue → Branch → Dev → PR → Review → Merge → Deploy 
 
 ### Hotfix Process
 
-- Direct commit to `main` with post-deploy validation
+- Create `hotfix/*` branch from `main`, open PR targeting `main`
 - Rollback via Vercel dashboard (promote previous deployment)
 
 ---

@@ -78,7 +78,7 @@ When gathering requirements, follow this structure:
 Every issue needs **Size** and **Priority**:
 
 **Size:** XS (<1h), S (<4h), M (1-2d), L (3-5d), XL (>1w)
-**Priority:** P0 (critical), P1 (high), P2 (medium), P3 (low)
+**Priority:** P0 (urgent), P1 (high), P2 (medium), P3 (low)
 
 ## Deliverables
 - User stories in format: "As a [role], I want [goal], so that [benefit]"

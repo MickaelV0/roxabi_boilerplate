@@ -196,7 +196,7 @@ All error responses follow this shape:
 - Controllers and filters map domain exceptions to HTTP responses.
 - **Never throw raw `Error`.** Always use a typed domain exception class.
 - **Always include correlation ID** in error logs. See the logging pattern in `AllExceptionsFilter`.
-- **Validate all input at the controller boundary** using `ValidationPipe` + DTOs (see `main.ts` for the global pipe configuration).
+- **Validate all input at the controller boundary** using `ZodValidationPipe` + Zod schemas (see `main.ts` for the global pipe configuration).
 
 ### Anti-patterns
 

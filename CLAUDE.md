@@ -98,7 +98,9 @@ cd ../roxabi-XXX
 
 **XS exception:** For Size XS changes (single file, &lt;1h, zero risk), use `AskUserQuestion` to confirm with the lead. If approved, a direct branch from staging is acceptable without worktree.
 
-**FORBIDDEN: Modifying files on main/staging without a worktree.**
+**Bootstrap exception:** `/bootstrap` commits analysis and spec documents (`docs/analyses/`, `docs/specs/`) directly to staging. These are documentation artifacts, not code changes, and are produced before scaffold creates a worktree.
+
+**FORBIDDEN: Modifying code files on main/staging without a worktree.**
 
 ---
 
