@@ -109,6 +109,7 @@ export { Skeleton } from './components/Skeleton'
 export { Slider } from './components/Slider'
 export type { ToasterProps } from './components/Sonner'
 export { Toaster } from './components/Sonner'
+export { Spinner, spinnerVariants } from './components/Spinner'
 export { StatCounter } from './components/StatCounter'
 export { Switch } from './components/Switch'
 export {

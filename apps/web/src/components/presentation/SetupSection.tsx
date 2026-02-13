@@ -1,4 +1,4 @@
-import { AnimatedSection, cn } from '@repo/ui'
+import { AnimatedSection, Card, cn } from '@repo/ui'
 import { Bot, Layers, Monitor, Rocket, Terminal, Users } from 'lucide-react'
 import { CodeBlock } from '@/components/presentation/CodeBlock'
 
@@ -61,35 +61,28 @@ export function SetupSection() {
         </p>
       </AnimatedSection>
 
-      <div className="mt-12 grid gap-10 lg:grid-cols-2 lg:gap-16">
-        {/* Tool cards grid */}
-        <AnimatedSection>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {tools.map((tool) => (
-              <div
-                key={tool.name}
-                className="group flex items-start gap-4 rounded-xl border border-border/50 bg-card/50 p-4 transition-colors hover:bg-card/80"
-              >
-                <div className={cn('mt-0.5 shrink-0', tool.color)}>
-                  <tool.icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-semibold">{tool.name}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{tool.description}</p>
-                </div>
+      {/* Horizontal tool strip — inline badges flowing left to right */}
+      <AnimatedSection className="mt-12">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {tools.map((tool) => (
+            <Card variant="subtle" key={tool.name} className="group p-4 text-center">
+              <div className={cn('mx-auto mb-2', tool.color)}>
+                <tool.icon className="h-6 w-6" />
               </div>
-            ))}
-          </div>
-        </AnimatedSection>
+              <p className="font-semibold text-sm">{tool.name}</p>
+              <p className="mt-1 text-xs text-muted-foreground leading-snug">{tool.description}</p>
+            </Card>
+          ))}
+        </div>
+      </AnimatedSection>
 
-        {/* Code block with aliases */}
-        <AnimatedSection>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="font-mono text-sm text-muted-foreground">~/.bash_aliases</span>
-          </div>
-          <CodeBlock typing>{aliasCode}</CodeBlock>
-        </AnimatedSection>
-      </div>
+      {/* Full-width code block below */}
+      <AnimatedSection className="mt-8 md:delay-150">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="font-mono text-sm text-muted-foreground">~/.bash_aliases</span>
+        </div>
+        <CodeBlock typing>{aliasCode}</CodeBlock>
+      </AnimatedSection>
     </div>
   )
 }

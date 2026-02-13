@@ -1,4 +1,4 @@
-import { AnimatedSection, Badge, cn } from '@repo/ui'
+import { AnimatedSection, Badge, Card, cn } from '@repo/ui'
 import { FileText, Shield, Users, Zap } from 'lucide-react'
 
 const skills = [
@@ -119,22 +119,48 @@ export function BuildingBlocksSection() {
         </p>
       </AnimatedSection>
 
-      <div className="mt-12 grid gap-6 md:grid-cols-2">
+      {/* Bento grid: featured card spans full width, remaining 3 below in asymmetric sizes */}
+      <div className="mt-12 grid gap-6 md:grid-cols-6">
         {blocks.map((block, index) => (
-          <AnimatedSection key={block.title} className={cn(index > 1 && 'md:delay-150')}>
-            <div className="h-full rounded-2xl border border-border/50 bg-card/50 p-6 transition-colors hover:bg-card/80 lg:p-8">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <block.icon className="h-5 w-5 text-primary" />
+          <AnimatedSection
+            key={block.title}
+            className={cn(
+              // Featured card (CLAUDE.md) spans full width
+              index === 0 && 'md:col-span-6',
+              // Skills card takes 4 columns (wider — badges need room)
+              index === 1 && 'md:col-span-4',
+              // Hooks card takes 2 columns
+              index === 2 && 'md:col-span-2',
+              // Agent definitions takes 3 columns offset from center
+              index === 3 && 'md:col-span-3 md:col-start-4',
+              // Stagger animation for rows below the first
+              index > 0 && 'md:delay-150'
+            )}
+          >
+            <Card
+              variant="subtle"
+              className={cn(
+                'h-full p-6 lg:p-8',
+                // Featured card gets a horizontal layout on desktop
+                index === 0 && 'md:flex md:flex-row md:items-start md:gap-8'
+              )}
+            >
+              {/* Text content */}
+              <div className={cn(index === 0 && 'md:flex-1')}>
+                <div className="flex items-center gap-3">
+                  <div className="rounded-lg bg-primary/10 p-2">
+                    <block.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold">{block.title}</h3>
+                    <p className="text-sm text-muted-foreground">{block.subtitle}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-semibold">{block.title}</h3>
-                  <p className="text-sm text-muted-foreground">{block.subtitle}</p>
-                </div>
+                <p className="mt-4 text-muted-foreground">{block.description}</p>
               </div>
-              <p className="mt-4 text-muted-foreground">{block.description}</p>
-              {block.visual}
-            </div>
+              {/* Visual content — for featured card, sits beside text on desktop */}
+              <div className={cn(index === 0 && 'md:flex-1')}>{block.visual}</div>
+            </Card>
           </AnimatedSection>
         ))}
       </div>
