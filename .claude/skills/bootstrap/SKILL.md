@@ -1,12 +1,12 @@
 ---
 argument-hint: ["idea" | --issue <N> | --spec <N>]
-description: Planning orchestrator from idea to approved implementation plan, with three validation gates.
-allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Task
+description: Planning orchestrator from idea to approved spec, with two validation gates.
+allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Task, TeamCreate, TeamDelete, SendMessage
 ---
 
 # Bootstrap
 
-Orchestrate the full planning pipeline from a raw idea (or existing issue/spec) to an approved implementation plan. Calls `/interview` for analysis and spec creation, and `/plan` for implementation planning. Enforces three user-approval gates. Stops at the approved plan -- execution is handled by `/scaffold`.
+Orchestrate the planning pipeline from a raw idea (or existing issue/spec) to an approved spec. Spawns a planning team (product-lead + architect + doc-writer) to produce analysis and spec documents. Enforces two user-approval gates. Stops at the approved spec -- execution is handled by `/scaffold`.
 
 ## Entry Points
 
@@ -20,7 +20,7 @@ Orchestrate the full planning pipeline from a raw idea (or existing issue/spec) 
 |------|-----------|----------|
 | `"idea text"` | Gate 1 (Analysis) | Full pipeline from scratch |
 | `--issue N` | Gate 1 (Analysis) | Reads GitHub issue body as starting context |
-| `--spec N` | Gate 2 (Spec) | Assumes spec exists at `docs/specs/N-*.mdx`, skips analysis |
+| `--spec N` | Gate 2 (Spec) | Assumes spec exists at `docs/specs/N-*.mdx`, validates and approves |
 
 ## Instructions
 
@@ -76,6 +76,27 @@ Use **Glob** to search for files matching the topic. For `--issue N`, also match
 
 ---
 
+## Spawn Planning Team
+
+Before entering any gate, create the planning team:
+
+1. **Create team** using `TeamCreate` with name `bootstrap-{issue-or-slug}`.
+2. **Spawn agents** using the `Task` tool with `team_name`:
+
+| Agent | Role | Spawned as |
+|-------|------|------------|
+| **product-lead** | Leads interviews, writes analysis and spec, interacts with human | Active — starts working immediately |
+| **architect** | Available for technical consultation (depth, trade-offs, architecture) | Idle — product-lead messages when needed |
+| **doc-writer** | Available for documentation quality review | Idle — product-lead messages when needed |
+
+3. **Create tasks** for the team:
+   - Task for Gate 1 (analysis) assigned to product-lead
+   - Task for Gate 2 (spec) assigned to product-lead, blocked by Gate 1
+
+Product-lead uses `/interview` skill internally to conduct structured interviews with the human. When product-lead needs technical depth, it messages architect via `SendMessage`. When it needs doc review, it messages doc-writer.
+
+---
+
 ## Gate 1: Analysis
 
 > Skipped when using `--spec`.
@@ -83,9 +104,8 @@ Use **Glob** to search for files matching the topic. For `--issue N`, also match
 ### 1a. Generate or Locate Analysis
 
 - **If an analysis already exists** (found in Step 1): read it and present it to the user.
-- **If no analysis exists**: invoke the `/interview` skill in Analysis mode using the Skill tool.
-  - Pass the idea text or issue context as the argument.
-  - `/interview` will produce `docs/analyses/{slug}.mdx`.
+- **If no analysis exists**: product-lead conducts a structured interview with the human (using `/interview` in Analysis mode) to produce `docs/analyses/{slug}.mdx`.
+  - Product-lead may consult architect for technical depth or trade-off analysis.
 
 ### 1b. User Approval
 
@@ -97,7 +117,7 @@ Options:
 - **Approve** -- Proceed to Gate 2 (Spec)
 - **Reject** -- Provide feedback and re-enter Gate 1
 
-**If rejected:** Collect user feedback, then re-invoke `/interview` or manually adjust the analysis. Re-present for approval. Do not proceed until approved.
+**If rejected:** Collect user feedback, product-lead revises the analysis (may consult architect/doc-writer). Re-present for approval. Do not proceed until approved.
 
 ---
 
@@ -106,9 +126,8 @@ Options:
 ### 2a. Generate or Locate Spec
 
 - **If a spec already exists** (found in Step 1, or entry point is `--spec N`): read it and present it to the user.
-- **If no spec exists**: invoke the `/interview` skill in Spec mode with `--promote` using the Skill tool.
-  - Pass `--promote <path-to-analysis>` as the argument so `/interview` uses the approved analysis as the source.
-  - `/interview` will produce `docs/specs/{issue}-{slug}.mdx`.
+- **If no spec exists**: product-lead promotes the approved analysis to a spec (using `/interview` with `--promote <path-to-analysis>`) to produce `docs/specs/{issue}-{slug}.mdx`.
+  - Product-lead may consult architect for implementation strategy and doc-writer for spec quality.
 
 ### 2b. User Approval
 
@@ -117,27 +136,10 @@ Present the spec to the user via **AskUserQuestion**:
 > "Here is the spec. Please review it."
 
 Options:
-- **Approve** -- Proceed to Gate 3 (Implementation Plan)
+- **Approve** -- Bootstrap complete, proceed to completion
 - **Reject** -- Provide feedback and re-enter Gate 2
 
-**If rejected:** Collect user feedback, adjust the spec or re-run the interview. Re-present for approval. Do not proceed until approved.
-
----
-
-## Gate 3: Implementation Plan
-
-### 3a. Generate Plan
-
-Invoke the `/plan` skill using the Skill tool:
-
-- Pass `--spec <path-to-spec>` as the argument (use the spec file path from Gate 2).
-- `/plan` will read the spec, analyze scope, suggest a tier (S/M/L), and generate an ordered implementation plan.
-
-### 3b. User Approval
-
-The `/plan` skill handles its own presentation and approval flow. Once `/plan` completes with an approved plan, Gate 3 is passed.
-
-**If the user rejects the plan inside `/plan`:** `/plan` handles re-generation. `/bootstrap` waits for `/plan` to finish with an approved result.
+**If rejected:** Collect user feedback, product-lead revises the spec (may consult team). Re-present for approval. Do not proceed until approved.
 
 ---
 
@@ -150,64 +152,44 @@ When a GitHub issue is associated with the bootstrap pipeline, update its status
 | Gate 1 approved (analysis done) | **Analysis** | After user approves the analysis |
 | Gate 2 approved (spec done) | **Specs** | After user approves the spec |
 
-Use the following helper to update the status. Replace `<ISSUE_NUMBER>` with the actual issue number:
+Use the triage helper to update status. Replace `<ISSUE_NUMBER>` with the actual issue number:
 
 ```bash
-# Get the project item ID for the issue
-ITEM_ID=$(gh api graphql -F query=@- -f projectId="PVT_kwHODEqYK84BOId3" <<'GQL' | jq -r --argjson num <ISSUE_NUMBER> '.data.node.items.nodes[] | select(.content.number == $num) | .id'
-query($projectId: ID!) {
-  node(id: $projectId) {
-    ... on ProjectV2 {
-      items(first: 100) {
-        nodes {
-          id
-          content { ... on Issue { number } }
-        }
-      }
-    }
-  }
-}
-GQL
-)
+# Gate 1 → Analysis
+.claude/skills/issue-triage/triage.sh set <ISSUE_NUMBER> --status Analysis
 
-# Update the Status field (use heredoc to avoid shell expansion of GraphQL $ variables)
-gh api graphql -F query=@- \
-  -f projectId="PVT_kwHODEqYK84BOId3" \
-  -f itemId="$ITEM_ID" \
-  -f fieldId="PVTSSF_lAHODEqYK84BOId3zg87HNM" \
-  -f optionId="<OPTION_ID>" <<'GQL'
-mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
-  updateProjectV2ItemFieldValue(input: {projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: {singleSelectOptionId: $optionId}}) {
-    projectV2Item { id }
-  }
-}
-GQL
+# Gate 2 → Specs
+.claude/skills/issue-triage/triage.sh set <ISSUE_NUMBER> --status Specs
 ```
-
-**Status option IDs:**
-
-| Status | Option ID |
-|--------|-----------|
-| Backlog | `df6ee93b` |
-| Analysis | `bec91bb0` |
-| Specs | `ad9a9195` |
-| In Progress | `331d27a4` |
-| Review | `ee30a001` |
-| Done | `bfdc35bd` |
 
 **When to update:**
 - Only update if a GitHub issue is associated (skip if no issue number exists)
-- Gate 1 → set to "Analysis" (`bec91bb0`)
-- Gate 2 → set to "Specs" (`ad9a9195`)
-- Gate 3 does NOT change status (stays at "Specs" until `/scaffold` moves it to "In Progress")
+- Gate 1 → set to "Analysis"
+- Gate 2 → set to "Specs"
 
 ## Completion
 
-Once all three gates are passed, inform the user:
+Once both gates are passed:
 
-> "Bootstrap complete. You have an approved analysis, spec, and implementation plan. Run `/scaffold` to begin execution."
+1. **Commit** the analysis and spec documents:
+   ```bash
+   git add docs/analyses/<slug>.mdx docs/specs/<issue>-<slug>.mdx
+   git commit -m "$(cat <<'EOF'
+   docs(<scope>): add analysis and spec for <feature>
 
-**Do not scaffold, commit, or create PRs.** Bootstrap stops at the approved plan.
+   Refs #<issue_number>
+
+   Co-Authored-By: Claude <model> <noreply@anthropic.com>
+   EOF
+   )"
+   ```
+   Include `meta.json` files if they were updated.
+
+2. **Inform the user:**
+
+> "Bootstrap complete. You have an approved analysis and spec (committed). Run `/scaffold --spec <N>` to execute."
+
+**Do not scaffold or create PRs.** Bootstrap stops at the approved spec.
 
 ## Edge Cases
 
@@ -217,18 +199,25 @@ Once all three gates are passed, inform the user:
 | Issue already has an analysis | Skip analysis generation, present existing analysis at Gate 1 for validation |
 | User rejects at any gate | Stop, collect feedback, re-enter the same gate |
 | `--spec N` but no spec found | Inform user: "No spec found matching issue #N. Try `/bootstrap --issue N` or `/bootstrap 'your idea'` to start from scratch." |
-| Analysis exists but is a brainstorm | Treat as "no analysis" -- invoke `/interview` to promote brainstorm to analysis |
-| `/interview` or `/plan` skill fails | Report the error to the user and stop |
+| Analysis exists but is a brainstorm | Treat as "no analysis" -- product-lead promotes brainstorm to analysis |
+| Agent fails or is unresponsive | Report the error to the user and stop |
 | Issue already has a branch or open PR | Stop and propose `/review` or `/scaffold` instead (Step 0b) |
+
+## Team Teardown
+
+After completion (or early exit), shut down the planning team:
+
+1. Send `shutdown_request` to all agents (product-lead, architect, doc-writer)
+2. Wait for shutdown confirmations
+3. Call `TeamDelete` to clean up
 
 ## Skill Invocation Reference
 
-When calling sub-skills, use the **Skill** tool:
+Product-lead uses the `/interview` skill internally:
 
 | Sub-skill | Invocation | When |
 |-----------|------------|------|
 | `/interview` (Analysis) | `skill: "interview", args: "topic text"` | Gate 1, no existing analysis |
 | `/interview` (Spec promotion) | `skill: "interview", args: "--promote docs/analyses/{slug}.mdx"` | Gate 2, no existing spec |
-| `/plan` | `skill: "plan", args: "--spec docs/specs/{issue}-{slug}.mdx"` | Gate 3 |
 
 $ARGUMENTS

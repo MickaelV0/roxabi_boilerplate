@@ -30,7 +30,7 @@ git branch --show-current
 
 ### 2. Analyze Each Branch
 
-For every branch **except `main`/`master`** and the current branch, determine:
+For every branch **except `main`/`master`/`staging`** and the current branch, determine:
 
 | Check | Command | Safe to delete? |
 |-------|---------|-----------------|
@@ -104,8 +104,8 @@ Scan **all** remote branches for stale ones that can be cleaned up.
 # Fetch and prune stale remote tracking refs
 git fetch --prune origin
 
-# List all remote branches except main/master/HEAD
-git branch -r | grep -v 'origin/main' | grep -v 'origin/master' | grep -v 'origin/HEAD'
+# List all remote branches except main/master/staging/HEAD
+git branch -r | grep -v 'origin/main' | grep -v 'origin/master' | grep -v 'origin/staging' | grep -v 'origin/HEAD'
 
 # Get open PR branch names (to exclude)
 gh pr list --state open --json headRefName --jq '.[].headRefName' 2>/dev/null
@@ -188,7 +188,7 @@ Cleanup Complete
 
 ## Safety Rules
 
-1. **NEVER delete `main` or `master`**
+1. **NEVER delete `main`, `master`, or `staging`**
 2. **NEVER delete the current branch**
 3. **NEVER delete a branch with an open PR** unless explicitly confirmed
 4. **NEVER delete an unmerged branch** without a separate, explicit confirmation

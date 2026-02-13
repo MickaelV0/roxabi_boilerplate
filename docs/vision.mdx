@@ -79,14 +79,15 @@ The boilerplate distinguishes between two types of AI agents:
 **Development Agents** - Assist in building the SaaS
 | Agent | Role |
 |-------|------|
-| Dev | Feature implementation |
-| Review | Code review, quality |
-| Test | Writing and maintaining tests |
-| Deploy | CI/CD, deployments |
-| Product | Specs, product ownership |
-| Ops/Infra | Monitoring, infrastructure |
-| Frontend | UI/UX specialist |
-| Backend | API/DB specialist |
+| `frontend-dev` | UI/UX implementation (apps/web, packages/ui) |
+| `backend-dev` | API/DB implementation (apps/api, packages/types) |
+| `tester` | Writing and maintaining tests |
+| `fixer` | Targeted fixes from review comments |
+| `architect` | System design and cross-cutting architecture |
+| `product-lead` | Specs, product ownership, requirements |
+| `doc-writer` | Documentation creation and maintenance |
+| `infra-ops` | CI/CD, configuration, tooling |
+| `security-auditor` | Security audits and compliance |
 
 **Runtime Agents** - Interact with the deployed SaaS
 | Agent | Role |
@@ -213,10 +214,11 @@ META Organization (super admin)
 
 ### Branching Strategy
 
-**GitHub Flow**
-- `main` = production-ready
-- Feature branches for each change
-- PR required for merge
+**Staging-based workflow (Git Flow lite)**
+- `main` = production — merges trigger auto-deploy
+- `staging` = integration branch — all feature/fix branches branch from here and PR back
+- `hotfix/*` branches may target `main` directly for urgent production fixes
+- PR required for all merges
 
 ### Development Workflow
 
@@ -242,7 +244,7 @@ Idea → GitHub Issue → Branch → Dev → PR → Review → Merge → Deploy 
 
 ### Hotfix Process
 
-- Direct commit to `main` with post-deploy validation
+- Create `hotfix/*` branch from `main`, open PR targeting `main`
 - Rollback via Vercel dashboard (promote previous deployment)
 
 ---
@@ -252,11 +254,14 @@ Idea → GitHub Issue → Branch → Dev → PR → Review → Merge → Deploy 
 ### Phase 1: MVP
 
 **Scope**
-- [ ] Auth + Users (Better Auth)
-- [ ] Multi-tenant (RLS)
-- [ ] RBAC (roles and permissions)
+- [x] Auth + Users (Better Auth)
+- [x] Multi-tenant (RLS)
+- [x] RBAC (roles and permissions)
+- [x] i18n (Paraglide JS — compile-time, type-safe)
+- [x] Design system (Shadcn/UI + CVA + design tokens)
+- [x] Security hardening (CORS, CSP, input sanitization)
+- [x] Agent Teams (10-agent AI development team)
 - [ ] Admin panel
-- [ ] i18n (internationalization)
 - [ ] Audit logs
 - [ ] Notifications (emails + in-app)
 
@@ -295,12 +300,12 @@ To be prioritized later:
 | CI/CD | GitHub Actions | Implemented |
 | Database | PostgreSQL | Implemented |
 | ORM | Drizzle | Implemented |
-| Auth | Better Auth | Planned |
+| Auth | Better Auth | Implemented |
 | UI | Shadcn/UI | Implemented |
 | Tests | Vitest + Playwright | Implemented |
 | Monitoring | PostHog | Planned |
 | API Style | REST + OpenAPI | Implemented |
-| Multi-tenant | Row-Level Security | Planned |
+| Multi-tenant | Row-Level Security | Implemented |
 
 ### Abstracted (Implementation at Deploy)
 

@@ -34,7 +34,7 @@ Report results and stop.
 **Default (no file argument):**
 
 ```bash
-git diff main...HEAD --name-only
+git diff staging...HEAD --name-only
 ```
 
 Filter the output to testable files:

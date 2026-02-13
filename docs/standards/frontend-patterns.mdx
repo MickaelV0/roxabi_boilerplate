@@ -10,14 +10,14 @@ or is derived from the codebase.
 
 | Pattern | Example | Source |
 |---------|---------|--------|
-| Const assertions | `const LOCALES = ['en', 'fr'] as const` | `apps/web/src/lib/i18n/types.ts` |
-| Derived unions | `type Locale = (typeof LOCALES)[number]` | `apps/web/src/lib/i18n/types.ts` |
-| Type guards | `function isValidLocale(s): s is Locale` | `apps/web/src/lib/i18n/server.ts` |
+| Const assertions | `const LOCALES = ['en', 'fr'] as const` | Paraglide (generated in `apps/web/src/paraglide/`) |
+| Derived unions | `type Locale = (typeof LOCALES)[number]` | Paraglide (generated in `apps/web/src/paraglide/`) |
+| Type guards | `function isValidLocale(s): s is Locale` | New pattern |
 | Assertion functions | `function assertLocale(s): asserts s is Locale` | New pattern |
 | `satisfies` validation | `config satisfies Record&lt;Locale, ...>` | New pattern |
 | `as const satisfies` | `['en', 'fr'] as const satisfies readonly string[]` | New pattern |
 | Generic responses | `ApiResponse&lt;T>` (discriminated union preferred) | `packages/types/src/index.ts` |
-| Mapped types | `Record&lt;Locale, { native: string; english: string }>` | `LanguageSwitcher.tsx` |
+| Mapped types | `Record&lt;Locale, { native: string; english: string }>` | `LocaleSwitcher.tsx` |
 | Type-only imports | `import type { Locale }` | Enforced by Biome |
 | Template literal types | `` type LocalizedRoute = `/${Locale}/${string}` `` | New pattern |
 
@@ -84,11 +84,11 @@ lib/feature/
 └── __tests__/      # Tests (alternative to colocated .test.ts)
 ```
 
-See `apps/web/src/lib/i18n/` for a canonical example of this structure.
+Apply this structure when creating new feature directories in `apps/web/src/lib/`.
 
 **Rules:**
 
-- **No barrel files in app code.** Import directly from the source file: `@/lib/i18n/hooks`, not `@/lib/i18n`. Barrel files increase bundle size and create circular dependency risks.
+- **No barrel files in app code.** Import directly from the source file: `@/lib/feature/hooks`, not `@/lib/feature`. Barrel files increase bundle size and create circular dependency risks.
 - **Barrel files allowed only in `packages/*/src/index.ts`** for public API surfaces of shared packages.
 - **Separate client and server files** for isomorphic features. Never import server-only code (e.g., cookie parsing, database calls) into client modules.
 - **Hooks in a dedicated file.** Do not mix hook definitions with utility functions. `hooks.ts` contains React hooks; `client.ts` and `server.ts` contain plain functions.
@@ -98,17 +98,17 @@ See `apps/web/src/lib/i18n/` for a canonical example of this structure.
 
 | Pattern | Source | Example |
 |---------|--------|---------|
-| Hook Composition | `apps/web/src/lib/i18n/hooks.ts` | `useTranslation`, `useLocale` -- focused, single-purpose hooks |
-| Companion Hook | `apps/web/src/components/LanguageSwitcher.tsx` | `useLanguageSwitcher` co-located with the component it serves |
+| Focused Utilities | Paraglide runtime (`apps/web/src/paraglide/`) | `getLocale`, `setLocale` -- single-purpose functions with one job each |
+| Companion Hook | `apps/web/src/components/LocaleSwitcher.tsx` | Logic co-located with the component it serves |
 | Error Boundary | `react-error-boundary` package | `&lt;ErrorBoundary>` with `fallbackRender` prop |
-| Component Composition | `apps/web/src/components/LanguageSwitcher.tsx` | Variant props + companion hook for flexible rendering |
-| Module Namespace | `apps/web/src/lib/i18n/` directory | Related files grouped in a dedicated directory |
+| Component Composition | `apps/web/src/components/LocaleSwitcher.tsx` | App component built by composing `@repo/ui` primitives (DropdownMenu, Button) |
+| Module Namespace | `apps/web/src/paraglide/` directory | Related files grouped in a dedicated directory |
 
 **Design principles:**
 
-- **Focused hooks.** Each hook does one thing. `useTranslation` returns translation functions; `useLocale` returns locale and formatting utilities. Do not combine unrelated concerns.
+- **Focused hooks.** Each hook does one thing. Each utility serves a single purpose. Do not combine unrelated concerns.
 - **Minimal props.** Pass only what the component needs. Derive internal state from props rather than requiring callers to pre-compute it.
-- **Extension via composition.** Add variants without modifying internals. The `LanguageSwitcher` uses a `variant` prop to switch between `'dropdown'` and `'buttons'` rendering.
+- **Extension via composition.** Add variants without modifying internals. Use a `variant` prop to switch between rendering modes.
 - **Compound components over config props.** If a component accumulates more than 4-5 configuration props, refactor it into a compound component pattern with subcomponents.
 
 ## 1.4 Error Handling
@@ -116,9 +116,9 @@ See `apps/web/src/lib/i18n/` for a canonical example of this structure.
 **Existing patterns in the codebase:**
 
 - Error boundaries via `react-error-boundary` at route and feature level.
-- `null` return for graceful degradation (e.g., `getLocaleFromPath` returns `null` when no locale is found).
-- `console.warn` for non-critical failures (e.g., missing translation files in `loadTranslations`).
-- Try/catch in hooks with `undefined` fallback (e.g., `useI18nContext` catches missing router context).
+- `null` return for graceful degradation (e.g., utility functions return `null` when no match is found).
+- `console.warn` for non-critical failures (e.g., missing translation keys).
+- Try/catch in hooks with `undefined` fallback (e.g., hooks catch missing context).
 
 **Rules:**
 
@@ -141,13 +141,13 @@ type Result<T, E = string> =
 - **Props type as `type`, not `interface`.** Use PascalCase with a `Props` suffix:
 
 ```tsx
-type LanguageSwitcherProps = {
+type LocaleSwitcherProps = {
   className?: string
   variant?: 'dropdown' | 'buttons'
 }
 ```
 
-- **Extract logic into companion hooks** when a component's logic grows beyond simple event handlers. See `useLanguageSwitcher` in `LanguageSwitcher.tsx`.
+- **Extract logic into companion hooks** when a component's logic grows beyond simple event handlers.
 - **Named exports only.** Never use default exports. Exception: framework conventions that require them (e.g., route components if mandated by the framework).
 - **Variant pattern** for multi-mode components. Use a `variant` prop with a union type rather than separate components or boolean flags:
 
@@ -232,13 +232,13 @@ function Button({
   size,
   asChild = false,
   ...props
-}: React.ComponentProps&lt;'button'> &
-  VariantProps&lt;typeof buttonVariants> & {
+}: React.ComponentProps<'button'> &
+  VariantProps<typeof buttonVariants> & {
     asChild?: boolean
   }) {
   const Comp = asChild ? Slot.Root : 'button'
   return (
-    &lt;Comp
+    <Comp
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
@@ -258,7 +258,7 @@ function Button({
 Add data attributes for CSS targeting and testing:
 
 ```tsx
-&lt;button
+<button
   data-slot="button"
   data-variant={variant}
   data-size={size}
@@ -268,27 +268,7 @@ Add data attributes for CSS targeting and testing:
 
 ### Adding New shadcn/ui Components
 
-**Method 1: CLI Installation (Recommended)**
-
-The shadcn CLI doesn't work directly in `packages/ui` (no framework detected), but works from `apps/web`:
-
-```bash
-# 1. Install from apps/web (has components.json)
-cd apps/web
-bunx shadcn@latest add button dialog accordion --yes
-
-# 2. Move to packages/ui
-mv src/components/ui/*.tsx ../../packages/ui/src/components/
-
-# 3. Rename to PascalCase (our convention)
-cd ../../packages/ui/src/components
-mv button.tsx Button.tsx
-mv dialog.tsx Dialog.tsx
-
-# 4. Export from packages/ui/src/index.ts
-```
-
-**Method 2: Manual Copy**
+> **Note:** The shadcn CLI does not work correctly in our monorepo setup (`packages/ui` has no framework detected). Always use manual copy.
 
 1. **Visit**: [ui.shadcn.com](https://ui.shadcn.com/docs/components)
 2. **Copy** the component code

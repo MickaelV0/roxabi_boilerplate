@@ -3,15 +3,13 @@ title: "Design System Page & Theme Customization"
 description: Public design system page with interactive component playground, theme editor, preset themes, and localStorage persistence.
 ---
 
-# #70 — Design System Page & Theme Customization
-
 ## Context
 
 Issue #48 (UI Component Library) is complete: Shadcn/UI is configured, 19 components live in `packages/ui`, and light/dark mode works via OKLch CSS variables. However, there is no visible design system page, no interactive playground to explore components, and no theme customization beyond the light/dark toggle.
 
 This spec covers **Phase 1**: a public `/design-system` page with an interactive component playground, a live theme editor, preset themes, and localStorage persistence.
 
-**Promoted from:** [#70 Design System & Theme Customization Analysis](/docs/analyses/70-design-system)
+**Promoted from:** [#70 Design System & Theme Customization Analysis](../analyses/70-design-system)
 
 **Dependency:** #48 UI Component Library — **CLOSED**.
 
@@ -117,7 +115,7 @@ User edits seed colors for the current mode. `deriveFullTheme()` auto-derives th
 Dark/light mode FOUC prevention is already handled by `next-themes` (via fumadocs `RootProvider`), which injects an inline `&lt;script>` as a React component inside `&lt;body>`. The custom theme uses the **same pattern**: a `ThemeScript` React component with `dangerouslySetInnerHTML` rendered at the top of `AppShell` (before any visual content). This runs synchronously before the browser paints the tree.
 
 ```
-&lt;ThemeScript /> → inline script → read localStorage("roxabi-theme") → parse JSON → setProperty() for both :root and .dark variables → done before first paint
+<ThemeScript /> → inline script → read localStorage("roxabi-theme") → parse JSON → setProperty() for both :root and .dark variables → done before first paint
 ```
 
 No modification to `&lt;HeadContent />` or `__root.tsx` `&lt;head>` is needed.

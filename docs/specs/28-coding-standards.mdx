@@ -9,7 +9,7 @@ description: Specification for documenting coding standards, testing workflow, c
 
 Create 4 standards documents that codify existing codebase patterns and fill documentation gaps. These serve as actionable references for developers and AI agents alike. The frontend and backend pattern docs each include a compressed "AI Quick Reference" section with imperative rules for agent consumption.
 
-**Approach**: Option C (Balanced) from [analysis](/docs/analyses/28-coding-standards), refined by a [challenge review](#challenge-review-decisions) that validated patterns against 2025-2026 best practices and corrected 17 items.
+**Approach**: Option C (Balanced) from [analysis](../analyses/28-coding-standards), refined by a [challenge review](#challenge-review-decisions) that validated patterns against 2025-2026 best practices and corrected 17 items.
 
 ## Goals
 
@@ -408,7 +408,7 @@ test.describe('Feature Name', () => {
 ```typescript
 import { vi } from 'vitest'
 
-function createMockHost(headers: Record&lt;string, string> = {}) {
+function createMockHost(headers: Record<string, string> = {}) {
   const sendFn = vi.fn()
   const statusFn = vi.fn().mockReturnValue({ send: sendFn })
   // ... return structured mock
@@ -712,10 +712,10 @@ This spec was refined through a systematic challenge review against 2025-2026 be
 
 ## References
 
-- [Analysis: Issue #28](/docs/analyses/28-coding-standards)
-- [Dev Process](/docs/processes/dev-process)
-- [Contributing Guide](/docs/contributing)
-- [Testing Infrastructure Spec](/docs/specs/09-testing-infrastructure)
+- [Analysis: Issue #28](../analyses/28-coding-standards)
+- [Dev Process](../processes/dev-process)
+- [Contributing Guide](../contributing)
+- [Testing Infrastructure Spec](./09-testing-infrastructure)
 - [Conventional Comments](https://conventionalcomments.org/)
 - [Testing Trophy (Kent C. Dodds)](https://kentcdodds.com/blog/the-testing-trophy-and-testing-classifications)
 - [React Compiler](https://react.dev/blog/2025/10/07/react-compiler-1)

@@ -137,7 +137,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create&lt;NestFastifyApplication&gt;(
+  const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({ logger: true }),
   );
@@ -173,7 +173,7 @@ import { pgTable, integer, text, timestamp } from 'drizzle-orm/pg-core';
 // Reusable timestamps
 export const timestamps = {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull().$onUpdateFn(() =&gt; new Date()),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull().$onUpdateFn(() => new Date()),
 };
 
 // Tenant-aware base pattern (for future RLS)

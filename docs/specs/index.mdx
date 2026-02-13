@@ -13,25 +13,30 @@ Technical specifications for planned and implemented features.
 - [Claude Code Skills](./12-claude-code-skills) — 9 Claude Code skills covering the full dev lifecycle
 - [Backend Infrastructure Setup](./43-backend-setup) — NestJS 11 + Fastify 5 + Drizzle ORM setup
 - [Docker Compose](./47-docker-compose) — Docker Compose configuration for local development with PostgreSQL
+- [Staging Environment with Preview Deploys](./114-staging-environment-preview-deploys) — Staging branch with manual preview deploys
+- [CI/CD Database Migrations](./132-ci-db-migrations) — Automate Drizzle DB migrations in CI/CD pipeline with drift detection
 
 ## Frontend
 
 - [i18n (Internationalization)](./20-i18n) — Multi-language support specification
-- [TanStack Start i18n Integration](./33-tanstack-start-i18n-integration) — Integrating i18n with TanStack Start SSR
 - [API Client](./49-api-client) — Typed HTTP client for frontend-to-backend communication using ofetch
-- [Paraglide i18n Migration](./64-paraglide-i18n-migration) — Replace runtime i18next with compile-time Paraglide JS
 - [Auth UI/UX](./68-auth-ui-ux) — Polished authentication pages, organization management UI, and shared auth components
 - [Design System &amp; Theme Customization](./70-design-system) — Public design system page with interactive component playground and theme editor
 
 ## Auth &amp; Security
 
 - [Auth + Users (Better Auth)](./19-auth-users) — Full-stack authentication and user management with Better Auth
+- [Multi-tenant Row-Level Security (RLS)](./21-multi-tenant-rls) — PostgreSQL RLS-based tenant isolation
+- [RBAC (Roles and Permissions)](./24-rbac) — Role-based access control with per-tenant roles
 - [Pre-Production Security Hardening](./89-security-hardening) — Address 7 medium-severity security items from the project audit
 
 ## Process &amp; Quality
 
 - [Coding Standards &amp; Best Practices](./28-coding-standards) — Documenting coding standards, testing workflow, and code review guidelines
+- [Align Demo Pages with Design System](./77-align-demo-pages-design-system) — Refactor demo pages to use @repo/ui components
 - [Agent Teams Architecture](./78-agent-teams-architecture) — 10-agent team architecture using Claude Code Agent Teams
 - [License Checker](./80-license-checker) — Dependency license compliance via an allowlist policy
-- [Fix Stale Docs and Add Missing Guides](./92-docs-audit-remediation) — Remediate documentation findings from the project audit
+- [Code Quality Fixes](./90-code-quality-fixes) — Refactor production and demo code for type safety and error handling
 - [Low-Priority Audit Backlog](./94-low-priority-audit-backlog) — Address remaining low-priority findings from the project audit
+- [Tech Debt Audit Remediation](./95-tech-debt-audit-remediation) — Resolve 9 tech debt items from project audit
+- [Dev Process Overhaul](./130-dev-process-overhaul) — Rewrite the Tier F development workflow with clear roles

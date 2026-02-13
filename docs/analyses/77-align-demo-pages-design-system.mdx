@@ -3,8 +3,6 @@ title: "#77 Align Demo Pages with Design System"
 description: Analysis of the 13 demo pages' visual inconsistencies and plan to align them with the shared @repo/ui design system.
 ---
 
-# #77 Align Demo Pages with Design System
-
 ## Context
 
 Issue #48 (UI Component Library) shipped 20+ Shadcn/UI components in `packages/ui` with OKLch CSS variable tokens supporting light and dark mode. However, the 13 demo pages under `apps/web/src/routes/demo/` were built before the component library existed and use three inconsistent visual styles. Only `form/steps.tsx` dogfoods the design system. The rest use hardcoded colors, inline gradients, and raw HTML — making them poor references for developers adopting the boilerplate.
@@ -45,25 +43,25 @@ Several glassmorphic demos already import `@repo/ui` components but override the
 The target layout pattern is:
 
 ```tsx
-&lt;div className="min-h-screen bg-background py-12">
-  &lt;div className="mx-auto max-w-2xl px-6">
+<div className="min-h-screen bg-background py-12">
+  <div className="mx-auto max-w-2xl px-6">
     {/* Optional header */}
-    &lt;div className="mb-8 text-center">
-      &lt;h1 className="text-3xl font-bold">Title&lt;/h1>
-      &lt;p className="mt-2 text-muted-foreground">Subtitle&lt;/p>
-    &lt;/div>
+    <div className="mb-8 text-center">
+      <h1 className="text-3xl font-bold">Title</h1>
+      <p className="mt-2 text-muted-foreground">Subtitle</p>
+    </div>
 
     {/* Content in Card */}
-    &lt;Card>
-      &lt;CardHeader>
-        &lt;CardTitle>...&lt;/CardTitle>
-        &lt;CardDescription>...&lt;/CardDescription>
-      &lt;/CardHeader>
-      &lt;CardContent>...&lt;/CardContent>
-      &lt;CardFooter>...&lt;/CardFooter>
-    &lt;/Card>
-  &lt;/div>
-&lt;/div>
+    <Card>
+      <CardHeader>
+        <CardTitle>...</CardTitle>
+        <CardDescription>...</CardDescription>
+      </CardHeader>
+      <CardContent>...</CardContent>
+      <CardFooter>...</CardFooter>
+    </Card>
+  </div>
+</div>
 ```
 
 Key characteristics:

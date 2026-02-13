@@ -13,6 +13,8 @@
     "processes",
     "guides",
     "analyses",
-    "specs"
+    "specs",
+    "---",
+    "changelog"
   ]
 }

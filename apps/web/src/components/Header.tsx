@@ -72,10 +72,10 @@ export function Header() {
             </Link>
           </Button>
           <Button variant="ghost" size="sm" asChild>
-            <a href="/docs">
+            <Link to="/docs/$" params={{ _splat: '' }}>
               <BookOpenIcon className="size-4" />
               {m.nav_docs()}
-            </a>
+            </Link>
           </Button>
         </div>
 
@@ -151,10 +151,10 @@ export function Header() {
               </Link>
             </Button>
             <Button variant="ghost" size="sm" className="justify-start" asChild>
-              <a href="/docs" onClick={() => setMobileOpen(false)}>
+              <Link to="/docs/$" params={{ _splat: '' }} onClick={() => setMobileOpen(false)}>
                 <BookOpenIcon className="size-4" />
                 {m.nav_docs()}
-              </a>
+              </Link>
             </Button>
             {!session && (
               <>

@@ -1,28 +1,34 @@
 # Claude Configuration
 
-## Documentation
+## TL;DR
 
-| Topic | Documentation |
-|-------|---------------|
-| Development process | [docs/processes/dev-process.mdx](docs/processes/dev-process.mdx) |
-| Issue management | [docs/processes/issue-management.mdx](docs/processes/issue-management.mdx) |
-| Processes | [docs/processes/](docs/processes/) |
-| Architecture | [docs/architecture/](docs/architecture/) |
-| Analyses (pre-spec) | [docs/analyses/](docs/analyses/) |
-| Feature specifications | [docs/specs/](docs/specs/) |
-| Coding standards | [docs/standards/](docs/standards/) |
-| Frontend patterns | [docs/standards/frontend-patterns.mdx](docs/standards/frontend-patterns.mdx) |
-| Backend patterns | [docs/standards/backend-patterns.mdx](docs/standards/backend-patterns.mdx) |
-| Testing | [docs/standards/testing.mdx](docs/standards/testing.mdx) |
-| Code review | [docs/standards/code-review.mdx](docs/standards/code-review.mdx) |
-| Vision & roadmap | [docs/vision.mdx](docs/vision.mdx) |
-| Configuration & setup | [docs/configuration.mdx](docs/configuration.mdx) |
-| Contributing & MDX guide | [docs/contributing.mdx](docs/contributing.mdx) |
-| Guides | [docs/guides/](docs/guides/) |
-| Agent Teams guide | [docs/guides/agent-teams.mdx](docs/guides/agent-teams.mdx) |
-| Agent Teams coordination | [AGENTS.md](AGENTS.md) |
-| Hooks | [docs/hooks.mdx](docs/hooks.mdx) |
-| Deployment | [docs/guides/deployment.mdx](docs/guides/deployment.mdx) |
+- **Project:** Roxabi Boilerplate — SaaS framework (Bun, TurboRepo, TypeScript, TanStack Start, NestJS, Vercel)
+- **Before any work:** Read [dev-process.mdx](docs/processes/dev-process.mdx) to determine tier (S / F-lite / F-full)
+- **All code changes** require a worktree — `git worktree add ../roxabi-XXX -b feat/XXX-slug staging`
+- **Always** use `AskUserQuestion` for multiple-choice questions — never ask in plain text
+- **Never** commit without asking, push without explicit request, or use `--force`/`--hard`/`--amend`
+- **Always** use the appropriate skill (see [Available Skills](#available-skills)) even without a slash command
+- **Before writing code:** Read the relevant standards doc (see [Rule 7](#7-coding-standards-critical))
+
+---
+
+## Project Overview
+
+Roxabi Boilerplate - SaaS framework with integrated AI team.
+
+For project vision, principles, and roadmap: see [docs/vision.mdx](docs/vision.mdx).
+
+### Tech Stack
+
+- **Runtime**: Bun
+- **Monorepo**: TurboRepo
+- **Language**: TypeScript 5.x (strict mode)
+- **Linting/Formatting**: Biome
+- **Frontend**: TanStack Start
+- **Backend**: NestJS + Fastify
+- **Deployment**: Vercel (both web + API)
+
+For full architecture, monorepo structure, and commands: MUST read [docs/architecture/](docs/architecture/) and [docs/configuration.mdx](docs/configuration.mdx).
 
 ---
 
@@ -34,13 +40,13 @@
 
 This applies to ALL development work: specs, features, bug fixes, refactoring, docs, tests, PR reviews. **NO EXCEPTIONS.**
 
-**Tier determination:**
+**Tier determination (judgment-based):**
 
 | Tier | Name | Criteria | Process |
 |------|------|----------|---------|
-| **L** | Feature/Migration | >10 files, system arch | Full spec + worktree |
-| **M** | Feature Light | 3-10 files, local arch | Worktree + light review |
-| **S** | Quick Fix | ≤3 files, no arch, no risk | Direct branch + PR |
+| **S** | Quick Fix | <=3 files, no arch, no risk | Worktree + PR |
+| **F-lite** | Feature (lite) | Clear scope, documented requirements, single domain | Worktree + agents + /review (skip bootstrap) |
+| **F-full** | Feature (full) | New arch concepts, unclear requirements, or >2 domain boundaries | Bootstrap + worktree + agents + /review |
 
 ---
 
@@ -71,7 +77,7 @@ When detecting a large workload (3+ complex tasks, migrations, or multi-componen
 
 - **ALWAYS ask before committing** unless explicitly requested
 - Format: `<type>(<scope>): <description>` with `Co-Authored-By: Claude <model> <noreply@anthropic.com>`
-- Types: `feat:`, `fix:`, `refactor:`, `docs:`, `style:`, `test:`, `chore:`
+- Types: `feat:`, `fix:`, `refactor:`, `docs:`, `style:`, `test:`, `chore:`, `ci:`, `perf:`
 - **NEVER push without explicit request**
 - **NEVER use** `--force`, `--hard`, `--amend` (unless explicitly requested)
 - If pre-commit hook fails: fix and create a NEW commit (never amend)
@@ -79,17 +85,9 @@ When detecting a large workload (3+ complex tasks, migrations, or multi-componen
 
 ---
 
-### 5. Mandatory Worktree (Tier M/L) (CRITICAL)
+### 5. Mandatory Worktree (All Tiers) (CRITICAL)
 
-**BEFORE writing code, determine the tier:**
-
-| Criteria | Tier | Action |
-|----------|------|--------|
-| ≤3 files, no risk | **S** | Branch + direct PR |
-| 3-10 files | **M** | **WORKTREE MANDATORY** |
-| >10 files or system arch | **L** | **WORKTREE MANDATORY** |
-
-**If Tier M or L, create worktree BEFORE coding:**
+**ALL code changes require a worktree. Create worktree BEFORE coding:**
 
 ```bash
 git worktree add ../roxabi-XXX -b feat/XXX-slug staging
@@ -98,7 +96,11 @@ cd ../roxabi-XXX
 
 > XXX = GitHub issue number (e.g., 123), slug = short description
 
-**FORBIDDEN: Modifying more than 3 files on main without worktree.**
+**XS exception:** For Size XS changes (single file, &lt;1h, zero risk), use `AskUserQuestion` to confirm with the lead. If approved, a direct branch from staging is acceptable without worktree.
+
+**Bootstrap exception:** `/bootstrap` commits analysis and spec documents (`docs/analyses/`, `docs/specs/`) directly to staging. These are documentation artifacts, not code changes, and are produced before scaffold creates a worktree.
+
+**FORBIDDEN: Modifying code files on main/staging without a worktree.**
 
 ---
 
@@ -136,15 +138,19 @@ cd ../roxabi-XXX
 | cleanup, git cleanup | `cleanup` | "clean branches", "cleanup worktrees", "/cleanup" |
 | commit, stage, git commit | `commit` | "commit changes", "commit staged files", "/commit --all" |
 | pull request, PR, create PR | `pr` | "create a PR", "open pull request", "/pr --draft" |
-| review, code review | `review` | "review my changes", "review PR #42", "/review --fix" |
+| review, code review | `review` | "review my changes", "review PR #42", "/review" |
 | test, generate tests | `test` | "write tests", "test this file", "/test --e2e" |
 | bootstrap, plan feature, start feature | `bootstrap` | "bootstrap avatar upload", "/bootstrap --issue 42" |
-| scaffold, setup feature | `scaffold` | "scaffold from spec", "/scaffold --spec 42" |
-| plan, implementation plan | `plan` | "plan the implementation", "/plan --spec 42" |
+| scaffold, execute feature, implement | `scaffold` | "scaffold from spec", "/scaffold --spec 42", "/scaffold --issue 42" |
 | 1b1, one by one, walk through | `1b1` | "go through these one by one", "/1b1" |
 | adr, architecture decision | `adr` | "create an ADR", "list ADRs", "/adr --list" |
 | browser, open website, screenshot | `agent-browser` | "open a website", "take a screenshot", "/agent-browser" |
 | documentation, library docs, lookup | `context7` | "look up React docs", "check API reference", "/context7" |
+| promote, release, staging to main, finalize | `promote` | "promote staging", "release to production", "/promote", "/promote --finalize" |
+| deploy, vercel deploy | `vercel:deploy` | "deploy to Vercel", "push to production", "go live" |
+| vercel setup, configure vercel | `vercel:setup` | "set up Vercel", "configure Vercel", "link to Vercel" |
+| vercel logs, check logs | `vercel:logs` | "show Vercel logs", "check deployment logs" |
+| frontend design, build UI, create page | `frontend-design` | "design a landing page", "build this component", "/frontend-design" |
 
 **Important notes:**
 - ALWAYS use the appropriate skill even if user doesn't explicitly mention the slash command
@@ -152,25 +158,92 @@ cd ../roxabi-XXX
 
 ---
 
-## Project Overview
+## Agent Teams (Experimental)
 
-Roxabi Boilerplate - SaaS framework with integrated AI team.
+Specialized agents for multi-agent coordination. Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
 
-For project vision, principles, and roadmap: see [docs/vision.mdx](docs/vision.mdx).
+### Available Agents
 
-## Tech Stack
+| Agent | Tier | Domain | Permission | Tools |
+|-------|------|--------|------------|-------|
+| `frontend-dev` | Domain | `apps/web`, `packages/ui` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
+| `backend-dev` | Domain | `apps/api`, `packages/types` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
+| `infra-ops` | Domain | `packages/config`, root configs | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
+| `fixer` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, SendMessage |
+| `tester` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
+| `security-auditor` | Quality | All packages | plan | Read, Glob, Grep, Bash, WebSearch, Task, SendMessage |
+| `architect` | Strategy | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage |
+| `product-lead` | Strategy | `docs/analyses/`, `docs/specs/`, GitHub issues | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage |
+| `doc-writer` | Strategy | `docs/`, `CLAUDE.md` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
 
-- **Runtime**: Bun
-- **Monorepo**: TurboRepo
-- **Language**: TypeScript 5.x (strict mode)
-- **Linting/Formatting**: Biome
-- **Frontend**: TanStack Start
-- **Backend**: NestJS + Fastify
-- **Deployment**: Vercel (both web + API)
+### Routing Decision Tree
 
-For full architecture, monorepo structure, and commands: MUST read [docs/architecture/](docs/architecture/) and [docs/configuration.mdx](docs/configuration.mdx).
+> Source of truth: [docs/guides/agent-teams.mdx](docs/guides/agent-teams.mdx). Update the guide first, then sync here.
 
-## Deployment
+```
+Is this a code change?
+├── No (docs only) → doc-writer subagent
+└── Yes
+    ├── Tier S (<=3 files, no arch risk)
+    │   └── Single session + optional tester subagent
+    │
+    ├── Tier F-lite (clear scope, documented requirements)
+    │   ├── /scaffold (spec → PR, skip bootstrap):
+    │   │   ├── Single-domain → subagents (Task tool)
+    │   │   └── Multi-domain  → Agent Teams (TeamCreate)
+    │   │   ├── Frontend? → frontend-dev + tester
+    │   │   ├── Backend?  → backend-dev + tester
+    │   │   ├── Full-stack? → frontend-dev + backend-dev + tester
+    │   │   └── Security-sensitive? → + security-auditor
+    │   └── Then /review (fresh domain reviewers + 1b1 + fixer)
+    │
+    └── Tier F-full (new arch, unclear requirements, >2 domains)
+        ├── /bootstrap (idea → spec): product-lead + architect + doc-writer
+        ├── /scaffold (spec → PR):
+        │   ├── Single-domain → subagents (Task tool)
+        │   └── Multi-domain  → Agent Teams (TeamCreate)
+        │   ├── Frontend? → frontend-dev + tester
+        │   ├── Backend?  → backend-dev + tester
+        │   ├── Full-stack? → frontend-dev + backend-dev + tester
+        │   ├── Large scope? → + architect + doc-writer
+        │   └── Security-sensitive? → + security-auditor
+        └── Then /review (fresh domain reviewers + 1b1 + fixer)
+```
+
+Agent definitions: `.claude/agents/*.md`
+
+---
+
+## Reference
+
+### Documentation
+
+| Topic | Documentation |
+|-------|---------------|
+| Development process | [docs/processes/dev-process.mdx](docs/processes/dev-process.mdx) |
+| Issue management | [docs/processes/issue-management.mdx](docs/processes/issue-management.mdx) |
+| Processes | [docs/processes/](docs/processes/) |
+| Architecture | [docs/architecture/](docs/architecture/) |
+| Analyses (pre-spec) | [docs/analyses/](docs/analyses/) |
+| Feature specifications | [docs/specs/](docs/specs/) |
+| Coding standards | [docs/standards/](docs/standards/) |
+| Frontend patterns | [docs/standards/frontend-patterns.mdx](docs/standards/frontend-patterns.mdx) |
+| Backend patterns | [docs/standards/backend-patterns.mdx](docs/standards/backend-patterns.mdx) |
+| Testing | [docs/standards/testing.mdx](docs/standards/testing.mdx) |
+| Code review | [docs/standards/code-review.mdx](docs/standards/code-review.mdx) |
+| Vision & roadmap | [docs/vision.mdx](docs/vision.mdx) |
+| Configuration & setup | [docs/configuration.mdx](docs/configuration.mdx) |
+| Getting started | [docs/getting-started.mdx](docs/getting-started.mdx) |
+| Contributing & MDX guide | [docs/contributing.mdx](docs/contributing.mdx) |
+| Guides | [docs/guides/](docs/guides/) |
+| Authentication guide | [docs/guides/authentication.mdx](docs/guides/authentication.mdx) |
+| Agent Teams guide | [docs/guides/agent-teams.mdx](docs/guides/agent-teams.mdx) |
+| Agent Teams coordination | [AGENTS.md](AGENTS.md) |
+| Troubleshooting | [docs/guides/troubleshooting.mdx](docs/guides/troubleshooting.mdx) |
+| Hooks | [docs/hooks.mdx](docs/hooks.mdx) |
+| Deployment | [docs/guides/deployment.mdx](docs/guides/deployment.mdx) |
+
+### Deployment
 
 Both apps deploy to **Vercel** automatically on push to `main`. See [docs/guides/deployment.mdx](docs/guides/deployment.mdx) for full setup.
 
@@ -179,7 +252,7 @@ Both apps deploy to **Vercel** automatically on push to `main`. See [docs/guides
 | Web | `apps/web` | TanStack Start / Nitro |
 | API | `apps/api` | NestJS (zero-config) |
 
-### Vercel CLI
+#### Vercel CLI
 
 The `vercel` CLI is available for deployment management:
 
@@ -193,60 +266,17 @@ vercel promote <url>             # Promote to production
 vercel redeploy                  # Trigger a redeploy
 ```
 
-**Prefer Vercel CLI over browser automation** for deployment tasks (env vars, redeploys, logs, rollbacks). When browser interaction is needed (e.g., initial project creation, visual verification), use the `/agent-browser` skill instead of Playwright directly.
+**Prefer Vercel CLI over browser automation** for deployment tasks (env vars, redeploys, logs, rollbacks). When browser interaction is needed (e.g., initial project creation, visual verification), use the `/agent-browser` skill.
 
-## Agent Teams (Experimental)
+### Hooks
 
-Specialized agents for multi-agent coordination. Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
+#### Claude Code Hooks (`.claude/settings.json`)
 
-### Available Agents
+- **Biome** (PostToolUse): Auto-format + lint on every file Edit/Write (`.ts/.tsx/.js/.jsx/.json`)
+- **Security** (PreToolUse): Warn about dangerous patterns before file changes
 
-| Agent | Tier | Domain | Permission | Tools |
-|-------|------|--------|------------|-------|
-| `frontend-dev` | Domain | `apps/web`, `packages/ui` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash |
-| `backend-dev` | Domain | `apps/api`, `packages/types` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash |
-| `infra-ops` | Domain | `packages/config`, root configs | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash |
-| `reviewer` | Quality | All packages (read-only) | plan | Read, Glob, Grep |
-| `tester` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash |
-| `security-auditor` | Quality | All packages | plan | Read, Glob, Grep, Bash |
-| `architect` | Strategy | All packages | plan | Read, Glob, Grep, Bash |
-| `business-analyst` | Strategy | `docs/` | plan | Read, Glob, Grep, WebSearch |
-| `product-manager` | Strategy | `docs/`, GitHub issues | plan | Read, Glob, Grep, Bash |
-| `doc-writer` | Strategy | `docs/`, `CLAUDE.md` | bypassPermissions | Read, Write, Edit, Glob, Grep |
+#### Git Hooks (Lefthook — `lefthook.yml`)
 
-### Routing Decision Tree
-
-> Source of truth: [docs/guides/agent-teams.mdx](docs/guides/agent-teams.mdx). Update the guide first, then sync here.
-
-```
-Is this a code change?
-├── No (docs only) → doc-writer alone (or single agent)
-└── Yes
-    ├── Tier S (≤3 files, no arch risk)
-    │   └── Single agent session (no agent teams)
-    │
-    ├── Tier M (3-10 files, local arch)
-    │   ├── Frontend only? → frontend-dev + reviewer + tester
-    │   ├── Backend only?  → backend-dev + reviewer + tester
-    │   ├── Full-stack?    → frontend-dev + backend-dev + reviewer + tester
-    │   └── + architect (if design decisions needed)
-    │
-    └── Tier L (>10 files, system arch)
-        └── Full team or near-full team:
-            ├── Always: architect + domain agents + reviewer + tester
-            ├── If new feature: + business-analyst + product-manager
-            ├── If security-sensitive: + security-auditor
-            └── If docs impact: + doc-writer
-```
-
-Agent definitions: `.claude/agents/*.md`
-
----
-
-## Hooks
-
-Claude Code hooks are configured in `.claude/settings.json`:
-
-- **Biome**: Auto-format on file changes
-- **TypeCheck**: Validate types on file changes
-- **Security**: Warn about dangerous patterns
+- **pre-commit**: Biome check + auto-fix on staged files
+- **commit-msg**: Commitlint validates Conventional Commits format
+- **pre-push**: Full lint, typecheck (`bun run typecheck`), and test coverage

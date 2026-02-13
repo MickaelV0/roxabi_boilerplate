@@ -28,10 +28,11 @@ process.on('SIGTERM', () => {
 })
 
 const QUERY = `
-query($projectId: ID!) {
+query($projectId: ID!, $cursor: String) {
   node(id: $projectId) {
     ... on ProjectV2 {
-      items(first: 100) {
+      items(first: 100, after: $cursor) {
+        pageInfo { hasNextPage endCursor }
         nodes {
           content {
             ... on Issue {
@@ -107,12 +108,13 @@ interface Issue {
 // Data fetching via gh CLI
 // ---------------------------------------------------------------------------
 
-async function fetchIssues(): Promise<Issue[]> {
-  const proc = Bun.spawn(
-    ['gh', 'api', 'graphql', '-f', `query=${QUERY}`, '-f', `projectId=${PROJECT_ID}`],
-    { stdout: 'pipe', stderr: 'pipe' }
-  )
+async function fetchPage(
+  cursor?: string
+): Promise<{ items: RawItem[]; hasNextPage: boolean; endCursor: string | null }> {
+  const args = ['gh', 'api', 'graphql', '-f', `query=${QUERY}`, '-f', `projectId=${PROJECT_ID}`]
+  if (cursor) args.push('-f', `cursor=${cursor}`)
 
+  const proc = Bun.spawn(args, { stdout: 'pipe', stderr: 'pipe' })
   const stdout = await new Response(proc.stdout).text()
   const stderr = await new Response(proc.stderr).text()
   const code = await proc.exited
@@ -122,7 +124,24 @@ async function fetchIssues(): Promise<Issue[]> {
   }
 
   const data = JSON.parse(stdout)
-  const items: RawItem[] = data.data.node.items.nodes
+  const pageInfo = data.data.node.items.pageInfo
+  return {
+    items: data.data.node.items.nodes as RawItem[],
+    hasNextPage: pageInfo.hasNextPage,
+    endCursor: pageInfo.endCursor,
+  }
+}
+
+async function fetchIssues(): Promise<Issue[]> {
+  const allItems: RawItem[] = []
+  let cursor: string | undefined
+  do {
+    const page = await fetchPage(cursor)
+    allItems.push(...page.items)
+    cursor = page.hasNextPage ? (page.endCursor ?? undefined) : undefined
+  } while (cursor)
+
+  const items: RawItem[] = allItems
 
   const openItems = items.filter((i) => i.content?.state === 'OPEN')
 
@@ -269,7 +288,7 @@ async function fetchBranches(): Promise<Branch[]> {
       .split('\n')
       .filter(Boolean)
       .map((line) => ({
-        name: line.replace(/^\*?\s+/, ''),
+        name: line.replace(/^[*+]?\s+/, ''),
         isCurrent: line.startsWith('*'),
       }))
   } catch {
@@ -528,7 +547,7 @@ function computeNodePositions(
 ): Map<number, { x: number; y: number }> {
   const pos = new Map<number, { x: number; y: number }>()
   for (const [c, nums] of columns) {
-    const x = 20 + c * (dims.nodeWidth + dims.hGap)
+    const x = 10 + c * (dims.nodeWidth + dims.hGap)
     const totalH = nums.length * dims.nodeHeight + (nums.length - 1) * dims.vGap
     const startY = (svgHeight - totalH) / 2
     nums.forEach((num, i) => {
@@ -584,8 +603,8 @@ function renderSvgNodes(
     const color = BLOCK_COLOR[status] ?? '#8b949e'
 
     svg += `<g>`
-    svg += `<rect x="${p.x}" y="${p.y}" width="${dims.nodeWidth}" height="${dims.nodeHeight}" rx="6" fill="#161b22" stroke="${color}" stroke-width="1.5"/>`
-    svg += `<text x="${p.x + 10}" y="${p.y + dims.nodeHeight / 2 + 4}" fill="#e6edf3" font-size="12" font-family="-apple-system, sans-serif">${escHtml(label)}</text>`
+    svg += `<rect x="${p.x}" y="${p.y}" width="${dims.nodeWidth}" height="${dims.nodeHeight}" rx="4" fill="#161b22" stroke="${color}" stroke-width="1.5"/>`
+    svg += `<text x="${p.x + 8}" y="${p.y + dims.nodeHeight / 2 + 4}" fill="#e6edf3" font-size="11" font-family="-apple-system, sans-serif">${escHtml(label)}</text>`
     svg += `</g>`
   }
   return svg
@@ -597,15 +616,15 @@ function renderDepGraph(nodes: DepNode[], allIssues: Issue[]): string {
   const flat = flattenIssues(allIssues)
   const allNumbers = collectGraphNumbers(nodes)
 
-  const dims: GraphDims = { nodeWidth: 180, nodeHeight: 36, hGap: 60, vGap: 24 }
+  const dims: GraphDims = { nodeWidth: 140, nodeHeight: 28, hGap: 40, vGap: 16 }
   const col = bfsAssignLayers(nodes)
   const columns = groupByColumn(col, allNumbers)
 
   const maxCol = Math.max(...columns.keys(), 0)
   const maxRowCount = Math.max(...[...columns.values()].map((v) => v.length), 1)
 
-  const svgWidth = (maxCol + 1) * (dims.nodeWidth + dims.hGap) + 40
-  const svgHeight = maxRowCount * (dims.nodeHeight + dims.vGap) + 40
+  const svgWidth = (maxCol + 1) * (dims.nodeWidth + dims.hGap) + 20
+  const svgHeight = maxRowCount * (dims.nodeHeight + dims.vGap) + 20
 
   const pos = computeNodePositions(columns, dims, svgHeight)
 
@@ -647,37 +666,29 @@ function renderPRs(prs: PR[]): string {
   return html
 }
 
-function renderBranches(branches: Branch[]): string {
+function renderBranchesAndWorktrees(branches: Branch[], worktrees: Worktree[]): string {
   const featureBranches = branches.filter((b) => b.name !== 'main' && b.name !== 'master')
   if (featureBranches.length === 0) return '<p class="empty-state">No feature branches</p>'
+
+  // Index worktrees by branch name for quick lookup
+  const wtByBranch = new Map<string, Worktree>()
+  for (const wt of worktrees) {
+    if (wt.branch) wtByBranch.set(wt.branch, wt)
+  }
 
   let html = '<div class="branch-list">'
   for (const b of featureBranches) {
     const issueMatch = b.name.match(/(\d+)/)
     const issueNum = issueMatch ? `#${issueMatch[1]}` : ''
+    const wt = wtByBranch.get(b.name)
+    const shortPath = wt ? wt.path.replace(/^\/home\/[^/]+\/projects\//, '~/') : ''
+
     html += `<div class="branch-item">
       <span class="branch-icon">&#9095;</span>
       <code>${escHtml(b.name)}</code>
       ${issueNum ? `<span class="branch-issue">${issueNum}</span>` : ''}
       ${b.isCurrent ? '<span class="badge status-progress">current</span>' : ''}
-    </div>`
-  }
-  html += '</div>'
-  return html
-}
-
-function renderWorktrees(worktrees: Worktree[]): string {
-  if (worktrees.length <= 1) return '<p class="empty-state">No extra worktrees (only main)</p>'
-
-  let html = '<div class="worktree-list">'
-  for (const wt of worktrees) {
-    const isMain = wt.branch === 'main' || wt.branch === 'master'
-    const shortPath = wt.path.replace(/^\/home\/[^/]+\/projects\//, '~/projects/')
-    html += `<div class="worktree-item">
-      <span class="wt-icon">${isMain ? '&#128194;' : '&#128193;'}</span>
-      <code class="wt-path">${escHtml(shortPath)}</code>
-      <code class="wt-branch">${escHtml(wt.branch)}</code>
-      <span class="wt-commit text-muted">${escHtml(wt.commit)}</span>
+      ${wt ? `<span class="wt-path">${escHtml(shortPath)}</span>` : ''}
     </div>`
   }
   html += '</div>'
@@ -707,8 +718,7 @@ function buildHtml(
   const depNodes = buildDepGraph(issues)
   const depGraphHtml = renderDepGraph(depNodes, issues)
   const prsHtml = renderPRs(prs)
-  const branchesHtml = renderBranches(branches)
-  const worktreesHtml = renderWorktrees(worktrees)
+  const branchesHtml = renderBranchesAndWorktrees(branches, worktrees)
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -925,14 +935,14 @@ function buildHtml(
   .deletions { color: var(--red); }
   .text-muted { color: var(--text-muted); }
 
-  /* Branches */
-  .branch-list, .worktree-list {
+  /* Branches & Worktrees */
+  .branch-list {
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
 
-  .branch-item, .worktree-item {
+  .branch-item {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -943,13 +953,11 @@ function buildHtml(
     font-size: 13px;
   }
 
-  .branch-item:hover, .worktree-item:hover { border-color: var(--accent); }
+  .branch-item:hover { border-color: var(--accent); }
 
-  .branch-icon, .wt-icon { font-size: 14px; }
+  .branch-icon { font-size: 14px; }
   .branch-issue { color: var(--accent); font-size: 12px; }
-  .wt-path { font-size: 12px; color: var(--text-muted); }
-  .wt-branch { font-size: 12px; color: var(--accent); }
-  .wt-commit { font-size: 11px; }
+  .wt-path { font-size: 11px; color: var(--text-muted); margin-left: auto; }
 
   .empty-state {
     color: var(--text-muted);
@@ -1001,15 +1009,9 @@ function buildHtml(
     ${prsHtml}
   </div>
 
-  <div class="section-grid">
-    <div class="section">
-      <h2>Branches</h2>
-      ${branchesHtml}
-    </div>
-    <div class="section">
-      <h2>Worktrees</h2>
-      ${worktreesHtml}
-    </div>
+  <div class="section">
+    <h2>Branches &amp; Worktrees</h2>
+    ${branchesHtml}
   </div>
 
 </body>

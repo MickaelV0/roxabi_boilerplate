@@ -15,7 +15,7 @@ Walk through a list of items from the conversation (tasks, findings, issues, sug
 Look back through the conversation to find the most recent list of items. These could be:
 
 - Review findings (from `/review`)
-- Implementation plan tasks (from `/plan`)
+- Implementation plan tasks (from `/scaffold`)
 - GitHub issues (from `/issues`)
 - TODO items or action items
 - Any enumerated list the user was discussing
@@ -47,9 +47,10 @@ If the item references a file, read the relevant lines to provide accurate conte
 Use `AskUserQuestion` with options appropriate to the item type:
 
 **For review findings / code issues:**
-- **Fix now** — Apply the fix immediately
-- **Skip** — Move to the next item
-- **Defer** — Note it for later (add to a deferred list)
+- **Fix now** — Accept the finding and apply the fix immediately
+- **Reject** — Finding is invalid or incorrect, discard it
+- **Skip** — Move to the next item without deciding
+- **Defer** — Finding is valid but not urgent, note it for later (add to a deferred list)
 
 **For tasks / plan items:**
 - **Do it** — Execute this task now
@@ -72,6 +73,7 @@ Adapt the options to what makes sense for the specific item. Always include **Sk
 #### 2c. Execute the Decision
 
 - **Fix / Do it / Act:** Perform the action. Show a brief confirmation of what was done.
+- **Reject:** Acknowledge the finding is invalid, discard it, and continue.
 - **Skip:** Move to the next item silently.
 - **Defer:** Add to a running "deferred" list. Continue to the next item.
 - **Modify:** Ask the user what to change via `AskUserQuestion`, then execute the modified version.
@@ -85,10 +87,11 @@ After processing all items, show a summary:
 ── 1b1 Complete ──
 
 Processed: {N} items
-  Acted on: {count}
-  Skipped:  {count}
-  Deferred: {count}
-  Removed:  {count}
+  Acted on:  {count}
+  Rejected:  {count}
+  Skipped:   {count}
+  Deferred:  {count}
+  Removed:   {count}
 
 Deferred items:
   1. {item title}

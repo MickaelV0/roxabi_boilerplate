@@ -1,12 +1,12 @@
 ---
-argument-hint: [list | set <num> --size <S> --priority <P> --status <Status>]
-description: List issues missing Size or Priority and assign them. Also update issue Status.
+argument-hint: [list | set <num> --size <S> --priority <P> --status <Status> --blocked-by <N> --blocks <N>]
+description: List issues missing Size or Priority and assign them. Also update issue Status and dependencies.
 allowed-tools: Bash, AskUserQuestion
 ---
 
 # Issue Triage
 
-Identify and label GitHub issues that are missing Size or Priority fields.
+Identify and label GitHub issues that are missing Size or Priority fields. Manage dependencies between issues.
 
 ## Instructions
 
@@ -61,6 +61,10 @@ Identify and label GitHub issues that are missing Size or Priority fields.
 | `set <num> --status <Status>` | Set status for issue |
 | `set <num> --size <S> --priority <P>` | Set size and priority |
 | `set <num> --status <S> --size <S> --priority <P>` | Set all fields |
+| `set <num> --blocked-by <N>[,<N>...]` | Mark issue as blocked by other issues |
+| `set <num> --blocks <N>[,<N>...]` | Mark issue as blocking other issues |
+| `set <num> --rm-blocked-by <N>[,<N>...]` | Remove blocked-by dependency |
+| `set <num> --rm-blocks <N>[,<N>...]` | Remove blocks dependency |
 
 ## Status Values
 
@@ -86,6 +90,13 @@ Identify and label GitHub issues that are missing Size or Priority fields.
 # 3. Update status
 .claude/skills/issue-triage/triage.sh set 42 --status "In Progress"
 .claude/skills/issue-triage/triage.sh set 43 --status Review
+
+# 4. Set dependencies
+.claude/skills/issue-triage/triage.sh set 91 --blocked-by 117
+.claude/skills/issue-triage/triage.sh set 117 --blocks 91,118
+
+# 5. Remove dependencies
+.claude/skills/issue-triage/triage.sh set 91 --rm-blocked-by 117
 ```
 
 ## Configuration

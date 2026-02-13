@@ -82,11 +82,13 @@ export const members = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
     role: text('role').notNull().default('member'),
+    roleId: text('role_id'),
     ...timestamps,
   },
   (table) => [
     index('members_user_id_idx').on(table.userId),
     index('members_organization_id_idx').on(table.organizationId),
+    index('members_role_id_idx').on(table.roleId),
   ]
 )
 

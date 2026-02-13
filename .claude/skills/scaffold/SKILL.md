@@ -1,180 +1,179 @@
 ---
-argument-hint: [--spec <number> | --plan]
-description: Scaffold a feature from an approved spec — creates issue, worktree, boilerplate, and commit.
-allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Edit, Task
+argument-hint: [--spec <number> | --issue <number>]
+description: Execute a feature from spec to PR — plans, scaffolds, spawns agents, implements, and opens the pull request.
+allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Edit, Task, Skill
 ---
 
 # Scaffold
 
-Execution skill that takes an approved spec or plan and does the mechanical work: creates the GitHub issue, sets up the worktree, scaffolds boilerplate files, commits, and opens a draft PR.
+Full execution engine: takes an approved spec (or issue with spec) and drives it to a pull request. Plans internally, creates the worktree, scaffolds boilerplate, spawns agents for test-first implementation, and opens the PR.
 
 ## Usage
 
 ```
-/scaffold --spec 42                → Scaffold from existing spec (docs/specs/42-*.mdx)
-/scaffold --plan                   → Resume from in-progress plan (e.g., after /bootstrap)
+/scaffold --spec 42            Execute from spec (docs/specs/42-*.mdx)
+/scaffold --issue 42           Execute from issue (fetches issue, finds linked spec)
 ```
 
 ## Instructions
 
-### 1. Locate the Spec
+### Step 1 — Locate the Spec
 
 **If `--spec <number>` was passed:**
 
 ```bash
-# Find the spec file
 ls docs/specs/<number>-*.mdx
 ```
 
 - Read the spec file in full
-- Extract: title, summary, acceptance criteria, tier suggestion (if present), and file list
+- Extract: title, summary, acceptance criteria, and file list
 
-**If `--plan` was passed:**
+**If `--issue <number>` was passed:**
 
-- Look for an in-progress plan in the current conversation context (e.g., output from `/bootstrap` or `/plan`)
-- The plan should contain: spec reference, tier, ordered task list with files
+```bash
+gh issue view <number> --json title,body,labels
+```
 
-**If no spec or plan is found:** inform the user and suggest:
+- Read the issue, then search for a matching spec: `docs/specs/<number>-*.mdx`
+- If no spec found: inform the user and suggest `/bootstrap --issue <number>` to create one. **Stop.**
+
+**If no spec or issue is found:** inform the user and suggest:
 
 > "No spec found. Run `/bootstrap` to create one from scratch, or `/interview` to generate a spec."
 
-Stop here.
+**Stop.**
 
-### 2. Determine Tier
+### Step 2 — Plan
 
-Read `docs/processes/dev-process.mdx` and apply the tier criteria:
+Read `docs/processes/dev-process.mdx` and the spec to produce an implementation plan.
+
+#### 2a. Analyze Scope
+
+Identify all files that need to be created or modified:
+
+- **New files:** Types, API routes, UI components, tests, configs
+- **Modified files:** Existing modules, shared types, barrel exports, routing
+- **Reference files:** Existing similar features to use as patterns
+
+Use `Glob` and `Grep` to find existing feature modules as reference patterns.
+
+#### 2b. Determine Tier
+
+| Tier | Criteria | Process |
+|------|----------|---------|
+| **S** | <=3 files, no arch, no risk | Single session implements |
+| **F-lite** | Clear scope, documented requirements, single domain | Agents + /review |
+| **F-full** | New arch concepts, unclear requirements, or >2 domain boundaries | Agents + /review |
+
+Tier is judgment-based, not file-count-based. A 50-file mechanical change may be F-lite, while a 3-file rate limiter with design decisions may be F-full.
+
+#### 2c. Determine Agents
+
+Analyze file paths from the spec to recommend agents:
+
+| File path prefix | Agent |
+|-----------------|-------|
+| `apps/web/`, `packages/ui/` | `frontend-dev` |
+| `apps/api/`, `packages/types/` | `backend-dev` |
+| `packages/config/`, root configs | `infra-ops` |
+| `docs/` | `doc-writer` |
+
+**Always include:** `tester` (for any code change)
+
+**Add if applicable:**
+- `architect` — new modules, cross-domain types, or structural changes
+- `security-auditor` — auth, input validation, or data access
+- `doc-writer` — new architecture or public APIs
+
+**Tier S:** skip agent recommendation (single session).
+
+#### 2d. Break into Tasks
+
+For each task:
+- **Description:** What to implement and why
+- **Files:** Specific file paths to create or modify
+- **Agent:** Which agent owns this task
+- **Dependencies:** Which tasks must complete first
+
+Order: types first → backend → frontend → tests → docs → config.
+
+#### 2e. Present Plan for Approval
+
+Present via `AskUserQuestion`:
 
 ```
->10 files or system architecture   → Tier L
-3-10 files                         → Tier M
-≤3 files, no risk                  → Tier S
+Implementation Plan: {Spec Title}
+Spec: docs/specs/{N}-{slug}.mdx
+Tier: {S|F-lite|F-full}
+Files: {N} files to create/modify
+Agents: {agent list}
+
+Tasks:
+  1. {description} → {agent} ({files})
+  2. {description} → {agent} ({files})
+  ...
 ```
 
-Count the files from the spec/plan and auto-suggest a tier. Present the suggestion via `AskUserQuestion`:
+Options:
+- **Approve** — proceed to setup
+- **Modify** — adjust the plan
+- **Cancel** — abort
 
-- **Tier S** — {N} files, direct branch (no worktree)
-- **Tier M** — {N} files, worktree required
-- **Tier L** — {N} files, worktree required (full spec process)
+### Step 3 — Setup
 
-Let the user confirm or override.
-
-### 3. Create GitHub Issue (if none exists)
-
-Check if a GitHub issue already exists for this spec:
+#### 3a. Create GitHub Issue (if none exists)
 
 ```bash
-# Check by spec number — the spec number often IS the issue number
 gh issue view <number> --json number,title,state 2>/dev/null
 ```
 
 **If no issue exists:**
 
-1. Draft the issue content:
-   - **Title:** from spec title (conventional format: `feat(<scope>): <description>`)
-   - **Body:** spec summary + acceptance criteria as a checklist
-2. Present the draft to the user via `AskUserQuestion` with options:
-   - **Create issue** — proceed
-   - **Edit** — let user modify
-   - **Skip** — continue without issue
-3. Create the issue:
-   ```bash
-   gh issue create --title "<title>" --body "<body>"
-   ```
-4. Capture the issue number from the output
+1. Draft: title (conventional format), body (spec summary + acceptance criteria checklist)
+2. Present via `AskUserQuestion`: Create / Edit / Skip
+3. Create: `gh issue create --title "<title>" --body "<body>"`
 
-**If issue already exists:** use the existing issue number. Inform the user.
-
-### 4. Update Issue Status to "In Progress"
-
-If a GitHub issue is associated, move it to **In Progress** on the project board:
+#### 3b. Update Issue Status
 
 ```bash
-# Get the project item ID for the issue
-ITEM_ID=$(gh api graphql -F query=@- -f projectId="PVT_kwHODEqYK84BOId3" <<'GQL' | jq -r --argjson num <ISSUE_NUMBER> '.data.node.items.nodes[] | select(.content.number == $num) | .id'
-query($projectId: ID!) {
-  node(id: $projectId) {
-    ... on ProjectV2 {
-      items(first: 100) {
-        nodes {
-          id
-          content { ... on Issue { number } }
-        }
-      }
-    }
-  }
-}
-GQL
-)
-
-# Set Status to "In Progress" (use heredoc to avoid shell expansion of GraphQL $ variables)
-gh api graphql -F query=@- \
-  -f projectId="PVT_kwHODEqYK84BOId3" \
-  -f itemId="$ITEM_ID" \
-  -f fieldId="PVTSSF_lAHODEqYK84BOId3zg87HNM" \
-  -f optionId="331d27a4" <<'GQL'
-mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
-  updateProjectV2ItemFieldValue(input: {projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: {singleSelectOptionId: $optionId}}) {
-    projectV2Item { id }
-  }
-}
-GQL
+.claude/skills/issue-triage/triage.sh set <ISSUE_NUMBER> --status "In Progress"
 ```
 
-**Status option IDs reference:**
-
-| Status | Option ID |
-|--------|-----------|
-| Backlog | `df6ee93b` |
-| Analysis | `bec91bb0` |
-| Specs | `ad9a9195` |
-| In Progress | `331d27a4` |
-| Review | `ee30a001` |
-| Done | `bfdc35bd` |
-
-Skip this step if no issue is associated with the scaffold.
-
-### 5. Create Branch + Worktree
-
-Extract a slug from the spec title (kebab-case, 3-4 words max).
-
-**Tier M or L — Worktree:**
+#### 3c. Pre-flight Checks
 
 ```bash
-git worktree add ../roxabi-<issue_number> -b feat/<issue_number>-<slug>
+# Check for existing branch or worktree
+git branch --list "feat/<issue_number>-*"
+ls -d ../roxabi-<issue_number> 2>/dev/null
+
+# Ensure staging is up to date
+git fetch origin staging
 ```
 
-All subsequent operations run in the worktree directory: `../roxabi-<issue_number>`
+**If branch exists:** ask via `AskUserQuestion`: Reuse / Delete and recreate / Abort
 
-**Tier S — Direct branch:**
+#### 3d. Create Worktree
 
 ```bash
-git checkout -b feat/<issue_number>-<slug>
+git worktree add ../roxabi-<issue_number> -b feat/<issue_number>-<slug> staging
+cd ../roxabi-<issue_number> && bun install
 ```
 
-Stay in the current directory.
+All subsequent operations run in the worktree directory.
 
-### 6. Scaffold Boilerplate
-
-#### 5.1 Find a Reference Feature
-
-Search for the most similar existing feature to use as a pattern:
+**XS exception only:** For Size XS changes (single file, <1h, zero risk), use `AskUserQuestion` to confirm with the lead. If approved, a direct branch is acceptable:
 
 ```bash
-# Look for similar patterns in the codebase
-# Example: if scaffolding auth, look for existing feature modules
+git checkout -b feat/<issue_number>-<slug> staging
 ```
 
-Use `Glob` and `Grep` to find:
-- Existing feature modules in `apps/web/src/` and `apps/api/src/`
-- Similar file structures (routes, components, services, tests)
+### Step 4 — Scaffold Stubs
 
-Read 1-2 reference files to understand the project's conventions for:
-- File naming
-- Export patterns
-- Test file placement
-- Type definitions
+#### 4a. Find Reference Features
 
-#### 5.2 Create File Stubs
+Search for the most similar existing feature to use as a pattern. Read 1-2 reference files to understand conventions for file naming, exports, test placement, and type definitions.
+
+#### 4b. Create File Stubs
 
 Create files in this order (types first, tests last):
 
@@ -183,125 +182,131 @@ Create files in this order (types first, tests last):
 | 1 | **Types** | `packages/types/src/<feature>.ts` | Interfaces, enums, type exports |
 | 2 | **API routes/services** | `apps/api/src/<feature>/` | Controller, service, module stubs with TODOs |
 | 3 | **UI components** | `apps/web/src/<feature>/` | Component stubs with TODOs |
-| 4 | **Test files** | Adjacent to source | Empty test shells with describe blocks |
+| 4 | **Test files** | Adjacent to source | Test shells from spec acceptance criteria |
 
-Each stub should:
-- Follow the reference feature's patterns exactly
-- Include `// TODO: implement` comments at key points
-- Export the correct types/interfaces
-- Import from the correct paths
-- Be syntactically valid TypeScript
+Each stub:
+- Follows reference feature patterns exactly
+- Includes `// TODO: implement` comments at key points
+- Exports correct types/interfaces
+- Is syntactically valid TypeScript
 
-**Do NOT generate implementation logic.** Stubs contain only the skeleton: imports, exports, type signatures, and TODO comments.
+#### 4c. Generate Spec-Aware Test Stubs
 
-#### 5.3 Present Scaffold Summary
+Map each success criterion from the spec to `it()` blocks with descriptive names:
 
-Before writing files, present the full list to the user via `AskUserQuestion`:
-
-```
-Files to create:
-  1. packages/types/src/<feature>.ts        (types)
-  2. apps/api/src/<feature>/controller.ts   (API)
-  3. apps/api/src/<feature>/service.ts       (API)
-  4. apps/api/src/<feature>/module.ts        (API)
-  5. apps/web/src/<feature>/page.tsx          (UI)
-  6. apps/api/src/<feature>/service.test.ts  (test)
+```typescript
+describe('UserProfile', () => {
+  it('should display user avatar', () => {
+    // TODO: implement — Success Criterion: "User avatar is visible on profile page"
+  });
+});
 ```
 
-Options:
-- **Create all** — proceed with all files
-- **Edit list** — add/remove files
-- **Cancel** — abort scaffold
+#### 4d. Present and Confirm
 
-### 7. Verify
+Present the full file list via `AskUserQuestion`: Create all / Edit list / Cancel
 
-Run quality checks on the scaffolded files:
+#### 4e. Verify and Commit Scaffold
 
 ```bash
 bun lint && bun typecheck
 ```
 
-> **Note:** `bun test` is intentionally skipped — stubs contain only TODO placeholders and would not pass tests.
+Stage and commit the scaffold:
 
-**If all passes:** continue to commit.
+```bash
+git add <files>
+git commit -m "$(cat <<'EOF'
+feat(<scope>): scaffold <feature> boilerplate
 
-**If typecheck fails:**
+Create file stubs for <feature>: types, API routes, UI components, tests.
+Stubs follow existing codebase patterns with TODO placeholders.
 
-1. Report the errors clearly
-2. Ask the user via `AskUserQuestion`:
-   - **Fix and retry** — attempt to fix type errors in stubs
-   - **Proceed anyway** — commit with known type errors
-   - **Abort** — stop scaffolding
+Refs #<issue_number>
 
-**If lint fails:** auto-fix with `bunx biome check --write` and re-run.
+Co-Authored-By: Claude <model> <noreply@anthropic.com>
+EOF
+)"
+```
 
-### 8. Commit
+### Step 5 — Implement
 
-Follow `/commit` skill conventions. **Do NOT ask the user to approve the commit message.** Proceed directly to committing.
+#### Tier S — Single Session
 
-1. Stage only the scaffolded files (never `git add -A`):
-   ```bash
-   git add <file1> <file2> ...
-   ```
+Implement directly (no agents):
 
-2. Generate a commit message:
-   ```
-   feat(<scope>): scaffold <feature> boilerplate
+1. Read stubs and spec acceptance criteria
+2. Implement business logic
+3. Write/update tests
+4. Run: `bun lint && bun typecheck && bun test`
+5. Loop until green
 
-   Create file stubs for <feature>: types, API routes, UI components, tests.
-   Stubs follow existing codebase patterns with TODO placeholders.
+#### Tier F — Agent-Driven (test-first)
 
-   Refs #<issue_number>
+Spawn agents based on the plan from Step 2.
 
-   Co-Authored-By: Claude <model> <noreply@anthropic.com>
-   ```
+**Single-domain:** use `Task` tool (subagents within the session).
+**Multi-domain:** use `TeamCreate` (independent agent sessions).
 
-Replace `<model>` with the actual model name (e.g., `Claude Opus 4.6`).
+**Implementation order (RED → GREEN → REFACTOR):**
 
-3. Execute the commit using HEREDOC format:
-   ```bash
-   git commit -m "$(cat <<'EOF'
-   <message>
-   EOF
-   )"
-   ```
+1. **RED** — Spawn `tester`: write failing tests from spec acceptance criteria
+2. **GREEN** — Spawn domain agents in parallel: implement to pass the tests
+3. **REFACTOR** — Domain agents refactor while keeping tests green
+4. **Verify** — Spawn `tester`: verify coverage and add edge cases
 
-4. After commit: run `git log --oneline -1` to confirm and show the result to the user.
+**Quality gate:**
 
-5. If pre-commit hook fails: fix, re-stage, create a **NEW** commit (never amend).
+```bash
+bun lint && bun typecheck && bun test
+```
 
-### 9. Final Summary
+- **Pass** — proceed to PR
+- **Fail** — agents fix, re-test, loop until green
 
-**Do NOT create a draft PR.** The scaffold only sets up stubs — the PR should be created later via `/pr` once implementation is complete.
+### Step 6 — PR
 
-Display a summary of everything created:
+1. Stage all implementation files (never `git add -A`)
+2. Commit using `/commit` conventions
+3. Push the branch, then create PR using `/pr`
+
+### Step 7 — Summary
+
+Display completion summary:
 
 ```
 Scaffold Complete
 =================
   Issue:    #<number> — <title>
   Branch:   feat/<number>-<slug>
-  Worktree: ../roxabi-<number>       (or "N/A — Tier S")
+  Worktree: ../roxabi-<number>
+  Tier:     <S|F-lite|F-full>
+  Agents:   <list>
 
-  Files created:
+  Files created/modified:
     - packages/types/src/<feature>.ts
     - apps/api/src/<feature>/controller.ts
     - ...
 
+  PR: #<pr_number>
+
   Next steps:
-    1. cd ../roxabi-<number>          (if worktree)
-    2. Implement the TODOs
-    3. Run /commit when ready
-    4. Run /pr when implementation is complete
-    5. Run /review before merging
+    1. Run /review for code review
+    2. Walk through findings via /1b1
+    3. Fixer applies accepted comments
+    4. Merge when CI is green
 ```
 
 ## Rollback
 
-If the scaffold is wrong, cleanup is two commands:
+If the scaffold needs to be undone:
 
 ```bash
-# Remove worktree (Tier M/L only)
+# Close the PR (if created)
+gh pr close <pr-number>
+
+# Remove worktree
+cd ../roxabi_boilerplate
 git worktree remove ../roxabi-<number>
 
 # Delete the branch
@@ -312,22 +317,25 @@ git branch -D feat/<number>-<slug>
 
 | Scenario | Behavior |
 |----------|----------|
-| **Tier S detected** | Skip worktree creation, use direct branch |
+| **No spec found** | Inform user, suggest `/bootstrap` or `/interview`. Stop. |
+| **Size XS confirmed by lead** | Skip worktree, use direct branch |
 | **Typecheck fails after scaffolding** | Report errors, let user decide (fix/proceed/abort) |
-| **No spec found** | Inform user, suggest `/bootstrap` or `/interview` |
 | **Issue already exists** | Use existing issue, inform user |
-| **Branch already exists** | Warn user, ask to reuse or create a new name |
+| **Branch already exists** | Warn user, ask to reuse or recreate |
 | **Worktree directory already exists** | Warn user, ask to reuse or clean up first |
 | **Spec has no file list** | Analyze spec to infer file structure from feature description |
+| **Tests fail during implementation** | Agents fix and re-test, loop until green |
 | **Pre-commit hook failure** | Fix, re-stage, create NEW commit (never amend) |
+| **Agent blocked** | Report blocker, ask user for guidance |
 
 ## Safety Rules
 
 1. **NEVER run `git add -A` or `git add .`** — always add specific files
-2. **NEVER push** — scaffold only commits locally; pushing and PR creation happen later via `/pr`
+2. **NEVER push without creating a PR first** via `/pr`
 3. **NEVER create the issue without user approval** of content
-4. **ALWAYS present scaffolded file list** before writing any files
-5. **ALWAYS use HEREDOC** for commit messages to preserve formatting
-6. **ALWAYS commit directly** without asking for approval (follow `/commit` conventions)
+4. **ALWAYS present the plan** before executing (Step 2e)
+5. **ALWAYS present scaffolded file list** before writing files (Step 4d)
+6. **ALWAYS use worktree** (XS exception with explicit lead approval only)
+7. **ALWAYS use HEREDOC** for commit messages
 
 $ARGUMENTS

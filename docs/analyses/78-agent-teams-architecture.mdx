@@ -3,8 +3,6 @@ title: "Analysis: Agent Teams Architecture for Roxabi Boilerplate"
 description: Architecture design for a 10-agent team using Claude Code Agent Teams, covering roles, coordination, tool access, and integration with existing skills.
 ---
 
-# Agent Teams Architecture for Roxabi Boilerplate
-
 ## Context
 
 Roxabi Boilerplate operates as a monorepo (apps/web, apps/api, packages/ui, packages/types, packages/config) with 16 Claude Code skills covering the full dev lifecycle (interview, commit, pr, review, test, bootstrap, scaffold, plan, etc.). The current model is **single-agent, skill-invoked**: one Claude Code session handles everything sequentially, invoking skills as prompt templates.

@@ -1,20 +1,18 @@
 ---
-argument-hint: [--fix] [#PR]
-description: Code review with Conventional Comments and optional automated fix pipeline.
-allowed-tools: Bash, AskUserQuestion, Read, Grep, Edit, Task
+argument-hint: [#PR]
+description: Multi-domain code review with fresh agents and Conventional Comments. Review findings are walked through with the human via /1b1.
+allowed-tools: Bash, AskUserQuestion, Read, Grep, Task
 ---
 
 # Code Review
 
-Review current branch changes (or a specific PR) against the project standards. Default: findings report only. With `--fix`: review + parallel fix agents that apply changes without committing.
+Review current branch changes (or a specific PR) using fresh domain-specific review agents. Each agent reviews from its area of expertise (security, architecture, product, tests, domain code). Findings are presented to the human one-by-one for accept/reject decisions.
 
 ## Usage
 
 ```
-/review                    → Review current branch changes vs main
-/review --fix              → Review + apply fixes (no auto-commit)
+/review                    → Review current branch changes vs staging
 /review #42                → Review a specific PR by number
-/review --fix #42          → Review + fix a specific PR
 ```
 
 ## Instructions
@@ -22,13 +20,13 @@ Review current branch changes (or a specific PR) against the project standards. 
 ### Phase 1 — Gather Changes
 
 1. **Determine the target:**
-   - No PR number: use `git diff main...HEAD` to get all changes on the current branch
+   - No PR number: use `git diff staging...HEAD` to get all changes on the current branch
    - PR number provided: use `gh pr diff <number>` to get the PR diff
 
 2. **List changed files:**
    ```bash
    # Branch mode
-   git diff --name-only main...HEAD
+   git diff --name-only staging...HEAD
 
    # PR mode
    gh pr diff <number> --name-only
@@ -40,15 +38,53 @@ Review current branch changes (or a specific PR) against the project standards. 
 
 5. **Large PR warning:** If more than 50 files changed, warn that review quality may degrade and suggest splitting the PR.
 
-### Phase 2 — Structured Review
+### Phase 1.5 — Spec Compliance Check
 
-1. **Read the project standards** (all of these, every time):
-   - `docs/standards/code-review.mdx` — review checklist and Conventional Comments format
-   - `docs/standards/frontend-patterns.mdx` — if any frontend files changed
-   - `docs/standards/backend-patterns.mdx` — if any backend files changed
-   - `docs/standards/testing.mdx` — if any test files changed
+Check if a spec exists for the linked issue and verify acceptance criteria are met.
 
-2. **Analyze every changed file** against the checklist from `code-review.mdx`:
+1. **Detect the issue number** from the branch name or PR:
+   ```bash
+   # Extract issue number from branch: feat/42-slug → 42
+   git branch --show-current | grep -oP '\d+' | head -1
+   ```
+
+2. **Look for a matching spec:**
+   ```bash
+   ls docs/specs/<issue_number>-*.mdx 2>/dev/null
+   ```
+
+3. **If a spec exists:**
+   - Read the spec file
+   - Extract the **Success Criteria** section (checklist items)
+   - For each criterion, check whether the changed files and diff evidence that it has been implemented
+   - Flag unmet criteria as `issue(blocking):` findings with the criterion text
+   - If all criteria are met, add a `praise:` noting spec compliance
+
+4. **If no spec exists:** skip this phase silently. Not all changes require a spec (Tier S fixes, docs, chores).
+
+### Phase 2 — Multi-Domain Review (Fresh Agents)
+
+Spawn **fresh review agents** via the `Task` tool. Each agent is a new instance with no implementation context (prevents bias). Each agent reviews the diff from its domain of expertise.
+
+1. **Determine which agents to spawn** based on changed files:
+
+   | Agent | When to spawn | Focus area |
+   |-------|---------------|------------|
+   | **security-auditor** | Always | OWASP vulnerabilities, secrets, injection, auth |
+   | **architect** | Always | Design patterns, module structure, circular deps |
+   | **product-lead** | Always | Spec compliance, acceptance criteria, product fit |
+   | **tester** | Always | Test coverage, AAA structure, edge cases |
+   | **frontend-dev** | If `apps/web/` or `packages/ui/` changed | Frontend patterns, component structure, hooks |
+   | **backend-dev** | If `apps/api/` or `packages/types/` changed | Backend patterns, API design, error handling |
+   | **infra-ops** | If config files or CI changed | Configuration, deployment, infrastructure |
+
+2. **Spawn each agent** with a Task that includes:
+   - The full diff (`git diff staging...HEAD` or `gh pr diff`)
+   - The list of changed files
+   - The spec (if one exists) for compliance checking
+   - Instructions to produce findings in Conventional Comments format
+
+3. **Each agent reviews** using the checklist from `docs/standards/code-review.mdx` scoped to its domain:
    - Correctness (edge cases, error handling, types)
    - Security (secrets, injection, XSS, auth guards)
    - Performance (N+1 queries, memory leaks, unnecessary memoization)
@@ -57,20 +93,23 @@ Review current branch changes (or a specific PR) against the project standards. 
    - Readability (naming, complexity, comments)
    - Observability (logging, correlation IDs, timeouts)
 
-3. **Categorize each finding:**
+4. **Categorize each finding:**
 
    | Category | Severity | Label | Blocks merge? |
    |----------|----------|-------|---------------|
    | **Bug** | Blocker | `issue:` / `todo:` | Yes |
    | **Security** | Blocker | `issue:` / `todo:` | Yes |
+   | **Spec gap** | Blocker | `issue:` / `todo:` | Yes |
    | **Standard violation** | Warning | `suggestion(blocking):` | Yes |
    | **Style** | Suggestion | `suggestion(non-blocking):` / `nitpick:` | No |
    | **Architecture** | Discussion | `thought:` / `question:` | No |
    | **Good work** | Praise | `praise:` | No |
 
-### Phase 3 — Present Findings
+### Phase 3 — Merge and Present Findings
 
-Format every finding as a **Conventional Comment** with file path and line number:
+Collect findings from all review agents and merge them into a single report. Deduplicate any overlapping findings (e.g., if both security-auditor and backend-dev flag the same SQL injection). Attribute each finding to the agent that raised it.
+
+Format every finding as a **Conventional Comment** with file path, line number, and reviewer attribution:
 
 ```
 issue(blocking): This `sql.raw()` call with user input is a SQL injection vector.
@@ -153,85 +192,39 @@ After presenting findings locally, **post the full review as a PR comment** so t
    - Wrap finding labels in backticks for readability (e.g., `` `issue(blocking):` ``)
    - Use a `## Code Review` header so comments are easy to find
 
-**If not using `--fix`, stop here.** The review is complete.
-
 ---
 
-### Phase 4 — Fix Mode (`--fix` only)
+### Phase 4 — 1b1 Walkthrough
 
-Only runs when `--fix` flag is provided. Continues after Phase 3.
+After the review report is posted to the PR, Main Claude walks the human through each actionable finding one-by-one using `/1b1`. This is the critical human decision gate.
 
-#### Step 4a: User Selects Findings
+For each finding:
 
-Present all actionable findings (blockers + warnings + suggestions) grouped by file via `AskUserQuestion` with multi-select. Each option shows the finding summary and file path. Praise and question/thought findings are excluded (nothing to fix).
+1. **Show** the comment, severity, file path, line number, and reviewer attribution
+2. **Present trade-offs** — explain what the fix would involve and any risks
+3. **Recommend** — suggest accept or reject based on severity and impact
+4. **Human decides**: accept, reject, or defer
 
-Let the user select which findings to fix. Only selected findings proceed.
+After the walkthrough:
 
-#### Step 4b: Spawn Fix Agents
+- **Accepted findings** are collected into a fix list
+- **Spawn parallel fixer agents by domain** to maximize speed:
 
-- **Maximum 5 concurrent agents** using the Task tool
-- **Parallel across different files**, sequential within the same file
-- If multiple findings target the same file, a single agent handles them in order
+  | Fixer | When to spawn | Scope |
+  |-------|---------------|-------|
+  | **Backend fixer** | If accepted findings touch `apps/api/` or `packages/types/` | Backend test/source fixes only |
+  | **Frontend fixer** | If accepted findings touch `apps/web/` or `packages/ui/` | Frontend test/source fixes only |
+  | **Infra fixer** | If accepted findings touch `packages/config/`, root configs, or CI | Config/infra fixes only |
 
-Each fix agent:
+  If all accepted findings fall within a **single domain**, spawn one fixer. If findings span **2+ domains**, spawn one fixer per domain in parallel.
 
-1. **Read the full file content** into memory (this is the revert snapshot)
-2. **Apply the fix** using the Edit tool
-3. **Run validation:**
-   ```bash
-   bunx biome check --write <file>
-   bunx tsc --noEmit <file>
-   ```
-4. **If validation fails:** restore the original file content from the snapshot and report the finding as "could not auto-fix" with the error reason
-5. **If validation passes:** keep the fix
+  Each fixer receives only the findings relevant to its domain. All fixers use the `fixer` agent definition (`.claude/agents/fixer.md`) with their domain scope specified in the prompt.
 
-#### Step 4c: Present Fix Report
+- After all fixers complete, **stage, commit, and push** the combined fixes in a single commit
+- CI runs; if it fails, spawn the relevant domain fixer to investigate and fix until green
+- Human approves the merge
 
-Show a summary of all fix results:
-
-```
-Fix Report
-══════════
-
-Applied (3):
-  [1] apps/api/src/users/users.service.ts:42 — Replaced sql.raw() with parameterized query
-  [2] apps/web/src/components/auth/login-form.tsx:88 — Extracted shared helper
-  [3] apps/api/src/users/users.controller.ts:15 — Added @UseGuards() decorator
-
-Could not auto-fix (1):
-  [4] packages/types/src/api.ts:30 — Type change caused downstream errors
-      Error: Type 'UserResponse' is not assignable to type 'ApiResponse<User>'
-
-Changes are staged but NOT committed.
-Run /commit to commit the approved changes.
-```
-
-- Show the unified diff of all applied fixes
-- List any findings that could not be auto-fixed with the failure reason
-- **Never auto-commit.** The user reviews the diff and decides what to keep
-- Suggest running `/commit` to commit the approved changes
-
-#### Step 4d: Post Fix Report to PR
-
-After presenting the fix report locally and the user has committed the fixes, **post a follow-up comment on the PR** documenting what was fixed.
-
-1. **Resolve the PR number** using the same logic as Phase 3.5 step 1. If no PR exists, skip.
-
-2. **Post the fix report comment:**
-
-   ```bash
-   gh pr comment <number> --body "$(cat <<'EOF'
-   ## Fix Report
-
-   <fix report from Step 4c: applied fixes + could-not-fix list>
-
-   ---
-   _Fixes applied by Claude Code via `/review --fix`_
-   EOF
-   )"
-   ```
-
-3. This comment should reference the review comment so reviewers can see what was found and what was addressed.
+> **Note:** The `/review` skill no longer includes a `--fix` flag. Fixing is handled separately by the fixer agent(s) after the human validates findings via `/1b1`.
 
 ## Edge Cases
 
@@ -241,18 +234,17 @@ After presenting the fix report locally and the user has committed the fixes, **
 | Binary files in diff | Skip, note in report as "binary file, skipped" |
 | Large PR (>50 files) | Warn about review quality, suggest splitting |
 | No findings | Report clean review, approve. Still post comment (clean verdict). |
-| `--fix` with no actionable findings | Inform user there is nothing to fix |
-| Fix agent fails validation | Revert file, mark as "could not auto-fix" |
-| Multiple findings in same file | Single agent handles them sequentially |
-| No PR for current branch | Skip PR comment (Phase 3.5 / 4d), findings stay local only |
+| All findings are non-blocking | Human can batch-accept without full 1b1 walkthrough |
+| Critical security finding | Escalate immediately to human, do not wait for 1b1 |
+| Review agents disagree | Present both perspectives in 1b1, human decides |
+| No PR for current branch | Skip PR comment (Phase 3.5), findings stay local only |
 
 ## Safety Rules
 
-1. **Never auto-commit** — fixes are applied to the working tree only
+1. **Fresh agents only** — review agents must be new instances with no implementation context
 2. **Never auto-merge** or approve PRs on GitHub
-3. **Always revert on failure** — if a fix breaks typecheck or tests, restore the original
-4. **Max 5 concurrent fix agents** — prevent resource exhaustion
-5. **User selects findings** — never auto-fix without explicit selection
-6. **Always post review to PR** — if a PR exists, findings must be posted as a comment for traceability
+3. **Human decides on every finding** — findings go through 1b1 walkthrough before any fix is applied
+4. **Always post review to PR** — if a PR exists, findings must be posted as a comment for traceability
+5. **Fixer handles fixes** — the review skill does not fix code; that is the fixer agent's responsibility after 1b1
 
 $ARGUMENTS

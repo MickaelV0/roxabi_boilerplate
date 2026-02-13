@@ -1,0 +1,118 @@
+import { Body, Controller, Delete, Get, Param, Patch, Post, UsePipes } from '@nestjs/common'
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { z } from 'zod'
+import { Permissions } from '../auth/decorators/permissions.decorator.js'
+import { Session } from '../auth/decorators/session.decorator.js'
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
+import { PermissionService } from './permission.service.js'
+import { RbacService } from './rbac.service.js'
+
+const createRoleSchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
+  permissions: z.array(z.string()).min(1),
+})
+
+const updateRoleSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).optional(),
+  permissions: z.array(z.string()).optional(),
+})
+
+const transferOwnershipSchema = z.object({
+  targetMemberId: z.string().min(1),
+})
+
+const changeMemberRoleSchema = z.object({
+  roleId: z.string().min(1),
+})
+
+type CreateRoleDto = z.infer<typeof createRoleSchema>
+type UpdateRoleDto = z.infer<typeof updateRoleSchema>
+type TransferOwnershipDto = z.infer<typeof transferOwnershipSchema>
+type ChangeMemberRoleDto = z.infer<typeof changeMemberRoleSchema>
+
+@ApiTags('RBAC')
+@ApiBearerAuth()
+@Controller('api/roles')
+export class RbacController {
+  constructor(
+    private readonly rbacService: RbacService,
+    private readonly permissionService: PermissionService
+  ) {}
+
+  @Get()
+  @Permissions('roles:read')
+  @ApiOperation({ summary: 'List roles for the current organization' })
+  @ApiResponse({ status: 200, description: 'List of roles' })
+  async listRoles() {
+    return this.rbacService.listRoles()
+  }
+
+  @Get('permissions')
+  @Permissions('roles:read')
+  @ApiOperation({ summary: 'List all available permissions' })
+  @ApiResponse({ status: 200, description: 'List of all permissions' })
+  async listPermissions() {
+    return this.permissionService.getAllPermissions()
+  }
+
+  @Post('transfer-ownership')
+  @Permissions('members:write')
+  @ApiOperation({ summary: 'Transfer organization ownership to another Admin' })
+  @ApiResponse({ status: 200, description: 'Ownership transferred' })
+  @ApiResponse({ status: 400, description: 'Ownership constraint violated' })
+  @UsePipes(new ZodValidationPipe(transferOwnershipSchema))
+  async transferOwnership(
+    @Session() session: { user: { id: string } },
+    @Body() body: TransferOwnershipDto
+  ) {
+    return this.rbacService.transferOwnership(session.user.id, body.targetMemberId)
+  }
+
+  @Post()
+  @Permissions('roles:write')
+  @ApiOperation({ summary: 'Create a custom role' })
+  @ApiResponse({ status: 201, description: 'Role created' })
+  @ApiResponse({ status: 409, description: 'Role slug already exists' })
+  @UsePipes(new ZodValidationPipe(createRoleSchema))
+  async createRole(@Body() body: CreateRoleDto) {
+    return this.rbacService.createRole(body)
+  }
+
+  @Get(':id/permissions')
+  @Permissions('roles:read')
+  @ApiOperation({ summary: 'Get permissions for a specific role' })
+  @ApiResponse({ status: 200, description: 'List of permissions' })
+  async getRolePermissions(@Param('id') id: string) {
+    return this.rbacService.getRolePermissions(id)
+  }
+
+  @Patch(':id')
+  @Permissions('roles:write')
+  @ApiOperation({ summary: 'Update a role' })
+  @ApiResponse({ status: 200, description: 'Role updated' })
+  @ApiResponse({ status: 404, description: 'Role not found' })
+  @UsePipes(new ZodValidationPipe(updateRoleSchema))
+  async updateRole(@Param('id') id: string, @Body() body: UpdateRoleDto) {
+    return this.rbacService.updateRole(id, body)
+  }
+
+  @Delete(':id')
+  @Permissions('roles:delete')
+  @ApiOperation({ summary: 'Delete a custom role (members fallback to Viewer)' })
+  @ApiResponse({ status: 200, description: 'Role deleted' })
+  @ApiResponse({ status: 404, description: 'Role not found' })
+  async deleteRole(@Param('id') id: string) {
+    return this.rbacService.deleteRole(id)
+  }
+
+  @Patch('members/:id/role')
+  @Permissions('members:write')
+  @ApiOperation({ summary: "Change a member's role" })
+  @ApiResponse({ status: 200, description: 'Member role updated' })
+  @UsePipes(new ZodValidationPipe(changeMemberRoleSchema))
+  async changeMemberRole(@Param('id') id: string, @Body() body: ChangeMemberRoleDto) {
+    return this.rbacService.changeMemberRole(id, body.roleId)
+  }
+}

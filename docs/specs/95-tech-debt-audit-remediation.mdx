@@ -3,8 +3,6 @@ title: "Tech Debt Audit Remediation"
 description: Resolve 9 tech debt items from the 2026-02-09 project audit and 2026-02-10 specialized agent reviews in a single mega-PR.
 ---
 
-# #95 — Tech Debt Audit Remediation
-
 ## Context
 
 A project audit on 2026-02-09 and a follow-up specialized agent review (backend-dev, security-auditor, reviewer) on 2026-02-10 identified 12 tech debt items. Two were already resolved (Dockerfiles, .dockerignore). One (CSP `unsafe-inline`) is deferred to issue #101 (Swagger UI migration). This spec covers the remaining **9 items**.
@@ -177,7 +175,7 @@ const envSchema = z.object({
   APP_URL: z.string().url().optional(),
 })
 
-export type EnvironmentVariables = z.infer&lt;typeof envSchema>
+export type EnvironmentVariables = z.infer<typeof envSchema>
 ```
 
 Keep the production secret check (INSECURE_SECRETS validation). Export the same `validate(config)` function signature for NestJS `ConfigModule.forRoot()` compatibility.

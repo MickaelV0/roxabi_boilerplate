@@ -9,20 +9,31 @@ import { toFetchHeaders } from './fastify-headers.js'
 @Injectable()
 export class AuthService {
   private readonly auth: BetterAuthInstance
+  readonly enabledProviders: { google: boolean; github: boolean }
 
   constructor(
     @Inject(DRIZZLE) db: DrizzleDB,
     @Inject(EMAIL_PROVIDER) emailProvider: EmailProvider,
     config: ConfigService
   ) {
+    const googleClientId = config.get<string>('GOOGLE_CLIENT_ID')
+    const googleClientSecret = config.get<string>('GOOGLE_CLIENT_SECRET')
+    const githubClientId = config.get<string>('GITHUB_CLIENT_ID')
+    const githubClientSecret = config.get<string>('GITHUB_CLIENT_SECRET')
+
+    this.enabledProviders = {
+      google: !!(googleClientId && googleClientSecret),
+      github: !!(githubClientId && githubClientSecret),
+    }
+
     this.auth = createBetterAuth(db, emailProvider, {
       secret: config.getOrThrow<string>('BETTER_AUTH_SECRET'),
       baseURL: config.get<string>('BETTER_AUTH_URL', 'http://localhost:3001'),
       appURL: config.get<string>('APP_URL', 'http://localhost:3000'),
-      googleClientId: config.get<string>('GOOGLE_CLIENT_ID'),
-      googleClientSecret: config.get<string>('GOOGLE_CLIENT_SECRET'),
-      githubClientId: config.get<string>('GITHUB_CLIENT_ID'),
-      githubClientSecret: config.get<string>('GITHUB_CLIENT_SECRET'),
+      googleClientId,
+      googleClientSecret,
+      githubClientId,
+      githubClientSecret,
     })
   }
 

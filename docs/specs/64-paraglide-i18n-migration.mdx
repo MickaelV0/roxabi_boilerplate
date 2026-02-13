@@ -5,11 +5,9 @@ description: "Replace runtime i18next with compile-time Paraglide JS for type-sa
 
 > **Deprecated**: This document is outdated and kept for historical reference only. Please refer to the main documentation sections for current information.
 
-# Migrate i18n from i18next to Paraglide JS
-
 ## Context
 
-The current i18n implementation (specs [#20](/docs/specs/20-i18n), [#33](/docs/specs/33-tanstack-start-i18n-integration)) uses i18next with react-i18next. PR #63 fixed immediate issues (preload guard, hydration loop, `&lt;html lang>`), but revealed architectural limitations:
+The current i18n implementation (specs [#20](./20-i18n), [#33](./33-tanstack-start-i18n-integration)) uses i18next with react-i18next. PR #63 fixed immediate issues (preload guard, hydration loop, `&lt;html lang>`), but revealed architectural limitations:
 
 1. **SSR cookie access**: `document.cookie` is always `null` during SSR — the current code silently falls back to path/default detection, losing cookie-persisted preferences on first render
 2. **`$locale` route param pollution**: Every route must nest under `/$locale`, adding boilerplate and complexity to route definitions
@@ -116,7 +114,7 @@ import { paraglideMiddleware } from './paraglide/server.js'
 import handler from '@tanstack/react-start/server-entry'
 
 export default {
-  fetch(req: Request): Promise&lt;Response> {
+  fetch(req: Request): Promise<Response> {
     // IMPORTANT: Pass the original `req` to handler.fetch(), NOT the middleware's
     // modified `request`. This avoids the Request cloning bug (TanStack/router#6089)
     // where undici cannot access private #state fields from TanStack's Request wrapper.
@@ -393,6 +391,6 @@ The `#` symbol is replaced with the `count` value at runtime.
 - [TanStack Start + Paraglide example](https://github.com/TanStack/router/tree/main/examples/react/start-i18n-paraglide)
 - [Modern i18n DX in TanStack Start](https://eugeneistrach.com/blog/paraglide-tanstack-start/)
 - [Why I replaced i18next with Paraglide](https://dropanote.de/en/blog/20250726-why-i-replaced-i18next-with-paraglide-js/)
-- Spec [#20 — i18n foundation](/docs/specs/20-i18n)
-- Spec [#33 — TanStack Start i18n integration](/docs/specs/33-tanstack-start-i18n-integration)
+- Spec [#20 — i18n foundation](./20-i18n)
+- Spec [#33 — TanStack Start i18n integration](./33-tanstack-start-i18n-integration)
 - PR #63 — i18n fixes (preload, cloneInstance, html lang)

@@ -93,6 +93,18 @@ jobs:
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
+      - name: Check for schema drift
+        run: |
+          cd apps/api && bun run db:generate
+          if ! git diff --exit-code --quiet -- drizzle/; then
+            echo "::error::Schema drift detected! Your Drizzle schema has changes that are not captured in a migration file."
+            echo "::error::Run 'cd apps/api && bun run db:generate' locally and commit the generated migration."
+            git diff --stat -- drizzle/
+            exit 1
+          fi
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -209,7 +221,7 @@ jobs:
               - 'packages/ui/src/**'
               - 'playwright.config.ts'
               - '.github/workflows/ci.yml'
-              - 'turbo.json'
+              - 'turbo.jsonc'
 
   e2e:
     name: E2E Tests

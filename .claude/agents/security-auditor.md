@@ -17,7 +17,7 @@ description: |
   </example>
 model: inherit
 color: red
-tools: Read, Glob, Grep, Bash
+tools: Read, Glob, Grep, Bash, WebSearch, Task, SendMessage
 permissionMode: plan
 maxTurns: 30
 memory: project

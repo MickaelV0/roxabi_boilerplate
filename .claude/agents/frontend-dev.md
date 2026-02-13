@@ -17,11 +17,11 @@ description: |
   </example>
 model: inherit
 color: cyan
-tools: Read, Write, Edit, Glob, Grep, Bash
+tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
-skills: commit
+skills: commit, context7, frontend-design
 ---
 
 # Frontend Developer Agent

@@ -90,6 +90,7 @@
   "cta_title": "Ready to build?",
   "cta_subtitle": "Clone the repo and ship your first feature in under 5 minutes.",
   "cta_button": "Get Started",
+  "footer_changelog": "Changelog",
   "footer_copyright": "© {year} Roxabi. Open-source under MIT.",
 
   "user_menu_label": "User menu",
@@ -228,5 +229,14 @@
   "org_invitations_revoke": "Revoke",
   "org_toast_invitation_revoked": "Invitation revoked",
 
-  "common_cancel": "Cancel"
+  "common_cancel": "Cancel",
+
+  "error_ROLE_NOT_FOUND": "Role not found",
+  "error_ROLE_SLUG_CONFLICT": "A role with this name already exists",
+  "error_DEFAULT_ROLE_CONSTRAINT": "Cannot modify a default role",
+  "error_OWNERSHIP_CONSTRAINT": "Only the owner can perform this action",
+  "error_MEMBER_NOT_FOUND": "Member not found",
+  "error_TENANT_CONTEXT_MISSING": "Organization context is missing",
+  "error_DATABASE_UNAVAILABLE": "Service temporarily unavailable",
+  "error_USER_NOT_FOUND": "User not found"
 }

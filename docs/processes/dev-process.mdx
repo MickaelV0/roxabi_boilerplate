@@ -1,27 +1,45 @@
 ---
 title: Development Process
-description: Development workflow with three tiers adapted to task complexity
+description: Development workflow with tiered tracks adapted to task complexity
 ---
 
-# Development Process
-
-Adapts to task complexity through three tiers. **Determine tier before starting.**
+Adapts to task complexity through tiered tracks. **Determine tier before starting.**
 
 ## Step 0: Determine Tier
 
 ```
-New architecture or system-wide change? ─────────────────► Tier L
-More than 10 files? ─────────────────────────────────────► Tier L
-More than 3 files? ──────────────────────────────────────► Tier M
-Regression risk or complex logic? ───────────────────────► Tier M
-Otherwise ───────────────────────────────────────────────► Tier S
+≤3 files, no arch risk, no regression risk? ────────► Tier S
+Clear scope, documented requirements, single domain? ► Tier F-lite
+New arch, unclear requirements, or >2 domains? ─────► Tier F-full
 ```
 
 | Tier | Name | Criteria | Process |
 |------|------|----------|---------|
-| **L** | Feature/Migration | >10 files, system arch | Full spec + worktree |
-| **M** | Feature Light | 3-10 files, local arch | Worktree + light review |
-| **S** | Quick Fix | ≤3 files, no arch, no risk | Direct branch + PR |
+| **S** | Quick Fix | &lt;=3 files, no arch, no risk | Worktree + PR |
+| **F-lite** | Feature (lite) | Clear scope, documented requirements, single domain | Worktree + agents + /review (skip bootstrap) |
+| **F-full** | Feature (full) | New arch concepts, unclear requirements, or >2 domain boundaries | Bootstrap + worktree + agents + /review |
+
+### F-lite vs F-full (judgment-based)
+
+File count alone does not determine the tier. A 50-file mechanical change may be F-lite, while a 3-file rate limiter with design decisions may be F-full. Use judgment, then validate with the human.
+
+**F-full (bootstrap required):**
+
+```
+New architectural concepts or patterns?              -> F-full
+Unclear or competing requirements?                   -> F-full
+Affects >2 domain boundaries?                        -> F-full
+```
+
+**F-lite (skip bootstrap):**
+
+```
+Mechanical/repetitive regardless of file count?      -> F-lite
+Requirements fully documented (analysis/spec exist)? -> F-lite
+Single domain, clear scope?                          -> F-lite
+```
+
+**Human always validates** the F-lite/F-full classification before proceeding.
 
 > **Branch Strategy:** `staging` is the default integration branch. All feature and fix branches are created from `staging` and PRs target `staging`. Only `hotfix/*` branches may target `main` directly. Merges to `main` trigger production deploys; merges to `staging` do not auto-deploy (use the **Deploy Preview** GitHub Action for on-demand previews).
 
@@ -76,12 +94,21 @@ Otherwise ───────────────────────�
 - Confirm no regression risk
 - **List all impacted artifacts** (see checklist above)
 
-### S.2 — Validate
+> **XS exception:** For Size XS changes (single file, &lt;1h, zero risk), use `AskUserQuestion` to confirm with the lead. If approved, direct branch from staging is acceptable without worktree.
+
+### S.2 — Create Worktree
+
+```bash
+git worktree add ../roxabi-XXX -b fix/XXX-description staging
+cd ../roxabi-XXX
+```
+
+### S.3 — Validate
 - Present approach with `AskUserQuestion`
 - Include: files to modify, related artifacts (tests, docs)
 - Wait for explicit approval
 
-### S.3 — Implement
+### S.4 — Implement
 Follow this order:
 
 1. **Read** existing files before modifying
@@ -89,21 +116,24 @@ Follow this order:
 3. **Update tests**
 4. **Run quality checks**: `bun lint && bun typecheck && bun test`
 5. **Verify** all checks pass
+6. *(Optional)* Delegate to **tester** subagent for a quick quality check
 
-### S.4 — Branch, Commit & PR
+### S.5 — Verify & PR
+
+Before creating the PR, verify **all applicable items** from the [Quality Checklist](#quality-checklist):
+- All impacted artifacts are included (code, tests, docs, config)
+- `bun lint && bun typecheck && bun test` pass locally
+- No debug code or console.log left behind
 
 ```bash
-# 1. Create branch
-git checkout -b fix/XXX-description staging
-
-# 2. Check changes
+# 1. Check changes — verify nothing is missing
 git status
 git diff --stat
 
-# 3. Add files (NEVER git add -A)
+# 2. Add files (NEVER git add -A)
 git add <file1> <file2> ...
 
-# 4. Commit with standard format
+# 3. Commit with standard format
 git commit -m "$(cat <<'EOF'
 <type>(<scope>): <description>
 
@@ -113,115 +143,276 @@ Co-Authored-By: Claude <model> <noreply@anthropic.com>
 EOF
 )"
 
-# 5. Create PR
+# 4. Create PR
 gh pr create --title "<type>: description" --body "Closes #XXX"
 ```
 
-**Commit types:** `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`
+### S.6 — Wait for CI
 
----
-
-## Agent Teams (Tier M/L)
-
-For Tier M and L tasks, consider using **Agent Teams** to parallelize work across specialized agents. See the [Agent Teams Guide](/docs/guides/agent-teams) for setup, playbooks, and routing.
-
-**Quick decision:** If your task touches multiple domains (frontend + backend, or code + tests + docs), agent teams will speed things up significantly. Use the [routing decision tree](/docs/guides/agent-teams#2-pick-your-agents) to select agents.
-
----
-
-## Tier M: Feature Light
-
-### M.1 — Scope
-- Identify all files (3-10)
-- List all impacted artifacts
-- Confirm it's not system-wide
-
-### M.2 — Create Worktree
+**MANDATORY:** Wait for all CI checks to pass before merging.
 
 ```bash
-git worktree add ../roxabi-XXX -b feat/XXX-slug staging
-cd ../roxabi-XXX
+# Watch CI status until completion
+gh pr checks <pr-number> --watch
 ```
 
-### M.3 — Validate
-- Present approach with `AskUserQuestion`
-- Include: files to modify, architecture impact, tests, docs
-- Wait for explicit approval
+CI runs: **lint → typecheck → test → build** (+ E2E if relevant paths changed).
 
-### M.4 — Implement
-1. Read existing files
-2. Implement in logical order (types → logic → UI)
-3. Update/create tests
-4. Update documentation if needed
-5. Run quality checks: `bun lint && bun typecheck && bun test`
+If CI fails: fix the issue, push a new commit, and wait for CI again. **Never merge with failing checks.**
 
-### M.5 — Commit & PR
-
-```bash
-git add <files>
-git commit -m "$(cat <<'EOF'
-feat(<scope>): description
-
-Co-Authored-By: Claude <model> <noreply@anthropic.com>
-EOF
-)"
-
-gh pr create --title "feat: description" --body "Closes #XXX"
-```
-
-### M.6 — Cleanup Worktree (after merge)
+### S.7 — Cleanup Worktree (after merge)
 
 ```bash
 # Return to main project directory
-cd ../roxabi-web  # or your project folder name
+cd ../roxabi_boilerplate
 git worktree remove ../roxabi-XXX
 ```
+
+**Commit types:** `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`, `ci`, `perf`
 
 ---
 
-## Tier L: Feature/Migration
+## Agent Coordination
 
-### L.1 — Scope & Spec
-- Create specification in `docs/specs/XXX-slug.mdx`
-- Document architecture decisions
-- Get spec approval before coding
+Two modes are available depending on task complexity. See the [Agent Teams Guide](../guides/agent-teams) for full setup and playbooks.
 
-### L.2 — Create Worktree
+| Mode | Mechanism | When | Overhead |
+|------|-----------|------|----------|
+| **Subagents** | `Task` tool (single session) | Tier S or Tier F single-domain | Low — results return to your context |
+| **Agent Teams** | `TeamCreate` (multi-process swarm) | Tier F multi-domain or large scope | High — each agent is a separate Claude instance |
 
-```bash
-git worktree add ../roxabi-XXX -b feat/XXX-slug staging
-cd ../roxabi-XXX
+**Quick decision:**
+- Tier S: single session, optionally delegate to **tester** subagent
+- Tier F single-domain: subagents via `Task` tool
+- Tier F multi-domain: agent teams via `TeamCreate`
+
+### Roles
+
+| Actor | Role | Does NOT |
+|-------|------|----------|
+| **Human** | Decision-maker at every gate (spec approval, review comment acceptance, merge) | -- |
+| **Main Claude** | Orchestrator — assesses issues, spawns agents, runs skills, coordinates flow | Does not implement code directly (Tier F — for Tier S, single session implements) |
+| **product-lead** | Writes analyses and specs, triages issues, interacts with human when spawned | Does not orchestrate or merge |
+| **Domain agents** (FE, BE, infra) | Implement within their domain boundaries | Do not review their own code |
+| **tester** | Writes failing tests first (RED), verifies coverage | Does not write production code |
+| **fixer** (domain-scoped) | Fixes accepted review comments within its domain (parallel fixers for multi-domain) | Does not review or write new features |
+| **Fresh review agents** | Review code they did not write (security, architecture, product, tests, domain) | Do not fix code — that is the fixer's job |
+
+---
+
+## Tier F: Feature (4-Phase Workflow)
+
+Tier F follows four phases: **Assess, Implement, Review, Fix/Merge**. The human is the decision-maker at every gate. Main Claude is the orchestrator.
+
+```
+Human: "develop #XXX"
+        |
+        v
+========================================
+  PHASE 1 — ASSESSMENT
+========================================
+        |
+  Main Claude: fetch issue, check docs
+        |
+  Spec exists? ---- Yes --+
+        |                  |
+        No                 |
+        |                  |
+  product-lead: interview  |
+  (+ architect if needed)  |
+        |                  |
+  Write analysis           |
+        |                  |
+  * Human approves *       |
+        |                  |
+  Write spec               |
+        |                  |
+  * Human approves *       |
+        |                  |
+        +------------------+
+        |
+        v
+========================================
+  PHASE 2 — SCAFFOLD & IMPLEMENTATION
+  /scaffold (spec → PR)
+========================================
+        |
+  Plan: analyze scope, pick agents
+        |
+  * Human approves plan *
+        |
+  Create issue + worktree + stubs
+        |
+  Spawn agents (test-first):
+        |
+  tester: write failing tests (RED)
+        |
+     +--+--+--+
+     |  |  |  |
+    FE BE infra doc-writer   <-- parallel (GREEN)
+     |  |  |  |
+     +--+--+--+
+        |
+  tester: verify coverage + edge cases
+        |
+  All tests pass? --- No --> team fixes, loop
+        |
+       Yes
+        |
+  Commit + create PR
+        |
+        v
+========================================
+  PHASE 3 — REVIEW
+========================================
+        |
+  Main Claude: /review
+        |
+  Fresh agents (never the authors):
+  +- security-auditor
+  +- architect
+  +- product-lead
+  +- tester
+  +- frontend-dev  (if FE changes)
+  +- backend-dev   (if BE changes)
+        |
+  Conventional Comments collected
+        |
+  Main Claude: /1b1
+        |
+  Human decides per comment:
+  accept / reject / defer
+        |
+        v
+========================================
+  PHASE 4 — FIX & MERGE
+========================================
+        |
+  fixer: fix accepted comments
+        |
+  Push + CI runs
+        |
+  CI green? --- No --> fixer fixes, loop
+        |
+       Yes
+        |
+  * Human approves merge *
+        |
+  Cleanup worktree
+        |
+       DONE
 ```
 
-### L.3 — Validate Plan
-- Present detailed implementation plan
-- Use `AskUserQuestion` for approach validation
-- Consider parallel execution for complex tasks
+### Phase 1 — Assessment
 
-### L.4 — Implement
-1. Follow spec step by step
-2. Commit atomic changes as you go
-3. Update tests for each component
-4. Update documentation
+1. Human says "develop issue #XXX"
+2. Main Claude fetches the GitHub issue, scans for existing documents:
+   - `docs/analyses/*` — matching analysis
+   - `docs/specs/*` — matching spec
+3. **If a sufficient spec exists** — skip to Phase 2
+4. **If gaps exist** (no issue detail, no analysis, no spec):
+   - Main Claude spawns **product-lead** agent
+   - Product-lead interacts directly with the human to:
+     - Clarify and structure the issue if needed
+     - Write the analysis (human approves)
+     - Write the spec (human approves)
+   - If deeper technical analysis is needed, product-lead requests **architect** agent
+   - Once spec is approved, product-lead returns control to Main Claude
 
-### L.5 — Self-Review
-- Review all changes: `git diff staging...HEAD`
-- Verify all checklist items
-- Run full test suite: `bun test`
+> **F-lite shortcut:** If the task is classified as F-lite (clear scope, documented requirements), the assessment phase is brief — Main Claude confirms the spec exists and proceeds to `/scaffold`.
 
-### L.6 — PR & Review
+### Scaffold and Implementation (`/scaffold`)
 
-```bash
-gh pr create --title "feat: description" --body "Closes #XXX"
-```
+`/scaffold` is the execution engine. It takes a spec and drives it all the way to a PR:
 
-### L.7 — Cleanup (after merge)
+5. **Plan** — Reads the spec, analyzes scope, determines tier, breaks into tasks, picks agents. Human approves the plan.
 
-```bash
-# Return to main project directory
-cd ../roxabi-web  # or your project folder name
-git worktree remove ../roxabi-XXX
-```
+6. **Setup** — Creates the GitHub issue (if none exists), creates worktree:
+   ```bash
+   git worktree add ../roxabi-XXX -b feat/XXX-slug staging
+   cd ../roxabi-XXX && bun install
+   ```
+
+7. **Scaffold** — Creates boilerplate stubs (types, API, UI, test shells) from the spec. Commits.
+
+8. **Implement** — Spawns agents based on the plan:
+
+   | Change type | Agent |
+   |-------------|-------|
+   | Frontend | frontend-dev |
+   | Backend | backend-dev |
+   | CI/CD / config | infra-ops |
+   | Any code change | tester (always) |
+   | Security-sensitive | security-auditor (during review) |
+   | Documentation | doc-writer |
+
+   **Test-first** (RED → GREEN → REFACTOR):
+   1. **RED** — Tester writes failing tests from spec acceptance criteria
+   2. **GREEN** — Domain agents implement to pass the tests
+   3. **REFACTOR** — Domain agents refactor while keeping tests green
+   4. Tester verifies coverage and adds edge cases
+
+9. **Quality gate** — `bun lint && bun typecheck && bun test`
+   - **Pass** — proceed to PR
+   - **Fail** — agents fix, re-test, loop until green
+
+10. **PR** — `/scaffold` commits and creates the PR:
+    ```bash
+    gh pr create --title "feat: description" --body "Closes #XXX"
+    ```
+
+### Phase 3 — Review
+
+11. Main Claude runs `/review` which spawns **fresh review agents** (new instances with no implementation context):
+
+    | Always | Conditional |
+    |--------|-------------|
+    | security-auditor | frontend-dev (if FE changes) |
+    | architect | backend-dev (if BE changes) |
+    | product-lead | infra-ops (if config changes) |
+    | tester | |
+
+    Each reviewer produces Conventional Comments scoped to their domain.
+
+12. Main Claude collects all review comments.
+13. Main Claude walks the human through each comment **one-by-one** (`/1b1`):
+    - Shows the comment, severity, and context
+    - Presents trade-offs and recommendations
+    - Human decides: **accept**, **reject**, or **defer**
+
+### Phase 4 — Fix and Merge
+
+14. **Parallel domain fixers** receive the accepted findings scoped to their domain:
+    - **Backend fixer** — if findings touch `apps/api/` or `packages/types/`
+    - **Frontend fixer** — if findings touch `apps/web/` or `packages/ui/`
+    - **Infra fixer** — if findings touch `packages/config/`, root configs, or CI
+    - Single-domain findings → one fixer. Multi-domain → parallel fixers.
+15. Push combined fixes, update PR.
+16. CI runs:
+    - **Pass** — merge and cleanup worktree
+    - **Fail** — fixer investigates and fixes, CI again, loop until green
+17. Human approves merge:
+    ```bash
+    gh pr merge <pr-number> --squash --delete-branch
+    ```
+18. Cleanup:
+    ```bash
+    cd ../roxabi_boilerplate
+    git worktree remove ../roxabi-XXX
+    ```
+
+**Never merge with failing checks.**
+
+### Promote to Production (`/promote`)
+
+After features have been validated on staging:
+
+19. Human runs `/promote` to merge staging → main.
+20. `/promote` creates a PR from staging to main, verifies Vercel preview, and generates a changelog.
+21. Human reviews and approves the promotion PR.
+22. After merge, run `/promote --finalize` to tag the release and generate release notes.
+
+> Promotion is **not per-feature** — it batches all staging changes into a single release. See the `/promote` skill for details.
 
 ---
 
@@ -231,6 +422,8 @@ git worktree remove ../roxabi-XXX
 |------|---------|---------|
 | Branch | `feat/XXX-slug` | `feat/123-user-auth` |
 | Branch | `fix/XXX-slug` | `fix/456-login-bug` |
+| Branch | `hotfix/XXX-slug` | `hotfix/99-security-patch` |
+| Branch | `docs/slug` | `docs/api-reference` |
 | Spec | `docs/specs/XXX-slug.mdx` | `docs/specs/123-user-auth.mdx` |
 | Worktree | `../roxabi-XXX` | `../roxabi-123` |
 
@@ -240,21 +433,23 @@ git worktree remove ../roxabi-XXX
 
 ## Principles
 
-1. **Validate before implementing** — Always get user approval on approach before writing code
-2. **Match process to complexity** — Tier S for fixes, Tier L for migrations
-3. **Understand before building** — Read code before modifying
-4. **Complete the checklist** — Every applicable artifact must be updated
-5. **Test new code** — New functions must have tests
-6. **Track progress** — Keep GitHub issue updated
-7. **Respect patterns** — Use shared packages, follow conventions
-8. **No speculative complexity** — Build what's requested
-9. **Review depth matches risk** — Light for M, structured for L
+1. **Human decides, Claude orchestrates, agents specialize** — The human is the decision-maker at every gate. Main Claude coordinates the workflow. Agents execute within their domain.
+2. **Validate before implementing** — Always get user approval on approach before writing code
+3. **Match process to complexity** — Tier S for quick fixes, F-lite for clear features, F-full for complex features
+4. **Test first** — Tester writes failing tests before implementation (RED, GREEN, REFACTOR)
+5. **Fresh eyes for review** — No agent reviews code it wrote. Review agents are fresh instances.
+6. **Understand before building** — Read code before modifying
+7. **Complete the checklist** — Every applicable artifact must be updated
+8. **Track progress** — Keep GitHub issue updated
+9. **Respect patterns** — Use shared packages, follow conventions
+10. **No speculative complexity** — Build what's requested
 
 ---
 
 ## Quality Checklist
 
-Before creating PR:
+**Before creating PR:**
+- [ ] All impacted artifacts included (code, tests, docs, config)
 - [ ] Code follows conventions (Biome)
 - [ ] Tests pass (`bun test`)
 - [ ] Linting passes (`bun lint`)
@@ -262,3 +457,9 @@ Before creating PR:
 - [ ] No console.log or debug code
 - [ ] PR description is clear
 - [ ] Documentation updated if needed
+
+**Before merging PR:**
+- [ ] CI checks pass (`gh pr checks &lt;pr-number&gt; --watch`)
+- [ ] `/review` completed with fresh domain agents (Tier F)
+- [ ] Human walked through all review comments via `/1b1`
+- [ ] Accepted comments fixed by fixer agent

@@ -3,15 +3,13 @@ title: "Staging Environment with On-Demand Preview Deploys"
 description: Add a staging branch as integration point with manual preview deploys via GitHub Actions
 ---
 
-# #114 — Staging Environment with On-Demand Preview Deploys
-
 ## Context
 
 All changes merged to `main` currently trigger an automatic Vercel production deploy. This means WIP or non-production-ready code can reach production prematurely. A staging gate is needed between feature work and production.
 
 The project currently uses GitHub Flow (feature branches → main → auto-deploy). This spec introduces a `staging` branch as an integration point while keeping `main` as the production-only branch.
 
-**Promoted from:** [Staging Environment Analysis](/docs/analyses/114-staging-environment-preview-deploys)
+**Promoted from:** [Staging Environment Analysis](../analyses/114-staging-environment-preview-deploys)
 
 ## Goal
 

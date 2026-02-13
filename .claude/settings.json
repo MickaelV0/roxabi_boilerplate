@@ -1,18 +1,4 @@
 {
-  "enabledPlugins": {
-    "context7@claude-plugins-official": true,
-    "github@claude-plugins-official": true,
-    "playwright@claude-plugins-official": false,
-    "frontend-design@claude-plugins-official": true
-  },
-  "extraKnownMarketplaces": {
-    "claude-plugins-official": {
-      "source": {
-        "source": "github",
-        "repo": "anthropics/claude-plugins-official"
-      }
-    }
-  },
   "hooks": {
     "PostToolUse": [
       {
@@ -36,5 +22,17 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "vercel@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      }
+    }
   }
 }

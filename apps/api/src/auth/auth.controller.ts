@@ -1,4 +1,4 @@
-import { All, Controller, Req, Res } from '@nestjs/common'
+import { All, Controller, Get, Req, Res } from '@nestjs/common'
 import { ApiExcludeController } from '@nestjs/swagger'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { AuthService } from './auth.service.js'
@@ -9,6 +9,12 @@ import { toFetchHeaders } from './fastify-headers.js'
 @ApiExcludeController()
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Get('api/auth/providers')
+  @AllowAnonymous()
+  getEnabledProviders() {
+    return this.authService.enabledProviders
+  }
 
   @All('api/auth/*')
   @AllowAnonymous()

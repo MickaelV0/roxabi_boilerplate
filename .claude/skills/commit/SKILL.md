@@ -48,7 +48,7 @@ Run these checks on staged files before generating a commit message. If any chec
 
 If staged changes span **more than 3 files** and the working directory is NOT a worktree (i.e., the main repo checkout):
 
-> "You're modifying {N} files on `{branch}`. Consider using a worktree (Tier M+)."
+> "You're modifying {N} files on `{branch}`. Consider using a worktree (required for Tier F)."
 
 Present this as a **warning** via `AskUserQuestion` with options to continue or abort. Do NOT block.
 
@@ -115,7 +115,8 @@ Analyze the diff to determine the commit type:
 | `docs` | Documentation only (`.md`, `.mdx`, `SKILL.md`, etc.) |
 | `style` | Formatting, whitespace, linting fixes |
 | `test` | Adding or updating tests |
-| `chore` | Config, dependencies, tooling, CI |
+| `chore` | Config, dependencies, tooling |
+| `ci` | CI/CD pipeline changes |
 | `perf` | Performance improvements |
 
 #### Determine scope
@@ -139,7 +140,7 @@ If files span multiple scopes, pick the dominant one. If truly mixed, omit the s
 Extract issue number from the branch name:
 
 ```bash
-# Branch patterns: feat/42-auth, fix/15-login, feature/42-user-auth
+# Branch patterns: feat/42-auth, fix/15-login, hotfix/42-urgent-fix
 git branch --show-current | grep -oP '\d+' | head -1
 ```
 
@@ -165,7 +166,7 @@ Rules:
 
 ### 4. Commit
 
-**Do NOT ask the user to approve the commit message.** Proceed directly to committing.
+**Present the commit message to the user for approval** before committing.
 
 Execute the commit using HEREDOC format:
 

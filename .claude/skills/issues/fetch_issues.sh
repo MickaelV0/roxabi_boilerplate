@@ -24,12 +24,13 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Single GraphQL query: project items + dependencies (blockedBy/blocking)
+# GraphQL query with pagination support
 QUERY='
-query($projectId: ID!) {
+query($projectId: ID!, $cursor: String) {
   node(id: $projectId) {
     ... on ProjectV2 {
-      items(first: 100) {
+      items(first: 100, after: $cursor) {
+        pageInfo { hasNextPage endCursor }
         nodes {
           content {
             ... on Issue {
@@ -57,7 +58,26 @@ query($projectId: ID!) {
 }
 '
 
-PROJECT_DATA=$(gh api graphql -f query="$QUERY" -f projectId="$PROJECT_ID")
+# Fetch all project items with pagination
+ALL_ITEMS="[]"
+CURSOR=""
+while true; do
+    if [[ -z "$CURSOR" ]]; then
+        PAGE=$(gh api graphql -f query="$QUERY" -f projectId="$PROJECT_ID")
+    else
+        PAGE=$(gh api graphql -f query="$QUERY" -f projectId="$PROJECT_ID" -f cursor="$CURSOR")
+    fi
+    PAGE_ITEMS=$(echo "$PAGE" | jq '.data.node.items.nodes')
+    ALL_ITEMS=$(echo "$ALL_ITEMS $PAGE_ITEMS" | jq -s '.[0] + .[1]')
+    HAS_NEXT=$(echo "$PAGE" | jq -r '.data.node.items.pageInfo.hasNextPage')
+    if [[ "$HAS_NEXT" != "true" ]]; then
+        break
+    fi
+    CURSOR=$(echo "$PAGE" | jq -r '.data.node.items.pageInfo.endCursor')
+done
+
+# Wrap in the structure the rest of the script expects
+PROJECT_DATA=$(echo "$ALL_ITEMS" | jq '{data: {node: {items: {nodes: .}}}}')
 
 if $JSON_OUTPUT; then
     echo "$PROJECT_DATA" | jq '
