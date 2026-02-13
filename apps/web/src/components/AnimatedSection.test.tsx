@@ -1,5 +1,10 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('@repo/ui', () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
+}))
+
 import { AnimatedSection } from './AnimatedSection'
 
 // Mock matchMedia
