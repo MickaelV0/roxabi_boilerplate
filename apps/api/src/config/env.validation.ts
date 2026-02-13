@@ -17,6 +17,18 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default('noreply@yourdomain.com'),
   APP_URL: z.string().url().optional(),
+  // Rate limiting & Upstash Redis
+  UPSTASH_REDIS_REST_URL: z.string().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+  RATE_LIMIT_ENABLED: z.string().default('true'),
+  SWAGGER_ENABLED: z.string().optional(),
+  RATE_LIMIT_GLOBAL_TTL: z.coerce.number().default(60_000),
+  RATE_LIMIT_GLOBAL_LIMIT: z.coerce.number().default(60),
+  RATE_LIMIT_AUTH_TTL: z.coerce.number().default(60_000),
+  RATE_LIMIT_AUTH_LIMIT: z.coerce.number().default(5),
+  RATE_LIMIT_AUTH_BLOCK_DURATION: z.coerce.number().default(300_000),
+  RATE_LIMIT_API_TTL: z.coerce.number().default(60_000),
+  RATE_LIMIT_API_LIMIT: z.coerce.number().default(100),
 })
 
 export type EnvironmentVariables = z.infer<typeof envSchema>
@@ -44,6 +56,13 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
     throw new Error(
       'BETTER_AUTH_SECRET must be set to a secure value in production. ' +
         'Generate one with: openssl rand -base64 32'
+    )
+  }
+
+  if (validatedConfig.NODE_ENV === 'production' && !validatedConfig.UPSTASH_REDIS_REST_URL) {
+    throw new Error(
+      'UPSTASH_REDIS_REST_URL is required in production for distributed rate limiting. ' +
+        'Provision Upstash Redis via Vercel Marketplace or set the URL manually.'
     )
   }
 
