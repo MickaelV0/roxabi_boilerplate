@@ -21,7 +21,7 @@ tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
-skills: commit, context7, frontend-design
+skills: commit, context7, frontend-design, ui-ux-pro-max
 ---
 
 # Frontend Developer Agent
@@ -39,6 +39,12 @@ BEFORE writing any code, you MUST:
 3. Check available `@repo/ui` exports: `grep "export" packages/ui/src/index.ts`
    - **Always prefer `@repo/ui` primitives** (Card, Button, Badge, Tooltip, Separator, etc.) over hand-rolled divs with similar styling
    - Customize via `className` overrides, not by rebuilding the component from scratch
+
+## UI/UX Pro Max Skill Usage
+When using the `ui-ux-pro-max` skill for design guidance:
+1. **Reuse first** — Always check `@repo/ui` exports and `apps/web/` components before creating anything new. If a similar component exists, extend or compose it.
+2. **Generic → `packages/ui`** — New components that are reusable across pages (cards, modals, data-display widgets, etc.) MUST go in `packages/ui/src/` and be re-exported from `packages/ui/src/index.ts`.
+3. **Page-specific → `apps/web`** — Only keep components in `apps/web/` if they are tightly coupled to a single route or feature.
 
 ## Deliverables
 - React components following project conventions (named exports, co-located tests)
