@@ -198,7 +198,7 @@ Is this a code change?
     │   └── Then /review (fresh domain reviewers + 1b1 + fixer)
     │
     └── Tier F-full (new arch, unclear requirements, >2 domains)
-        ├── /bootstrap (idea → spec): product-lead + architect + doc-writer
+        ├── /bootstrap (idea → spec): direct orchestration (architect on-demand)
         ├── /scaffold (spec → PR):
         │   ├── Single-domain → subagents (Task tool)
         │   └── Multi-domain  → Agent Teams (TeamCreate)
