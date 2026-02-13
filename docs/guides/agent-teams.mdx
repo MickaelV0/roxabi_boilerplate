@@ -78,7 +78,7 @@ Is this a code change?
     │   └── Then /review (spawns fresh domain reviewers + 1b1 + fixer)
     │
     └── Tier F-full (new arch, unclear requirements, >2 domains)
-        ├── /bootstrap (idea → spec): product-lead + architect + doc-writer
+        ├── /bootstrap (idea → spec): direct orchestration + expert review (architect, doc-writer, devops, product-lead — configurable)
         ├── /scaffold (spec → PR):
         │   ├── Single-domain → subagents (Task tool)
         │   └── Multi-domain  → Agent Teams (TeamCreate)
@@ -170,7 +170,7 @@ Once all tasks are complete, review the deliverables and create the PR.
 |-------|-------|--------|-----------|
 | **frontend-dev** | cyan | `apps/web/`, `packages/ui/` | [Frontend Patterns](../standards/frontend-patterns) |
 | **backend-dev** | green | `apps/api/`, `packages/types/` | [Backend Patterns](../standards/backend-patterns) |
-| **infra-ops** | yellow | `packages/config/`, root configs | [Configuration](../../configuration) |
+| **devops** | yellow | `packages/config/`, root configs | [Configuration](../../configuration) |
 
 ### Quality Agents (verification and fixing)
 
@@ -200,7 +200,7 @@ Controls what the agent can do without user approval.
 
 | Mode | Meaning | Used by |
 |------|---------|---------|
-| `bypassPermissions` | Agent can execute all its tools freely — appropriate for agents that write code or fix issues | frontend-dev, backend-dev, infra-ops, tester, doc-writer, product-lead, architect, fixer |
+| `bypassPermissions` | Agent can execute all its tools freely — appropriate for agents that write code or fix issues | frontend-dev, backend-dev, devops, tester, doc-writer, product-lead, architect, fixer |
 | `plan` | Agent can only read and analyze — it proposes changes but cannot execute them | security-auditor |
 
 ### `maxTurns`
@@ -225,7 +225,7 @@ Each agent has a core skill preloaded, matching its primary function:
 | Agent | Skill | Purpose |
 |-------|-------|---------|
 | frontend-dev | `commit`, `context7`, `frontend-design` | Conventional Commits + library docs + UI design |
-| backend-dev, infra-ops | `commit`, `context7` | Conventional Commits + library docs |
+| backend-dev, devops | `commit`, `context7` | Conventional Commits + library docs |
 | doc-writer | `commit`, `context7` | Conventional Commits + library docs |
 | fixer | `commit`, `context7` | Fix accepted review comments + commit |
 | tester | `test`, `context7` | Test generation + library docs |
@@ -256,7 +256,7 @@ Review is performed by **fresh agent instances** — not the agents that wrote t
    |----------------|----------------------|
    | security-auditor | frontend-dev (if FE files changed) |
    | architect | backend-dev (if BE files changed) |
-   | product-lead | infra-ops (if config files changed) |
+   | product-lead | devops (if config files changed) |
    | tester | |
 
 3. Each agent reviews the diff from its area of expertise, producing Conventional Comments
@@ -433,16 +433,16 @@ Merge
 
 ```bash
 /bootstrap
-# Spawns: product-lead, architect, doc-writer
-# Product-lead interacts with human to write analysis + spec
-# Architect provides technical analysis if needed
-# Human approves spec before proceeding
+# Direct orchestration — bootstrap drives interviews and writes docs
+# Expert reviewers (architect, doc-writer, devops, product-lead) review at each gate
+# User selects which experts to involve per document
+# Human approves analysis and spec before proceeding
 ```
 
 **Phase 2 — Implementation (test-first):**
 
 ```bash
-/teammates add architect frontend-dev backend-dev infra-ops tester doc-writer
+/teammates add architect frontend-dev backend-dev devops tester doc-writer
 # Add security-auditor if security-sensitive
 ```
 
@@ -488,7 +488,7 @@ Human approves merge
 ```
 
 **As the lead, you:**
-1. Run `/bootstrap` — product-lead gathers requirements, architect designs, doc-writer drafts spec
+1. Run `/bootstrap` — orchestrator interviews the human, writes analysis + spec, spawns expert reviewers (architect, doc-writer, devops, product-lead as selected)
 2. Human approves the spec
 3. tester writes failing tests from spec
 4. Domain agents implement in parallel (each in their own packages) to pass tests
@@ -533,7 +533,7 @@ Recommended model-per-role mapping for cost optimization. **Not applied yet** �
 | Tier | Model | Agents | Rationale |
 |------|-------|--------|-----------|
 | **Heavy** | Opus | product-lead, architect | Complex analysis, planning, product decisions |
-| **Standard** | Sonnet | frontend-dev, backend-dev, infra-ops, tester, doc-writer | Implementation, testing, documentation |
+| **Standard** | Sonnet | frontend-dev, backend-dev, devops, tester, doc-writer | Implementation, testing, documentation |
 | **Standard** | Sonnet | fixer | Cross-stack fixes on identified issues |
 | **Light** | Haiku | security-auditor | Read-only analysis, checklist verification |
 

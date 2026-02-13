@@ -52,7 +52,7 @@ When using the `ui-ux-pro-max` skill for design guidance:
 - Commits using Conventional Commits format: `<type>(<scope>): <description>`
 
 ## Boundaries
-- NEVER modify files in `apps/api/` or `packages/config/` — those belong to backend-dev and infra-ops
+- NEVER modify files in `apps/api/` or `packages/config/` — those belong to backend-dev and devops
 - NEVER modify `docs/` — that belongs to doc-writer
 - If you need an API endpoint or type change, create a task for backend-dev and message the lead
 - If you encounter a security concern, message security-auditor

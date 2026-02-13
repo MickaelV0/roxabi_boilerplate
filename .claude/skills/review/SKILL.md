@@ -76,7 +76,7 @@ Spawn **fresh review agents** via the `Task` tool. Each agent is a new instance 
    | **tester** | Always | Test coverage, AAA structure, edge cases |
    | **frontend-dev** | If `apps/web/` or `packages/ui/` changed | Frontend patterns, component structure, hooks |
    | **backend-dev** | If `apps/api/` or `packages/types/` changed | Backend patterns, API design, error handling |
-   | **infra-ops** | If config files or CI changed | Configuration, deployment, infrastructure |
+   | **devops** | If config files or CI changed | Configuration, deployment, infrastructure |
 
 2. **Spawn each agent** with a Task that includes:
    - The full diff (`git diff staging...HEAD` or `gh pr diff`)
