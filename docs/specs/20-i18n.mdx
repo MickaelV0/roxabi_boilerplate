@@ -5,67 +5,65 @@ description: "Specification for multi-language support in the Roxabi boilerplate
 
 > **Deprecated**: This document is outdated and kept for historical reference only. Please refer to the main documentation sections for current information.
 
-# i18n (Internationalization)
+## Context
 
-## Contexte
+i18n is listed as a core feature in the Phase 1 MVP of the boilerplate. The goal is to provide a solid infrastructure for supporting multiple languages in SaaS applications built with Roxabi.
 
-L'i18n est listé comme feature core dans la Phase 1 MVP du boilerplate. L'objectif est de fournir une infrastructure solide pour supporter plusieurs langues dans les applications SaaS construites avec Roxabi.
+## Objective
 
-## Objectif
+Implement a comprehensive internationalization system that enables:
+- Translating all UI strings
+- Detecting and persisting language preference
+- Formatting dates, numbers, and currencies according to locale
+- Full SSR support with no content flash
 
-Implémenter un système d'internationalisation complet permettant:
-- Traduire toutes les chaînes UI
-- Détecter et persister la préférence de langue
-- Formater dates, nombres et devises selon la locale
-- Support SSR complet sans flash de contenu
+## Users and Use Cases
 
-## Utilisateurs & Cas d'usage
+### Users
+- **Developers** using the boilerplate to build SaaS products
+- **End users** of applications built with Roxabi
 
-### Utilisateurs
-- **Développeurs** utilisant le boilerplate pour créer des SaaS
-- **Utilisateurs finaux** des applications construites avec Roxabi
+### Use Cases
+1. A visitor arrives on the site, their language is detected automatically (browser)
+2. The user changes language via a switcher
+3. The preference is persisted (cookie for anonymous users, profile for authenticated users)
+4. All UI strings, dates, and numbers are displayed in the correct locale
 
-### Cas d'usage
-1. Un visiteur arrive sur le site, sa langue est détectée automatiquement (browser)
-2. L'utilisateur change de langue via un switcher
-3. La préférence est persistée (cookie pour anonymes, profil pour connectés)
-4. Toutes les chaînes UI, dates et nombres s'affichent dans la bonne locale
+## Technical Decisions
 
-## Décisions techniques
+### Chosen Stack
 
-### Stack choisie
+| Aspect | Choice | Justification |
+|--------|--------|---------------|
+| Library | **i18next** + react-i18next | Mature ecosystem, excellent SSR support, large community |
+| File format | **JSON namespaces** | Lazy loading per route, clear organization, good splitting |
+| Plurals | **i18next standard** | Sufficient for EN/FR, simple syntax |
+| Formatting | **Native Intl API** | Standard, lightweight, no external dependency |
+| SSR | **Full SSR** | Zero flash, better SEO, optimal UX |
 
-| Aspect | Choix | Justification |
-|--------|-------|---------------|
-| Librairie | **i18next** + react-i18next | Écosystème mature, excellent support SSR, grande communauté |
-| Format fichiers | **JSON namespaces** | Lazy loading par route, organisation claire, bon splitting |
-| Pluriels | **i18next standard** | Suffisant pour EN/FR, syntaxe simple |
-| Formatage | **Intl API native** | Standard, léger, pas de dépendance externe |
-| SSR | **Full SSR** | 0 flash, meilleur SEO, UX optimale |
-
-### Détection de langue
+### Language Detection
 
 ```
 1. URL path (/fr/..., /en/...)
-2. Cookie (si déjà défini)
+2. Cookie (if already set)
 3. Accept-Language header (browser)
 4. Fallback: English
 ```
 
-### Persistance
+### Persistence
 
-| Utilisateur | Stockage |
-|-------------|----------|
-| Anonyme | Cookie `locale` (1 an) |
-| Connecté | Champ `locale` dans user profile + cookie sync |
+| User | Storage |
+|------|---------|
+| Anonymous | `locale` cookie (1 year) |
+| Authenticated | `locale` field in user profile + cookie sync |
 
-### Structure des fichiers
+### File Structure
 
 ```
 apps/web/
 ├── locales/
 │   ├── en/
-│   │   ├── common.json      # Chaînes partagées (buttons, errors...)
+│   │   ├── common.json      # Shared strings (buttons, errors...)
 │   │   ├── auth.json        # Login, register, password...
 │   │   ├── dashboard.json   # Dashboard specific
 │   │   └── settings.json    # Settings page
@@ -76,7 +74,7 @@ apps/web/
 │       └── settings.json
 ├── lib/
 │   └── i18n/
-│       ├── index.ts         # Configuration i18next
+│       ├── index.ts         # i18next configuration
 │       ├── server.ts        # SSR utilities
 │       ├── client.ts        # Client initialization
 │       └── types.ts         # TypeScript types
@@ -84,7 +82,7 @@ apps/web/
     └── LanguageSwitcher.tsx # Hook + minimal UI example
 ```
 
-### Format des traductions
+### Translation Format
 
 ```json
 // locales/en/common.json
@@ -103,13 +101,13 @@ apps/web/
 }
 ```
 
-### Intégration TanStack Start
+### TanStack Start Integration
 
 ```tsx
-// Route avec SSR i18n
+// Route with SSR i18n
 export const Route = createFileRoute('/dashboard')({
   loader: async ({ context }) => {
-    // Charger namespace dashboard côté serveur
+    // Load dashboard namespace on the server
     await context.i18n.loadNamespaces(['dashboard'])
     return { /* data */ }
   },
@@ -117,66 +115,66 @@ export const Route = createFileRoute('/dashboard')({
 })
 ```
 
-## Comportement attendu
+## Expected Behavior
 
-### Happy path
+### Happy Path
 
-1. Requête arrive sur `/fr/dashboard`
-2. Serveur détecte locale `fr` depuis URL
-3. Charge les namespaces requis (`common`, `dashboard`)
-4. Rend le HTML avec traductions FR
-5. Client hydrate avec même état i18n
-6. Aucun flash, SEO optimal
+1. Request arrives at `/fr/dashboard`
+2. Server detects locale `fr` from the URL
+3. Loads the required namespaces (`common`, `dashboard`)
+4. Renders HTML with FR translations
+5. Client hydrates with the same i18n state
+6. No flash, optimal SEO
 
-### Edge cases
+### Edge Cases
 
-| Cas | Comportement |
-|-----|--------------|
-| Locale inconnue dans URL | Redirect vers locale par défaut (EN) |
-| Clé de traduction manquante | Affiche `[missing: key.name]` en dev, fallback EN en prod |
-| Changement de langue | Update cookie + reload page (pour SSR correct) |
-| User connecté change langue | Update profil DB + cookie + reload |
+| Case | Behavior |
+|------|----------|
+| Unknown locale in URL | Redirect to default locale (EN) |
+| Missing translation key | Displays `[missing: key.name]` in dev, falls back to EN in prod |
+| Language change | Update cookie + reload page (for correct SSR) |
+| Authenticated user changes language | Update DB profile + cookie + reload |
 
-## Contraintes
+## Constraints
 
-### Techniques
-- TanStack Start avec SSR (Vinxi)
+### Technical
+- TanStack Start with SSR (Vinxi)
 - Bun runtime
-- Pas de RTL pour v1
+- No RTL for v1
 
 ### Scope v1
-- Langues: English (default), French
-- UI strings seulement (pas de contenu DB)
-- Pas de workflow traducteurs externes
+- Languages: English (default), French
+- UI strings only (no DB content)
+- No external translator workflow
 
-## Non-goals
+## Non-Goals
 
-- Support RTL (arabe, hébreu)
-- Traduction du contenu DB
-- Intégration plateformes de traduction (Crowdin, Lokalise)
-- Support de &gt;2 langues dans v1
+- RTL support (Arabic, Hebrew)
+- Database content translation
+- Translation platform integration (Crowdin, Lokalise)
+- Support for &gt;2 languages in v1
 
 ## DX (Developer Experience)
 
-### Clés manquantes en développement
+### Missing Keys in Development
 
 ```tsx
-// En mode dev, affiche:
-// - Warning console: "Missing translation key: dashboard.welcome"
-// - Visual: [missing: dashboard.welcome] dans l'UI
+// In dev mode, displays:
+// - Console warning: "Missing translation key: dashboard.welcome"
+// - Visual: [missing: dashboard.welcome] in the UI
 ```
 
-### Script de validation CI
+### CI Validation Script
 
 ```bash
 # scripts/validate-translations.ts
-# Vérifie que toutes les locales ont les mêmes clés
+# Verifies that all locales have the same keys
 bun run scripts/validate-translations.ts
 ```
 
-Intégré dans le CI pour bloquer les PR avec clés manquantes.
+Integrated into CI to block PRs with missing keys.
 
-### Helpers de formatage
+### Formatting Helpers
 
 ```tsx
 import { useLocale } from '@/lib/i18n'
@@ -194,25 +192,25 @@ function PriceDisplay({ amount }: { amount: number }) {
 }
 ```
 
-## Critères de succès
+## Success Criteria
 
-- [ ] i18next configuré avec SSR complet (0 flash)
-- [ ] Détection automatique de langue (URL > cookie > browser > EN)
-- [ ] Persistance cookie + user profile
-- [ ] Structure namespaces avec lazy loading
-- [ ] Hook `useTranslation` fonctionnel
-- [ ] Hook `useLocale` avec formatters (date, number, currency)
-- [ ] Composant LanguageSwitcher minimal
-- [ ] Script CI de validation des clés
-- [ ] Documentation du workflow de traduction
-- [ ] Tests unitaires pour la logique i18n
+- [ ] i18next configured with full SSR (zero flash)
+- [ ] Automatic language detection (URL > cookie > browser > EN)
+- [ ] Cookie + user profile persistence
+- [ ] Namespace structure with lazy loading
+- [ ] Working `useTranslation` hook
+- [ ] `useLocale` hook with formatters (date, number, currency)
+- [ ] Minimal LanguageSwitcher component
+- [ ] CI key validation script
+- [ ] Translation workflow documentation
+- [ ] Unit tests for i18n logic
 
-## Questions ouvertes
+## Open Questions
 
-- Faut-il précharger tous les namespaces ou lazy load par route ? (À valider avec benchmarks)
-- Format exact des URLs: `/fr/dashboard` vs `/dashboard?lang=fr` (pencher pour path-based pour SEO)
+- Should all namespaces be preloaded or lazy loaded per route? (To be validated with benchmarks)
+- Exact URL format: `/fr/dashboard` vs `/dashboard?lang=fr` (leaning toward path-based for SEO)
 
-## Références
+## References
 
 - [i18next documentation](https://www.i18next.com/)
 - [react-i18next](https://react.i18next.com/)
