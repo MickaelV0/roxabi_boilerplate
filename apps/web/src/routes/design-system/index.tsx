@@ -40,6 +40,7 @@ import {
 } from '@repo/ui'
 import { createFileRoute } from '@tanstack/react-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { m } from '@/paraglide/messages'
 
 import { ComponentShowcase } from './-components/ComponentShowcase'
 import { AuthForms } from './-components/compositions/AuthForms'
@@ -50,7 +51,7 @@ import { ThemeEditor } from './-components/ThemeEditor'
 export const Route = createFileRoute('/design-system/')({
   component: DesignSystemPage,
   head: () => ({
-    meta: [{ title: 'Design System | Roxabi' }],
+    meta: [{ title: `${m.ds_title()} | Roxabi` }],
   }),
 })
 
@@ -60,15 +61,7 @@ export const Route = createFileRoute('/design-system/')({
 
 const STORAGE_KEY = 'roxabi-theme'
 
-const TABS = [
-  { id: 'colors', label: 'Colors' },
-  { id: 'typography', label: 'Typography' },
-  { id: 'spacing', label: 'Spacing & Radius' },
-  { id: 'components', label: 'Components' },
-  { id: 'compositions', label: 'Compositions' },
-] as const
-
-type TabId = (typeof TABS)[number]['id']
+type TabId = 'colors' | 'typography' | 'spacing' | 'components' | 'compositions'
 
 const SEED_COLOR_KEYS = [
   'primary',
@@ -153,6 +146,14 @@ function findColor(name: string | null): ShadcnPreset | null {
 }
 
 function DesignSystemPage() {
+  const TABS: { id: TabId; label: string }[] = [
+    { id: 'colors', label: m.ds_tab_colors() },
+    { id: 'typography', label: m.ds_tab_typography() },
+    { id: 'spacing', label: m.ds_tab_spacing() },
+    { id: 'components', label: m.ds_tab_components() },
+    { id: 'compositions', label: m.ds_tab_compositions() },
+  ]
+
   const [activeTab, setActiveTab] = useState<TabId>('colors')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [themeConfig, setThemeConfig] = useState<ThemeConfig>(ZINC_CONFIG)
@@ -330,16 +331,14 @@ function DesignSystemPage() {
       >
         {/* Page header */}
         <div className="mb-12 text-center">
-          <h1 className="text-4xl font-bold tracking-tight">Design System</h1>
-          <p className="mt-3 text-lg text-muted-foreground">
-            Interactive component playground &amp; theme customization.
-          </p>
+          <h1 className="text-4xl font-bold tracking-tight">{m.ds_title()}</h1>
+          <p className="mt-3 text-lg text-muted-foreground">{m.ds_subtitle()}</p>
         </div>
 
         {/* Tab navigation */}
         <div
           role="tablist"
-          aria-label="Design system sections"
+          aria-label={m.ds_sections_label()}
           className="mb-8 flex flex-wrap gap-1 rounded-lg border border-border bg-muted/50 p-1"
         >
           {TABS.map((tab) => (
@@ -430,10 +429,8 @@ function DesignSystemPage() {
 function ColorsSection({ config }: { config: ThemeConfig }) {
   return (
     <section>
-      <h2 className="mb-2 text-2xl font-semibold">Seed Colors</h2>
-      <p className="mb-6 text-muted-foreground">
-        The 8 semantic color tokens that seed the entire theme. Each value is in OKLch color space.
-      </p>
+      <h2 className="mb-2 text-2xl font-semibold">{m.ds_colors_title()}</h2>
+      <p className="mb-6 text-muted-foreground">{m.ds_colors_desc()}</p>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {SEED_COLOR_KEYS.map((key) => {
@@ -464,11 +461,8 @@ function ColorsSection({ config }: { config: ThemeConfig }) {
       </div>
 
       {/* Derived variable preview */}
-      <h3 className="mb-3 mt-10 text-xl font-semibold">Derived Variables</h3>
-      <p className="mb-4 text-sm text-muted-foreground">
-        These CSS custom properties are derived from the seed colors above and applied as Tailwind
-        utility classes.
-      </p>
+      <h3 className="mb-3 mt-10 text-xl font-semibold">{m.ds_colors_derived_title()}</h3>
+      <p className="mb-4 text-sm text-muted-foreground">{m.ds_colors_derived_desc()}</p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { name: 'bg-primary', className: 'bg-primary' },
@@ -497,25 +491,23 @@ function ColorsSection({ config }: { config: ThemeConfig }) {
 function TypographySection({ config }: { config: ThemeConfig }) {
   return (
     <section>
-      <h2 className="mb-2 text-2xl font-semibold">Typography</h2>
-      <p className="mb-6 text-muted-foreground">Font family, size scale, and heading hierarchy.</p>
+      <h2 className="mb-2 text-2xl font-semibold">{m.ds_typography_title()}</h2>
+      <p className="mb-6 text-muted-foreground">{m.ds_typography_desc()}</p>
 
       {/* Current font info */}
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle className="text-base">Current Font</CardTitle>
-          <CardDescription>
-            Active typography settings from the theme configuration.
-          </CardDescription>
+          <CardTitle className="text-base">{m.ds_typography_current()}</CardTitle>
+          <CardDescription>{m.ds_typography_current_desc()}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label className="text-xs text-muted-foreground">Font Family</Label>
+              <Label className="text-xs text-muted-foreground">{m.ds_typography_family()}</Label>
               <p className="mt-1 font-mono text-sm">{config.typography.fontFamily}</p>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Base Font Size</Label>
+              <Label className="text-xs text-muted-foreground">{m.ds_typography_base_size()}</Label>
               <p className="mt-1 font-mono text-sm">{config.typography.baseFontSize}</p>
             </div>
           </div>
@@ -523,7 +515,7 @@ function TypographySection({ config }: { config: ThemeConfig }) {
       </Card>
 
       {/* Size scale */}
-      <h3 className="mb-4 text-xl font-semibold">Size Scale</h3>
+      <h3 className="mb-4 text-xl font-semibold">{m.ds_typography_size_scale()}</h3>
       <div className="space-y-3">
         {FONT_SIZES.map((size) => (
           <div
@@ -532,13 +524,13 @@ function TypographySection({ config }: { config: ThemeConfig }) {
           >
             <code className="w-16 shrink-0 text-xs text-muted-foreground">{size.label}</code>
             <code className="w-12 shrink-0 text-xs text-muted-foreground">{size.px}</code>
-            <span className={size.class}>The quick brown fox jumps over the lazy dog.</span>
+            <span className={size.class}>{m.ds_typography_sample()}</span>
           </div>
         ))}
       </div>
 
       {/* Headings */}
-      <h3 className="mb-4 mt-10 text-xl font-semibold">Heading Hierarchy</h3>
+      <h3 className="mb-4 mt-10 text-xl font-semibold">{m.ds_typography_headings()}</h3>
       <div className="space-y-4">
         {HEADING_EXAMPLES.map((heading) => (
           <div key={heading.level} className="flex items-baseline gap-4">
@@ -549,17 +541,12 @@ function TypographySection({ config }: { config: ThemeConfig }) {
       </div>
 
       {/* Paragraph & prose */}
-      <h3 className="mb-4 mt-10 text-xl font-semibold">Body Text</h3>
+      <h3 className="mb-4 mt-10 text-xl font-semibold">{m.ds_typography_body()}</h3>
       <Card>
         <CardContent className="pt-6">
-          <p className="text-base leading-7">
-            This is a paragraph of body text demonstrating the default reading experience. Good
-            typography creates a visual hierarchy that guides users through content. The line
-            height, letter spacing, and font weight all contribute to readability.
-          </p>
+          <p className="text-base leading-7">{m.ds_typography_body_primary()}</p>
           <p className="mt-4 text-sm text-muted-foreground leading-6">
-            This is a secondary paragraph using muted foreground for supplementary information. It
-            uses a smaller font size and reduced visual weight compared to the primary text above.
+            {m.ds_typography_body_secondary()}
           </p>
         </CardContent>
       </Card>
@@ -581,14 +568,11 @@ function SpacingSection({ config }: { config: ThemeConfig }) {
 
   return (
     <section>
-      <h2 className="mb-2 text-2xl font-semibold">Spacing &amp; Radius</h2>
-      <p className="mb-6 text-muted-foreground">
-        Border radius scale derived from the base radius value. Current base:{' '}
-        <code className="font-mono">{config.radius}</code>.
-      </p>
+      <h2 className="mb-2 text-2xl font-semibold">{m.ds_spacing_title()}</h2>
+      <p className="mb-6 text-muted-foreground">{m.ds_spacing_desc({ radius: config.radius })}</p>
 
       {/* Radius scale */}
-      <h3 className="mb-4 text-xl font-semibold">Border Radius Scale</h3>
+      <h3 className="mb-4 text-xl font-semibold">{m.ds_spacing_radius_title()}</h3>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {radiusSizes.map((size) => (
           <Card key={size.label}>
@@ -607,11 +591,11 @@ function SpacingSection({ config }: { config: ThemeConfig }) {
       </div>
 
       {/* Applied examples */}
-      <h3 className="mb-4 mt-10 text-xl font-semibold">Applied Examples</h3>
+      <h3 className="mb-4 mt-10 text-xl font-semibold">{m.ds_spacing_applied()}</h3>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardContent className="pt-6">
-            <p className="mb-3 text-sm font-medium">Button Radius</p>
+            <p className="mb-3 text-sm font-medium">{m.ds_spacing_button_radius()}</p>
             <div className="flex gap-2">
               <Button size="sm">Small</Button>
               <Button>Default</Button>
@@ -621,13 +605,13 @@ function SpacingSection({ config }: { config: ThemeConfig }) {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="mb-3 text-sm font-medium">Input Radius</p>
+            <p className="mb-3 text-sm font-medium">{m.ds_spacing_input_radius()}</p>
             <Input placeholder="Text input..." />
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="mb-3 text-sm font-medium">Badge Radius</p>
+            <p className="mb-3 text-sm font-medium">{m.ds_spacing_badge_radius()}</p>
             <div className="flex flex-wrap gap-2">
               <Badge>Default</Badge>
               <Badge variant="secondary">Secondary</Badge>
@@ -638,10 +622,8 @@ function SpacingSection({ config }: { config: ThemeConfig }) {
       </div>
 
       {/* Spacing scale reference */}
-      <h3 className="mb-4 mt-10 text-xl font-semibold">Spacing Scale</h3>
-      <p className="mb-4 text-sm text-muted-foreground">
-        Tailwind spacing utilities used throughout the design system.
-      </p>
+      <h3 className="mb-4 mt-10 text-xl font-semibold">{m.ds_spacing_scale_title()}</h3>
+      <p className="mb-4 text-sm text-muted-foreground">{m.ds_spacing_scale_desc()}</p>
       <div className="space-y-2">
         {[
           { label: '1', px: '4px' },
@@ -673,11 +655,8 @@ function SpacingSection({ config }: { config: ThemeConfig }) {
 function ComponentsSection() {
   return (
     <section>
-      <h2 className="mb-2 text-2xl font-semibold">Components</h2>
-      <p className="mb-8 text-muted-foreground">
-        Interactive previews of @repo/ui components. Adjust props using the controls below each
-        component.
-      </p>
+      <h2 className="mb-2 text-2xl font-semibold">{m.ds_components_title()}</h2>
+      <p className="mb-8 text-muted-foreground">{m.ds_components_desc()}</p>
 
       <div className="space-y-10">
         {/* Button */}
@@ -923,29 +902,26 @@ function ComponentsSection() {
 function CompositionsSection() {
   return (
     <section>
-      <h2 className="mb-2 text-2xl font-semibold">Compositions</h2>
-      <p className="mb-8 text-muted-foreground">
-        Real-world UI patterns assembled from @repo/ui components. Copy these patterns as starting
-        points for your features.
-      </p>
+      <h2 className="mb-2 text-2xl font-semibold">{m.ds_compositions_title()}</h2>
+      <p className="mb-8 text-muted-foreground">{m.ds_compositions_desc()}</p>
 
       <div className="space-y-12">
         <div>
-          <h3 className="mb-4 text-xl font-semibold">Authentication Forms</h3>
+          <h3 className="mb-4 text-xl font-semibold">{m.ds_compositions_auth()}</h3>
           <AuthForms />
         </div>
 
         <Separator />
 
         <div>
-          <h3 className="mb-4 text-xl font-semibold">Data Display</h3>
+          <h3 className="mb-4 text-xl font-semibold">{m.ds_compositions_data()}</h3>
           <DataDisplay />
         </div>
 
         <Separator />
 
         <div>
-          <h3 className="mb-4 text-xl font-semibold">Feedback Patterns</h3>
+          <h3 className="mb-4 text-xl font-semibold">{m.ds_compositions_feedback()}</h3>
           <FeedbackPatterns />
         </div>
       </div>
