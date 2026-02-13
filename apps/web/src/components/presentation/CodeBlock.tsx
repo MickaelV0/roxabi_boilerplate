@@ -1,56 +1,44 @@
 import { cn, useInView } from '@repo/ui'
 import { useEffect, useState } from 'react'
+import { type BundledLanguage, codeToHtml } from 'shiki'
 
 type CodeBlockProps = {
   children: string
+  language?: BundledLanguage
   typing?: boolean
   className?: string
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
-
-function highlightBash(code: string): string {
-  return code
-    .split('\n')
-    .map((rawLine) => {
-      const line = escapeHtml(rawLine)
-
-      // Comments
-      if (line.trimStart().startsWith('#')) {
-        return `<span class="text-muted-foreground/70 italic">${line}</span>`
-      }
-
-      let result = line
-
-      // Keywords: alias, export
-      result = result.replace(
-        /\b(alias|export|function|if|then|fi|else|do|done|for|while)\b/g,
-        '<span class="text-chart-1">$1</span>'
-      )
-
-      // Strings in single quotes
-      result = result.replace(/'([^']*)'/g, '\'<span class="text-chart-2">$1</span>\'')
-
-      // Variable assignments (word before =)
-      result = result.replace(
-        /^(\s*)(\w+)(=)/gm,
-        '$1<span class="text-foreground">$2</span><span class="text-muted-foreground">$3</span>'
-      )
-
-      return result
-    })
-    .join('\n')
-}
-
-export function CodeBlock({ children, typing = false, className }: CodeBlockProps) {
+export function CodeBlock({
+  children,
+  language = 'bash',
+  typing = false,
+  className,
+}: CodeBlockProps) {
   const { ref, inView } = useInView({ threshold: 0.2, triggerOnce: true })
   const [typingComplete, setTypingComplete] = useState(!typing)
+  const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null)
+
+  // Load Shiki-highlighted HTML
+  useEffect(() => {
+    let cancelled = false
+
+    codeToHtml(children, {
+      lang: language,
+      themes: {
+        light: 'github-light',
+        dark: 'github-dark',
+      },
+    }).then((html) => {
+      if (!cancelled) {
+        setHighlightedHtml(html)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [children, language])
 
   // Start typing animation timer when visible
   useEffect(() => {
@@ -60,8 +48,6 @@ export function CodeBlock({ children, typing = false, className }: CodeBlockProp
     const timer = setTimeout(() => setTypingComplete(true), duration)
     return () => clearTimeout(timer)
   }, [inView, typing, typingComplete, children])
-
-  const highlighted = highlightBash(children)
 
   return (
     <div
@@ -79,15 +65,25 @@ export function CodeBlock({ children, typing = false, className }: CodeBlockProp
       </div>
 
       <div className="overflow-x-auto p-5">
-        <pre
-          className={cn(
-            'font-mono text-sm leading-relaxed text-foreground/90',
-            typing && inView && !typingComplete && 'animate-typing-reveal'
-          )}
-        >
-          {/* biome-ignore lint/security/noDangerouslySetInnerHtml: content is hardcoded presentation strings, not user input */}
-          <code dangerouslySetInnerHTML={{ __html: highlighted }} />
-        </pre>
+        {highlightedHtml ? (
+          <div
+            className={cn(
+              'font-mono text-sm leading-relaxed [&_pre]:!bg-transparent [&_code]:!bg-transparent',
+              typing && inView && !typingComplete && 'animate-typing-reveal'
+            )}
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: Shiki generates trusted HTML from hardcoded presentation code
+            dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+          />
+        ) : (
+          <pre
+            className={cn(
+              'font-mono text-sm leading-relaxed text-foreground/90',
+              typing && inView && !typingComplete && 'animate-typing-reveal'
+            )}
+          >
+            <code>{children}</code>
+          </pre>
+        )}
       </div>
     </div>
   )
