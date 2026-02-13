@@ -26,6 +26,7 @@
     "114-staging-environment-preview-deploys",
     "130-dev-process-overhaul",
     "132-ci-db-migrations",
-    "presentation-claude-code"
+    "presentation-claude-code",
+    "53-rate-limiting-api-security"
   ]
 }

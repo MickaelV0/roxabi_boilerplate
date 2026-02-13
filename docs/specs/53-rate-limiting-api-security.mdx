@@ -1,0 +1,173 @@
+---
+title: "Rate Limiting & API Security"
+description: Technical specification for adding rate limiting with Upstash Redis to the NestJS/Fastify API
+---
+
+## Context
+
+Production APIs need protection against brute force attacks, abuse, and resource exhaustion. The Roxabi API runs on NestJS + Fastify and deploys to Vercel as serverless functions — in-memory rate limiting resets per invocation and cannot track request rates across instances.
+
+**Promoted from:** [Rate Limiting &amp; API Security Analysis](../analyses/53-rate-limiting-api-security)
+
+**Already in place:**
+- `@fastify/helmet` v13 is installed and configured with CSP, HSTS, frameguard, and referrer policy (`apps/api/src/index.ts`)
+- Request body limit is set to 1 MB via Fastify's `bodyLimit` option (`apps/api/src/index.ts`)
+- Health endpoint at `GET /health` with `@AllowAnonymous()` bypass (`apps/api/src/app.controller.ts`)
+
+**What this spec adds:** Application-level rate limiting via `@nestjs/throttler` backed by Upstash Redis.
+
+**Depends on:** [#19 Auth + Users](https://github.com/AikidoSec/roxabi_boilerplate/issues/19) (for user-based identification in the hybrid strategy).
+
+## Goal
+
+Ship always-on, distributed rate limiting with configurable tiers so that the API is protected against brute force and abuse from day one — without requiring consumers to opt in or configure anything beyond adjusting limits.
+
+## Users &amp; Use Cases
+
+| Actor | Interaction |
+|-------|-------------|
+| **End user** | Transparent — never sees rate limiting unless abusing. Gets `429` with `Retry-After` header if limits are hit. |
+| **Attacker / bot** | Blocked after exceeding tier threshold. Auth endpoints have aggressive limits to prevent credential stuffing. |
+| **SaaS consumer (developer)** | Adjusts rate limits via env vars. No code changes needed. Can exempt custom endpoints with `@SkipThrottle()`. |
+| **Monitoring / infra** | Health and readiness endpoints are exempt. Rate limit headers on all responses enable observability dashboards. |
+
+## Expected Behavior
+
+### Happy path
+
+1. API starts → `ThrottlerModule` registers with Upstash Redis storage and three named throttler configs (global, auth, public-api).
+2. Every incoming request passes through `CustomThrottlerGuard` (registered as `APP_GUARD`).
+3. Guard determines tracker key:
+   - If request has authenticated user → key = `user:{userId}`
+   - Otherwise → key = `ip:{clientIp}` (from `x-forwarded-for`)
+4. Guard checks the appropriate throttler tier:
+   - Auth endpoints (decorated with `@Throttle({ auth: { limit, ttl } })`) → auth tier
+   - Default → global tier
+5. If under limit: request proceeds. Response includes `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` headers.
+6. If over limit: `ThrottlerException` is thrown → `ThrottlerExceptionFilter` catches it and returns:
+   ```
+   HTTP 429
+   Retry-After: &lt;seconds&gt;
+   X-RateLimit-Limit: &lt;limit&gt;
+   X-RateLimit-Remaining: 0
+   X-RateLimit-Reset: &lt;unix-timestamp&gt;
+   ```
+   Body follows the existing error format with `errorCode: "RATE_LIMIT_EXCEEDED"`.
+
+### Edge cases
+
+| Scenario | Behavior |
+|----------|----------|
+| **Redis unavailable** | Fail open — allow the request, log a warning. Availability over protection. |
+| **Missing `x-forwarded-for`** | Fall back to socket remote address (`request.ip`). |
+| **`@SkipThrottle()` endpoint** | Bypasses all throttler checks (used on `/health`). |
+| **Authenticated user on auth endpoint** | Uses user ID as tracker (not IP), preventing shared-IP false positives on login retry. |
+| **Multiple throttler tiers match** | `@nestjs/throttler` evaluates all named throttlers. The most restrictive (lowest remaining) applies. |
+| **Clock skew in `X-RateLimit-Reset`** | Use server-side UTC timestamp. Redis TTL is authoritative. |
+
+## Constraints
+
+- **Serverless deployment**: No persistent in-memory state between invocations. All rate limit state must live in Redis.
+- **Upstash free tier**: 10,000 commands/day. Sufficient for development; production needs a paid plan (~$0.2/100K commands).
+- **Cold start latency**: Redis lookup adds ~1-5ms per request. Acceptable for API calls.
+- **Dependency on #19**: User-based identification requires the auth system to populate the request context with user info. IP-based limiting works independently.
+
+## Non-goals
+
+- **WAF / DDoS protection** — Network-level protection is handled by Vercel/Cloudflare, not application code.
+- **RFC 7807 Problem Details** — The existing error format is consistent and sufficient. Migration is a separate concern.
+- **API key issuance and management** — The public API tier config is stubbed but API keys are a separate feature.
+- **Per-endpoint custom limits UI** — Consumers configure via env vars or decorators, no admin UI.
+- **Helmet or body limit changes** — Already implemented and configured.
+
+## Technical Decisions
+
+### 1. `@nestjs/throttler` + custom Upstash storage
+
+Use the official NestJS throttler module with a custom `ThrottlerStorageService` that reads/writes to Upstash Redis via `@upstash/redis` (HTTP-based, no TCP connections needed in serverless).
+
+**Why not `@fastify/rate-limit`?** The NestJS throttler integrates with the NestJS guard/decorator ecosystem, supports named throttlers for multi-tier configs, and follows the project's existing patterns (guards registered via `APP_GUARD`).
+
+### 2. Three named throttler tiers
+
+```typescript
+ThrottlerModule.forRootAsync({
+  inject: [ConfigService],
+  useFactory: (config: ConfigService) => ({
+    throttlers: [
+      { name: 'global', ttl: config.get('RATE_LIMIT_GLOBAL_TTL'), limit: config.get('RATE_LIMIT_GLOBAL_LIMIT') },
+      { name: 'auth', ttl: config.get('RATE_LIMIT_AUTH_TTL'), limit: config.get('RATE_LIMIT_AUTH_LIMIT') },
+      { name: 'public-api', ttl: config.get('RATE_LIMIT_API_TTL'), limit: config.get('RATE_LIMIT_API_LIMIT') },
+    ],
+    storage: new UpstashThrottlerStorage(config.get('UPSTASH_REDIS_URL'), config.get('UPSTASH_REDIS_TOKEN')),
+  }),
+})
+```
+
+Auth endpoints override the default tier via `@Throttle({ auth: { limit: X, ttl: Y } })` decorator. The global tier applies to everything else by default.
+
+### 3. Hybrid IP + User identification
+
+Custom `ThrottlerGuard` override:
+
+```typescript
+protected async getTracker(req: FastifyRequest): Promise&lt;string&gt; {
+  const user = req['user'] // populated by AuthGuard
+  if (user?.id) return `user:${user.id}`
+  return `ip:${req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() || req.ip}`
+}
+```
+
+### 4. Fail-open on Redis errors
+
+The custom storage adapter wraps Redis calls in try/catch. On failure, it returns a result indicating the request is under the limit, and logs a warning via NestJS Logger.
+
+### 5. New files and modifications
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `apps/api/src/throttler/throttler.module.ts` | Create | Module registering ThrottlerModule with Upstash storage |
+| `apps/api/src/throttler/upstash-throttler-storage.ts` | Create | Custom `ThrottlerStorage` implementation using `@upstash/redis` |
+| `apps/api/src/throttler/custom-throttler.guard.ts` | Create | Guard with hybrid IP/user tracker and rate limit response headers |
+| `apps/api/src/throttler/throttler-exception.filter.ts` | Create | Exception filter mapping `ThrottlerException` to standard error format |
+| `apps/api/src/throttler/index.ts` | Create | Barrel export |
+| `apps/api/src/common/error-codes.ts` | Modify | Add `RATE_LIMIT_EXCEEDED` |
+| `apps/api/src/config/env.validation.ts` | Modify | Add rate limit + Upstash env vars with defaults |
+| `apps/api/src/app.module.ts` | Modify | Import `ThrottlerModule` |
+| `apps/api/src/app.controller.ts` | Modify | Add `@SkipThrottle()` to health endpoint |
+| Auth controllers | Modify | Add `@Throttle({ auth: ... })` decorator to login, register, password reset, magic link endpoints |
+
+### 6. Environment variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `UPSTASH_REDIS_URL` | (required in production) | Upstash Redis REST URL |
+| `UPSTASH_REDIS_TOKEN` | (required in production) | Upstash Redis REST token |
+| `RATE_LIMIT_GLOBAL_TTL` | `60000` (60s) | Global tier window in ms |
+| `RATE_LIMIT_GLOBAL_LIMIT` | `60` | Global tier max requests per window |
+| `RATE_LIMIT_AUTH_TTL` | `60000` (60s) | Auth tier window in ms |
+| `RATE_LIMIT_AUTH_LIMIT` | `5` | Auth tier max requests per window |
+| `RATE_LIMIT_API_TTL` | `60000` (60s) | Public API tier window in ms |
+| `RATE_LIMIT_API_LIMIT` | `100` | Public API tier max requests per window |
+
+In development (no Upstash configured), rate limiting falls back to in-memory storage from `@nestjs/throttler` default.
+
+## Success Criteria
+
+- [ ] `@nestjs/throttler` and `@upstash/redis` installed as dependencies
+- [ ] Rate limiting active on all endpoints (global tier)
+- [ ] Auth endpoints have stricter limits (auth tier, 5 req/min default)
+- [ ] Health endpoint exempt via `@SkipThrottle()`
+- [ ] `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` headers on all responses
+- [ ] `Retry-After` header on 429 responses
+- [ ] 429 response body matches existing API error format with `errorCode: "RATE_LIMIT_EXCEEDED"`
+- [ ] Hybrid IP/user identification works (IP for anonymous, user ID for authenticated)
+- [ ] Fail-open when Redis is unavailable (logged warning, request proceeds)
+- [ ] All rate limit values configurable via environment variables
+- [ ] Public API tier config exists but is not applied to any endpoints (stubbed)
+- [ ] Unit tests for custom guard, storage adapter, and exception filter
+- [ ] Integration test verifying 429 is returned after exceeding limit
+
+## Open Questions
+
+- **Upstash provisioning**: Should Upstash be provisioned via Vercel Marketplace integration or standalone? (Can be decided during implementation — both work identically from the code side.)
