@@ -222,6 +222,29 @@ After the walkthrough:
 
 - After all fixers complete, **stage, commit, and push** the combined fixes in a single commit
 - CI runs; if it fails, spawn the relevant domain fixer to investigate and fix until green
+- **Post a follow-up comment** on the PR confirming the fixes:
+
+  ```bash
+  gh pr comment <number> --body "$(cat <<'EOF'
+  ## Review Fixes Applied
+
+  All **N** accepted findings from the review have been addressed in <commit_sha>.
+
+  | # | Finding | Status |
+  |---|---------|--------|
+  | 1 | `issue(blocking):` <short description> | Fixed |
+  | 2 | `suggestion(blocking):` <short description> | Fixed |
+  | … | … | … |
+
+  Rejected/deferred findings (if any):
+  - `<label>:` <short description> — <reason>
+
+  ---
+  _Fixes by Claude Code via `/review` fixer agents_
+  EOF
+  )"
+  ```
+
 - Human approves the merge
 
 > **Note:** The `/review` skill no longer includes a `--fix` flag. Fixing is handled separately by the fixer agent(s) after the human validates findings via `/1b1`.
@@ -244,7 +267,7 @@ After the walkthrough:
 1. **Fresh agents only** — review agents must be new instances with no implementation context
 2. **Never auto-merge** or approve PRs on GitHub
 3. **Human decides on every finding** — findings go through 1b1 walkthrough before any fix is applied
-4. **Always post review to PR** — if a PR exists, findings must be posted as a comment for traceability
+4. **Always post review to PR** — if a PR exists, findings must be posted as a comment for traceability. After fixes are applied, post a follow-up comment confirming which findings were addressed.
 5. **Fixer handles fixes** — the review skill does not fix code; that is the fixer agent's responsibility after 1b1
 
 $ARGUMENTS

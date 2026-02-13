@@ -387,7 +387,7 @@ Human: "develop #XXX"
     - **Frontend fixer** — if findings touch `apps/web/` or `packages/ui/`
     - **Infra fixer** — if findings touch `packages/config/`, root configs, or CI
     - Single-domain findings → one fixer. Multi-domain → parallel fixers.
-15. Push combined fixes, update PR.
+15. Push combined fixes, post a follow-up comment on the PR confirming which findings were addressed (and noting any rejected/deferred).
 16. CI runs:
     - **Pass** — merge and cleanup worktree
     - **Fail** — fixer investigates and fixes, CI again, loop until green
@@ -463,3 +463,4 @@ After features have been validated on staging:
 - [ ] `/review` completed with fresh domain agents (Tier F)
 - [ ] Human walked through all review comments via `/1b1`
 - [ ] Accepted comments fixed by fixer agent
+- [ ] Fix confirmation comment posted to PR
