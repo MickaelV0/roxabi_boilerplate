@@ -18,9 +18,7 @@ const skills = [
   'adr',
   'agent-browser',
   'context7',
-  'vercel:deploy',
-  'vercel:setup',
-  'vercel:logs',
+  'vercel',
   'frontend-design',
 ] as const
 
@@ -63,7 +61,7 @@ const blocks = [
   },
   {
     icon: Zap,
-    title: '19 Skills',
+    title: '17 Skills',
     subtitle: 'Slash commands',
     description: 'Reusable workflows: /commit, /review, /bootstrap, /scaffold, /pr, /promote...',
     visual: (

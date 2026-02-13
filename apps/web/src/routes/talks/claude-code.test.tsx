@@ -59,11 +59,12 @@ const EXPECTED_SECTION_IDS = [
   'dev-process',
   'agent-teams',
   'test-review',
+  'infra-workflow',
   'end-to-end',
 ]
 
 describe('ClaudeCodePresentation page', () => {
-  it('renders all 7 sections with correct ids', () => {
+  it('renders all 8 sections with correct ids', () => {
     // Arrange & Act
     render(<ClaudeCodePresentation />)
 
@@ -86,6 +87,8 @@ describe('ClaudeCodePresentation page', () => {
     expect(screen.getByRole('heading', { name: /Building Blocks/i })).toBeInTheDocument()
 
     expect(screen.getByRole('heading', { name: /Agent Teams/i })).toBeInTheDocument()
+
+    expect(screen.getByRole('heading', { name: /Infrastructure & Workflow/i })).toBeInTheDocument()
 
     expect(
       screen.getByRole('heading', { name: /End-to-End: Idea to Production/i })

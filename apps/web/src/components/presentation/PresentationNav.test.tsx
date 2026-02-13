@@ -40,6 +40,7 @@ const sections = [
   { id: 'dev-process', label: 'Dev Process' },
   { id: 'agent-teams', label: 'Agent Teams' },
   { id: 'test-review', label: 'Test & Review' },
+  { id: 'infra-workflow', label: 'Infrastructure' },
   { id: 'end-to-end', label: 'End to End' },
 ] as const
 
@@ -71,13 +72,13 @@ afterEach(() => {
 })
 
 describe('PresentationNav', () => {
-  it('renders correct number of dots (7)', () => {
+  it('renders correct number of dots (8)', () => {
     // Arrange & Act
     render(<PresentationNav sections={sections} />)
 
     // Assert — one dot per section
     const dots = screen.getAllByRole('button')
-    expect(dots).toHaveLength(7)
+    expect(dots).toHaveLength(8)
   })
 
   it('each dot has aria-label with section name', () => {
@@ -184,7 +185,7 @@ describe('PresentationNav', () => {
       fireEvent.keyDown(document, { key: 'End' })
 
       // Assert
-      expect(elements[6]?.scrollIntoView).toHaveBeenCalledWith(
+      expect(elements[7]?.scrollIntoView).toHaveBeenCalledWith(
         expect.objectContaining({ behavior: 'smooth' })
       )
     })

@@ -13,7 +13,7 @@ const tools = [
   {
     icon: Monitor,
     name: 'WezTerm',
-    description: 'GPU-accelerated terminal with WSL2',
+    description: 'GPU-accelerated terminal — recommended for Agent Teams',
     color: 'text-blue-500',
   },
   {
@@ -37,7 +37,7 @@ const tools = [
   {
     icon: Users,
     name: 'Agent Teams',
-    description: 'CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1',
+    description: 'One env var enables multi-agent coordination',
     color: 'text-purple-500',
   },
 ] as const

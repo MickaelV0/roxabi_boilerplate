@@ -3,11 +3,13 @@ import { AgentTeamsSection } from '@/components/presentation/AgentTeamsSection'
 import { BuildingBlocksSection } from '@/components/presentation/BuildingBlocksSection'
 import { DevProcessSection } from '@/components/presentation/DevProcessSection'
 import { EndToEndSection } from '@/components/presentation/EndToEndSection'
+import { InfraWorkflowSection } from '@/components/presentation/InfraWorkflowSection'
 import { IntroSection } from '@/components/presentation/IntroSection'
 import { PresentationNav } from '@/components/presentation/PresentationNav'
 import { SectionContainer } from '@/components/presentation/SectionContainer'
 import { SetupSection } from '@/components/presentation/SetupSection'
 import { TestReviewSection } from '@/components/presentation/TestReviewSection'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 export const Route = createFileRoute('/talks/claude-code')({
   component: ClaudeCodePresentation,
@@ -20,6 +22,7 @@ const SECTIONS = [
   { id: 'dev-process', label: 'Dev Process' },
   { id: 'agent-teams', label: 'Agent Teams' },
   { id: 'test-review', label: 'Test & Review' },
+  { id: 'infra-workflow', label: 'Infrastructure' },
   { id: 'end-to-end', label: 'End-to-End' },
 ] as const
 
@@ -34,6 +37,11 @@ export function ClaudeCodePresentation() {
         >
           Roxabi
         </Link>
+      </div>
+
+      {/* Theme toggle */}
+      <div className="fixed right-6 top-6 z-50">
+        <ThemeToggle />
       </div>
 
       {/* Section navigation dots */}
@@ -63,6 +71,10 @@ export function ClaudeCodePresentation() {
 
         <SectionContainer id="test-review">
           <TestReviewSection />
+        </SectionContainer>
+
+        <SectionContainer id="infra-workflow">
+          <InfraWorkflowSection />
         </SectionContainer>
 
         <SectionContainer id="end-to-end">
