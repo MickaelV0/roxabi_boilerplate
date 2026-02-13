@@ -1,48 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+
+// Mock react-intersection-observer — always report as in view
+vi.mock('react-intersection-observer', () => ({
+  useInView: () => ({ ref: vi.fn(), inView: true }),
+}))
+
 import { AnimatedSection } from './AnimatedSection'
-
-// Mock matchMedia
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-})
-
-// Mock IntersectionObserver — triggers callback on observe
-const mockObserve = vi.fn()
-const mockDisconnect = vi.fn()
-
-class MockIntersectionObserver {
-  private callback: IntersectionObserverCallback
-
-  constructor(callback: IntersectionObserverCallback) {
-    this.callback = callback
-  }
-
-  observe = (...args: Parameters<IntersectionObserver['observe']>) => {
-    mockObserve(...args)
-    queueMicrotask(() => {
-      this.callback(
-        [{ isIntersecting: true } as IntersectionObserverEntry],
-        this as unknown as IntersectionObserver
-      )
-    })
-  }
-
-  disconnect = mockDisconnect
-  unobserve = vi.fn()
-}
-
-vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
 
 describe('AnimatedSection', () => {
   it('renders children', async () => {
@@ -69,7 +33,7 @@ describe('AnimatedSection', () => {
     })
   })
 
-  it('becomes visible when intersection observer triggers', async () => {
+  it('becomes visible when inView is true', async () => {
     const { container } = render(
       <AnimatedSection>
         <span>Animated content</span>
@@ -80,16 +44,6 @@ describe('AnimatedSection', () => {
       expect(container.firstChild).toHaveClass('opacity-100')
       expect(container.firstChild).toHaveClass('translate-y-0')
     })
-  })
-
-  it('sets up IntersectionObserver on mount', () => {
-    render(
-      <AnimatedSection>
-        <span>Observed</span>
-      </AnimatedSection>
-    )
-
-    expect(mockObserve).toHaveBeenCalled()
   })
 
   it('applies transition classes', () => {

@@ -1,4 +1,4 @@
-import { AnimatedSection, cn, useIntersectionVisibility } from '@repo/ui'
+import { AnimatedSection, cn, useInView } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
 import { ArrowRight } from 'lucide-react'
 
@@ -36,8 +36,9 @@ const pipelineSteps = [
 ] as const
 
 export function EndToEndSection() {
-  const { ref: pipelineRef, isVisible } = useIntersectionVisibility<HTMLDivElement>({
+  const { ref: pipelineRef, inView } = useInView({
     threshold: 0.3,
+    triggerOnce: true,
   })
 
   return (
@@ -60,10 +61,10 @@ export function EndToEndSection() {
               key={step.command}
               className={cn(
                 'flex items-center gap-2 transition-all duration-700',
-                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
               )}
               style={{
-                transitionDelay: isVisible ? `${index * 200}ms` : '0ms',
+                transitionDelay: inView ? `${index * 200}ms` : '0ms',
               }}
             >
               <div className="flex flex-col items-center rounded-2xl border border-border/50 bg-card/50 p-5 text-center min-w-[150px] hover:bg-card/80 transition-colors">
@@ -77,10 +78,10 @@ export function EndToEndSection() {
                 <ArrowRight
                   className={cn(
                     'h-5 w-5 text-primary/60 shrink-0 transition-all duration-500',
-                    isVisible ? 'opacity-100' : 'opacity-0'
+                    inView ? 'opacity-100' : 'opacity-0'
                   )}
                   style={{
-                    transitionDelay: isVisible ? `${index * 200 + 100}ms` : '0ms',
+                    transitionDelay: inView ? `${index * 200 + 100}ms` : '0ms',
                   }}
                 />
               )}
@@ -95,10 +96,10 @@ export function EndToEndSection() {
               <div
                 className={cn(
                   'rounded-xl border border-border/50 bg-card/50 p-4 transition-all duration-700',
-                  isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-6'
+                  inView ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-6'
                 )}
                 style={{
-                  transitionDelay: isVisible ? `${index * 150}ms` : '0ms',
+                  transitionDelay: inView ? `${index * 150}ms` : '0ms',
                 }}
               >
                 <div className="flex items-center gap-3">

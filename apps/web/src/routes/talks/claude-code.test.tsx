@@ -10,7 +10,7 @@ vi.mock('@repo/ui', () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
   PresentationNav: () => <nav aria-label="Presentation sections" />,
   StatCounter: ({ label }: { label: string }) => <div>{label}</div>,
-  useIntersectionVisibility: () => ({ ref: { current: null }, isVisible: true }),
+  useInView: () => ({ ref: () => {}, inView: true }),
 }))
 
 // Mock matchMedia

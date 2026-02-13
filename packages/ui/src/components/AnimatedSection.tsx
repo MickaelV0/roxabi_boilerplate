@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
-import { useIntersectionVisibility } from '@/hooks/useIntersectionVisibility'
+import { useInView } from 'react-intersection-observer'
+
 import { cn } from '@/lib/utils'
 
 export function AnimatedSection({
@@ -10,9 +11,10 @@ export function AnimatedSection({
   children: ReactNode
   className?: string
 }) {
-  const { ref, isVisible } = useIntersectionVisibility<HTMLDivElement>({
+  const { ref, inView } = useInView({
     threshold: 0.1,
     rootMargin: '0px 0px -40px 0px',
+    triggerOnce: true,
   })
 
   return (
@@ -20,7 +22,7 @@ export function AnimatedSection({
       ref={ref}
       className={cn(
         'transition-[opacity,transform] duration-700 ease-out',
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8',
+        inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8',
         className
       )}
     >

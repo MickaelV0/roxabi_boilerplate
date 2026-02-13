@@ -1,6 +1,11 @@
 import { render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+// Mock react-intersection-observer — always report as in view
+vi.mock('react-intersection-observer', () => ({
+  useInView: () => ({ ref: vi.fn(), inView: true }),
+}))
+
 // Mock matchMedia — default: no reduced motion preference
 const mockMatchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,
@@ -17,29 +22,6 @@ Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: mockMatchMedia,
 })
-
-// Mock IntersectionObserver — triggers callback on observe (active)
-class MockIntersectionObserver {
-  private callback: IntersectionObserverCallback
-
-  constructor(callback: IntersectionObserverCallback) {
-    this.callback = callback
-  }
-
-  observe: () => void = () => {
-    queueMicrotask(() => {
-      this.callback(
-        [{ isIntersecting: true } as IntersectionObserverEntry],
-        this as unknown as IntersectionObserver
-      )
-    })
-  }
-
-  disconnect: () => void = vi.fn()
-  unobserve: () => void = vi.fn()
-}
-
-vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
 
 // Mock requestAnimationFrame to run callbacks synchronously
 let rafCallbacks: Array<FrameRequestCallback> = []

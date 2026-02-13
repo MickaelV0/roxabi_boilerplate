@@ -1,4 +1,4 @@
-import { cn, useIntersectionVisibility } from '@repo/ui'
+import { cn, useInView } from '@repo/ui'
 import { useEffect, useState } from 'react'
 
 type CodeBlockProps = {
@@ -49,17 +49,17 @@ function highlightBash(code: string): string {
 }
 
 export function CodeBlock({ children, typing = false, className }: CodeBlockProps) {
-  const { ref, isVisible } = useIntersectionVisibility<HTMLDivElement>({ threshold: 0.2 })
+  const { ref, inView } = useInView({ threshold: 0.2, triggerOnce: true })
   const [typingComplete, setTypingComplete] = useState(!typing)
 
   // Start typing animation timer when visible
   useEffect(() => {
-    if (!isVisible || !typing || typingComplete) return
+    if (!inView || !typing || typingComplete) return
     const lines = children.split('\n').length
     const duration = Math.min(lines * 300, 3000)
     const timer = setTimeout(() => setTypingComplete(true), duration)
     return () => clearTimeout(timer)
-  }, [isVisible, typing, typingComplete, children])
+  }, [inView, typing, typingComplete, children])
 
   const highlighted = highlightBash(children)
 
@@ -82,7 +82,7 @@ export function CodeBlock({ children, typing = false, className }: CodeBlockProp
         <pre
           className={cn(
             'font-mono text-sm leading-relaxed text-foreground/90',
-            typing && isVisible && !typingComplete && 'animate-typing-reveal'
+            typing && inView && !typingComplete && 'animate-typing-reveal'
           )}
         >
           {/* biome-ignore lint/security/noDangerouslySetInnerHtml: content is hardcoded presentation strings, not user input */}

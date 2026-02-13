@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { useIntersectionVisibility } from '@/hooks/useIntersectionVisibility'
+import { useInView } from 'react-intersection-observer'
+
 import { cn } from '@/lib/utils'
 
 type StatCounterProps = {
@@ -11,12 +12,12 @@ type StatCounterProps = {
 }
 
 export function StatCounter({ value, label, suffix = '', className }: StatCounterProps) {
-  const { ref, isVisible } = useIntersectionVisibility<HTMLDivElement>({ threshold: 0.3 })
+  const { ref, inView } = useInView({ threshold: 0.3, triggerOnce: true })
   const [displayValue, setDisplayValue] = useState(0)
   const hasAnimatedRef = useRef(false)
 
   useEffect(() => {
-    if (!isVisible || hasAnimatedRef.current) return
+    if (!inView || hasAnimatedRef.current) return
     hasAnimatedRef.current = true
 
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -41,7 +42,7 @@ export function StatCounter({ value, label, suffix = '', className }: StatCounte
     }
 
     requestAnimationFrame(animate)
-  }, [value, isVisible])
+  }, [value, inView])
 
   return (
     <div ref={ref} className={cn('text-center', className)}>

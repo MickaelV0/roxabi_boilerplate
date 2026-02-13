@@ -1,5 +1,7 @@
 // Components
 
+// Hooks (re-exported from react-intersection-observer)
+export { useInView } from 'react-intersection-observer'
 export {
   Accordion,
   AccordionContent,
@@ -97,8 +99,6 @@ export { StatCounter } from './components/StatCounter'
 export { Switch } from './components/Switch'
 export { Textarea } from './components/Textarea'
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './components/Tooltip'
-// Hooks
-export { useIntersectionVisibility } from './hooks/useIntersectionVisibility'
 // Theme engine
 export type {
   DerivedTheme,
