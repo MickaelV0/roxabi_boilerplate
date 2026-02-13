@@ -39,7 +39,7 @@ Team-wide coordination rules for all agents. Every agent reads this file.
 
 ### Communication
 
-> **"Message the lead"** means outputting a clear status update in your response. The lead session sees all teammate output. Use a prefix like `[BLOCKER]`, `[HANDOFF]`, or `[SECURITY]` so the lead can scan updates quickly.
+> **"Message the lead"** means using the `SendMessage` tool to send a clear status update to the lead. Keep messages concise with the key information upfront.
 
 - **Task handoff**: Use `blockedBy` dependencies — when your task completes, the next agent's task unblocks
 - **Blocker**: Message the lead with a clear description of what's blocking you

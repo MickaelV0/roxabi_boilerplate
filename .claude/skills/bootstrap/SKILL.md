@@ -6,7 +6,7 @@ allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Task
 
 # Bootstrap
 
-Orchestrate the full planning pipeline from a raw idea (or existing issue/spec) to an approved implementation plan. Calls `/interview` for analysis and spec creation, and `/plan` for implementation planning. Enforces three user-approval gates. Stops at the approved plan -- execution is handled by `/scaffold`.
+Orchestrate the planning pipeline from a raw idea (or existing issue/spec) to an approved spec. Calls `/interview` for analysis and spec creation. Enforces two user-approval gates. Stops at the approved spec -- execution is handled by `/scaffold`.
 
 ## Entry Points
 
@@ -20,7 +20,7 @@ Orchestrate the full planning pipeline from a raw idea (or existing issue/spec) 
 |------|-----------|----------|
 | `"idea text"` | Gate 1 (Analysis) | Full pipeline from scratch |
 | `--issue N` | Gate 1 (Analysis) | Reads GitHub issue body as starting context |
-| `--spec N` | Gate 2 (Spec) | Assumes spec exists at `docs/specs/N-*.mdx`, skips analysis |
+| `--spec N` | Gate 2 (Spec) | Assumes spec exists at `docs/specs/N-*.mdx`, validates and approves |
 
 ## Instructions
 
@@ -124,23 +124,6 @@ Options:
 
 ---
 
-## Gate 3: Implementation Plan
-
-### 3a. Generate Plan
-
-Invoke the `/plan` skill using the Skill tool:
-
-- Pass `--spec <path-to-spec>` as the argument (use the spec file path from Gate 2).
-- `/plan` will read the spec, analyze scope, suggest a tier (S/M/L), and generate an ordered implementation plan.
-
-### 3b. User Approval
-
-The `/plan` skill handles its own presentation and approval flow. Once `/plan` completes with an approved plan, Gate 3 is passed.
-
-**If the user rejects the plan inside `/plan`:** `/plan` handles re-generation. `/bootstrap` waits for `/plan` to finish with an approved result.
-
----
-
 ## Issue Status Transitions
 
 When a GitHub issue is associated with the bootstrap pipeline, update its status on the project board at these points:
@@ -164,15 +147,14 @@ Use the triage helper to update status. Replace `<ISSUE_NUMBER>` with the actual
 - Only update if a GitHub issue is associated (skip if no issue number exists)
 - Gate 1 → set to "Analysis"
 - Gate 2 → set to "Specs"
-- Gate 3 does NOT change status (stays at "Specs" until `/scaffold` moves it to "In Progress")
 
 ## Completion
 
-Once all three gates are passed, inform the user:
+Once both gates are passed, inform the user:
 
-> "Bootstrap complete. You have an approved analysis, spec, and implementation plan. Run `/scaffold` to begin execution."
+> "Bootstrap complete. You have an approved analysis and spec. Run `/scaffold --spec <N>` to execute."
 
-**Do not scaffold, commit, or create PRs.** Bootstrap stops at the approved plan.
+**Do not scaffold, commit, or create PRs.** Bootstrap stops at the approved spec.
 
 ## Edge Cases
 
@@ -194,6 +176,5 @@ When calling sub-skills, use the **Skill** tool:
 |-----------|------------|------|
 | `/interview` (Analysis) | `skill: "interview", args: "topic text"` | Gate 1, no existing analysis |
 | `/interview` (Spec promotion) | `skill: "interview", args: "--promote docs/analyses/{slug}.mdx"` | Gate 2, no existing spec |
-| `/plan` | `skill: "plan", args: "--spec docs/specs/{issue}-{slug}.mdx"` | Gate 3 |
 
 $ARGUMENTS

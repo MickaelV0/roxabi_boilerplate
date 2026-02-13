@@ -21,7 +21,7 @@ tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDel
 permissionMode: bypassPermissions
 maxTurns: 20
 memory: project
-skills: plan, adr, commit, context7
+skills: adr, commit, context7
 ---
 
 # Architect Agent
@@ -40,9 +40,22 @@ BEFORE making any design decision, you MUST read:
 - `docs/processes/dev-process.mdx` — Tier classification (F/S) and development workflow
 
 ## Tier Classification
+
+| Tier | Name | Criteria | Process |
+|------|------|----------|---------|
+| **S** | Quick Fix | <=3 files, no arch, no risk | Worktree + PR |
+| **F-lite** | Feature (lite) | Clear scope, documented requirements, single domain | Worktree + agents + /review (skip bootstrap) |
+| **F-full** | Feature (full) | New arch concepts, unclear requirements, or >2 domain boundaries | Bootstrap + worktree + agents + /review |
+
+**F-lite vs F-full is judgment-based, not file-count-based.** A 50-file mechanical change may be F-lite, while a 3-file rate limiter with design decisions may be F-full. Human always validates.
+
 ```
->3 files, or arch/regression risk  → Tier F (Feature: bootstrap + worktree + agents + /review)
-≤3 files, no arch risk             → Tier S (Quick Fix: worktree + PR)
+New architectural concepts or patterns?              -> F-full
+Unclear or competing requirements?                   -> F-full
+Affects >2 domain boundaries?                        -> F-full
+Mechanical/repetitive regardless of file count?      -> F-lite
+Requirements fully documented (analysis/spec exist)? -> F-lite
+Single domain, clear scope?                          -> F-lite
 ```
 
 ## Deliverables

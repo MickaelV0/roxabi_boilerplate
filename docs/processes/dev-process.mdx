@@ -167,7 +167,7 @@ cd ../roxabi_boilerplate
 git worktree remove ../roxabi-XXX
 ```
 
-**Commit types:** `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`
+**Commit types:** `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`, `ci`, `perf`
 
 ---
 
@@ -190,7 +190,7 @@ Two modes are available depending on task complexity. See the [Agent Teams Guide
 | Actor | Role | Does NOT |
 |-------|------|----------|
 | **Human** | Decision-maker at every gate (spec approval, review comment acceptance, merge) | -- |
-| **Main Claude** | Orchestrator — assesses issues, spawns agents, runs skills, coordinates flow | Does not implement code directly |
+| **Main Claude** | Orchestrator — assesses issues, spawns agents, runs skills, coordinates flow | Does not implement code directly (Tier F — for Tier S, single session implements) |
 | **product-lead** | Writes analyses and specs, triages issues, interacts with human when spawned | Does not orchestrate or merge |
 | **Domain agents** (FE, BE, infra) | Implement within their domain boundaries | Do not review their own code |
 | **tester** | Writes failing tests first (RED), verifies coverage | Does not write production code |
@@ -232,10 +232,16 @@ Human: "develop #XXX"
         |
         v
 ========================================
-  PHASE 2 — IMPLEMENTATION
+  /scaffold (spec → PR)
 ========================================
         |
-  Main Claude: create worktree + spawn agents
+  Plan: analyze scope, pick agents
+        |
+  * Human approves plan *
+        |
+  Create issue + worktree + stubs
+        |
+  Spawn agents (test-first):
         |
   tester: write failing tests (RED)
         |
@@ -311,11 +317,23 @@ Human: "develop #XXX"
    - If deeper technical analysis is needed, product-lead requests **architect** agent
    - Once spec is approved, product-lead returns control to Main Claude
 
-> **F-lite shortcut:** If the task is classified as F-lite (clear scope, documented requirements), the assessment phase is brief — Main Claude confirms the spec exists and proceeds.
+> **F-lite shortcut:** If the task is classified as F-lite (clear scope, documented requirements), the assessment phase is brief — Main Claude confirms the spec exists and proceeds to `/scaffold`.
 
-### Phase 2 — Team and Implementation
+### Scaffold and Implementation (`/scaffold`)
 
-5. Main Claude determines team composition from spec scope:
+`/scaffold` is the execution engine. It takes a spec and drives it all the way to a PR:
+
+5. **Plan** — Reads the spec, analyzes scope, determines tier, breaks into tasks, picks agents. Human approves the plan.
+
+6. **Setup** — Creates the GitHub issue (if none exists), creates worktree:
+   ```bash
+   git worktree add ../roxabi-XXX -b feat/XXX-slug staging
+   cd ../roxabi-XXX && bun install
+   ```
+
+7. **Scaffold** — Creates boilerplate stubs (types, API, UI, test shells) from the spec. Commits.
+
+8. **Implement** — Spawns agents based on the plan:
 
    | Change type | Agent |
    |-------------|-------|
@@ -326,38 +344,24 @@ Human: "develop #XXX"
    | Security-sensitive | security-auditor (during review) |
    | Documentation | doc-writer |
 
-6. Create worktree:
-   ```bash
-   git worktree add ../roxabi-XXX -b feat/XXX-slug staging
-   cd ../roxabi-XXX
-   ```
-
-7. **Test-first** (for code changes):
+   **Test-first** (RED → GREEN → REFACTOR):
    1. **RED** — Tester writes failing tests from spec acceptance criteria
    2. **GREEN** — Domain agents implement to pass the tests
    3. **REFACTOR** — Domain agents refactor while keeping tests green
    4. Tester verifies coverage and adds edge cases
 
-8. Run all tests + E2E:
-   - **Pass** — create PR
-   - **Fail** — team fixes, re-test, loop until green
+9. **Quality gate** — `bun lint && bun typecheck && bun test`
+   - **Pass** — proceed to PR
+   - **Fail** — agents fix, re-test, loop until green
 
-9. Create PR:
-   ```bash
-   git add <files>
-   git commit -m "$(cat <<'EOF'
-   feat(<scope>): description
-
-   Co-Authored-By: Claude <model> <noreply@anthropic.com>
-   EOF
-   )"
-
-   gh pr create --title "feat: description" --body "Closes #XXX"
-   ```
+10. **PR** — `/scaffold` commits and creates the PR:
+    ```bash
+    gh pr create --title "feat: description" --body "Closes #XXX"
+    ```
 
 ### Phase 3 — Review
 
-10. Main Claude runs `/review` which spawns **fresh review agents** (new instances with no implementation context):
+11. Main Claude runs `/review` which spawns **fresh review agents** (new instances with no implementation context):
 
     | Always | Conditional |
     |--------|-------------|
@@ -368,24 +372,24 @@ Human: "develop #XXX"
 
     Each reviewer produces Conventional Comments scoped to their domain.
 
-11. Main Claude collects all review comments.
-12. Main Claude walks the human through each comment **one-by-one** (`/1b1`):
+12. Main Claude collects all review comments.
+13. Main Claude walks the human through each comment **one-by-one** (`/1b1`):
     - Shows the comment, severity, and context
     - Presents trade-offs and recommendations
     - Human decides: **accept**, **reject**, or **defer**
 
 ### Phase 4 — Fix and Merge
 
-13. **Fullstack quick fixer** receives the list of accepted comments and fixes them across the stack.
-14. Push changes, update PR.
-15. CI runs:
+14. **Fullstack quick fixer** receives the list of accepted comments and fixes them across the stack.
+15. Push changes, update PR.
+16. CI runs:
     - **Pass** — merge and cleanup worktree
     - **Fail** — fixer investigates and fixes, CI again, loop until green
-16. Human approves merge:
+17. Human approves merge:
     ```bash
     gh pr merge <pr-number> --squash --delete-branch
     ```
-17. Cleanup:
+18. Cleanup:
     ```bash
     cd ../roxabi_boilerplate
     git worktree remove ../roxabi-XXX
@@ -401,6 +405,8 @@ Human: "develop #XXX"
 |------|---------|---------|
 | Branch | `feat/XXX-slug` | `feat/123-user-auth` |
 | Branch | `fix/XXX-slug` | `fix/456-login-bug` |
+| Branch | `hotfix/XXX-slug` | `hotfix/99-security-patch` |
+| Branch | `docs/slug` | `docs/api-reference` |
 | Spec | `docs/specs/XXX-slug.mdx` | `docs/specs/123-user-auth.mdx` |
 | Worktree | `../roxabi-XXX` | `../roxabi-123` |
 

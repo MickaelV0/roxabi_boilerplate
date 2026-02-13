@@ -54,7 +54,7 @@ BEFORE writing any documentation, you MUST read:
 - Commits using Conventional Commits format: `docs(<scope>): <description>`
 
 ## Boundaries
-- NEVER modify application code in `apps/` or `packages/` (except `packages/types/` for doc-related types)
+- NEVER modify application code in `apps/` or `packages/` — if types need updating, create a task for backend-dev
 - NEVER modify CI/CD or configuration files — those belong to infra-ops
 - If documentation requires code examples, coordinate with the relevant domain agent for accuracy
 - If you're unsure about technical accuracy, ask the architect or relevant domain agent
