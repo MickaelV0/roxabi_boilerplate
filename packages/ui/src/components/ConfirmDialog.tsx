@@ -1,0 +1,63 @@
+import { cn } from '@/lib/utils'
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './AlertDialog'
+
+const variantStyles = {
+  danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+  warning: 'bg-amber-600 text-white hover:bg-amber-700',
+  info: '',
+}
+
+function ConfirmDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  variant = 'danger',
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
+  onConfirm,
+  loading,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: string
+  description: string
+  variant?: keyof typeof variantStyles
+  confirmText?: string
+  cancelText?: string
+  onConfirm: () => void
+  loading?: boolean
+}) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{cancelText}</AlertDialogCancel>
+          <AlertDialogAction
+            className={cn(variantStyles[variant])}
+            onClick={onConfirm}
+            disabled={loading}
+          >
+            {confirmText}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
+export { ConfirmDialog }

@@ -1,4 +1,4 @@
-import { Button, Input, Label, OAuthButton, PasswordInput } from '@repo/ui'
+import { Button, FormMessage, Input, Label, OAuthButton, PasswordInput } from '@repo/ui'
 import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -68,14 +68,14 @@ function RegisterPage() {
   return (
     <AuthLayout title={m.auth_register_title()} description={m.auth_register_desc()}>
       {error && (
-        <p role="alert" aria-live="polite" className="text-sm text-destructive text-center">
+        <FormMessage variant="error" className="justify-center">
           {error}
-        </p>
+        </FormMessage>
       )}
       {message && (
-        <p aria-live="polite" className="text-sm text-muted-foreground text-center">
+        <FormMessage variant="success" className="justify-center">
           {message}
-        </p>
+        </FormMessage>
       )}
 
       <form onSubmit={handleRegister} aria-busy={loading} className="space-y-4">
