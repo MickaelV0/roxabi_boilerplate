@@ -16,7 +16,7 @@ import {
   Input,
   Label,
 } from '@repo/ui'
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, redirect, useBlocker, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
@@ -36,6 +36,14 @@ export const Route = createFileRoute('/org/settings')({
   }),
 })
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 function OrgSettingsPage() {
   const navigate = useNavigate()
   const { data: session } = useSession()
@@ -48,6 +56,10 @@ function OrgSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState('')
+
+  // I8: Dirty-state tracking
+  const isDirty = name !== (activeOrg?.name ?? '') || slug !== (activeOrg?.slug ?? '')
 
   // Sync local state when the active org changes (e.g. user switches org)
   useEffect(() => {
@@ -57,12 +69,19 @@ function OrgSettingsPage() {
     }
   }, [activeOrg])
 
+  // I8: Navigation blocker when form is dirty
+  const { status, proceed, reset } = useBlocker({
+    shouldBlockFn: () => isDirty,
+    withResolver: true,
+    enableBeforeUnload: true,
+  })
+
   if (!activeOrg) {
     return (
-      <div className="mx-auto max-w-2xl space-y-6 p-6">
+      <>
         <h1 className="text-2xl font-bold">{m.org_settings_title()}</h1>
         <p className="text-muted-foreground">{m.org_switcher_no_org()}</p>
-      </div>
+      </>
     )
   }
 
@@ -106,7 +125,7 @@ function OrgSettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-6">
+    <>
       <h1 className="text-2xl font-bold">{m.org_settings_title()}</h1>
 
       <Card>
@@ -129,17 +148,31 @@ function OrgSettingsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="org-slug">{m.org_slug()}</Label>
-              <Input
-                id="org-slug"
-                value={slug}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSlug(e.target.value)}
-                placeholder={m.org_slug_placeholder()}
-                disabled={!canDeleteOrg || saving}
-                required
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="org-slug"
+                  value={slug}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSlug(e.target.value)}
+                  placeholder={m.org_slug_placeholder()}
+                  disabled={!canDeleteOrg || saving}
+                  required
+                  className="flex-1"
+                />
+                {canDeleteOrg && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSlug(slugify(name))}
+                    disabled={saving || !name.trim()}
+                  >
+                    {m.org_slug_generate()}
+                  </Button>
+                )}
+              </div>
             </div>
             {canDeleteOrg && (
-              <Button type="submit" disabled={saving}>
+              <Button type="submit" disabled={saving || !isDirty}>
                 {saving ? m.org_settings_saving() : m.org_settings_save()}
               </Button>
             )}
@@ -154,20 +187,42 @@ function OrgSettingsPage() {
             <CardDescription>{m.org_settings_danger_desc()}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+            <Dialog
+              open={deleteOpen}
+              onOpenChange={(open: boolean) => {
+                setDeleteOpen(open)
+                if (!open) setDeleteConfirm('')
+              }}
+            >
               <DialogTrigger asChild>
                 <Button variant="destructive">{m.org_delete()}</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{m.org_delete_title()}</DialogTitle>
-                  <DialogDescription>{m.org_delete_confirm()}</DialogDescription>
+                  <DialogDescription>
+                    {m.org_delete_type_confirm({ name: activeOrg.name })}
+                  </DialogDescription>
                 </DialogHeader>
+                <div className="space-y-2 py-2">
+                  <Input
+                    value={deleteConfirm}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setDeleteConfirm(e.target.value)
+                    }
+                    placeholder={m.org_delete_type_placeholder()}
+                    autoComplete="off"
+                  />
+                </div>
                 <DialogFooter>
                   <DialogClose asChild>
                     <Button variant="outline">{m.common_cancel()}</Button>
                   </DialogClose>
-                  <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={deleting || deleteConfirm !== activeOrg.name}
+                  >
                     {deleting ? m.org_deleting() : m.org_delete()}
                   </Button>
                 </DialogFooter>
@@ -176,6 +231,25 @@ function OrgSettingsPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+
+      {/* I8: Navigation blocker dialog */}
+      {status === 'blocked' && (
+        <Dialog open onOpenChange={() => reset()}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{m.org_unsaved_changes()}</DialogTitle>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => reset()}>
+                {m.org_unsaved_stay()}
+              </Button>
+              <Button variant="destructive" onClick={() => proceed()}>
+                {m.org_unsaved_leave()}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   )
 }

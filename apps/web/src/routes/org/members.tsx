@@ -63,12 +63,21 @@ function OrgMembersPage() {
   const [inviting, setInviting] = useState(false)
   const [removeMemberId, setRemoveMemberId] = useState<string | null>(null)
 
+  // I9: Client-side search
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const filteredMembers = members.filter(
+    (member) =>
+      member.user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.user.email.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   if (!activeOrg) {
     return (
-      <div className="mx-auto max-w-4xl space-y-6 p-6">
+      <>
         <h1 className="text-2xl font-bold">{m.org_members_title()}</h1>
         <p className="text-muted-foreground">{m.org_switcher_no_org()}</p>
-      </div>
+      </>
     )
   }
 
@@ -140,7 +149,7 @@ function OrgMembersPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6">
+    <>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{m.org_members_title()}</h1>
 
@@ -201,13 +210,23 @@ function OrgMembersPage() {
         )}
       </div>
 
+      {/* I9: Client-side search */}
+      <Input
+        placeholder={m.org_members_search_placeholder()}
+        value={searchQuery}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+        className="max-w-sm"
+      />
+
       <Card>
         <CardHeader>
           <CardTitle>{m.org_members_active()}</CardTitle>
         </CardHeader>
         <CardContent>
-          {members.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{m.org_members_empty()}</p>
+          {filteredMembers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {searchQuery ? m.org_members_no_results() : m.org_members_empty()}
+            </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -221,7 +240,7 @@ function OrgMembersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {members.map((member) => (
+                  {filteredMembers.map((member) => (
                     <tr key={member.id} className="border-b last:border-0">
                       <td className="py-3 pr-4">{member.user.name}</td>
                       <td className="py-3 pr-4 text-muted-foreground">{member.user.email}</td>
@@ -342,6 +361,6 @@ function OrgMembersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   )
 }

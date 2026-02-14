@@ -13,6 +13,7 @@ vi.mock('@tanstack/react-router', () => ({
   },
   redirect: vi.fn(),
   useNavigate: () => vi.fn(),
+  useBlocker: () => ({ status: 'idle', proceed: vi.fn(), reset: vi.fn() }),
 }))
 
 vi.mock('@repo/ui', () => ({
@@ -234,8 +235,12 @@ describe('OrgSettingsPage', () => {
 
     render(<OrgSettings />)
 
+    // Make form dirty first
+    const nameInput = screen.getByLabelText('org_name')
+    fireEvent.change(nameInput, { target: { value: 'Changed Name' } })
+
     // Act
-    const form = screen.getByLabelText('org_name').closest('form')
+    const form = nameInput.closest('form')
     if (!form) throw new Error('form not found')
     fireEvent.submit(form)
 
@@ -256,8 +261,12 @@ describe('OrgSettingsPage', () => {
 
     render(<OrgSettings />)
 
+    // Make form dirty first
+    const nameInput = screen.getByLabelText('org_name')
+    fireEvent.change(nameInput, { target: { value: 'Changed' } })
+
     // Act
-    const form = screen.getByLabelText('org_name').closest('form')
+    const form = nameInput.closest('form')
     if (!form) throw new Error('form not found')
     fireEvent.submit(form)
 
@@ -276,8 +285,12 @@ describe('OrgSettingsPage', () => {
 
     render(<OrgSettings />)
 
+    // Make form dirty first
+    const nameInput = screen.getByLabelText('org_name')
+    fireEvent.change(nameInput, { target: { value: 'Changed' } })
+
     // Act
-    const form = screen.getByLabelText('org_name').closest('form')
+    const form = nameInput.closest('form')
     if (!form) throw new Error('form not found')
     fireEvent.submit(form)
 
@@ -285,5 +298,94 @@ describe('OrgSettingsPage', () => {
     await waitFor(() => {
       expect(vi.mocked(toast.error)).toHaveBeenCalledWith('auth_toast_error')
     })
+  })
+
+  it('should disable save button when form is not dirty (I8)', () => {
+    // Arrange
+    setupActiveOrg()
+    setupOwnerMember()
+    const OrgSettings = captured.Component
+
+    // Act
+    render(<OrgSettings />)
+
+    // Assert — save button should be disabled when values match the active org
+    const saveButton = screen.getByRole('button', { name: 'org_settings_save' })
+    expect(saveButton).toBeDisabled()
+  })
+
+  it('should enable save button when form is dirty (I8)', () => {
+    // Arrange
+    setupActiveOrg()
+    setupOwnerMember()
+    const OrgSettings = captured.Component
+
+    render(<OrgSettings />)
+
+    // Act
+    fireEvent.change(screen.getByLabelText('org_name'), { target: { value: 'Changed Name' } })
+
+    // Assert
+    const saveButton = screen.getByRole('button', { name: 'org_settings_save' })
+    expect(saveButton).not.toBeDisabled()
+  })
+
+  it('should show type-to-confirm input in delete dialog (P2)', () => {
+    // Arrange
+    setupActiveOrg()
+    setupOwnerMember()
+    const OrgSettings = captured.Component
+
+    // Act
+    render(<OrgSettings />)
+
+    // Assert — delete dialog content is rendered (mock renders all children)
+    // The type-to-confirm prompt includes the org name parameter
+    expect(screen.getByText('org_delete_type_confirm({"name":"Acme Corp"})')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('org_delete_type_placeholder')).toBeInTheDocument()
+  })
+
+  it('should show generate slug button for owners (P11)', () => {
+    // Arrange
+    setupActiveOrg()
+    setupOwnerMember()
+    const OrgSettings = captured.Component
+
+    // Act
+    render(<OrgSettings />)
+
+    // Assert
+    expect(screen.getByRole('button', { name: 'org_slug_generate' })).toBeInTheDocument()
+  })
+
+  it('should not show generate slug button for non-owner members (P11)', () => {
+    // Arrange
+    setupActiveOrg()
+    setupMemberRole()
+    const OrgSettings = captured.Component
+
+    // Act
+    render(<OrgSettings />)
+
+    // Assert
+    expect(screen.queryByRole('button', { name: 'org_slug_generate' })).not.toBeInTheDocument()
+  })
+
+  it('should generate slug from name when button is clicked (P11)', () => {
+    // Arrange
+    setupActiveOrg()
+    setupOwnerMember()
+    const OrgSettings = captured.Component
+
+    render(<OrgSettings />)
+
+    // Change the name
+    fireEvent.change(screen.getByLabelText('org_name'), { target: { value: 'My New Org' } })
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'org_slug_generate' }))
+
+    // Assert
+    expect(screen.getByLabelText('org_slug')).toHaveValue('my-new-org')
   })
 })
