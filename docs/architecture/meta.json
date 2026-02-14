@@ -1,4 +1,4 @@
 {
   "title": "Architecture",
-  "pages": ["index", "database"]
+  "pages": ["index", "database", "multi-tenant", "rbac"]
 }

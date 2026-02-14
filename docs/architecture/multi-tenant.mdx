@@ -1,0 +1,332 @@
+---
+title: Multi-Tenant Architecture
+description: Organization-based tenancy model, Row-Level Security implementation, tenant context propagation, and isolation patterns.
+---
+
+## Overview
+
+Roxabi uses an **organization-based multi-tenancy** model where each Better Auth organization represents a tenant. Data isolation is enforced at the database level through PostgreSQL Row-Level Security (RLS), not at the application query level. This means a missing `WHERE tenant_id = ?` clause cannot cause a data leak -- the database itself rejects cross-tenant access.
+
+Key design decisions:
+
+- **Organization = Tenant** -- The `organizations.id` column is the canonical tenant identifier. Every tenant-scoped table references it via a `tenant_id` foreign key.
+- **RLS over application filters** -- Isolation is enforced by PostgreSQL policies, not by ORM query conditions. This eliminates an entire class of bugs where a developer forgets to filter by tenant.
+- **Transaction-scoped context** -- The tenant ID is set as a PostgreSQL session variable (`app.tenant_id`) at the start of each transaction and automatically cleared when the transaction ends. No state leaks between requests.
+- **CLS-based propagation** -- The tenant ID flows from the HTTP session through NestJS Continuation-Local Storage (CLS) into the database layer, keeping tenant context implicit rather than threaded through every function signature.
+
+## Tenancy Model
+
+The tenancy model maps directly onto Better Auth's organization primitives:
+
+| Concept | Implementation | Table |
+|---------|---------------|-------|
+| Tenant | Organization | `organizations` |
+| Tenant membership | Org member | `members` |
+| Active tenant | Session's active org | `sessions.active_organization_id` |
+| Tenant-scoped data | Tables with `tenant_id` | Any table using `...tenantColumn` |
+
+A user can belong to multiple organizations (tenants) but operates within one at a time. The `sessions.active_organization_id` column tracks which organization is currently selected. Switching organizations changes the tenant context for all subsequent requests in that session.
+
+### Parent Organization Resolution
+
+The interceptor supports hierarchical organizations. If an organization has a `parentOrganizationId`, the parent's ID is used as the tenant boundary instead -- child organizations share the parent's data scope. Until Better Auth adds native parent org support, every organization is treated as a root tenant.
+
+## Tenant Context Flow
+
+The tenant ID propagates from the HTTP request through four layers before reaching the database:
+
+```txt
+HTTP Request
+    |
+    |  session.activeOrganizationId
+    v
+TenantInterceptor (NestJS global interceptor)
+    |
+    |  Resolves org -> tenant ID (handles parent orgs)
+    |  Stores in CLS: cls.set('tenantId', resolvedId)
+    v
+TenantService.query() (called by domain services)
+    |
+    |  Reads from CLS: cls.get('tenantId')
+    |  Opens transaction
+    |  Executes: SELECT set_config('app.tenant_id', $1, true)
+    v
+PostgreSQL RLS Policy
+    |
+    |  current_setting('app.tenant_id', true) compared to row's tenant_id
+    v
+Query results (filtered to current tenant only)
+```
+
+### Step-by-step
+
+1. **Session extraction** -- `TenantInterceptor` reads `request.session.session.activeOrganizationId` from the Fastify request, populated by Better Auth's session middleware.
+
+2. **Org-to-tenant resolution** -- The interceptor queries the `organizations` table to check for a `parentOrganizationId`. If found, the parent ID becomes the tenant ID. Results are cached per-request in CLS to avoid repeated lookups.
+
+3. **CLS storage** -- The resolved tenant ID is stored in CLS under the `tenantId` key, making it available to any service in the request pipeline without explicit parameter passing.
+
+4. **Transaction setup** -- When a service calls `TenantService.query()`, it reads the tenant ID from CLS, opens a Drizzle transaction, and executes `set_config('app.tenant_id', tenantId, true)`. The `true` parameter makes the setting local to the current transaction.
+
+5. **RLS enforcement** -- PostgreSQL RLS policies compare each row's `tenant_id` against `current_setting('app.tenant_id', true)`, filtering results automatically.
+
+6. **Automatic cleanup** -- Because `set_config` uses `local = true`, the session variable is automatically cleared when the transaction commits or rolls back. No tenant state persists between requests.
+
+## Row-Level Security (RLS)
+
+### Infrastructure
+
+RLS infrastructure is established in migration `0000_rls_infrastructure.sql`. It creates three foundational pieces:
+
+**1. Application role (`app_user`):** The role used by the application's database connection. RLS policies target this role specifically.
+
+**2. The `create_tenant_rls_policy` helper function:** A reusable SQL function that applies a standard RLS policy to any table:
+
+```sql
+CREATE OR REPLACE FUNCTION create_tenant_rls_policy(table_name text)
+RETURNS void AS $$
+BEGIN
+  -- Enable RLS on the table
+  EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', table_name);
+
+  -- Force RLS even for table owner (safety net)
+  EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', table_name);
+
+  -- Create the tenant isolation policy
+  EXECUTE format(
+    'CREATE POLICY tenant_isolation_%I ON %I
+      USING (tenant_id = current_setting(''app.tenant_id'', true))
+      WITH CHECK (tenant_id = current_setting(''app.tenant_id'', true))',
+    table_name, table_name
+  );
+END;
+$$ LANGUAGE plpgsql;
+```
+
+The policy has two clauses:
+
+- **`USING`** -- Controls which rows are visible for `SELECT`, `UPDATE`, and `DELETE`. Only rows where `tenant_id` matches the current session variable are returned.
+- **`WITH CHECK`** -- Controls which rows can be inserted or updated. Prevents a tenant from inserting data tagged with a different tenant's ID.
+
+**3. Default grants:** The `app_user` role receives `SELECT`, `INSERT`, `UPDATE`, `DELETE` on all current and future tables in the `public` schema.
+
+### Applying RLS to a Table
+
+In migration SQL, call the helper after creating the table:
+
+```sql
+CREATE TABLE IF NOT EXISTS "roles" (
+  "id" text PRIMARY KEY DEFAULT gen_random_uuid(),
+  "tenant_id" text NOT NULL REFERENCES "organizations"("id") ON DELETE CASCADE,
+  -- ... other columns
+);
+
+-- Apply RLS with a single call
+SELECT create_tenant_rls_policy('roles');
+```
+
+### What RLS Prevents
+
+| Operation | Behavior |
+|-----------|----------|
+| `SELECT` without `set_config` | Returns zero rows (empty `app.tenant_id` matches nothing) |
+| `SELECT` as Tenant B for Tenant A data | Returns zero rows |
+| `INSERT` with mismatched `tenant_id` | Rejected by `WITH CHECK` policy |
+| `UPDATE` of another tenant's rows | Silently affects zero rows (row not visible) |
+| `DELETE` of another tenant's rows | Silently affects zero rows (row not visible) |
+
+### FORCE ROW LEVEL SECURITY
+
+The `FORCE` directive ensures RLS applies even to the table owner role. Without it, superuser connections bypass policies. This is a defense-in-depth measure -- even if the application accidentally connects as the table owner, data isolation holds.
+
+## Schema Design
+
+### The `tenantColumn` Pattern
+
+All tenant-scoped tables include a `tenant_id` column via the `tenantColumn` spread from `database/schema/base.ts`:
+
+```ts
+// database/schema/base.ts
+export const tenantColumn = {
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+}
+```
+
+Usage in a schema definition:
+
+```ts
+import { tenantColumn, timestamps } from './base.js'
+
+export const roles = pgTable('roles', {
+  id: text('id').primaryKey().$defaultFn(genId),
+  ...tenantColumn,
+  name: text('name').notNull(),
+  ...timestamps,
+})
+```
+
+This pattern ensures:
+
+- **Consistent column naming** -- Every tenant-scoped table uses `tenant_id` (snake_case), which is what the RLS policy expects.
+- **Referential integrity** -- The FK to `organizations.id` with `ON DELETE CASCADE` means deleting an organization removes all its tenant data.
+- **Non-nullable constraint** -- Prevents accidentally inserting rows without a tenant association.
+
+### Table Classification
+
+Tables fall into three categories based on their tenant scope:
+
+| Category | RLS? | `tenantColumn`? | Examples |
+|----------|------|-----------------|----------|
+| Global | No | No | `users`, `accounts`, `permissions`, `verifications` |
+| Tenant-scoped | Yes | Yes | `roles` |
+| Implicitly scoped (via FK) | No | No | `role_permissions` (scoped through FK to `roles`) |
+| Auth-managed | No | No | `organizations`, `members`, `sessions`, `invitations` |
+
+**Global tables** contain data shared across all tenants (user profiles, permission definitions). They do not have RLS.
+
+**Tenant-scoped tables** have a `tenant_id` column and an RLS policy. The `roles` table is the current example.
+
+**Implicitly scoped tables** inherit isolation through foreign keys to tenant-scoped tables. `role_permissions` joins `roles` (which has RLS) to `permissions` (which is global) -- querying through a tenant-scoped transaction naturally filters the results.
+
+**Auth-managed tables** are owned by Better Auth. The `members` table bridges auth and tenancy -- it has `organizationId` for Better Auth and a `roleId` FK to the tenant-scoped `roles` table.
+
+## TenantModule
+
+The `TenantModule` is registered globally in `AppModule` and provides three core pieces:
+
+```txt
+TenantModule
+├── TenantInterceptor (APP_INTERCEPTOR) -- extracts tenant from session
+├── TenantService -- executes tenant-scoped transactions
+├── TenantContextMissingFilter (APP_FILTER) -- handles missing context
+└── DatabaseUnavailableFilter (APP_FILTER) -- handles missing DB
+```
+
+### TenantInterceptor
+
+Registered as a global `APP_INTERCEPTOR`, it runs on every HTTP request. Its responsibilities:
+
+1. Extract `activeOrganizationId` from the session
+2. Resolve parent organizations (if applicable)
+3. Store the tenant ID in CLS
+4. Cache resolved mappings per-request to prevent redundant DB queries
+
+If no session or no active organization exists, the interceptor sets `tenantId` to `null` in CLS and allows the request to continue. This supports unauthenticated routes and routes that do not require tenant context (e.g., user profile, login).
+
+### TenantService
+
+The service that domain code uses to execute tenant-scoped database operations. It exposes two methods:
+
+**`query(callback)`** -- For standard HTTP request handling. Reads the tenant ID from CLS (set by the interceptor). Throws `TenantContextMissingException` if no tenant is available.
+
+```ts
+// In a domain service
+async listRoles() {
+  return this.tenantService.query((tx) =>
+    tx.select().from(roles)
+  )
+}
+```
+
+**`queryAs(tenantId, callback)`** -- For operations outside the HTTP request cycle (cron jobs, event handlers, background tasks). Accepts an explicit tenant ID, bypassing CLS.
+
+```ts
+// In an event listener (no HTTP context)
+async seedDefaultRoles(organizationId: string) {
+  await this.tenantService.queryAs(organizationId, async (tx) => {
+    // tx is scoped to organizationId
+  })
+}
+```
+
+Both methods follow the same internal flow:
+
+1. Open a Drizzle transaction
+2. Execute `SELECT set_config('app.tenant_id', $tenantId, true)`
+3. Run the callback within the transaction
+4. Return the result (transaction commits) or propagate errors (transaction rolls back)
+
+### Exception Handling
+
+Two custom exceptions map to specific HTTP responses:
+
+| Exception | HTTP Status | When |
+|-----------|-------------|------|
+| `TenantContextMissingException` | 403 Forbidden | `query()` called but no `tenantId` in CLS |
+| `DatabaseUnavailableException` | 503 Service Unavailable | Database is `null` (dev mode without DB) |
+
+Both filters attach the CLS correlation ID to the response via the `x-correlation-id` header and return a structured error body with `errorCode`, `message`, `timestamp`, and `path`.
+
+## Adding a Tenant-Scoped Table
+
+To add a new table with tenant isolation:
+
+**1. Define the schema** with `tenantColumn`:
+
+```ts
+// database/schema/projects.ts
+import { pgTable, text } from 'drizzle-orm/pg-core'
+import { tenantColumn, timestamps } from './base.js'
+
+export const projects = pgTable('projects', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  ...tenantColumn,
+  name: text('name').notNull(),
+  ...timestamps,
+})
+```
+
+**2. Re-export** from the schema barrel:
+
+```ts
+// database/schema/index.ts
+export * from './projects.js'
+```
+
+**3. Generate the migration** and add the RLS policy call:
+
+```bash
+cd apps/api && bunx drizzle-kit generate
+```
+
+Then append to the generated SQL:
+
+```sql
+SELECT create_tenant_rls_policy('projects');
+```
+
+**4. Use `TenantService`** in the domain service:
+
+```ts
+@Injectable()
+export class ProjectService {
+  constructor(private readonly tenantService: TenantService) {}
+
+  async findAll() {
+    return this.tenantService.query((tx) =>
+      tx.select().from(projects)
+    )
+  }
+}
+```
+
+The service does not need to filter by `tenant_id` -- RLS handles it automatically.
+
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `apps/api/src/tenant/tenant.module.ts` | Module registration (interceptor, service, filters) |
+| `apps/api/src/tenant/tenant.service.ts` | Tenant-scoped transaction execution |
+| `apps/api/src/tenant/tenant.interceptor.ts` | Session-to-CLS tenant extraction |
+| `apps/api/src/tenant/exceptions/` | Custom exception classes |
+| `apps/api/src/tenant/filters/` | Exception-to-HTTP-response filters |
+| `apps/api/src/database/schema/base.ts` | `tenantColumn` helper |
+| `apps/api/drizzle/migrations/0000_rls_infrastructure.sql` | RLS infrastructure (role, function, grants) |
+
+## Related Documentation
+
+- [Database Architecture](./database) -- Drizzle ORM setup, schema conventions, migration workflow
+- [Architecture Overview](./index) -- Project structure and data flow
