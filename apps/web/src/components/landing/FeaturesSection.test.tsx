@@ -1,6 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
+vi.mock('@tanstack/react-router', () => ({
+  Link: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <a {...props}>{children}</a>
+  ),
+}))
+
 vi.mock('@repo/ui', () => ({
   Card: ({ children, className, ...props }: React.PropsWithChildren<{ className?: string }>) => (
     <div className={className} {...props}>
