@@ -1,5 +1,6 @@
 import { AnimatedSection, Card, cn } from '@repo/ui'
 import { AlertTriangle, CheckCircle2, Crown, Eye, Users, XCircle } from 'lucide-react'
+import { m } from '@/paraglide/messages'
 
 type Agent = {
   name: string
@@ -23,25 +24,6 @@ const qualityAgents: Agent[] = [
   { name: 'fixer', color: 'text-chart-5 bg-chart-5/10' },
   { name: 'security-auditor', color: 'text-destructive bg-destructive/10' },
 ]
-
-const reviewSteps: ReadonlyArray<{ step: string; label: string; emphasis?: boolean }> = [
-  { step: '1', label: 'Fresh agents review (never the author)', emphasis: true },
-  { step: '2', label: 'Conventional Comments per domain' },
-  { step: '3', label: 'Human decides each finding via AskUserQuestion' },
-  { step: '4', label: 'Parallel fixers apply accepted fixes' },
-]
-
-const orchestratorDos = [
-  'Spawn specialized agents via Task tool',
-  'Assign tasks, track dependencies',
-  'Synthesize results, report to human',
-] as const
-
-const orchestratorDonts = [
-  'Write or edit code directly',
-  'Write documentation content',
-  'Run tests or linters',
-] as const
 
 function AgentBadge({ agent }: { agent: Agent }) {
   return (
@@ -74,6 +56,25 @@ function CategoryCard({
 }
 
 export function AgentTeamsSection() {
+  const orchestratorDos = [
+    m.talk_teams_orch_do_1(),
+    m.talk_teams_orch_do_2(),
+    m.talk_teams_orch_do_3(),
+  ]
+
+  const orchestratorDonts = [
+    m.talk_teams_orch_dont_1(),
+    m.talk_teams_orch_dont_2(),
+    m.talk_teams_orch_dont_3(),
+  ]
+
+  const reviewSteps: ReadonlyArray<{ step: string; label: string; emphasis?: boolean }> = [
+    { step: '1', label: m.talk_teams_review_step_1(), emphasis: true },
+    { step: '2', label: m.talk_teams_review_step_2() },
+    { step: '3', label: m.talk_teams_review_step_3() },
+    { step: '4', label: m.talk_teams_review_step_4() },
+  ]
+
   return (
     <div className="relative mx-auto max-w-7xl w-full">
       {/* Background glow */}
@@ -86,11 +87,9 @@ export function AgentTeamsSection() {
           <div className="rounded-lg bg-primary/10 p-2">
             <Users className="h-5 w-5 text-primary" />
           </div>
-          <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">Agent Teams in Action</h2>
+          <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">{m.talk_teams_title()}</h2>
         </div>
-        <p className="mt-4 text-lg text-muted-foreground">
-          9 agents, 3 categories. The orchestrator delegates — it never writes code.
-        </p>
+        <p className="mt-4 text-lg text-muted-foreground">{m.talk_teams_subtitle()}</p>
       </AnimatedSection>
 
       {/* Line 1: Team Lead + 3 categories — horizontal */}
@@ -102,10 +101,7 @@ export function AgentTeamsSection() {
               <Crown className="h-4 w-4 text-primary" />
               <p className="font-mono text-sm font-bold text-primary">orchestrator</p>
             </div>
-            <p className="text-xs text-muted-foreground mb-3">
-              Spawns agents, assigns tasks, synthesizes. Never writes code — preserves context
-              window.
-            </p>
+            <p className="text-xs text-muted-foreground mb-3">{m.talk_teams_orch_desc()}</p>
             <div className="space-y-1">
               {orchestratorDos.map((item) => (
                 <div key={item} className="flex items-start gap-1.5">
@@ -122,9 +118,21 @@ export function AgentTeamsSection() {
             </div>
           </Card>
 
-          <CategoryCard title="Strategy" subtitle="Planning & design" agents={strategyAgents} />
-          <CategoryCard title="Domain" subtitle="Code writers" agents={domainAgents} />
-          <CategoryCard title="Quality" subtitle="Verification" agents={qualityAgents} />
+          <CategoryCard
+            title={m.talk_teams_cat_strategy()}
+            subtitle={m.talk_teams_cat_strategy_sub()}
+            agents={strategyAgents}
+          />
+          <CategoryCard
+            title={m.talk_teams_cat_domain()}
+            subtitle={m.talk_teams_cat_domain_sub()}
+            agents={domainAgents}
+          />
+          <CategoryCard
+            title={m.talk_teams_cat_quality()}
+            subtitle={m.talk_teams_cat_quality_sub()}
+            agents={qualityAgents}
+          />
         </div>
       </AnimatedSection>
 
@@ -135,7 +143,7 @@ export function AgentTeamsSection() {
           <Card variant="subtle" className="p-5">
             <div className="flex items-center gap-2 mb-3">
               <Eye className="h-4 w-4 text-primary" />
-              <p className="font-semibold">Review Pipeline</p>
+              <p className="font-semibold">{m.talk_teams_review_title()}</p>
             </div>
             <div className="space-y-1.5">
               {reviewSteps.map((step) => (
@@ -163,10 +171,8 @@ export function AgentTeamsSection() {
             {/* Fresh review insight */}
             <div className="mt-3 rounded-lg border border-border/30 bg-muted/10 p-3">
               <p className="text-xs text-muted-foreground">
-                <span className="font-semibold text-foreground">Why fresh agents?</span> An agent
-                that wrote the code has sunk-cost bias — it won&apos;t question its own decisions. A
-                fresh reviewer sees the code for the first time and challenges every choice, like a
-                real code review.
+                <span className="font-semibold text-foreground">{m.talk_teams_review_why()}</span>{' '}
+                {m.talk_teams_review_why_text()}
               </p>
             </div>
           </Card>
@@ -175,42 +181,46 @@ export function AgentTeamsSection() {
           <Card variant="subtle" className="p-5">
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              <p className="font-semibold">Honest Take</p>
+              <p className="font-semibold">{m.talk_teams_honest_title()}</p>
             </div>
 
             <div className="space-y-3">
               <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-3">
-                <p className="text-xs font-semibold text-green-500 mb-1.5">What works well</p>
+                <p className="text-xs font-semibold text-green-500 mb-1.5">
+                  {m.talk_teams_honest_works()}
+                </p>
                 <ul className="space-y-1 text-xs text-muted-foreground">
                   <li className="flex items-start gap-1.5">
                     <CheckCircle2 className="h-3 w-3 text-green-500 mt-0.5 shrink-0" />
-                    Subagents via Task tool — Claude manages coordination internally
+                    {m.talk_teams_honest_works_1()}
                   </li>
                   <li className="flex items-start gap-1.5">
                     <CheckCircle2 className="h-3 w-3 text-green-500 mt-0.5 shrink-0" />
-                    Specialized agents with domain docs + skills
+                    {m.talk_teams_honest_works_2()}
                   </li>
                   <li className="flex items-start gap-1.5">
                     <CheckCircle2 className="h-3 w-3 text-green-500 mt-0.5 shrink-0" />
-                    Fresh reviewers catch what authors miss
+                    {m.talk_teams_honest_works_3()}
                   </li>
                 </ul>
               </div>
 
               <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
-                <p className="text-xs font-semibold text-red-500 mb-1.5">What doesn&apos;t</p>
+                <p className="text-xs font-semibold text-red-500 mb-1.5">
+                  {m.talk_teams_honest_doesnt()}
+                </p>
                 <ul className="space-y-1 text-xs text-muted-foreground">
                   <li className="flex items-start gap-1.5">
                     <XCircle className="h-3 w-3 text-red-500 mt-0.5 shrink-0" />
-                    Multi-panel Agent Teams — coordination overhead exceeds benefit
+                    {m.talk_teams_honest_doesnt_1()}
                   </li>
                   <li className="flex items-start gap-1.5">
                     <XCircle className="h-3 w-3 text-red-500 mt-0.5 shrink-0" />
-                    Orchestrator writing code — burns context, produces worse results
+                    {m.talk_teams_honest_doesnt_2()}
                   </li>
                   <li className="flex items-start gap-1.5">
                     <XCircle className="h-3 w-3 text-red-500 mt-0.5 shrink-0" />
-                    Generalist agents — produce generic, boilerplate output
+                    {m.talk_teams_honest_doesnt_3()}
                   </li>
                 </ul>
               </div>

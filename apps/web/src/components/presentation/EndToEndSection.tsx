@@ -1,5 +1,6 @@
 import { AnimatedSection, Card, cn, useInView, useReducedMotion } from '@repo/ui'
 import { ArrowRight, GitPullRequest, Globe, Rocket, Workflow } from 'lucide-react'
+import { m } from '@/paraglide/messages'
 
 type PipelineStep = {
   command: string
@@ -9,73 +10,6 @@ type PipelineStep = {
   isGate?: boolean
 }
 
-const pipelineSteps: ReadonlyArray<PipelineStep> = [
-  {
-    command: '/bootstrap',
-    from: 'Idea',
-    to: 'Analysis',
-    description: 'Interview, structured analysis',
-    isGate: true,
-  },
-  {
-    command: '/bootstrap',
-    from: 'Analysis',
-    to: 'Spec',
-    description: 'Analysis promoted to spec',
-    isGate: true,
-  },
-  {
-    command: '/scaffold',
-    from: 'Spec',
-    to: 'Code',
-    description: 'Plan approval, then agents implement',
-  },
-  {
-    command: '/pr',
-    from: 'Code',
-    to: 'PR',
-    description: 'Create pull request',
-  },
-  {
-    command: '/review',
-    from: 'PR',
-    to: 'Reviewed',
-    description: 'Fresh review + /1b1 decisions',
-    isGate: true,
-  },
-  {
-    command: 'Merge',
-    from: 'Reviewed',
-    to: 'Staging',
-    description: 'PR merged into staging branch',
-  },
-  {
-    command: '/promote',
-    from: 'Staging',
-    to: 'Main',
-    description: 'Preview verification, then deploy',
-    isGate: true,
-  },
-]
-
-const integrations = [
-  {
-    icon: GitPullRequest,
-    label: 'GitHub',
-    detail: 'Issues, Projects, PRs, Actions',
-  },
-  {
-    icon: Rocket,
-    label: 'Vercel',
-    detail: 'Deploy, logs, env vars, rollback',
-  },
-  {
-    icon: Globe,
-    label: 'CI/CD',
-    detail: 'GitHub Actions + Vercel auto-deploy',
-  },
-] as const
-
 export function EndToEndSection() {
   const reducedMotion = useReducedMotion()
   const { ref: pipelineRef, inView } = useInView({
@@ -83,6 +17,73 @@ export function EndToEndSection() {
     triggerOnce: true,
   })
   const visible = inView || reducedMotion
+
+  const pipelineSteps: ReadonlyArray<PipelineStep> = [
+    {
+      command: '/bootstrap',
+      from: m.talk_e2e_step_idea(),
+      to: m.talk_e2e_step_analysis(),
+      description: m.talk_e2e_desc_interview(),
+      isGate: true,
+    },
+    {
+      command: '/bootstrap',
+      from: m.talk_e2e_step_analysis(),
+      to: m.talk_e2e_step_spec(),
+      description: m.talk_e2e_desc_promote_spec(),
+      isGate: true,
+    },
+    {
+      command: '/scaffold',
+      from: m.talk_e2e_step_spec(),
+      to: m.talk_e2e_step_code(),
+      description: m.talk_e2e_desc_plan_agents(),
+    },
+    {
+      command: '/pr',
+      from: m.talk_e2e_step_code(),
+      to: m.talk_e2e_step_pr(),
+      description: m.talk_e2e_desc_create_pr(),
+    },
+    {
+      command: '/review',
+      from: m.talk_e2e_step_pr(),
+      to: m.talk_e2e_step_reviewed(),
+      description: m.talk_e2e_desc_fresh_review(),
+      isGate: true,
+    },
+    {
+      command: 'Merge',
+      from: m.talk_e2e_step_reviewed(),
+      to: m.talk_e2e_step_staging(),
+      description: m.talk_e2e_desc_pr_merged(),
+    },
+    {
+      command: '/promote',
+      from: m.talk_e2e_step_staging(),
+      to: m.talk_e2e_step_main(),
+      description: m.talk_e2e_desc_preview_deploy(),
+      isGate: true,
+    },
+  ]
+
+  const integrations = [
+    {
+      icon: GitPullRequest,
+      label: 'GitHub',
+      detail: m.talk_e2e_int_github_detail(),
+    },
+    {
+      icon: Rocket,
+      label: 'Vercel',
+      detail: m.talk_e2e_int_vercel_detail(),
+    },
+    {
+      icon: Globe,
+      label: 'CI/CD',
+      detail: m.talk_e2e_int_cicd_detail(),
+    },
+  ]
 
   return (
     <div className="relative mx-auto max-w-7xl w-full">
@@ -96,12 +97,9 @@ export function EndToEndSection() {
           <div className="rounded-lg bg-primary/10 p-2">
             <Workflow className="h-5 w-5 text-primary" />
           </div>
-          <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">Idea to Production</h2>
+          <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">{m.talk_e2e_title()}</h2>
         </div>
-        <p className="mt-4 text-lg text-muted-foreground">
-          Analysis, spec, code, review, deploy. Claude manages the full SDLC — including GitHub and
-          Vercel.
-        </p>
+        <p className="mt-4 text-lg text-muted-foreground">{m.talk_e2e_subtitle()}</p>
       </AnimatedSection>
 
       {/* Pipeline flow */}
@@ -132,7 +130,9 @@ export function EndToEndSection() {
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground/70">{step.description}</p>
                 {step.isGate && (
-                  <p className="mt-1.5 text-xs font-semibold text-yellow-500">validation gate</p>
+                  <p className="mt-1.5 text-xs font-semibold text-yellow-500">
+                    {m.talk_e2e_validation_gate()}
+                  </p>
                 )}
               </Card>
               {index < pipelineSteps.length - 1 && (
@@ -171,7 +171,9 @@ export function EndToEndSection() {
                     {step.from} → {step.to}
                   </span>
                   {step.isGate && (
-                    <span className="text-xs font-semibold text-yellow-500">gate</span>
+                    <span className="text-xs font-semibold text-yellow-500">
+                      {m.talk_e2e_gate()}
+                    </span>
                   )}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>

@@ -1,39 +1,36 @@
 import { AnimatedSection, Card, cn } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
 import { ArrowRight, CheckCircle2, Lightbulb, Target, XCircle } from 'lucide-react'
-
-const withoutItems = [
-  'Manual PRs, copy-paste reviews',
-  'Generic AI output, boilerplate code',
-  'One feature at a time, sequential work',
-] as const
-
-const withItems = [
-  'Automated pipeline: /pr, /review, /promote',
-  'Specialized agents with domain docs + skills',
-  'Parallel worktrees, 3 features simultaneously',
-] as const
-
-const takeaways = [
-  {
-    text: 'Specialization beats generalism',
-    detail: 'agent.md + docs + skills = specialist',
-  },
-  {
-    text: 'Process discipline matters',
-    detail: 'As much as code generation itself',
-  },
-  {
-    text: 'Never self-review',
-    detail: 'Not even an AI author should review its own code',
-  },
-  {
-    text: 'Good process, good code',
-    detail: 'From idea to production, end to end',
-  },
-] as const
+import { m } from '@/paraglide/messages'
 
 export function ClosingSection() {
+  const withoutItems = [
+    m.talk_closing_without_1(),
+    m.talk_closing_without_2(),
+    m.talk_closing_without_3(),
+  ]
+
+  const withItems = [m.talk_closing_with_1(), m.talk_closing_with_2(), m.talk_closing_with_3()]
+
+  const takeaways = [
+    {
+      text: m.talk_closing_takeaway_1(),
+      detail: m.talk_closing_takeaway_1_detail(),
+    },
+    {
+      text: m.talk_closing_takeaway_2(),
+      detail: m.talk_closing_takeaway_2_detail(),
+    },
+    {
+      text: m.talk_closing_takeaway_3(),
+      detail: m.talk_closing_takeaway_3_detail(),
+    },
+    {
+      text: m.talk_closing_takeaway_4(),
+      detail: m.talk_closing_takeaway_4_detail(),
+    },
+  ]
+
   return (
     <div className="relative mx-auto max-w-7xl w-full">
       {/* Background glow */}
@@ -46,11 +43,11 @@ export function ClosingSection() {
           <div className="rounded-lg bg-primary/10 p-2">
             <Target className="h-5 w-5 text-primary" />
           </div>
-          <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">Key Takeaways</h2>
+          <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">
+            {m.talk_closing_title()}
+          </h2>
         </div>
-        <p className="mt-4 text-lg text-muted-foreground">
-          What we learned building a SaaS framework with an AI team.
-        </p>
+        <p className="mt-4 text-lg text-muted-foreground">{m.talk_closing_subtitle()}</p>
       </AnimatedSection>
 
       {/* Main content: 3-column grid */}
@@ -60,7 +57,9 @@ export function ClosingSection() {
           <Card variant="subtle" className="p-5 h-full">
             <div className="space-y-5">
               <div>
-                <p className="text-sm font-semibold text-red-500 mb-3">Without</p>
+                <p className="text-sm font-semibold text-red-500 mb-3">
+                  {m.talk_closing_without()}
+                </p>
                 <div className="space-y-2">
                   {withoutItems.map((item) => (
                     <div key={item} className="flex items-start gap-2">
@@ -71,7 +70,7 @@ export function ClosingSection() {
                 </div>
               </div>
               <div className="border-t border-border/30 pt-5">
-                <p className="text-sm font-semibold text-green-500 mb-3">With Claude Code</p>
+                <p className="text-sm font-semibold text-green-500 mb-3">{m.talk_closing_with()}</p>
                 <div className="space-y-2">
                   {withItems.map((item) => (
                     <div key={item} className="flex items-start gap-2">
@@ -111,15 +110,13 @@ export function ClosingSection() {
 
       {/* Bottom: tagline + CTA */}
       <AnimatedSection className="mt-10 flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
-        <p className="text-lg italic text-muted-foreground">
-          Entirely built with Claude Code — zero manual code, zero manual deployments.
-        </p>
+        <p className="text-lg italic text-muted-foreground">{m.talk_closing_tagline()}</p>
         <Link
           to="/docs/$"
           params={{ _splat: 'guides/agent-teams' }}
           className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-base font-semibold text-primary-foreground transition-colors hover:bg-primary/90 shrink-0"
         >
-          Explore the Docs
+          {m.talk_closing_cta()}
           <ArrowRight className="h-4 w-4" />
         </Link>
       </AnimatedSection>

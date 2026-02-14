@@ -8,67 +8,53 @@ import {
   Route,
   Shield,
 } from 'lucide-react'
-
-const tiers = [
-  {
-    name: 'Tier S',
-    label: 'Quick Fix',
-    criteria: '3 files or fewer, no architecture risk',
-    process: 'Worktree + PR',
-    color: 'border-green-500/50 bg-green-500/5',
-    dotColor: 'bg-green-500',
-  },
-  {
-    name: 'Tier F-lite',
-    label: 'Feature (lite)',
-    criteria: 'Clear scope, single domain',
-    process: 'Worktree + agents + /review',
-    color: 'border-blue-500/50 bg-blue-500/5',
-    dotColor: 'bg-blue-500',
-  },
-  {
-    name: 'Tier F-full',
-    label: 'Feature (full)',
-    criteria: 'New architecture, unclear requirements, >2 domains',
-    process: 'Bootstrap + worktree + agents + /review',
-    color: 'border-purple-500/50 bg-purple-500/5',
-    dotColor: 'bg-purple-500',
-  },
-] as const
-
-const gitHooks = [
-  {
-    name: 'pre-commit',
-    description: 'Biome lint + auto-fix staged files',
-  },
-  {
-    name: 'commit-msg',
-    description: 'Commitlint validates Conventional Commits',
-  },
-  {
-    name: 'pre-push',
-    description: 'Full lint, typecheck, test coverage',
-  },
-] as const
-
-const claudeHooks = [
-  {
-    name: 'PostToolUse',
-    description: 'Biome auto-format on every file edit',
-  },
-  {
-    name: 'PreToolUse',
-    description: 'Security warnings before file changes',
-  },
-] as const
-
-const tmuxPanes = [
-  { issue: '#42', label: 'Auth module', command: '/scaffold --issue 42' },
-  { issue: '#43', label: 'API endpoint', command: '/scaffold --issue 43' },
-  { issue: '#44', label: 'Dashboard', command: '/scaffold --issue 44' },
-] as const
+import { m } from '@/paraglide/messages'
 
 export function DevProcessSection() {
+  const tiers = [
+    {
+      name: m.talk_dev_tier_s(),
+      label: m.talk_dev_tier_s_label(),
+      criteria: m.talk_dev_tier_s_criteria(),
+      process: m.talk_dev_tier_s_process(),
+      color: 'border-green-500/50 bg-green-500/5',
+      dotColor: 'bg-green-500',
+    },
+    {
+      name: m.talk_dev_tier_flite(),
+      label: m.talk_dev_tier_flite_label(),
+      criteria: m.talk_dev_tier_flite_criteria(),
+      process: m.talk_dev_tier_flite_process(),
+      color: 'border-blue-500/50 bg-blue-500/5',
+      dotColor: 'bg-blue-500',
+    },
+    {
+      name: m.talk_dev_tier_ffull(),
+      label: m.talk_dev_tier_ffull_label(),
+      criteria: m.talk_dev_tier_ffull_criteria(),
+      process: m.talk_dev_tier_ffull_process(),
+      color: 'border-purple-500/50 bg-purple-500/5',
+      dotColor: 'bg-purple-500',
+    },
+  ]
+
+  const gitHooks = [
+    { name: 'pre-commit', description: m.talk_dev_hook_precommit() },
+    { name: 'commit-msg', description: m.talk_dev_hook_commitmsg() },
+    { name: 'pre-push', description: m.talk_dev_hook_prepush() },
+  ]
+
+  const claudeHooks = [
+    { name: 'PostToolUse', description: m.talk_dev_hook_posttooluse() },
+    { name: 'PreToolUse', description: m.talk_dev_hook_pretooluse() },
+  ]
+
+  const tmuxPanes = [
+    { issue: '#42', label: m.talk_dev_pane_auth(), command: '/scaffold --issue 42' },
+    { issue: '#43', label: m.talk_dev_pane_api(), command: '/scaffold --issue 43' },
+    { issue: '#44', label: m.talk_dev_pane_dashboard(), command: '/scaffold --issue 44' },
+  ]
+
   return (
     <div className="mx-auto max-w-7xl w-full">
       <AnimatedSection>
@@ -76,11 +62,9 @@ export function DevProcessSection() {
           <div className="rounded-lg bg-primary/10 p-2">
             <Route className="h-5 w-5 text-primary" />
           </div>
-          <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">Development Process</h2>
+          <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">{m.talk_dev_title()}</h2>
         </div>
-        <p className="mt-4 text-lg text-muted-foreground">
-          A 50-file mechanical change may be F-lite. A 3-file rate limiter may be F-full.
-        </p>
+        <p className="mt-4 text-lg text-muted-foreground">{m.talk_dev_subtitle()}</p>
       </AnimatedSection>
 
       {/* Three-column layout */}
@@ -90,7 +74,7 @@ export function DevProcessSection() {
           <Card variant="subtle" className="p-5 lg:p-6 h-full">
             <div className="flex items-center gap-2 text-sm font-semibold mb-4">
               <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0" />
-              <span>Match process to complexity</span>
+              <span>{m.talk_dev_match_complexity()}</span>
             </div>
 
             <div className="space-y-3">
@@ -117,8 +101,8 @@ export function DevProcessSection() {
             <div className="mt-4 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
               <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
               <p className="text-xs text-muted-foreground">
-                <span className="font-semibold text-foreground">Key insight:</span> A 50-file
-                mechanical change may be F-lite. A 3-file rate limiter may be F-full.
+                <span className="font-semibold text-foreground">{m.talk_dev_key_insight()}</span>{' '}
+                {m.talk_dev_key_insight_text()}
               </p>
             </div>
           </Card>
@@ -132,15 +116,12 @@ export function DevProcessSection() {
                 <GitBranch className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h3 className="text-base font-semibold">Worktree = Parallelism</h3>
-                <p className="text-xs text-muted-foreground">3 features simultaneously</p>
+                <h3 className="text-base font-semibold">{m.talk_dev_worktree_title()}</h3>
+                <p className="text-xs text-muted-foreground">{m.talk_dev_worktree_subtitle()}</p>
               </div>
             </div>
 
-            <p className="text-xs text-muted-foreground mb-4">
-              Each issue gets its own worktree — isolated branch, deps, and DB. One Claude Code
-              session per pane.
-            </p>
+            <p className="text-xs text-muted-foreground mb-4">{m.talk_dev_worktree_desc()}</p>
 
             {/* 3 mini terminal panes */}
             <div className="space-y-1.5">
@@ -173,7 +154,7 @@ export function DevProcessSection() {
               <div className="rounded-lg bg-primary/10 p-2">
                 <Shield className="h-4 w-4 text-primary" />
               </div>
-              <h3 className="text-base font-semibold">Quality Gates</h3>
+              <h3 className="text-base font-semibold">{m.talk_dev_quality_title()}</h3>
             </div>
 
             {/* Git hooks (Lefthook) */}
@@ -181,7 +162,7 @@ export function DevProcessSection() {
               <div className="mb-1.5 flex items-center gap-1.5">
                 <GitBranch className="h-3 w-3 text-green-500" />
                 <span className="text-xs font-semibold text-green-500 uppercase tracking-wide">
-                  Git Hooks (Lefthook)
+                  {m.talk_dev_git_hooks_label()}
                 </span>
               </div>
               <div className="space-y-1">
@@ -204,7 +185,7 @@ export function DevProcessSection() {
               <div className="mb-1.5 flex items-center gap-1.5">
                 <Monitor className="h-3 w-3 text-blue-500" />
                 <span className="text-xs font-semibold text-blue-500 uppercase tracking-wide">
-                  Claude Hooks
+                  {m.talk_dev_claude_hooks_label()}
                 </span>
               </div>
               <div className="space-y-1">
@@ -225,8 +206,8 @@ export function DevProcessSection() {
             {/* Insight */}
             <div className="mt-3 rounded-md border border-border/30 bg-muted/10 p-2">
               <p className="text-[11px] text-muted-foreground">
-                <span className="font-semibold text-foreground">Rule:</span> Lefthook for hard
-                gates. Claude hooks for DX. Claude can&apos;t bypass git hooks.
+                <span className="font-semibold text-foreground">{m.talk_dev_quality_rule()}</span>{' '}
+                {m.talk_dev_quality_rule_text()}
               </p>
             </div>
           </Card>
