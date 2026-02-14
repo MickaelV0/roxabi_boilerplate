@@ -81,7 +81,7 @@ jobs:
     if: inputs.target == 'api' || inputs.target == 'both'
     outputs:
       branch_id: ${{ steps.create.outputs.branch_id }}
-      database_url: ${{ steps.create.outputs.database_url }}
+      database_url_b64: ${{ steps.create.outputs.database_url_b64 }}
     steps:
       - name: Validate Neon secrets
         env:
@@ -138,9 +138,11 @@ jobs:
           fi
 
           echo "branch_id=$BRANCH_ID" >> "$GITHUB_OUTPUT"
-          # Mask the connection string in logs
-          echo "::add-mask::$CONNECTION_URI"
-          echo "database_url=$CONNECTION_URI" >> "$GITHUB_OUTPUT"
+          # Base64-encode the connection URI to bypass GitHub Actions secret masking.
+          # GitHub suppresses job outputs that match registered secrets, which breaks
+          # cross-job secret passing. Encoding avoids the pattern match.
+          DB_URL_B64=$(echo -n "$CONNECTION_URI" | base64 -w0)
+          echo "database_url_b64=$DB_URL_B64" >> "$GITHUB_OUTPUT"
           echo "Created Neon branch: $BRANCH_NAME ($BRANCH_ID)"
 
   deploy-api:
@@ -149,8 +151,12 @@ jobs:
     needs: [create-neon-branch]
     if: inputs.target == 'api' || inputs.target == 'both'
     steps:
-      - name: Mask database URL
-        run: echo "::add-mask::${{ needs.create-neon-branch.outputs.database_url }}"
+      - name: Decode and mask database URL
+        id: db
+        run: |
+          DB_URL=$(echo "${{ needs.create-neon-branch.outputs.database_url_b64 }}" | base64 -d)
+          echo "::add-mask::$DB_URL"
+          echo "url=$DB_URL" >> "$GITHUB_OUTPUT"
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -182,7 +188,7 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
-          DATABASE_URL: ${{ needs.create-neon-branch.outputs.database_url }}
+          DATABASE_URL: ${{ steps.db.outputs.url }}
 
       - name: Deploy API preview
         id: deploy
@@ -193,10 +199,10 @@ jobs:
         # exposure is low risk.
         run: |
           # Rate limiting uses in-memory storage in previews (no Upstash) — resets on cold start
-          URL=$(vercel deploy --prebuilt --env DATABASE_URL=${{ needs.create-neon-branch.outputs.database_url }} --env SWAGGER_ENABLED=true --env RATE_LIMIT_ENABLED=true --token=${{ secrets.VERCEL_TOKEN }})
+          URL=$(vercel deploy --prebuilt --env DATABASE_URL=${{ steps.db.outputs.url }} --env SWAGGER_ENABLED=true --env RATE_LIMIT_ENABLED=true --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$URL" >> "$GITHUB_OUTPUT"
         env:
-          DATABASE_URL: ${{ needs.create-neon-branch.outputs.database_url }}
+          DATABASE_URL: ${{ steps.db.outputs.url }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
 
