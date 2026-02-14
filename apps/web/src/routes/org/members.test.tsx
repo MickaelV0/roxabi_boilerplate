@@ -71,6 +71,24 @@ vi.mock('@repo/ui', () => ({
   ),
   SelectTrigger: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
   SelectValue: () => <span />,
+  Table: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <table {...props}>{children}</table>
+  ),
+  TableHeader: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <thead {...props}>{children}</thead>
+  ),
+  TableBody: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <tbody {...props}>{children}</tbody>
+  ),
+  TableRow: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <tr {...props}>{children}</tr>
+  ),
+  TableHead: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <th {...props}>{children}</th>
+  ),
+  TableCell: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <td {...props}>{children}</td>
+  ),
 }))
 
 vi.mock('@/lib/auth-client', () => ({
