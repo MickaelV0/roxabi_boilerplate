@@ -6,6 +6,7 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { AppModule } from './app.module.js'
 import { parseCorsOrigins } from './cors.js'
+import { registerRateLimitHeadersHook } from './throttler/index.js'
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -15,6 +16,7 @@ async function bootstrap() {
         level: process.env.LOG_LEVEL || 'debug',
       },
       bodyLimit: 1_048_576, // 1 MiB — explicit limit
+      trustProxy: 1, // trust single proxy hop (Vercel) for correct client IP from x-forwarded-for
     })
   )
 
@@ -59,6 +61,9 @@ async function bootstrap() {
       }
     )
 
+  // Rate limit headers via onSend hook
+  registerRateLimitHeadersHook(app)
+
   // Global pipes
   app.useGlobalPipes(
     new ValidationPipe({
@@ -79,21 +84,30 @@ async function bootstrap() {
   }
   app.enableCors({ origin: corsResult.origins, credentials: true })
 
-  // Swagger setup
-  const config = new DocumentBuilder()
-    .setTitle('Roxabi API')
-    .setDescription('Roxabi SaaS Backend API')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build()
-  const document = SwaggerModule.createDocument(app, config)
-  SwaggerModule.setup('api/docs', app, document, {
-    customCssUrl: 'https://unpkg.com/swagger-ui-dist@5.31.0/swagger-ui.css',
-    customJs: [
-      'https://unpkg.com/swagger-ui-dist@5.31.0/swagger-ui-bundle.js',
-      'https://unpkg.com/swagger-ui-dist@5.31.0/swagger-ui-standalone-preset.js',
-    ],
-  })
+  // Swagger setup — gated by SWAGGER_ENABLED env var
+  const swaggerEnabled = configService.get<string>(
+    'SWAGGER_ENABLED',
+    nodeEnv !== 'production' ? 'true' : 'false'
+  )
+  if (swaggerEnabled === 'true') {
+    const config = new DocumentBuilder()
+      .setTitle('Roxabi API')
+      .setDescription('Roxabi SaaS Backend API')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build()
+    const document = SwaggerModule.createDocument(app, config)
+    SwaggerModule.setup('api/docs', app, document, {
+      customCssUrl: 'https://unpkg.com/swagger-ui-dist@5.31.0/swagger-ui.css',
+      customJs: [
+        'https://unpkg.com/swagger-ui-dist@5.31.0/swagger-ui-bundle.js',
+        'https://unpkg.com/swagger-ui-dist@5.31.0/swagger-ui-standalone-preset.js',
+      ],
+    })
+    logger.log('Swagger UI enabled at /api/docs')
+  } else {
+    logger.log('Swagger UI disabled (set SWAGGER_ENABLED=true to enable)')
+  }
 
   const port = configService.get<number>('PORT', 3001)
   await app.listen(port, '0.0.0.0')

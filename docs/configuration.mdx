@@ -155,6 +155,17 @@ Configure in Vercel dashboard under **Settings &gt; Environment Variables**:
 | `API_URL` | This project's URL | `https://api.roxabi.vercel.app` |
 | `EMAIL_FROM` | Sender email address | `noreply@example.com` |
 | `RESEND_API_KEY` | Resend API key for transactional emails | `re_...` |
+| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL (auto-injected via Vercel Marketplace) | `https://...upstash.io` |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token (auto-injected via Vercel Marketplace) | `AX...` |
+| `RATE_LIMIT_ENABLED` | Enable/disable rate limiting (kill switch) | `true` |
+| `SWAGGER_ENABLED` | Enable Swagger UI at `/api/docs` | `false` |
+| `RATE_LIMIT_GLOBAL_TTL` | Global rate limit window in ms | `60000` |
+| `RATE_LIMIT_GLOBAL_LIMIT` | Global max requests per window | `60` |
+| `RATE_LIMIT_AUTH_TTL` | Auth rate limit window in ms | `60000` |
+| `RATE_LIMIT_AUTH_LIMIT` | Auth max requests per window | `5` |
+| `RATE_LIMIT_AUTH_BLOCK_DURATION` | Auth tier block duration in ms | `300000` |
+| `RATE_LIMIT_API_TTL` | API key tier rate limit window in ms (reserved for future use) | `60000` |
+| `RATE_LIMIT_API_LIMIT` | API key tier max requests per window (reserved for future use) | `100` |
 
 > **Note:** Vercel auto-sets `NODE_ENV=production`. NestJS runs as a Vercel Function with Fluid compute.
 
