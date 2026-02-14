@@ -47,12 +47,12 @@ const hooksPipeline = [
   },
 ] as const
 
-const worktreeCode = `# Every feature gets its own worktree
-git worktree add ../roxabi-42 \\
-  -b feat/42-user-auth staging
+const worktreeCode = `# Issue #42 → branch → worktree — automatic
+> /scaffold --issue 42
 
-cd ../roxabi-42
-claude  # start coding in isolation`
+# Claude reads the issue, creates worktree,
+# codes in isolation, opens PR
+# One command. No manual git needed.`
 
 export function DevProcessSection() {
   return (
@@ -119,7 +119,8 @@ export function DevProcessSection() {
               </div>
 
               <p className="text-sm text-muted-foreground mb-4">
-                Every code change requires a worktree. No direct commits to main or staging.
+                Issue = branch = worktree. Claude Code handles the mapping automatically — no manual
+                git commands needed.
               </p>
 
               <CodeBlock>{worktreeCode}</CodeBlock>

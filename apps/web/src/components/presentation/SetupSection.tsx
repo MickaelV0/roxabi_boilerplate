@@ -1,5 +1,5 @@
 import { AnimatedSection, Card, cn } from '@repo/ui'
-import { Bot, Layers, Monitor, Rocket, Terminal, Users } from 'lucide-react'
+import { Bot, Layers, Monitor, Terminal } from 'lucide-react'
 
 const requiredTools = [
   {
@@ -19,27 +19,15 @@ const requiredTools = [
 const recommendedTools = [
   {
     icon: Layers,
-    name: 'tmux',
-    description: 'Multi-pane sessions — agents run in parallel',
+    name: 'Multi-pane sessions',
+    description: 'tmux or iTerm2 — agents run in parallel',
     color: 'text-green-500',
   },
   {
     icon: Monitor,
-    name: 'WezTerm',
-    description: 'GPU-accelerated terminal — recommended for Agent Teams',
+    name: 'GPU terminal',
+    description: 'Ghostty, WezTerm — split panes for agents',
     color: 'text-blue-500',
-  },
-  {
-    icon: Rocket,
-    name: 'Starship',
-    description: 'Fast prompt — git branch, runtimes',
-    color: 'text-yellow-500',
-  },
-  {
-    icon: Users,
-    name: 'Agent Teams',
-    description: 'One env var enables multi-agent coordination',
-    color: 'text-purple-500',
   },
 ] as const
 
@@ -49,7 +37,7 @@ export function SetupSection() {
       <AnimatedSection>
         <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">Setup</h2>
         <p className="mt-4 text-lg text-muted-foreground">
-          Two required tools. Four optional. Five minutes.
+          Two required tools. Two recommended. Five minutes.
         </p>
       </AnimatedSection>
 
@@ -78,7 +66,7 @@ export function SetupSection() {
           <span className="h-2 w-2 rounded-full bg-blue-500" />
           <span className="text-sm font-medium text-muted-foreground">Recommended</span>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {recommendedTools.map((tool) => (
             <Card variant="subtle" key={tool.name} className="group p-3 text-center">
               <div className={cn('mx-auto mb-2', tool.color)}>
