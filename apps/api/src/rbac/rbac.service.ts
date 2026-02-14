@@ -11,14 +11,14 @@ import { OwnershipConstraintException } from './exceptions/ownership-constraint.
 import { RoleNotFoundException } from './exceptions/role-not-found.exception.js'
 import { RoleSlugConflictException } from './exceptions/role-slug-conflict.exception.js'
 
-type DefaultRoleDefinition = {
+export type DefaultRoleDefinition = {
   name: string
   slug: string
   description: string
   permissions: string[]
 }
 
-const DEFAULT_ROLES: DefaultRoleDefinition[] = [
+export const DEFAULT_ROLES: DefaultRoleDefinition[] = [
   {
     name: 'Owner',
     slug: 'owner',

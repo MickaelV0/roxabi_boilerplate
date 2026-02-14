@@ -12,6 +12,10 @@
     "db:generate": "tsx node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "tsx node_modules/drizzle-kit/bin.cjs migrate",
     "db:studio": "tsx node_modules/drizzle-kit/bin.cjs studio",
+    "db:branch:create": "tsx scripts/db-branch.ts create",
+    "db:branch:drop": "tsx scripts/db-branch.ts drop",
+    "db:branch:list": "tsx scripts/db-branch.ts list",
+    "db:seed": "tsx scripts/db-seed.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
