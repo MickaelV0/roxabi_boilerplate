@@ -45,7 +45,7 @@ Each organization gets four default roles, seeded automatically on creation:
 | Owner | `owner` | All 15 permissions | Full organization control, including deletion |
 | Admin | `admin` | All except `organizations:delete` | Day-to-day management |
 | Member | `member` | Read-only on `users`, `organizations`, `members`, `invitations`, `roles` | Standard member access |
-| Viewer | `viewer` | Read-only on `users`, `organizations`, `members`, `roles` | Minimal read access (no invitation visibility) |
+| Viewer | `viewer` | Read-only on `users`, `organizations`, `members`, `invitations`, `roles` | Minimal read access |
 
 Default roles are marked with `is_default: true` and cannot be deleted. Organizations can also create **custom roles** with any subset of permissions.
 
@@ -61,13 +61,13 @@ The system enforces single-owner integrity:
 
 Authorization is handled by a single `AuthGuard` that runs as a global NestJS guard. It performs checks in a defined order, short-circuiting on failure:
 
-```
+```txt
 Request
   │
   ▼
 AuthGuard.canActivate()
   │
-  ├── 1. @Public? ──────────── yes ──▶ ALLOW (skip all checks)
+  ├── 1. @AllowAnonymous() (PUBLIC metadata)? ── yes ──▶ ALLOW (skip all checks)
   │
   ├── 2. Resolve session ────── null + @OptionalAuth? ──▶ ALLOW
   │                              null + no decorator? ──▶ 401 Unauthorized
@@ -104,13 +104,19 @@ The guard then reads `session.permissions` directly when checking `@Permissions`
 
 ### Superadmin bypass
 
-Users with `role: 'superadmin'` on the `users` table (a Better Auth concept, not an RBAC role) bypass all permission checks. This is a platform-level escape hatch, not an organization-level role.
+Users with `role: 'superadmin'` on the `users` table (a Better Auth concept, not an RBAC role) bypass all RBAC permission checks. This is a platform-level escape hatch, not an organization-level role.
+
+Important caveats:
+
+- **RLS still applies.** Superadmin bypasses the `@Permissions` decorator check, but tenant isolation via `TenantInterceptor`/CLS and PostgreSQL RLS policies remains in effect. A superadmin can only see data for the currently active organization.
+- **Assigned via database.** Superadmin is set by updating `users.role = 'superadmin'` directly in the database -- there is no API endpoint or UI for this.
+- **Limit the count.** Superadmin accounts should be limited in number and carefully controlled, since they bypass all RBAC authorization.
 
 ## Permission Checking Flow
 
 The full request lifecycle from HTTP request to permission evaluation:
 
-```
+```txt
 Client request (with session cookie/token)
   │
   ▼
@@ -131,13 +137,15 @@ AuthGuard.canActivate()
 
 The `PermissionService` intentionally uses the raw `DRIZZLE` connection (not `TenantService`) because it runs during authentication, before tenant context is established. The `WHERE` clauses on `userId` and `organizationId` provide equivalent row-level isolation.
 
+> **Warning:** The raw DRIZZLE connection bypasses all RLS policies. Any new queries added to this service must include explicit `WHERE` clauses for user/org isolation. Changes to this file should be flagged in code review.
+
 ## Schema Design
 
 Three tables implement the RBAC model, defined in `apps/api/src/database/schema/rbac.schema.ts`. For the full schema conventions (naming, timestamps, primary keys), see the [Database Architecture](./database).
 
 ### Entity-Relationship Diagram
 
-```
+```txt
 ┌─────────────────┐
 │   permissions    │  (global, seeded via migration)
 │─────────────────│
@@ -393,7 +401,7 @@ All endpoints require authentication and an active organization context. Request
 
 ## Module Structure
 
-```
+```txt
 apps/api/src/rbac/
 ├── rbac.module.ts              # NestJS module definition
 ├── rbac.controller.ts          # REST endpoints for role management
@@ -412,3 +420,10 @@ apps/api/src/rbac/
 ```
 
 The `RbacModule` imports `AuthModule` (via `forwardRef` to resolve the circular dependency with `PermissionService`) and `TenantModule`. It exports `RbacService` and `PermissionService` for use by other modules.
+
+## Related Documentation
+
+- [Architecture overview](./index) -- Monorepo structure and data flow
+- [Auth & Security Architecture](./auth-security) -- Guard system and session management
+- [Database Architecture](./database) -- Drizzle ORM and schema conventions
+- [Multi-Tenant Architecture](./multi-tenant) -- RLS and tenant isolation

@@ -12,7 +12,7 @@ The architecture follows two core principles:
 - **Deny by default.** Every API endpoint requires authentication unless explicitly opted out with a decorator. There is no "open by default" surface.
 - **Configuration over code.** OAuth providers, email services, and security policies are driven by environment variables. Adding a new OAuth provider requires setting two env vars, not writing code.
 
-```
+```txt
                             ┌───────────────────┐
                             │   Client Browser   │
                             │  (Better Auth SDK) │
@@ -64,7 +64,7 @@ A global `APP_GUARD` ensures no endpoint is accidentally left unprotected. Devel
 
 ### Why cookie-based sessions instead of JWTs?
 
-Cookie sessions with server-side validation provide immediate revocation — banning a user or rotating secrets takes effect on the next request. JWT-based approaches require either short expiry (poor UX) or a revocation list (equivalent complexity). The cookie cache (`maxAge: 5min`) reduces database lookups without sacrificing revocation speed.
+Cookie sessions with server-side validation provide near-immediate revocation — within the cookie cache window (5 minutes by default). Banning a user or rotating secrets takes effect once the cached cookie expires. JWT-based approaches require either short expiry (poor UX) or a revocation list (equivalent complexity). The cookie cache (`maxAge: 5min`) reduces database lookups without sacrificing revocation speed.
 
 ## Auth Module Structure
 
@@ -134,7 +134,7 @@ The `AuthGuard` is registered globally via `APP_GUARD` in `AuthModule`. It evalu
 
 ### Evaluation Order
 
-```
+```txt
 Request arrives
   │
   ├─ 1. @AllowAnonymous() (PUBLIC metadata)?
@@ -221,7 +221,7 @@ When a user switches organizations in the UI, Better Auth updates the `activeOrg
 1. **Session** — Stored in `sessions.active_organization_id`
 2. **Guard** — `@RequireOrg()` and `@Permissions()` check it
 3. **RBAC** — `PermissionService.getPermissions(userId, orgId)` resolves org-scoped permissions
-4. **Tenant isolation** — Downstream services use it to set the PostgreSQL `app.current_tenant` variable for RLS
+4. **Tenant isolation** — Downstream services use it to set the PostgreSQL `app.tenant_id` variable for RLS
 
 ### Organization Creation Hook
 
@@ -278,6 +278,8 @@ The default implementation (`ResendEmailProvider`) degrades gracefully:
 
 Failed sends emit an `EMAIL_SEND_FAILED` event and throw an `EmailSendException`, allowing upstream code to handle the failure.
 
+> **Production note:** Since `requireEmailVerification` is enabled, a missing `RESEND_API_KEY` in production means users can register but never receive verification emails, effectively blocking sign-up. Treat `RESEND_API_KEY` as required in production.
+
 ## CORS Configuration
 
 CORS is configured in the bootstrap function (`apps/api/src/index.ts`) using a dedicated parser (`apps/api/src/cors.ts`).
@@ -291,7 +293,7 @@ The `CORS_ORIGIN` environment variable accepts a comma-separated list of origins
 | `http://localhost:3000` | No | Allow that origin |
 | `http://a.com,http://b.com` | No | Allow both origins |
 | `*` | No | Allow all (wildcard) |
-| `*` | **Yes** | **Reject** — returns `false`, logs warning |
+| `*` | **Yes** | **No CORS headers** — returns `false`, logs warning. Cross-origin browser requests will fail but same-origin requests are unaffected. |
 | `*,https://app.example.com` | **Yes** | Strip wildcard, allow `https://app.example.com` |
 
 Credentials are always enabled (`credentials: true`) because authentication relies on cookies.
@@ -337,7 +339,7 @@ contentSecurityPolicy: {
 }
 ```
 
-The CSP starts restrictive (`defaultSrc: 'none'`) and opens specific directives. The `unpkg.com` allowlist is for Swagger UI assets in non-production environments.
+The CSP starts restrictive (`defaultSrc: 'none'`) and opens specific directives. The `unpkg.com` allowlist supports Swagger UI assets. Note that both `'unsafe-inline'` and the `unpkg.com` allowlist apply in all environments including production. For production hardening, consider replacing `'unsafe-inline'` with nonce-based CSP and removing `unpkg.com` from `scriptSrc` by self-hosting Swagger UI assets.
 
 ### Other Headers
 
@@ -360,6 +362,8 @@ Rate limiting is implemented via `@nestjs/throttler` with two tiers, configured 
 |------|-----|-------|----------------|---------|
 | `global` | 60s | 60 req | *(none)* | General API abuse prevention |
 | `auth` | 60s | 5 req | 5 min | Brute-force login protection |
+
+All values shown are defaults. TTL, limit, and block duration are configurable via environment variables (`RATE_LIMIT_GLOBAL_TTL`, `RATE_LIMIT_AUTH_TTL`, `RATE_LIMIT_AUTH_BLOCK_DURATION`).
 
 Storage backend selection:
 
@@ -437,6 +441,7 @@ The env validation schema (`apps/api/src/config/env.validation.ts`) enforces tha
 | Auth guard | `apps/api/src/auth/auth.guard.ts` |
 | Auth controller | `apps/api/src/auth/auth.controller.ts` |
 | Auth module | `apps/api/src/auth/auth.module.ts` |
+| Fastify header conversion | `apps/api/src/auth/fastify-headers.ts` |
 | Decorators | `apps/api/src/auth/decorators/` |
 | Email provider interface | `apps/api/src/auth/email/email.provider.ts` |
 | Resend implementation | `apps/api/src/auth/email/resend.provider.ts` |
@@ -449,3 +454,10 @@ The env validation schema (`apps/api/src/config/env.validation.ts`) enforces tha
 | Frontend auth client | `apps/web/src/lib/auth-client.ts` |
 | Frontend permissions | `apps/web/src/lib/permissions.ts` |
 | Vite proxy config | `apps/web/vite.config.ts` |
+
+## Related Documentation
+
+- [Architecture overview](./index) -- Monorepo structure and data flow
+- [Multi-Tenant Architecture](./multi-tenant) -- RLS and tenant isolation
+- [RBAC Architecture](./rbac) -- Permission model and role hierarchy
+- [Authentication guide](../guides/authentication) -- Usage instructions and setup

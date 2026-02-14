@@ -7,7 +7,7 @@ description: Pipeline stages, quality gates, caching strategy, git hooks, and de
 
 Roxabi uses a **three-layer quality pipeline** to catch issues at progressively broader scopes: local git hooks enforce standards on every commit and push, GitHub Actions CI validates every pull request and branch push, and Vercel handles production deployment automatically on merge to `main`.
 
-```
+```txt
 Developer workstation          GitHub                    Vercel
 ┌───────────────────┐    ┌──────────────────┐    ┌──────────────────┐
 │  pre-commit       │    │  CI Workflow      │    │  Auto-deploy     │
@@ -107,7 +107,7 @@ concurrency:
 
 #### Job Dependency Graph
 
-```
+```txt
 lint ──────┐
 typecheck ─┤──▶ build ──▶ e2e (conditional)
 test ──────┘
@@ -122,7 +122,9 @@ The first three jobs (`lint`, `typecheck`, `test`) run in parallel. `build` runs
 - `bun run i18n:validate` -- Validates translation file completeness
 - `bun run license:check` -- Scans dependency licenses for compliance
 
-**Type Check** -- Generates code artifacts (`codegen` for Paraglide i18n and TanStack Router route tree), then runs `bun typecheck` (TurboRepo delegates to each workspace's `tsc --noEmit`). Also includes **schema drift detection**: runs `bun run db:generate` with a dummy `DATABASE_URL` and checks `git diff` on the `apps/api/drizzle/` directory. If uncommitted migration files appear, CI fails with a clear error message directing the developer to generate and commit the migration locally.
+**Type Check** -- Generates code artifacts (`codegen` for Paraglide i18n and TanStack Router route tree), then runs `bun typecheck` (TurboRepo delegates to each workspace's `tsc --noEmit`).
+
+**Schema Drift Detection** -- As part of the type check job, CI runs `bun run db:generate` with a dummy `DATABASE_URL` and checks `git diff` on the `apps/api/drizzle/` directory. If uncommitted migration files appear, CI fails with a clear error message directing the developer to generate and commit the migration locally. This catches cases where a schema change was made in code but the corresponding Drizzle migration was not generated.
 
 **Test** -- Generates code artifacts, then runs `bun test:coverage` (Vitest with V8 coverage). On pull requests, posts a coverage summary comment using the `vitest-coverage-report-action`.
 
@@ -194,7 +196,7 @@ Biome runs at three levels:
 
 Build artifacts, generated code, and third-party files are excluded from Biome processing:
 
-```
+```txt
 node_modules, dist, build, .next, .turbo, coverage, .output,
 .nitro, .content-collections, routeTree.gen.ts, src/paraglide,
 project.inlang, *.css, playwright-report, test-results,
@@ -238,7 +240,7 @@ TurboRepo accelerates the monorepo by caching task outputs and skipping unchange
 
 ### Task Graph
 
-```
+```txt
 codegen ──▶ build ──▶ (deploy)
   │           ▲
   ▼           │
@@ -335,7 +337,7 @@ Vercel is the single deployment platform for both applications. Production deplo
 
 Only merges to `main` trigger production deployments. Both `apps/web` and `apps/api` are separate Vercel projects pointing to the same GitHub repository.
 
-```
+```txt
 merge to main
   │
   ├──▶ Vercel (Web)
@@ -426,3 +428,9 @@ The complete quality pipeline from developer keystroke to production deployment:
 | `git push` | Lefthook pre-push | Lint, typecheck, test + coverage | Push to remote |
 | PR / push | GitHub Actions CI | Lint, typecheck, test, build, schema drift, E2E | PR merge |
 | Merge to `main` | Vercel | Build, migrate, deploy | Production deploy (rollback available) |
+
+## Related Documentation
+
+- [Architecture overview](./index) -- Monorepo structure and data flow
+- [Contributing](../contributing) -- Commit conventions and development workflow
+- [Deployment guide](../guides/deployment) -- Vercel deployment details

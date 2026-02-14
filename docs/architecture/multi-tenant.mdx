@@ -241,6 +241,8 @@ async seedDefaultRoles(organizationId: string) {
 }
 ```
 
+> **Security note:** `queryAs()` does not validate the tenant ID — any string is accepted and passed to `set_config()`. Callers must ensure the tenant ID comes from a trusted source (e.g., an event payload), never from user input.
+
 Both methods follow the same internal flow:
 
 1. Open a Drizzle transaction
