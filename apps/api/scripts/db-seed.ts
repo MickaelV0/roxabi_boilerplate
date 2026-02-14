@@ -23,9 +23,10 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from '../src/database/schema/index.js'
-import { DEFAULT_ROLES } from '../src/rbac/rbac.service.js'
+import { DEFAULT_ROLES } from '../src/rbac/rbac.constants.js'
 
-type Tx = Parameters<Parameters<PostgresJsDatabase<typeof schema>['transaction']>[0]>[0]
+type DbInstance = PostgresJsDatabase<typeof schema>
+type Tx = Parameters<Parameters<DbInstance['transaction']>[0]>[0]
 
 /** Build a map of "resource:action" → permission ID from pre-seeded permissions. */
 async function buildPermissionMap(tx: Tx): Promise<Map<string, string>> {
@@ -80,6 +81,11 @@ async function seed() {
   const databaseUrl = process.env.DATABASE_URL
   if (!databaseUrl) {
     console.error('db-seed: DATABASE_URL environment variable is required')
+    process.exit(1)
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    console.error('db-seed: refusing to run in production (NODE_ENV=production)')
     process.exit(1)
   }
 

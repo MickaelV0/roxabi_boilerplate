@@ -25,8 +25,22 @@ import * as readline from 'node:readline'
 
 const POSTGRES_USER = process.env.POSTGRES_USER ?? 'roxabi'
 const POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD ?? 'roxabi'
-const POSTGRES_DB = process.env.POSTGRES_DB ?? 'roxabi'
 const CONTAINER_NAME = 'roxabi-postgres'
+
+// Validate credentials to prevent shell injection in docker exec commands
+const SAFE_CREDENTIAL_PATTERN = /^[a-zA-Z0-9_-]+$/
+if (!SAFE_CREDENTIAL_PATTERN.test(POSTGRES_USER)) {
+  console.error(
+    '[db-branch] ERROR: POSTGRES_USER contains invalid characters (allowed: a-zA-Z0-9_-)'
+  )
+  process.exit(1)
+}
+if (!SAFE_CREDENTIAL_PATTERN.test(POSTGRES_PASSWORD)) {
+  console.error(
+    '[db-branch] ERROR: POSTGRES_PASSWORD contains invalid characters (allowed: a-zA-Z0-9_-)'
+  )
+  process.exit(1)
+}
 
 // ---------------------------------------------------------------------------
 // CLI argument parsing
@@ -61,6 +75,11 @@ function log(message: string): void {
 
 function logError(message: string): void {
   console.error(`[db-branch] ERROR: ${message}`)
+}
+
+/** Redact the password portion of a postgresql:// URL for safe logging. */
+function redactUrl(url: string): string {
+  return url.replace(/:([^@]+)@/, ':***@')
 }
 
 /** Run a command, returning { status, stdout, stderr }. Never throws. */
@@ -112,7 +131,9 @@ function extractIssueNumber(): string {
 function checkContainerLiveness(): void {
   const result = runSafe(`docker exec ${CONTAINER_NAME} pg_isready -U ${POSTGRES_USER}`)
   if (result.status !== 0) {
-    logError(`Postgres container is not running. Run 'bun run db:up' first.\n  ${result.stderr}`)
+    logError(
+      `Postgres container is not running. Run 'bun run db:up' from the project root first.\n  ${result.stderr}`
+    )
     process.exit(1)
   }
 }
@@ -168,12 +189,6 @@ function findWorktreeRoot(): string {
     dir = path.dirname(dir)
   }
 
-  // Fallback: if cwd is apps/api, go two levels up
-  const fallback = path.resolve(process.cwd(), '..', '..')
-  if (fs.existsSync(path.join(fallback, '.git'))) {
-    return fallback
-  }
-
   logError('Could not determine worktree root.')
   process.exit(1)
 }
@@ -193,7 +208,7 @@ function updateEnvFile(databaseUrl: string): void {
   let replaced = false
 
   const updatedLines = lines.map((line) => {
-    if (/^DATABASE_URL=/.test(line)) {
+    if (/^DATABASE_URL\s*=/.test(line)) {
       replaced = true
       return `DATABASE_URL=${databaseUrl}`
     }
@@ -206,7 +221,7 @@ function updateEnvFile(databaseUrl: string): void {
   }
 
   fs.writeFileSync(envPath, updatedLines.join('\n'), 'utf-8')
-  log(`Updated ${envPath} with DATABASE_URL=${databaseUrl}`)
+  log(`Updated ${envPath} with DATABASE_URL=${redactUrl(databaseUrl)}`)
 }
 
 /**
@@ -286,6 +301,11 @@ async function handleCreate(): Promise<void> {
   const issueNumber = extractIssueNumber()
   const dbName = `roxabi_${issueNumber}`
 
+  if (!/^roxabi_\d+$/.test(dbName)) {
+    logError(`Invalid database name: '${dbName}'`)
+    process.exit(1)
+  }
+
   log(`Creating branch database '${dbName}'...`)
 
   // Step 1: Check container liveness
@@ -335,7 +355,7 @@ async function handleCreate(): Promise<void> {
   updateEnvFile(databaseUrl)
 
   log(`Branch database '${dbName}' is ready.`)
-  log(`DATABASE_URL=${databaseUrl}`)
+  log(`DATABASE_URL=${redactUrl(databaseUrl)}`)
 }
 
 // ---------------------------------------------------------------------------
@@ -346,11 +366,8 @@ function handleDrop(): void {
   const issueNumber = extractIssueNumber()
   const dbName = `roxabi_${issueNumber}`
 
-  // Safety guard: refuse to drop the default database
-  if (dbName === POSTGRES_DB) {
-    logError(
-      `Cannot drop the default database '${POSTGRES_DB}'. Only branch databases (roxabi_NNN) can be dropped.`
-    )
+  if (!/^roxabi_\d+$/.test(dbName)) {
+    logError(`Invalid database name: '${dbName}'`)
     process.exit(1)
   }
 
