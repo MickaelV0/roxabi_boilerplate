@@ -101,23 +101,16 @@ You (the bootstrap orchestrator) drive the entire pipeline yourself:
 
 ### 1b. Expert Review
 
-After generating the analysis, spawn expert reviewers to validate it before presenting to the user. Use **AskUserQuestion** (multiSelect) to let the user choose which experts to involve:
+After generating the analysis, **you decide** which expert reviewers to spawn based on the document content. Do NOT ask the user — apply these rules automatically:
 
-> "The analysis is ready. Which experts should review it before your final approval?"
+| Reviewer | Auto-select when | Focus area |
+|----------|-----------------|------------|
+| **doc-writer** | **Always** | Document structure, clarity, completeness |
+| **product-lead** | **Always** | Product fit, acceptance criteria quality |
+| **architect** | Analysis contains architecture decisions, trade-offs, multi-domain concerns, or new patterns | Technical soundness, feasibility |
+| **devops** | Analysis mentions CI/CD, deployment, infrastructure, or environment config | Infra feasibility, operational impact |
 
-| Reviewer | When to suggest | Focus area |
-|----------|----------------|------------|
-| **architect** | Architecture decisions, trade-offs, multi-domain | Technical soundness, feasibility |
-| **doc-writer** | Always (default) | Document structure, clarity, completeness |
-| **devops** | CI/CD, deployment, infrastructure concerns | Infra feasibility, operational impact |
-| **product-lead** | User-facing features, UX decisions | Product fit, acceptance criteria quality |
-
-Options (multiSelect, pre-select based on content):
-- **architect** — Review technical soundness
-- **doc-writer** — Review structure and clarity
-- **devops** — Review infrastructure impact
-- **product-lead** — Review product alignment
-- **Skip expert review** — Go directly to user approval
+**Selection logic:** Read the analysis content. Always include **doc-writer** and **product-lead**. Add other reviewers only when their domain is clearly present. When in doubt, include the reviewer — an extra review is cheap.
 
 **For each selected reviewer**, spawn a subagent via `Task`:
 
@@ -143,6 +136,36 @@ Options:
 
 ---
 
+## Ensure GitHub Issue (Between Gate 1 and Gate 2)
+
+A GitHub issue is **required** before creating a spec (specs use the `{issue}-{slug}.mdx` naming pattern). After Gate 1 approval and before entering Gate 2, ensure an issue exists:
+
+### When an issue already exists
+
+- **`--issue N` entry point**: Issue already exists — use N.
+- **Bare text entry point with existing issue found** (e.g., discovered during Step 1 scan): use that issue number.
+
+### When no issue exists
+
+If the bootstrap was started from bare text and no matching issue was found:
+
+1. **Draft the issue** from the approved analysis:
+   - **Title**: Conventional format (e.g., `feat: avatar upload for user profiles`)
+   - **Body**: Summary from the analysis + key requirements as a checklist
+2. **Create the issue**:
+   ```bash
+   gh issue create --title "<title>" --body "<body>"
+   ```
+3. **Capture the issue number** from the output.
+4. **Inform the user**: "Created GitHub issue #N: `<title>`"
+
+The issue number is then used for:
+- Spec filename: `docs/specs/{issue}-{slug}.mdx`
+- Issue status transitions (Gate 1 → Analysis, Gate 2 → Specs)
+- Downstream `/scaffold` linking
+
+---
+
 ## Gate 2: Spec
 
 ### 2a. Generate or Locate Spec
@@ -153,11 +176,9 @@ Options:
 
 ### 2b. Expert Review
 
-After generating the spec, spawn expert reviewers — same mechanism as Gate 1. Use **AskUserQuestion** (multiSelect) to let the user choose reviewers:
+After generating the spec, **you decide** which expert reviewers to spawn — same auto-selection rules as Gate 1b. Do NOT ask the user.
 
-> "The spec is ready. Which experts should review it before your final approval?"
-
-Use the same reviewer table as Gate 1. Pre-select reviewers based on spec content (e.g., always suggest architect for specs with implementation details, devops if infra sections exist).
+Apply the same reviewer table (always **doc-writer** + **product-lead**, add **architect** / **devops** when their domain is present in the spec). Specs with implementation details should always include **architect**.
 
 Spawn selected reviewers **in parallel** via `Task`. Each reviewer receives the spec path and reviews from their focus area. Incorporate feedback and note unresolved concerns.
 
@@ -194,8 +215,7 @@ Use the triage helper to update status. Replace `<ISSUE_NUMBER>` with the actual
 .claude/skills/issue-triage/triage.sh set <ISSUE_NUMBER> --status Specs
 ```
 
-**When to update:**
-- Only update if a GitHub issue is associated (skip if no issue number exists)
+**When to update:** (an issue is always available — see [Ensure GitHub Issue](#ensure-github-issue-between-gate-1-and-gate-2))
 - Gate 1 → set to "Analysis"
 - Gate 2 → set to "Specs"
 
@@ -246,7 +266,7 @@ Once both gates are passed:
 | `--spec N` but no spec found | Inform user: "No spec found matching issue #N. Try `/bootstrap --issue N` or `/bootstrap 'your idea'` to start from scratch." |
 | Analysis exists but is a brainstorm | Treat as "no analysis" -- promote brainstorm to analysis |
 | Expert reviewer subagent fails | Report the error to the user and continue without that expert's review |
-| User skips expert review | Proceed directly to user approval (no expert feedback) |
+| Bare text entry, no existing issue | Create a GitHub issue from the approved analysis before entering Gate 2 |
 | Issue already has a branch or open PR | Stop and propose `/review` or `/scaffold` instead (Step 0b) |
 
 ## Skill Invocation Reference
@@ -281,6 +301,6 @@ Do NOT spawn experts upfront — only when a specific question arises during wri
 
 ### At Review Gates (1b, 2b)
 
-Expert review at gates is driven by user selection (see Gate 1b and Gate 2b above). Spawn all selected reviewers in parallel for maximum speed.
+Expert review at gates is auto-selected by you based on document content (see Gate 1b and Gate 2b above). Spawn all selected reviewers in parallel for maximum speed.
 
 $ARGUMENTS
