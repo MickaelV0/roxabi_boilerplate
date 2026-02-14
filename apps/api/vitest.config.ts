@@ -6,6 +6,7 @@ export default defineConfig({
     ...nodeConfig,
     name: 'api',
     root: import.meta.dirname,
+    include: ['src/**/*.test.ts', 'scripts/**/*.test.ts'],
     setupFiles: ['./src/test/setup.ts'],
   },
 })

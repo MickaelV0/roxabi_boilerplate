@@ -18,6 +18,12 @@ import { execSync, spawnSync } from 'node:child_process'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as readline from 'node:readline'
+import {
+  buildDatabaseUrl as buildDatabaseUrlUtil,
+  parseWorktreeBlock,
+  redactUrl,
+  type WorktreeInfo,
+} from './db-branch.utils.js'
 
 // ---------------------------------------------------------------------------
 // Environment
@@ -75,11 +81,6 @@ function log(message: string): void {
 
 function logError(message: string): void {
   console.error(`[db-branch] ERROR: ${message}`)
-}
-
-/** Redact the password portion of a postgresql:// URL for safe logging. */
-function redactUrl(url: string): string {
-  return url.replace(/:([^@]+)@/, ':***@')
 }
 
 /** Run a command, returning { status, stdout, stderr }. Never throws. */
@@ -168,7 +169,7 @@ function createDatabase(dbName: string): void {
 
 /** Build the DATABASE_URL for a branch database. */
 function buildDatabaseUrl(dbName: string): string {
-  return `postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${dbName}`
+  return buildDatabaseUrlUtil(dbName, POSTGRES_USER, POSTGRES_PASSWORD)
 }
 
 /**
@@ -381,37 +382,6 @@ function handleDrop(): void {
 // ---------------------------------------------------------------------------
 // Subcommand: list
 // ---------------------------------------------------------------------------
-
-interface WorktreeInfo {
-  path: string
-  branch: string
-  issueNumber: string | null
-}
-
-/** Parse a single porcelain worktree block into a WorktreeInfo, or null if incomplete. */
-function parseWorktreeBlock(block: string): WorktreeInfo | null {
-  const lines = block.split('\n')
-  let wtPath = ''
-  let branch = ''
-
-  for (const line of lines) {
-    if (line.startsWith('worktree ')) {
-      wtPath = line.replace('worktree ', '')
-    }
-    if (line.startsWith('branch ')) {
-      branch = line.replace('branch refs/heads/', '')
-    }
-  }
-
-  if (!wtPath || !branch) return null
-
-  const match = branch.match(/(?:feat|fix|hotfix)\/(\d+)/)
-  return {
-    path: wtPath,
-    branch,
-    issueNumber: match ? match[1] : null,
-  }
-}
 
 function parseWorktrees(): WorktreeInfo[] {
   const result = runSafe('git worktree list --porcelain')
