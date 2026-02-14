@@ -32,6 +32,20 @@ vi.mock('@repo/ui', () => ({
   Button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
     <button {...props}>{children}</button>
   ),
+  Card: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <div data-testid="card" {...props}>
+      {children}
+    </div>
+  ),
+  CardContent: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <div {...props}>{children}</div>
+  ),
+  CardHeader: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <div {...props}>{children}</div>
+  ),
+  CardTitle: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <h2 {...props}>{children}</h2>
+  ),
   FormMessage: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
     <div role="alert" aria-live="polite" {...props}>
       {children}
@@ -135,7 +149,7 @@ describe('RegisterPage', () => {
     expect(screen.queryByText('auth_sign_up_with_github')).not.toBeInTheDocument()
   })
 
-  it('should display error message when signUp.email returns an error', async () => {
+  it('should display generic error message when signUp.email returns an error (security guardrail)', async () => {
     // Arrange
     vi.mocked(authClient.signUp.email).mockResolvedValueOnce({
       error: { message: 'Email already exists' },
@@ -157,9 +171,40 @@ describe('RegisterPage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'auth_create_account_button' }))
 
-    // Assert
+    // Assert — generic error, NOT the backend message
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Email already exists')
+      expect(screen.getByRole('alert')).toHaveTextContent('auth_register_unable')
     })
+  })
+
+  it('should show success card and hide form after successful registration', async () => {
+    // Arrange
+    vi.mocked(authClient.signUp.email).mockResolvedValueOnce({
+      error: null,
+      data: { user: { id: '1' } },
+    } as never)
+
+    const RegisterPage = captured.Component
+    render(<RegisterPage />)
+
+    // Act
+    fireEvent.change(screen.getByLabelText('auth_name'), {
+      target: { value: 'New User' },
+    })
+    fireEvent.change(screen.getByLabelText('auth_email'), {
+      target: { value: 'new@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('auth_password'), {
+      target: { value: 'StrongP@ss1' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'auth_create_account_button' }))
+
+    // Assert — form hidden, success card shown
+    await waitFor(() => {
+      expect(screen.getByText('auth_register_success_title')).toBeInTheDocument()
+      expect(screen.getByText('auth_check_email_verify')).toBeInTheDocument()
+    })
+    expect(screen.queryByLabelText('auth_name')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('auth_password')).not.toBeInTheDocument()
   })
 })
