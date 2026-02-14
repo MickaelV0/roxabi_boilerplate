@@ -10,6 +10,11 @@ vi.mock('@tanstack/react-router', () => ({
     captured.Component = config.component
     return { component: config.component }
   },
+  redirect: vi.fn(),
+}))
+
+vi.mock('@/lib/auth-client', () => ({
+  authClient: { getSession: vi.fn().mockResolvedValue({ data: null }) },
 }))
 
 vi.mock('@repo/ui', () => ({

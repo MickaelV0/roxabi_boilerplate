@@ -7,6 +7,7 @@ import { useSession } from '@/lib/auth-client'
 import { m } from '@/paraglide/messages'
 import { GithubIcon } from './GithubIcon'
 import { LocaleSwitcher } from './LocaleSwitcher'
+import { Logo } from './Logo'
 import { OrgSwitcher } from './OrgSwitcher'
 import { ThemeToggle } from './ThemeToggle'
 import { UserMenu } from './UserMenu'
@@ -46,8 +47,8 @@ export function Header() {
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           {/* Logo */}
-          <Link to="/" className="text-xl font-bold tracking-tight text-foreground">
-            Roxabi
+          <Link to="/" className="text-foreground hover:opacity-80 transition-opacity">
+            <Logo />
           </Link>
 
           {/* Desktop links */}
