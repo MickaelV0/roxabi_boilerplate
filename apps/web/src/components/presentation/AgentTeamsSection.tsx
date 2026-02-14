@@ -1,4 +1,5 @@
 import { AnimatedSection, Card, cn } from '@repo/ui'
+import { ArrowRight } from 'lucide-react'
 
 type Agent = {
   name: string
@@ -107,6 +108,53 @@ const primitives = [
   },
 ] as const
 
+const tddSteps = [
+  {
+    phase: 'RED',
+    color: 'bg-red-500',
+    textColor: 'text-red-500',
+    borderColor: 'border-red-500/30',
+    description: 'Tester writes failing tests from spec',
+  },
+  {
+    phase: 'GREEN',
+    color: 'bg-green-500',
+    textColor: 'text-green-500',
+    borderColor: 'border-green-500/30',
+    description: 'Domain agents implement to pass tests',
+  },
+  {
+    phase: 'REFACTOR',
+    color: 'bg-blue-500',
+    textColor: 'text-blue-500',
+    borderColor: 'border-blue-500/30',
+    description: 'Clean up while keeping tests green',
+  },
+] as const
+
+const reviewSteps = [
+  {
+    step: '1',
+    title: '/review spawns fresh agents',
+    description: 'Never the authors — independent perspective',
+  },
+  {
+    step: '2',
+    title: 'Conventional Comments',
+    description: 'Each produces structured, actionable feedback',
+  },
+  {
+    step: '3',
+    title: '/1b1 human walkthrough',
+    description: 'Accept, reject, or defer each finding',
+  },
+  {
+    step: '4',
+    title: 'Parallel fixers',
+    description: 'Apply accepted fixes by domain',
+  },
+] as const
+
 export function AgentTeamsSection() {
   const [domainCategory, qualityCategory, strategyCategory] = categories
 
@@ -118,7 +166,7 @@ export function AgentTeamsSection() {
       </div>
 
       <AnimatedSection>
-        <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">Agent Teams</h2>
+        <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">Agent Teams in Action</h2>
         <p className="mt-4 text-lg text-muted-foreground">
           9 agents in 3 categories. Coordinate via shared task lists and messaging.
         </p>
@@ -208,6 +256,69 @@ export function AgentTeamsSection() {
           </AnimatedSection>
         </div>
       </div>
+
+      {/* Collaboration Patterns */}
+      <AnimatedSection className="mt-12">
+        <h3 className="text-2xl font-semibold mb-6">Collaboration Patterns</h3>
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Test-First */}
+          <Card variant="subtle" className="p-6 lg:p-8">
+            <h4 className="text-xl font-semibold mb-4">Test-First</h4>
+            <div className="space-y-3">
+              {tddSteps.map((step, index) => (
+                <div key={step.phase}>
+                  <div className={cn('rounded-xl border p-4 bg-background/50', step.borderColor)}>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          'h-8 w-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0',
+                          step.color
+                        )}
+                      >
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className={cn('font-bold', step.textColor)}>{step.phase}</p>
+                        <p className="text-sm text-muted-foreground">{step.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                  {index < tddSteps.length - 1 && (
+                    <div className="flex justify-center py-1">
+                      <ArrowRight className="h-4 w-4 text-muted-foreground/50 rotate-90" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Review Pipeline */}
+          <Card variant="subtle" className="p-6 lg:p-8">
+            <h4 className="text-xl font-semibold mb-4">Review Pipeline</h4>
+            <div className="space-y-3">
+              {reviewSteps.map((step, index) => (
+                <div key={step.step}>
+                  <div className="flex items-start gap-4 rounded-xl border border-border/30 bg-background/50 p-4">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
+                      {step.step}
+                    </div>
+                    <div>
+                      <p className="font-semibold">{step.title}</p>
+                      <p className="text-sm text-muted-foreground">{step.description}</p>
+                    </div>
+                  </div>
+                  {index < reviewSteps.length - 1 && (
+                    <div className="flex justify-center py-1">
+                      <ArrowRight className="h-4 w-4 text-muted-foreground/50 rotate-90" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </AnimatedSection>
     </div>
   )
 }
