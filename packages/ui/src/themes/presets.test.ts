@@ -321,7 +321,7 @@ describe('getComposedConfig', () => {
     // Assert
     expect(config.typography.fontFamily).toContain('sans-serif')
     expect(config.radius).toBe('0.625rem')
-    expect(config.shadows).toBe('subtle')
+    expect(config.shadows).toBe('medium')
   })
 
   it('should return base-only config when color is null', () => {

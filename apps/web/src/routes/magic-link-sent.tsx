@@ -1,5 +1,6 @@
 import { Button } from '@repo/ui'
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { ExternalLink } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
@@ -8,6 +9,27 @@ import { AuthLayout } from '../components/AuthLayout'
 
 type MagicLinkSearch = {
   email?: string
+}
+
+type EmailProvider = {
+  name: string
+  url: string
+}
+
+const EMAIL_PROVIDERS: Record<string, EmailProvider> = {
+  'gmail.com': { name: 'Gmail', url: 'https://mail.google.com' },
+  'outlook.com': { name: 'Outlook', url: 'https://outlook.live.com/mail' },
+  'hotmail.com': { name: 'Outlook', url: 'https://outlook.live.com/mail' },
+  'yahoo.com': { name: 'Yahoo Mail', url: 'https://mail.yahoo.com' },
+  'icloud.com': { name: 'iCloud Mail', url: 'https://www.icloud.com/mail' },
+  'protonmail.com': { name: 'ProtonMail', url: 'https://mail.proton.me' },
+  'proton.me': { name: 'ProtonMail', url: 'https://mail.proton.me' },
+}
+
+export function detectEmailProvider(email: string): EmailProvider | null {
+  const domain = email.split('@')[1]?.toLowerCase()
+  if (!domain) return null
+  return EMAIL_PROVIDERS[domain] ?? null
 }
 
 const COOLDOWN_SECONDS = 60
@@ -26,6 +48,8 @@ function MagicLinkSentPage() {
   const { email } = Route.useSearch()
   const [loading, setLoading] = useState(false)
   const [cooldown, setCooldown] = useState(0)
+
+  const provider = email ? detectEmailProvider(email) : null
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -59,6 +83,15 @@ function MagicLinkSentPage() {
         <p className="text-sm text-muted-foreground">
           {email ? m.auth_magic_link_sent_message({ email }) : m.auth_check_email_magic_link()}
         </p>
+
+        {provider && (
+          <Button asChild className="w-full">
+            <a href={provider.url} target="_blank" rel="noopener noreferrer">
+              {m.auth_open_email_provider({ provider: provider.name })}
+              <ExternalLink className="ml-2 size-4" aria-hidden="true" />
+            </a>
+          </Button>
+        )}
 
         {email && (
           <div className="space-y-2">

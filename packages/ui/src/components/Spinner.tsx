@@ -6,10 +6,10 @@ import { cn } from '@/lib/utils'
 const spinnerVariants = cva('animate-spin rounded-full border-current border-r-transparent', {
   variants: {
     size: {
-      sm: 'h-4 w-4 border-2',
-      default: 'h-6 w-6 border-2',
-      lg: 'h-8 w-8 border-[3px]',
-      xl: 'h-12 w-12 border-4',
+      sm: 'size-4 border-2',
+      default: 'size-6 border-2',
+      lg: 'size-8 border-[3px]',
+      xl: 'size-12 border-4',
     },
   },
   defaultVariants: {

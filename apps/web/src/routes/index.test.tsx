@@ -10,14 +10,15 @@ vi.mock('@tanstack/react-router', () => ({
     captured.Component = config.component
     return { component: config.component }
   },
+  redirect: vi.fn(),
+}))
+
+vi.mock('@/lib/auth-client', () => ({
+  authClient: { getSession: vi.fn().mockResolvedValue({ data: null }) },
 }))
 
 vi.mock('@repo/ui', () => ({
   AnimatedSection: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-}))
-
-vi.mock('@/components/Footer', () => ({
-  Footer: () => <footer data-testid="footer" />,
 }))
 
 vi.mock('@/components/landing/AiTeamSection', () => ({
@@ -38,6 +39,10 @@ vi.mock('@/components/landing/FeaturesSection', () => ({
 
 vi.mock('@/components/landing/HeroSection', () => ({
   HeroSection: () => <section data-testid="hero-section" />,
+}))
+
+vi.mock('@/components/landing/StatsSection', () => ({
+  StatsSection: () => <section data-testid="stats-section" />,
 }))
 
 vi.mock('@/components/landing/TechStackSection', () => ({
@@ -65,14 +70,7 @@ describe('LandingPage', () => {
     expect(screen.getByTestId('ai-team-section')).toBeInTheDocument()
     expect(screen.getByTestId('dx-section')).toBeInTheDocument()
     expect(screen.getByTestId('tech-stack-section')).toBeInTheDocument()
+    expect(screen.getByTestId('stats-section')).toBeInTheDocument()
     expect(screen.getByTestId('cta-section')).toBeInTheDocument()
-  })
-
-  it('should render the footer', () => {
-    // Arrange & Act
-    render(<captured.Component />)
-
-    // Assert
-    expect(screen.getByTestId('footer')).toBeInTheDocument()
   })
 })

@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
   Separator,
+  SHADOW_PRESETS,
   Skeleton,
   Slider,
   Switch,
@@ -134,6 +135,18 @@ if (!_zincPreset) throw new Error('Zinc preset not found in BASE_PRESETS')
 const ZINC_PRESET = _zincPreset
 const ZINC_CONFIG = getComposedConfig(ZINC_PRESET, null)
 
+/** Overlay shadow CSS variables onto a derived theme (mutates in place). */
+function overlayShadows(
+  derived: { light: Record<string, string>; dark: Record<string, string> },
+  config: ThemeConfig
+) {
+  const shadowVars = SHADOW_PRESETS[config.shadows]
+  if (shadowVars && Object.keys(shadowVars).length > 0) {
+    Object.assign(derived.light, shadowVars)
+    Object.assign(derived.dark, shadowVars)
+  }
+}
+
 /** Look up a base preset by name (stable — only depends on constants). */
 function findBase(name: string): ShadcnPreset {
   return BASE_PRESETS.find((p) => p.name === name) ?? ZINC_PRESET
@@ -161,37 +174,65 @@ function DesignSystemPage() {
   const [activeColor, setActiveColor] = useState<string | null>(null)
   const announcementRef = useRef<HTMLOutputElement>(null)
 
-  /** Apply the composed base + color theme and sync UI state + localStorage. */
-  const applyComposed = useCallback((baseName: string, colorName: string | null) => {
-    const base = findBase(baseName)
-    const color = findColor(colorName)
+  /** Apply the composed base + color theme and sync UI state + localStorage.
+   *  When `resetAll` is true the ZINC_CONFIG defaults for typography, radius,
+   *  and shadows are restored instead of preserving the current values. */
+  const applyComposed = useCallback(
+    (baseName: string, colorName: string | null, resetAll = false) => {
+      const base = findBase(baseName)
+      const color = findColor(colorName)
 
-    const isDefault = baseName === 'zinc' && !colorName
-    if (isDefault) {
-      resetTheme()
-    } else {
-      const derived = getComposedDerivedTheme(base, color)
-      applyTheme(derived)
-    }
+      const config = getComposedConfig(base, color)
 
-    const config = getComposedConfig(base, color)
-    setThemeConfig(config)
-    setActiveBase(baseName)
-    setActiveColor(colorName)
-
-    try {
-      if (isDefault) {
-        localStorage.removeItem(STORAGE_KEY)
+      if (resetAll) {
+        // Restore ZINC_CONFIG defaults for non-color settings
+        config.typography = ZINC_CONFIG.typography
+        config.radius = ZINC_CONFIG.radius
+        config.shadows = ZINC_CONFIG.shadows
       } else {
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({ base: baseName, color: colorName, config })
-        )
+        // Preserve current non-color settings across preset switches
+        config.typography = themeConfig.typography
+        config.radius = themeConfig.radius
+        config.shadows = themeConfig.shadows
       }
-    } catch {
-      // localStorage unavailable
-    }
-  }, [])
+
+      const isDefault = baseName === 'zinc' && !colorName && resetAll
+
+      if (isDefault) {
+        // Full reset: remove all CSS overrides, restoring stylesheet defaults
+        resetTheme()
+      } else {
+        // Apply the composed theme with current overrides
+        const derived = getComposedDerivedTheme(base, color)
+        derived.light.radius = config.radius
+        derived.dark.radius = config.radius
+        derived.light['font-family'] = config.typography.fontFamily
+        derived.dark['font-family'] = config.typography.fontFamily
+        derived.light['font-size'] = config.typography.baseFontSize
+        derived.dark['font-size'] = config.typography.baseFontSize
+        overlayShadows(derived, config)
+        applyTheme(derived)
+      }
+
+      setThemeConfig(config)
+      setActiveBase(baseName)
+      setActiveColor(colorName)
+
+      try {
+        if (isDefault) {
+          localStorage.removeItem(STORAGE_KEY)
+        } else {
+          localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({ base: baseName, color: colorName, config })
+          )
+        }
+      } catch {
+        // localStorage unavailable
+      }
+    },
+    [themeConfig]
+  )
 
   // Load theme from localStorage on mount
   useEffect(() => {
@@ -219,6 +260,7 @@ function DesignSystemPage() {
           derived.dark['font-family'] = data.config.typography.fontFamily
           derived.light['font-size'] = data.config.typography.baseFontSize
           derived.dark['font-size'] = data.config.typography.baseFontSize
+          overlayShadows(derived, data.config)
         }
 
         applyTheme(derived)
@@ -278,6 +320,7 @@ function DesignSystemPage() {
         derived.dark['font-family'] = newConfig.typography.fontFamily
         derived.light['font-size'] = newConfig.typography.baseFontSize
         derived.dark['font-size'] = newConfig.typography.baseFontSize
+        overlayShadows(derived, newConfig)
 
         applyTheme(derived)
 
@@ -310,9 +353,9 @@ function DesignSystemPage() {
     [applyComposed, activeBase]
   )
 
-  // Reset to Zinc base with no color overlay
+  // Reset to Zinc base with no color overlay, restoring all defaults
   const handleReset = useCallback(() => {
-    applyComposed('zinc', null)
+    applyComposed('zinc', null, true)
   }, [applyComposed])
 
   function toggleSidebar() {

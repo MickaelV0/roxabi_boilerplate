@@ -66,7 +66,11 @@ const CONTRAST_PAIRS: Array<{
   { color: 'accent', against: 'background' },
 ]
 
+const DEFAULT_FONT_FAMILY =
+  "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif"
+
 const FONT_FAMILIES = [
+  { value: DEFAULT_FONT_FAMILY, label: 'System Default' },
   { value: 'Inter, system-ui, sans-serif', label: 'Inter' },
   { value: 'system-ui, sans-serif', label: 'System UI' },
   { value: 'ui-monospace, monospace', label: 'Monospace' },
@@ -313,7 +317,7 @@ export function ThemeEditor({
                 <SelectTrigger id="font-family" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[70]">
                   {FONT_FAMILIES.map((f) => (
                     <SelectItem key={f.value} value={f.value}>
                       {f.label}

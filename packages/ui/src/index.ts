@@ -45,6 +45,7 @@ export {
   cardVariants,
 } from './components/Card'
 export { Checkbox } from './components/Checkbox'
+export { ConfirmDialog } from './components/ConfirmDialog'
 export {
   Dialog,
   DialogClose,
@@ -74,6 +75,7 @@ export {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from './components/DropdownMenu'
+export { FormMessage } from './components/FormMessage'
 export { HoverCard, HoverCardContent, HoverCardTrigger } from './components/HoverCard'
 export { Input } from './components/Input'
 export { Label } from './components/Label'
@@ -161,6 +163,7 @@ export {
   meetsWcagAA,
   oklchToHex,
   resetTheme,
+  SHADOW_PRESETS,
 } from './lib/theme'
 export { useReducedMotion } from './lib/useReducedMotion'
 // Utilities

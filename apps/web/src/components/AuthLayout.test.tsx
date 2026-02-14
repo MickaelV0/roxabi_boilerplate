@@ -17,6 +17,7 @@ vi.mock('@repo/ui', () => ({
   CardTitle: ({ children, ...props }: React.PropsWithChildren<{ className?: string }>) => (
     <h2 {...props}>{children}</h2>
   ),
+  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
 }))
 
 vi.mock('@tanstack/react-router', () => ({
