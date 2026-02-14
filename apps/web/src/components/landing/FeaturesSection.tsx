@@ -1,3 +1,5 @@
+import { cn } from '@repo/ui'
+import { Link } from '@tanstack/react-router'
 import {
   Bot,
   Building2,
@@ -8,14 +10,32 @@ import {
   Layers,
   ShieldCheck,
 } from 'lucide-react'
+import type * as React from 'react'
 import { FeatureCard } from '@/components/FeatureCard'
 import { SectionHeading } from '@/components/landing/SectionHeading'
 import { m } from '@/paraglide/messages'
 
+type Feature = {
+  icon: React.ComponentType<{ className?: string }>
+  title: string
+  description: string
+  href?: string
+}
+
 export function FeaturesSection() {
-  const features = [
-    { icon: Layers, title: m.feature_fullstack_title(), description: m.feature_fullstack_desc() },
-    { icon: ShieldCheck, title: m.feature_auth_title(), description: m.feature_auth_desc() },
+  const features: Feature[] = [
+    {
+      icon: Layers,
+      title: m.feature_fullstack_title(),
+      description: m.feature_fullstack_desc(),
+      href: '/docs/$/architecture/overview',
+    },
+    {
+      icon: ShieldCheck,
+      title: m.feature_auth_title(),
+      description: m.feature_auth_desc(),
+      href: '/docs/$/guides/authentication',
+    },
     {
       icon: Building2,
       title: m.feature_multitenant_title(),
@@ -24,7 +44,12 @@ export function FeaturesSection() {
     { icon: KeyRound, title: m.feature_rbac_title(), description: m.feature_rbac_desc() },
     { icon: FileCheck2, title: m.feature_typesafe_title(), description: m.feature_typesafe_desc() },
     { icon: FolderTree, title: m.feature_monorepo_title(), description: m.feature_monorepo_desc() },
-    { icon: Globe, title: m.feature_i18n_title(), description: m.feature_i18n_desc() },
+    {
+      icon: Globe,
+      title: m.feature_i18n_title(),
+      description: m.feature_i18n_desc(),
+      href: '/docs/$/configuration',
+    },
     { icon: Bot, title: m.feature_ai_title(), description: m.feature_ai_desc() },
   ]
 
@@ -33,14 +58,27 @@ export function FeaturesSection() {
       <div className="mx-auto max-w-7xl px-6">
         <SectionHeading title={m.features_title()} subtitle={m.features_subtitle()} />
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {features.map((feature) => (
-            <FeatureCard
-              key={feature.title}
-              icon={<feature.icon className="mb-2 size-8 text-primary" />}
-              title={feature.title}
-              description={feature.description}
-            />
-          ))}
+          {features.map((feature) => {
+            const card = (
+              <FeatureCard
+                key={feature.title}
+                icon={<feature.icon className="mb-2 size-8 text-primary" />}
+                title={feature.title}
+                description={feature.description}
+                className={cn(feature.href && 'cursor-pointer hover:border-primary/50')}
+              />
+            )
+
+            if (feature.href) {
+              return (
+                <Link key={feature.title} to={feature.href}>
+                  {card}
+                </Link>
+              )
+            }
+
+            return card
+          })}
         </div>
       </div>
     </section>

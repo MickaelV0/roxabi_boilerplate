@@ -1,5 +1,6 @@
 import { Card, CardDescription, CardHeader, CardTitle } from '@repo/ui'
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { ChevronLeft } from 'lucide-react'
 
 import { m } from '@/paraglide/messages'
 
@@ -32,6 +33,13 @@ function RouteComponent() {
   return (
     <div className="min-h-screen bg-background py-12">
       <div className="mx-auto max-w-2xl px-6">
+        <Link
+          to="/demo"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="size-4" />
+          {m.demo_back_to_demos()}
+        </Link>
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold">{m.demo_ssr_heading()}</h1>
           <p className="mt-2 text-muted-foreground">{m.demo_ssr_subtitle()}</p>

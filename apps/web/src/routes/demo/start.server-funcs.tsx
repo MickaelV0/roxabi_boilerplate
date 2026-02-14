@@ -1,7 +1,8 @@
 import fs from 'node:fs'
 import { Button, Card, CardContent, CardHeader, CardTitle, Input } from '@repo/ui'
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { ChevronLeft } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { m } from '@/paraglide/messages'
 
@@ -78,6 +79,13 @@ function Home() {
   return (
     <div className="min-h-screen bg-background py-12">
       <div className="mx-auto max-w-2xl px-6">
+        <Link
+          to="/demo"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="size-4" />
+          {m.demo_back_to_demos()}
+        </Link>
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold">{m.demo_server_heading()}</h1>
           <p className="mt-2 text-muted-foreground">{m.demo_server_subtitle()}</p>

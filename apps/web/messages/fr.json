@@ -580,5 +580,12 @@
   "auth_resend_reset_in": "Renvoyer dans {seconds}s...",
   "auth_open_email_provider": "Ouvrir {provider}",
   "auth_register_success_title": "Compte cree",
-  "org_slug_invalid": "L'identifiant doit contenir uniquement des lettres minuscules, des chiffres et des tirets (pas de tirets en debut ou fin)"
+  "org_slug_invalid": "L'identifiant doit contenir uniquement des lettres minuscules, des chiffres et des tirets (pas de tirets en debut ou fin)",
+
+  "demo_back_to_demos": "Retour aux Demos",
+
+  "stats_features": "Fonctionnalites incluses",
+  "stats_typesafe": "Type Safe",
+  "stats_components": "Composants UI",
+  "stats_integrations": "Integrations"
 }

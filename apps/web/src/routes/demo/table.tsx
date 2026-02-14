@@ -11,7 +11,7 @@ import {
 } from '@repo/ui'
 import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import { compareItems, rankItem } from '@tanstack/match-sorter-utils'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import type {
   Column,
   ColumnDef,
@@ -29,6 +29,7 @@ import {
   sortingFns,
   useReactTable,
 } from '@tanstack/react-table'
+import { ChevronLeft } from 'lucide-react'
 import React from 'react'
 import type { Person } from '@/data/demo-table-data'
 import { makeData } from '@/data/demo-table-data'
@@ -156,6 +157,13 @@ function TableDemo() {
   return (
     <div className="min-h-screen bg-background py-12">
       <div className="mx-auto max-w-5xl px-6">
+        <Link
+          to="/demo"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="size-4" />
+          {m.demo_back_to_demos()}
+        </Link>
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold">{m.demo_table_heading()}</h1>
           <p className="mt-2 text-muted-foreground">{m.demo_table_subtitle()}</p>

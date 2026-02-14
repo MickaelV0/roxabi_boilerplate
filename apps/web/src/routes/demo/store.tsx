@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, Input } from '@repo/ui'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
+import { ChevronLeft } from 'lucide-react'
 
 import { fullName, store } from '@/lib/demo-store'
 import { m } from '@/paraglide/messages'
@@ -45,6 +46,13 @@ function DemoStore() {
   return (
     <div className="min-h-screen bg-background py-12">
       <div className="mx-auto max-w-2xl px-6">
+        <Link
+          to="/demo"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="size-4" />
+          {m.demo_back_to_demos()}
+        </Link>
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold">{m.demo_store_title()}</h1>
           <p className="mt-2 text-muted-foreground">{m.demo_store_desc()}</p>

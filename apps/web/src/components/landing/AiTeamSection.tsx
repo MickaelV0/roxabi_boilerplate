@@ -22,7 +22,7 @@ export function AiTeamSection() {
   ]
 
   return (
-    <section className="py-24">
+    <section className="bg-gradient-to-b from-background to-muted/20 py-24">
       <div className="mx-auto max-w-7xl px-6">
         <SectionHeading title={m.ai_title()} subtitle={m.ai_subtitle()} className="mb-16" />
         <div className="grid gap-8 lg:grid-cols-2">

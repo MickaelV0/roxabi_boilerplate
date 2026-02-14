@@ -580,5 +580,12 @@
   "auth_resend_reset_in": "Resend in {seconds}s...",
   "auth_open_email_provider": "Open {provider}",
   "auth_register_success_title": "Account Created",
-  "org_slug_invalid": "Slug must be lowercase letters, numbers, and hyphens only (no leading/trailing hyphens)"
+  "org_slug_invalid": "Slug must be lowercase letters, numbers, and hyphens only (no leading/trailing hyphens)",
+
+  "demo_back_to_demos": "Back to Demos",
+
+  "stats_features": "Built-in Features",
+  "stats_typesafe": "Type Safe",
+  "stats_components": "UI Components",
+  "stats_integrations": "Integrations"
 }
