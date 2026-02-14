@@ -558,5 +558,16 @@
   "password_rule_symbol": "Symbol",
 
   "password_toggle_show": "Show password",
-  "password_toggle_hide": "Hide password"
+  "password_toggle_hide": "Hide password",
+
+  "auth_tab_password": "Password",
+  "auth_tab_magic_link": "Magic Link",
+  "auth_email_invalid": "Please enter a valid email address",
+  "auth_login_invalid_credentials": "Invalid email or password",
+  "auth_register_unable": "Unable to create account. Please try again.",
+  "auth_reset_password_sent": "If an account exists with this email, you'll receive a reset link.",
+  "auth_resend_reset_in": "Resend in {seconds}s...",
+  "auth_open_email_provider": "Open {provider}",
+  "auth_register_success_title": "Account Created",
+  "org_slug_invalid": "Slug must be lowercase letters, numbers, and hyphens only (no leading/trailing hyphens)"
 }

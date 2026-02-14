@@ -23,6 +23,8 @@ import { authClient, useSession } from '@/lib/auth-client'
 import { hasPermission } from '@/lib/permissions'
 import { m } from '@/paraglide/messages'
 
+const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
+
 export const Route = createFileRoute('/org/settings')({
   beforeLoad: async () => {
     const { data } = await authClient.getSession()
@@ -48,6 +50,20 @@ function OrgSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [slugError, setSlugError] = useState('')
+
+  function handleSlugBlur() {
+    if (slug && !SLUG_REGEX.test(slug)) {
+      setSlugError(m.org_slug_invalid())
+    }
+  }
+
+  function handleSlugChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setSlug(e.target.value)
+    if (slugError) {
+      setSlugError('')
+    }
+  }
 
   // Sync local state when the active org changes (e.g. user switches org)
   useEffect(() => {
@@ -68,6 +84,10 @@ function OrgSettingsPage() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
+    if (slug && !SLUG_REGEX.test(slug)) {
+      setSlugError(m.org_slug_invalid())
+      return
+    }
     setSaving(true)
     try {
       const { error } = await authClient.organization.update({
@@ -132,11 +152,19 @@ function OrgSettingsPage() {
               <Input
                 id="org-slug"
                 value={slug}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSlug(e.target.value)}
+                onChange={handleSlugChange}
+                onBlur={handleSlugBlur}
                 placeholder={m.org_slug_placeholder()}
                 disabled={!canDeleteOrg || saving}
                 required
+                aria-invalid={slugError ? true : undefined}
+                aria-describedby={slugError ? 'slug-error' : undefined}
               />
+              {slugError && (
+                <p id="slug-error" className="text-sm text-destructive">
+                  {slugError}
+                </p>
+              )}
             </div>
             {canDeleteOrg && (
               <Button type="submit" disabled={saving}>
