@@ -32,6 +32,11 @@ vi.mock('@repo/ui', () => ({
   Button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
     <button {...props}>{children}</button>
   ),
+  FormMessage: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <div role="alert" aria-live="polite" {...props}>
+      {children}
+    </div>
+  ),
   Input: (props: Record<string, unknown>) => <input {...props} />,
   Label: ({
     children,
