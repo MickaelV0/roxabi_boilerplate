@@ -1,5 +1,5 @@
 import { AnimatedSection, Badge, Card, cn } from '@repo/ui'
-import { FileText, Shield, Users, Zap } from 'lucide-react'
+import { FileText, Users, Zap } from 'lucide-react'
 
 const skills = [
   'commit',
@@ -20,14 +20,6 @@ const skills = [
   'skill-creator',
 ] as const
 
-const hooks = [
-  { name: 'PostToolUse', desc: 'Biome auto-format on every file change' },
-  { name: 'PreToolUse', desc: 'Security warnings before file writes' },
-  { name: 'pre-commit', desc: 'Lint + format staged files' },
-  { name: 'commit-msg', desc: 'Commitlint validates Conventional Commits' },
-  { name: 'pre-push', desc: 'Lint, typecheck, and test coverage' },
-] as const
-
 const agentFiles = [
   'frontend-dev.md',
   'backend-dev.md',
@@ -39,6 +31,18 @@ const agentFiles = [
   'product-lead.md',
   'doc-writer.md',
 ] as const
+
+const agentColors: Record<string, string> = {
+  'frontend-dev': 'text-chart-1 bg-chart-1/10',
+  'backend-dev': 'text-chart-2 bg-chart-2/10',
+  devops: 'text-chart-3 bg-chart-3/10',
+  tester: 'text-chart-4 bg-chart-4/10',
+  fixer: 'text-chart-5 bg-chart-5/10',
+  'security-auditor': 'text-destructive bg-destructive/10',
+  architect: 'text-primary bg-primary/10',
+  'product-lead': 'text-accent-foreground bg-accent/20',
+  'doc-writer': 'text-muted-foreground bg-muted/40',
+}
 
 // Static data — JSX in `visual` is safe at module scope since it contains no hooks or dynamic state
 const blocks = [
@@ -65,29 +69,14 @@ const blocks = [
     description: 'Reusable workflows: /commit, /review, /bootstrap, /scaffold, /pr, /promote...',
     visual: (
       <div className="mt-4 flex flex-wrap gap-2">
-        {skills.map((skill) => (
+        {skills.slice(0, 6).map((skill) => (
           <Badge key={skill} variant="outline" className="font-mono text-xs">
             /{skill}
           </Badge>
         ))}
-      </div>
-    ),
-  },
-  {
-    icon: Shield,
-    title: 'Hooks',
-    subtitle: 'Auto-enforcement',
-    description: 'Biome auto-format on save, security warnings, git pre-commit/push quality gates.',
-    visual: (
-      <div className="mt-4 space-y-2">
-        {hooks.map((hook) => (
-          <div key={hook.name} className="flex items-start gap-2 text-sm">
-            <span className="shrink-0 rounded bg-primary/10 px-2 py-0.5 font-mono text-xs text-primary">
-              {hook.name}
-            </span>
-            <span className="text-muted-foreground">{hook.desc}</span>
-          </div>
-        ))}
+        <Badge variant="outline" className="font-mono text-xs text-muted-foreground">
+          +{skills.length - 6} more
+        </Badge>
       </div>
     ),
   },
@@ -97,13 +86,21 @@ const blocks = [
     subtitle: '.claude/agents/',
     description: 'Role-specific .md files defining tools, permissions, domains, and skills.',
     visual: (
-      <div className="mt-4 rounded-lg border border-border/30 bg-muted/20 p-3 font-mono text-xs">
-        <p className="text-muted-foreground">.claude/agents/</p>
-        {agentFiles.map((file) => (
-          <p key={file} className="ml-4 text-foreground/70">
-            {file}
-          </p>
-        ))}
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        {agentFiles.map((file) => {
+          const name = file.replace('.md', '')
+          return (
+            <span
+              key={name}
+              className={cn(
+                'rounded-md px-2 py-1.5 font-mono text-xs font-medium text-center',
+                agentColors[name] ?? 'text-muted-foreground bg-muted/20'
+              )}
+            >
+              {name}
+            </span>
+          )
+        })}
       </div>
     ),
   },
@@ -115,11 +112,11 @@ export function BuildingBlocksSection() {
       <AnimatedSection>
         <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">Building Blocks</h2>
         <p className="mt-4 text-lg text-muted-foreground">
-          Four pillars that transform Claude from a chatbot into a development workforce.
+          Three pillars that transform Claude from a chatbot into a development workforce.
         </p>
       </AnimatedSection>
 
-      {/* Bento grid: featured card spans full width, remaining 3 below in asymmetric sizes */}
+      {/* Bento grid: featured card spans full width, remaining 2 below in equal sizes */}
       <div className="mt-12 grid gap-6 md:grid-cols-6">
         {blocks.map((block, index) => (
           <AnimatedSection
@@ -127,12 +124,10 @@ export function BuildingBlocksSection() {
             className={cn(
               // Featured card (CLAUDE.md) spans full width
               index === 0 && 'md:col-span-6',
-              // Skills card takes 4 columns (wider — badges need room)
-              index === 1 && 'md:col-span-4',
-              // Hooks card takes 2 columns
-              index === 2 && 'md:col-span-2',
-              // Agent definitions centered below
-              index === 3 && 'md:col-span-4 md:col-start-2',
+              // Skills card takes 3 columns
+              index === 1 && 'md:col-span-3',
+              // Agent definitions takes 3 columns
+              index === 2 && 'md:col-span-3',
               // Stagger animation for rows below the first
               index > 0 && 'md:delay-150'
             )}

@@ -20,8 +20,8 @@ export function IntroSection() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-3xl text-xl text-muted-foreground lg:text-2xl">
-            CLI-based agentic assistant with filesystem access. Not autocomplete — an autonomous
-            agent that reads, writes, and executes.
+            AI agents that write, test, review, and deploy production code. Not autocomplete —
+            autonomous development.
           </p>
         </AnimatedSection>
 
@@ -37,7 +37,7 @@ export function IntroSection() {
 
         <AnimatedSection className="mt-12">
           <p className="text-sm text-muted-foreground/60">
-            22 days of parallel development. 267K messages. 49K tool calls.
+            Built in 22 days. 288 commits. Zero manual deployments.
           </p>
         </AnimatedSection>
       </div>
