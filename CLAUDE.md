@@ -92,6 +92,8 @@ When detecting a large workload (3+ complex tasks, migrations, or multi-componen
 ```bash
 git worktree add ../roxabi-XXX -b feat/XXX-slug staging
 cd ../roxabi-XXX
+cp .env.example .env && bun install
+cd apps/api && bun run db:branch:create --force XXX
 ```
 
 > XXX = GitHub issue number (e.g., 123), slug = short description

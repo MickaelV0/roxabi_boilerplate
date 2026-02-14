@@ -157,9 +157,12 @@ git fetch origin staging
 ```bash
 git worktree add ../roxabi-<issue_number> -b feat/<issue_number>-<slug> staging
 cd ../roxabi-<issue_number> && cp .env.example .env && bun install
+cd apps/api && bun run db:branch:create --force <issue_number>
 ```
 
 The `.env.example` copy ensures the worktree has all required environment variables for local dev (e.g., `VITE_GITHUB_REPO_URL`, `API_URL`).
+
+The `--force` flag ensures non-interactive behavior (no prompts) when called from `/scaffold`. The `db:branch:create` script handles database creation, migration, seed, and `.env` update in a single step.
 
 All subsequent operations run in the worktree directory.
 
