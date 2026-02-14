@@ -163,6 +163,7 @@ export {
   meetsWcagAA,
   oklchToHex,
   resetTheme,
+  SHADOW_PRESETS,
 } from './lib/theme'
 export { useReducedMotion } from './lib/useReducedMotion'
 // Utilities

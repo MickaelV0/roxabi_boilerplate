@@ -56,7 +56,7 @@ export function Header() {
             <Button variant="ghost" size="sm" asChild>
               <Link
                 to="/"
-                activeProps={{ className: 'bg-accent font-medium border-b-2 border-primary' }}
+                activeProps={{ className: 'bg-accent font-medium' }}
                 activeOptions={{ exact: true }}
               >
                 {m.nav_home()}
@@ -64,19 +64,13 @@ export function Header() {
             </Button>
             {isDemoEnabled && (
               <Button variant="ghost" size="sm" asChild>
-                <Link
-                  to="/demo"
-                  activeProps={{ className: 'bg-accent font-medium border-b-2 border-primary' }}
-                >
+                <Link to="/demo" activeProps={{ className: 'bg-accent font-medium' }}>
                   {m.nav_demos()}
                 </Link>
               </Button>
             )}
             <Button variant="ghost" size="sm" asChild>
-              <Link
-                to="/design-system"
-                activeProps={{ className: 'bg-accent font-medium border-b-2 border-primary' }}
-              >
+              <Link to="/design-system" activeProps={{ className: 'bg-accent font-medium' }}>
                 {m.nav_design_system()}
               </Link>
             </Button>
@@ -135,7 +129,7 @@ export function Header() {
             <Button variant="ghost" size="sm" className="justify-start" asChild>
               <Link
                 to="/"
-                activeProps={{ className: 'bg-accent font-medium border-b-2 border-primary' }}
+                activeProps={{ className: 'bg-accent font-medium' }}
                 activeOptions={{ exact: true }}
                 onClick={() => setMobileOpen(false)}
               >
@@ -146,7 +140,7 @@ export function Header() {
               <Button variant="ghost" size="sm" className="justify-start" asChild>
                 <Link
                   to="/demo"
-                  activeProps={{ className: 'bg-accent font-medium border-b-2 border-primary' }}
+                  activeProps={{ className: 'bg-accent font-medium' }}
                   onClick={() => setMobileOpen(false)}
                 >
                   {m.nav_demos()}
@@ -156,7 +150,7 @@ export function Header() {
             <Button variant="ghost" size="sm" className="justify-start" asChild>
               <Link
                 to="/design-system"
-                activeProps={{ className: 'bg-accent font-medium border-b-2 border-primary' }}
+                activeProps={{ className: 'bg-accent font-medium' }}
                 onClick={() => setMobileOpen(false)}
               >
                 {m.nav_design_system()}

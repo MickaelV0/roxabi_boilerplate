@@ -976,7 +976,7 @@ export function getComposedConfig(base: ShadcnPreset, color?: ShadcnPreset | nul
       baseFontSize: '16px',
     },
     radius: v('radius') || '0.625rem',
-    shadows: 'subtle',
+    shadows: 'medium',
   }
 }
 

@@ -6,8 +6,8 @@ const CURRENT_YEAR = new Date().getFullYear().toString()
 
 export function Footer() {
   return (
-    <footer className="mt-16 border-t border-border">
-      <div className="mx-auto max-w-7xl px-6 py-8 flex items-center justify-between">
+    <footer className="border-t border-border">
+      <div className="mx-auto max-w-7xl px-6 py-3 flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
           {m.footer_copyright({ year: CURRENT_YEAR })}
         </p>
