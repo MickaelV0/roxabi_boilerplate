@@ -17,25 +17,136 @@
  *   bun run db:seed  (reads DATABASE_URL from .env)
  */
 
-// TODO: implement — connect to database using DATABASE_URL from env (postgres + drizzle)
+import { hashPassword } from 'better-auth/crypto'
+import { eq } from 'drizzle-orm'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import { drizzle } from 'drizzle-orm/postgres-js'
+import postgres from 'postgres'
+import * as schema from '../src/database/schema/index.js'
+import { DEFAULT_ROLES } from '../src/rbac/rbac.service.js'
 
-// TODO: implement — create user (id, name, email, emailVerified)
+type Tx = Parameters<Parameters<PostgresJsDatabase<typeof schema>['transaction']>[0]>[0]
 
-// TODO: implement — hash password via `import { hashPassword } from 'better-auth/crypto'`
+/** Build a map of "resource:action" → permission ID from pre-seeded permissions. */
+async function buildPermissionMap(tx: Tx): Promise<Map<string, string>> {
+  const allPerms = await tx.select().from(schema.permissions)
+  return new Map(allPerms.map((p) => [`${p.resource}:${p.action}`, p.id]))
+}
 
-// TODO: implement — create account (userId, accountId, providerId: 'credential', password: hashedPassword)
+/** Seed RBAC roles and their permission assignments for an organization. */
+async function seedRbac(
+  tx: Tx,
+  orgId: string,
+  permMap: Map<string, string>
+): Promise<{ ownerRoleId: string | null; totalRolePermissions: number }> {
+  let totalRolePermissions = 0
+  let ownerRoleId: string | null = null
 
-// TODO: implement — create organization (id, name: 'Roxabi Dev', slug: 'roxabi-dev')
+  for (const roleDef of DEFAULT_ROLES) {
+    const roleId = crypto.randomUUID()
+    await tx.insert(schema.roles).values({
+      id: roleId,
+      tenantId: orgId,
+      name: roleDef.name,
+      slug: roleDef.slug,
+      description: roleDef.description,
+      isDefault: true,
+    })
 
-// TODO: implement — create member (userId, organizationId, role: 'owner')
+    if (roleDef.slug === 'owner') {
+      ownerRoleId = roleId
+    }
 
-// TODO: implement — import DEFAULT_ROLES from rbac.service and seed roles + permissions:
-//   a. For each role: insert into roles table (tenantId: orgId, name, slug, description, isDefault: true)
-//   b. Query permissions table, build resource:action → id map
-//   c. Insert role_permissions for each role
-//   d. Find Owner role ID, update member.roleId
+    const rolePermValues: { roleId: string; permissionId: string }[] = []
+    for (const permKey of roleDef.permissions) {
+      const permissionId = permMap.get(permKey)
+      if (!permissionId) {
+        console.warn(`db-seed: permission "${permKey}" not found in permissions table — skipping`)
+        continue
+      }
+      rolePermValues.push({ roleId, permissionId })
+    }
 
-// TODO: implement — log seed summary
+    if (rolePermValues.length > 0) {
+      await tx.insert(schema.rolePermissions).values(rolePermValues)
+      totalRolePermissions += rolePermValues.length
+    }
+  }
 
-console.log('db-seed: not yet implemented')
-process.exit(1)
+  return { ownerRoleId, totalRolePermissions }
+}
+
+async function seed() {
+  const databaseUrl = process.env.DATABASE_URL
+  if (!databaseUrl) {
+    console.error('db-seed: DATABASE_URL environment variable is required')
+    process.exit(1)
+  }
+
+  const client = postgres(databaseUrl, { max: 1 })
+  const db = drizzle(client, { schema })
+
+  try {
+    await db.transaction(async (tx) => {
+      // 1. Create user
+      const userId = crypto.randomUUID()
+      await tx.insert(schema.users).values({
+        id: userId,
+        name: 'Dev User',
+        email: 'dev@roxabi.local',
+        emailVerified: true,
+      })
+
+      // 2. Hash password and create account
+      const hashedPassword = await hashPassword('password123')
+      await tx.insert(schema.accounts).values({
+        id: crypto.randomUUID(),
+        userId,
+        accountId: userId,
+        providerId: 'credential',
+        password: hashedPassword,
+      })
+
+      // 3. Create organization
+      const orgId = crypto.randomUUID()
+      await tx.insert(schema.organizations).values({
+        id: orgId,
+        name: 'Roxabi Dev',
+        slug: 'roxabi-dev',
+      })
+
+      // 4. Create member (roleId updated after RBAC seeding)
+      const memberId = crypto.randomUUID()
+      await tx.insert(schema.members).values({
+        id: memberId,
+        userId,
+        organizationId: orgId,
+        role: 'owner',
+        roleId: null,
+      })
+
+      // 5. Seed RBAC roles and permissions
+      const permMap = await buildPermissionMap(tx)
+      const { ownerRoleId, totalRolePermissions } = await seedRbac(tx, orgId, permMap)
+
+      // 6. Update member.roleId to Owner role
+      if (ownerRoleId) {
+        await tx
+          .update(schema.members)
+          .set({ roleId: ownerRoleId })
+          .where(eq(schema.members.id, memberId))
+      }
+
+      console.log(
+        `Seeded: 1 user, 1 org, 1 member, ${DEFAULT_ROLES.length} roles, ${totalRolePermissions} role_permissions`
+      )
+    })
+  } catch (error) {
+    console.error('db-seed: failed to seed database:', error)
+    process.exit(1)
+  } finally {
+    await client.end()
+  }
+}
+
+seed()
