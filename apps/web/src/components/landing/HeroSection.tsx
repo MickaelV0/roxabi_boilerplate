@@ -8,8 +8,8 @@ export function HeroSection() {
     <section className="relative overflow-hidden">
       {/* Background glow */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-1/4 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-[120px] dark:bg-primary/15" />
-        <div className="absolute right-0 top-1/2 h-[400px] w-[400px] -translate-y-1/2 translate-x-1/3 rounded-full bg-chart-1/5 blur-[100px] dark:bg-chart-1/10" />
+        <div className="absolute left-1/2 top-1/4 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[140px] dark:bg-primary/20" />
+        <div className="absolute right-0 top-1/2 h-[400px] w-[400px] -translate-y-1/2 translate-x-1/3 rounded-full bg-chart-1/10 blur-[120px] dark:bg-chart-1/15" />
       </div>
 
       <div className="relative mx-auto max-w-7xl px-6 py-24 text-center lg:py-32">
@@ -17,7 +17,7 @@ export function HeroSection() {
           <Badge variant="secondary" className="mb-6">
             {m.hero_badge()}
           </Badge>
-          <h1 className="mx-auto max-w-4xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+          <h1 className="mx-auto max-w-4xl text-4xl font-bold tracking-tight text-balance sm:text-5xl lg:text-6xl">
             {m.hero_title()}
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
