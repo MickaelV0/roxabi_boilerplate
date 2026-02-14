@@ -9,7 +9,8 @@
   ],
   "scripts": {
     "prepare": "lefthook install",
-    "dev": "trap 'kill 0' INT TERM; turbo dev",
+    "dev": "turbo dev",
+    "dev:clean": "fuser -k ${NITRO_PORT:-42069}/tcp ${PORT:-4000}/tcp ${WEB_PORT:-3000}/tcp 2>/dev/null || true",
     "build": "turbo build",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
