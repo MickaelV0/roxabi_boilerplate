@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus } from '@nestjs/common'
+import { HttpException, HttpStatus, Logger } from '@nestjs/common'
 import { ThrottlerException } from '@nestjs/throttler'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -207,7 +207,8 @@ describe('AllExceptionsFilter', () => {
       const { host } = createMockHost({ url: '/api/auth/sign-in', throttlerMeta })
       const exception = new ThrottlerException()
 
-      const warnSpy = vi.spyOn((filter as any).logger, 'warn')
+      const logger = Reflect.get(filter, 'logger') as Logger
+      const warnSpy = vi.spyOn(logger, 'warn')
 
       // Act
       filter.catch(exception, host as never)
