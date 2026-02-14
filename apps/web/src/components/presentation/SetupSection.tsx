@@ -51,7 +51,7 @@ export function SetupSection() {
           {requiredTools.map((tool) => (
             <Card variant="subtle" key={tool.name} className="group p-6 text-center">
               <div className={cn('mx-auto mb-2', tool.color)}>
-                <tool.icon className="h-6 w-6" />
+                <tool.icon className="size-6" />
               </div>
               <p className="font-semibold text-sm">{tool.name}</p>
               <p className="mt-1 text-xs text-muted-foreground leading-snug">{tool.description}</p>

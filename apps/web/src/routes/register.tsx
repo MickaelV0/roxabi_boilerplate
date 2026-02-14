@@ -1,10 +1,11 @@
-import { Button, Input, Label, OAuthButton, PasswordInput } from '@repo/ui'
+import { Button, cn, Input, Label, OAuthButton, PasswordInput } from '@repo/ui'
 import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, fetchEnabledProviders } from '@/lib/auth-client'
 import { m } from '@/paraglide/messages'
 import { AuthLayout } from '../components/AuthLayout'
+import { OrDivider } from '../components/OrDivider'
 
 export const Route = createFileRoute('/register')({
   beforeLoad: async () => {
@@ -135,17 +136,13 @@ function RegisterPage() {
 
       {hasOAuth && (
         <>
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">{m.auth_or()}</span>
-            </div>
-          </div>
+          <OrDivider />
 
           <div
-            className={`grid gap-2 ${providers.google && providers.github ? 'grid-cols-2' : 'grid-cols-1'}`}
+            className={cn(
+              'grid gap-2',
+              providers.google && providers.github ? 'grid-cols-2' : 'grid-cols-1'
+            )}
           >
             {providers.google && (
               <OAuthButton

@@ -84,7 +84,7 @@ export function EndToEndSection() {
               {index < pipelineSteps.length - 1 && (
                 <ArrowRight
                   className={cn(
-                    'h-5 w-5 text-primary/60 shrink-0 transition-all duration-500',
+                    'size-5 text-primary/60 shrink-0 transition-all duration-500',
                     visible ? 'opacity-100' : 'opacity-0'
                   )}
                   style={{
@@ -120,7 +120,7 @@ export function EndToEndSection() {
               </Card>
               {index < pipelineSteps.length - 1 && (
                 <div className="flex justify-center py-1">
-                  <ArrowRight className="h-4 w-4 text-muted-foreground/40 rotate-90" />
+                  <ArrowRight className="size-4 text-muted-foreground/40 rotate-90" />
                 </div>
               )}
             </div>

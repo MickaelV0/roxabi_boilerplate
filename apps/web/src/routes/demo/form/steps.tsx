@@ -96,7 +96,7 @@ function StepsFormPage() {
           <Card className="text-center">
             <CardHeader>
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                <CheckCircle2 className="h-8 w-8 text-green-600" />
+                <CheckCircle2 className="size-8 text-green-600" />
               </div>
               <CardTitle className="text-2xl">{m.demo_form_steps_thank_you()}</CardTitle>
               <CardDescription>{m.demo_form_steps_submitted()}</CardDescription>
@@ -155,7 +155,7 @@ function StepsFormPage() {
                           : 'border-muted-foreground/30 text-muted-foreground'
                     }`}
                   >
-                    {currentStep > step.id ? <CheckCircle2 className="h-5 w-5" /> : step.id}
+                    {currentStep > step.id ? <CheckCircle2 className="size-5" /> : step.id}
                   </div>
                   <div className="mt-2 text-center">
                     <p
@@ -301,7 +301,7 @@ function StepsFormPage() {
                     }`}
                   >
                     <span
-                      className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                      className={`absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition-transform ${
                         formData.notifications ? 'translate-x-5' : 'translate-x-0'
                       }`}
                     />
@@ -312,7 +312,7 @@ function StepsFormPage() {
           </CardContent>
           <CardFooter className="flex justify-between">
             <Button variant="outline" onClick={prevStep} disabled={currentStep === 1}>
-              <ChevronLeft className="mr-2 h-4 w-4" />
+              <ChevronLeft className="mr-2 size-4" />
               {m.demo_form_steps_back()}
             </Button>
             {currentStep === steps.length ? (
@@ -320,7 +320,7 @@ function StepsFormPage() {
             ) : (
               <Button onClick={nextStep}>
                 {m.demo_form_steps_next()}
-                <ChevronRight className="ml-2 h-4 w-4" />
+                <ChevronRight className="ml-2 size-4" />
               </Button>
             )}
           </CardFooter>

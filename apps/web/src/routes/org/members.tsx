@@ -27,6 +27,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@repo/ui'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
@@ -210,22 +216,28 @@ function OrgMembersPage() {
             <p className="text-sm text-muted-foreground">{m.org_members_empty()}</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="pb-2 pr-4 font-medium">{m.org_members_name()}</th>
-                    <th className="pb-2 pr-4 font-medium">{m.org_members_email()}</th>
-                    <th className="pb-2 pr-4 font-medium">{m.org_members_role()}</th>
-                    <th className="pb-2 pr-4 font-medium">{m.org_members_joined()}</th>
-                    {canManage && <th className="pb-2 font-medium">{m.org_members_actions()}</th>}
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="w-full text-sm">
+                <TableHeader>
+                  <TableRow className="border-b text-left text-muted-foreground">
+                    <TableHead className="pb-2 pr-4 font-medium">{m.org_members_name()}</TableHead>
+                    <TableHead className="pb-2 pr-4 font-medium">{m.org_members_email()}</TableHead>
+                    <TableHead className="pb-2 pr-4 font-medium">{m.org_members_role()}</TableHead>
+                    <TableHead className="pb-2 pr-4 font-medium">
+                      {m.org_members_joined()}
+                    </TableHead>
+                    {canManage && (
+                      <TableHead className="pb-2 font-medium">{m.org_members_actions()}</TableHead>
+                    )}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {members.map((member) => (
-                    <tr key={member.id} className="border-b last:border-0">
-                      <td className="py-3 pr-4">{member.user.name}</td>
-                      <td className="py-3 pr-4 text-muted-foreground">{member.user.email}</td>
-                      <td className="py-3 pr-4">
+                    <TableRow key={member.id} className="border-b last:border-0">
+                      <TableCell className="py-3 pr-4">{member.user.name}</TableCell>
+                      <TableCell className="py-3 pr-4 text-muted-foreground">
+                        {member.user.email}
+                      </TableCell>
+                      <TableCell className="py-3 pr-4">
                         {canManage && member.role !== 'owner' ? (
                           <Select
                             value={member.role}
@@ -244,12 +256,12 @@ function OrgMembersPage() {
                             {roleLabel(member.role)}
                           </Badge>
                         )}
-                      </td>
-                      <td className="py-3 pr-4 text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="py-3 pr-4 text-muted-foreground">
                         {new Date(member.createdAt).toLocaleDateString()}
-                      </td>
+                      </TableCell>
                       {canManage && (
-                        <td className="py-3">
+                        <TableCell className="py-3">
                           {member.role !== 'owner' && (
                             <Button
                               variant="ghost"
@@ -260,12 +272,12 @@ function OrgMembersPage() {
                               {m.org_members_remove()}
                             </Button>
                           )}
-                        </td>
+                        </TableCell>
                       )}
-                    </tr>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
@@ -280,27 +292,35 @@ function OrgMembersPage() {
             <p className="text-sm text-muted-foreground">{m.org_invitations_empty()}</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="pb-2 pr-4 font-medium">{m.org_invitations_email()}</th>
-                    <th className="pb-2 pr-4 font-medium">{m.org_invitations_role()}</th>
-                    <th className="pb-2 pr-4 font-medium">{m.org_invitations_status()}</th>
-                    {canManage && <th className="pb-2 font-medium">{m.org_members_actions()}</th>}
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="w-full text-sm">
+                <TableHeader>
+                  <TableRow className="border-b text-left text-muted-foreground">
+                    <TableHead className="pb-2 pr-4 font-medium">
+                      {m.org_invitations_email()}
+                    </TableHead>
+                    <TableHead className="pb-2 pr-4 font-medium">
+                      {m.org_invitations_role()}
+                    </TableHead>
+                    <TableHead className="pb-2 pr-4 font-medium">
+                      {m.org_invitations_status()}
+                    </TableHead>
+                    {canManage && (
+                      <TableHead className="pb-2 font-medium">{m.org_members_actions()}</TableHead>
+                    )}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {invitations.map((inv) => (
-                    <tr key={inv.id} className="border-b last:border-0">
-                      <td className="py-3 pr-4">{inv.email}</td>
-                      <td className="py-3 pr-4">
+                    <TableRow key={inv.id} className="border-b last:border-0">
+                      <TableCell className="py-3 pr-4">{inv.email}</TableCell>
+                      <TableCell className="py-3 pr-4">
                         <Badge variant={roleBadgeVariant(inv.role)}>{roleLabel(inv.role)}</Badge>
-                      </td>
-                      <td className="py-3 pr-4">
+                      </TableCell>
+                      <TableCell className="py-3 pr-4">
                         <Badge variant="outline">{inv.status}</Badge>
-                      </td>
+                      </TableCell>
                       {canManage && (
-                        <td className="py-3">
+                        <TableCell className="py-3">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -309,12 +329,12 @@ function OrgMembersPage() {
                           >
                             {m.org_invitations_revoke()}
                           </Button>
-                        </td>
+                        </TableCell>
                       )}
-                    </tr>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>

@@ -157,7 +157,7 @@ export function PresentationNav({ sections, onEscape, scrollContainerRef }: Pres
               title={section.label}
               onClick={() => scrollToSection(index)}
               className={cn(
-                'group relative h-3 w-3 rounded-full border-2 transition-all duration-300',
+                'group relative size-3 rounded-full border-2 transition-all duration-300',
                 isActive
                   ? 'border-primary bg-primary scale-125'
                   : 'border-muted-foreground/40 bg-transparent hover:border-primary/60 hover:scale-110'
