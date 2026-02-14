@@ -185,8 +185,9 @@ else
 
         ($all | map({key: (.content.number | tostring), value: .}) | from_entries) as $byNum |
 
-        # Only show root issues (no parent), children are shown inline
-        [$all[] | select(.content.parent == null)]
+        # Only show root issues (no open parent), children are shown inline
+        # Orphaned children (parent closed) are promoted to root
+        [$all[] | select(.content.parent == null or .content.parent.state == "CLOSED")]
         | sort_by([
             block_order,
             (status_order[([.fieldValues.nodes[] | select(.field.name == "Status") | .name] | first // "-")] // 99),
