@@ -29,6 +29,7 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 
 vi.mock('@repo/ui', () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
   Button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
     <button {...props}>{children}</button>
   ),
