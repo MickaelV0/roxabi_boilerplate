@@ -229,6 +229,17 @@
   "org_invitations_revoke": "Révoquer",
   "org_toast_invitation_revoked": "Invitation révoquée",
 
+  "org_tab_settings": "Paramètres",
+  "org_tab_members": "Membres",
+  "org_delete_type_confirm": "Tapez \"{name}\" pour confirmer la suppression",
+  "org_delete_type_placeholder": "Tapez le nom de l'organisation...",
+  "org_unsaved_changes": "Vous avez des modifications non enregistrées. Voulez-vous vraiment quitter ?",
+  "org_unsaved_leave": "Quitter",
+  "org_unsaved_stay": "Rester",
+  "org_members_search_placeholder": "Rechercher des membres...",
+  "org_members_no_results": "Aucun membre ne correspond à votre recherche.",
+  "org_slug_generate": "Générer depuis le nom",
+
   "common_cancel": "Annuler",
 
   "error_ROLE_NOT_FOUND": "Rôle introuvable",

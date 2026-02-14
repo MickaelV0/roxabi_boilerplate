@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
@@ -449,5 +449,98 @@ describe('OrgMembersPage', () => {
     // Assert — only the pending invitation should be visible
     expect(screen.getByText('pending@acme.com')).toBeInTheDocument()
     expect(screen.queryByText('accepted@acme.com')).not.toBeInTheDocument()
+  })
+
+  it('should show search input (I9)', () => {
+    // Arrange
+    setupOrg()
+
+    // Act
+    const Page = captured.Component
+    render(<Page />)
+
+    // Assert
+    expect(screen.getByPlaceholderText('org_members_search_placeholder')).toBeInTheDocument()
+  })
+
+  it('should filter members by name when searching (I9)', () => {
+    // Arrange
+    setupOrg({
+      members: [
+        createMember({
+          id: 'm-alice',
+          role: 'member',
+          user: { name: 'Alice Smith', email: 'alice@acme.com' },
+        }),
+        createMember({
+          id: 'm-bob',
+          role: 'member',
+          user: { name: 'Bob Jones', email: 'bob@acme.com' },
+        }),
+      ],
+    })
+
+    const Page = captured.Component
+    render(<Page />)
+
+    // Act
+    const searchInput = screen.getByPlaceholderText('org_members_search_placeholder')
+    fireEvent.change(searchInput, { target: { value: 'Alice' } })
+
+    // Assert
+    expect(screen.getByText('Alice Smith')).toBeInTheDocument()
+    expect(screen.queryByText('Bob Jones')).not.toBeInTheDocument()
+  })
+
+  it('should filter members by email when searching (I9)', () => {
+    // Arrange
+    setupOrg({
+      members: [
+        createMember({
+          id: 'm-alice',
+          role: 'member',
+          user: { name: 'Alice Smith', email: 'alice@acme.com' },
+        }),
+        createMember({
+          id: 'm-bob',
+          role: 'member',
+          user: { name: 'Bob Jones', email: 'bob@acme.com' },
+        }),
+      ],
+    })
+
+    const Page = captured.Component
+    render(<Page />)
+
+    // Act
+    const searchInput = screen.getByPlaceholderText('org_members_search_placeholder')
+    fireEvent.change(searchInput, { target: { value: 'bob@' } })
+
+    // Assert
+    expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument()
+    expect(screen.getByText('Bob Jones')).toBeInTheDocument()
+  })
+
+  it('should show no-results message when search has no matches (I9)', () => {
+    // Arrange
+    setupOrg({
+      members: [
+        createMember({
+          id: 'm-alice',
+          role: 'member',
+          user: { name: 'Alice Smith', email: 'alice@acme.com' },
+        }),
+      ],
+    })
+
+    const Page = captured.Component
+    render(<Page />)
+
+    // Act
+    const searchInput = screen.getByPlaceholderText('org_members_search_placeholder')
+    fireEvent.change(searchInput, { target: { value: 'nonexistent' } })
+
+    // Assert
+    expect(screen.getByText('org_members_no_results')).toBeInTheDocument()
   })
 })
