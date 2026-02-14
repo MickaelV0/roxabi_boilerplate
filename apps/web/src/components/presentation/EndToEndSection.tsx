@@ -52,10 +52,10 @@ export function EndToEndSection() {
 
       <AnimatedSection>
         <h2 className="text-4xl font-bold tracking-tight text-center lg:text-5xl">
-          End-to-End: Idea to Production
+          Idea to Production
         </h2>
         <p className="mt-4 text-lg text-muted-foreground text-center">
-          A real feature in 5 commands.
+          One feature, five commands, zero context switching.
         </p>
       </AnimatedSection>
 
@@ -74,7 +74,7 @@ export function EndToEndSection() {
                 transitionDelay: visible ? `${index * 200}ms` : '0ms',
               }}
             >
-              <Card variant="subtle" className="items-center p-5 text-center min-w-[150px]">
+              <Card variant="subtle" className="items-center p-6 text-center min-w-[160px]">
                 <p className="font-mono text-lg font-bold text-primary">{step.command}</p>
                 <p className="mt-2 text-xs text-muted-foreground">
                   {step.from} → {step.to}
@@ -138,17 +138,14 @@ export function EndToEndSection() {
         </div>
       </AnimatedSection>
 
-      {/* Closing */}
       <AnimatedSection className="mt-12 text-center">
-        <p className="text-muted-foreground">
-          Built with{' '}
-          <Link
-            to="/"
-            className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
-          >
-            Roxabi
-          </Link>
-        </p>
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Try Roxabi
+          <ArrowRight className="h-5 w-5" />
+        </Link>
       </AnimatedSection>
     </div>
   )

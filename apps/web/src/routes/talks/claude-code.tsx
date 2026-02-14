@@ -5,11 +5,9 @@ import { AgentTeamsSection } from '@/components/presentation/AgentTeamsSection'
 import { BuildingBlocksSection } from '@/components/presentation/BuildingBlocksSection'
 import { DevProcessSection } from '@/components/presentation/DevProcessSection'
 import { EndToEndSection } from '@/components/presentation/EndToEndSection'
-import { InfraWorkflowSection } from '@/components/presentation/InfraWorkflowSection'
 import { IntroSection } from '@/components/presentation/IntroSection'
 import { SectionContainer } from '@/components/presentation/SectionContainer'
 import { SetupSection } from '@/components/presentation/SetupSection'
-import { TestReviewSection } from '@/components/presentation/TestReviewSection'
 import { ThemeToggle } from '@/components/ThemeToggle'
 
 export const Route = createFileRoute('/talks/claude-code')({
@@ -22,8 +20,6 @@ const SECTIONS = [
   { id: 'building-blocks', label: 'Building Blocks' },
   { id: 'dev-process', label: 'Dev Process' },
   { id: 'agent-teams', label: 'Agent Teams' },
-  { id: 'test-review', label: 'Test & Review' },
-  { id: 'infra-workflow', label: 'Infrastructure' },
   { id: 'end-to-end', label: 'End-to-End' },
 ] as const
 
@@ -79,14 +75,6 @@ export function ClaudeCodePresentation() {
 
         <SectionContainer id="agent-teams">
           <AgentTeamsSection />
-        </SectionContainer>
-
-        <SectionContainer id="test-review">
-          <TestReviewSection />
-        </SectionContainer>
-
-        <SectionContainer id="infra-workflow">
-          <InfraWorkflowSection />
         </SectionContainer>
 
         <SectionContainer id="end-to-end">
