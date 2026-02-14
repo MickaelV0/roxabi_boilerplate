@@ -68,7 +68,7 @@ mockParaglideMessages()
 // Import after mocks to trigger createFileRoute and capture the component
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
-import './settings'
+import { slugify } from './settings'
 
 function setupActiveOrg() {
   vi.mocked(authClient.useActiveOrganization).mockReturnValue({
@@ -387,5 +387,39 @@ describe('OrgSettingsPage', () => {
 
     // Assert
     expect(screen.getByLabelText('org_slug')).toHaveValue('my-new-org')
+  })
+})
+
+describe('slugify', () => {
+  it('should convert text to lowercase slug', () => {
+    expect(slugify('My New Org')).toBe('my-new-org')
+  })
+
+  it('should strip leading dashes', () => {
+    expect(slugify('--leading')).toBe('leading')
+  })
+
+  it('should strip trailing dashes', () => {
+    expect(slugify('trailing--')).toBe('trailing')
+  })
+
+  it('should collapse consecutive dashes', () => {
+    expect(slugify('hello   world')).toBe('hello-world')
+  })
+
+  it('should remove non-ASCII characters', () => {
+    expect(slugify('cafe resume')).toBe('cafe-resume')
+  })
+
+  it('should return empty string for empty input', () => {
+    expect(slugify('')).toBe('')
+  })
+
+  it('should return input unchanged when already a valid slug', () => {
+    expect(slugify('already-valid')).toBe('already-valid')
+  })
+
+  it('should replace underscores with dashes', () => {
+    expect(slugify('hello_world')).toBe('hello-world')
   })
 })

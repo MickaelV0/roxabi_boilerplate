@@ -26,7 +26,7 @@ export const Route = createFileRoute('/register')({
   beforeLoad: async () => {
     const { data } = await authClient.getSession()
     if (data) {
-      throw redirect({ to: '/' })
+      throw redirect({ to: '/dashboard' })
     }
   },
   loader: fetchEnabledProviders,
@@ -106,7 +106,7 @@ function RegisterPage() {
       <AuthLayout title={m.auth_register_title()} description={m.auth_register_desc()}>
         <Card className="border-0 shadow-none">
           <CardHeader className="items-center text-center">
-            <CheckCircle className="h-12 w-12 text-green-500" aria-hidden="true" />
+            <CheckCircle className="size-12 text-success" aria-hidden="true" />
             <CardTitle className="text-lg">{m.auth_register_success_title()}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-center">

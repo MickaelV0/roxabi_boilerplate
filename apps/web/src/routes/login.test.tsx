@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { authClient } from '@/lib/auth-client'
 import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
@@ -35,12 +35,13 @@ vi.mock('@repo/ui', () => ({
   ),
   Checkbox: ({
     id,
+    checked,
     ...props
   }: {
     id?: string
     checked?: boolean
     onCheckedChange?: (v: boolean) => void
-  }) => <input type="checkbox" id={id} {...props} />,
+  }) => <input type="checkbox" id={id} defaultChecked={checked} {...props} />,
   FormMessage: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
     <div role="alert" aria-live="polite" {...props}>
       {children}
@@ -125,9 +126,11 @@ describe('LoginPage', () => {
     const LoginPage = captured.Component
     render(<LoginPage />)
 
-    // Password tab email input (id="email") and password input
-    expect(document.getElementById('email')).toBeInTheDocument()
-    expect(screen.getByLabelText('auth_password')).toBeInTheDocument()
+    // Password tab email input and password input
+    const panels = screen.getAllByRole('tabpanel')
+    const passwordPanel = panels[0] as HTMLElement
+    expect(within(passwordPanel).getByLabelText('auth_email')).toBeInTheDocument()
+    expect(within(passwordPanel).getByLabelText('auth_password')).toBeInTheDocument()
   })
 
   it('should render sign in button', () => {
@@ -157,9 +160,13 @@ describe('LoginPage', () => {
     const LoginPage = captured.Component
     render(<LoginPage />)
 
-    // The magic link tab has its own email input (id="magic-email")
-    expect(document.getElementById('magic-email')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'auth_send_magic_link' })).toBeInTheDocument()
+    // The magic link tab has its own email input
+    const panels = screen.getAllByRole('tabpanel')
+    const magicLinkPanel = panels[1] as HTMLElement
+    expect(within(magicLinkPanel).getByLabelText('auth_email')).toBeInTheDocument()
+    expect(
+      within(magicLinkPanel).getByRole('button', { name: 'auth_send_magic_link' })
+    ).toBeInTheDocument()
   })
 
   it('should render forgot password link', () => {
@@ -199,10 +206,11 @@ describe('LoginPage', () => {
     const LoginPage = captured.Component
     render(<LoginPage />)
 
-    // Act — target the password tab's email input by id
-    const emailInput = document.getElementById('email')
-    expect(emailInput).toBeInTheDocument()
-    fireEvent.change(emailInput as HTMLElement, {
+    // Act — target the password tab's email input via Testing Library
+    const panels = screen.getAllByRole('tabpanel')
+    const passwordPanel = panels[0] as HTMLElement
+    const emailInput = within(passwordPanel).getByLabelText('auth_email')
+    fireEvent.change(emailInput, {
       target: { value: 'user@example.com' },
     })
     fireEvent.change(screen.getByLabelText('auth_password'), {

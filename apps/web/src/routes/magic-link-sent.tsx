@@ -26,7 +26,7 @@ const EMAIL_PROVIDERS: Record<string, EmailProvider> = {
   'proton.me': { name: 'ProtonMail', url: 'https://mail.proton.me' },
 }
 
-function detectEmailProvider(email: string): EmailProvider | null {
+export function detectEmailProvider(email: string): EmailProvider | null {
   const domain = email.split('@')[1]?.toLowerCase()
   if (!domain) return null
   return EMAIL_PROVIDERS[domain] ?? null
@@ -88,7 +88,7 @@ function MagicLinkSentPage() {
           <Button asChild className="w-full">
             <a href={provider.url} target="_blank" rel="noopener noreferrer">
               {m.auth_open_email_provider({ provider: provider.name })}
-              <ExternalLink className="ml-2 h-4 w-4" aria-hidden="true" />
+              <ExternalLink className="ml-2 size-4" aria-hidden="true" />
             </a>
           </Button>
         )}

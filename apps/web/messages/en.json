@@ -587,5 +587,21 @@
   "stats_features": "Built-in Features",
   "stats_typesafe": "Type Safe",
   "stats_components": "UI Components",
-  "stats_integrations": "Integrations"
+  "stats_integrations": "Integrations",
+
+  "auth_magic_link_error": "Unable to send magic link. Please try again.",
+
+  "dashboard_welcome": "Welcome back, {name}",
+  "dashboard_org_context": "You are working in the {name} organization.",
+  "dashboard_no_org": "Select or create an organization to get started with your team.",
+  "dashboard_quick_actions": "Quick Actions",
+  "dashboard_org_settings": "Org Settings",
+  "dashboard_org_settings_desc": "Manage your organization name, slug, and configuration.",
+  "dashboard_open_settings": "Open Settings",
+  "dashboard_team_members": "Team Members",
+  "dashboard_team_members_desc": "Invite members, manage roles, and organize your team.",
+  "dashboard_view_members": "View Members",
+  "dashboard_documentation": "Documentation",
+  "dashboard_documentation_desc": "Browse guides, API references, and getting started docs.",
+  "dashboard_read_docs": "Read Docs"
 }

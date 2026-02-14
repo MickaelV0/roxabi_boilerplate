@@ -1,4 +1,4 @@
-import { Button, Input, Label } from '@repo/ui'
+import { Button, FormMessage, Input, Label } from '@repo/ui'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -51,9 +51,9 @@ function ResetPasswordPage() {
   return (
     <AuthLayout title={m.auth_reset_password_title()} description={m.auth_reset_password_desc()}>
       {error && (
-        <p role="alert" aria-live="polite" className="text-sm text-destructive text-center">
+        <FormMessage variant="error" className="justify-center">
           {error}
-        </p>
+        </FormMessage>
       )}
       {message && (
         <p aria-live="polite" className="text-sm text-muted-foreground text-center">

@@ -76,7 +76,7 @@ function LoginPage() {
     try {
       const { error: mlError } = await authClient.signIn.magicLink({ email: magicLinkEmail })
       if (mlError) {
-        setError(mlError.message ?? 'Failed to send magic link')
+        setError(m.auth_magic_link_error())
       } else {
         toast.success(m.auth_toast_magic_link_sent())
         navigate({
