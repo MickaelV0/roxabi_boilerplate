@@ -626,7 +626,7 @@
   "talk_blocks_claude_desc": "Instructions au niveau du projet. Règles critiques, standards de code, registre de skills, définitions d'agents.",
   "talk_blocks_skills_title": "15 Skills",
   "talk_blocks_skills_subtitle": "Commandes slash",
-  "talk_blocks_skills_desc": "Skills réutilisables : /commit, /review, /bootstrap, /scaffold, /pr, /promote...",
+  "talk_blocks_skills_desc": "Prompts invoqués par slash qui enseignent à Claude Code des tâches complexes et multi-étapes avec une qualité constante.",
   "talk_blocks_skills_more": "+{count} de plus",
   "talk_blocks_agents_title": "9 définitions d'agents",
   "talk_blocks_agents_subtitle": ".claude/agents/",

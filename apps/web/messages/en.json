@@ -626,7 +626,7 @@
   "talk_blocks_claude_desc": "Project-level instructions. Critical rules, coding standards, skill registry, agent definitions.",
   "talk_blocks_skills_title": "15 Skills",
   "talk_blocks_skills_subtitle": "Slash commands",
-  "talk_blocks_skills_desc": "Reusable skills: /commit, /review, /bootstrap, /scaffold, /pr, /promote...",
+  "talk_blocks_skills_desc": "Slash-invoked prompts that teach Claude Code complex, multi-step tasks with consistent quality.",
   "talk_blocks_skills_more": "+{count} more",
   "talk_blocks_agents_title": "9 Agent Definitions",
   "talk_blocks_agents_subtitle": ".claude/agents/",
