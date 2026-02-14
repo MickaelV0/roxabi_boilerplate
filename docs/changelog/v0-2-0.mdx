@@ -1,0 +1,42 @@
+---
+title: v0.2.0
+description: Released 2026-02-14
+---
+
+Released on February 14, 2026.
+
+## Features
+- feat(ui,web): Claude Code presentation page + design system expansion (#145)
+- feat(api): rate limiting with Upstash Redis & Swagger gating (#148)
+- feat(db): local database isolation per worktree (#162)
+- feat(ui,web): UX & Design Audit — 41 findings implemented (#177)
+- feat(web): internationalize Claude Code presentation and demo routes
+- feat(web): add i18n page titles and design-system translation keys
+- feat(api): implement database seed script for dev essentials
+- feat(web): add catch-all route to render 404 page for unmatched paths
+- feat(issue-triage): add create command, parent/child management
+
+## Fixes
+- fix: resolve 25 review findings across backend, frontend, devops, and tests (#149)
+- fix(web): prioritize cookie and browser language over URL for locale detection
+- fix: replace dev trap with explicit dev:clean script for port cleanup
+- fix(web): exclude internal docs from production build to fix OOM
+- fix(web): preserve selected theme when editing non-color settings
+- fix: update license to BSL 1.1 and fix GitHub link in prod
+
+## Performance & Refactoring
+- perf(web): switch to async MDX loading and Rolldown bundler to fix OOM
+- refactor(web): overhaul presentation sections layout and content
+- refactor(agents): rename infra-ops to devops, add expert review to bootstrap
+- refactor(bootstrap): remove team spawn, use direct orchestration
+- refactor(promote): move changelog generation before merge to fix deploy race
+
+## Documentation
+- docs(architecture): add frontend, CI/CD, multi-tenant, auth-security, RBAC subsystem docs (#169)
+- docs(security): add analysis and spec for rate limiting & API security
+- docs(presentation): add analysis and spec for Claude Code talk page
+- docs(db): integrate branch database scripts into project documentation
+
+## Chores
+- chore(deps): update outdated dependencies (#161)
+- chore(config): align Biome schema version with CLI 2.3.15
