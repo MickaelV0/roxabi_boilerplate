@@ -35,6 +35,7 @@ const config = defineConfig(async () => ({
     }),
     nitro({
       config: {
+        builder: 'rolldown',
         devProxy: {
           '/api/**': { target: apiTarget, changeOrigin: true },
         },
