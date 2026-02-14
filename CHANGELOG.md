@@ -27,6 +27,9 @@ Entries are generated automatically by `/promote` and committed to staging befor
 - fix(web): exclude internal docs from production build to fix OOM
 - fix(web): preserve selected theme when editing non-color settings
 - fix: update license to BSL 1.1 and fix GitHub link in prod
+- fix(ci): install Vercel CLI and Turbo in deploy preview workflow
+- fix(ci): base64-encode database URL to bypass GitHub Actions secret masking
+- fix(ci): validate Neon secrets before API calls
 
 ### Changed
 - perf(web): switch to async MDX loading and Rolldown bundler to fix OOM
