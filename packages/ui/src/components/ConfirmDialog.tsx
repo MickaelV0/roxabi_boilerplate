@@ -13,8 +13,20 @@ import {
 
 const variantStyles = {
   danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-  warning: 'bg-amber-600 text-white hover:bg-amber-700',
+  warning: 'bg-warning text-warning-foreground hover:bg-warning/90',
   info: '',
+}
+
+type ConfirmDialogProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: string
+  description: string
+  variant?: keyof typeof variantStyles
+  confirmText?: string
+  cancelText?: string
+  onConfirm: () => void
+  loading?: boolean
 }
 
 function ConfirmDialog({
@@ -27,17 +39,7 @@ function ConfirmDialog({
   cancelText = 'Cancel',
   onConfirm,
   loading,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  title: string
-  description: string
-  variant?: keyof typeof variantStyles
-  confirmText?: string
-  cancelText?: string
-  onConfirm: () => void
-  loading?: boolean
-}) {
+}: ConfirmDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>

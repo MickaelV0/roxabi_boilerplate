@@ -53,6 +53,7 @@ function Button({
     loading?: boolean
     loadingText?: string
   }) {
+  const isLoading = loading && !asChild
   const Comp = asChild ? Slot.Root : 'button'
 
   return (
@@ -61,11 +62,11 @@ function Button({
       data-variant={variant}
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
-      disabled={loading || disabled}
+      disabled={isLoading || disabled}
       {...props}
     >
-      {loading && <Loader2 className="animate-spin" />}
-      {loading && loadingText ? loadingText : children}
+      {isLoading && <Loader2 className="animate-spin" />}
+      {isLoading && loadingText ? loadingText : children}
     </Comp>
   )
 }

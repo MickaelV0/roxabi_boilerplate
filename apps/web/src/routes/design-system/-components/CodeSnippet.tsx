@@ -82,6 +82,7 @@ export function CodeSnippet({ code, language }: CodeSnippetProps) {
             'dark:[&_.shiki.github-dark]:bg-muted dark:[&_.shiki.github-light]:hidden',
             '[&_.shiki.github-dark]:hidden dark:[&_.shiki.github-dark]:block'
           )}
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: Shiki generates trusted HTML from hardcoded code strings
           dangerouslySetInnerHTML={{ __html: html }}
         />
       ) : (

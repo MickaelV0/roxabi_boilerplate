@@ -5,20 +5,18 @@ import { cn } from '@/lib/utils'
 
 const variants = {
   error: { icon: AlertCircle, className: 'text-destructive' },
-  success: { icon: CheckCircle, className: 'text-green-600 dark:text-green-400' },
-  warning: { icon: AlertTriangle, className: 'text-amber-600 dark:text-amber-400' },
-  info: { icon: Info, className: 'text-blue-600 dark:text-blue-400' },
+  success: { icon: CheckCircle, className: 'text-success' },
+  warning: { icon: AlertTriangle, className: 'text-warning' },
+  info: { icon: Info, className: 'text-info' },
 }
 
-function FormMessage({
-  variant = 'error',
-  children,
-  className,
-}: {
+type FormMessageProps = {
   variant?: keyof typeof variants
   children: React.ReactNode
   className?: string
-}) {
+}
+
+function FormMessage({ variant = 'error', children, className }: FormMessageProps) {
   const { icon: Icon, className: variantClass } = variants[variant]
   return (
     <div
