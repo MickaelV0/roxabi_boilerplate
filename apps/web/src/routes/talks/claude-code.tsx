@@ -1,32 +1,39 @@
 import { PresentationNav } from '@repo/ui'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { useCallback, useRef } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
+import { LocaleSwitcher } from '@/components/LocaleSwitcher'
 import { AgentTeamsSection } from '@/components/presentation/AgentTeamsSection'
 import { BuildingBlocksSection } from '@/components/presentation/BuildingBlocksSection'
+import { ClosingSection } from '@/components/presentation/ClosingSection'
 import { DevProcessSection } from '@/components/presentation/DevProcessSection'
 import { EndToEndSection } from '@/components/presentation/EndToEndSection'
 import { IntroSection } from '@/components/presentation/IntroSection'
 import { SectionContainer } from '@/components/presentation/SectionContainer'
-import { SetupSection } from '@/components/presentation/SetupSection'
+import { SpecializationSection } from '@/components/presentation/SpecializationSection'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/talks/claude-code')({
   component: ClaudeCodePresentation,
 })
 
-const SECTIONS = [
-  { id: 'intro', label: 'Introduction' },
-  { id: 'setup', label: 'Setup' },
-  { id: 'building-blocks', label: 'Building Blocks' },
-  { id: 'dev-process', label: 'Dev Process' },
-  { id: 'agent-teams', label: 'Agent Teams' },
-  { id: 'end-to-end', label: 'End-to-End' },
-] as const
-
 export function ClaudeCodePresentation() {
   const navigate = useNavigate()
   const handleEscape = useCallback(() => navigate({ to: '/' }), [navigate])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  const sections = useMemo(
+    () => [
+      { id: 'intro', label: m.talk_nav_intro() },
+      { id: 'building-blocks', label: m.talk_nav_building_blocks() },
+      { id: 'specialization', label: m.talk_nav_specialization() },
+      { id: 'dev-process', label: m.talk_nav_dev_process() },
+      { id: 'agent-teams', label: m.talk_nav_agent_teams() },
+      { id: 'end-to-end', label: m.talk_nav_end_to_end() },
+      { id: 'closing', label: m.talk_nav_closing() },
+    ],
+    []
+  )
 
   return (
     <div data-presentation className="relative bg-background text-foreground">
@@ -40,14 +47,15 @@ export function ClaudeCodePresentation() {
         </Link>
       </div>
 
-      {/* Theme toggle */}
-      <div className="fixed right-6 top-6 z-50">
+      {/* Locale switcher + Theme toggle */}
+      <div className="fixed right-6 top-6 z-50 flex items-center gap-2">
+        <LocaleSwitcher />
         <ThemeToggle />
       </div>
 
       {/* Section navigation dots */}
       <PresentationNav
-        sections={SECTIONS}
+        sections={sections}
         onEscape={handleEscape}
         scrollContainerRef={scrollContainerRef}
       />
@@ -61,12 +69,12 @@ export function ClaudeCodePresentation() {
           <IntroSection />
         </SectionContainer>
 
-        <SectionContainer id="setup">
-          <SetupSection />
-        </SectionContainer>
-
         <SectionContainer id="building-blocks">
           <BuildingBlocksSection />
+        </SectionContainer>
+
+        <SectionContainer id="specialization">
+          <SpecializationSection />
         </SectionContainer>
 
         <SectionContainer id="dev-process">
@@ -79,6 +87,10 @@ export function ClaudeCodePresentation() {
 
         <SectionContainer id="end-to-end">
           <EndToEndSection />
+        </SectionContainer>
+
+        <SectionContainer id="closing">
+          <ClosingSection />
         </SectionContainer>
       </div>
     </div>

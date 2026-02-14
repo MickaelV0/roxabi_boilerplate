@@ -1,5 +1,14 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
+
+mockParaglideMessages()
+
+vi.mock('@/paraglide/runtime', () => ({
+  getLocale: () => 'en',
+  locales: ['en', 'fr'],
+  setLocale: vi.fn(),
+}))
 
 vi.mock('@repo/ui', () => ({
   AnimatedSection: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
@@ -8,6 +17,10 @@ vi.mock('@repo/ui', () => ({
   Card: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
   CardContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
   cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
+  DropdownMenu: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+  DropdownMenuContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+  DropdownMenuItem: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children }: React.PropsWithChildren) => <>{children}</>,
   PresentationNav: () => <nav aria-label="Presentation sections" />,
   StatCounter: ({ label }: { label: string }) => <div>{label}</div>,
   useInView: () => ({ ref: () => {}, inView: true }),
@@ -59,11 +72,12 @@ import { ClaudeCodePresentation } from './claude-code'
 
 const EXPECTED_SECTION_IDS = [
   'intro',
-  'setup',
   'building-blocks',
+  'specialization',
   'dev-process',
   'agent-teams',
   'end-to-end',
+  'closing',
 ]
 
 describe('ClaudeCodePresentation page', () => {
@@ -82,15 +96,15 @@ describe('ClaudeCodePresentation page', () => {
     // Arrange & Act
     render(<ClaudeCodePresentation />)
 
-    // Assert — verify key headings are rendered with correct roles
-    expect(screen.getByRole('heading', { name: /Your AI Development Team/i })).toBeInTheDocument()
+    // Assert — mock returns key names (e.g. "talk_intro_title")
+    expect(screen.getByRole('heading', { name: /talk_intro_title/i })).toBeInTheDocument()
 
-    expect(screen.getByRole('heading', { name: /^Setup$/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /talk_blocks_title/i })).toBeInTheDocument()
 
-    expect(screen.getByRole('heading', { name: /Building Blocks/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /talk_spec_title/i })).toBeInTheDocument()
 
-    expect(screen.getByRole('heading', { name: /Agent Teams in Action/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /talk_teams_title/i })).toBeInTheDocument()
 
-    expect(screen.getByRole('heading', { name: /Idea to Production/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /talk_e2e_title/i })).toBeInTheDocument()
   })
 })

@@ -31,7 +31,7 @@ const config = defineConfig(async () => ({
     paraglideVitePlugin({
       project: './project.inlang',
       outdir: './src/paraglide',
-      strategy: ['url', 'cookie', 'preferredLanguage'],
+      strategy: ['url', 'cookie', 'preferredLanguage', 'baseLocale'],
     }),
     nitro({
       config: {

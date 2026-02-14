@@ -1,4 +1,5 @@
 import { AnimatedSection, Badge, StatCounter } from '@repo/ui'
+import { m } from '@/paraglide/messages'
 
 export function IntroSection() {
   return (
@@ -12,33 +13,26 @@ export function IntroSection() {
       <div className="relative">
         <AnimatedSection>
           <Badge variant="secondary" className="mb-6 text-sm">
-            Introducing Claude Code
+            {m.talk_intro_badge()}
           </Badge>
 
           <h1 className="mx-auto max-w-4xl text-5xl font-bold tracking-tight lg:text-6xl">
-            Your AI Development Team
+            {m.talk_intro_title()}
           </h1>
 
           <p className="mx-auto mt-6 max-w-3xl text-xl text-muted-foreground lg:text-2xl">
-            AI agents that write, test, review, and deploy production code. Not autocomplete —
-            autonomous development.
+            {m.talk_intro_subtitle()}
           </p>
         </AnimatedSection>
 
         <AnimatedSection className="mt-16">
           <div className="flex flex-col items-center justify-center gap-8 sm:flex-row sm:gap-16">
-            <StatCounter value={1782} label="Sessions" />
+            <StatCounter value={1782} label={m.talk_intro_stat_sessions()} />
             <div className="hidden h-16 w-px bg-border sm:block" />
-            <StatCounter value={288} label="Commits" />
+            <StatCounter value={288} label={m.talk_intro_stat_commits()} />
             <div className="hidden h-16 w-px bg-border sm:block" />
-            <StatCounter value={88} label="Completion Rate" suffix="%" />
+            <StatCounter value={88} label={m.talk_intro_stat_completion()} suffix="%" />
           </div>
-        </AnimatedSection>
-
-        <AnimatedSection className="mt-12">
-          <p className="text-sm text-muted-foreground/60">
-            Built in 22 days. 288 commits. Zero manual deployments.
-          </p>
         </AnimatedSection>
       </div>
     </div>

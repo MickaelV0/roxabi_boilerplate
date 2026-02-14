@@ -1,4 +1,6 @@
 import { AnimatedSection, Card, cn } from '@repo/ui'
+import { AlertTriangle, CheckCircle2, Crown, Eye, Users, XCircle } from 'lucide-react'
+import { m } from '@/paraglide/messages'
 
 type Agent = {
   name: string
@@ -22,34 +24,6 @@ const qualityAgents: Agent[] = [
   { name: 'fixer', color: 'text-chart-5 bg-chart-5/10' },
   { name: 'security-auditor', color: 'text-destructive bg-destructive/10' },
 ]
-
-const tddSteps = [
-  {
-    phase: 'RED',
-    color: 'bg-red-500',
-    textColor: 'text-red-500',
-    label: 'Tester writes failing tests',
-  },
-  {
-    phase: 'GREEN',
-    color: 'bg-green-500',
-    textColor: 'text-green-500',
-    label: 'Domain agents implement',
-  },
-  {
-    phase: 'REFACTOR',
-    color: 'bg-blue-500',
-    textColor: 'text-blue-500',
-    label: 'Clean up, tests stay green',
-  },
-] as const
-
-const reviewSteps = [
-  { step: '1', label: 'Fresh agents review' },
-  { step: '2', label: 'Conventional Comments' },
-  { step: '3', label: 'Human decides each finding' },
-  { step: '4', label: 'Parallel fixers apply' },
-] as const
 
 function AgentBadge({ agent }: { agent: Agent }) {
   return (
@@ -82,6 +56,25 @@ function CategoryCard({
 }
 
 export function AgentTeamsSection() {
+  const orchestratorDos = [
+    m.talk_teams_orch_do_1(),
+    m.talk_teams_orch_do_2(),
+    m.talk_teams_orch_do_3(),
+  ]
+
+  const orchestratorDonts = [
+    m.talk_teams_orch_dont_1(),
+    m.talk_teams_orch_dont_2(),
+    m.talk_teams_orch_dont_3(),
+  ]
+
+  const reviewSteps: ReadonlyArray<{ step: string; label: string; emphasis?: boolean }> = [
+    { step: '1', label: m.talk_teams_review_step_1(), emphasis: true },
+    { step: '2', label: m.talk_teams_review_step_2() },
+    { step: '3', label: m.talk_teams_review_step_3() },
+    { step: '4', label: m.talk_teams_review_step_4() },
+  ]
+
   return (
     <div className="relative mx-auto max-w-7xl w-full">
       {/* Background glow */}
@@ -90,71 +83,147 @@ export function AgentTeamsSection() {
       </div>
 
       <AnimatedSection>
-        <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">Agent Teams in Action</h2>
-        <p className="mt-4 text-lg text-muted-foreground">
-          9 agents, 3 categories. One team lead orchestrates via tasks and messaging.
-        </p>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="rounded-lg bg-primary/10 p-2">
+            <Users className="h-5 w-5 text-primary" />
+          </div>
+          <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">{m.talk_teams_title()}</h2>
+        </div>
+        <p className="mt-4 text-lg text-muted-foreground">{m.talk_teams_subtitle()}</p>
       </AnimatedSection>
 
       {/* Line 1: Team Lead + 3 categories — horizontal */}
       <AnimatedSection className="mt-10">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Team Lead */}
-          <Card variant="subtle" className="p-4 text-center">
-            <div className="rounded-full border-2 border-primary/30 bg-primary/5 px-4 py-2 inline-block mb-2">
-              <p className="font-mono text-sm font-bold text-primary">team-lead</p>
+          {/* Team Lead / Orchestrator */}
+          <Card variant="subtle" className="p-4 border-primary/30">
+            <div className="flex items-center gap-2 mb-2">
+              <Crown className="h-4 w-4 text-primary" />
+              <p className="font-mono text-sm font-bold text-primary">orchestrator</p>
             </div>
-            <p className="text-xs text-muted-foreground">Orchestrates, delegates, synthesizes</p>
-          </Card>
-
-          <CategoryCard title="Strategy" subtitle="Planning & design" agents={strategyAgents} />
-          <CategoryCard title="Domain" subtitle="Code writers" agents={domainAgents} />
-          <CategoryCard title="Quality" subtitle="Verification" agents={qualityAgents} />
-        </div>
-      </AnimatedSection>
-
-      {/* Line 2: Collaboration Patterns */}
-      <AnimatedSection className="mt-8">
-        <h3 className="text-xl font-semibold mb-4">Collaboration Patterns</h3>
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Test-First — vertical */}
-          <Card variant="subtle" className="p-5">
-            <p className="font-semibold mb-3">Test-First</p>
-            <div className="space-y-1.5">
-              {tddSteps.map((step, index) => (
-                <div key={step.phase}>
-                  <div className="flex items-center gap-3 rounded-lg border border-border/30 bg-background/50 px-3 py-2">
-                    <div
-                      className={cn(
-                        'h-6 w-6 rounded flex items-center justify-center text-white text-xs font-bold shrink-0',
-                        step.color
-                      )}
-                    >
-                      {index + 1}
-                    </div>
-                    <p className={cn('font-bold text-xs', step.textColor)}>{step.phase}</p>
-                    <p className="text-xs text-muted-foreground">{step.label}</p>
-                  </div>
+            <p className="text-xs text-muted-foreground mb-3">{m.talk_teams_orch_desc()}</p>
+            <div className="space-y-1">
+              {orchestratorDos.map((item) => (
+                <div key={item} className="flex items-start gap-1.5">
+                  <CheckCircle2 className="h-3 w-3 text-green-500 mt-0.5 shrink-0" />
+                  <span className="text-xs text-muted-foreground">{item}</span>
+                </div>
+              ))}
+              {orchestratorDonts.map((item) => (
+                <div key={item} className="flex items-start gap-1.5">
+                  <XCircle className="h-3 w-3 text-red-500 mt-0.5 shrink-0" />
+                  <span className="text-xs text-muted-foreground">{item}</span>
                 </div>
               ))}
             </div>
           </Card>
 
-          {/* Review Pipeline — vertical */}
+          <CategoryCard
+            title={m.talk_teams_cat_strategy()}
+            subtitle={m.talk_teams_cat_strategy_sub()}
+            agents={strategyAgents}
+          />
+          <CategoryCard
+            title={m.talk_teams_cat_domain()}
+            subtitle={m.talk_teams_cat_domain_sub()}
+            agents={domainAgents}
+          />
+          <CategoryCard
+            title={m.talk_teams_cat_quality()}
+            subtitle={m.talk_teams_cat_quality_sub()}
+            agents={qualityAgents}
+          />
+        </div>
+      </AnimatedSection>
+
+      {/* Line 2: Review Pipeline + Honest Take */}
+      <AnimatedSection className="mt-8">
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Review Pipeline */}
           <Card variant="subtle" className="p-5">
-            <p className="font-semibold mb-3">Review Pipeline</p>
+            <div className="flex items-center gap-2 mb-3">
+              <Eye className="h-4 w-4 text-primary" />
+              <p className="font-semibold">{m.talk_teams_review_title()}</p>
+            </div>
             <div className="space-y-1.5">
               {reviewSteps.map((step) => (
                 <div
                   key={step.step}
-                  className="flex items-center gap-3 rounded-lg border border-border/30 bg-background/50 px-3 py-2"
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg border bg-background/50 px-3 py-2',
+                    step.emphasis ? 'border-primary/30' : 'border-border/30'
+                  )}
                 >
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-primary/10 text-xs font-bold text-primary">
+                  <div
+                    className={cn(
+                      'flex h-6 w-6 shrink-0 items-center justify-center rounded text-xs font-bold',
+                      step.emphasis ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary'
+                    )}
+                  >
                     {step.step}
                   </div>
-                  <p className="text-xs font-medium">{step.label}</p>
+                  <p className={cn('text-xs font-medium', step.emphasis && 'text-primary')}>
+                    {step.label}
+                  </p>
                 </div>
               ))}
+            </div>
+            {/* Fresh review insight */}
+            <div className="mt-3 rounded-lg border border-border/30 bg-muted/10 p-3">
+              <p className="text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground">{m.talk_teams_review_why()}</span>{' '}
+                {m.talk_teams_review_why_text()}
+              </p>
+            </div>
+          </Card>
+
+          {/* Honest take: what works, what doesn't */}
+          <Card variant="subtle" className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              <p className="font-semibold">{m.talk_teams_honest_title()}</p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-3">
+                <p className="text-xs font-semibold text-green-500 mb-1.5">
+                  {m.talk_teams_honest_works()}
+                </p>
+                <ul className="space-y-1 text-xs text-muted-foreground">
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 className="h-3 w-3 text-green-500 mt-0.5 shrink-0" />
+                    {m.talk_teams_honest_works_1()}
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 className="h-3 w-3 text-green-500 mt-0.5 shrink-0" />
+                    {m.talk_teams_honest_works_2()}
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 className="h-3 w-3 text-green-500 mt-0.5 shrink-0" />
+                    {m.talk_teams_honest_works_3()}
+                  </li>
+                </ul>
+              </div>
+
+              <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+                <p className="text-xs font-semibold text-red-500 mb-1.5">
+                  {m.talk_teams_honest_doesnt()}
+                </p>
+                <ul className="space-y-1 text-xs text-muted-foreground">
+                  <li className="flex items-start gap-1.5">
+                    <XCircle className="h-3 w-3 text-red-500 mt-0.5 shrink-0" />
+                    {m.talk_teams_honest_doesnt_1()}
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <XCircle className="h-3 w-3 text-red-500 mt-0.5 shrink-0" />
+                    {m.talk_teams_honest_doesnt_2()}
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <XCircle className="h-3 w-3 text-red-500 mt-0.5 shrink-0" />
+                    {m.talk_teams_honest_doesnt_3()}
+                  </li>
+                </ul>
+              </div>
             </div>
           </Card>
         </div>
