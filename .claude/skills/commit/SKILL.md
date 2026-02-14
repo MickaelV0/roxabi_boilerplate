@@ -166,7 +166,7 @@ Rules:
 
 ### 4. Commit
 
-**Present the commit message to the user for approval** before committing.
+**Display the commit message** to the user, then commit immediately without asking for confirmation.
 
 Execute the commit using HEREDOC format:
 

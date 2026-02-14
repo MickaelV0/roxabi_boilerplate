@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { AllowAnonymous } from './allow-anonymous.js'
 import { OptionalAuth } from './optional-auth.js'
+import { Permissions } from './permissions.decorator.js'
 import { RequireOrg } from './require-org.decorator.js'
 import { Roles } from './roles.decorator.js'
 import { Session } from './session.decorator.js'
@@ -98,6 +99,58 @@ describe('Roles', () => {
 
     // Assert
     expect(result).toEqual([])
+  })
+})
+
+describe('Permissions', () => {
+  it('should set PERMISSIONS metadata with a single permission', () => {
+    // Arrange
+    @Permissions('members:write')
+    class TestTarget {}
+
+    // Act
+    const result = Reflect.getMetadata('PERMISSIONS', TestTarget)
+
+    // Assert
+    expect(result).toEqual(['members:write'])
+  })
+
+  it('should set PERMISSIONS metadata with multiple permissions', () => {
+    // Arrange
+    @Permissions('members:write', 'invitations:write')
+    class TestTarget {}
+
+    // Act
+    const result = Reflect.getMetadata('PERMISSIONS', TestTarget)
+
+    // Assert
+    expect(result).toEqual(['members:write', 'invitations:write'])
+  })
+
+  it('should set PERMISSIONS metadata with an empty permissions array', () => {
+    // Arrange
+    @Permissions()
+    class TestTarget {}
+
+    // Act
+    const result = Reflect.getMetadata('PERMISSIONS', TestTarget)
+
+    // Assert
+    expect(result).toEqual([])
+  })
+
+  it('should be retrievable using Reflector pattern', () => {
+    // Arrange
+    @Permissions('roles:read', 'roles:delete')
+    class TestTarget {}
+
+    // Act — simulates what Reflector.get() does internally
+    const result = Reflect.getMetadata('PERMISSIONS', TestTarget) as string[]
+
+    // Assert
+    expect(result).toHaveLength(2)
+    expect(result).toContain('roles:read')
+    expect(result).toContain('roles:delete')
   })
 })
 

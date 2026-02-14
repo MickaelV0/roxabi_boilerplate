@@ -1,10 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@repo/ui'
-import { createFileRoute } from '@tanstack/react-router'
-
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { ChevronLeft } from 'lucide-react'
 import { useAppForm } from '@/hooks/demo.form'
+import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/demo/form/address')({
   component: AddressForm,
+  head: () => ({
+    meta: [{ title: `${m.demo_form_address_heading()} | Roxabi` }],
+  }),
 })
 
 function AddressForm() {
@@ -29,7 +33,7 @@ function AddressForm() {
           fields: Record<string, string>
         }
         if (value.fullName.trim().length === 0) {
-          errors.fields.fullName = 'Full name is required'
+          errors.fields.fullName = m.demo_form_address_name_required()
         }
         return errors
       },
@@ -40,16 +44,21 @@ function AddressForm() {
   return (
     <div className="min-h-screen bg-background py-12">
       <div className="mx-auto max-w-2xl px-6">
+        <Link
+          to="/demo"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="size-4" />
+          {m.demo_back_to_demos()}
+        </Link>
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold">Address Form</h1>
-          <p className="mt-2 text-muted-foreground">
-            Nested fields and validation with TanStack Form
-          </p>
+          <h1 className="text-3xl font-bold">{m.demo_form_address_heading()}</h1>
+          <p className="mt-2 text-muted-foreground">{m.demo_form_address_subtitle()}</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Shipping Address</CardTitle>
+            <CardTitle>{m.demo_form_address_shipping()}</CardTitle>
           </CardHeader>
           <CardContent>
             <form
@@ -61,7 +70,7 @@ function AddressForm() {
               className="space-y-6"
             >
               <form.AppField name="fullName">
-                {(field) => <field.TextField label="Full Name" />}
+                {(field) => <field.TextField label={m.demo_form_address_full_name()} />}
               </form.AppField>
 
               <form.AppField
@@ -69,16 +78,16 @@ function AddressForm() {
                 validators={{
                   onBlur: ({ value }) => {
                     if (!value || value.trim().length === 0) {
-                      return 'Email is required'
+                      return m.demo_form_address_email_required()
                     }
                     if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value)) {
-                      return 'Invalid email address'
+                      return m.demo_form_address_email_invalid()
                     }
                     return undefined
                   },
                 }}
               >
-                {(field) => <field.TextField label="Email" />}
+                {(field) => <field.TextField label={m.demo_form_address_email()} />}
               </form.AppField>
 
               <form.AppField
@@ -86,13 +95,13 @@ function AddressForm() {
                 validators={{
                   onBlur: ({ value }) => {
                     if (!value || value.trim().length === 0) {
-                      return 'Street address is required'
+                      return m.demo_form_address_street_required()
                     }
                     return undefined
                   },
                 }}
               >
-                {(field) => <field.TextField label="Street Address" />}
+                {(field) => <field.TextField label={m.demo_form_address_street()} />}
               </form.AppField>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -101,42 +110,42 @@ function AddressForm() {
                   validators={{
                     onBlur: ({ value }) => {
                       if (!value || value.trim().length === 0) {
-                        return 'City is required'
+                        return m.demo_form_address_city_required()
                       }
                       return undefined
                     },
                   }}
                 >
-                  {(field) => <field.TextField label="City" />}
+                  {(field) => <field.TextField label={m.demo_form_address_city()} />}
                 </form.AppField>
                 <form.AppField
                   name="address.state"
                   validators={{
                     onBlur: ({ value }) => {
                       if (!value || value.trim().length === 0) {
-                        return 'State is required'
+                        return m.demo_form_address_state_required()
                       }
                       return undefined
                     },
                   }}
                 >
-                  {(field) => <field.TextField label="State" />}
+                  {(field) => <field.TextField label={m.demo_form_address_state()} />}
                 </form.AppField>
                 <form.AppField
                   name="address.zipCode"
                   validators={{
                     onBlur: ({ value }) => {
                       if (!value || value.trim().length === 0) {
-                        return 'Zip code is required'
+                        return m.demo_form_address_zip_required()
                       }
                       if (!/^\d{5}(-\d{4})?$/.test(value)) {
-                        return 'Invalid zip code format'
+                        return m.demo_form_address_zip_invalid()
                       }
                       return undefined
                     },
                   }}
                 >
-                  {(field) => <field.TextField label="Zip Code" />}
+                  {(field) => <field.TextField label={m.demo_form_address_zip()} />}
                 </form.AppField>
               </div>
 
@@ -145,7 +154,7 @@ function AddressForm() {
                 validators={{
                   onBlur: ({ value }) => {
                     if (!value || value.trim().length === 0) {
-                      return 'Country is required'
+                      return m.demo_form_address_country_required()
                     }
                     return undefined
                   },
@@ -153,7 +162,7 @@ function AddressForm() {
               >
                 {(field) => (
                   <field.Select
-                    label="Country"
+                    label={m.demo_form_address_country()}
                     values={[
                       { label: 'United States', value: 'US' },
                       { label: 'Canada', value: 'CA' },
@@ -163,7 +172,7 @@ function AddressForm() {
                       { label: 'France', value: 'FR' },
                       { label: 'Japan', value: 'JP' },
                     ]}
-                    placeholder="Select a country"
+                    placeholder={m.demo_form_address_select_country()}
                   />
                 )}
               </form.AppField>
@@ -173,21 +182,23 @@ function AddressForm() {
                 validators={{
                   onBlur: ({ value }) => {
                     if (!value || value.trim().length === 0) {
-                      return 'Phone number is required'
+                      return m.demo_form_address_phone_required()
                     }
                     if (!/^(\+\d{1,3})?\s?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/.test(value)) {
-                      return 'Invalid phone number format'
+                      return m.demo_form_address_phone_invalid()
                     }
                     return undefined
                   },
                 }}
               >
-                {(field) => <field.TextField label="Phone" placeholder="123-456-7890" />}
+                {(field) => (
+                  <field.TextField label={m.demo_form_address_phone()} placeholder="123-456-7890" />
+                )}
               </form.AppField>
 
               <div className="flex justify-end">
                 <form.AppForm>
-                  <form.SubscribeButton label="Submit" />
+                  <form.SubscribeButton label={m.demo_form_address_submit()} />
                 </form.AppForm>
               </div>
             </form>

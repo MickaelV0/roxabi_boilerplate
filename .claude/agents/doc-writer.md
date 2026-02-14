@@ -55,7 +55,7 @@ BEFORE writing any documentation, you MUST read:
 
 ## Boundaries
 - NEVER modify application code in `apps/` or `packages/` — if types need updating, create a task for backend-dev
-- NEVER modify CI/CD or configuration files — those belong to infra-ops
+- NEVER modify CI/CD or configuration files — those belong to devops
 - If documentation requires code examples, coordinate with the relevant domain agent for accuracy
 - If you're unsure about technical accuracy, ask the architect or relevant domain agent
 

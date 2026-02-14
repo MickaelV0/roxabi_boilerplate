@@ -2,6 +2,7 @@ import type { PermissionString } from '@repo/types'
 
 type SessionWithPermissions = {
   permissions?: string[]
+  [key: string]: unknown
 }
 
 /**

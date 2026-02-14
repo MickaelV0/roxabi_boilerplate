@@ -92,8 +92,9 @@ describe('ResetPasswordPage', () => {
     expect(link.closest('a')).toHaveAttribute('href', '/login')
   })
 
-  it('should display error message when requestPasswordReset returns an error', async () => {
-    // Arrange
+  it('should always show generic success message regardless of backend response (security guardrail)', async () => {
+    // Arrange — even when backend returns an error, the UI must show
+    // the same generic message to avoid revealing whether an email exists.
     vi.mocked(authClient.requestPasswordReset).mockResolvedValueOnce({
       error: { message: 'User not found' },
       data: null,
@@ -108,9 +109,33 @@ describe('ResetPasswordPage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'auth_send_reset_link' }))
 
-    // Assert
+    // Assert — generic message shown, NOT the backend error
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('User not found')
+      expect(screen.getByText('auth_reset_password_sent')).toBeInTheDocument()
+    })
+  })
+
+  it('should show cooldown timer after successful submission', async () => {
+    // Arrange
+    vi.mocked(authClient.requestPasswordReset).mockResolvedValueOnce({
+      error: null,
+      data: null,
+    } as never)
+
+    const ResetPasswordPage = captured.Component
+    render(<ResetPasswordPage />)
+
+    // Act
+    fireEvent.change(screen.getByLabelText('auth_email'), {
+      target: { value: 'user@example.com' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'auth_send_reset_link' }))
+
+    // Assert — button should be disabled with cooldown text
+    await waitFor(() => {
+      const button = screen.getByRole('button')
+      expect(button).toBeDisabled()
+      expect(button).toHaveTextContent('auth_resend_reset_in')
     })
   })
 })

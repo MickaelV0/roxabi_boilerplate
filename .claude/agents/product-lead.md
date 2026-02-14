@@ -53,8 +53,9 @@ on the right work.
 
 ### Issue Management
 - Triage and prioritize GitHub issues (Size + Priority labels)
+- Create new issues with full setup via `/issue-triage create` (labels, size, priority, parent/child, dependencies)
+- Manage parent/child (sub-issue) relationships and blocked-by dependencies
 - Manage the roadmap and feature backlog
-- Create well-structured GitHub issues for new work
 - Walk through items one-by-one for team review
 
 ### Verification

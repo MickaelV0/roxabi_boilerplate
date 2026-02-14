@@ -55,14 +55,14 @@ The roster is organized in three tiers: **Domain agents** (package-specialized),
 |-------|--------|-------|-------|-----------------|
 | **frontend-dev** | UI/UX implementation | opus | Read, Write, Edit, Glob, Grep, Bash | `apps/web`, `packages/ui` |
 | **backend-dev** | API implementation | opus | Read, Write, Edit, Glob, Grep, Bash | `apps/api`, `packages/types` |
-| **infra-ops** | CI/CD, deps, config | sonnet | Read, Write, Edit, Glob, Grep, Bash | `packages/config`, root configs |
+| **devops** | CI/CD, deps, config | sonnet | Read, Write, Edit, Glob, Grep, Bash | `packages/config`, root configs |
 
-**Rationale**: Domain agents need write access (they implement code). Opus for frontend/backend because implementation requires deep reasoning. Sonnet for infra-ops because config tasks are more mechanical.
+**Rationale**: Domain agents need write access (they implement code). Opus for frontend/backend because implementation requires deep reasoning. Sonnet for devops because config tasks are more mechanical.
 
 **Key design rule**: Each domain agent's system prompt includes the relevant standards doc baked in:
 - frontend-dev reads `docs/standards/frontend-patterns.mdx`
 - backend-dev reads `docs/standards/backend-patterns.mdx`
-- infra-ops reads `docs/configuration.mdx`
+- devops reads `docs/configuration.mdx`
 
 #### Tier 2 — Quality Agents
 
@@ -209,7 +209,7 @@ Each agent is defined as a Markdown file in `.claude/agents/`:
 .claude/agents/
   ├── frontend-dev.md
   ├── backend-dev.md
-  ├── infra-ops.md
+  ├── devops.md
   ├── architect.md
   ├── reviewer.md
   ├── tester.md

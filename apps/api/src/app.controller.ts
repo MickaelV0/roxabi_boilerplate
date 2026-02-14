@@ -1,5 +1,6 @@
 import { Controller, Get } from '@nestjs/common'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { SkipThrottle } from '@nestjs/throttler'
 import { AllowAnonymous } from './auth/decorators/allow-anonymous.js'
 
 @ApiTags('Health')
@@ -7,6 +8,7 @@ import { AllowAnonymous } from './auth/decorators/allow-anonymous.js'
 export class AppController {
   @Get('health')
   @AllowAnonymous()
+  @SkipThrottle()
   @ApiOperation({ summary: 'Health check endpoint' })
   @ApiResponse({ status: 200, description: 'Service is healthy' })
   getHealth(): { status: string } {

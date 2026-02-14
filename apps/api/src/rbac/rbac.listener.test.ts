@@ -12,6 +12,14 @@ function chain(terminal: string, value: unknown) {
   return obj
 }
 
+function createMockTenantService(mockTx: unknown) {
+  return {
+    queryAs: vi.fn(async (_orgId: string, callback: (tx: unknown) => Promise<void>) => {
+      await callback(mockTx)
+    }),
+  }
+}
+
 describe('RbacListener', () => {
   it('should seed default roles and assign Owner to creator', async () => {
     const mockRbacService = {
@@ -21,17 +29,20 @@ describe('RbacListener', () => {
     const ownerRoleChain = chain('limit', [{ id: 'role-owner' }])
     const updateChain = chain('where', undefined)
 
-    const mockDb = {
+    const mockTx = {
       select: vi.fn().mockReturnValue(ownerRoleChain),
       update: vi.fn().mockReturnValue(updateChain),
     }
 
-    const listener = new RbacListener(mockRbacService as never, mockDb as never)
+    const mockTenantService = createMockTenantService(mockTx)
+
+    const listener = new RbacListener(mockRbacService as never, mockTenantService as never)
     const event = new OrganizationCreatedEvent('org-1', 'user-1')
     await listener.handleOrganizationCreated(event)
 
     expect(mockRbacService.seedDefaultRoles).toHaveBeenCalledWith('org-1')
-    expect(mockDb.update).toHaveBeenCalled()
+    expect(mockTenantService.queryAs).toHaveBeenCalledWith('org-1', expect.any(Function))
+    expect(mockTx.update).toHaveBeenCalled()
   })
 
   it('should skip member update when no Owner role found', async () => {
@@ -41,16 +52,19 @@ describe('RbacListener', () => {
 
     const ownerRoleChain = chain('limit', [])
 
-    const mockDb = {
+    const mockTx = {
       select: vi.fn().mockReturnValue(ownerRoleChain),
       update: vi.fn(),
     }
 
-    const listener = new RbacListener(mockRbacService as never, mockDb as never)
+    const mockTenantService = createMockTenantService(mockTx)
+
+    const listener = new RbacListener(mockRbacService as never, mockTenantService as never)
     const event = new OrganizationCreatedEvent('org-1', 'user-1')
     await listener.handleOrganizationCreated(event)
 
     expect(mockRbacService.seedDefaultRoles).toHaveBeenCalledWith('org-1')
-    expect(mockDb.update).not.toHaveBeenCalled()
+    expect(mockTenantService.queryAs).toHaveBeenCalledWith('org-1', expect.any(Function))
+    expect(mockTx.update).not.toHaveBeenCalled()
   })
 })

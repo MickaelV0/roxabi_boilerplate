@@ -15,14 +15,6 @@ function createMockReflector(metadata: Record<string, unknown> = {}) {
   }
 }
 
-function createMockPermissionService(permissions: string[] = []) {
-  return {
-    getPermissions: vi.fn().mockResolvedValue(permissions),
-    hasPermission: vi.fn(),
-    getAllPermissions: vi.fn(),
-  }
-}
-
 function createMockContext(request: Record<string, unknown> = {}) {
   const req = { ...request }
 
@@ -39,15 +31,13 @@ function createMockContext(request: Record<string, unknown> = {}) {
 
 function createGuard(
   session: Record<string, unknown> | null = null,
-  metadata: Record<string, unknown> = {},
-  permissions: string[] = []
+  metadata: Record<string, unknown> = {}
 ) {
   const authService = createMockAuthService(session)
   const reflector = createMockReflector(metadata)
-  const permissionService = createMockPermissionService(permissions)
-  const guard = new AuthGuard(authService as never, reflector as never, permissionService as never)
+  const guard = new AuthGuard(authService as never, reflector as never)
 
-  return { guard, authService, reflector, permissionService }
+  return { guard, authService, reflector }
 }
 
 describe('AuthGuard', () => {
@@ -80,6 +70,7 @@ describe('AuthGuard', () => {
     const session = {
       user: { id: 'user-1', name: 'Test', role: 'user' },
       session: { id: 'sess-1', activeOrganizationId: null },
+      permissions: [],
     }
     const { guard } = createGuard(session)
     const { context, req } = createMockContext()
@@ -105,6 +96,7 @@ describe('AuthGuard', () => {
     const session = {
       user: { id: 'user-1', role: 'user' },
       session: { id: 'sess-1', activeOrganizationId: null },
+      permissions: [],
     }
     const { guard } = createGuard(session, { ROLES: ['admin'] })
     const { context } = createMockContext()
@@ -116,6 +108,7 @@ describe('AuthGuard', () => {
     const session = {
       user: { id: 'user-1', role: 'admin' },
       session: { id: 'sess-1', activeOrganizationId: null },
+      permissions: [],
     }
     const { guard } = createGuard(session, { ROLES: ['admin', 'superadmin'] })
     const { context } = createMockContext()
@@ -129,6 +122,7 @@ describe('AuthGuard', () => {
     const session = {
       user: { id: 'user-1' },
       session: { id: 'sess-1', activeOrganizationId: null },
+      permissions: [],
     }
     const { guard } = createGuard(session, { ROLES: ['user'] })
     const { context } = createMockContext()
@@ -142,6 +136,7 @@ describe('AuthGuard', () => {
     const session = {
       user: { id: 'user-1', role: 'user' },
       session: { id: 'sess-1', activeOrganizationId: null },
+      permissions: [],
     }
     const { guard } = createGuard(session, { REQUIRE_ORG: true })
     const { context } = createMockContext()
@@ -155,6 +150,7 @@ describe('AuthGuard', () => {
     const session = {
       user: { id: 'user-1', role: 'user' },
       session: { id: 'sess-1', activeOrganizationId: 'org-1' },
+      permissions: [],
     }
     const { guard } = createGuard(session, { REQUIRE_ORG: true })
     const { context } = createMockContext()
@@ -169,6 +165,7 @@ describe('AuthGuard', () => {
       const session = {
         user: { id: 'user-1', role: 'user' },
         session: { id: 'sess-1', activeOrganizationId: null },
+        permissions: [],
       }
       const { guard } = createGuard(session, { PERMISSIONS: ['roles:read'] })
       const { context } = createMockContext()
@@ -180,8 +177,9 @@ describe('AuthGuard', () => {
       const session = {
         user: { id: 'user-1', role: 'superadmin' },
         session: { id: 'sess-1', activeOrganizationId: 'org-1' },
+        permissions: [],
       }
-      const { guard, permissionService } = createGuard(session, {
+      const { guard } = createGuard(session, {
         PERMISSIONS: ['roles:read'],
       })
       const { context } = createMockContext()
@@ -189,18 +187,15 @@ describe('AuthGuard', () => {
       const result = await guard.canActivate(context as never)
 
       expect(result).toBe(true)
-      expect(permissionService.getPermissions).not.toHaveBeenCalled()
     })
 
     it('should allow when user has required permissions', async () => {
       const session = {
         user: { id: 'user-1', role: 'user' },
         session: { id: 'sess-1', activeOrganizationId: 'org-1' },
+        permissions: ['roles:read', 'members:read'],
       }
-      const { guard } = createGuard(session, { PERMISSIONS: ['roles:read'] }, [
-        'roles:read',
-        'members:read',
-      ])
+      const { guard } = createGuard(session, { PERMISSIONS: ['roles:read'] })
       const { context } = createMockContext()
 
       const result = await guard.canActivate(context as never)
@@ -212,8 +207,9 @@ describe('AuthGuard', () => {
       const session = {
         user: { id: 'user-1', role: 'user' },
         session: { id: 'sess-1', activeOrganizationId: 'org-1' },
+        permissions: ['roles:read'],
       }
-      const { guard } = createGuard(session, { PERMISSIONS: ['roles:write'] }, ['roles:read'])
+      const { guard } = createGuard(session, { PERMISSIONS: ['roles:write'] })
       const { context } = createMockContext()
 
       await expect(guard.canActivate(context as never)).rejects.toThrow(
@@ -225,10 +221,9 @@ describe('AuthGuard', () => {
       const session = {
         user: { id: 'user-1', role: 'user' },
         session: { id: 'sess-1', activeOrganizationId: 'org-1' },
+        permissions: ['roles:read'],
       }
-      const { guard } = createGuard(session, { PERMISSIONS: ['roles:read', 'members:write'] }, [
-        'roles:read',
-      ])
+      const { guard } = createGuard(session, { PERMISSIONS: ['roles:read', 'members:write'] })
       const { context } = createMockContext()
 
       await expect(guard.canActivate(context as never)).rejects.toThrow(ForbiddenException)

@@ -10,6 +10,7 @@ import {
   CardTitle,
   cn,
 } from '@repo/ui'
+import { m } from '@/paraglide/messages'
 
 type StatCardData = {
   label: string
@@ -18,11 +19,13 @@ type StatCardData = {
   positive: boolean
 }
 
-const stats: StatCardData[] = [
-  { label: 'Total Revenue', value: '$45,231', trend: '+12.5%', positive: true },
-  { label: 'Active Users', value: '2,350', trend: '+3.2%', positive: true },
-  { label: 'Conversion Rate', value: '12.8%', trend: '-0.4%', positive: false },
-]
+function getStats(): StatCardData[] {
+  return [
+    { label: m.ds_data_total_revenue(), value: '$45,231', trend: '+12.5%', positive: true },
+    { label: m.ds_data_active_users(), value: '2,350', trend: '+3.2%', positive: true },
+    { label: m.ds_data_conversion_rate(), value: '12.8%', trend: '-0.4%', positive: false },
+  ]
+}
 
 /**
  * Data display composition patterns.
@@ -34,11 +37,13 @@ const stats: StatCardData[] = [
  * Uses real @repo/ui components with realistic (but static) data.
  */
 export function DataDisplay() {
+  const stats = getStats()
+
   return (
     <div className="space-y-10">
       {/* Stat cards */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Stat Cards</h3>
+        <h3 className="text-lg font-semibold">{m.ds_data_stat_cards()}</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {stats.map((stat) => (
             <Card key={stat.label}>
@@ -69,22 +74,19 @@ export function DataDisplay() {
 
       {/* Profile card */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Profile Card</h3>
+        <h3 className="text-lg font-semibold">{m.ds_data_profile_card()}</h3>
         <Card className="mx-auto max-w-sm">
           <CardContent className="flex flex-col items-center pt-6 text-center">
             <Avatar className="size-20">
-              <AvatarImage src="" alt="Jane Doe" />
+              <AvatarImage src="" alt={m.ds_data_profile_name()} />
               <AvatarFallback className="text-lg">JD</AvatarFallback>
             </Avatar>
-            <h4 className="mt-4 text-lg font-semibold">Jane Doe</h4>
-            <p className="text-muted-foreground text-sm">Senior Developer</p>
-            <p className="text-muted-foreground mt-3 text-sm">
-              Passionate about building accessible, performant web applications. Open source
-              contributor and technical writer.
-            </p>
+            <h4 className="mt-4 text-lg font-semibold">{m.ds_data_profile_name()}</h4>
+            <p className="text-muted-foreground text-sm">{m.ds_data_profile_role()}</p>
+            <p className="text-muted-foreground mt-3 text-sm">{m.ds_data_profile_bio()}</p>
             <div className="mt-6 flex gap-3">
-              <Button>Message</Button>
-              <Button variant="outline">Follow</Button>
+              <Button>{m.ds_data_message()}</Button>
+              <Button variant="outline">{m.ds_data_follow()}</Button>
             </div>
           </CardContent>
         </Card>

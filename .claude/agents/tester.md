@@ -51,7 +51,7 @@ BEFORE writing any tests, you MUST read:
 ## Boundaries
 - NEVER modify application source code — only test files
 - If a test reveals a bug in source code, create a task for the relevant domain agent
-- If you need test infrastructure changes (config, mocks), coordinate with infra-ops
+- If you need test infrastructure changes (config, mocks), coordinate with devops
 
 ## Coordination
 - Claim test tasks from the shared task list

@@ -63,4 +63,21 @@ describe('Tooltip', () => {
     const content = document.querySelector('[data-slot="tooltip-content"]')
     expect(content).toHaveClass('custom-class')
   })
+
+  it('renders arrow by default', () => {
+    renderTooltip({ open: true })
+    expect(document.querySelector('.fill-foreground')).toBeInTheDocument()
+  })
+
+  it('hides arrow when hideArrow is true', () => {
+    render(
+      <TooltipProvider>
+        <Tooltip open>
+          <TooltipTrigger>Hover</TooltipTrigger>
+          <TooltipContent hideArrow>Tip</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )
+    expect(document.querySelector('.fill-foreground')).not.toBeInTheDocument()
+  })
 })

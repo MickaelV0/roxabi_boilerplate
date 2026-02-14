@@ -15,6 +15,9 @@ export const Route = createFileRoute('/reset-password/confirm')({
     token: typeof search.token === 'string' ? search.token : undefined,
   }),
   component: ResetPasswordConfirmPage,
+  head: () => ({
+    meta: [{ title: `${m.auth_reset_confirm_title()} | Roxabi` }],
+  }),
 })
 
 function ResetPasswordConfirmPage() {
@@ -84,6 +87,22 @@ function ResetPasswordConfirmPage() {
             required
             disabled={loading}
             showStrength
+            strengthLabels={{
+              weak: m.password_strength_weak(),
+              fair: m.password_strength_fair(),
+              good: m.password_strength_good(),
+              strong: m.password_strength_strong(),
+            }}
+            ruleLabels={{
+              minLength: m.password_rule_min_length(),
+              uppercase: m.password_rule_uppercase(),
+              number: m.password_rule_number(),
+              symbol: m.password_rule_symbol(),
+            }}
+            toggleLabels={{
+              show: m.password_toggle_show(),
+              hide: m.password_toggle_hide(),
+            }}
           />
         </div>
         <Button type="submit" className="w-full" disabled={loading}>

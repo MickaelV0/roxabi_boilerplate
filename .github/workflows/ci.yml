@@ -48,6 +48,9 @@ jobs:
       - name: Validate translations
         run: bun run i18n:validate
 
+      - name: Check dependency licenses
+        run: bun run license:check
+
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest
@@ -103,6 +106,9 @@ jobs:
             exit 1
           fi
         env:
+          # drizzle-kit generate only reads the schema files to produce SQL
+          # migrations — it does NOT connect to a database. This dummy URL
+          # satisfies the DATABASE_URL requirement in the Drizzle config file.
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
 
   test:

@@ -10,6 +10,9 @@ vi.mock('@tanstack/react-router', () => ({
     captured.Component = config.component
     return { component: config.component }
   },
+  Link: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <a {...props}>{children}</a>
+  ),
 }))
 
 vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
@@ -30,6 +33,7 @@ vi.mock('@/paraglide/messages', () => ({
 }))
 
 vi.mock('lucide-react', () => ({
+  ChevronLeft: () => <svg data-testid="chevron-left-icon" />,
   Globe: () => <svg data-testid="globe-icon" />,
 }))
 
@@ -45,7 +49,7 @@ describe('I18nDemo', () => {
     render(<captured.Component />)
 
     // Assert
-    expect(screen.getByText('Internationalization')).toBeInTheDocument()
+    expect(screen.getByText('demo_i18n_heading')).toBeInTheDocument()
   })
 
   it('should render the globe icon', () => {

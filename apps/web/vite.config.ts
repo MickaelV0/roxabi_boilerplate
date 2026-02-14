@@ -31,10 +31,11 @@ const config = defineConfig(async () => ({
     paraglideVitePlugin({
       project: './project.inlang',
       outdir: './src/paraglide',
-      strategy: ['url'],
+      strategy: ['cookie', 'preferredLanguage', 'url', 'baseLocale'],
     }),
     nitro({
       config: {
+        builder: 'rolldown',
         devProxy: {
           '/api/**': { target: apiTarget, changeOrigin: true },
         },

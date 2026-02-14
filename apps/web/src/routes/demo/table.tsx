@@ -11,7 +11,7 @@ import {
 } from '@repo/ui'
 import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import { compareItems, rankItem } from '@tanstack/match-sorter-utils'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import type {
   Column,
   ColumnDef,
@@ -29,12 +29,17 @@ import {
   sortingFns,
   useReactTable,
 } from '@tanstack/react-table'
+import { ChevronLeft } from 'lucide-react'
 import React from 'react'
 import type { Person } from '@/data/demo-table-data'
 import { makeData } from '@/data/demo-table-data'
+import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/demo/table')({
   component: TableDemo,
+  head: () => ({
+    meta: [{ title: `${m.demo_table_heading()} | Roxabi` }],
+  }),
 })
 
 declare module '@tanstack/react-table' {
@@ -99,13 +104,13 @@ function TableDemo() {
         accessorFn: (row) => row.lastName,
         id: 'lastName',
         cell: (info) => info.getValue(),
-        header: () => <span>Last Name</span>,
+        header: () => <span>{m.demo_table_last_name()}</span>,
         filterFn: 'includesString', //note: normal non-fuzzy filter column - case insensitive
       },
       {
         accessorFn: (row) => `${row.firstName} ${row.lastName}`,
         id: 'fullName',
-        header: 'Full Name',
+        header: () => m.demo_table_full_name(),
         cell: (info) => info.getValue(),
         filterFn: 'fuzzy', //using our custom fuzzy filter function
         // filterFn: fuzzyFilter, //or just define with the function
@@ -152,11 +157,16 @@ function TableDemo() {
   return (
     <div className="min-h-screen bg-background py-12">
       <div className="mx-auto max-w-5xl px-6">
+        <Link
+          to="/demo"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="size-4" />
+          {m.demo_back_to_demos()}
+        </Link>
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold">Table</h1>
-          <p className="mt-2 text-muted-foreground">
-            TanStack Table with sorting, filtering, and pagination
-          </p>
+          <h1 className="text-3xl font-bold">{m.demo_table_heading()}</h1>
+          <p className="mt-2 text-muted-foreground">{m.demo_table_subtitle()}</p>
         </div>
 
         <Card>
@@ -165,8 +175,8 @@ function TableDemo() {
               <DebouncedInput
                 value={globalFilter ?? ''}
                 onChange={(value) => setGlobalFilter(String(value))}
-                placeholder="Search all columns..."
-                aria-label="Search all columns"
+                placeholder={m.demo_table_search_all()}
+                aria-label={m.demo_table_search_all()}
               />
             </div>
             <div className="mt-4 overflow-x-auto rounded-lg border border-border">
@@ -235,13 +245,13 @@ function TableDemo() {
                 {'>>'}
               </Button>
               <span className="flex items-center gap-1">
-                <div>Page</div>
+                <div>{m.demo_table_page()}</div>
                 <strong>
                   {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
                 </strong>
               </span>
               <span className="flex items-center gap-1">
-                | Go to page:
+                | {m.demo_table_go_to_page()}
                 <Input
                   type="number"
                   defaultValue={table.getState().pagination.pageIndex + 1}
@@ -262,21 +272,21 @@ function TableDemo() {
                 <SelectContent>
                   {[10, 20, 30, 40, 50].map((pageSize) => (
                     <SelectItem key={pageSize} value={String(pageSize)}>
-                      Show {pageSize}
+                      {m.demo_table_show({ count: String(pageSize) })}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="mt-4 text-muted-foreground">
-              {table.getPrePaginationRowModel().rows.length} Rows
+              {m.demo_table_rows({ count: String(table.getPrePaginationRowModel().rows.length) })}
             </div>
             <div className="mt-4 flex gap-2">
               <Button type="button" variant="outline" onClick={() => rerender()}>
-                Force Rerender
+                {m.demo_table_force_rerender()}
               </Button>
               <Button type="button" variant="outline" onClick={() => refreshData()}>
-                Refresh Data
+                {m.demo_table_refresh_data()}
               </Button>
             </div>
             <pre className="mt-4 overflow-auto rounded-lg bg-muted p-4 text-muted-foreground">
@@ -341,7 +351,7 @@ function Filter({ column }: { column: Column<Person, unknown> }) {
       type="text"
       value={typeof columnFilterValue === 'string' ? columnFilterValue : ''}
       onChange={(value) => column.setFilterValue(value)}
-      placeholder={`Search...`}
+      placeholder={m.demo_table_search()}
       aria-label={`Filter ${column.id}`}
     />
   )

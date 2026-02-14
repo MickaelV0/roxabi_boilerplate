@@ -10,6 +10,8 @@ export const ErrorCode = {
   DATABASE_UNAVAILABLE: 'DATABASE_UNAVAILABLE',
   // User
   USER_NOT_FOUND: 'USER_NOT_FOUND',
+  // Rate Limiting
+  RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
 } as const
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode]

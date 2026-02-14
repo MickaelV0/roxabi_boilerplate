@@ -81,6 +81,21 @@ Use the provided GitHub templates:
 - **Bug Report**: For reporting bugs with reproduction steps
 - **Feature Request**: For proposing new features
 
+### From the CLI
+
+Use `/issue-triage create` to create an issue, add it to the project board, and set all fields in one shot:
+
+```bash
+.claude/skills/issue-triage/triage.sh create \
+  --title "feat: notification preferences" \
+  --body "Allow users to configure notification channels" \
+  --label "feature" \
+  --size M --priority High \
+  --status Backlog \
+  --parent 163 \
+  --blocked-by 42
+```
+
 ### Minimum Requirements
 
 Every issue should have:
@@ -116,14 +131,29 @@ Triage ensures every issue has a **Size** and **Priority** assigned.
 
 ### Triage Process
 
-Use the `/issue-triage` skill to identify and label untriaged issues:
+Use the `/issue-triage` skill to list untriaged issues, set fields, create new issues, and manage parent/child relationships:
 
 ```bash
 # List issues missing Size or Priority
 .claude/skills/issue-triage/triage.sh list
 
-# Set values
+# Set size, priority, and status
 .claude/skills/issue-triage/triage.sh set 42 --size M --priority High
+.claude/skills/issue-triage/triage.sh set 42 --status "In Progress"
+
+# Create a new issue with full setup
+.claude/skills/issue-triage/triage.sh create \
+  --title "feat: avatar upload" \
+  --size M --priority High --parent 163
+
+# Manage parent/child (sub-issue) relationships
+.claude/skills/issue-triage/triage.sh set 164 --parent 163
+.claude/skills/issue-triage/triage.sh set 163 --add-child 164,165
+.claude/skills/issue-triage/triage.sh set 164 --rm-parent
+
+# Manage blocked-by dependencies
+.claude/skills/issue-triage/triage.sh set 91 --blocked-by 117
+.claude/skills/issue-triage/triage.sh set 91 --rm-blocked-by 117
 ```
 
 ---
@@ -164,7 +194,15 @@ gh api graphql -f query='query($pid: ID!) {
 
 ### Adding a Blocker
 
-When an issue blocks another:
+When an issue blocks another, use the `/issue-triage` skill (preferred) or the raw GraphQL API:
+
+```bash
+# Preferred — via /issue-triage
+.claude/skills/issue-triage/triage.sh set 51 --blocked-by 19
+.claude/skills/issue-triage/triage.sh set 19 --blocks 51
+```
+
+If using the API directly:
 
 1. Use GitHub's native `blockedBy` dependency (source of truth):
    ```bash

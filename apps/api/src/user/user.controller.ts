@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, UsePipes } from '@nestjs/common'
+import { Body, Controller, Get, Patch } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 import { Session } from '../auth/decorators/session.decorator.js'
@@ -64,8 +64,10 @@ export class UserController {
     },
   })
   @ApiResponse({ status: 401, description: 'Not authenticated' })
-  @UsePipes(new ZodValidationPipe(updateProfileSchema))
-  async updateMe(@Session() session: { user: { id: string } }, @Body() body: UpdateProfileDto) {
+  async updateMe(
+    @Session() session: { user: { id: string } },
+    @Body(new ZodValidationPipe(updateProfileSchema)) body: UpdateProfileDto
+  ) {
     return this.userService.updateProfile(session.user.id, body)
   }
 }

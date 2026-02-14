@@ -1,13 +1,13 @@
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'
 import { and, eq } from 'drizzle-orm'
 import {
   ORGANIZATION_CREATED,
   OrganizationCreatedEvent,
 } from '../common/events/organization-created.event.js'
-import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { members } from '../database/schema/auth.schema.js'
 import { roles } from '../database/schema/rbac.schema.js'
+import { TenantService } from '../tenant/tenant.service.js'
 import { RbacService } from './rbac.service.js'
 
 @Injectable()
@@ -16,7 +16,7 @@ export class RbacListener {
 
   constructor(
     private readonly rbacService: RbacService,
-    @Inject(DRIZZLE) private readonly db: DrizzleDB
+    private readonly tenantService: TenantService
   ) {}
 
   @OnEvent(ORGANIZATION_CREATED)
@@ -26,23 +26,25 @@ export class RbacListener {
     await this.rbacService.seedDefaultRoles(event.organizationId)
 
     // Assign Owner role to the creator
-    const [ownerRole] = await this.db
-      .select({ id: roles.id })
-      .from(roles)
-      .where(and(eq(roles.tenantId, event.organizationId), eq(roles.slug, 'owner')))
-      .limit(1)
+    await this.tenantService.queryAs(event.organizationId, async (tx) => {
+      const [ownerRole] = await tx
+        .select({ id: roles.id })
+        .from(roles)
+        .where(and(eq(roles.tenantId, event.organizationId), eq(roles.slug, 'owner')))
+        .limit(1)
 
-    if (ownerRole) {
-      await this.db
-        .update(members)
-        .set({ roleId: ownerRole.id })
-        .where(
-          and(
-            eq(members.userId, event.creatorUserId),
-            eq(members.organizationId, event.organizationId)
+      if (ownerRole) {
+        await tx
+          .update(members)
+          .set({ roleId: ownerRole.id })
+          .where(
+            and(
+              eq(members.userId, event.creatorUserId),
+              eq(members.organizationId, event.organizationId)
+            )
           )
-        )
-    }
+      }
+    })
 
     this.logger.log(`Default roles seeded for organization ${event.organizationId}`)
   }

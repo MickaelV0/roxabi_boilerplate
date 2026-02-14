@@ -12,7 +12,7 @@ export function GithubIcon() {
         rel="noopener noreferrer"
         aria-label={m.github_label()}
       >
-        <Github className="h-4 w-4" />
+        <Github className="size-4" />
       </a>
     </Button>
   )

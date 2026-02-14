@@ -57,6 +57,41 @@ export type DerivedTheme = {
 
 const STYLE_ELEMENT_ID = 'roxabi-theme-dark'
 
+/**
+ * Shadow presets mapped to Tailwind v4 CSS variable overrides.
+ * 'medium' is empty — uses Tailwind defaults (no override needed).
+ */
+export const SHADOW_PRESETS: Record<ThemeShadows, Record<string, string>> = {
+  none: {
+    'shadow-xs': '0 0 #0000',
+    'shadow-sm': '0 0 #0000',
+    shadow: '0 0 #0000',
+    'shadow-md': '0 0 #0000',
+    'shadow-lg': '0 0 #0000',
+    'shadow-xl': '0 0 #0000',
+    'shadow-2xl': '0 0 #0000',
+  },
+  subtle: {
+    'shadow-xs': '0 1px 1px 0 rgb(0 0 0 / 0.03)',
+    'shadow-sm': '0 1px 2px 0 rgb(0 0 0 / 0.04)',
+    shadow: '0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06)',
+    'shadow-md': '0 3px 5px -1px rgb(0 0 0 / 0.06), 0 2px 3px -2px rgb(0 0 0 / 0.06)',
+    'shadow-lg': '0 8px 12px -3px rgb(0 0 0 / 0.06), 0 4px 6px -4px rgb(0 0 0 / 0.06)',
+    'shadow-xl': '0 16px 24px -5px rgb(0 0 0 / 0.06), 0 8px 10px -6px rgb(0 0 0 / 0.06)',
+    'shadow-2xl': '0 24px 48px -12px rgb(0 0 0 / 0.15)',
+  },
+  medium: {},
+  strong: {
+    'shadow-xs': '0 1px 2px 0 rgb(0 0 0 / 0.08)',
+    'shadow-sm': '0 1px 3px 0 rgb(0 0 0 / 0.12)',
+    shadow: '0 2px 6px 0 rgb(0 0 0 / 0.15), 0 1px 3px -1px rgb(0 0 0 / 0.15)',
+    'shadow-md': '0 6px 12px -2px rgb(0 0 0 / 0.15), 0 3px 6px -3px rgb(0 0 0 / 0.15)',
+    'shadow-lg': '0 12px 24px -4px rgb(0 0 0 / 0.15), 0 6px 10px -6px rgb(0 0 0 / 0.15)',
+    'shadow-xl': '0 24px 48px -8px rgb(0 0 0 / 0.15), 0 12px 16px -8px rgb(0 0 0 / 0.15)',
+    'shadow-2xl': '0 32px 64px -16px rgb(0 0 0 / 0.3)',
+  },
+}
+
 // ---------------------------------------------------------------------------
 // Color helpers
 // ---------------------------------------------------------------------------
@@ -291,6 +326,13 @@ export function deriveFullTheme(config: ThemeConfig): DerivedTheme {
 
   light['font-size'] = typography.baseFontSize
   dark['font-size'] = typography.baseFontSize
+
+  // Add shadow variables (empty 'medium' preset = Tailwind defaults, no override)
+  const shadowVars = SHADOW_PRESETS[config.shadows]
+  if (shadowVars) {
+    Object.assign(light, shadowVars)
+    Object.assign(dark, shadowVars)
+  }
 
   return { light, dark }
 }

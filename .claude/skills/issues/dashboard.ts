@@ -187,8 +187,10 @@ async function fetchIssues(): Promise<Issue[]> {
     }
   }
 
-  // Root issues only (no parent)
-  const roots = openItems.filter((i) => !i.content.parent).map(toIssue)
+  // Root issues only (no open parent); orphaned children (parent closed) promoted to root
+  const roots = openItems
+    .filter((i) => !i.content.parent || i.content.parent.state === 'CLOSED')
+    .map(toIssue)
 
   // Sort: blocking first, then ready, then blocked; within that by priority
   const priorityOrder: Record<string, number> = {
@@ -820,6 +822,7 @@ function buildHtml(
   .col-block { width: 36px; text-align: center; }
   .col-deps { min-width: 120px; font-size: 12px; }
 
+  .depth-child td { border-bottom: none; padding-top: 2px; padding-bottom: 2px; }
   .depth-child .col-title { padding-left: 28px; color: var(--text-muted); font-size: 12px; }
   .tree-prefix { color: var(--border); margin-right: 4px; font-family: monospace; }
 

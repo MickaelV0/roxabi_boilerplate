@@ -2,20 +2,18 @@ import {
   type CanActivate,
   type ExecutionContext,
   ForbiddenException,
-  forwardRef,
-  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import type { Role } from '@repo/types'
 import type { FastifyRequest } from 'fastify'
-import { PermissionService } from '../rbac/permission.service.js'
 import { AuthService } from './auth.service.js'
 
 type AuthSession = {
   user: { id: string; role?: Role }
   session: { id: string; activeOrganizationId?: string | null }
+  permissions: string[]
 }
 
 function isAuthSession(value: unknown): value is AuthSession {
@@ -25,7 +23,9 @@ function isAuthSession(value: unknown): value is AuthSession {
   if (typeof v.session !== 'object' || v.session === null) return false
   const user = v.user as Record<string, unknown>
   const session = v.session as Record<string, unknown>
-  return typeof user.id === 'string' && typeof session.id === 'string'
+  return (
+    typeof user.id === 'string' && typeof session.id === 'string' && Array.isArray(v.permissions)
+  )
 }
 
 type AuthenticatedRequest = FastifyRequest & {
@@ -37,9 +37,7 @@ type AuthenticatedRequest = FastifyRequest & {
 export class AuthGuard implements CanActivate {
   constructor(
     private readonly authService: AuthService,
-    private readonly reflector: Reflector,
-    @Inject(forwardRef(() => PermissionService))
-    private readonly permissionService: PermissionService
+    private readonly reflector: Reflector
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -65,7 +63,7 @@ export class AuthGuard implements CanActivate {
 
     this.checkRoles(context, session)
     this.checkOrgRequired(context, session)
-    await this.checkPermissions(context, session)
+    this.checkPermissions(context, session)
 
     return true
   }
@@ -91,7 +89,7 @@ export class AuthGuard implements CanActivate {
     }
   }
 
-  private async checkPermissions(context: ExecutionContext, session: AuthSession) {
+  private checkPermissions(context: ExecutionContext, session: AuthSession) {
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>('PERMISSIONS', [
       context.getHandler(),
       context.getClass(),
@@ -105,8 +103,8 @@ export class AuthGuard implements CanActivate {
 
     if (session.user.role === 'superadmin') return
 
-    const userPermissions = await this.permissionService.getPermissions(session.user.id, orgId)
-    const hasAll = requiredPermissions.every((p) => userPermissions.includes(p))
+    // Permissions are already resolved by AuthService.getSession() and attached to the session
+    const hasAll = requiredPermissions.every((p) => session.permissions.includes(p))
     if (!hasAll) {
       throw new ForbiddenException('Insufficient permissions')
     }

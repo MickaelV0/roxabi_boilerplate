@@ -16,7 +16,7 @@ Team-wide coordination rules for all agents. Every agent reads this file.
 
 | Tier | Agents | Role |
 |------|--------|------|
-| **Domain** | frontend-dev, backend-dev, infra-ops | Write code in their packages |
+| **Domain** | frontend-dev, backend-dev, devops | Write code in their packages |
 | **Quality** | fixer, tester, security-auditor | Fix accepted review comments, write tests, audit security |
 | **Strategy** | architect, product-lead, doc-writer | Plan, analyze, document |
 
@@ -54,7 +54,7 @@ Each agent operates within specific packages. **Never modify files outside your 
 |-------|------|----------------|
 | frontend-dev | `apps/web/`, `packages/ui/` | `apps/api/`, `packages/config/`, `docs/` |
 | backend-dev | `apps/api/`, `packages/types/` | `apps/web/`, `packages/config/`, `docs/` |
-| infra-ops | `packages/config/`, root configs, `.github/` | `apps/*/src/`, `docs/` |
+| devops | `packages/config/`, root configs, `.github/` | `apps/*/src/`, `docs/` |
 | fixer | All packages (fix accepted review comments) | Only fixes identified findings, no new features |
 | tester | Test files in all packages | Never modifies source files |
 | security-auditor | Read-only + `Bash` for auditing | Never modifies source files |

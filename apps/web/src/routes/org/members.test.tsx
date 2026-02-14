@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
@@ -15,6 +15,22 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 
 vi.mock('@repo/ui', () => ({
+  AlertDialog: ({
+    children,
+    open,
+  }: React.PropsWithChildren<{ open?: boolean; onOpenChange?: (open: boolean) => void }>) =>
+    open ? <div data-testid="alert-dialog">{children}</div> : null,
+  AlertDialogAction: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <button {...props}>{children}</button>
+  ),
+  AlertDialogCancel: ({ children }: React.PropsWithChildren) => (
+    <button type="button">{children}</button>
+  ),
+  AlertDialogContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+  AlertDialogDescription: ({ children }: React.PropsWithChildren) => <p>{children}</p>,
+  AlertDialogFooter: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+  AlertDialogHeader: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+  AlertDialogTitle: ({ children }: React.PropsWithChildren) => <h2>{children}</h2>,
   Badge: ({ children, variant, ...props }: React.PropsWithChildren<{ variant?: string }>) => (
     <span data-variant={variant} {...props}>
       {children}
@@ -55,12 +71,29 @@ vi.mock('@repo/ui', () => ({
   ),
   SelectTrigger: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
   SelectValue: () => <span />,
+  Table: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <table {...props}>{children}</table>
+  ),
+  TableHeader: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <thead {...props}>{children}</thead>
+  ),
+  TableBody: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <tbody {...props}>{children}</tbody>
+  ),
+  TableRow: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <tr {...props}>{children}</tr>
+  ),
+  TableHead: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <th {...props}>{children}</th>
+  ),
+  TableCell: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <td {...props}>{children}</td>
+  ),
 }))
 
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
     useActiveOrganization: vi.fn(() => ({ data: null })),
-    useActiveMember: vi.fn(() => ({ data: null })),
     organization: {
       inviteMember: vi.fn(),
       removeMember: vi.fn(),
@@ -68,6 +101,7 @@ vi.mock('@/lib/auth-client', () => ({
       cancelInvitation: vi.fn(),
     },
   },
+  useSession: vi.fn(() => ({ data: null })),
 }))
 
 vi.mock('sonner', () => ({
@@ -78,7 +112,7 @@ mockParaglideMessages()
 
 // Import after mocks to trigger createFileRoute and capture the component
 import './members'
-import { authClient } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/auth-client'
 
 // ---------------------------------------------------------------------------
 // Test data factories
@@ -116,6 +150,16 @@ function createInvitation(
   }
 }
 
+function permissionsForRole(role: string): string[] {
+  switch (role) {
+    case 'owner':
+    case 'admin':
+      return ['members:read', 'members:write', 'members:delete']
+    default:
+      return ['members:read']
+  }
+}
+
 function setupOrg({
   members = [createMember()],
   invitations = [] as ReturnType<typeof createInvitation>[],
@@ -135,9 +179,9 @@ function setupOrg({
     },
   } as unknown as ReturnType<typeof authClient.useActiveOrganization>)
 
-  vi.mocked(authClient.useActiveMember).mockReturnValue({
-    data: { id: 'me', role: activeMemberRole },
-  } as unknown as ReturnType<typeof authClient.useActiveMember>)
+  vi.mocked(useSession).mockReturnValue({
+    data: { permissions: permissionsForRole(activeMemberRole) },
+  } as unknown as ReturnType<typeof useSession>)
 }
 
 // ---------------------------------------------------------------------------
@@ -423,5 +467,98 @@ describe('OrgMembersPage', () => {
     // Assert — only the pending invitation should be visible
     expect(screen.getByText('pending@acme.com')).toBeInTheDocument()
     expect(screen.queryByText('accepted@acme.com')).not.toBeInTheDocument()
+  })
+
+  it('should show search input (I9)', () => {
+    // Arrange
+    setupOrg()
+
+    // Act
+    const Page = captured.Component
+    render(<Page />)
+
+    // Assert
+    expect(screen.getByPlaceholderText('org_members_search_placeholder')).toBeInTheDocument()
+  })
+
+  it('should filter members by name when searching (I9)', () => {
+    // Arrange
+    setupOrg({
+      members: [
+        createMember({
+          id: 'm-alice',
+          role: 'member',
+          user: { name: 'Alice Smith', email: 'alice@acme.com' },
+        }),
+        createMember({
+          id: 'm-bob',
+          role: 'member',
+          user: { name: 'Bob Jones', email: 'bob@acme.com' },
+        }),
+      ],
+    })
+
+    const Page = captured.Component
+    render(<Page />)
+
+    // Act
+    const searchInput = screen.getByPlaceholderText('org_members_search_placeholder')
+    fireEvent.change(searchInput, { target: { value: 'Alice' } })
+
+    // Assert
+    expect(screen.getByText('Alice Smith')).toBeInTheDocument()
+    expect(screen.queryByText('Bob Jones')).not.toBeInTheDocument()
+  })
+
+  it('should filter members by email when searching (I9)', () => {
+    // Arrange
+    setupOrg({
+      members: [
+        createMember({
+          id: 'm-alice',
+          role: 'member',
+          user: { name: 'Alice Smith', email: 'alice@acme.com' },
+        }),
+        createMember({
+          id: 'm-bob',
+          role: 'member',
+          user: { name: 'Bob Jones', email: 'bob@acme.com' },
+        }),
+      ],
+    })
+
+    const Page = captured.Component
+    render(<Page />)
+
+    // Act
+    const searchInput = screen.getByPlaceholderText('org_members_search_placeholder')
+    fireEvent.change(searchInput, { target: { value: 'bob@' } })
+
+    // Assert
+    expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument()
+    expect(screen.getByText('Bob Jones')).toBeInTheDocument()
+  })
+
+  it('should show no-results message when search has no matches (I9)', () => {
+    // Arrange
+    setupOrg({
+      members: [
+        createMember({
+          id: 'm-alice',
+          role: 'member',
+          user: { name: 'Alice Smith', email: 'alice@acme.com' },
+        }),
+      ],
+    })
+
+    const Page = captured.Component
+    render(<Page />)
+
+    // Act
+    const searchInput = screen.getByPlaceholderText('org_members_search_placeholder')
+    fireEvent.change(searchInput, { target: { value: 'nonexistent' } })
+
+    // Assert
+    expect(screen.getByText('org_members_no_results')).toBeInTheDocument()
   })
 })

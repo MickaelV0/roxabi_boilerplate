@@ -37,6 +37,7 @@ vi.mock('@repo/ui', () => ({
       {children}
     </button>
   ),
+  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
 }))
 
 vi.mock('@tanstack/react-router', () => ({
@@ -130,7 +131,7 @@ describe('Header', () => {
   it('renders the Design System link in desktop nav', () => {
     render(<Header />)
 
-    const links = screen.getAllByText('Design System')
+    const links = screen.getAllByText('nav_design_system')
     expect(links.length).toBeGreaterThanOrEqual(1)
 
     const desktopLink = links[0]?.closest('a')
@@ -145,7 +146,7 @@ describe('Header', () => {
     fireEvent.click(menuButton)
 
     // Both desktop and mobile links should exist
-    const links = screen.getAllByText('Design System')
+    const links = screen.getAllByText('nav_design_system')
     expect(links.length).toBeGreaterThanOrEqual(2)
   })
 

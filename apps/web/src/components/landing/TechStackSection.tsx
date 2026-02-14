@@ -25,7 +25,7 @@ export function TechStackSection() {
   ]
 
   return (
-    <section className="py-24">
+    <section className="border-t border-border bg-muted/20 py-24">
       <div className="mx-auto max-w-7xl px-6">
         <h2 className="mb-12 text-center text-3xl font-bold tracking-tight">{m.tech_title()}</h2>
         <div className="grid gap-12 sm:grid-cols-3">

@@ -92,6 +92,8 @@ When detecting a large workload (3+ complex tasks, migrations, or multi-componen
 ```bash
 git worktree add ../roxabi-XXX -b feat/XXX-slug staging
 cd ../roxabi-XXX
+cp .env.example .env && bun install
+cd apps/api && bun run db:branch:create --force XXX
 ```
 
 > XXX = GitHub issue number (e.g., 123), slug = short description
@@ -133,7 +135,7 @@ cd ../roxabi-XXX
 | Trigger | Skill | Examples |
 |---------|-------|----------|
 | issues, list issues | `issues` | "list GitHub issues", "/issues" |
-| issue triage, labeling, status update | `issue-triage` | "triage issues", "label open issues", "update issue status" |
+| issue triage, create issue, parent/child, blocked by | `issue-triage` | "triage issues", "create issue", "set parent", "add child", "blocked by" |
 | interview, spec, brainstorm, analysis | `interview` | "create a spec", "interview for feature", "brainstorm ideas" |
 | cleanup, git cleanup | `cleanup` | "clean branches", "cleanup worktrees", "/cleanup" |
 | commit, stage, git commit | `commit` | "commit changes", "commit staged files", "/commit --all" |
@@ -168,7 +170,7 @@ Specialized agents for multi-agent coordination. Requires `CLAUDE_CODE_EXPERIMEN
 |-------|------|--------|------------|-------|
 | `frontend-dev` | Domain | `apps/web`, `packages/ui` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
 | `backend-dev` | Domain | `apps/api`, `packages/types` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
-| `infra-ops` | Domain | `packages/config`, root configs | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
+| `devops` | Domain | `packages/config`, root configs | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
 | `fixer` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, SendMessage |
 | `tester` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
 | `security-auditor` | Quality | All packages | plan | Read, Glob, Grep, Bash, WebSearch, Task, SendMessage |
@@ -198,7 +200,7 @@ Is this a code change?
     │   └── Then /review (fresh domain reviewers + 1b1 + fixer)
     │
     └── Tier F-full (new arch, unclear requirements, >2 domains)
-        ├── /bootstrap (idea → spec): product-lead + architect + doc-writer
+        ├── /bootstrap (idea → spec): direct orchestration + expert review (architect, doc-writer, devops, product-lead — configurable)
         ├── /scaffold (spec → PR):
         │   ├── Single-domain → subagents (Task tool)
         │   └── Multi-domain  → Agent Teams (TeamCreate)
