@@ -558,5 +558,12 @@
   "password_rule_symbol": "Symbol",
 
   "password_toggle_show": "Show password",
-  "password_toggle_hide": "Hide password"
+  "password_toggle_hide": "Hide password",
+
+  "demo_back_to_demos": "Back to Demos",
+
+  "stats_features": "Built-in Features",
+  "stats_typesafe": "Type Safe",
+  "stats_components": "UI Components",
+  "stats_integrations": "Integrations"
 }

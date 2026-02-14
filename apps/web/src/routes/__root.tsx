@@ -13,6 +13,7 @@ import { RootProvider } from 'fumadocs-ui/provider/tanstack'
 import { ErrorBoundary } from 'react-error-boundary'
 import { m } from '@/paraglide/messages'
 import { getLocale } from '@/paraglide/runtime'
+import { Footer } from '../components/Footer'
 import { Header } from '../components/Header'
 import { TanStackQueryDevtools } from '../integrations/tanstack-query/devtools'
 import { demoStoreDevtools } from '../lib/demo-store-devtools'
@@ -103,8 +104,13 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <RootProvider>
-      {!isChromeless && <Header />}
-      <ErrorBoundary FallbackComponent={ErrorFallback}>{children}</ErrorBoundary>
+      <div className="flex min-h-screen flex-col">
+        {!isChromeless && <Header />}
+        <div className="flex-1">
+          <ErrorBoundary FallbackComponent={ErrorFallback}>{children}</ErrorBoundary>
+        </div>
+        {!isChromeless && <Footer />}
+      </div>
       <Toaster richColors />
     </RootProvider>
   )
