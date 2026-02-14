@@ -37,6 +37,7 @@ vi.mock('@repo/ui', () => ({
       {children}
     </button>
   ),
+  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
 }))
 
 vi.mock('@tanstack/react-router', () => ({

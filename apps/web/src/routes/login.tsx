@@ -10,7 +10,7 @@ export const Route = createFileRoute('/login')({
   beforeLoad: async () => {
     const { data } = await authClient.getSession()
     if (data) {
-      throw redirect({ to: '/' })
+      throw redirect({ to: '/dashboard' })
     }
   },
   loader: fetchEnabledProviders,
@@ -46,7 +46,7 @@ function LoginPage() {
         setError(signInError.message ?? 'Sign in failed')
       } else {
         toast.success(m.auth_toast_signed_in())
-        navigate({ to: '/' })
+        navigate({ to: '/dashboard' })
       }
     } catch {
       toast.error(m.auth_toast_error())
