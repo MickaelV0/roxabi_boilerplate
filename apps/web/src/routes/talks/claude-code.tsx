@@ -3,13 +3,12 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useCallback, useRef } from 'react'
 import { AgentTeamsSection } from '@/components/presentation/AgentTeamsSection'
 import { BuildingBlocksSection } from '@/components/presentation/BuildingBlocksSection'
+import { ClosingSection } from '@/components/presentation/ClosingSection'
 import { DevProcessSection } from '@/components/presentation/DevProcessSection'
 import { EndToEndSection } from '@/components/presentation/EndToEndSection'
-import { InfraWorkflowSection } from '@/components/presentation/InfraWorkflowSection'
 import { IntroSection } from '@/components/presentation/IntroSection'
 import { SectionContainer } from '@/components/presentation/SectionContainer'
-import { SetupSection } from '@/components/presentation/SetupSection'
-import { TestReviewSection } from '@/components/presentation/TestReviewSection'
+import { SpecializationSection } from '@/components/presentation/SpecializationSection'
 import { ThemeToggle } from '@/components/ThemeToggle'
 
 export const Route = createFileRoute('/talks/claude-code')({
@@ -18,13 +17,12 @@ export const Route = createFileRoute('/talks/claude-code')({
 
 const SECTIONS = [
   { id: 'intro', label: 'Introduction' },
-  { id: 'setup', label: 'Setup' },
   { id: 'building-blocks', label: 'Building Blocks' },
+  { id: 'specialization', label: 'Specialization' },
   { id: 'dev-process', label: 'Dev Process' },
   { id: 'agent-teams', label: 'Agent Teams' },
-  { id: 'test-review', label: 'Test & Review' },
-  { id: 'infra-workflow', label: 'Infrastructure' },
   { id: 'end-to-end', label: 'End-to-End' },
+  { id: 'closing', label: 'Closing' },
 ] as const
 
 export function ClaudeCodePresentation() {
@@ -65,12 +63,12 @@ export function ClaudeCodePresentation() {
           <IntroSection />
         </SectionContainer>
 
-        <SectionContainer id="setup">
-          <SetupSection />
-        </SectionContainer>
-
         <SectionContainer id="building-blocks">
           <BuildingBlocksSection />
+        </SectionContainer>
+
+        <SectionContainer id="specialization">
+          <SpecializationSection />
         </SectionContainer>
 
         <SectionContainer id="dev-process">
@@ -81,16 +79,12 @@ export function ClaudeCodePresentation() {
           <AgentTeamsSection />
         </SectionContainer>
 
-        <SectionContainer id="test-review">
-          <TestReviewSection />
-        </SectionContainer>
-
-        <SectionContainer id="infra-workflow">
-          <InfraWorkflowSection />
-        </SectionContainer>
-
         <SectionContainer id="end-to-end">
           <EndToEndSection />
+        </SectionContainer>
+
+        <SectionContainer id="closing">
+          <ClosingSection />
         </SectionContainer>
       </div>
     </div>

@@ -1,37 +1,78 @@
 import { AnimatedSection, Card, cn, useInView, useReducedMotion } from '@repo/ui'
-import { Link } from '@tanstack/react-router'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, GitPullRequest, Globe, Rocket, Workflow } from 'lucide-react'
 
-const pipelineSteps = [
+type PipelineStep = {
+  command: string
+  from: string
+  to: string
+  description: string
+  isGate?: boolean
+}
+
+const pipelineSteps: ReadonlyArray<PipelineStep> = [
   {
     command: '/bootstrap',
     from: 'Idea',
+    to: 'Analysis',
+    description: 'Interview, structured analysis',
+    isGate: true,
+  },
+  {
+    command: '/bootstrap',
+    from: 'Analysis',
     to: 'Spec',
-    description: 'Interview, analyze, write spec',
+    description: 'Analysis promoted to spec',
+    isGate: true,
   },
   {
     command: '/scaffold',
     from: 'Spec',
     to: 'Code',
-    description: 'Agents implement in parallel',
-  },
-  {
-    command: '/review',
-    from: 'Code',
-    to: 'Reviewed',
-    description: 'Fresh review + /1b1 walkthrough',
+    description: 'Plan approval, then agents implement',
   },
   {
     command: '/pr',
-    from: 'Reviewed',
+    from: 'Code',
     to: 'PR',
     description: 'Create pull request',
+  },
+  {
+    command: '/review',
+    from: 'PR',
+    to: 'Reviewed',
+    description: 'Fresh review + /1b1 decisions',
+    isGate: true,
+  },
+  {
+    command: 'Merge',
+    from: 'Reviewed',
+    to: 'Staging',
+    description: 'PR merged into staging branch',
   },
   {
     command: '/promote',
     from: 'Staging',
     to: 'Main',
-    description: 'Staging to production',
+    description: 'Preview verification, then deploy',
+    isGate: true,
+  },
+]
+
+const integrations = [
+  {
+    icon: GitPullRequest,
+    label: 'GitHub',
+    detail: 'Issues, Projects, PRs, Actions',
+  },
+  {
+    icon: Rocket,
+    label: 'Vercel',
+    detail: 'Deploy, logs, env vars, rollback',
+  },
+  {
+    icon: Globe,
+    label: 'CI/CD',
+    detail: 'GitHub Actions + Vercel auto-deploy',
   },
 ] as const
 
@@ -51,44 +92,57 @@ export function EndToEndSection() {
       </div>
 
       <AnimatedSection>
-        <h2 className="text-4xl font-bold tracking-tight text-center lg:text-5xl">
-          End-to-End: Idea to Production
-        </h2>
-        <p className="mt-4 text-lg text-muted-foreground text-center">
-          A real feature in 5 commands.
+        <div className="flex items-center gap-3 mb-4">
+          <div className="rounded-lg bg-primary/10 p-2">
+            <Workflow className="h-5 w-5 text-primary" />
+          </div>
+          <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">Idea to Production</h2>
+        </div>
+        <p className="mt-4 text-lg text-muted-foreground">
+          Analysis, spec, code, review, deploy. Claude manages the full SDLC — including GitHub and
+          Vercel.
         </p>
       </AnimatedSection>
 
       {/* Pipeline flow */}
       <div ref={pipelineRef} className="mt-14">
         {/* Desktop: horizontal pipeline */}
-        <div className="hidden lg:flex items-center justify-center gap-2">
+        <div className="hidden lg:flex items-center justify-center gap-1.5">
           {pipelineSteps.map((step, index) => (
             <div
-              key={step.command}
+              key={`${step.command}-${step.from}`}
               className={cn(
-                'flex items-center gap-2 transition-all duration-700',
+                'flex items-center gap-1.5 transition-all duration-700',
                 visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
               )}
               style={{
-                transitionDelay: visible ? `${index * 200}ms` : '0ms',
+                transitionDelay: visible ? `${index * 180}ms` : '0ms',
               }}
             >
-              <Card variant="subtle" className="items-center p-5 text-center min-w-[150px]">
-                <p className="font-mono text-lg font-bold text-primary">{step.command}</p>
-                <p className="mt-2 text-xs text-muted-foreground">
+              <Card
+                variant="subtle"
+                className={cn(
+                  'items-center p-5 text-center min-w-[140px]',
+                  step.isGate && 'border-yellow-500/30'
+                )}
+              >
+                <p className="font-mono text-base font-bold text-primary">{step.command}</p>
+                <p className="mt-1.5 text-xs text-muted-foreground">
                   {step.from} → {step.to}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground/70">{step.description}</p>
+                {step.isGate && (
+                  <p className="mt-1.5 text-xs font-semibold text-yellow-500">validation gate</p>
+                )}
               </Card>
               {index < pipelineSteps.length - 1 && (
                 <ArrowRight
                   className={cn(
-                    'h-5 w-5 text-primary/60 shrink-0 transition-all duration-500',
+                    'h-4 w-4 text-primary/60 shrink-0 transition-all duration-500',
                     visible ? 'opacity-100' : 'opacity-0'
                   )}
                   style={{
-                    transitionDelay: visible ? `${index * 200 + 100}ms` : '0ms',
+                    transitionDelay: visible ? `${index * 180 + 90}ms` : '0ms',
                   }}
                 />
               )}
@@ -99,12 +153,13 @@ export function EndToEndSection() {
         {/* Mobile/Tablet: vertical pipeline */}
         <div className="lg:hidden space-y-3 max-w-md mx-auto">
           {pipelineSteps.map((step, index) => (
-            <div key={step.command}>
+            <div key={`${step.command}-${step.from}`}>
               <Card
                 variant="subtle"
                 className={cn(
                   'p-4 transition-all duration-700',
-                  visible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-6'
+                  visible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-6',
+                  step.isGate && 'border-yellow-500/30'
                 )}
                 style={{
                   transitionDelay: visible ? `${index * 150}ms` : '0ms',
@@ -115,6 +170,9 @@ export function EndToEndSection() {
                   <span className="text-xs text-muted-foreground">
                     {step.from} → {step.to}
                   </span>
+                  {step.isGate && (
+                    <span className="text-xs font-semibold text-yellow-500">gate</span>
+                  )}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>
               </Card>
@@ -128,27 +186,25 @@ export function EndToEndSection() {
         </div>
       </div>
 
-      {/* Closing callout */}
-      <AnimatedSection className="mt-14">
-        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-8 text-center">
-          <p className="text-xl font-semibold lg:text-2xl">5 commands. From idea to production.</p>
-          <p className="mt-4 text-muted-foreground">
-            19 PR review fixes across 4 parallel agents touching 30 files — in a single session.
-          </p>
+      {/* Integrations row */}
+      <AnimatedSection className="mt-10">
+        <div className="grid gap-4 sm:grid-cols-3">
+          {integrations.map((item) => (
+            <Card
+              key={item.label}
+              variant="subtle"
+              className="p-4 flex flex-row items-center gap-4"
+            >
+              <div className="rounded-xl bg-primary/10 p-3 shrink-0">
+                <item.icon className="h-5 w-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">{item.label}</p>
+                <p className="text-xs text-muted-foreground">{item.detail}</p>
+              </div>
+            </Card>
+          ))}
         </div>
-      </AnimatedSection>
-
-      {/* Closing */}
-      <AnimatedSection className="mt-12 text-center">
-        <p className="text-muted-foreground">
-          Built with{' '}
-          <Link
-            to="/"
-            className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
-          >
-            Roxabi
-          </Link>
-        </p>
       </AnimatedSection>
     </div>
   )

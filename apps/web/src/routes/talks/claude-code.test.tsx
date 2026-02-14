@@ -59,17 +59,16 @@ import { ClaudeCodePresentation } from './claude-code'
 
 const EXPECTED_SECTION_IDS = [
   'intro',
-  'setup',
   'building-blocks',
+  'specialization',
   'dev-process',
   'agent-teams',
-  'test-review',
-  'infra-workflow',
   'end-to-end',
+  'closing',
 ]
 
 describe('ClaudeCodePresentation page', () => {
-  it('renders all 8 sections with correct ids', () => {
+  it('renders all 6 sections with correct ids', () => {
     // Arrange & Act
     render(<ClaudeCodePresentation />)
 
@@ -87,16 +86,12 @@ describe('ClaudeCodePresentation page', () => {
     // Assert — verify key headings are rendered with correct roles
     expect(screen.getByRole('heading', { name: /Your AI Development Team/i })).toBeInTheDocument()
 
-    expect(screen.getByRole('heading', { name: /Prerequisites & Setup/i })).toBeInTheDocument()
-
     expect(screen.getByRole('heading', { name: /Building Blocks/i })).toBeInTheDocument()
 
-    expect(screen.getByRole('heading', { name: /Agent Teams/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Specialization Formula/i })).toBeInTheDocument()
 
-    expect(screen.getByRole('heading', { name: /Infrastructure & Workflow/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Agent Teams in Action/i })).toBeInTheDocument()
 
-    expect(
-      screen.getByRole('heading', { name: /End-to-End: Idea to Production/i })
-    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Idea to Production/i })).toBeInTheDocument()
   })
 })

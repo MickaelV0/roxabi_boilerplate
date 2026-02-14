@@ -20,25 +20,19 @@ export function IntroSection() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-3xl text-xl text-muted-foreground lg:text-2xl">
-            CLI-based agentic assistant with filesystem access. Not autocomplete — an autonomous
-            agent that reads, writes, and executes.
+            AI agents that write, test, review, and deploy production code. Not autocomplete —
+            autonomous development.
           </p>
         </AnimatedSection>
 
         <AnimatedSection className="mt-16">
           <div className="flex flex-col items-center justify-center gap-8 sm:flex-row sm:gap-16">
-            <StatCounter value={808} label="Sessions" />
+            <StatCounter value={1782} label="Sessions" />
             <div className="hidden h-16 w-px bg-border sm:block" />
-            <StatCounter value={624} label="Commits" />
+            <StatCounter value={288} label="Commits" />
             <div className="hidden h-16 w-px bg-border sm:block" />
             <StatCounter value={88} label="Completion Rate" suffix="%" />
           </div>
-        </AnimatedSection>
-
-        <AnimatedSection className="mt-12">
-          <p className="text-sm text-muted-foreground/60">
-            16 days of parallel development. 680 hours of compute.
-          </p>
         </AnimatedSection>
       </div>
     </div>
