@@ -15,6 +15,22 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 
 vi.mock('@repo/ui', () => ({
+  AlertDialog: ({
+    children,
+    open,
+  }: React.PropsWithChildren<{ open?: boolean; onOpenChange?: (open: boolean) => void }>) =>
+    open ? <div data-testid="alert-dialog">{children}</div> : null,
+  AlertDialogAction: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <button {...props}>{children}</button>
+  ),
+  AlertDialogCancel: ({ children }: React.PropsWithChildren) => (
+    <button type="button">{children}</button>
+  ),
+  AlertDialogContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+  AlertDialogDescription: ({ children }: React.PropsWithChildren) => <p>{children}</p>,
+  AlertDialogFooter: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+  AlertDialogHeader: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+  AlertDialogTitle: ({ children }: React.PropsWithChildren) => <h2>{children}</h2>,
   Badge: ({ children, variant, ...props }: React.PropsWithChildren<{ variant?: string }>) => (
     <span data-variant={variant} {...props}>
       {children}
@@ -60,7 +76,6 @@ vi.mock('@repo/ui', () => ({
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
     useActiveOrganization: vi.fn(() => ({ data: null })),
-    useActiveMember: vi.fn(() => ({ data: null })),
     organization: {
       inviteMember: vi.fn(),
       removeMember: vi.fn(),
@@ -68,6 +83,7 @@ vi.mock('@/lib/auth-client', () => ({
       cancelInvitation: vi.fn(),
     },
   },
+  useSession: vi.fn(() => ({ data: null })),
 }))
 
 vi.mock('sonner', () => ({
@@ -78,7 +94,7 @@ mockParaglideMessages()
 
 // Import after mocks to trigger createFileRoute and capture the component
 import './members'
-import { authClient } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/auth-client'
 
 // ---------------------------------------------------------------------------
 // Test data factories
@@ -116,6 +132,16 @@ function createInvitation(
   }
 }
 
+function permissionsForRole(role: string): string[] {
+  switch (role) {
+    case 'owner':
+    case 'admin':
+      return ['members:read', 'members:write', 'members:delete']
+    default:
+      return ['members:read']
+  }
+}
+
 function setupOrg({
   members = [createMember()],
   invitations = [] as ReturnType<typeof createInvitation>[],
@@ -135,9 +161,9 @@ function setupOrg({
     },
   } as unknown as ReturnType<typeof authClient.useActiveOrganization>)
 
-  vi.mocked(authClient.useActiveMember).mockReturnValue({
-    data: { id: 'me', role: activeMemberRole },
-  } as unknown as ReturnType<typeof authClient.useActiveMember>)
+  vi.mocked(useSession).mockReturnValue({
+    data: { permissions: permissionsForRole(activeMemberRole) },
+  } as unknown as ReturnType<typeof useSession>)
 }
 
 // ---------------------------------------------------------------------------

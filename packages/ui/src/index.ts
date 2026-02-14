@@ -10,6 +10,19 @@ export {
   AccordionTrigger,
 } from './components/Accordion'
 export { Alert, AlertDescription, AlertTitle, alertVariants } from './components/Alert'
+export {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+  AlertDialogPortal,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from './components/AlertDialog'
 export { AnimatedSection } from './components/AnimatedSection'
 export {
   Avatar,
@@ -77,7 +90,13 @@ export {
 } from './components/NavigationMenu'
 export type { OAuthButtonProps, OAuthProvider } from './components/OAuthButton'
 export { OAuthButton, oAuthButtonVariants } from './components/OAuthButton'
-export type { PasswordInputProps, PasswordStrength } from './components/PasswordInput'
+export type {
+  PasswordInputProps,
+  PasswordStrength,
+  RuleLabels,
+  StrengthLabels,
+  ToggleLabels,
+} from './components/PasswordInput'
 export { calculateStrength, PASSWORD_RULES, PasswordInput } from './components/PasswordInput'
 export { PresentationNav } from './components/PresentationNav'
 export {

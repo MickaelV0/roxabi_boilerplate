@@ -106,6 +106,9 @@ jobs:
             exit 1
           fi
         env:
+          # drizzle-kit generate only reads the schema files to produce SQL
+          # migrations — it does NOT connect to a database. This dummy URL
+          # satisfies the DATABASE_URL requirement in the Drizzle config file.
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
 
   test:

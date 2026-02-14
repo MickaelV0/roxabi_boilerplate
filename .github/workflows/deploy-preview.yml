@@ -168,13 +168,19 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
           DATABASE_URL: ${{ needs.create-neon-branch.outputs.database_url }}
 
-      - name: Deploy
+      - name: Deploy API preview
         id: deploy
+        # Note: --env flag is required to set DATABASE_URL on the Vercel preview
+        # deployment itself (not just in the CI runner). This is the only way to
+        # inject per-deployment env vars for preview builds. The value is masked
+        # in GitHub Actions logs and runners are ephemeral, so /proc/cmdline
+        # exposure is low risk.
         run: |
           # Rate limiting uses in-memory storage in previews (no Upstash) — resets on cold start
           URL=$(vercel deploy --prebuilt --env DATABASE_URL=${{ needs.create-neon-branch.outputs.database_url }} --env SWAGGER_ENABLED=true --env RATE_LIMIT_ENABLED=true --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$URL" >> "$GITHUB_OUTPUT"
         env:
+          DATABASE_URL: ${{ needs.create-neon-branch.outputs.database_url }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
 

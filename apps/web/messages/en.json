@@ -530,5 +530,33 @@
   "ds_demo_content_below": "Content below the separator.",
   "ds_demo_hover_me": "Hover me",
   "ds_demo_tooltip_text": "This is a tooltip",
-  "ds_demo_user": "User"
+  "ds_demo_user": "User",
+
+  "nav_design_system": "Design System",
+
+  "error_something_went_wrong": "Something went wrong",
+  "error_page_not_found_title": "404",
+  "error_page_not_found_description": "Page not found",
+  "error_go_home": "Go back home",
+  "error_try_again": "Try again",
+
+  "docs_error_title": "Error",
+  "docs_error_something_went_wrong": "Something went wrong",
+  "docs_error_loading_page": "An error occurred while loading this documentation page.",
+  "docs_error_try_again": "Try again",
+  "docs_error_back_to_docs": "Back to Documentation",
+
+  "org_role_viewer": "Viewer",
+
+  "password_strength_weak": "Weak",
+  "password_strength_fair": "Fair",
+  "password_strength_good": "Good",
+  "password_strength_strong": "Strong",
+  "password_rule_min_length": "8+ characters",
+  "password_rule_uppercase": "Uppercase letter",
+  "password_rule_number": "Number",
+  "password_rule_symbol": "Symbol",
+
+  "password_toggle_show": "Show password",
+  "password_toggle_hide": "Hide password"
 }

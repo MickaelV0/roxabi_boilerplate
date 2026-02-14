@@ -10,10 +10,6 @@ import { OrgSwitcher } from './OrgSwitcher'
 import { ThemeToggle } from './ThemeToggle'
 import { UserMenu } from './UserMenu'
 
-const LABELS = {
-  designSystem: 'Design System',
-} as const
-
 const isDemoEnabled = import.meta.env.VITE_ENABLE_DEMO === 'true'
 
 export function Header() {
@@ -68,7 +64,7 @@ export function Header() {
           )}
           <Button variant="ghost" size="sm" asChild>
             <Link to="/design-system" activeProps={{ className: 'bg-accent' }}>
-              {LABELS.designSystem}
+              {m.nav_design_system()}
             </Link>
           </Button>
           <Button variant="ghost" size="sm" asChild>
@@ -147,7 +143,7 @@ export function Header() {
                 activeProps={{ className: 'bg-accent' }}
                 onClick={() => setMobileOpen(false)}
               >
-                {LABELS.designSystem}
+                {m.nav_design_system()}
               </Link>
             </Button>
             <Button variant="ghost" size="sm" className="justify-start" asChild>

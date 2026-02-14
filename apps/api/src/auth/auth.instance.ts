@@ -25,10 +25,16 @@ export type AuthInstanceConfig = {
   githubClientSecret?: string
 }
 
+export type OrganizationCreatedCallback = (data: {
+  organizationId: string
+  creatorUserId: string
+}) => void | Promise<void>
+
 export function createBetterAuth(
   db: DrizzleDB,
   emailProvider: EmailProvider,
-  config: AuthInstanceConfig
+  config: AuthInstanceConfig,
+  onOrganizationCreated?: OrganizationCreatedCallback
 ) {
   const socialProviders: Record<string, unknown> = {}
 
@@ -87,7 +93,18 @@ export function createBetterAuth(
       },
     },
     plugins: [
-      organization(),
+      organization({
+        organizationHooks: onOrganizationCreated
+          ? {
+              afterCreateOrganization: async ({ organization: org, member }) => {
+                onOrganizationCreated({
+                  organizationId: org.id,
+                  creatorUserId: member.userId,
+                })
+              },
+            }
+          : undefined,
+      }),
       admin(),
       magicLink({
         async sendMagicLink({ email, url }) {

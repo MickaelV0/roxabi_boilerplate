@@ -4,12 +4,12 @@ const Environment = z.enum(['development', 'production', 'test'])
 
 const envSchema = z.object({
   NODE_ENV: Environment.default('development'),
-  PORT: z.coerce.number().default(3001),
+  PORT: z.coerce.number().default(4000),
   DATABASE_URL: z.string().optional(),
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
   LOG_LEVEL: z.string().default('debug'),
   BETTER_AUTH_SECRET: z.string().default('dev-secret-do-not-use-in-production'),
-  BETTER_AUTH_URL: z.string().url().default('http://localhost:3001'),
+  BETTER_AUTH_URL: z.string().url().default('http://localhost:4000'),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GITHUB_CLIENT_ID: z.string().optional(),

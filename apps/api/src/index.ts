@@ -109,7 +109,7 @@ async function bootstrap() {
     logger.log('Swagger UI disabled (set SWAGGER_ENABLED=true to enable)')
   }
 
-  const port = configService.get<number>('PORT', 3001)
+  const port = configService.get<number>('PORT', 4000)
   await app.listen(port, '0.0.0.0')
   logger.log(`Application is running on: http://localhost:${port}`)
 }

@@ -19,7 +19,8 @@ import {
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { authClient } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/auth-client'
+import { hasPermission } from '@/lib/permissions'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/org/settings')({
@@ -37,10 +38,10 @@ export const Route = createFileRoute('/org/settings')({
 
 function OrgSettingsPage() {
   const navigate = useNavigate()
+  const { data: session } = useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
-  const { data: activeMember } = authClient.useActiveMember()
 
-  const isOwner = activeMember?.role === 'owner'
+  const canDeleteOrg = hasPermission(session, 'organizations:delete')
 
   const [name, setName] = useState(activeOrg?.name ?? '')
   const [slug, setSlug] = useState(activeOrg?.slug ?? '')
@@ -111,7 +112,7 @@ function OrgSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>{m.org_settings_general()}</CardTitle>
-          {!isOwner && <CardDescription>{m.org_settings_read_only()}</CardDescription>}
+          {!canDeleteOrg && <CardDescription>{m.org_settings_read_only()}</CardDescription>}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSave} className="space-y-4">
@@ -122,7 +123,7 @@ function OrgSettingsPage() {
                 value={name}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                 placeholder={m.org_name_placeholder()}
-                disabled={!isOwner || saving}
+                disabled={!canDeleteOrg || saving}
                 required
               />
             </div>
@@ -133,11 +134,11 @@ function OrgSettingsPage() {
                 value={slug}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSlug(e.target.value)}
                 placeholder={m.org_slug_placeholder()}
-                disabled={!isOwner || saving}
+                disabled={!canDeleteOrg || saving}
                 required
               />
             </div>
-            {isOwner && (
+            {canDeleteOrg && (
               <Button type="submit" disabled={saving}>
                 {saving ? m.org_settings_saving() : m.org_settings_save()}
               </Button>
@@ -146,7 +147,7 @@ function OrgSettingsPage() {
         </CardContent>
       </Card>
 
-      {isOwner && (
+      {canDeleteOrg && (
         <Card>
           <CardHeader>
             <CardTitle className="text-destructive">{m.org_settings_danger()}</CardTitle>
