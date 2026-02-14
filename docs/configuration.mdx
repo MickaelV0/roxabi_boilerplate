@@ -37,6 +37,35 @@ cp .env.example .env
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://roxabi:roxabi@localhost:5432/roxabi` |
 | `BETTER_AUTH_SECRET` | Secret for BetterAuth | Random 32+ character string |
 
+### Branch Databases (Local Development)
+
+Each git worktree gets its own isolated PostgreSQL database named `roxabi_<issue_number>` within the shared Docker container. This prevents schema conflicts when multiple worktrees run concurrent migrations.
+
+Branch databases are created automatically by `/scaffold` during worktree setup, or manually:
+
+```bash
+cd apps/api
+
+# Create a branch database (migrate + seed + update .env)
+bun run db:branch:create
+
+# Create with explicit issue number (non-interactive)
+bun run db:branch:create --force 150
+
+# Drop a branch database
+bun run db:branch:drop
+
+# List all branch databases and their worktree status
+bun run db:branch:list
+
+# Seed a fresh database with dev essentials
+bun run db:seed
+```
+
+**Seed credentials:** `dev@roxabi.local` / `password123` (1 user, 1 organization, RBAC roles seeded).
+
+All scripts run from `apps/api/` and use `docker exec` against the `roxabi-postgres` container. No local `psql` installation is required.
+
 ### Optional Variables
 
 | Variable | Description | Default |

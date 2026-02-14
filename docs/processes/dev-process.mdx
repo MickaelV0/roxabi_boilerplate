@@ -101,6 +101,8 @@ Single domain, clear scope?                          -> F-lite
 ```bash
 git worktree add ../roxabi-XXX -b fix/XXX-description staging
 cd ../roxabi-XXX
+cp .env.example .env && bun install
+cd apps/api && bun run db:branch:create --force XXX
 ```
 
 ### S.3 — Validate
@@ -330,7 +332,8 @@ Human: "develop #XXX"
 6. **Setup** — Creates the GitHub issue (if none exists), creates worktree:
    ```bash
    git worktree add ../roxabi-XXX -b feat/XXX-slug staging
-   cd ../roxabi-XXX && bun install
+   cd ../roxabi-XXX && cp .env.example .env && bun install
+   cd apps/api && bun run db:branch:create --force XXX
    ```
 
 7. **Scaffold** — Creates boilerplate stubs (types, API, UI, test shells) from the spec. Commits.
