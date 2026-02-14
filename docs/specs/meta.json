@@ -27,6 +27,7 @@
     "130-dev-process-overhaul",
     "132-ci-db-migrations",
     "presentation-claude-code",
-    "53-rate-limiting-api-security"
+    "53-rate-limiting-api-security",
+    "local-db-isolation"
   ]
 }
