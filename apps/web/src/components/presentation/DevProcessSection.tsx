@@ -29,11 +29,11 @@ const tiers = [
 ] as const
 
 const stats = [
-  { value: 624, label: 'Commits', suffix: '' },
-  { value: 12110, label: 'Bash Calls', suffix: '' },
-  { value: 3647, label: 'Edit Calls', suffix: '' },
-  { value: 6572, label: 'Messages', suffix: '' },
-  { value: 991, label: 'Human Decisions', suffix: '' },
+  { value: 288, label: 'Commits', suffix: '' },
+  { value: 1782, label: 'Sessions', suffix: '' },
+  { value: 48645, label: 'Tool Calls', suffix: '' },
+  { value: 266897, label: 'Messages', suffix: '' },
+  { value: 88, label: 'Completion', suffix: '%' },
 ] as const
 
 export function DevProcessSection() {
