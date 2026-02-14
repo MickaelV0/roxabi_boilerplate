@@ -54,6 +54,26 @@ vi.mock('@repo/ui', () => ({
   OAuthButton: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
     <button {...props}>{children}</button>
   ),
+  Tabs: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <div data-testid="tabs" {...props}>
+      {children}
+    </div>
+  ),
+  TabsList: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <div role="tablist" {...props}>
+      {children}
+    </div>
+  ),
+  TabsTrigger: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <button role="tab" {...props}>
+      {children}
+    </button>
+  ),
+  TabsContent: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <div role="tabpanel" {...props}>
+      {children}
+    </div>
+  ),
 }))
 
 vi.mock('@/lib/auth-client', () => ({
@@ -99,7 +119,8 @@ describe('LoginPage', () => {
     const LoginPage = captured.Component
     render(<LoginPage />)
 
-    expect(screen.getByLabelText('auth_email')).toBeInTheDocument()
+    // Password tab email input (id="email") and password input
+    expect(document.getElementById('email')).toBeInTheDocument()
     expect(screen.getByLabelText('auth_password')).toBeInTheDocument()
   })
 
@@ -118,11 +139,20 @@ describe('LoginPage', () => {
     expect(screen.getByText('auth_sign_in_with_github')).toBeInTheDocument()
   })
 
-  it('should render magic link section', () => {
+  it('should render tab triggers for Password and Magic Link', () => {
     const LoginPage = captured.Component
     render(<LoginPage />)
 
-    expect(screen.getByLabelText('auth_magic_link')).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'auth_tab_password' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'auth_tab_magic_link' })).toBeInTheDocument()
+  })
+
+  it('should render magic link form in tab', () => {
+    const LoginPage = captured.Component
+    render(<LoginPage />)
+
+    // The magic link tab has its own email input (id="magic-email")
+    expect(document.getElementById('magic-email')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'auth_send_magic_link' })).toBeInTheDocument()
   })
 
@@ -153,7 +183,7 @@ describe('LoginPage', () => {
     expect(screen.queryByText('auth_sign_in_with_github')).not.toBeInTheDocument()
   })
 
-  it('should display error message when signIn.email returns an error', async () => {
+  it('should display generic error message when signIn.email returns an error (security guardrail)', async () => {
     // Arrange
     vi.mocked(authClient.signIn.email).mockResolvedValueOnce({
       error: { message: 'Invalid credentials' },
@@ -163,8 +193,10 @@ describe('LoginPage', () => {
     const LoginPage = captured.Component
     render(<LoginPage />)
 
-    // Act
-    fireEvent.change(screen.getByLabelText('auth_email'), {
+    // Act — target the password tab's email input by id
+    const emailInput = document.getElementById('email')
+    expect(emailInput).toBeInTheDocument()
+    fireEvent.change(emailInput as HTMLElement, {
       target: { value: 'user@example.com' },
     })
     fireEvent.change(screen.getByLabelText('auth_password'), {
@@ -172,9 +204,9 @@ describe('LoginPage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'auth_sign_in_button' }))
 
-    // Assert
+    // Assert — always "Invalid email or password", never the backend message
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Invalid credentials')
+      expect(screen.getByRole('alert')).toHaveTextContent('auth_login_invalid_credentials')
     })
   })
 })
