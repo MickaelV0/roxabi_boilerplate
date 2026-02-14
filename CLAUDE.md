@@ -135,7 +135,7 @@ cd apps/api && bun run db:branch:create --force XXX
 | Trigger | Skill | Examples |
 |---------|-------|----------|
 | issues, list issues | `issues` | "list GitHub issues", "/issues" |
-| issue triage, labeling, status update | `issue-triage` | "triage issues", "label open issues", "update issue status" |
+| issue triage, create issue, parent/child, blocked by | `issue-triage` | "triage issues", "create issue", "set parent", "add child", "blocked by" |
 | interview, spec, brainstorm, analysis | `interview` | "create a spec", "interview for feature", "brainstorm ideas" |
 | cleanup, git cleanup | `cleanup` | "clean branches", "cleanup worktrees", "/cleanup" |
 | commit, stage, git commit | `commit` | "commit changes", "commit staged files", "/commit --all" |
