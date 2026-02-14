@@ -40,7 +40,7 @@ describe('Spinner', () => {
     render(<Spinner />)
 
     // Assert
-    expect(screen.getByRole('status')).toHaveClass('h-6', 'w-6', 'border-2')
+    expect(screen.getByRole('status')).toHaveClass('size-6', 'border-2')
   })
 
   it('applies sm size classes', () => {
@@ -48,7 +48,7 @@ describe('Spinner', () => {
     render(<Spinner size="sm" />)
 
     // Assert
-    expect(screen.getByRole('status')).toHaveClass('h-4', 'w-4', 'border-2')
+    expect(screen.getByRole('status')).toHaveClass('size-4', 'border-2')
   })
 
   it('applies lg size classes', () => {
@@ -56,7 +56,7 @@ describe('Spinner', () => {
     render(<Spinner size="lg" />)
 
     // Assert
-    expect(screen.getByRole('status')).toHaveClass('h-8', 'w-8')
+    expect(screen.getByRole('status')).toHaveClass('size-8')
   })
 
   it('applies xl size classes', () => {
@@ -64,7 +64,7 @@ describe('Spinner', () => {
     render(<Spinner size="xl" />)
 
     // Assert
-    expect(screen.getByRole('status')).toHaveClass('h-12', 'w-12', 'border-4')
+    expect(screen.getByRole('status')).toHaveClass('size-12', 'border-4')
   })
 
   it('applies base animation class', () => {
