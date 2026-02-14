@@ -40,6 +40,11 @@ vi.mock('@repo/ui', () => ({
     checked?: boolean
     onCheckedChange?: (v: boolean) => void
   }) => <input type="checkbox" id={id} {...props} />,
+  FormMessage: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <div role="alert" aria-live="polite" {...props}>
+      {children}
+    </div>
+  ),
   Input: (props: Record<string, unknown>) => <input {...props} />,
   PasswordInput: (props: Record<string, unknown>) => <input {...props} />,
   Label: ({
