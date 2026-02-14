@@ -1,11 +1,26 @@
-import { Button, cn, FormMessage, Input, Label, OAuthButton, PasswordInput } from '@repo/ui'
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  cn,
+  FormMessage,
+  Input,
+  Label,
+  OAuthButton,
+  PasswordInput,
+} from '@repo/ui'
 import { createFileRoute, Link, redirect } from '@tanstack/react-router'
+import { CheckCircle } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, fetchEnabledProviders } from '@/lib/auth-client'
 import { m } from '@/paraglide/messages'
 import { AuthLayout } from '../components/AuthLayout'
 import { OrDivider } from '../components/OrDivider'
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export const Route = createFileRoute('/register')({
   beforeLoad: async () => {
@@ -31,11 +46,31 @@ function RegisterPage() {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
+  const [emailError, setEmailError] = useState('')
+
+  function handleEmailBlur() {
+    if (email && !EMAIL_REGEX.test(email)) {
+      setEmailError(m.auth_email_invalid())
+    }
+  }
+
+  function handleEmailChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setEmail(e.target.value)
+    if (emailError) {
+      setEmailError('')
+    }
+  }
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setMessage('')
+
+    if (email && !EMAIL_REGEX.test(email)) {
+      setEmailError(m.auth_email_invalid())
+      return
+    }
+
     setLoading(true)
     try {
       const { error: signUpError } = await authClient.signUp.email({
@@ -44,7 +79,7 @@ function RegisterPage() {
         password,
       })
       if (signUpError) {
-        setError(signUpError.message ?? 'Registration failed')
+        setError(m.auth_register_unable())
       } else {
         toast.success(m.auth_toast_account_created())
         setMessage(m.auth_check_email_verify())
@@ -66,16 +101,33 @@ function RegisterPage() {
     }
   }
 
+  if (message) {
+    return (
+      <AuthLayout title={m.auth_register_title()} description={m.auth_register_desc()}>
+        <Card className="border-0 shadow-none">
+          <CardHeader className="items-center text-center">
+            <CheckCircle className="h-12 w-12 text-green-500" aria-hidden="true" />
+            <CardTitle className="text-lg">{m.auth_register_success_title()}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-center">
+            <p className="text-sm text-muted-foreground">{message}</p>
+            <Link
+              to="/login"
+              className="inline-block text-sm underline hover:text-foreground text-muted-foreground"
+            >
+              {m.auth_back_to_sign_in()}
+            </Link>
+          </CardContent>
+        </Card>
+      </AuthLayout>
+    )
+  }
+
   return (
     <AuthLayout title={m.auth_register_title()} description={m.auth_register_desc()}>
       {error && (
         <FormMessage variant="error" className="justify-center">
           {error}
-        </FormMessage>
-      )}
-      {message && (
-        <FormMessage variant="success" className="justify-center">
-          {message}
         </FormMessage>
       )}
 
@@ -97,10 +149,18 @@ function RegisterPage() {
             id="email"
             type="email"
             value={email}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+            onChange={handleEmailChange}
+            onBlur={handleEmailBlur}
             required
             disabled={loading}
+            aria-invalid={emailError ? true : undefined}
+            aria-describedby={emailError ? 'email-error' : undefined}
           />
+          {emailError && (
+            <p id="email-error" className="text-sm text-destructive">
+              {emailError}
+            </p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="password">{m.auth_password()}</Label>
