@@ -125,10 +125,10 @@ export function AgentTeamsSection() {
       </AnimatedSection>
 
       {/* Hub-and-spoke layout: center hub with category spokes */}
-      <div className="mt-12 grid gap-6 lg:grid-cols-7">
-        {/* Domain Agents — left column, taller */}
-        <AnimatedSection className="lg:col-span-2 lg:row-span-2">
-          <Card variant="subtle" className="h-full p-6">
+      <div className="mt-12 grid gap-6 lg:grid-cols-7 lg:items-start">
+        {/* Domain Agents — left column */}
+        <AnimatedSection className="lg:col-span-2">
+          <Card variant="subtle" className="p-6">
             <h3 className="text-xl font-semibold">{domainCategory.title}</h3>
             <p className="text-sm text-muted-foreground">{domainCategory.subtitle}</p>
             <div className="mt-5 space-y-3">
@@ -146,17 +146,17 @@ export function AgentTeamsSection() {
         </AnimatedSection>
 
         {/* Central hub — coordination primitives */}
-        <AnimatedSection className="lg:col-span-3 lg:row-span-2">
-          <Card variant="subtle" className="h-full p-6 flex flex-col items-center justify-center">
+        <AnimatedSection className="lg:col-span-3">
+          <Card variant="subtle" className="p-6 items-center text-center">
             <div className="rounded-full border-2 border-primary/30 bg-primary/5 px-6 py-3 mb-6">
               <p className="font-mono text-sm font-bold text-primary">team-lead</p>
             </div>
-            <p className="text-sm text-muted-foreground text-center mb-6 max-w-xs">
+            <p className="text-sm text-muted-foreground mb-6 max-w-xs">
               Orchestrates all agents via shared task lists and direct messaging
             </p>
             <div className="w-full grid gap-2 sm:grid-cols-2">
               {primitives.map((primitive) => (
-                <div key={primitive.name} className="rounded-lg bg-muted/20 p-3">
+                <div key={primitive.name} className="rounded-lg bg-muted/20 p-3 text-left">
                   <p className="font-mono text-xs font-semibold text-primary">{primitive.name}</p>
                   <p className="mt-1 text-xs text-muted-foreground">{primitive.description}</p>
                 </div>
@@ -165,43 +165,48 @@ export function AgentTeamsSection() {
           </Card>
         </AnimatedSection>
 
-        {/* Quality Agents — right column, top */}
-        <AnimatedSection className="lg:col-span-2 md:delay-150">
-          <Card variant="subtle" className="h-full p-6">
-            <h3 className="text-xl font-semibold">{qualityCategory.title}</h3>
-            <p className="text-sm text-muted-foreground">{qualityCategory.subtitle}</p>
-            <div className="mt-5 space-y-3">
-              {qualityCategory.agents.map((agent) => (
-                <div
-                  key={agent.name}
-                  className={cn('rounded-lg border-l-4 bg-muted/20 py-3 px-4', agent.borderColor)}
-                >
-                  <p className={cn('font-mono font-semibold text-sm', agent.color)}>{agent.name}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{agent.scope}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </AnimatedSection>
+        {/* Right column: Quality + Strategy stacked */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
+          <AnimatedSection className="md:delay-150">
+            <Card variant="subtle" className="p-6">
+              <h3 className="text-xl font-semibold">{qualityCategory.title}</h3>
+              <p className="text-sm text-muted-foreground">{qualityCategory.subtitle}</p>
+              <div className="mt-5 space-y-3">
+                {qualityCategory.agents.map((agent) => (
+                  <div
+                    key={agent.name}
+                    className={cn('rounded-lg border-l-4 bg-muted/20 py-3 px-4', agent.borderColor)}
+                  >
+                    <p className={cn('font-mono font-semibold text-sm', agent.color)}>
+                      {agent.name}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">{agent.scope}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </AnimatedSection>
 
-        {/* Strategy Agents — right column, bottom */}
-        <AnimatedSection className="lg:col-span-2 md:delay-150">
-          <Card variant="subtle" className="h-full p-6">
-            <h3 className="text-xl font-semibold">{strategyCategory.title}</h3>
-            <p className="text-sm text-muted-foreground">{strategyCategory.subtitle}</p>
-            <div className="mt-5 space-y-3">
-              {strategyCategory.agents.map((agent) => (
-                <div
-                  key={agent.name}
-                  className={cn('rounded-lg border-l-4 bg-muted/20 py-3 px-4', agent.borderColor)}
-                >
-                  <p className={cn('font-mono font-semibold text-sm', agent.color)}>{agent.name}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{agent.scope}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </AnimatedSection>
+          <AnimatedSection className="md:delay-150">
+            <Card variant="subtle" className="p-6">
+              <h3 className="text-xl font-semibold">{strategyCategory.title}</h3>
+              <p className="text-sm text-muted-foreground">{strategyCategory.subtitle}</p>
+              <div className="mt-5 space-y-3">
+                {strategyCategory.agents.map((agent) => (
+                  <div
+                    key={agent.name}
+                    className={cn('rounded-lg border-l-4 bg-muted/20 py-3 px-4', agent.borderColor)}
+                  >
+                    <p className={cn('font-mono font-semibold text-sm', agent.color)}>
+                      {agent.name}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">{agent.scope}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </AnimatedSection>
+        </div>
       </div>
     </div>
   )

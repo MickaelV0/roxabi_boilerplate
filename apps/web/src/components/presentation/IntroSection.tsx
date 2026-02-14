@@ -27,9 +27,9 @@ export function IntroSection() {
 
         <AnimatedSection className="mt-16">
           <div className="flex flex-col items-center justify-center gap-8 sm:flex-row sm:gap-16">
-            <StatCounter value={808} label="Sessions" />
+            <StatCounter value={1782} label="Sessions" />
             <div className="hidden h-16 w-px bg-border sm:block" />
-            <StatCounter value={624} label="Commits" />
+            <StatCounter value={288} label="Commits" />
             <div className="hidden h-16 w-px bg-border sm:block" />
             <StatCounter value={88} label="Completion Rate" suffix="%" />
           </div>
@@ -37,7 +37,7 @@ export function IntroSection() {
 
         <AnimatedSection className="mt-12">
           <p className="text-sm text-muted-foreground/60">
-            16 days of parallel development. 680 hours of compute.
+            22 days of parallel development. 267K messages. 49K tool calls.
           </p>
         </AnimatedSection>
       </div>

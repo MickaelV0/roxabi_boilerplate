@@ -17,8 +17,7 @@ const skills = [
   'adr',
   'agent-browser',
   'context7',
-  'vercel',
-  'frontend-design',
+  'skill-creator',
 ] as const
 
 const hooks = [
@@ -61,7 +60,7 @@ const blocks = [
   },
   {
     icon: Zap,
-    title: '17 Skills',
+    title: '16 Skills',
     subtitle: 'Slash commands',
     description: 'Reusable workflows: /commit, /review, /bootstrap, /scaffold, /pr, /promote...',
     visual: (
@@ -132,8 +131,8 @@ export function BuildingBlocksSection() {
               index === 1 && 'md:col-span-4',
               // Hooks card takes 2 columns
               index === 2 && 'md:col-span-2',
-              // Agent definitions takes 3 columns offset from center
-              index === 3 && 'md:col-span-3 md:col-start-4',
+              // Agent definitions centered below
+              index === 3 && 'md:col-span-4 md:col-start-2',
               // Stagger animation for rows below the first
               index > 0 && 'md:delay-150'
             )}
