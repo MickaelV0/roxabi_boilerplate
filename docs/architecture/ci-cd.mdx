@@ -1,0 +1,428 @@
+---
+title: CI/CD Architecture
+description: Pipeline stages, quality gates, caching strategy, git hooks, and deployment automation in Roxabi Boilerplate.
+---
+
+## Overview
+
+Roxabi uses a **three-layer quality pipeline** to catch issues at progressively broader scopes: local git hooks enforce standards on every commit and push, GitHub Actions CI validates every pull request and branch push, and Vercel handles production deployment automatically on merge to `main`.
+
+```
+Developer workstation          GitHub                    Vercel
+┌───────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│  pre-commit       │    │  CI Workflow      │    │  Auto-deploy     │
+│  ├─ Biome check   │    │  ├─ Lint          │    │  (main only)     │
+│  commit-msg       │───▶│  ├─ Type Check    │───▶│  ├─ Web (SSR)    │
+│  ├─ Commitlint    │    │  ├─ Test+Coverage │    │  └─ API (NestJS) │
+│  pre-push         │    │  ├─ Build         │    │                  │
+│  ├─ Lint          │    │  └─ E2E (cond.)   │    │  Deploy Preview  │
+│  ├─ Typecheck     │    └──────────────────┘    │  (manual trigger)│
+│  └─ Test+Coverage │                             └──────────────────┘
+└───────────────────┘
+```
+
+This design follows a "fail fast, fail local" philosophy: most issues are caught before code leaves the developer's machine, reducing CI costs and feedback time.
+
+---
+
+## Lefthook Git Hooks
+
+[Lefthook](https://github.com/evilmartians/lefthook) manages local git hooks. It installs automatically via the `prepare` script (`lefthook install`) when running `bun install`.
+
+Configuration lives in `lefthook.yml` at the repository root.
+
+### Hook Stages
+
+| Hook | Trigger | Commands | Parallel |
+|------|---------|----------|----------|
+| `pre-commit` | Before commit is created | Biome check + auto-fix | Yes |
+| `commit-msg` | After commit message is written | Commitlint validation | No |
+| `pre-push` | Before push to remote | Lint, typecheck, test with coverage | Yes |
+
+### pre-commit
+
+Runs Biome on staged files matching `*.{js,ts,jsx,tsx,json,jsonc}`. The `--write` flag auto-fixes issues and `stage_fixed: true` re-stages corrected files so the commit includes the fixes.
+
+```yaml
+pre-commit:
+  parallel: true
+  commands:
+    biome:
+      glob: "*.{js,ts,jsx,tsx,json,jsonc}"
+      run: bunx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+```
+
+### commit-msg
+
+Validates the commit message against Conventional Commits using commitlint. Rejects messages that do not match the `<type>(<scope>): <description>` format. See [Commit Conventions](#commitlint-and-conventional-commits) below for the full type list.
+
+```yaml
+commit-msg:
+  commands:
+    commitlint:
+      run: bunx commitlint --edit {1}
+```
+
+### pre-push
+
+Runs the full quality suite in parallel before any push reaches the remote. This mirrors what CI will check, catching failures early.
+
+```yaml
+pre-push:
+  parallel: true
+  commands:
+    lint:
+      run: CI=true bun run lint
+    typecheck:
+      run: CI=true bun run typecheck
+    test:
+      run: CI=true bun run test:coverage
+```
+
+The `CI=true` environment variable ensures consistent behavior between local and CI environments (e.g., disabling watch mode in Vitest).
+
+---
+
+## GitHub Actions Workflows
+
+Two workflows live in `.github/workflows/`:
+
+| Workflow | File | Trigger | Purpose |
+|----------|------|---------|---------|
+| **CI** | `ci.yml` | PR + push to `main`/`staging` | Quality gates for all code changes |
+| **Deploy Preview** | `deploy-preview.yml` | Manual (`workflow_dispatch`) | On-demand preview deployments to Vercel |
+
+### CI Workflow (`ci.yml`)
+
+The CI workflow runs on every pull request targeting `main` or `staging`, and on direct pushes to those branches. It also exposes `workflow_call` so other workflows can invoke it as a reusable step.
+
+**Concurrency control** prevents duplicate runs. Each branch gets at most one active CI run; new pushes cancel in-progress runs:
+
+```yaml
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+```
+
+#### Job Dependency Graph
+
+```
+lint ──────┐
+typecheck ─┤──▶ build ──▶ e2e (conditional)
+test ──────┘
+```
+
+The first three jobs (`lint`, `typecheck`, `test`) run in parallel. `build` runs only after all three succeed. `e2e` runs after `build` succeeds, but only when relevant paths changed.
+
+#### Job Details
+
+**Lint** -- Installs dependencies with `bun install --frozen-lockfile`, then runs:
+- `bun lint` -- Biome check across the entire monorepo
+- `bun run i18n:validate` -- Validates translation file completeness
+- `bun run license:check` -- Scans dependency licenses for compliance
+
+**Type Check** -- Generates code artifacts (`codegen` for Paraglide i18n and TanStack Router route tree), then runs `bun typecheck` (TurboRepo delegates to each workspace's `tsc --noEmit`). Also includes **schema drift detection**: runs `bun run db:generate` with a dummy `DATABASE_URL` and checks `git diff` on the `apps/api/drizzle/` directory. If uncommitted migration files appear, CI fails with a clear error message directing the developer to generate and commit the migration locally.
+
+**Test** -- Generates code artifacts, then runs `bun test:coverage` (Vitest with V8 coverage). On pull requests, posts a coverage summary comment using the `vitest-coverage-report-action`.
+
+**Build** -- Runs `bun run build` (TurboRepo builds all workspaces respecting dependency order). This validates that production artifacts compile successfully.
+
+**E2E Tests** -- Runs Playwright against the built web app. Conditional execution keeps CI fast for backend-only changes:
+
+| Condition | Runs E2E? |
+|-----------|-----------|
+| Push to `main` or `staging` | Always |
+| PR with `e2e` label | Always |
+| PR changes `apps/web/src/**`, `apps/web/e2e/**`, `packages/ui/src/**`, `playwright.config.ts`, `ci.yml`, or `turbo.jsonc` | Yes |
+| PR with only backend/docs changes | Skipped |
+
+E2E test failures upload the Playwright HTML report as a GitHub artifact (retained 7 days).
+
+### Deploy Preview Workflow (`deploy-preview.yml`)
+
+A manually-triggered workflow for on-demand preview deployments. Dispatched from the GitHub Actions tab with a branch selection and target choice: `web`, `api`, `both`, or `cleanup`.
+
+Key behaviors:
+- **Web preview**: Pulls Vercel environment, builds with `vercel build`, deploys with `vercel deploy --prebuilt`
+- **API preview**: Creates an isolated Neon database branch (`preview/{branch}`), builds the API with that branch's `DATABASE_URL`, deploys to Vercel with the branch-specific database URL injected as an environment variable
+- **Cleanup**: Deletes the Neon database branch for the selected Git branch
+- Preview URLs appear in the **workflow run summary**
+
+For operational details on triggering previews and managing database branches, see the [Deployment Guide](../guides/deployment).
+
+---
+
+## Biome Configuration
+
+[Biome](https://biomejs.dev/) handles both linting and formatting in a single tool. Configuration lives in `biome.json` at the repository root.
+
+### Formatter Settings
+
+| Setting | Value |
+|---------|-------|
+| Indent style | Spaces |
+| Indent width | 2 |
+| Line width | 100 |
+| Quote style | Single |
+| Semicolons | As needed |
+| Trailing commas | ES5 |
+
+### Linter Rules
+
+Biome runs the **recommended** rule set with project-specific overrides:
+
+| Category | Rule | Severity |
+|----------|------|----------|
+| Correctness | `noUnusedImports` | Error |
+| Correctness | `noUnusedVariables` | Error |
+| Style | `useConst` | Error |
+| Style | `useImportType` | Error (off for `apps/api/` -- NestJS needs runtime imports for DI) |
+| Complexity | `noExcessiveCognitiveComplexity` | Warn |
+| Suspicious | `noExplicitAny` | Warn |
+| Security | `noDangerouslySetInnerHtml` | Warn |
+
+### Integration Points
+
+Biome runs at three levels:
+
+1. **Claude Code hooks** (`.claude/settings.json`): Auto-formats on every `Edit`/`Write` tool use for `.ts`, `.tsx`, `.js`, `.jsx`, `.json` files
+2. **Lefthook pre-commit**: Checks and auto-fixes staged files before each commit
+3. **GitHub Actions CI**: `bun lint` runs `biome check .` across the full monorepo
+
+### File Exclusions
+
+Build artifacts, generated code, and third-party files are excluded from Biome processing:
+
+```
+node_modules, dist, build, .next, .turbo, coverage, .output,
+.nitro, .content-collections, routeTree.gen.ts, src/paraglide,
+project.inlang, *.css, playwright-report, test-results,
+reports/licenses.json, .vercel
+```
+
+---
+
+## Commitlint and Conventional Commits
+
+Commit messages are validated by [commitlint](https://commitlint.js.org/) using the `@commitlint/config-conventional` preset, extended with project-specific rules in `commitlint.config.cjs`.
+
+### Allowed Types
+
+| Type | Description |
+|------|-------------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `refactor` | Code restructuring, no behavior change |
+| `docs` | Documentation only |
+| `style` | Formatting, no code change |
+| `test` | Adding or updating tests |
+| `chore` | Maintenance tasks |
+| `perf` | Performance improvement |
+| `ci` | CI/CD changes |
+| `build` | Build system changes |
+| `revert` | Revert a previous commit |
+
+### Constraints
+
+- **Header max length**: 100 characters (more permissive than the conventional default of 72)
+- **Format**: `<type>(<scope>): <description>` -- scope is optional but recommended
+
+Commitlint runs as a Lefthook `commit-msg` hook. Messages that fail validation are rejected before the commit is created. See [Contributing](../contributing) for full conventions including scope guidelines and breaking change format.
+
+---
+
+## TurboRepo Caching Strategy
+
+TurboRepo accelerates the monorepo by caching task outputs and skipping unchanged work. Configuration lives in `turbo.jsonc` (root) with app-specific extensions in `apps/api/turbo.json`.
+
+### Task Graph
+
+```
+codegen ──▶ build ──▶ (deploy)
+  │           ▲
+  ▼           │
+typecheck ────┘  (depends on codegen + ^build)
+
+lint ──▶ (independent)
+test ──▶ (independent)
+```
+
+Key task configurations:
+
+| Task | Inputs | Outputs | Cache |
+|------|--------|---------|-------|
+| `build` | `$TURBO_DEFAULT$` minus test/story files | `dist/`, `.output/`, `.vercel/output/`, `.next/`, `build/` | Yes |
+| `codegen` | Default | `src/routeTree.gen.ts`, `src/paraglide/**` | Yes |
+| `typecheck` | `$TURBO_DEFAULT$` minus test files | None (type-check is side-effect only) | Yes |
+| `lint` | Default | None | Yes |
+| `test` | `src/**/*.ts`, `src/**/*.tsx`, `vitest.config.ts` | `coverage/**` | Yes |
+| `dev` | -- | -- | No (persistent) |
+| `clean` | -- | -- | No |
+
+### Environment Variable Strategy
+
+TurboRepo uses two mechanisms for environment variables, and the distinction is critical for cache correctness:
+
+**`env`** (declared in root `turbo.jsonc`) -- Variables whose values affect build output. Changing any of these invalidates the Turbo cache for the affected task:
+
+- `API_URL`, `APP_URL`, `VITE_ENABLE_DEMO` (build task and codegen)
+- `CI`, `VITEST` (test task)
+
+**`passThroughEnv`** (declared in `apps/api/turbo.json`) -- Runtime-only secrets that must be available during the build process but whose values should **not** affect the cache key. This prevents unnecessary cache invalidation when secrets rotate:
+
+```jsonc
+// apps/api/turbo.json
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "passThroughEnv": [
+        "DATABASE_URL",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_URL",
+        "CORS_ORIGIN",
+        "UPSTASH_REDIS_REST_URL",
+        "UPSTASH_REDIS_REST_TOKEN",
+        // ... ~25 more runtime variables
+      ]
+    }
+  }
+}
+```
+
+**Why this matters**: If `DATABASE_URL` were declared in `env` instead of `passThroughEnv`, every secret rotation would invalidate the build cache -- forcing a full rebuild even though the application code is identical. `passThroughEnv` passes the variable through to the build process without including it in the cache hash.
+
+### Cache in CI
+
+GitHub Actions caches the `.turbo` directory using `actions/cache` with SHA-based keys:
+
+```yaml
+- uses: actions/cache@v4
+  with:
+    path: .turbo
+    key: turbo-build-${{ runner.os }}-${{ github.sha }}
+    restore-keys: |
+      turbo-build-${{ runner.os }}-
+```
+
+Each CI job (`typecheck`, `test`, `build`) maintains its own Turbo cache namespace to avoid cross-contamination. The `restore-keys` fallback means new commits can reuse the most recent cache from the same OS, even if the exact SHA differs.
+
+**Remote cache** is also configured. The CI workflow passes `TURBO_TOKEN` and `TURBO_TEAM` environment variables to TurboRepo, enabling Vercel Remote Cache for cross-run and cross-developer cache sharing.
+
+### Dependency Caching
+
+Bun dependencies are cached separately from Turbo:
+
+```yaml
+- uses: actions/cache@v4
+  with:
+    path: node_modules
+    key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+    restore-keys: |
+      bun-${{ runner.os }}-
+```
+
+The cache key is derived from `bun.lock`, so it invalidates only when dependencies change. Combined with `--frozen-lockfile`, this ensures deterministic installs across CI runs.
+
+---
+
+## Vercel Deployment Pipeline
+
+Vercel is the single deployment platform for both applications. Production deploys happen automatically; previews are manual.
+
+### Production Flow
+
+Only merges to `main` trigger production deployments. Both `apps/web` and `apps/api` are separate Vercel projects pointing to the same GitHub repository.
+
+```
+merge to main
+  │
+  ├──▶ Vercel (Web)
+  │     1. ignoreCommand check (is this main? did @repo/web change?)
+  │     2. bun install
+  │     3. turbo run build
+  │     4. Deploy SSR app
+  │
+  └──▶ Vercel (API)
+        1. ignoreCommand check (is this main? did @repo/api change?)
+        2. bun install
+        3. bun run db:migrate (Drizzle applies pending migrations)
+        4. turbo run build
+        5. Deploy NestJS function
+```
+
+### Duplicate Deploy Prevention
+
+Two layers prevent unnecessary builds:
+
+| Layer | Mechanism | Purpose |
+|-------|-----------|---------|
+| **Primary** | `previewDeploymentsDisabled: true` (Vercel project setting) | Prevents Vercel from even attempting preview deployments |
+| **Secondary** | `ignoreCommand` in `vercel.json` | Skips builds on non-`main` branches and uses `turbo-ignore` to detect affected packages |
+
+The `ignoreCommand` logic:
+
+```bash
+[ "$VERCEL_GIT_COMMIT_REF" != "main" ] || npx turbo-ignore @repo/web
+```
+
+This short-circuits: if the branch is not `main`, the build is skipped immediately (exit 0). If it is `main`, `turbo-ignore` checks whether the package was affected by the commit -- skipping the build if nothing relevant changed.
+
+### Build Configuration
+
+Build settings are version-controlled in per-app `vercel.json` files:
+
+| App | Install | Build | Special |
+|-----|---------|-------|---------|
+| Web | `bun install` | `turbo run build` | Nitro outputs to `.vercel/output/` (Build Output API) |
+| API | `bun install` | `bun run db:migrate && turbo run build` | Migrations run before build; schema is always &ge; code version |
+
+---
+
+## Branch Protection Rules
+
+Branch protection enforces the pipeline at the GitHub level, preventing merges that bypass quality gates.
+
+### `main` Branch
+
+- Required pull request reviews (minimum 1 approval)
+- Stale approvals dismissed on new commits
+- Required status checks (CI must pass)
+- Require conversation resolution before merge
+- No direct pushes
+- Only `hotfix/*` branches and `staging` merges allowed
+
+### `staging` Branch
+
+- Required status checks (CI must pass)
+- No direct pushes
+
+These rules integrate with the CI workflow: the `lint`, `typecheck`, `test`, and `build` jobs are configured as required status checks, so a failing CI run blocks the merge button.
+
+---
+
+## Claude Code Hooks
+
+In addition to git hooks, Claude Code has its own hook system configured in `.claude/settings.json`:
+
+**PostToolUse** -- After every `Edit` or `Write` operation on `.ts`, `.tsx`, `.js`, `.jsx`, or `.json` files, Biome auto-formats the file. This keeps code consistent without requiring manual formatting.
+
+**PreToolUse** -- Before every `Edit` or `Write`, a security check script (`.claude/hooks/security-check.js`) scans for dangerous patterns in the proposed changes.
+
+These hooks operate independently of git hooks and run during interactive development sessions with Claude Code.
+
+---
+
+## Pipeline Summary
+
+The complete quality pipeline from developer keystroke to production deployment:
+
+| Stage | Tool | What It Checks | Blocks |
+|-------|------|----------------|--------|
+| Editor save | Claude Code hooks | Formatting, security patterns | Write operation |
+| `git commit` | Lefthook pre-commit | Biome lint + format on staged files | Commit creation |
+| `git commit` | Lefthook commit-msg | Conventional Commits format | Commit creation |
+| `git push` | Lefthook pre-push | Lint, typecheck, test + coverage | Push to remote |
+| PR / push | GitHub Actions CI | Lint, typecheck, test, build, schema drift, E2E | PR merge |
+| Merge to `main` | Vercel | Build, migrate, deploy | Production deploy (rollback available) |
