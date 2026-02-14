@@ -2,6 +2,7 @@
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
 @import '@repo/ui/theme.css';
+@import '@fontsource-variable/plus-jakarta-sans';
 
 @source "../node_modules/@repo/ui/src";
 
@@ -22,6 +23,13 @@ body {
 code {
   font-family:
     source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/* Presentation heading font — scoped to /talks pages */
+[data-presentation] h1,
+[data-presentation] h2,
+[data-presentation] h3 {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 
 /* Smooth scrolling */
@@ -49,6 +57,31 @@ html {
   animation: hero-fade-in 0.8s ease-out 0.2s both;
 }
 
+/* Shiki dual-theme: switch colors based on .dark class */
+html.dark .shiki,
+html.dark .shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+
+/* Code block typing reveal animation */
+@keyframes typing-reveal {
+  from {
+    max-height: 0;
+  }
+  to {
+    max-height: 9999px;
+  }
+}
+
+.animate-typing-reveal {
+  overflow: hidden;
+  animation: typing-reveal 2.5s steps(20, end) forwards;
+}
+
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -56,9 +89,15 @@ html {
   }
 
   .animate-hero-in,
-  .animate-hero-in-delayed {
+  .animate-hero-in-delayed,
+  .animate-typing-reveal {
     animation: none;
     opacity: 1;
     transform: none;
+  }
+
+  .animate-typing-reveal {
+    max-height: none;
+    overflow: visible;
   }
 }

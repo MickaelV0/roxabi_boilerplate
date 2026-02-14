@@ -98,13 +98,15 @@ function NotFound() {
   )
 }
 
+const CHROMELESS_PREFIXES = ['/docs', '/talks'] as const
+
 function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const isDocsPage = pathname.startsWith('/docs')
+  const isChromeless = CHROMELESS_PREFIXES.some((prefix) => pathname.startsWith(prefix))
 
   return (
     <RootProvider>
-      {!isDocsPage && <Header />}
+      {!isChromeless && <Header />}
       <ErrorBoundary FallbackComponent={ErrorFallback}>{children}</ErrorBoundary>
       <Toaster richColors />
     </RootProvider>
