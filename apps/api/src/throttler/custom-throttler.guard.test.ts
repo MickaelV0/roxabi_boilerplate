@@ -1,16 +1,57 @@
-import { ThrottlerException } from '@nestjs/throttler'
+import type { ExecutionContext } from '@nestjs/common'
+import {
+  ThrottlerException,
+  type ThrottlerLimitDetail,
+  type ThrottlerRequest,
+} from '@nestjs/throttler'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AUTH_SENSITIVE_PATHS, CustomThrottlerGuard } from './custom-throttler.guard.js'
 
 /**
- * Factory: creates a CustomThrottlerGuard with mocked dependencies.
+ * Test subclass that exposes protected methods for unit testing.
+ * Eliminates `as any` casts for accessing protected members.
+ */
+class TestableThrottlerGuard extends CustomThrottlerGuard {
+  // biome-ignore lint/suspicious/noExplicitAny: matches @nestjs/throttler ThrottlerGuard.getTracker signature
+  public override async getTracker(req: Record<string, any>): Promise<string> {
+    return super.getTracker(req)
+  }
+
+  public override shouldApplyAuthTier(context: ExecutionContext): boolean {
+    return super.shouldApplyAuthTier(context)
+  }
+
+  public override async handleRequest(requestProps: ThrottlerRequest): Promise<boolean> {
+    return super.handleRequest(requestProps)
+  }
+
+  public override async throwThrottlingException(
+    context: ExecutionContext,
+    detail: ThrottlerLimitDetail
+  ): Promise<void> {
+    return super.throwThrottlingException(context, detail)
+  }
+
+  public mockGetRequestResponse(
+    fn: (ctx: ExecutionContext) => { req: Record<string, unknown>; res: Record<string, unknown> }
+  ): void {
+    Object.defineProperty(this, 'getRequestResponse', {
+      value: fn,
+      writable: true,
+      configurable: true,
+    })
+  }
+}
+
+/**
+ * Factory: creates a TestableThrottlerGuard with mocked dependencies.
  *
  * ThrottlerGuard requires `options`, `storageService`, and `reflector` injected by NestJS.
  * We set them directly on the prototype to avoid Test.createTestingModule overhead.
  */
 function createGuard(overrides: { rateLimitEnabled?: string } = {}) {
-  const guard = Object.create(CustomThrottlerGuard.prototype) as CustomThrottlerGuard
+  const guard = Object.create(TestableThrottlerGuard.prototype) as TestableThrottlerGuard
 
   // Mock ConfigService via @Inject
   const configService = {
@@ -53,7 +94,7 @@ function createMockContext(
       getRequest: () => req,
       getResponse: () => ({ header: vi.fn() }),
     }),
-  }
+  } as unknown as ExecutionContext
 
   return { context, req }
 }
@@ -66,8 +107,7 @@ describe('CustomThrottlerGuard', () => {
       const req = { user: { id: 'user-42' }, ip: '10.0.0.1' }
 
       // Act
-      // Access protected method via bracket notation
-      const tracker = await (guard as any).getTracker(req)
+      const tracker = await guard.getTracker(req)
 
       // Assert
       expect(tracker).toBe('user:user-42')
@@ -79,7 +119,7 @@ describe('CustomThrottlerGuard', () => {
       const req = { ip: '192.168.1.100' }
 
       // Act
-      const tracker = await (guard as any).getTracker(req)
+      const tracker = await guard.getTracker(req)
 
       // Assert
       expect(tracker).toBe('ip:192.168.1.100')
@@ -91,7 +131,7 @@ describe('CustomThrottlerGuard', () => {
       const req = { user: {}, ip: '10.0.0.5' }
 
       // Act
-      const tracker = await (guard as any).getTracker(req)
+      const tracker = await guard.getTracker(req)
 
       // Assert
       expect(tracker).toBe('ip:10.0.0.5')
@@ -103,14 +143,13 @@ describe('CustomThrottlerGuard', () => {
       // Arrange
       const { guard } = createGuard()
       const { context } = createMockContext({ url: '/api/auth/sign-in' })
-      // Wire getRequestResponse
-      ;(guard as any).getRequestResponse = (ctx: any) => ({
+      guard.mockGetRequestResponse((ctx) => ({
         req: ctx.switchToHttp().getRequest(),
         res: ctx.switchToHttp().getResponse(),
-      })
+      }))
 
       // Act
-      const result = (guard as any).shouldApplyAuthTier(context)
+      const result = guard.shouldApplyAuthTier(context)
 
       // Assert
       expect(result).toBe(true)
@@ -120,13 +159,13 @@ describe('CustomThrottlerGuard', () => {
       // Arrange
       const { guard } = createGuard()
       const { context } = createMockContext({ url: '/api/auth/sign-up' })
-      ;(guard as any).getRequestResponse = (ctx: any) => ({
+      guard.mockGetRequestResponse((ctx) => ({
         req: ctx.switchToHttp().getRequest(),
         res: ctx.switchToHttp().getResponse(),
-      })
+      }))
 
       // Act
-      const result = (guard as any).shouldApplyAuthTier(context)
+      const result = guard.shouldApplyAuthTier(context)
 
       // Assert
       expect(result).toBe(true)
@@ -135,16 +174,16 @@ describe('CustomThrottlerGuard', () => {
     it('should apply auth tier for password reset paths', () => {
       // Arrange
       const { guard } = createGuard()
-      ;(guard as any).getRequestResponse = (ctx: any) => ({
+      guard.mockGetRequestResponse((ctx) => ({
         req: ctx.switchToHttp().getRequest(),
         res: ctx.switchToHttp().getResponse(),
-      })
+      }))
 
       for (const path of ['/api/auth/request-password-reset', '/api/auth/reset-password']) {
         const { context } = createMockContext({ url: path })
 
         // Act
-        const result = (guard as any).shouldApplyAuthTier(context)
+        const result = guard.shouldApplyAuthTier(context)
 
         // Assert
         expect(result).toBe(true)
@@ -154,15 +193,15 @@ describe('CustomThrottlerGuard', () => {
     it('should apply auth tier for all auth-sensitive paths', () => {
       // Arrange
       const { guard } = createGuard()
-      ;(guard as any).getRequestResponse = (ctx: any) => ({
+      guard.mockGetRequestResponse((ctx) => ({
         req: ctx.switchToHttp().getRequest(),
         res: ctx.switchToHttp().getResponse(),
-      })
+      }))
 
       // Act + Assert
       for (const path of AUTH_SENSITIVE_PATHS) {
         const { context } = createMockContext({ url: path })
-        expect((guard as any).shouldApplyAuthTier(context)).toBe(true)
+        expect(guard.shouldApplyAuthTier(context)).toBe(true)
       }
     })
 
@@ -170,13 +209,13 @@ describe('CustomThrottlerGuard', () => {
       // Arrange
       const { guard } = createGuard()
       const { context } = createMockContext({ url: '/api/auth/session' })
-      ;(guard as any).getRequestResponse = (ctx: any) => ({
+      guard.mockGetRequestResponse((ctx) => ({
         req: ctx.switchToHttp().getRequest(),
         res: ctx.switchToHttp().getResponse(),
-      })
+      }))
 
       // Act
-      const result = (guard as any).shouldApplyAuthTier(context)
+      const result = guard.shouldApplyAuthTier(context)
 
       // Assert
       expect(result).toBe(false)
@@ -186,13 +225,13 @@ describe('CustomThrottlerGuard', () => {
       // Arrange
       const { guard } = createGuard()
       const { context } = createMockContext({ url: '/api/auth/providers' })
-      ;(guard as any).getRequestResponse = (ctx: any) => ({
+      guard.mockGetRequestResponse((ctx) => ({
         req: ctx.switchToHttp().getRequest(),
         res: ctx.switchToHttp().getResponse(),
-      })
+      }))
 
       // Act
-      const result = (guard as any).shouldApplyAuthTier(context)
+      const result = guard.shouldApplyAuthTier(context)
 
       // Assert
       expect(result).toBe(false)
@@ -202,13 +241,13 @@ describe('CustomThrottlerGuard', () => {
       // Arrange
       const { guard } = createGuard()
       const { context } = createMockContext({ url: '/api/auth/sign-in?redirect=/dashboard' })
-      ;(guard as any).getRequestResponse = (ctx: any) => ({
+      guard.mockGetRequestResponse((ctx) => ({
         req: ctx.switchToHttp().getRequest(),
         res: ctx.switchToHttp().getResponse(),
-      })
+      }))
 
       // Act
-      const result = (guard as any).shouldApplyAuthTier(context)
+      const result = guard.shouldApplyAuthTier(context)
 
       // Assert
       expect(result).toBe(true)
@@ -234,10 +273,10 @@ describe('CustomThrottlerGuard', () => {
       // Arrange
       const { guard, storageService } = createGuard()
       const { context } = createMockContext({ url: '/api/auth/session' })
-      ;(guard as any).getRequestResponse = (ctx: any) => ({
+      guard.mockGetRequestResponse((ctx) => ({
         req: ctx.switchToHttp().getRequest(),
         res: ctx.switchToHttp().getResponse(),
-      })
+      }))
 
       const requestProps = {
         context,
@@ -249,7 +288,7 @@ describe('CustomThrottlerGuard', () => {
       }
 
       // Act
-      const result = await (guard as any).handleRequest(requestProps)
+      const result = await guard.handleRequest(requestProps as unknown as ThrottlerRequest)
 
       // Assert -- should return true without calling storageService
       expect(result).toBe(true)
@@ -266,10 +305,10 @@ describe('CustomThrottlerGuard', () => {
         timeToBlockExpire: 0,
       })
       const { context, req } = createMockContext({ url: '/api/users' })
-      ;(guard as any).getRequestResponse = (ctx: any) => ({
+      guard.mockGetRequestResponse((ctx) => ({
         req: ctx.switchToHttp().getRequest(),
         res: ctx.switchToHttp().getResponse(),
-      })
+      }))
 
       const requestProps = {
         context,
@@ -281,7 +320,7 @@ describe('CustomThrottlerGuard', () => {
       }
 
       // Act
-      await (guard as any).handleRequest(requestProps)
+      await guard.handleRequest(requestProps as unknown as ThrottlerRequest)
 
       // Assert
       expect(req.throttlerMeta).toBeDefined()
@@ -304,10 +343,10 @@ describe('CustomThrottlerGuard', () => {
         timeToBlockExpire: 0,
       })
       const { context } = createMockContext({ url: '/api/users' })
-      ;(guard as any).getRequestResponse = (ctx: any) => ({
+      guard.mockGetRequestResponse((ctx) => ({
         req: ctx.switchToHttp().getRequest(),
         res: ctx.switchToHttp().getResponse(),
-      })
+      }))
 
       const requestProps = {
         context,
@@ -319,7 +358,9 @@ describe('CustomThrottlerGuard', () => {
       }
 
       // Act + Assert
-      await expect((guard as any).handleRequest(requestProps)).rejects.toThrow(ThrottlerException)
+      await expect(
+        guard.handleRequest(requestProps as unknown as ThrottlerRequest)
+      ).rejects.toThrow(ThrottlerException)
     })
 
     it('should throw ThrottlerException when isBlocked is true even if under limit', async () => {
@@ -332,10 +373,10 @@ describe('CustomThrottlerGuard', () => {
         timeToBlockExpire: 120_000,
       })
       const { context } = createMockContext({ url: '/api/users' })
-      ;(guard as any).getRequestResponse = (ctx: any) => ({
+      guard.mockGetRequestResponse((ctx) => ({
         req: ctx.switchToHttp().getRequest(),
         res: ctx.switchToHttp().getResponse(),
-      })
+      }))
 
       const requestProps = {
         context,
@@ -347,7 +388,9 @@ describe('CustomThrottlerGuard', () => {
       }
 
       // Act + Assert
-      await expect((guard as any).handleRequest(requestProps)).rejects.toThrow(ThrottlerException)
+      await expect(
+        guard.handleRequest(requestProps as unknown as ThrottlerRequest)
+      ).rejects.toThrow(ThrottlerException)
     })
   })
 
@@ -357,14 +400,14 @@ describe('CustomThrottlerGuard', () => {
       const { guard } = createGuard()
       const { context } = createMockContext()
       const headerFn = vi.fn()
-      ;(guard as any).getRequestResponse = () => ({
+      guard.mockGetRequestResponse(() => ({
         req: {},
         res: { header: headerFn },
-      })
+      }))
 
       // Act + Assert
       await expect(
-        (guard as any).throwThrottlingException(context, {
+        guard.throwThrottlingException(context, {
           limit: 60,
           ttl: 60_000,
           key: 'test-key',
