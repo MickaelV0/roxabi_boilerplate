@@ -53,7 +53,7 @@ export function DevProcessSection() {
         <Card variant="subtle" className="p-6 lg:p-8">
           {/* Root question */}
           <div className="flex items-center gap-3 text-lg font-semibold">
-            <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0" />
+            <AlertTriangle className="size-5 text-yellow-500 shrink-0" />
             <span>Is it 3 files or fewer with no architecture risk?</span>
           </div>
 
@@ -64,7 +64,7 @@ export function DevProcessSection() {
                 className={cn('rounded-xl border p-4 lg:p-5 transition-colors', tier.color)}
               >
                 <div className="flex flex-wrap items-center gap-3">
-                  <div className={cn('h-3 w-3 rounded-full shrink-0', tier.dotColor)} />
+                  <div className={cn('size-3 rounded-full shrink-0', tier.dotColor)} />
                   <span className="font-bold text-lg">{tier.name}</span>
                   <span className="text-muted-foreground">{tier.label}</span>
                 </div>
@@ -82,7 +82,7 @@ export function DevProcessSection() {
       {/* Key insight */}
       <AnimatedSection className="mt-8">
         <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-5">
-          <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+          <CheckCircle2 className="size-5 text-primary mt-0.5 shrink-0" />
           <p className="text-muted-foreground">
             <span className="font-semibold text-foreground">Key insight:</span> A 50-file mechanical
             change may be F-lite. A 3-file rate limiter may be F-full.

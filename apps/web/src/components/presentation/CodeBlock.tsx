@@ -65,9 +65,9 @@ export function CodeBlock({
     >
       {/* Terminal header dots */}
       <div className="flex items-center gap-2 border-b border-border/30 px-4 py-3">
-        <div className="h-3 w-3 rounded-full bg-red-500/60" />
-        <div className="h-3 w-3 rounded-full bg-yellow-500/60" />
-        <div className="h-3 w-3 rounded-full bg-green-500/60" />
+        <div className="size-3 rounded-full bg-red-500/60" />
+        <div className="size-3 rounded-full bg-yellow-500/60" />
+        <div className="size-3 rounded-full bg-green-500/60" />
       </div>
 
       <div className="overflow-x-auto p-5">

@@ -37,7 +37,7 @@ export function HeroSection() {
               className="inline-flex items-center gap-2"
             >
               {m.hero_cta_github()}
-              <ExternalLink className="h-4 w-4" />
+              <ExternalLink className="size-4" />
             </a>
           </Button>
         </div>

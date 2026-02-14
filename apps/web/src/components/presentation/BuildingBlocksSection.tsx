@@ -149,7 +149,7 @@ export function BuildingBlocksSection() {
               <div className={cn(index === 0 && 'md:flex-1')}>
                 <div className="flex items-center gap-3">
                   <div className="rounded-lg bg-primary/10 p-2">
-                    <block.icon className="h-5 w-5 text-primary" />
+                    <block.icon className="size-5 text-primary" />
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold">{block.title}</h3>

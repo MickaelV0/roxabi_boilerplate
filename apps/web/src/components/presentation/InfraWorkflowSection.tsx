@@ -48,7 +48,7 @@ export function InfraWorkflowSection() {
           <Card variant="subtle" className="p-6 lg:p-8 h-full">
             <div className="flex items-center gap-3 mb-6">
               <div className="rounded-lg bg-primary/10 p-2">
-                <GitBranch className="h-5 w-5 text-primary" />
+                <GitBranch className="size-5 text-primary" />
               </div>
               <h3 className="text-2xl font-semibold">Worktree Isolation</h3>
             </div>
@@ -60,7 +60,7 @@ export function InfraWorkflowSection() {
             <CodeBlock>{worktreeCode}</CodeBlock>
 
             <div className="mt-4 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
-              <Shield className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <Shield className="size-5 text-primary mt-0.5 shrink-0" />
               <p className="text-sm text-muted-foreground">
                 Each feature gets its own directory. Agents work in parallel without conflicts.
               </p>
@@ -73,7 +73,7 @@ export function InfraWorkflowSection() {
           <Card variant="subtle" className="p-6 lg:p-8 h-full">
             <div className="flex items-center gap-3 mb-6">
               <div className="rounded-lg bg-primary/10 p-2">
-                <Rocket className="h-5 w-5 text-primary" />
+                <Rocket className="size-5 text-primary" />
               </div>
               <h3 className="text-2xl font-semibold">CI/CD & Deployment</h3>
             </div>
@@ -98,7 +98,7 @@ export function InfraWorkflowSection() {
                   </div>
                   {index < hooksPipeline.length - 1 && (
                     <div className="flex justify-center py-0.5">
-                      <ArrowRight className="h-3 w-3 text-muted-foreground/40 rotate-90" />
+                      <ArrowRight className="size-3 text-muted-foreground/40 rotate-90" />
                     </div>
                   )}
                 </div>
@@ -125,13 +125,13 @@ export function InfraWorkflowSection() {
             {/* Promote flow */}
             <div className="mt-4 flex items-center justify-center gap-2 text-sm">
               <span className="rounded bg-muted/40 px-2 py-1 font-mono text-xs">staging</span>
-              <ArrowRight className="h-4 w-4 text-primary/60" />
+              <ArrowRight className="size-4 text-primary/60" />
               <span className="rounded bg-primary/10 px-2 py-1 font-mono text-xs text-primary">
                 /promote
               </span>
-              <ArrowRight className="h-4 w-4 text-primary/60" />
+              <ArrowRight className="size-4 text-primary/60" />
               <span className="rounded bg-muted/40 px-2 py-1 font-mono text-xs">main</span>
-              <ArrowRight className="h-4 w-4 text-primary/60" />
+              <ArrowRight className="size-4 text-primary/60" />
               <span className="rounded bg-chart-2/10 px-2 py-1 font-mono text-xs text-chart-2">
                 Vercel
               </span>

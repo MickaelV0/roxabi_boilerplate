@@ -8,6 +8,11 @@ import {
   cn,
   Input,
   Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@repo/ui'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
@@ -115,22 +120,21 @@ export function ComponentShowcase({
                 <div key={control.name} className="space-y-2">
                   <Label htmlFor={`${name}-${control.name}`}>{control.name}</Label>
                   {control.type === 'select' && control.options && (
-                    <select
-                      id={`${name}-${control.name}`}
+                    <Select
                       value={String(currentProps[control.name] ?? '')}
-                      onChange={(e) => updateProp(control.name, e.target.value)}
-                      className={cn(
-                        'border-input bg-background ring-offset-background flex h-9 w-full rounded-md border px-3 py-1 text-sm',
-                        'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
-                        'disabled:cursor-not-allowed disabled:opacity-50'
-                      )}
+                      onValueChange={(value) => updateProp(control.name, value)}
                     >
-                      {control.options.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger id={`${name}-${control.name}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {control.options.map((opt) => (
+                          <SelectItem key={opt} value={opt}>
+                            {opt}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   )}
                   {control.type === 'boolean' && (
                     <div className="flex items-center gap-2">

@@ -79,7 +79,7 @@ export function TestReviewSection() {
                     <div className="flex items-center gap-3">
                       <div
                         className={cn(
-                          'h-8 w-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0',
+                          'size-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0',
                           step.color
                         )}
                       >
@@ -93,7 +93,7 @@ export function TestReviewSection() {
                   </div>
                   {index < tddSteps.length - 1 && (
                     <div className="flex justify-center py-1">
-                      <ArrowRight className="h-4 w-4 text-muted-foreground/50 rotate-90" />
+                      <ArrowRight className="size-4 text-muted-foreground/50 rotate-90" />
                     </div>
                   )}
                 </div>
@@ -111,7 +111,7 @@ export function TestReviewSection() {
               {reviewSteps.map((step, index) => (
                 <div key={step.step}>
                   <div className="flex items-start gap-4 rounded-xl border border-border/30 bg-background/50 p-4">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
                       {step.step}
                     </div>
                     <div>
@@ -121,7 +121,7 @@ export function TestReviewSection() {
                   </div>
                   {index < reviewSteps.length - 1 && (
                     <div className="flex justify-center py-1">
-                      <ArrowRight className="h-4 w-4 text-muted-foreground/50 rotate-90" />
+                      <ArrowRight className="size-4 text-muted-foreground/50 rotate-90" />
                     </div>
                   )}
                 </div>
@@ -134,7 +134,7 @@ export function TestReviewSection() {
       {/* Callout */}
       <AnimatedSection className="mt-10">
         <div className="flex items-start gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-6">
-          <MessageSquare className="h-5 w-5 text-primary shrink-0 mt-1" />
+          <MessageSquare className="size-5 text-primary shrink-0 mt-1" />
           <blockquote className="text-lg font-medium italic text-foreground/90">
             "Human decides, Claude orchestrates, agents specialize."
           </blockquote>

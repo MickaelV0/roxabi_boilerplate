@@ -23,7 +23,7 @@ function I18nDemo() {
         <Card>
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-              <Globe className="h-8 w-8 text-muted-foreground" />
+              <Globe className="size-8 text-muted-foreground" />
             </div>
             <CardTitle>{m.example_message({ username: 'TanStack Router' })}</CardTitle>
           </CardHeader>

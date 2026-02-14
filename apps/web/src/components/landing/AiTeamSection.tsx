@@ -31,7 +31,7 @@ export function AiTeamSection() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <Code2 className="h-5 w-5 text-primary" />
+                  <Code2 className="size-5 text-primary" />
                 </div>
                 <div>
                   <CardTitle>{m.ai_dev_title()}</CardTitle>
@@ -59,7 +59,7 @@ export function AiTeamSection() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <Play className="h-5 w-5 text-primary" />
+                  <Play className="size-5 text-primary" />
                 </div>
                 <div>
                   <CardTitle>{m.ai_runtime_title()}</CardTitle>
