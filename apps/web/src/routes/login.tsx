@@ -1,4 +1,4 @@
-import { Button, Checkbox, cn, Input, Label, OAuthButton, PasswordInput } from '@repo/ui'
+import { Button, Checkbox, cn, FormMessage, Input, Label, OAuthButton, PasswordInput } from '@repo/ui'
 import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -91,9 +91,9 @@ function LoginPage() {
   return (
     <AuthLayout title={m.auth_sign_in_title()} description={m.auth_sign_in_desc()}>
       {error && (
-        <p role="alert" aria-live="polite" className="text-sm text-destructive text-center">
+        <FormMessage variant="error" className="justify-center">
           {error}
-        </p>
+        </FormMessage>
       )}
 
       <form onSubmit={handleEmailLogin} aria-busy={loading} className="space-y-4">
