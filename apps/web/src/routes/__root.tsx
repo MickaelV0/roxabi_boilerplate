@@ -105,7 +105,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
     <RootProvider>
       {!isChromeless && <Header />}
       <ErrorBoundary FallbackComponent={ErrorFallback}>{children}</ErrorBoundary>
-      <Toaster richColors />
+      <Toaster richColors position="top-right" offset="4rem" />
     </RootProvider>
   )
 }
