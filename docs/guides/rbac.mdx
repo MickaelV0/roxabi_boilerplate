@@ -1,5 +1,5 @@
 ---
-title: Roles and Permissions (RBAC)
+title: RBAC (Roles and Permissions)
 description: How to use the Role-Based Access Control system to protect endpoints, check permissions in components, and manage custom roles.
 ---
 
@@ -26,7 +26,7 @@ Every organization is seeded with four built-in roles on creation. These roles c
 |------|------|---------|-------------|
 | **Owner** | `owner` | Full control + org administration | All permissions including `organizations:delete` |
 | **Admin** | `admin` | Manage members, roles, invitations | All except `organizations:delete`, `users:delete` |
-| **Member** | `member` | Standard read access | Read-only on all resources + `roles:read` |
+| **Member** | `member` | Standard read access | Read-only on all resources |
 | **Viewer** | `viewer` | Read-only access | Same as Member (read-only baseline) |
 
 The exact permission lists are defined in `apps/api/src/rbac/rbac.constants.ts`:
@@ -237,7 +237,7 @@ function OrgMembersPage() {
 }
 ```
 
-This pattern is used in the actual codebase. For example, in `apps/web/src/routes/org/settings.tsx`:
+This pattern is used in the actual codebase. For example, in `apps/web/src/routes/org/settings.tsx` (simplified):
 
 ```tsx
 const canDeleteOrg = hasPermission(session, 'organizations:delete')
@@ -267,6 +267,32 @@ type AuthSession = {
 ```
 
 When the user switches organizations, the session refreshes and permissions update automatically.
+
+### Route-Level Protection
+
+Use TanStack Router's `beforeLoad` guard to redirect users who lack the required permissions before the route renders. The codebase already uses `beforeLoad` for authentication guards (see `apps/web/src/lib/route-guards.ts`):
+
+```ts
+import { redirect } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
+import { authClient } from '@/lib/auth-client'
+import { hasPermission } from '@/lib/permissions'
+
+export const Route = createFileRoute('/org/billing')({
+  beforeLoad: async () => {
+    if (typeof window === 'undefined') return
+
+    const { data: session } = await authClient.getSession()
+    if (!session) throw redirect({ to: '/login' })
+    if (!hasPermission(session, 'organizations:write')) {
+      throw redirect({ to: '/org/settings' })
+    }
+  },
+  component: BillingPage,
+})
+```
+
+This pattern prevents the component from rendering at all when the user lacks permissions, rather than showing a flash of forbidden content.
 
 ## Adding New Permissions
 
@@ -385,6 +411,8 @@ Ownership can be transferred from the current Owner to an Admin:
 
 This atomically swaps roles: the current Owner becomes Admin, and the target Admin becomes Owner. The target must already have the Admin role.
 
+> **Note:** Although the endpoint requires `members:write` at the guard level, the service layer additionally verifies the requesting user holds the Owner role. Only the current Owner can transfer ownership -- Admins with `members:write` cannot.
+
 ## How Roles are Seeded
 
 When a new organization is created, the `RbacListener` handles the `ORGANIZATION_CREATED` event:
@@ -467,8 +495,75 @@ export class PermissionService {
 }
 ```
 
+## Testing RBAC
+
+### Backend: Testing the `@Permissions()` Guard
+
+Controller tests verify that each endpoint delegates to the correct service method. Mock the service and instantiate the controller directly (see `apps/api/src/rbac/rbac.controller.test.ts`):
+
+```ts
+import { describe, expect, it, vi } from 'vitest'
+
+const mockRbacService = {
+  listRoles: vi.fn(),
+  createRole: vi.fn(),
+  deleteRole: vi.fn(),
+  transferOwnership: vi.fn(),
+} as unknown as RbacService
+
+describe('RbacController', () => {
+  const controller = new RbacController(mockRbacService, mockPermissionService)
+
+  it('should call rbacService.listRoles', async () => {
+    vi.mocked(mockRbacService.listRoles).mockResolvedValue([])
+    const result = await controller.listRoles()
+    expect(result).toEqual([])
+    expect(mockRbacService.listRoles).toHaveBeenCalled()
+  })
+
+  it('should call rbacService.transferOwnership with correct args', async () => {
+    const session = { user: { id: 'user-1' } }
+    const body = { targetMemberId: 'member-2' }
+    vi.mocked(mockRbacService.transferOwnership).mockResolvedValue({ transferred: true })
+
+    const result = await controller.transferOwnership(session, body)
+
+    expect(result).toEqual({ transferred: true })
+    expect(mockRbacService.transferOwnership).toHaveBeenCalledWith('user-1', 'member-2')
+  })
+})
+```
+
+### Frontend: Testing `hasPermission()`
+
+Unit tests verify the permission helpers handle all session states (see `apps/web/src/lib/permissions.test.ts`):
+
+```ts
+import { describe, expect, it } from 'vitest'
+import { hasPermission, hasAllPermissions, hasAnyPermission } from './permissions'
+
+describe('hasPermission', () => {
+  it('should return true when session has the permission', () => {
+    const session = { permissions: ['members:read', 'roles:write'] }
+    expect(hasPermission(session, 'members:read')).toBe(true)
+  })
+
+  it('should return false for null session', () => {
+    expect(hasPermission(null, 'members:read')).toBe(false)
+  })
+})
+
+describe('hasAllPermissions', () => {
+  it('should return false when session is missing one permission', () => {
+    const session = { permissions: ['members:read'] }
+    expect(hasAllPermissions(session, ['members:read', 'roles:write'])).toBe(false)
+  })
+})
+```
+
 ## Related Documentation
 
 - [RBAC analysis](../analyses/24-rbac) -- Full design rationale and architectural decisions
+- [RBAC architecture](../architecture/rbac) -- System architecture and module boundaries
 - [Authentication guide](./authentication) -- Auth guard, session management, and decorators
 - [Multi-tenant guide](./multi-tenant) -- How tenant context and RLS interact with RBAC

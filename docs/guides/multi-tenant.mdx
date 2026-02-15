@@ -64,6 +64,7 @@ Key details:
 - If no active organization is set, `tenantId` is `null` (endpoints that require org context will fail at the guard level via `@RequireOrg()`)
 - Child organizations resolve to their parent's `tenant_id` -- they share the same tenant boundary
 - The resolved mapping is cached within the request to avoid repeated DB lookups
+- If the database connection is unavailable, the interceptor falls back to using `activeOrganizationId` directly without resolving through the parent org hierarchy
 
 ### Step 2: TenantService
 
@@ -115,6 +116,10 @@ Two methods are available:
 |--------|-------------|
 | `query(callback)` | Normal HTTP requests -- reads tenant ID from CLS (set by interceptor) |
 | `queryAs(tenantId, callback)` | Background jobs, cron tasks, event handlers, or cross-tenant admin operations where no HTTP context exists |
+
+:::warning
+Do not use `queryAs()` in HTTP request handlers. Use `query()` instead, which reads the tenant ID from CLS set by the interceptor. Using `queryAs()` with a user-supplied tenant ID in an HTTP context could allow cross-tenant data access.
+:::
 
 ### Step 3: RLS Enforcement
 
@@ -235,7 +240,10 @@ All child orgs share the parent's `tenant_id`. The `TenantInterceptor` resolves 
 
 - RLS policies use a single `tenant_id` check per table
 - Members of any child org see all data within the tenant
-- Child orgs are for organizational grouping, not security boundaries
+
+:::warning
+Child orgs are for organizational grouping, not security boundaries. All members of any child org have full visibility into the parent tenant's data.
+:::
 
 ## What is NOT Under RLS
 
@@ -270,6 +278,8 @@ The codebase includes integration tests that verify RLS isolation using a real P
 The tests use a helper function that mirrors what `TenantService` does in production:
 
 ```ts
+import { describe, it, expect } from 'vitest'
+
 async function withTenant<T>(
   tenantId: string,
   callback: (tx: typeof db) => Promise<T>
@@ -286,7 +296,7 @@ async function withTenant<T>(
 ### Test: Cross-Tenant Isolation
 
 ```ts
-it('should isolate data between tenants', async () => {
+it('should isolate data between tenants -- Tenant B cannot see Tenant A rows', async () => {
   // Insert as Tenant A
   await withTenant(TENANT_A, async (tx) => {
     await tx.execute(sql`
@@ -356,13 +366,13 @@ The tenant integration tests require a running PostgreSQL database with the RLS 
 
 ```bash
 # Ensure the database is set up
-cd apps/api && bun run db:push
+cd apps/api && bun run db:migrate
 
 # Run tenant integration tests
 bun test apps/api/src/tenant/tenant.integration.test.ts
 ```
 
-The tests are automatically skipped when `DATABASE_URL` is not set, so they will not fail in CI environments without a database.
+The tests are automatically skipped (not executed) when `DATABASE_URL` is not set, so they will not break CI environments without a database.
 
 ## Module Structure
 
@@ -464,5 +474,6 @@ This is already set by the `TenantInterceptor` before your service code runs.
 ## Related Documentation
 
 - [Multi-tenant RLS analysis](../analyses/21-multi-tenant-rls) -- Full design rationale and architectural decisions
+- [Multi-tenant architecture](../architecture/multi-tenant) -- System architecture and module boundaries
 - [RBAC guide](./rbac) -- How roles and permissions interact with tenant context
 - [Authentication guide](./authentication) -- Auth guard, session management, and `@RequireOrg()` decorator
