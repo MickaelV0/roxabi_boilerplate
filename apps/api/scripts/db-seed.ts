@@ -135,7 +135,9 @@ async function seed() {
       const permMap = await buildPermissionMap(tx)
       if (permMap.size === 0) {
         console.warn(
-          'db-seed: permMap is empty — no permissions found in the database. Role-permission assignments will be skipped.'
+          'db-seed: permMap is empty — no permissions found in the database. ' +
+            'This is expected on initial schema setup or the first run before permissions are seeded. ' +
+            'Role-permission assignments will be skipped.'
         )
       }
       const { ownerRoleId, totalRolePermissions } = await seedRbac(tx, orgId, permMap)

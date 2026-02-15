@@ -214,4 +214,26 @@ describe('env validation', () => {
       expect(result.RATE_LIMIT_AUTH_LIMIT).toBe(10)
     })
   })
+
+  describe('SWAGGER_ENABLED validation', () => {
+    it('should coerce string "true" to boolean true', () => {
+      const result = validate({ SWAGGER_ENABLED: 'true' })
+      expect(result.SWAGGER_ENABLED).toBe(true)
+    })
+
+    it('should coerce string "false" to boolean false', () => {
+      const result = validate({ SWAGGER_ENABLED: 'false' })
+      expect(result.SWAGGER_ENABLED).toBe(false)
+    })
+
+    it('should accept boolean true directly', () => {
+      const result = validate({ SWAGGER_ENABLED: true })
+      expect(result.SWAGGER_ENABLED).toBe(true)
+    })
+
+    it('should be undefined when omitted', () => {
+      const result = validate({})
+      expect(result.SWAGGER_ENABLED).toBeUndefined()
+    })
+  })
 })

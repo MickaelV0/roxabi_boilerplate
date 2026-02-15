@@ -12,8 +12,10 @@ try {
     process.exit(1)
   }
 
+  // Resolves `postgres` from apps/api/node_modules — this script must be run
+  // from the apps/api working directory (as done in deploy-preview.yml).
   const postgres = (await import('postgres')).default
-  const sql = postgres(databaseUrl)
+  const sql = postgres(databaseUrl, { connect_timeout: 10 })
 
   const rows = await sql`
     SELECT count(*)::int AS cnt

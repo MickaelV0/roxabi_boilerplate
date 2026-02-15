@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { PermissionService } from './permission.service.js'
-import { RbacController } from './rbac.controller.js'
+import { PERMISSION_FORMAT, RbacController } from './rbac.controller.js'
 import type { RbacService } from './rbac.service.js'
 
 const mockRbacService: RbacService = {
@@ -110,5 +110,42 @@ describe('RbacController', () => {
       expect(result).toEqual({ updated: true })
       expect(mockRbacService.changeMemberRole).toHaveBeenCalledWith('m-1', 'r-1')
     })
+  })
+})
+
+describe('PERMISSION_FORMAT regex', () => {
+  it('should match valid "resource:action" format', () => {
+    expect(PERMISSION_FORMAT.test('roles:read')).toBe(true)
+  })
+
+  it('should match hyphenated resource and action names', () => {
+    expect(PERMISSION_FORMAT.test('audit-log:read')).toBe(true)
+    expect(PERMISSION_FORMAT.test('roles:bulk-delete')).toBe(true)
+    expect(PERMISSION_FORMAT.test('audit-log:bulk-export')).toBe(true)
+  })
+
+  it('should reject uppercase letters', () => {
+    expect(PERMISSION_FORMAT.test('ROLES:READ')).toBe(false)
+    expect(PERMISSION_FORMAT.test('Roles:read')).toBe(false)
+    expect(PERMISSION_FORMAT.test('roles:Read')).toBe(false)
+  })
+
+  it('should reject missing colon separator', () => {
+    expect(PERMISSION_FORMAT.test('roles')).toBe(false)
+  })
+
+  it('should reject extra colon segments', () => {
+    expect(PERMISSION_FORMAT.test('roles:read:extra')).toBe(false)
+  })
+
+  it('should reject empty segments', () => {
+    expect(PERMISSION_FORMAT.test(':read')).toBe(false)
+    expect(PERMISSION_FORMAT.test('roles:')).toBe(false)
+    expect(PERMISSION_FORMAT.test(':')).toBe(false)
+  })
+
+  it('should reject leading or trailing hyphens', () => {
+    expect(PERMISSION_FORMAT.test('-roles:read')).toBe(false)
+    expect(PERMISSION_FORMAT.test('roles:-read')).toBe(false)
   })
 })

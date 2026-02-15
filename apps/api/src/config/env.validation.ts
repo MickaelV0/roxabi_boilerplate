@@ -1,5 +1,11 @@
 import { z } from 'zod'
 
+/** Coerce env-var strings ('true'/'false') to booleans. Unlike z.coerce.boolean(), handles 'false' correctly. */
+const booleanFromEnv = z.preprocess((val) => {
+  if (typeof val === 'string') return val === 'true'
+  return val
+}, z.boolean())
+
 const Environment = z.enum(['development', 'production', 'test'])
 
 const envSchema = z.object({
@@ -20,8 +26,8 @@ const envSchema = z.object({
   // Rate limiting & Upstash Redis
   KV_REST_API_URL: z.string().optional(),
   KV_REST_API_TOKEN: z.string().optional(),
-  RATE_LIMIT_ENABLED: z.coerce.boolean().default(true),
-  SWAGGER_ENABLED: z.enum(['true', 'false']).optional(),
+  RATE_LIMIT_ENABLED: booleanFromEnv.default(true),
+  SWAGGER_ENABLED: booleanFromEnv.optional(),
   RATE_LIMIT_GLOBAL_TTL: z.coerce.number().positive().default(60_000),
   RATE_LIMIT_GLOBAL_LIMIT: z.coerce.number().positive().default(60),
   RATE_LIMIT_AUTH_TTL: z.coerce.number().positive().default(60_000),
