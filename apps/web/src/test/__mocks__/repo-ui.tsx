@@ -72,7 +72,7 @@ export const Checkbox = ({
   id?: string
   checked?: boolean
   onCheckedChange?: (v: boolean) => void
-}) => <input type="checkbox" id={id} defaultChecked={checked} {...props} />
+}) => <input type="checkbox" id={id} checked={checked} onChange={() => {}} {...props} />
 
 export const Input = (props: Record<string, unknown>) => <input {...props} />
 
@@ -233,7 +233,7 @@ export const DropdownMenu = ({ children }: React.PropsWithChildren) => <div>{chi
 export const DropdownMenuTrigger = ({
   children,
   ...props
-}: React.PropsWithChildren<Record<string, unknown>>) => <div {...props}>{children}</div>
+}: React.PropsWithChildren<Record<string, unknown>>) => <button {...props}>{children}</button>
 
 export const DropdownMenuContent = ({ children }: React.PropsWithChildren) => <div>{children}</div>
 

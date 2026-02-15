@@ -1,12 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-// Mock react-intersection-observer — always report as in view
+// Mock react-intersection-observer -- always report as in view
 vi.mock('react-intersection-observer', () => ({
   useInView: () => ({ ref: vi.fn(), inView: true }),
 }))
 
-// Mock matchMedia — default: no reduced motion preference
+// Mock matchMedia -- default: no reduced motion preference
 const mockMatchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,
   media: query,

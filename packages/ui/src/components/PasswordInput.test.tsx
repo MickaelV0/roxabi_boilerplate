@@ -33,13 +33,13 @@ describe('PasswordInput', () => {
     const input = screen.getByLabelText('Password')
     const toggleButton = screen.getByLabelText('Show password')
 
-    // Act & Assert — toggle to text
+    // Act & Assert -- toggle to text
     expect(input).toHaveAttribute('type', 'password')
     fireEvent.click(toggleButton)
     expect(input).toHaveAttribute('type', 'text')
     expect(screen.getByLabelText('Hide password')).toBeTruthy()
 
-    // Act & Assert — toggle back to password
+    // Act & Assert -- toggle back to password
     fireEvent.click(screen.getByLabelText('Hide password'))
     expect(input).toHaveAttribute('type', 'password')
   })
@@ -97,19 +97,19 @@ describe('PasswordInput', () => {
     // Arrange
     const noop = createNoop()
 
-    // Act & Assert — "abcdefgh" -> 1 rule (8+ chars) -> Weak
+    // Act & Assert -- "abcdefgh" -> 1 rule (8+ chars) -> Weak
     const { rerender } = render(<PasswordInput showStrength value="abcdefgh" onChange={noop} />)
     expect(screen.getByText('Weak')).toBeTruthy()
 
-    // Act & Assert — "Abcdefgh" -> 2 rules (8+ chars + uppercase) -> Fair
+    // Act & Assert -- "Abcdefgh" -> 2 rules (8+ chars + uppercase) -> Fair
     rerender(<PasswordInput showStrength value="Abcdefgh" onChange={noop} />)
     expect(screen.getByText('Fair')).toBeTruthy()
 
-    // Act & Assert — "Abcdefg1" -> 3 rules (8+ chars + uppercase + number) -> Good
+    // Act & Assert -- "Abcdefg1" -> 3 rules (8+ chars + uppercase + number) -> Good
     rerender(<PasswordInput showStrength value="Abcdefg1" onChange={noop} />)
     expect(screen.getByText('Good')).toBeTruthy()
 
-    // Act & Assert — "Abcdefg1!" -> 4 rules (all) -> Strong
+    // Act & Assert -- "Abcdefg1!" -> 4 rules (all) -> Strong
     rerender(<PasswordInput showStrength value="Abcdefg1!" onChange={noop} />)
     expect(screen.getByText('Strong')).toBeTruthy()
   })

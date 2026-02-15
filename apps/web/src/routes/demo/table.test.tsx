@@ -37,7 +37,7 @@ vi.mock('@/data/demo-table-data', () => ({
 import './table'
 
 describe('TableDemo', () => {
-  it('should render the page heading when component mounts', () => {
+  it('should render the page heading', () => {
     // Arrange & Act
     render(<captured.Component />)
 
@@ -45,7 +45,7 @@ describe('TableDemo', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('demo_table_heading')
   })
 
-  it('should render the global search input when component mounts', () => {
+  it('should render the global search input', () => {
     // Arrange & Act
     render(<captured.Component />)
 
@@ -53,7 +53,7 @@ describe('TableDemo', () => {
     expect(screen.getByLabelText('demo_table_search_all')).toBeInTheDocument()
   })
 
-  it('should render table data when component mounts', () => {
+  it('should render table data', () => {
     // Arrange & Act
     render(<captured.Component />)
 
@@ -62,7 +62,7 @@ describe('TableDemo', () => {
     expect(screen.getByText('Lovelace')).toBeInTheDocument()
   })
 
-  it('should render action buttons when component mounts', () => {
+  it('should render action buttons', () => {
     // Arrange & Act
     render(<captured.Component />)
 
@@ -71,7 +71,7 @@ describe('TableDemo', () => {
     expect(screen.getByText('demo_table_refresh_data')).toBeInTheDocument()
   })
 
-  it('should render row count when component mounts', () => {
+  it('should render row count', () => {
     // Arrange & Act
     render(<captured.Component />)
 

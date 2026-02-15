@@ -50,7 +50,7 @@ describe('Sheet', () => {
       </Sheet>
     )
 
-    // Assert — the "Close" text uses sr-only for screen reader accessibility;
+    // Assert -- the "Close" text uses sr-only for screen reader accessibility;
     // CSS class assertion is necessary since sr-only is a utility class, not a semantic attribute
     expect(screen.getByText('Close')).toBeInTheDocument()
     expect(screen.getByText('Close')).toHaveClass('sr-only')

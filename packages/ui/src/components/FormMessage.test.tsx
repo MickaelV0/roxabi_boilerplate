@@ -20,7 +20,7 @@ describe('FormMessage', () => {
     // Arrange & Act
     render(<FormMessage variant="success">Saved</FormMessage>)
 
-    // Assert — no data-variant attribute; CSS class verifies variant
+    // Assert -- no data-variant attribute; CSS class verifies variant
     const alert = screen.getByRole('alert')
     expect(alert).toHaveClass('text-success')
   })
@@ -29,7 +29,7 @@ describe('FormMessage', () => {
     // Arrange & Act
     render(<FormMessage variant="warning">Careful</FormMessage>)
 
-    // Assert — no data-variant attribute; CSS class verifies variant
+    // Assert -- no data-variant attribute; CSS class verifies variant
     const alert = screen.getByRole('alert')
     expect(alert).toHaveClass('text-warning')
   })
@@ -38,7 +38,7 @@ describe('FormMessage', () => {
     // Arrange & Act
     render(<FormMessage variant="info">FYI</FormMessage>)
 
-    // Assert — no data-variant attribute; CSS class verifies variant
+    // Assert -- no data-variant attribute; CSS class verifies variant
     const alert = screen.getByRole('alert')
     expect(alert).toHaveClass('text-info')
   })

@@ -152,9 +152,8 @@ describe('LoginPage', () => {
     render(<LoginPage />)
 
     // Assert
-    const link = screen.getByText('auth_forgot_password')
-    expect(link).toBeInTheDocument()
-    expect(link.closest('a')).toHaveAttribute('href', '/reset-password')
+    const link = screen.getByRole('link', { name: /auth_forgot_password/ })
+    expect(link).toHaveAttribute('href', '/reset-password')
   })
 
   it('should render register link when component mounts', () => {
@@ -166,9 +165,8 @@ describe('LoginPage', () => {
     render(<LoginPage />)
 
     // Assert
-    const link = screen.getByText('auth_register_link')
-    expect(link).toBeInTheDocument()
-    expect(link.closest('a')).toHaveAttribute('href', '/register')
+    const link = screen.getByRole('link', { name: /auth_register_link/ })
+    expect(link).toHaveAttribute('href', '/register')
   })
 
   it('should hide OAuth buttons when providers are not configured', () => {

@@ -25,7 +25,7 @@ mockParaglideMessages()
 import './index'
 
 describe('DemoIndex', () => {
-  it('should render the page heading when component mounts', () => {
+  it('should render the page heading', () => {
     // Arrange & Act
     render(<captured.Component />)
 
@@ -33,7 +33,7 @@ describe('DemoIndex', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('demo_title')
   })
 
-  it('should render all category headings when component mounts', () => {
+  it('should render all category headings', () => {
     // Arrange & Act
     render(<captured.Component />)
 
@@ -44,7 +44,7 @@ describe('DemoIndex', () => {
     expect(screen.getByText('demo_category_i18n')).toBeInTheDocument()
   })
 
-  it('should render demo links with correct hrefs when component mounts', () => {
+  it('should render demo links with correct hrefs', () => {
     // Arrange & Act
     render(<captured.Component />)
 
@@ -59,7 +59,7 @@ describe('DemoIndex', () => {
     expect(tableLink).toHaveAttribute('href', '/demo/table')
   })
 
-  it('should render demo descriptions when component mounts', () => {
+  it('should render demo descriptions', () => {
     // Arrange & Act
     render(<captured.Component />)
 

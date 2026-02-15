@@ -49,7 +49,7 @@ describe('SectionHeading', () => {
     // a container that includes the custom class in its className string.
     const { container } = render(<SectionHeading title="Title" className="my-class" />)
 
-    // Assert — className is the only practical way to verify custom class passthrough
+    // Assert -- className is the only practical way to verify custom class passthrough
     // on a purely presentational wrapper div with no ARIA role or semantic meaning.
     expect(container.firstChild).toHaveClass('my-class')
   })

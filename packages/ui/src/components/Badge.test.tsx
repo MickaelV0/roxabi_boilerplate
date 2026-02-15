@@ -23,7 +23,7 @@ describe('Badge', () => {
     // Arrange & Act
     const { container } = render(<Badge>Default</Badge>)
 
-    // Assert — Badge does not expose a data-variant attribute;
+    // Assert -- Badge does not expose a data-variant attribute;
     // CSS class assertion is the only way to verify the variant styling
     const badge = container.querySelector('[data-slot="badge"]')
     expect(badge).toHaveClass('bg-primary')
@@ -33,7 +33,7 @@ describe('Badge', () => {
     // Arrange & Act
     const { container } = render(<Badge variant="secondary">Secondary</Badge>)
 
-    // Assert — no data-variant attribute; CSS class verifies variant
+    // Assert -- no data-variant attribute; CSS class verifies variant
     const badge = container.querySelector('[data-slot="badge"]')
     expect(badge).toHaveClass('bg-secondary')
   })
@@ -42,7 +42,7 @@ describe('Badge', () => {
     // Arrange & Act
     const { container } = render(<Badge variant="destructive">Destructive</Badge>)
 
-    // Assert — no data-variant attribute; CSS class verifies variant
+    // Assert -- no data-variant attribute; CSS class verifies variant
     const badge = container.querySelector('[data-slot="badge"]')
     expect(badge).toHaveClass('bg-destructive')
   })
@@ -51,7 +51,7 @@ describe('Badge', () => {
     // Arrange & Act
     const { container } = render(<Badge variant="outline">Outline</Badge>)
 
-    // Assert — no data-variant attribute; CSS class verifies variant
+    // Assert -- no data-variant attribute; CSS class verifies variant
     const badge = container.querySelector('[data-slot="badge"]')
     expect(badge).toHaveClass('border-border')
   })

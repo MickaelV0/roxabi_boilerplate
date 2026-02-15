@@ -50,7 +50,7 @@ describe('Tooltip', () => {
     // Arrange & Act
     renderTooltip({ open: true })
 
-    // Assert — Radix renders tooltip text in both visible content and an sr-only span
+    // Assert -- Radix renders tooltip text in both visible content and an sr-only span
     const elements = screen.getAllByText('Tooltip text')
     expect(elements.length).toBeGreaterThanOrEqual(1)
     expect(elements[0]).toBeInTheDocument()
@@ -85,7 +85,7 @@ describe('Tooltip', () => {
     // Arrange & Act
     renderTooltip({ open: true })
 
-    // Assert — TooltipPrimitive.Arrow does not expose a data attribute;
+    // Assert -- TooltipPrimitive.Arrow does not expose a data attribute;
     // CSS class assertion is the only way to verify the arrow is present
     expect(document.querySelector('.fill-foreground')).toBeInTheDocument()
   })

@@ -3,9 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@repo/ui', () => ({
   Card: ({ children, ...props }: React.PropsWithChildren<{ className?: string }>) => (
-    <div data-testid="card" {...props}>
-      {children}
-    </div>
+    <div {...props}>{children}</div>
   ),
   CardContent: ({ children, ...props }: React.PropsWithChildren<{ className?: string }>) => (
     <div {...props}>{children}</div>
@@ -60,9 +58,7 @@ describe('AuthLayout', () => {
     render(<AuthLayout title="Sign In">content</AuthLayout>)
 
     // Assert
-    const card = screen.getByTestId('card')
-    const paragraphs = card.querySelectorAll('p')
-    expect(paragraphs).toHaveLength(0)
+    expect(screen.queryByRole('paragraph')).not.toBeInTheDocument()
   })
 
   it('should render children', () => {

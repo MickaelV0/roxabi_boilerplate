@@ -35,7 +35,7 @@ vi.mock('@tanstack/react-store', () => ({
 import './store'
 
 describe('DemoStore', () => {
-  it('should render the page heading when component mounts', () => {
+  it('should render the page heading', () => {
     // Arrange & Act
     render(<captured.Component />)
 
@@ -43,7 +43,7 @@ describe('DemoStore', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('demo_store_title')
   })
 
-  it('should render first name and last name inputs when component mounts', () => {
+  it('should render first name and last name inputs', () => {
     // Arrange & Act
     render(<captured.Component />)
 
@@ -52,7 +52,7 @@ describe('DemoStore', () => {
     expect(screen.getByLabelText('demo_store_last_name')).toBeInTheDocument()
   })
 
-  it('should render the full name display when component mounts', () => {
+  it('should render the full name display', () => {
     // Arrange & Act
     render(<captured.Component />)
 

@@ -85,9 +85,8 @@ describe('ResetPasswordPage', () => {
     render(<ResetPasswordPage />)
 
     // Assert
-    const link = screen.getByText('auth_sign_in_link')
-    expect(link).toBeInTheDocument()
-    expect(link.closest('a')).toHaveAttribute('href', '/login')
+    const link = screen.getByRole('link', { name: /auth_sign_in_link/ })
+    expect(link).toHaveAttribute('href', '/login')
   })
 
   it('should always show generic success message regardless of backend response (security guardrail)', async () => {

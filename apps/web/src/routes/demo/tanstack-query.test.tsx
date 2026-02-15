@@ -28,7 +28,7 @@ vi.mock('@tanstack/react-query', () => ({
 import './tanstack-query'
 
 describe('TanStackQueryDemo', () => {
-  it('should render the page heading when component mounts', () => {
+  it('should render the page heading', () => {
     // Arrange & Act
     render(<captured.Component />)
 
@@ -36,7 +36,7 @@ describe('TanStackQueryDemo', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('demo_query_heading')
   })
 
-  it('should render the Todos card title when component mounts', () => {
+  it('should render the Todos card title', () => {
     // Arrange & Act
     render(<captured.Component />)
 
@@ -44,7 +44,7 @@ describe('TanStackQueryDemo', () => {
     expect(screen.getByText('demo_query_todos')).toBeInTheDocument()
   })
 
-  it('should render the todo input and add button when component mounts', () => {
+  it('should render the todo input and add button', () => {
     // Arrange & Act
     render(<captured.Component />)
 

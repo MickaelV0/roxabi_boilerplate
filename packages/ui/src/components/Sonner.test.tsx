@@ -15,7 +15,7 @@ describe('Toaster', () => {
     // Arrange & Act
     render(<Toaster />)
 
-    // Assert — Sonner renders a section element as its root
+    // Assert -- Sonner renders a section element as its root
     const section = document.querySelector('section')
     expect(section).toBeTruthy()
   })

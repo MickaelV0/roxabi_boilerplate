@@ -136,9 +136,8 @@ describe('MagicLinkSentPage', () => {
     render(<MagicLinkSentPage />)
 
     // Assert
-    const link = screen.getByText('auth_back_to_sign_in')
-    expect(link).toBeInTheDocument()
-    expect(link.closest('a')).toHaveAttribute('href', '/login')
+    const link = screen.getByRole('link', { name: /auth_back_to_sign_in/ })
+    expect(link).toHaveAttribute('href', '/login')
   })
 
   it('should call authClient.signIn.magicLink when resend button is clicked', async () => {

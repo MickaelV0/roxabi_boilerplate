@@ -85,7 +85,7 @@ describe('OAuthButton', () => {
     // Arrange & Act
     const { container } = render(<OAuthButton provider="google" loading />)
 
-    // Assert — OAuthButton uses Loader2 with animate-spin class;
+    // Assert -- OAuthButton uses Loader2 with animate-spin class;
     // no data attribute is exposed for loading state on the icon
     const spinner = container.querySelector('.animate-spin')
     expect(spinner).toBeTruthy()

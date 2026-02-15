@@ -44,7 +44,7 @@ vi.mock('../components/LocaleSwitcher', () => ({
 import './demo.i18n'
 
 describe('I18nDemo', () => {
-  it('should render the page heading when component mounts', () => {
+  it('should render the page heading', () => {
     // Arrange & Act
     render(<captured.Component />)
 
@@ -52,7 +52,7 @@ describe('I18nDemo', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('demo_i18n_heading')
   })
 
-  it('should render the globe icon when component mounts', () => {
+  it('should render the globe icon', () => {
     // Arrange & Act
     render(<captured.Component />)
 
@@ -62,7 +62,7 @@ describe('I18nDemo', () => {
     expect(screen.getByTestId('globe-icon')).toBeInTheDocument()
   })
 
-  it('should render the locale switcher when component mounts', () => {
+  it('should render the locale switcher', () => {
     // Arrange & Act
     render(<captured.Component />)
 
@@ -72,7 +72,7 @@ describe('I18nDemo', () => {
     expect(screen.getByTestId('locale-switcher')).toBeInTheDocument()
   })
 
-  it('should render translated message with username parameter when component mounts', () => {
+  it('should render translated message with username parameter', () => {
     // Arrange & Act
     render(<captured.Component />)
 
@@ -80,7 +80,7 @@ describe('I18nDemo', () => {
     expect(screen.getByText('example_message({"username":"TanStack Router"})')).toBeInTheDocument()
   })
 
-  it('should render the learn more link when component mounts', () => {
+  it('should render the learn more link', () => {
     // Arrange & Act
     render(<captured.Component />)
 

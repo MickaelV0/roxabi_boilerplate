@@ -150,7 +150,7 @@ describe('getApiErrorData', () => {
   })
 
   it('should return null when fetch error has no data', () => {
-    // Arrange — data is falsy (null)
+    // Arrange -- data is falsy (null)
     const error = { data: null, status: 500 }
 
     // Act
@@ -161,7 +161,7 @@ describe('getApiErrorData', () => {
   })
 
   it('should return null when fetch error has undefined data', () => {
-    // Arrange — data is falsy (undefined)
+    // Arrange -- data is falsy (undefined)
     const error = { data: undefined, status: 500 }
 
     // Act

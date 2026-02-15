@@ -39,7 +39,7 @@ describe('Spinner', () => {
     // Arrange & Act
     render(<Spinner />)
 
-    // Assert — Spinner does not expose a data-size attribute;
+    // Assert -- Spinner does not expose a data-size attribute;
     // CSS class assertion is the only way to verify size variant
     expect(screen.getByRole('status')).toHaveClass('size-6', 'border-2')
   })
@@ -48,7 +48,7 @@ describe('Spinner', () => {
     // Arrange & Act
     render(<Spinner size="sm" />)
 
-    // Assert — no data-size attribute; CSS class verifies size
+    // Assert -- no data-size attribute; CSS class verifies size
     expect(screen.getByRole('status')).toHaveClass('size-4', 'border-2')
   })
 
@@ -56,7 +56,7 @@ describe('Spinner', () => {
     // Arrange & Act
     render(<Spinner size="lg" />)
 
-    // Assert — no data-size attribute; CSS class verifies size
+    // Assert -- no data-size attribute; CSS class verifies size
     expect(screen.getByRole('status')).toHaveClass('size-8')
   })
 
@@ -64,7 +64,7 @@ describe('Spinner', () => {
     // Arrange & Act
     render(<Spinner size="xl" />)
 
-    // Assert — no data-size attribute; CSS class verifies size
+    // Assert -- no data-size attribute; CSS class verifies size
     expect(screen.getByRole('status')).toHaveClass('size-12', 'border-4')
   })
 
@@ -72,7 +72,7 @@ describe('Spinner', () => {
     // Arrange & Act
     render(<Spinner />)
 
-    // Assert — no data attribute for animation; CSS class verifies spinner animation
+    // Assert -- no data attribute for animation; CSS class verifies spinner animation
     expect(screen.getByRole('status')).toHaveClass('animate-spin', 'rounded-full')
   })
 

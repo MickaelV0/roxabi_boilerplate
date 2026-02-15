@@ -23,7 +23,7 @@ describe('Skeleton', () => {
     // Arrange & Act
     const { container } = render(<Skeleton />)
 
-    // Assert — Skeleton does not expose a data attribute for animation state;
+    // Assert -- Skeleton does not expose a data attribute for animation state;
     // CSS class assertion is the only way to verify the pulse animation
     expect(container.querySelector('[data-slot="skeleton"]')).toHaveClass('animate-pulse')
   })

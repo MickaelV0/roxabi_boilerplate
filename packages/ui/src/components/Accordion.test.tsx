@@ -72,10 +72,11 @@ describe('Accordion', () => {
 
     // Act
     fireEvent.click(trigger)
+    // Verify expanded before collapsing
     expect(screen.getByText('Content 1')).toBeVisible()
     fireEvent.click(trigger)
 
-    // Assert — use the AccordionItem data-state attribute via data-slot query
+    // Assert -- use the AccordionItem data-state attribute via data-slot query
     const accordionItem = trigger.closest('[data-slot="accordion-item"]')
     expect(accordionItem).toHaveAttribute('data-state', 'closed')
   })

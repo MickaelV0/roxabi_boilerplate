@@ -48,7 +48,7 @@ describe('ConfirmDialog', () => {
     // Arrange & Act
     renderConfirmDialog()
 
-    // Assert — ConfirmDialog does not expose a data-variant attribute;
+    // Assert -- ConfirmDialog does not expose a data-variant attribute;
     // CSS class assertion is the only way to verify the variant styling
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' })
     expect(confirmBtn).toHaveClass('bg-destructive')
@@ -58,7 +58,7 @@ describe('ConfirmDialog', () => {
     // Arrange & Act
     renderConfirmDialog({ variant: 'warning' })
 
-    // Assert — no data-variant attribute; CSS class verifies variant
+    // Assert -- no data-variant attribute; CSS class verifies variant
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' })
     expect(confirmBtn).toHaveClass('bg-warning')
   })
@@ -67,7 +67,7 @@ describe('ConfirmDialog', () => {
     // Arrange & Act
     renderConfirmDialog({ variant: 'info' })
 
-    // Assert — info variant has empty string for styles, verify absence of other variant classes
+    // Assert -- info variant has empty string for styles, verify absence of other variant classes
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' })
     expect(confirmBtn).not.toHaveClass('bg-destructive')
     expect(confirmBtn).not.toHaveClass('bg-warning')

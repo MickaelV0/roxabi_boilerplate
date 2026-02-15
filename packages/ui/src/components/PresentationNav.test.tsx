@@ -16,7 +16,7 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
-// Mock IntersectionObserver (passive — keyboard tests don't need IO to fire)
+// Mock IntersectionObserver (passive -- keyboard tests don't need IO to fire)
 class MockIntersectionObserver {
   observe: () => void = vi.fn()
   disconnect: () => void = vi.fn()

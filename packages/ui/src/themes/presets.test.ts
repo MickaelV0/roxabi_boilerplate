@@ -112,7 +112,7 @@ describe('base presets', () => {
       })
 
       it('should contain all required CSS variable keys in dark mode (except radius)', () => {
-        // Arrange — dark mode keys are the same minus 'radius' (only on light)
+        // Arrange -- dark mode keys are the same minus 'radius' (only on light)
         const darkKeys = REQUIRED_KEYS.filter((k) => k !== 'radius')
 
         // Assert
@@ -204,7 +204,7 @@ describe('getPresetDerivedTheme', () => {
     // Act
     const derived = getPresetDerivedTheme(bluePreset)
 
-    // Assert — color presets are partial, but result should still have background
+    // Assert -- color presets are partial, but result should still have background
     expect(derived.light).toHaveProperty('background')
     expect(derived.dark).toHaveProperty('background')
   })
@@ -216,7 +216,7 @@ describe('getPresetDerivedTheme', () => {
     // Act
     const derived = getPresetDerivedTheme(redPreset)
 
-    // Assert — primary should come from red, not zinc
+    // Assert -- primary should come from red, not zinc
     expect(derived.light.primary).toBe(redPreset.cssVars.light.primary)
   })
 })
@@ -251,7 +251,7 @@ describe('getComposedDerivedTheme', () => {
     // Act
     const derived = getComposedDerivedTheme(neutralBase, blueColor)
 
-    // Assert — primary should come from blue, background from neutral
+    // Assert -- primary should come from blue, background from neutral
     expect(derived.light.primary).toBe(blueColor.cssVars.light.primary)
     expect(derived.light.background).toBe(neutralBase.cssVars.light.background)
   })
@@ -358,7 +358,7 @@ describe('getPresetConfig', () => {
     // Act
     const config = getPresetConfig(greenPreset)
 
-    // Assert — background should come from zinc, primary from green
+    // Assert -- background should come from zinc, primary from green
     expect(config.colors.primary).toBe(greenPreset.cssVars.light.primary)
     expect(config.colors.background).toBe(zincBase.cssVars.light.background)
   })

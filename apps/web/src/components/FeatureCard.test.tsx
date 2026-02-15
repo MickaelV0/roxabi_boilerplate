@@ -54,6 +54,23 @@ describe('FeatureCard', () => {
     expect(screen.getByTestId('feature-icon')).toBeInTheDocument()
   })
 
+  it('should pass through custom className', () => {
+    // Arrange & Act
+    // className passthrough is a prop contract, not a styling detail --
+    // className is the only way to verify this on a wrapper div with no semantic role.
+    const { container } = render(
+      <FeatureCard
+        icon={<span>icon</span>}
+        title="Title"
+        description="Desc"
+        className="my-custom-class"
+      />
+    )
+
+    // Assert
+    expect(container.firstChild).toHaveClass('my-custom-class')
+  })
+
   it('should pass through additional div props', () => {
     // Arrange & Act
     render(
