@@ -245,6 +245,9 @@ jobs:
         # Rate limiting uses in-memory storage in previews (no Upstash) — resets on cold start.
         run: |
           for attempt in 1 2 3; do
+            # --env overrides are intentional: DATABASE_URL points to an isolated Neon
+            # preview branch (not production), even when the Neon Marketplace integration
+            # injects a production DATABASE_URL into the project's environment variables.
             if URL=$(vercel deploy \
               --env "DATABASE_URL=$DATABASE_URL" \
               --env "SWAGGER_ENABLED=true" \
