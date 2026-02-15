@@ -28,13 +28,13 @@ export function FeaturesSection() {
       icon: Layers,
       title: m.feature_fullstack_title(),
       description: m.feature_fullstack_desc(),
-      href: '/docs/$/architecture/overview',
+      href: '/docs/architecture/overview',
     },
     {
       icon: ShieldCheck,
       title: m.feature_auth_title(),
       description: m.feature_auth_desc(),
-      href: '/docs/$/guides/authentication',
+      href: '/docs/guides/authentication',
     },
     {
       icon: Building2,
@@ -48,7 +48,7 @@ export function FeaturesSection() {
       icon: Globe,
       title: m.feature_i18n_title(),
       description: m.feature_i18n_desc(),
-      href: '/docs/$/configuration',
+      href: '/docs/configuration',
     },
     { icon: Bot, title: m.feature_ai_title(), description: m.feature_ai_desc() },
   ]

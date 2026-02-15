@@ -30,7 +30,11 @@
     "license:check": "bun run tools/license-checker.ts",
     "check:env": "bun run scripts/check-env-sync.ts",
     "db:up": "docker compose up -d",
-    "db:down": "docker compose down"
+    "db:down": "docker compose down",
+    "db:generate": "bash scripts/db.sh generate",
+    "db:migrate": "bash scripts/db.sh migrate",
+    "db:reset": "bash scripts/db.sh reset",
+    "db:seed": "bash scripts/db.sh seed"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.0",

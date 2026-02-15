@@ -7,10 +7,7 @@ import { FeaturesSection } from '@/components/landing/FeaturesSection'
 import { HeroSection } from '@/components/landing/HeroSection'
 import { StatsSection } from '@/components/landing/StatsSection'
 import { TechStackSection } from '@/components/landing/TechStackSection'
-import { requireGuest } from '@/lib/route-guards'
-
 export const Route = createFileRoute('/')({
-  beforeLoad: requireGuest,
   component: LandingPage,
 })
 
