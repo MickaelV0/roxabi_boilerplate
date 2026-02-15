@@ -3,24 +3,7 @@
 const fs = require('node:fs')
 const path = require('node:path')
 
-const BLOCKING_RULES = new Set(['hardcoded-secret', 'sql-injection', 'command-injection'])
-
 const SECURITY_PATTERNS = [
-  {
-    id: 'github-actions-injection',
-    pattern: /\$\{\{\s*github\.event\.(issue|pull_request|comment)\.body/gi,
-    message: 'Potential GitHub Actions injection via untrusted input',
-  },
-  {
-    id: 'dynamic-code-execution',
-    pattern: /\beval\s*\(|\bnew\s+Function\s*\(/gi,
-    message: 'Dynamic code execution detected (eval/new Function)',
-  },
-  {
-    id: 'xss-innerhtml',
-    pattern: /\.innerHTML\s*=|dangerouslySetInnerHTML/gi,
-    message: 'Potential XSS vector via innerHTML/dangerouslySetInnerHTML',
-  },
   {
     id: 'hardcoded-secret',
     pattern: /(api[_-]?key|secret|password|token)\s*[:=]\s*['"][^'"]{8,}['"]/gi,
@@ -84,18 +67,13 @@ function getWarningKey(file, ruleId) {
 
 function checkContent(content, filePath) {
   const state = loadState()
-  const warnings = []
   const blocked = []
 
   for (const rule of SECURITY_PATTERNS) {
     if (rule.pattern.test(content)) {
       const key = getWarningKey(filePath, rule.id)
       if (!state.warnings[key]) {
-        if (BLOCKING_RULES.has(rule.id)) {
-          blocked.push(rule.message)
-        } else {
-          warnings.push(rule.message)
-        }
+        blocked.push(rule.message)
         state.warnings[key] = Date.now()
       }
     }
@@ -103,7 +81,7 @@ function checkContent(content, filePath) {
   }
 
   saveState(state)
-  return { warnings, blocked }
+  return blocked
 }
 
 function main() {
@@ -123,14 +101,13 @@ function main() {
       process.exit(0)
     }
 
-    const { warnings, blocked } = checkContent(content, filePath)
-    const allMessages = [...blocked, ...warnings]
+    const blocked = checkContent(content, filePath)
 
-    if (allMessages.length > 0) {
+    if (blocked.length > 0) {
       console.log(
         JSON.stringify({
-          decision: blocked.length > 0 ? 'block' : 'allow',
-          message: `Security check:\n${allMessages.map((w) => `- ${w}`).join('\n')}`,
+          decision: 'block',
+          message: `Security check:\n${blocked.map((w) => `- ${w}`).join('\n')}`,
         })
       )
     }
