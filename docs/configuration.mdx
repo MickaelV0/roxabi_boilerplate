@@ -133,8 +133,11 @@ Tasks defined in `turbo.jsonc`:
 
 The root `turbo.jsonc` declares `env` arrays for variables that affect build output — changing these values invalidates the Turbo cache:
 
-- `codegen` and `build`: `API_URL`, `APP_URL`, `VITE_ENABLE_DEMO`
+- `codegen`: `API_URL`, `APP_URL`, `VITE_*`
+- `build`: `API_URL`, `APP_URL`, `KV_*`, `REDIS_*`, `VITE_*`
 - `test`: `CI`, `VITEST`
+
+Wildcard patterns (e.g. `VITE_*`) automatically match all env vars with that prefix — no manual update to `turbo.jsonc` needed when adding new vars with a known prefix. For new prefixes, add a wildcard pattern to the relevant task.
 
 The API app extends the root config via `apps/api/turbo.json` with `passThroughEnv` for runtime secrets (database, auth). These are available at runtime but don't affect the build cache, preventing unnecessary rebuilds when only secrets change.
 
