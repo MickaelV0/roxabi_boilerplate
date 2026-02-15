@@ -15,7 +15,7 @@ export const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
   LOG_LEVEL: z.string().default('debug'),
-  BETTER_AUTH_SECRET: z.string().default('dev-secret-do-not-use-in-production'),
+  BETTER_AUTH_SECRET: z.string().min(32).default('dev-secret-do-not-use-in-production'),
   BETTER_AUTH_URL: z.string().url().default('http://localhost:4000'),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
@@ -57,6 +57,8 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
 
   const validatedConfig = result.data
 
+  // Guard uses !== 'development' (not === 'production') to cover preview, staging, and test
+  // environments — any non-local context must use a real secret.
   if (
     validatedConfig.NODE_ENV !== 'development' &&
     INSECURE_SECRETS.includes(validatedConfig.BETTER_AUTH_SECRET)
@@ -67,6 +69,8 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
     )
   }
 
+  // Secondary guard: catches Vercel preview deployments where NODE_ENV may still be
+  // 'development' but the app is running in a cloud environment that requires a real secret.
   if (validatedConfig.VERCEL_ENV && INSECURE_SECRETS.includes(validatedConfig.BETTER_AUTH_SECRET)) {
     throw new Error(
       'BETTER_AUTH_SECRET must be set to a secure value on Vercel deployments. ' +

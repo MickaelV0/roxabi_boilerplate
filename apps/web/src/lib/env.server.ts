@@ -1,13 +1,6 @@
-import { z } from 'zod'
+import { envSchema, type ServerEnv } from './env.server.schema.js'
 
-export const envSchema = z.object({
-  API_URL: z.string().url().default('http://localhost:4000'),
-  APP_URL: z.string().url().optional(),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  VERCEL_ENV: z.enum(['production', 'preview', 'development']).optional(),
-})
-
-export type ServerEnv = z.infer<typeof envSchema>
+export { envSchema, type ServerEnv } from './env.server.schema.js'
 
 const parsed = envSchema.safeParse(process.env)
 if (!parsed.success) {
@@ -16,6 +9,7 @@ if (!parsed.success) {
   )
 }
 
+// Require explicit API_URL in non-development environments
 if (parsed.data.NODE_ENV !== 'development' && !process.env.API_URL) {
   throw new Error('API_URL must be explicitly set in non-development environments')
 }

@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { clientEnv } from '@/lib/env.client.js'
+import { env } from '@/lib/env.server.js'
 
 const todos = [
   {
@@ -20,13 +20,13 @@ export const Route = createFileRoute('/demo/api/tq-todos')({
   server: {
     handlers: {
       GET: () => {
-        if (clientEnv.VITE_ENABLE_DEMO !== 'true') {
+        if (env.VITE_ENABLE_DEMO !== 'true') {
           return Response.json({ error: 'Not Found' }, { status: 404 })
         }
         return Response.json(todos)
       },
       POST: async ({ request }) => {
-        if (clientEnv.VITE_ENABLE_DEMO !== 'true') {
+        if (env.VITE_ENABLE_DEMO !== 'true') {
           return Response.json({ error: 'Not Found' }, { status: 404 })
         }
         const name = await request.json()
