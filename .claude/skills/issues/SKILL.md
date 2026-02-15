@@ -1,6 +1,6 @@
 ---
 argument-hint: [--dashboard | --stop | --json | --priority]
-description: List open issues from GitHub project with Status, Size, Priority, and dependencies.
+description: This skill should be used when the user wants to list issues, show open issues, view the project board, check the backlog, see issue dependencies, or launch the issue dashboard. Triggers include "list GitHub issues", "show issues", "what's the backlog", "issue dashboard", "what's blocked", and "show dependency chains".
 allowed-tools: Bash, Read
 ---
 
@@ -190,46 +190,9 @@ PRs:
 | Recommendations | Brief analysis of priorities and blockers |
 | Work in Progress | Worktrees, branches, and open PRs |
 
-## Dependencies (blockedBy / blocking)
+## Dependencies
 
-GitHub's native **`blockedBy`** field is the source of truth for issue dependencies.
-
-**Add** a dependency with `addBlockedBy`:
-
-```graphql
-mutation($issueId: ID!, $blockingId: ID!) {
-  addBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockingId }) {
-    issue { number }
-    blockingIssue { number }
-  }
-}
-```
-
-**Remove** a dependency with `removeBlockedBy`:
-
-```graphql
-mutation($issueId: ID!, $blockingId: ID!) {
-  removeBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockingId }) {
-    issue { number }
-    blockingIssue { number }
-  }
-}
-```
-
-- `issueId` = the issue that IS blocked (node ID)
-- `blockingIssueId` = the issue that IS blocking (node ID)
-
-**Get node IDs:** `gh api repos/OWNER/REPO/issues/NUMBER --jq '.node_id'`
-
-**Example** — make #51 blocked by #19:
-```bash
-gh api graphql \
-  -F query=@/tmp/mutation.graphql \
-  -f issueId="$(gh api repos/OWNER/REPO/issues/51 --jq '.node_id')" \
-  -f blockingId="$(gh api repos/OWNER/REPO/issues/19 --jq '.node_id')"
-```
-
-> **Important:** Always use `blockedBy`/`blocking` (not `trackedIssues`/`trackedInIssues`). The `blockedBy` field is GitHub's official dependency mechanism (GA August 2025).
+This skill **displays** dependency relationships (blockedBy/blocking). To **modify** dependencies (add/remove blockers, set parent/child), use the `/issue-triage` skill instead.
 
 ## Configuration
 

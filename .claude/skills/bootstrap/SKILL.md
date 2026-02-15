@@ -1,6 +1,6 @@
 ---
 argument-hint: ["idea" | --issue <N> | --spec <N>]
-description: Planning orchestrator from idea to approved spec, with two validation gates.
+description: This skill should be used when the user wants to bootstrap a feature, plan a feature, start a new feature from an idea, or create an analysis and spec. Triggers include "bootstrap avatar upload", "plan feature", "start feature", "I have an idea for", "create a spec from issue", and "/bootstrap --issue 42". Orchestrates from raw idea to approved spec through two validation gates.
 allowed-tools: Bash, AskUserQuestion, Read, Write, Edit, Glob, Grep, Task
 ---
 
@@ -112,15 +112,17 @@ After generating the analysis, **you decide** which expert reviewers to spawn ba
 
 **Selection logic:** Read the analysis content. Always include **doc-writer** and **product-lead**. Add other reviewers only when their domain is clearly present. When in doubt, include the reviewer — an extra review is cheap.
 
-**For each selected reviewer**, spawn a subagent via `Task`:
+**For each selected reviewer**, spawn a subagent via the `Task` tool:
 
 ```
-Task tool:
-  subagent_type: <reviewer>
+Task(
+  description: "Review analysis - <reviewer>",
+  subagent_type: "<reviewer>",  // e.g., "architect", "doc-writer", "product-lead"
   prompt: "Review this analysis document for <focus area>. Return feedback as bullet points: what's good, what needs improvement, and any concerns. Document path: docs/analyses/{slug}.mdx"
+)
 ```
 
-Spawn all selected reviewers **in parallel**. Collect their feedback, incorporate improvements into the analysis, and note any unresolved concerns for the user.
+Spawn all selected reviewers **in parallel** (multiple Task calls in a single message). Collect their feedback, incorporate improvements into the analysis, and note any unresolved concerns for the user.
 
 ### 1c. User Approval
 
@@ -285,9 +287,11 @@ You use the `/interview` skill directly:
 When you need domain expertise while writing the analysis or spec, spawn the relevant expert subagent:
 
 ```
-Task tool:
-  subagent_type: architect | doc-writer | devops | product-lead
+Task(
+  description: "Expert consultation - <topic>",
+  subagent_type: "architect" | "doc-writer" | "devops" | "product-lead",
   prompt: "Research and answer: <specific question>. Return findings as bullet points."
+)
 ```
 
 | Expert | Use for |

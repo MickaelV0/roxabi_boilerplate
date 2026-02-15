@@ -1,6 +1,6 @@
 ---
 argument-hint: [list | set <num> | create --title "..." [--parent N] [--size S] [--priority P]]
-description: Create issues, triage Size/Priority, manage dependencies and parent/child relations.
+description: This skill should be used when the user wants to triage issues, create a new GitHub issue, set size or priority, change issue status, manage blocked-by or blocking dependencies, or set parent/child relationships. Triggers include "triage issues", "create issue", "set size", "set priority", "set status", "blocked by", "add child", and "set parent".
 allowed-tools: Bash, AskUserQuestion
 ---
 

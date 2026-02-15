@@ -1,6 +1,6 @@
 ---
 argument-hint: [--dry-run | --skip-preview | --finalize]
-description: Promote staging to main for production deploy, with preview verification and changelog. Use --finalize after merge to tag and create GitHub Release.
+description: This skill should be used when the user wants to promote staging to main, release to production, deploy a new version, cut a release, or finalize a release with tagging. Triggers include "promote staging", "release to production", "deploy new version", "cut a release", and "/promote --finalize". Handles pre-flight checks, version computation, changelog, and PR creation.
 allowed-tools: Bash, AskUserQuestion, Read, Grep, Write, Edit
 ---
 
@@ -177,10 +177,10 @@ Use the Edit tool to update the file.
 
 ```bash
 git add CHANGELOG.md docs/changelog/
-git commit -m "$(cat <<'EOF'
+git commit -m "$(cat <<EOF
 docs: add release notes for $VERSION
 
-Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+Co-Authored-By: Claude <model> <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -240,7 +240,7 @@ gh pr create \
   --base main \
   --head staging \
   --title "chore: promote staging to main ($VERSION)" \
-  --body "$(cat <<'EOF'
+  --body "$(cat <<EOF
 ## Promotion: staging → main ($VERSION)
 
 {changelog from step 3}

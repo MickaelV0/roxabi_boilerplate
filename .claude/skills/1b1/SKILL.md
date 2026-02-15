@@ -1,6 +1,6 @@
 ---
 argument-hint: [items description]
-description: Walk through previous items one by one, briefing each and letting the user decide the action.
+description: This skill should be used when the user wants to go through items one by one, walk through a list, or process findings sequentially. It handles review findings, plan tasks, GitHub issues, TODO items, or any enumerated list. Triggers include "one by one", "walk through", "go through these", "1b1", and "process each item".
 allowed-tools: AskUserQuestion, Read, Bash, Grep, Glob
 ---
 

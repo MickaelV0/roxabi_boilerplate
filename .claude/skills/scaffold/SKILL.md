@@ -1,7 +1,7 @@
 ---
 argument-hint: [--spec <number> | --issue <number>]
-description: Execute a feature from spec to PR — plans, scaffolds, spawns agents, implements, and opens the pull request.
-allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Edit, Task, Skill
+description: This skill should be used when the user wants to scaffold a feature, execute a spec, implement from a spec, or build a feature end-to-end. Triggers include "scaffold from spec", "implement this feature", "execute the spec", "build from spec", and "/scaffold --issue 42". Takes an approved spec and drives it to a PR — plans, scaffolds, spawns agents, and opens the pull request.
+allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Edit, Task, Skill, TeamCreate, TeamDelete, SendMessage
 ---
 
 # Scaffold

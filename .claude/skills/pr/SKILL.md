@@ -1,6 +1,6 @@
 ---
 argument-hint: [--draft | --base <branch>]
-description: Create or update a pull request with consistent format, issue linking, and guard rails.
+description: This skill should be used when the user wants to create a pull request, open a PR, update an existing PR, or submit changes for review. Triggers include "create a PR", "open pull request", "submit PR", "update PR description", and "/pr --draft". Supports Conventional Commits title, issue linking, and guard rails.
 allowed-tools: Bash, AskUserQuestion, Read, Grep
 ---
 
@@ -81,13 +81,13 @@ If creation fails or the user explicitly asks to edit before creating, use `AskU
 ### 5. Create PR
 
 ```bash
-# Standard PR
-gh pr create --title "<title>" --body "<body>"
+# Standard PR (defaults to staging as base)
+gh pr create --title "<title>" --body "<body>" --base staging
 
 # If --draft flag or user chose "Create as Draft"
-gh pr create --title "<title>" --body "<body>" --draft
+gh pr create --title "<title>" --body "<body>" --base staging --draft
 
-# If --base flag specified
+# If --base flag specified (overrides default)
 gh pr create --title "<title>" --body "<body>" --base <branch>
 ```
 

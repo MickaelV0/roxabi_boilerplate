@@ -1,6 +1,6 @@
 ---
 argument-hint: [file | --e2e | --run]
-description: Generate tests for changed or specified files, following existing test patterns.
+description: This skill should be used when the user wants to generate unit or integration tests, write tests, add test coverage, run existing tests, or generate Playwright e2e tests. Triggers include "test this file", "write tests", "generate tests", "add test coverage", "run tests", "run my test suite", and "e2e tests".
 allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep
 ---
 
@@ -46,25 +46,21 @@ Filter the output to testable files:
 
 If no testable files are found, inform the user and stop.
 
-### 3. Find Existing Test Patterns (Pattern Discovery)
+### 3. Read Testing Standards and Find Existing Patterns
 
-Before generating anything, understand the codebase's testing conventions:
+**MUST read `docs/standards/testing.mdx` before generating any test code.** This document contains the project's framework configuration, AAA pattern requirements, mocking strategies, and coverage targets.
 
-```bash
-# Find existing test files near targets
+**Framework:** This project uses **Vitest**. Always import explicitly:
+
+```typescript
+import { describe, it, expect, vi } from 'vitest'
 ```
 
-Use **Glob** to search for `*.test.ts` and `*.spec.ts` files in the same or nearby directories.
-
-**Read 1-2 existing test files** to extract:
-- Test framework (`bun:test`, `vitest`, etc.)
-- Import style (`import { describe, it, expect }` vs global)
+Use **Glob** to search for `*.test.ts` and `*.spec.ts` files in the same or nearby directories. **Read 1-2 existing test files** to extract:
 - Describe/it nesting structure
-- Mocking approach (`mock`, `vi.mock`, manual mocks)
+- Mocking approach (`vi.mock`, `vi.fn()`, manual mocks)
 - Assertion style (`expect().toBe()`, `expect().toEqual()`, etc.)
-- File naming convention (`login.test.ts` vs `login.spec.ts`)
-
-If no existing tests are found, check `package.json` for test framework configuration. If still unclear, ask the user via **AskUserQuestion** which framework to use.
+- File naming convention (`.test.ts` for unit/integration, `.spec.ts` for E2E)
 
 ### 4. Check Existing Test Coverage
 
@@ -89,8 +85,20 @@ For each target file:
    - Happy path for each exported function/class/component
    - Edge cases (empty input, null, boundary values)
    - Error cases (invalid input, thrown exceptions)
-3. **Follow the patterns** discovered in the Pattern Discovery step exactly (framework, structure, naming).
-4. **Place test files** adjacent to source: `login.ts` -> `login.test.ts` (or `.spec.ts` if that's the convention).
+3. **Structure every test using Arrange-Act-Assert** with explicit comments:
+   ```typescript
+   it('should return user by id', () => {
+     // Arrange
+     const userId = 'abc-123'
+     // Act
+     const result = getUser(userId)
+     // Assert
+     expect(result).toBeDefined()
+   })
+   ```
+4. **Aim for coverage targets:** 90% for business logic, 80% for controllers/modules, 70% overall.
+5. **Follow the patterns** discovered in step 3 exactly (nesting, mocking, assertions).
+6. **Place test files** adjacent to source: `login.ts` -> `login.test.ts`.
 
 ### 6. Present for Approval
 
@@ -130,7 +138,7 @@ For each approved test file:
 2. **Generate Playwright tests** in `apps/web/e2e/`:
    - Follow Playwright conventions: `page.goto()`, `expect(page).toHaveURL()`, locators
    - Check for existing e2e tests in that directory and match their patterns
-   - Name files: `{feature}.e2e.ts`
+   - Name files: `{feature}.spec.ts` (per project convention, `.spec.ts` for E2E)
 
 3. Follow the same approval and verification flow (steps 6-7).
 

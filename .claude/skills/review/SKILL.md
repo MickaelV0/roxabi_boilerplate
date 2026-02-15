@@ -1,6 +1,6 @@
 ---
 argument-hint: [#PR]
-description: Multi-domain code review with fresh agents and Conventional Comments. Review findings are walked through with the human via /1b1.
+description: This skill should be used when the user asks to review code, review changes, review a PR, do a code review, or check a branch for issues. Triggers include "review my changes", "review PR #42", "code review this", and "check my code". Performs multi-domain review using fresh agents and Conventional Comments, with findings walked through via /1b1.
 allowed-tools: Bash, AskUserQuestion, Read, Grep, Task
 ---
 
@@ -174,16 +174,20 @@ After presenting findings locally, **post the full review as a PR comment** so t
 
 2. **Post the review comment:**
 
+   Write the review body to a temp file, then post:
+
    ```bash
-   gh pr comment <number> --body "$(cat <<'EOF'
+   # Write review to temp file (avoids shell escaping issues with backticks in findings)
+   cat > /tmp/review-comment.md << 'REVIEW_EOF'
    ## Code Review
 
    <full review output from Phase 3: all findings grouped by category + summary + verdict>
 
    ---
    _Review by Claude Code via `/review`_
-   EOF
-   )"
+   REVIEW_EOF
+
+   gh pr comment <number> --body-file /tmp/review-comment.md
    ```
 
 3. **Format rules:**
@@ -224,8 +228,10 @@ After the walkthrough:
 - CI runs; if it fails, spawn the relevant domain fixer to investigate and fix until green
 - **Post a follow-up comment** on the PR confirming the fixes:
 
+  Write the fixes summary to a temp file, then post:
+
   ```bash
-  gh pr comment <number> --body "$(cat <<'EOF'
+  cat > /tmp/review-fixes.md << 'FIXES_EOF'
   ## Review Fixes Applied
 
   All **N** accepted findings from the review have been addressed in <commit_sha>.
@@ -241,8 +247,9 @@ After the walkthrough:
 
   ---
   _Fixes by Claude Code via `/review` fixer agents_
-  EOF
-  )"
+  FIXES_EOF
+
+  gh pr comment <number> --body-file /tmp/review-fixes.md
   ```
 
 - Human approves the merge
