@@ -27,7 +27,8 @@
     "vercel@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
     "ui-ux-pro-max@ui-ux-pro-max-skill": true,
-    "context7-plugin@context7-marketplace": true
+    "context7-plugin@context7-marketplace": true,
+    "plugin-dev@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {
