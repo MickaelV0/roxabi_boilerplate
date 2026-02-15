@@ -28,60 +28,7 @@ vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => vi.fn(),
 }))
 
-vi.mock('@repo/ui', () => ({
-  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
-  Button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <button {...props}>{children}</button>
-  ),
-  Checkbox: ({
-    id,
-    checked,
-    ...props
-  }: {
-    id?: string
-    checked?: boolean
-    onCheckedChange?: (v: boolean) => void
-  }) => <input type="checkbox" id={id} defaultChecked={checked} {...props} />,
-  FormMessage: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <div role="alert" aria-live="polite" {...props}>
-      {children}
-    </div>
-  ),
-  Input: (props: Record<string, unknown>) => <input {...props} />,
-  PasswordInput: (props: Record<string, unknown>) => <input {...props} />,
-  Label: ({
-    children,
-    htmlFor,
-    ...props
-  }: React.PropsWithChildren<{ htmlFor?: string; [key: string]: unknown }>) => (
-    <label htmlFor={htmlFor} {...props}>
-      {children}
-    </label>
-  ),
-  OAuthButton: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <button {...props}>{children}</button>
-  ),
-  Tabs: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <div data-testid="tabs" {...props}>
-      {children}
-    </div>
-  ),
-  TabsList: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <div role="tablist" {...props}>
-      {children}
-    </div>
-  ),
-  TabsTrigger: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <button role="tab" {...props}>
-      {children}
-    </button>
-  ),
-  TabsContent: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <div role="tabpanel" {...props}>
-      {children}
-    </div>
-  ),
-}))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 vi.mock('@/lib/auth-client', () => ({
   authClient: {

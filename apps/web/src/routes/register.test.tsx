@@ -27,45 +27,7 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }))
 
-vi.mock('@repo/ui', () => ({
-  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
-  Button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <button {...props}>{children}</button>
-  ),
-  Card: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <div data-testid="card" {...props}>
-      {children}
-    </div>
-  ),
-  CardContent: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <div {...props}>{children}</div>
-  ),
-  CardHeader: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <div {...props}>{children}</div>
-  ),
-  CardTitle: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <h2 {...props}>{children}</h2>
-  ),
-  FormMessage: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <div role="alert" aria-live="polite" {...props}>
-      {children}
-    </div>
-  ),
-  Input: (props: Record<string, unknown>) => <input {...props} />,
-  Label: ({
-    children,
-    htmlFor,
-    ...props
-  }: React.PropsWithChildren<{ htmlFor?: string; [key: string]: unknown }>) => (
-    <label htmlFor={htmlFor} {...props}>
-      {children}
-    </label>
-  ),
-  OAuthButton: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <button {...props}>{children}</button>
-  ),
-  PasswordInput: (props: Record<string, unknown>) => <input type="password" {...props} />,
-}))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 vi.mock('@/lib/auth-client', () => ({
   authClient: {

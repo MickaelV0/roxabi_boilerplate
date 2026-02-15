@@ -133,6 +133,11 @@ async function seed() {
 
       // 5. Seed RBAC roles and permissions
       const permMap = await buildPermissionMap(tx)
+      if (permMap.size === 0) {
+        console.warn(
+          'db-seed: permMap is empty — no permissions found in the database. Role-permission assignments will be skipped.'
+        )
+      }
       const { ownerRoleId, totalRolePermissions } = await seedRbac(tx, orgId, permMap)
 
       // 6. Update member.roleId to Owner role

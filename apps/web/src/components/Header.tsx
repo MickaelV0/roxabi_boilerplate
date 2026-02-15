@@ -75,7 +75,7 @@ export function Header() {
               </Link>
             </Button>
             <Button variant="ghost" size="sm" asChild>
-              <a href="/talks/claude-code">{m.nav_talks()}</a>
+              <Link to="/talks/claude-code">{m.nav_talks()}</Link>
             </Button>
             <Button variant="ghost" size="sm" asChild>
               <Link to="/docs/$" params={{ _splat: '' }}>
@@ -160,9 +160,9 @@ export function Header() {
               </Link>
             </Button>
             <Button variant="ghost" size="sm" className="justify-start" asChild>
-              <a href="/talks/claude-code" onClick={() => setMobileOpen(false)}>
+              <Link to="/talks/claude-code" onClick={() => setMobileOpen(false)}>
                 {m.nav_talks()}
-              </a>
+              </Link>
             </Button>
             <Button variant="ghost" size="sm" className="justify-start" asChild>
               <Link to="/docs/$" params={{ _splat: '' }} onClick={() => setMobileOpen(false)}>

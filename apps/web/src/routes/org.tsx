@@ -1,16 +1,10 @@
 import { cn } from '@repo/ui'
-import { createFileRoute, Link, Outlet, redirect, useRouterState } from '@tanstack/react-router'
-import { authClient } from '@/lib/auth-client'
+import { createFileRoute, Link, Outlet, useRouterState } from '@tanstack/react-router'
+import { requireAuth } from '@/lib/route-guards'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/org')({
-  beforeLoad: async () => {
-    if (typeof window === 'undefined') return
-    const { data } = await authClient.getSession()
-    if (!data) {
-      throw redirect({ to: '/login' })
-    }
-  },
+  beforeLoad: requireAuth,
   component: OrgLayout,
 })
 

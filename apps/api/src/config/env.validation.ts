@@ -20,7 +20,7 @@ const envSchema = z.object({
   // Rate limiting & Upstash Redis
   KV_REST_API_URL: z.string().optional(),
   KV_REST_API_TOKEN: z.string().optional(),
-  RATE_LIMIT_ENABLED: z.enum(['true', 'false']).default('true'),
+  RATE_LIMIT_ENABLED: z.coerce.boolean().default(true),
   SWAGGER_ENABLED: z.enum(['true', 'false']).optional(),
   RATE_LIMIT_GLOBAL_TTL: z.coerce.number().positive().default(60_000),
   RATE_LIMIT_GLOBAL_LIMIT: z.coerce.number().positive().default(60),
@@ -60,7 +60,7 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
     )
   }
 
-  if (validatedConfig.NODE_ENV === 'production' && validatedConfig.RATE_LIMIT_ENABLED === 'false') {
+  if (validatedConfig.NODE_ENV === 'production' && validatedConfig.RATE_LIMIT_ENABLED === false) {
     console.error(
       '[SECURITY] RATE_LIMIT_ENABLED=false in production — auth brute-force protection is DISABLED. ' +
         'Set RATE_LIMIT_ENABLED=true and configure KV_REST_API_URL/TOKEN.'
@@ -69,7 +69,7 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
 
   if (
     validatedConfig.NODE_ENV === 'production' &&
-    validatedConfig.RATE_LIMIT_ENABLED === 'true' &&
+    validatedConfig.RATE_LIMIT_ENABLED === true &&
     (!validatedConfig.KV_REST_API_URL || !validatedConfig.KV_REST_API_TOKEN)
   ) {
     throw new Error(

@@ -74,6 +74,7 @@ export function PresentationNav({ sections, onEscape, scrollContainerRef }: Pres
       ) {
         return
       }
+      if ((e.target as HTMLElement).isContentEditable) return
 
       switch (e.key) {
         case 'ArrowDown':

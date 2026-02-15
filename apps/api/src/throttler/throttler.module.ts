@@ -11,8 +11,8 @@ import { UpstashThrottlerStorage } from './upstash-throttler-storage.js'
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const logger = new Logger('ThrottlerConfigModule')
-        const rateLimitEnabled = config.get<string>('RATE_LIMIT_ENABLED', 'true')
-        if (rateLimitEnabled === 'false') {
+        const rateLimitEnabled = config.get<boolean>('RATE_LIMIT_ENABLED', true)
+        if (rateLimitEnabled === false) {
           logger.warn(
             'Rate limiting is DISABLED (RATE_LIMIT_ENABLED=false). This should only be used for emergencies.'
           )

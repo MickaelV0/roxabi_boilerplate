@@ -88,6 +88,7 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
         run: |
+          set -euo pipefail
           BRANCH_NAME="preview/${GITHUB_REF_NAME}"
           # Sanitize: keep only alphanumeric, hyphens, underscores, slashes, dots
           BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._/-]//g')
@@ -113,6 +114,20 @@ jobs:
 
           BRANCH_ID=$(echo "$RESPONSE" | jq -r '.branch.id')
 
+          # Wait for Neon branch endpoint to be ready
+          for i in $(seq 1 12); do
+            STATUS=$(curl -s -H "Authorization: Bearer $NEON_API_KEY" \
+              "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID" \
+              | jq -r '.branch.current_state')
+            if [ "$STATUS" = "ready" ]; then break; fi
+            echo "Waiting for Neon branch... (attempt $i/12)"
+            sleep 5
+          done
+          if [ "$STATUS" != "ready" ]; then
+            echo "::error::Neon branch did not become ready after 60 seconds (last status: $STATUS)"
+            exit 1
+          fi
+
           if [ "$BRANCH_ID" = "null" ] || [ -z "$BRANCH_ID" ]; then
             echo "::error::Failed to create Neon branch (branch_id was null or empty)"
             exit 1
@@ -131,6 +146,7 @@ jobs:
           # GitHub suppresses job outputs that match registered secrets, which breaks
           # cross-job secret passing. Encoding avoids the pattern match.
           DB_URL_B64=$(echo -n "$CONNECTION_URI" | base64 -w0)
+          echo "::add-mask::$DB_URL_B64"
           echo "database_url_b64=$DB_URL_B64" >> "$GITHUB_OUTPUT"
           echo "Created Neon branch: $BRANCH_NAME ($BRANCH_ID)"
 
@@ -171,13 +187,8 @@ jobs:
         env:
           DATABASE_URL: ${{ steps.db.outputs.url }}
         run: |
-          TABLE_COUNT=$(bun -e "
-            const postgres = (await import('postgres')).default;
-            const sql = postgres(process.env.DATABASE_URL);
-            const rows = await sql\`SELECT count(*)::int AS cnt FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'\`;
-            console.log(rows[0].cnt);
-            await sql.end();
-          ")
+          set -euo pipefail
+          TABLE_COUNT=$(bun run ../../scripts/check-db-schema.ts)
           echo "Found $TABLE_COUNT tables in database"
           if [ "$TABLE_COUNT" = "0" ] || [ -z "$TABLE_COUNT" ]; then
             echo "::notice::Database is empty — running drizzle-kit push to create schema"
@@ -201,9 +212,10 @@ jobs:
       - name: Health check (best-effort)
         continue-on-error: true
         run: |
+          set -euo pipefail
           PREVIEW_URL="${{ steps.deploy.outputs.url }}"
           echo "Checking preview URL: $PREVIEW_URL"
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$PREVIEW_URL" || echo "000")
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$PREVIEW_URL" || echo "000")
           echo "HTTP status: $HTTP_STATUS"
           if [ "$HTTP_STATUS" = "401" ]; then
             echo "::warning::Preview URL returned 401 — Vercel Deployment Protection (SSO) is enabled. Preview requires Vercel team authentication to access."

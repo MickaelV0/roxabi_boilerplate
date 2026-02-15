@@ -16,7 +16,7 @@ const createRoleSchema = z.object({
 const updateRoleSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(500).optional(),
-  permissions: z.array(z.string()).optional(),
+  permissions: z.array(z.string().regex(/^[a-z]+:[a-z]+$/)).optional(),
 })
 
 const transferOwnershipSchema = z.object({

@@ -23,7 +23,11 @@ type ConfirmDialogProps = {
   title: string
   description: string
   variant?: keyof typeof variantStyles
+  /** Label for the confirm action button. Defaults to "Confirm" (English).
+   *  Consumers should pass localized text for i18n support. */
   confirmText?: string
+  /** Label for the cancel button. Defaults to "Cancel" (English).
+   *  Consumers should pass localized text for i18n support. */
   cancelText?: string
   onConfirm: () => void
   loading?: boolean

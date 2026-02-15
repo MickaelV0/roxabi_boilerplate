@@ -24,8 +24,8 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
   private readonly configService!: ConfigService
 
   override async canActivate(context: ExecutionContext): Promise<boolean> {
-    const enabled = this.configService.get<string>('RATE_LIMIT_ENABLED', 'true')
-    if (enabled === 'false') {
+    const enabled = this.configService.get<boolean>('RATE_LIMIT_ENABLED', true)
+    if (enabled === false) {
       return true
     }
     return super.canActivate(context)

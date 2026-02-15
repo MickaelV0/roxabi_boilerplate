@@ -50,13 +50,13 @@ class TestableThrottlerGuard extends CustomThrottlerGuard {
  * ThrottlerGuard requires `options`, `storageService`, and `reflector` injected by NestJS.
  * We set them directly on the prototype to avoid Test.createTestingModule overhead.
  */
-function createGuard(overrides: { rateLimitEnabled?: string } = {}) {
+function createGuard(overrides: { rateLimitEnabled?: boolean } = {}) {
   const guard = Object.create(TestableThrottlerGuard.prototype) as TestableThrottlerGuard
 
   // Mock ConfigService via @Inject
   const configService = {
-    get: vi.fn((key: string, defaultValue?: string) => {
-      if (key === 'RATE_LIMIT_ENABLED') return overrides.rateLimitEnabled ?? 'true'
+    get: vi.fn((key: string, defaultValue?: unknown) => {
+      if (key === 'RATE_LIMIT_ENABLED') return overrides.rateLimitEnabled ?? true
       return defaultValue
     }),
   }
@@ -257,7 +257,7 @@ describe('CustomThrottlerGuard', () => {
   describe('rate limit disabled', () => {
     it('should skip throttling when RATE_LIMIT_ENABLED=false', async () => {
       // Arrange
-      const { guard } = createGuard({ rateLimitEnabled: 'false' })
+      const { guard } = createGuard({ rateLimitEnabled: false })
       const { context } = createMockContext()
 
       // Act

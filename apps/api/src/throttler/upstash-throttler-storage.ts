@@ -1,8 +1,7 @@
-import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common'
+import { Logger, ServiceUnavailableException } from '@nestjs/common'
 import type { ThrottlerStorage } from '@nestjs/throttler'
 import { Redis } from '@upstash/redis'
 
-@Injectable()
 export class UpstashThrottlerStorage implements ThrottlerStorage {
   private readonly logger = new Logger(UpstashThrottlerStorage.name)
   private readonly redis: Redis

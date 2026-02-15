@@ -1,17 +1,12 @@
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@repo/ui'
-import { createFileRoute, Link, redirect } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { BookOpenIcon, SettingsIcon, UsersIcon } from 'lucide-react'
 import { authClient, useSession } from '@/lib/auth-client'
+import { requireAuth } from '@/lib/route-guards'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/dashboard')({
-  beforeLoad: async () => {
-    if (typeof window === 'undefined') return
-    const { data } = await authClient.getSession()
-    if (!data) {
-      throw redirect({ to: '/login' })
-    }
-  },
+  beforeLoad: requireAuth,
   component: DashboardPage,
   head: () => ({
     meta: [{ title: 'Dashboard | Roxabi' }],

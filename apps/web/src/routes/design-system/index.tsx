@@ -100,6 +100,7 @@ const HEADING_EXAMPLES = [
 // before React hydrates.
 // ---------------------------------------------------------------------------
 
+/** @security STORAGE_KEY MUST remain a hardcoded constant. Never interpolate user input. */
 function ThemeScript() {
   const script = `
 (function() {

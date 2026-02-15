@@ -35,7 +35,7 @@ Ship always-on, distributed rate limiting with configurable tiers so that the AP
 
 ### Happy path
 
-1. API starts with `trustProxy: true` on the Fastify adapter. `ThrottlerModule` registers with Upstash Redis storage and two active throttler configs (global, auth). Public API tier is configured but not registered until API keys are implemented.
+1. API starts with `trustProxy: 1` on the Fastify adapter. `ThrottlerModule` registers with Upstash Redis storage and two active throttler configs (global, auth). Public API tier is configured but not registered until API keys are implemented.
 2. Every incoming request passes through `CustomThrottlerGuard` (registered as `APP_GUARD`). The guard runs **after** `AuthGuard` because `ThrottlerModule` is imported after `AuthModule` in `AppModule`.
 3. Guard determines tracker key using `req.ip` (which respects `trustProxy`):
    - If request has authenticated user &rarr; key = `user:{userId}`
@@ -128,13 +128,13 @@ The **public-api tier** is defined in configuration but **not registered** in th
 
 ### 3. `trustProxy` configuration
 
-The FastifyAdapter must be created with `trustProxy: true`:
+The FastifyAdapter must be created with `trustProxy: 1`:
 
 ```typescript
 new FastifyAdapter({
   logger: { level: process.env.LOG_LEVEL || 'debug' },
   bodyLimit: 1_048_576,
-  trustProxy: true, // required for correct client IP behind Vercel proxy
+  trustProxy: 1, // numeric 1 = trust single proxy hop (more secure than boolean true)
 })
 ```
 
@@ -274,7 +274,7 @@ No changes needed. The test job runs against in-memory rate limiting storage (no
 | `apps/api/src/common/error-codes.ts` | Modify | Add `RATE_LIMIT_EXCEEDED` |
 | `apps/api/src/common/filters/all-exceptions.filter.ts` | Modify | Add `ThrottlerException` detection with `Retry-After` header and structured 429 logging |
 | `apps/api/src/config/env.validation.ts` | Modify | Add rate limit + Upstash env vars (optional in dev, required in production) |
-| `apps/api/src/index.ts` | Modify | Add `trustProxy: true` to FastifyAdapter, add `onSend` hook for rate limit headers, gate Swagger UI behind `SWAGGER_ENABLED` |
+| `apps/api/src/index.ts` | Modify | Add `trustProxy: 1` to FastifyAdapter, add `onSend` hook for rate limit headers, gate Swagger UI behind `SWAGGER_ENABLED` |
 | `apps/api/src/app.module.ts` | Modify | Import `ThrottlerModule` **after** `AuthModule` |
 | `apps/api/src/app.controller.ts` | Modify | Add `@SkipThrottle()` to health endpoint (alongside existing `@AllowAnonymous()`) |
 | `.env.example` | Modify | Add Upstash and rate limit env vars (commented out) |
@@ -305,7 +305,7 @@ In development (no Upstash configured), rate limiting falls back to in-memory st
 ## Success Criteria
 
 - [ ] `@nestjs/throttler` and `@upstash/redis` installed as dependencies
-- [ ] `trustProxy: true` configured on the FastifyAdapter
+- [ ] `trustProxy: 1` configured on the FastifyAdapter
 - [ ] Rate limiting active on all endpoints (global tier)
 - [ ] Auth-sensitive paths have stricter limits (auth tier, 5 req/min default, 5-min block duration)
 - [ ] Non-sensitive auth endpoints (`/api/auth/session`, `/api/auth/providers`) use global tier only

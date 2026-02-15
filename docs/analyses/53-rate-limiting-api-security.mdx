@@ -37,7 +37,7 @@ In-memory rate limiting is ineffective in serverless — each invocation starts 
 
 ### Rate Limit Tiers
 
-Three tiers with **configurable limits via environment variables** and conservative defaults:
+Two active tiers with **configurable limits via environment variables** and conservative defaults (a third public API tier is reserved for future use when API key authentication is implemented):
 
 | Tier | Scope | Default | Env Var | Rationale |
 |------|-------|---------|---------|-----------|
@@ -116,7 +116,7 @@ Exemption is implemented via the `@SkipThrottle()` decorator from `@nestjs/throt
 ## Conclusions
 
 1. **Upstash Redis** is the right storage backend for serverless rate limiting — no persistent connections, sub-millisecond latency, free tier available.
-2. **Three configurable tiers** (global, auth, public API) with conservative defaults cover the requirements without over-engineering.
+2. **Two active configurable tiers** (global, auth) with conservative defaults cover the requirements without over-engineering. A third public API tier is reserved for future use when API key authentication is implemented.
 3. **IP + User hybrid identification** is the most robust approach, avoiding false positives on shared networks while protecting unauthenticated endpoints.
 4. **Match the existing error format** for 429 responses — no need to introduce RFC 7807 at this stage. The current format already includes correlationId and errorCode.
 5. **Helmet + body limits** are low-effort, high-impact security hardening that should ship alongside rate limiting.
