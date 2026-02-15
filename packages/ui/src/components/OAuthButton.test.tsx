@@ -3,65 +3,103 @@ import { describe, expect, it, vi } from 'vitest'
 import { OAuthButton } from './OAuthButton'
 
 describe('OAuthButton', () => {
-  it('renders with provider data attribute', () => {
+  it('should render with provider data attribute', () => {
+    // Arrange & Act
     render(<OAuthButton provider="google" />)
+
+    // Assert
     expect(screen.getByRole('button')).toHaveAttribute('data-provider', 'google')
   })
 
-  it('renders default label for google', () => {
+  it('should render default label for google', () => {
+    // Arrange & Act
     render(<OAuthButton provider="google" />)
+
+    // Assert
     expect(screen.getByRole('button')).toHaveTextContent('Sign in with Google')
   })
 
-  it('renders default label for github', () => {
+  it('should render default label for github', () => {
+    // Arrange & Act
     render(<OAuthButton provider="github" />)
+
+    // Assert
     expect(screen.getByRole('button')).toHaveTextContent('Sign in with GitHub')
   })
 
-  it('renders custom children as label', () => {
+  it('should render custom children as label', () => {
+    // Arrange & Act
     render(<OAuthButton provider="google">Sign up with Google</OAuthButton>)
+
+    // Assert
     expect(screen.getByRole('button')).toHaveTextContent('Sign up with Google')
   })
 
-  it('calls onClick when clicked', () => {
+  it('should call onClick when clicked', () => {
+    // Arrange
     const handleClick = vi.fn()
     render(<OAuthButton provider="github" onClick={handleClick} />)
+
+    // Act
     fireEvent.click(screen.getByRole('button'))
+
+    // Assert
     expect(handleClick).toHaveBeenCalledTimes(1)
   })
 
-  it('is disabled when loading', () => {
+  it('should be disabled when loading is true', () => {
+    // Arrange & Act
     render(<OAuthButton provider="google" loading />)
+
+    // Assert
     expect(screen.getByRole('button')).toBeDisabled()
   })
 
-  it('is disabled when disabled prop is set', () => {
+  it('should be disabled when disabled prop is set', () => {
+    // Arrange & Act
     render(<OAuthButton provider="google" disabled />)
+
+    // Assert
     expect(screen.getByRole('button')).toBeDisabled()
   })
 
-  it('has data-slot attribute', () => {
+  it('should have data-slot attribute when rendered', () => {
+    // Arrange & Act
     render(<OAuthButton provider="google" />)
+
+    // Assert
     expect(screen.getByRole('button')).toHaveAttribute('data-slot', 'oauth-button')
   })
 
-  it('renders provider icon SVG', () => {
+  it('should render provider icon SVG', () => {
+    // Arrange & Act
     const { container } = render(<OAuthButton provider="google" />)
+
+    // Assert
     const svg = container.querySelector('svg')
     expect(svg).toBeTruthy()
     expect(svg).toHaveAttribute('aria-hidden', 'true')
   })
 
-  it('shows spinner when loading', () => {
+  it('should show spinner when loading', () => {
+    // Arrange & Act
     const { container } = render(<OAuthButton provider="google" loading />)
+
+    // Assert -- OAuthButton uses Loader2 with animate-spin class;
+    // no data attribute is exposed for loading state on the icon
     const spinner = container.querySelector('.animate-spin')
     expect(spinner).toBeTruthy()
   })
 
-  it('does not call onClick when disabled', () => {
+  it('should not call onClick when disabled', () => {
+    // Arrange
     const handleClick = vi.fn()
     render(<OAuthButton provider="google" onClick={handleClick} disabled />)
+
+    // Act
     fireEvent.click(screen.getByRole('button'))
+
+    // Assert
     expect(handleClick).not.toHaveBeenCalled()
   })
 })

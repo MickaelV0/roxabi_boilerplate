@@ -16,7 +16,8 @@ vi.mock('@repo/ui', () => ({
 import { FeatureCard } from './FeatureCard'
 
 describe('FeatureCard', () => {
-  it('renders the title', () => {
+  it('should render the title', () => {
+    // Arrange & Act
     render(
       <FeatureCard
         icon={<span data-testid="icon">icon</span>}
@@ -25,18 +26,22 @@ describe('FeatureCard', () => {
       />
     )
 
+    // Assert
     expect(screen.getByText('Test Title')).toBeInTheDocument()
   })
 
-  it('renders the description', () => {
+  it('should render the description', () => {
+    // Arrange & Act
     render(
       <FeatureCard icon={<span>icon</span>} title="Title" description="A detailed description" />
     )
 
+    // Assert
     expect(screen.getByText('A detailed description')).toBeInTheDocument()
   })
 
-  it('renders the icon', () => {
+  it('should render the icon', () => {
+    // Arrange & Act
     render(
       <FeatureCard
         icon={<span data-testid="feature-icon">star</span>}
@@ -45,10 +50,14 @@ describe('FeatureCard', () => {
       />
     )
 
+    // Assert
     expect(screen.getByTestId('feature-icon')).toBeInTheDocument()
   })
 
-  it('applies custom className', () => {
+  it('should pass through custom className', () => {
+    // Arrange & Act
+    // className passthrough is a prop contract, not a styling detail --
+    // className is the only way to verify this on a wrapper div with no semantic role.
     const { container } = render(
       <FeatureCard
         icon={<span>icon</span>}
@@ -58,10 +67,12 @@ describe('FeatureCard', () => {
       />
     )
 
+    // Assert
     expect(container.firstChild).toHaveClass('my-custom-class')
   })
 
-  it('passes through additional div props', () => {
+  it('should pass through additional div props', () => {
+    // Arrange & Act
     render(
       <FeatureCard
         icon={<span>icon</span>}
@@ -71,6 +82,7 @@ describe('FeatureCard', () => {
       />
     )
 
+    // Assert
     expect(screen.getByTestId('feature-card')).toBeInTheDocument()
   })
 })

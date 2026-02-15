@@ -42,7 +42,7 @@ describe('TableDemo', () => {
     render(<captured.Component />)
 
     // Assert
-    expect(screen.getByText('demo_table_heading')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('demo_table_heading')
   })
 
   it('should render the global search input', () => {

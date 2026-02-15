@@ -25,24 +25,7 @@ vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => vi.fn(),
 }))
 
-vi.mock('@repo/ui', () => ({
-  Button: ({
-    children,
-    asChild,
-    ...props
-  }: React.PropsWithChildren<{ asChild?: boolean; [key: string]: unknown }>) =>
-    asChild ? children : <button {...props}>{children}</button>,
-  Label: ({
-    children,
-    htmlFor,
-    ...props
-  }: React.PropsWithChildren<{ htmlFor?: string; [key: string]: unknown }>) => (
-    <label htmlFor={htmlFor} {...props}>
-      {children}
-    </label>
-  ),
-  PasswordInput: (props: Record<string, unknown>) => <input type="password" {...props} />,
-}))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
@@ -96,9 +79,8 @@ describe('ResetPasswordConfirmPage', () => {
     render(<ResetPasswordConfirmPage />)
 
     // Assert
-    const link = screen.getByText('auth_request_new_reset')
-    expect(link).toBeInTheDocument()
-    expect(link.closest('a')).toHaveAttribute('href', '/reset-password')
+    const link = screen.getByRole('link', { name: /auth_request_new_reset/ })
+    expect(link).toHaveAttribute('href', '/reset-password')
   })
 
   it('should render password input when token is present', () => {
@@ -113,7 +95,7 @@ describe('ResetPasswordConfirmPage', () => {
     expect(screen.getByLabelText('auth_new_password')).toBeInTheDocument()
   })
 
-  it('should render reset password button', () => {
+  it('should render reset password button when token is present', () => {
     // Arrange
     useSearchFn.mockReturnValue({ token: 'valid-token-123' })
     const ResetPasswordConfirmPage = captured.Component
@@ -125,7 +107,7 @@ describe('ResetPasswordConfirmPage', () => {
     expect(screen.getByRole('button', { name: 'auth_reset_password_button' })).toBeInTheDocument()
   })
 
-  it('should show back to sign in link', () => {
+  it('should show back to sign in link when token is present', () => {
     // Arrange
     useSearchFn.mockReturnValue({ token: 'valid-token-123' })
     const ResetPasswordConfirmPage = captured.Component
@@ -134,9 +116,8 @@ describe('ResetPasswordConfirmPage', () => {
     render(<ResetPasswordConfirmPage />)
 
     // Assert
-    const link = screen.getByText('auth_back_to_sign_in')
-    expect(link).toBeInTheDocument()
-    expect(link.closest('a')).toHaveAttribute('href', '/login')
+    const link = screen.getByRole('link', { name: /auth_back_to_sign_in/ })
+    expect(link).toHaveAttribute('href', '/login')
   })
 
   it('should display error when resetPassword returns an error', async () => {
@@ -183,8 +164,7 @@ describe('ResetPasswordConfirmPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeInTheDocument()
     })
-    const link = screen.getByText('auth_request_new_reset')
-    expect(link).toBeInTheDocument()
-    expect(link.closest('a')).toHaveAttribute('href', '/reset-password')
+    const link = screen.getByRole('link', { name: /auth_request_new_reset/ })
+    expect(link).toHaveAttribute('href', '/reset-password')
   })
 })

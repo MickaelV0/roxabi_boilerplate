@@ -15,7 +15,7 @@ function renderConfirmDialog(overrides: Partial<Parameters<typeof ConfirmDialog>
 }
 
 describe('ConfirmDialog', () => {
-  it('renders title and description', () => {
+  it('should render title and description', () => {
     // Arrange & Act
     renderConfirmDialog()
 
@@ -24,7 +24,7 @@ describe('ConfirmDialog', () => {
     expect(screen.getByText('This action cannot be undone.')).toBeInTheDocument()
   })
 
-  it('calls onConfirm when action button is clicked', () => {
+  it('should call onConfirm when action button is clicked', () => {
     // Arrange
     const onConfirm = vi.fn()
     renderConfirmDialog({ onConfirm })
@@ -36,7 +36,7 @@ describe('ConfirmDialog', () => {
     expect(onConfirm).toHaveBeenCalledTimes(1)
   })
 
-  it('disables confirm button when loading is true', () => {
+  it('should disable confirm button when loading is true', () => {
     // Arrange & Act
     renderConfirmDialog({ loading: true })
 
@@ -44,35 +44,36 @@ describe('ConfirmDialog', () => {
     expect(screen.getByRole('button', { name: 'Confirm' })).toBeDisabled()
   })
 
-  it('applies danger variant className by default', () => {
+  it('should apply danger variant styling by default', () => {
     // Arrange & Act
     renderConfirmDialog()
 
-    // Assert
+    // Assert -- ConfirmDialog does not expose a data-variant attribute;
+    // CSS class assertion is the only way to verify the variant styling
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' })
     expect(confirmBtn).toHaveClass('bg-destructive')
   })
 
-  it('applies warning variant className', () => {
+  it('should apply warning variant styling when variant is warning', () => {
     // Arrange & Act
     renderConfirmDialog({ variant: 'warning' })
 
-    // Assert
+    // Assert -- no data-variant attribute; CSS class verifies variant
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' })
     expect(confirmBtn).toHaveClass('bg-warning')
   })
 
-  it('applies info variant with no extra styles', () => {
+  it('should apply info variant with no extra styles', () => {
     // Arrange & Act
     renderConfirmDialog({ variant: 'info' })
 
-    // Assert
+    // Assert -- info variant has empty string for styles, verify absence of other variant classes
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' })
     expect(confirmBtn).not.toHaveClass('bg-destructive')
     expect(confirmBtn).not.toHaveClass('bg-warning')
   })
 
-  it('renders default confirmText and cancelText', () => {
+  it('should render default confirmText and cancelText', () => {
     // Arrange & Act
     renderConfirmDialog()
 
@@ -81,7 +82,7 @@ describe('ConfirmDialog', () => {
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
   })
 
-  it('renders custom confirmText and cancelText', () => {
+  it('should render custom confirmText and cancelText when provided', () => {
     // Arrange & Act
     renderConfirmDialog({ confirmText: 'Delete', cancelText: 'Keep' })
 

@@ -1,21 +1,25 @@
 import { describe, expect, it, vi } from 'vitest'
 
+async function importConfig(envValue: string) {
+  vi.stubEnv('VITE_GITHUB_REPO_URL', envValue)
+  vi.resetModules()
+  return import('./config')
+}
+
 describe('config', () => {
   it('should default GITHUB_REPO_URL to "#" when env is not set', async () => {
-    vi.stubEnv('VITE_GITHUB_REPO_URL', '')
+    // Arrange & Act
+    const { GITHUB_REPO_URL } = await importConfig('')
 
-    const { GITHUB_REPO_URL } = await import('./config')
-
+    // Assert
     expect(GITHUB_REPO_URL).toBe('#')
   })
 
   it('should use VITE_GITHUB_REPO_URL when env is set', async () => {
-    vi.stubEnv('VITE_GITHUB_REPO_URL', 'https://github.com/example/repo')
+    // Arrange & Act
+    const { GITHUB_REPO_URL } = await importConfig('https://github.com/example/repo')
 
-    // Re-import to pick up the new env value
-    vi.resetModules()
-    const { GITHUB_REPO_URL } = await import('./config')
-
+    // Assert
     expect(GITHUB_REPO_URL).toBe('https://github.com/example/repo')
   })
 })

@@ -10,7 +10,8 @@ import {
 } from './NavigationMenu'
 
 describe('NavigationMenu', () => {
-  it('renders with data-slot attribute', () => {
+  it('should render with data-slot attribute when rendered', () => {
+    // Arrange & Act
     const { container } = render(
       <NavigationMenu>
         <NavigationMenuList>
@@ -20,10 +21,13 @@ describe('NavigationMenu', () => {
         </NavigationMenuList>
       </NavigationMenu>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="navigation-menu"]')).toBeInTheDocument()
   })
 
-  it('renders links', () => {
+  it('should render links', () => {
+    // Arrange & Act
     render(
       <NavigationMenu>
         <NavigationMenuList>
@@ -36,11 +40,14 @@ describe('NavigationMenu', () => {
         </NavigationMenuList>
       </NavigationMenu>
     )
+
+    // Assert
     expect(screen.getByText('Home')).toBeInTheDocument()
     expect(screen.getByText('About')).toBeInTheDocument()
   })
 
-  it('sets data-viewport to true by default', () => {
+  it('should set data-viewport to true by default', () => {
+    // Arrange & Act
     const { container } = render(
       <NavigationMenu>
         <NavigationMenuList>
@@ -50,13 +57,16 @@ describe('NavigationMenu', () => {
         </NavigationMenuList>
       </NavigationMenu>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="navigation-menu"]')).toHaveAttribute(
       'data-viewport',
       'true'
     )
   })
 
-  it('can disable viewport', () => {
+  it('should disable viewport when viewport is false', () => {
+    // Arrange & Act
     const { container } = render(
       <NavigationMenu viewport={false}>
         <NavigationMenuList>
@@ -66,6 +76,8 @@ describe('NavigationMenu', () => {
         </NavigationMenuList>
       </NavigationMenu>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="navigation-menu"]')).toHaveAttribute(
       'data-viewport',
       'false'
@@ -75,7 +87,8 @@ describe('NavigationMenu', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('applies custom className', () => {
+  it('should apply custom className when provided', () => {
+    // Arrange & Act
     const { container } = render(
       <NavigationMenu className="custom-class">
         <NavigationMenuList>
@@ -85,12 +98,15 @@ describe('NavigationMenu', () => {
         </NavigationMenuList>
       </NavigationMenu>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="navigation-menu"]')).toHaveClass('custom-class')
   })
 })
 
 describe('NavigationMenuList', () => {
-  it('has data-slot attribute', () => {
+  it('should have data-slot attribute when rendered', () => {
+    // Arrange & Act
     const { container } = render(
       <NavigationMenu>
         <NavigationMenuList>
@@ -100,12 +116,15 @@ describe('NavigationMenuList', () => {
         </NavigationMenuList>
       </NavigationMenu>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="navigation-menu-list"]')).toBeInTheDocument()
   })
 })
 
 describe('NavigationMenuLink', () => {
-  it('has data-slot attribute', () => {
+  it('should have data-slot attribute when rendered', () => {
+    // Arrange & Act
     const { container } = render(
       <NavigationMenu>
         <NavigationMenuList>
@@ -115,12 +134,15 @@ describe('NavigationMenuLink', () => {
         </NavigationMenuList>
       </NavigationMenu>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="navigation-menu-link"]')).toBeInTheDocument()
   })
 })
 
 describe('NavigationMenuTrigger', () => {
-  it('renders with data-slot attribute', () => {
+  it('should render with data-slot attribute when rendered', () => {
+    // Arrange & Act
     const { container } = render(
       <NavigationMenu>
         <NavigationMenuList>
@@ -133,13 +155,16 @@ describe('NavigationMenuTrigger', () => {
         </NavigationMenuList>
       </NavigationMenu>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="navigation-menu-trigger"]')).toBeInTheDocument()
     expect(screen.getByText('Products')).toBeInTheDocument()
   })
 })
 
 describe('NavigationMenuItem', () => {
-  it('has data-slot attribute', () => {
+  it('should have data-slot attribute when rendered', () => {
+    // Arrange & Act
     const { container } = render(
       <NavigationMenu>
         <NavigationMenuList>
@@ -149,10 +174,13 @@ describe('NavigationMenuItem', () => {
         </NavigationMenuList>
       </NavigationMenu>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="navigation-menu-item"]')).toBeInTheDocument()
   })
 
-  it('applies custom className', () => {
+  it('should apply custom className when provided', () => {
+    // Arrange & Act
     const { container } = render(
       <NavigationMenu>
         <NavigationMenuList>
@@ -162,6 +190,8 @@ describe('NavigationMenuItem', () => {
         </NavigationMenuList>
       </NavigationMenu>
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="navigation-menu-item"]')).toHaveClass('custom-item')
   })
 })

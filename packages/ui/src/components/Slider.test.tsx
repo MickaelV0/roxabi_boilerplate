@@ -11,43 +11,64 @@ beforeAll(() => {
 })
 
 describe('Slider', () => {
-  it('renders correctly', () => {
+  it('should render correctly', () => {
+    // Arrange & Act
     render(<Slider aria-label="Volume" defaultValue={[50]} />)
+
+    // Assert
     expect(screen.getByRole('slider')).toBeInTheDocument()
   })
 
-  it('has data-slot attribute', () => {
+  it('should have data-slot attribute when rendered', () => {
+    // Arrange & Act
     const { container } = render(<Slider aria-label="Volume" defaultValue={[50]} />)
+
+    // Assert
     expect(container.querySelector('[data-slot="slider"]')).toBeInTheDocument()
   })
 
-  it('renders thumb for single value', () => {
+  it('should render thumb for single value', () => {
+    // Arrange & Act
     const { container } = render(<Slider aria-label="Volume" defaultValue={[50]} />)
+
+    // Assert
     const thumbs = container.querySelectorAll('[data-slot="slider-thumb"]')
     expect(thumbs).toHaveLength(1)
   })
 
-  it('renders two thumbs for range slider', () => {
+  it('should render two thumbs for range slider', () => {
+    // Arrange & Act
     const { container } = render(<Slider aria-label="Price range" defaultValue={[25, 75]} />)
+
+    // Assert
     const thumbs = container.querySelectorAll('[data-slot="slider-thumb"]')
     expect(thumbs).toHaveLength(2)
   })
 
-  it('renders track and range', () => {
+  it('should render track and range', () => {
+    // Arrange & Act
     const { container } = render(<Slider aria-label="Volume" defaultValue={[50]} />)
+
+    // Assert
     expect(container.querySelector('[data-slot="slider-track"]')).toBeInTheDocument()
     expect(container.querySelector('[data-slot="slider-range"]')).toBeInTheDocument()
   })
 
-  it('applies custom className', () => {
+  it('should apply custom className when provided', () => {
+    // Arrange & Act
     const { container } = render(
       <Slider aria-label="Volume" defaultValue={[50]} className="custom-class" />
     )
+
+    // Assert
     expect(container.querySelector('[data-slot="slider"]')).toHaveClass('custom-class')
   })
 
-  it('can be disabled', () => {
+  it('should be disabled when disabled prop is set', () => {
+    // Arrange & Act
     const { container } = render(<Slider aria-label="Volume" defaultValue={[50]} disabled />)
+
+    // Assert
     expect(container.querySelector('[data-slot="slider"]')).toHaveAttribute('data-disabled', '')
   })
 })

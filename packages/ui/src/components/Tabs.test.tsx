@@ -16,7 +16,7 @@ function renderTabs() {
 }
 
 describe('Tabs', () => {
-  it('renders triggers correctly', () => {
+  it('should render triggers correctly', () => {
     // Arrange & Act
     renderTabs()
 
@@ -25,7 +25,7 @@ describe('Tabs', () => {
     expect(screen.getByText('Tab 2')).toBeInTheDocument()
   })
 
-  it('has data-slot attribute on root', () => {
+  it('should have data-slot attribute on root when rendered', () => {
     // Arrange & Act
     const { container } = renderTabs()
 
@@ -33,7 +33,7 @@ describe('Tabs', () => {
     expect(container.querySelector('[data-slot="tabs"]')).toBeInTheDocument()
   })
 
-  it('has data-slot attribute on tabs-list', () => {
+  it('should have data-slot attribute on tabs-list when rendered', () => {
     // Arrange & Act
     const { container } = renderTabs()
 
@@ -41,7 +41,7 @@ describe('Tabs', () => {
     expect(container.querySelector('[data-slot="tabs-list"]')).toBeInTheDocument()
   })
 
-  it('has data-slot attribute on tabs-trigger', () => {
+  it('should have data-slot attribute on tabs-trigger when rendered', () => {
     // Arrange & Act
     const { container } = renderTabs()
 
@@ -50,7 +50,7 @@ describe('Tabs', () => {
     expect(triggers).toHaveLength(2)
   })
 
-  it('has data-slot attribute on tabs-content', () => {
+  it('should have data-slot attribute on tabs-content when rendered', () => {
     // Arrange & Act
     const { container } = renderTabs()
 
@@ -58,7 +58,7 @@ describe('Tabs', () => {
     expect(container.querySelector('[data-slot="tabs-content"]')).toBeInTheDocument()
   })
 
-  it('shows first tab content by default', () => {
+  it('should show first tab content by default', () => {
     // Arrange & Act
     renderTabs()
 
@@ -66,7 +66,7 @@ describe('Tabs', () => {
     expect(screen.getByText('Content 1')).toBeVisible()
   })
 
-  it('marks active trigger with aria-selected', () => {
+  it('should mark active trigger with aria-selected', () => {
     // Arrange & Act
     renderTabs()
 
@@ -77,7 +77,7 @@ describe('Tabs', () => {
     expect(tab2).toHaveAttribute('aria-selected', 'false')
   })
 
-  it('applies custom className to TabsList', () => {
+  it('should apply custom className to TabsList when provided', () => {
     // Arrange & Act
     const { container } = render(
       <Tabs defaultValue="tab-1">
@@ -92,7 +92,7 @@ describe('Tabs', () => {
     expect(container.querySelector('.custom-class')).toBeInTheDocument()
   })
 
-  it('applies custom className to TabsTrigger', () => {
+  it('should apply custom className to TabsTrigger when provided', () => {
     // Arrange & Act
     const { container } = render(
       <Tabs defaultValue="tab-1">
@@ -109,7 +109,7 @@ describe('Tabs', () => {
     expect(container.querySelector('.trigger-class')).toBeInTheDocument()
   })
 
-  it('applies custom className to TabsContent', () => {
+  it('should apply custom className to TabsContent when provided', () => {
     // Arrange & Act
     const { container } = render(
       <Tabs defaultValue="tab-1">

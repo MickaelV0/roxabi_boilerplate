@@ -9,7 +9,7 @@ vi.mock('@repo/ui', () => ({
 import { SectionContainer } from './SectionContainer'
 
 describe('SectionContainer', () => {
-  it('renders children', () => {
+  it('should render children', () => {
     // Arrange & Act
     render(
       <SectionContainer id="test-section">
@@ -21,7 +21,7 @@ describe('SectionContainer', () => {
     expect(screen.getByText('Hello World')).toBeInTheDocument()
   })
 
-  it('sets the section id attribute', () => {
+  it('should set the section id attribute', () => {
     // Arrange & Act
     render(
       <SectionContainer id="my-section">
@@ -35,7 +35,7 @@ describe('SectionContainer', () => {
     expect(section?.tagName.toLowerCase()).toBe('section')
   })
 
-  it('applies custom className to the section element', () => {
+  it('should apply custom className to the section element', () => {
     // Arrange & Act
     render(
       <SectionContainer id="styled-section" className="custom-class">
@@ -43,7 +43,7 @@ describe('SectionContainer', () => {
       </SectionContainer>
     )
 
-    // Assert — className is merged into the section element via cn()
+    // Assert -- className is merged into the section element via cn()
     const section = document.getElementById('styled-section')
     expect(section).toBeInTheDocument()
     expect(section).toHaveClass('custom-class')

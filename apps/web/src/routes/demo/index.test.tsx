@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
@@ -19,6 +20,8 @@ vi.mock('@tanstack/react-router', () => ({
 
 vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
+mockParaglideMessages()
+
 import './index'
 
 describe('DemoIndex', () => {
@@ -27,7 +30,7 @@ describe('DemoIndex', () => {
     render(<captured.Component />)
 
     // Assert
-    expect(screen.getByText('Demos')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('demo_title')
   })
 
   it('should render all category headings', () => {
@@ -35,24 +38,24 @@ describe('DemoIndex', () => {
     render(<captured.Component />)
 
     // Assert
-    expect(screen.getByText('TanStack')).toBeInTheDocument()
-    expect(screen.getByText('Forms')).toBeInTheDocument()
-    expect(screen.getByText('SSR & Server')).toBeInTheDocument()
-    expect(screen.getByText('i18n')).toBeInTheDocument()
+    expect(screen.getByText('demo_category_tanstack')).toBeInTheDocument()
+    expect(screen.getByText('demo_category_forms')).toBeInTheDocument()
+    expect(screen.getByText('demo_category_ssr')).toBeInTheDocument()
+    expect(screen.getByText('demo_category_i18n')).toBeInTheDocument()
   })
 
   it('should render demo links with correct hrefs', () => {
     // Arrange & Act
     render(<captured.Component />)
 
-    // Assert — link accessible names include description text, so use regex
-    const storeLink = screen.getByRole('link', { name: /Store/ })
+    // Assert
+    const storeLink = screen.getByRole('link', { name: /demo_store_title/ })
     expect(storeLink).toHaveAttribute('href', '/demo/store')
 
-    const queryLink = screen.getByRole('link', { name: /Query/ })
+    const queryLink = screen.getByRole('link', { name: /demo_query_title/ })
     expect(queryLink).toHaveAttribute('href', '/demo/tanstack-query')
 
-    const tableLink = screen.getByRole('link', { name: /Table/ })
+    const tableLink = screen.getByRole('link', { name: /demo_table_title/ })
     expect(tableLink).toHaveAttribute('href', '/demo/table')
   })
 
@@ -61,7 +64,7 @@ describe('DemoIndex', () => {
     render(<captured.Component />)
 
     // Assert
-    expect(screen.getByText('TanStack Store with reactive state management')).toBeInTheDocument()
-    expect(screen.getByText('TanStack Query with CRUD operations')).toBeInTheDocument()
+    expect(screen.getByText('demo_store_desc')).toBeInTheDocument()
+    expect(screen.getByText('demo_query_desc')).toBeInTheDocument()
   })
 })

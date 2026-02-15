@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
@@ -17,6 +18,8 @@ vi.mock('@tanstack/react-router', () => ({
 
 vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
+mockParaglideMessages()
+
 vi.mock('@tanstack/react-query', () => ({
   useQuery: () => ({ data: [], refetch: vi.fn() }),
   useMutation: () => ({ mutate: vi.fn() }),
@@ -30,7 +33,7 @@ describe('TanStackQueryDemo', () => {
     render(<captured.Component />)
 
     // Assert
-    expect(screen.getByText('TanStack Query')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('demo_query_heading')
   })
 
   it('should render the Todos card title', () => {
@@ -38,7 +41,7 @@ describe('TanStackQueryDemo', () => {
     render(<captured.Component />)
 
     // Assert
-    expect(screen.getByText('Todos')).toBeInTheDocument()
+    expect(screen.getByText('demo_query_todos')).toBeInTheDocument()
   })
 
   it('should render the todo input and add button', () => {
@@ -46,8 +49,8 @@ describe('TanStackQueryDemo', () => {
     render(<captured.Component />)
 
     // Assert
-    expect(screen.getByPlaceholderText('Enter a new todo...')).toBeInTheDocument()
-    expect(screen.getByText('Add todo')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('demo_query_placeholder')).toBeInTheDocument()
+    expect(screen.getByText('demo_query_add')).toBeInTheDocument()
   })
 
   it('should render the add button as disabled when input is empty', () => {
@@ -55,6 +58,6 @@ describe('TanStackQueryDemo', () => {
     render(<captured.Component />)
 
     // Assert
-    expect(screen.getByRole('button', { name: 'Add todo' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'demo_query_add' })).toBeDisabled()
   })
 })

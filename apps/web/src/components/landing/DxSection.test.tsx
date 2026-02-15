@@ -31,30 +31,38 @@ vi.mock('@/paraglide/messages', () => ({
 import { DxSection } from './DxSection'
 
 describe('DxSection', () => {
-  it('renders the section heading', () => {
+  it('should render the section heading', () => {
+    // Arrange & Act
     render(<DxSection />)
 
+    // Assert
     expect(screen.getByText('Developer Experience')).toBeInTheDocument()
   })
 
-  it('renders the subtitle', () => {
+  it('should render the subtitle', () => {
+    // Arrange & Act
     render(<DxSection />)
 
+    // Assert
     expect(screen.getByText('Built for developers')).toBeInTheDocument()
   })
 
-  it('renders all four DX feature cards', () => {
+  it('should render all four DX feature cards', () => {
+    // Arrange & Act
     render(<DxSection />)
 
+    // Assert
     expect(screen.getByText('TDD')).toBeInTheDocument()
     expect(screen.getByText('Quality')).toBeInTheDocument()
     expect(screen.getByText('Documentation')).toBeInTheDocument()
     expect(screen.getByText('Tooling')).toBeInTheDocument()
   })
 
-  it('renders feature descriptions', () => {
+  it('should render feature descriptions', () => {
+    // Arrange & Act
     render(<DxSection />)
 
+    // Assert
     expect(screen.getByText('Test-driven development')).toBeInTheDocument()
     expect(screen.getByText('High quality standards')).toBeInTheDocument()
     expect(screen.getByText('Comprehensive docs')).toBeInTheDocument()

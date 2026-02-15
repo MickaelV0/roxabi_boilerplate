@@ -276,7 +276,7 @@ describe('OrgSettingsPage', () => {
     // Act
     render(<OrgSettings />)
 
-    // Assert — save button should be disabled when values match the active org
+    // Assert -- save button should be disabled when values match the active org
     const saveButton = screen.getByRole('button', { name: 'org_settings_save' })
     expect(saveButton).toBeDisabled()
   })
@@ -306,7 +306,7 @@ describe('OrgSettingsPage', () => {
     // Act
     render(<OrgSettings />)
 
-    // Assert — delete dialog content is rendered (mock renders all children)
+    // Assert -- delete dialog content is rendered (mock renders all children)
     // The type-to-confirm prompt includes the org name parameter
     expect(screen.getByText('org_delete_type_confirm({"name":"Acme Corp"})')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('org_delete_type_placeholder')).toBeInTheDocument()

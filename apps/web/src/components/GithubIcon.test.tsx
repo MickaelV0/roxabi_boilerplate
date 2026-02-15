@@ -23,24 +23,30 @@ vi.mock('@/lib/config', () => ({
 import { GithubIcon } from './GithubIcon'
 
 describe('GithubIcon', () => {
-  it('renders a link to the GitHub repo', () => {
+  it('should render a link to the GitHub repo', () => {
+    // Arrange & Act
     render(<GithubIcon />)
 
+    // Assert
     const link = screen.getByRole('link')
     expect(link).toHaveAttribute('href', 'https://github.com/test/repo')
   })
 
-  it('opens in a new tab', () => {
+  it('should open in a new tab', () => {
+    // Arrange & Act
     render(<GithubIcon />)
 
+    // Assert
     const link = screen.getByRole('link')
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
   })
 
-  it('has an accessible label', () => {
+  it('should have an accessible label', () => {
+    // Arrange & Act
     render(<GithubIcon />)
 
+    // Assert
     const link = screen.getByLabelText('GitHub')
     expect(link).toBeInTheDocument()
   })

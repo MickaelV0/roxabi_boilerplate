@@ -24,14 +24,7 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }))
 
-vi.mock('@repo/ui', () => ({
-  Button: ({
-    children,
-    asChild,
-    ...props
-  }: React.PropsWithChildren<{ asChild?: boolean; [key: string]: unknown }>) =>
-    asChild ? children : <button {...props}>{children}</button>,
-}))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 vi.mock('@/lib/auth-client', () => ({
   useSession: useSessionFn,
@@ -71,40 +64,55 @@ mockParaglideMessages()
 import './verify-email'
 
 describe('VerifyEmailPage', () => {
-  it('should render error state when token is missing', () => {
+  it('should render error alert when token is missing', () => {
+    // Arrange
     useSearchFn.mockReturnValue({ token: undefined })
     const VerifyEmailPage = captured.Component
+
+    // Act
     render(<VerifyEmailPage />)
 
+    // Assert
     expect(screen.getByRole('alert')).toBeInTheDocument()
     expect(screen.getByText('auth_missing_token')).toBeInTheDocument()
   })
 
   it('should render loading state when token is present', () => {
+    // Arrange
     useSearchFn.mockReturnValue({ token: 'abc123' })
     const VerifyEmailPage = captured.Component
+
+    // Act
     render(<VerifyEmailPage />)
 
+    // Assert
     expect(screen.getByTestId('loader')).toBeInTheDocument()
     expect(screen.getByText('auth_verifying_email')).toBeInTheDocument()
   })
 
-  it('should render resend verification button in error state when session exists', () => {
+  it('should render resend verification button when session exists in error state', () => {
+    // Arrange
     useSearchFn.mockReturnValue({ token: undefined })
     useSessionFn.mockReturnValue({ data: { user: { email: 'user@example.com' } } })
     const VerifyEmailPage = captured.Component
+
+    // Act
     render(<VerifyEmailPage />)
 
+    // Assert
     expect(screen.getByRole('button', { name: 'auth_resend_verification' })).toBeInTheDocument()
   })
 
-  it('should render back to sign in link in error state', () => {
+  it('should render back to sign in link when token is missing', () => {
+    // Arrange
     useSearchFn.mockReturnValue({ token: undefined })
     const VerifyEmailPage = captured.Component
+
+    // Act
     render(<VerifyEmailPage />)
 
-    const link = screen.getByText('auth_back_to_sign_in')
-    expect(link).toBeInTheDocument()
-    expect(link.closest('a')).toHaveAttribute('href', '/login')
+    // Assert
+    const link = screen.getByRole('link', { name: /auth_back_to_sign_in/ })
+    expect(link).toHaveAttribute('href', '/login')
   })
 })

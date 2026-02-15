@@ -34,7 +34,7 @@ describe('DemoLayout', () => {
     expect(() => captured.beforeLoad()).not.toThrow()
   })
 
-  it('should throw notFound in beforeLoad when VITE_ENABLE_DEMO is not true', () => {
+  it('should throw notFound in beforeLoad when VITE_ENABLE_DEMO is false', () => {
     // Arrange
     vi.stubEnv('VITE_ENABLE_DEMO', 'false')
 

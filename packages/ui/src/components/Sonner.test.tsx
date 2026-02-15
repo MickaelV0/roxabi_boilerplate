@@ -3,19 +3,25 @@ import { describe, expect, it } from 'vitest'
 import { Toaster } from './Sonner'
 
 describe('Toaster', () => {
-  it('renders without crashing', () => {
+  it('should render without crashing', () => {
+    // Arrange & Act
     const { container } = render(<Toaster />)
+
+    // Assert
     expect(container).toBeTruthy()
   })
 
-  it('renders sonner toaster into the DOM', () => {
+  it('should render sonner toaster into the DOM', () => {
+    // Arrange & Act
     render(<Toaster />)
-    // Sonner renders a section element as its root
+
+    // Assert -- Sonner renders a section element as its root
     const section = document.querySelector('section')
     expect(section).toBeTruthy()
   })
 
-  it('accepts position prop without error', () => {
+  it('should accept position prop without error', () => {
+    // Arrange, Act & Assert
     expect(() => render(<Toaster position="top-center" />)).not.toThrow()
   })
 })

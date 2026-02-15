@@ -55,7 +55,7 @@ describe('useReducedMotion', () => {
   })
 
   it('returns false when matchMedia is not available', () => {
-    // Arrange — simulate environment without matchMedia
+    // Arrange -- simulate environment without matchMedia
     // @ts-expect-error -- testing missing API
     window.matchMedia = undefined
 
@@ -74,7 +74,7 @@ describe('useReducedMotion', () => {
     const { result } = renderHook(() => useReducedMotion())
     expect(result.current).toBe(false)
 
-    // Act — simulate user enabling reduced motion
+    // Act -- simulate user enabling reduced motion
     // Update the mock's matches property so getSnapshot reads the new value
     act(() => {
       mql.matches = true

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { Alert, AlertDescription, AlertTitle } from './Alert'
 
 describe('Alert', () => {
-  it('renders children correctly', () => {
+  it('should render children correctly', () => {
     // Arrange & Act
     render(<Alert>Alert content</Alert>)
 
@@ -11,7 +11,7 @@ describe('Alert', () => {
     expect(screen.getByText('Alert content')).toBeInTheDocument()
   })
 
-  it('has data-slot attribute', () => {
+  it('should have data-slot attribute when rendered', () => {
     // Arrange & Act
     const { container } = render(<Alert>Content</Alert>)
 
@@ -19,7 +19,7 @@ describe('Alert', () => {
     expect(container.querySelector('[data-slot="alert"]')).toBeInTheDocument()
   })
 
-  it('has role="alert"', () => {
+  it('should have role="alert" when rendered', () => {
     // Arrange & Act
     render(<Alert>Content</Alert>)
 
@@ -27,7 +27,7 @@ describe('Alert', () => {
     expect(screen.getByRole('alert')).toBeInTheDocument()
   })
 
-  it('applies custom className', () => {
+  it('should apply custom className when provided', () => {
     // Arrange & Act
     render(<Alert className="custom-class">Content</Alert>)
 
@@ -35,7 +35,7 @@ describe('Alert', () => {
     expect(screen.getByRole('alert')).toHaveClass('custom-class')
   })
 
-  it('applies default variant', () => {
+  it('should apply default variant when no variant is specified', () => {
     // Arrange & Act
     render(<Alert>Content</Alert>)
 
@@ -43,7 +43,7 @@ describe('Alert', () => {
     expect(screen.getByRole('alert')).toHaveAttribute('data-variant', 'default')
   })
 
-  it('applies destructive variant', () => {
+  it('should apply destructive variant when variant is destructive', () => {
     // Arrange & Act
     render(<Alert variant="destructive">Content</Alert>)
 
@@ -53,7 +53,7 @@ describe('Alert', () => {
 })
 
 describe('AlertTitle', () => {
-  it('renders title text', () => {
+  it('should render title text', () => {
     // Arrange & Act
     render(<AlertTitle>My Title</AlertTitle>)
 
@@ -61,7 +61,7 @@ describe('AlertTitle', () => {
     expect(screen.getByText('My Title')).toBeInTheDocument()
   })
 
-  it('has data-slot attribute', () => {
+  it('should have data-slot attribute when rendered', () => {
     // Arrange & Act
     const { container } = render(<AlertTitle>Title</AlertTitle>)
 
@@ -69,7 +69,7 @@ describe('AlertTitle', () => {
     expect(container.querySelector('[data-slot="alert-title"]')).toBeInTheDocument()
   })
 
-  it('applies custom className', () => {
+  it('should apply custom className when provided', () => {
     // Arrange & Act
     const { container } = render(<AlertTitle className="custom-title">Title</AlertTitle>)
 
@@ -79,7 +79,7 @@ describe('AlertTitle', () => {
 })
 
 describe('AlertDescription', () => {
-  it('renders description text', () => {
+  it('should render description text', () => {
     // Arrange & Act
     render(<AlertDescription>Description text</AlertDescription>)
 
@@ -87,7 +87,7 @@ describe('AlertDescription', () => {
     expect(screen.getByText('Description text')).toBeInTheDocument()
   })
 
-  it('has data-slot attribute', () => {
+  it('should have data-slot attribute when rendered', () => {
     // Arrange & Act
     const { container } = render(<AlertDescription>Desc</AlertDescription>)
 
@@ -95,7 +95,7 @@ describe('AlertDescription', () => {
     expect(container.querySelector('[data-slot="alert-description"]')).toBeInTheDocument()
   })
 
-  it('applies custom className', () => {
+  it('should apply custom className when provided', () => {
     // Arrange & Act
     const { container } = render(<AlertDescription className="custom-desc">Desc</AlertDescription>)
 
@@ -105,7 +105,7 @@ describe('AlertDescription', () => {
 })
 
 describe('Alert composed', () => {
-  it('renders a full alert with all subcomponents', () => {
+  it('should render a full alert with all subcomponents', () => {
     // Arrange & Act
     const { container } = render(
       <Alert>

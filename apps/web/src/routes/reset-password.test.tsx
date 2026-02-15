@@ -23,21 +23,7 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }))
 
-vi.mock('@repo/ui', () => ({
-  Button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <button {...props}>{children}</button>
-  ),
-  Input: (props: Record<string, unknown>) => <input {...props} />,
-  Label: ({
-    children,
-    htmlFor,
-    ...props
-  }: React.PropsWithChildren<{ htmlFor?: string; [key: string]: unknown }>) => (
-    <label htmlFor={htmlFor} {...props}>
-      {children}
-    </label>
-  ),
-}))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
@@ -69,31 +55,42 @@ mockParaglideMessages()
 import './reset-password'
 
 describe('ResetPasswordPage', () => {
-  it('should render email input', () => {
+  it('should render email input when component mounts', () => {
+    // Arrange
     const ResetPasswordPage = captured.Component
+
+    // Act
     render(<ResetPasswordPage />)
 
+    // Assert
     expect(screen.getByLabelText('auth_email')).toBeInTheDocument()
   })
 
-  it('should render send reset link button', () => {
+  it('should render send reset link button when component mounts', () => {
+    // Arrange
     const ResetPasswordPage = captured.Component
+
+    // Act
     render(<ResetPasswordPage />)
 
+    // Assert
     expect(screen.getByRole('button', { name: 'auth_send_reset_link' })).toBeInTheDocument()
   })
 
   it('should render sign in link for users who remember their password', () => {
+    // Arrange
     const ResetPasswordPage = captured.Component
+
+    // Act
     render(<ResetPasswordPage />)
 
-    const link = screen.getByText('auth_sign_in_link')
-    expect(link).toBeInTheDocument()
-    expect(link.closest('a')).toHaveAttribute('href', '/login')
+    // Assert
+    const link = screen.getByRole('link', { name: /auth_sign_in_link/ })
+    expect(link).toHaveAttribute('href', '/login')
   })
 
   it('should always show generic success message regardless of backend response (security guardrail)', async () => {
-    // Arrange — even when backend returns an error, the UI must show
+    // Arrange -- even when backend returns an error, the UI must show
     // the same generic message to avoid revealing whether an email exists.
     vi.mocked(authClient.requestPasswordReset).mockResolvedValueOnce({
       error: { message: 'User not found' },
@@ -109,7 +106,7 @@ describe('ResetPasswordPage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'auth_send_reset_link' }))
 
-    // Assert — generic message shown, NOT the backend error
+    // Assert -- generic message shown, NOT the backend error
     await waitFor(() => {
       expect(screen.getByText('auth_reset_password_sent')).toBeInTheDocument()
     })
@@ -131,7 +128,7 @@ describe('ResetPasswordPage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'auth_send_reset_link' }))
 
-    // Assert — button should be disabled with cooldown text
+    // Assert -- button should be disabled with cooldown text
     await waitFor(() => {
       const button = screen.getByRole('button')
       expect(button).toBeDisabled()

@@ -13,7 +13,7 @@ import {
 
 describe('Sheet', () => {
   it('should render trigger and open sheet content', () => {
-    // Arrange
+    // Arrange & Act
     render(
       <Sheet defaultOpen>
         <SheetTrigger>Open Sheet</SheetTrigger>
@@ -38,7 +38,7 @@ describe('Sheet', () => {
   })
 
   it('should render the close button with accessible label', () => {
-    // Arrange
+    // Arrange & Act
     render(
       <Sheet defaultOpen>
         <SheetTrigger>Open</SheetTrigger>
@@ -50,13 +50,14 @@ describe('Sheet', () => {
       </Sheet>
     )
 
-    // Assert
+    // Assert -- the "Close" text uses sr-only for screen reader accessibility;
+    // CSS class assertion is necessary since sr-only is a utility class, not a semantic attribute
     expect(screen.getByText('Close')).toBeInTheDocument()
     expect(screen.getByText('Close')).toHaveClass('sr-only')
   })
 
-  it('should apply data-slot attributes', () => {
-    // Arrange
+  it('should apply data-slot attributes when rendered', () => {
+    // Arrange & Act
     render(
       <Sheet defaultOpen>
         <SheetTrigger>Open</SheetTrigger>
@@ -79,8 +80,8 @@ describe('Sheet', () => {
     expect(document.querySelector('[data-slot="sheet-footer"]')).toBeInTheDocument()
   })
 
-  it('should accept a custom className on SheetContent', () => {
-    // Arrange
+  it('should accept a custom className on SheetContent when provided', () => {
+    // Arrange & Act
     render(
       <Sheet defaultOpen>
         <SheetTrigger>Open</SheetTrigger>
@@ -98,7 +99,7 @@ describe('Sheet', () => {
   })
 
   it('should render the trigger button', () => {
-    // Arrange
+    // Arrange & Act
     render(
       <Sheet>
         <SheetTrigger>Open Sheet</SheetTrigger>

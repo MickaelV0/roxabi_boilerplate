@@ -115,54 +115,67 @@ import { Select, Slider, SubscribeButton, Switch, TextArea, TextField } from './
 
 describe('demo.FormComponents', () => {
   describe('SubscribeButton', () => {
-    it('renders a submit button with the given label', () => {
+    it('should render a submit button with the given label', () => {
+      // Arrange & Act
       render(<SubscribeButton label="Subscribe" />)
 
+      // Assert
       const button = screen.getByRole('button', { name: 'Subscribe' })
       expect(button).toBeInTheDocument()
       expect(button).toHaveAttribute('type', 'submit')
     })
 
-    it('renders with the button not disabled when not submitting', () => {
+    it('should render with the button not disabled when not submitting', () => {
+      // Arrange & Act
       render(<SubscribeButton label="Submit" />)
 
+      // Assert
       const button = screen.getByRole('button', { name: 'Submit' })
       expect(button).not.toBeDisabled()
     })
   })
 
   describe('TextField', () => {
-    it('renders a label', () => {
+    it('should render a label', () => {
+      // Arrange & Act
       render(<TextField label="Email" />)
 
+      // Assert
       expect(screen.getByText('Email')).toBeInTheDocument()
     })
 
-    it('renders an input with the field value', () => {
+    it('should render an input with the field value', () => {
+      // Arrange & Act
       render(<TextField label="Name" placeholder="Enter name" />)
 
+      // Assert
       const input = screen.getByPlaceholderText('Enter name')
       expect(input).toBeInTheDocument()
     })
   })
 
   describe('TextArea', () => {
-    it('renders a label', () => {
+    it('should render a label', () => {
+      // Arrange & Act
       render(<TextArea label="Message" />)
 
+      // Assert
       expect(screen.getByText('Message')).toBeInTheDocument()
     })
 
-    it('renders a textarea element', () => {
+    it('should render a textarea element', () => {
+      // Arrange & Act
       render(<TextArea label="Comments" rows={5} />)
 
+      // Assert
       const textarea = screen.getByRole('textbox')
       expect(textarea).toBeInTheDocument()
     })
   })
 
   describe('Select', () => {
-    it('renders a select with placeholder', () => {
+    it('should render a select with placeholder', () => {
+      // Arrange & Act
       render(
         <Select
           label="Country"
@@ -174,10 +187,12 @@ describe('demo.FormComponents', () => {
         />
       )
 
+      // Assert
       expect(screen.getByText('Select a country')).toBeInTheDocument()
     })
 
-    it('renders select items', () => {
+    it('should render select items', () => {
+      // Arrange & Act
       render(
         <Select
           label="Color"
@@ -188,24 +203,29 @@ describe('demo.FormComponents', () => {
         />
       )
 
+      // Assert
       expect(screen.getByText('Red')).toBeInTheDocument()
       expect(screen.getByText('Blue')).toBeInTheDocument()
     })
   })
 
   describe('Slider', () => {
-    it('renders a slider with label', () => {
+    it('should render a slider with label', () => {
+      // Arrange & Act
       render(<Slider label="Volume" />)
 
+      // Assert
       expect(screen.getByText('Volume')).toBeInTheDocument()
       expect(screen.getByRole('slider')).toBeInTheDocument()
     })
   })
 
   describe('Switch', () => {
-    it('renders a switch with label', () => {
+    it('should render a switch with label', () => {
+      // Arrange & Act
       render(<Switch label="Notifications" />)
 
+      // Assert
       expect(screen.getByText('Notifications')).toBeInTheDocument()
       expect(screen.getByRole('switch')).toBeInTheDocument()
     })

@@ -162,7 +162,7 @@ describe('OrgMembersPage', () => {
     const Page = captured.Component
     render(<Page />)
 
-    // Assert — appears in trigger button and dialog title
+    // Assert -- appears in trigger button and dialog title
     const inviteElements = screen.getAllByText('org_invite_title')
     expect(inviteElements.length).toBeGreaterThanOrEqual(1)
   })
@@ -175,7 +175,7 @@ describe('OrgMembersPage', () => {
     const Page = captured.Component
     render(<Page />)
 
-    // Assert — appears in trigger button and dialog title
+    // Assert -- appears in trigger button and dialog title
     const inviteElements = screen.getAllByText('org_invite_title')
     expect(inviteElements.length).toBeGreaterThanOrEqual(1)
   })
@@ -189,7 +189,7 @@ describe('OrgMembersPage', () => {
     render(<Page />)
 
     // Assert
-    // The invite title appears inside the dialog trigger — it should not render at all
+    // The invite title appears inside the dialog trigger -- it should not render at all
     const inviteButtons = screen.queryAllByText('org_invite_title')
     expect(inviteButtons.length).toBe(0)
   })
@@ -212,7 +212,7 @@ describe('OrgMembersPage', () => {
     const Page = captured.Component
     render(<Page />)
 
-    // Assert — only 1 remove button (for the non-owner member), not 2
+    // Assert -- only 1 remove button (for the non-owner member), not 2
     const removeButtons = screen.getAllByText('org_members_remove')
     expect(removeButtons).toHaveLength(1)
   })
@@ -252,7 +252,7 @@ describe('OrgMembersPage', () => {
   })
 
   it('should render role badges correctly for owner', () => {
-    // Arrange — a regular member viewing (no canManage), so owner role renders as Badge
+    // Arrange -- a regular member viewing (no canManage), so owner role renders as Badge
     setupOrg({
       members: [
         createMember({
@@ -275,7 +275,7 @@ describe('OrgMembersPage', () => {
   })
 
   it('should render role badges correctly for admin', () => {
-    // Arrange — a regular member viewing, so admin role renders as Badge
+    // Arrange -- a regular member viewing, so admin role renders as Badge
     setupOrg({
       members: [
         createMember({
@@ -298,7 +298,7 @@ describe('OrgMembersPage', () => {
   })
 
   it('should render role badges correctly for member', () => {
-    // Arrange — a regular member viewing, so member role renders as Badge
+    // Arrange -- a regular member viewing, so member role renders as Badge
     setupOrg({
       members: [
         createMember({
@@ -357,7 +357,7 @@ describe('OrgMembersPage', () => {
   })
 
   it('should render role select (not badge) for non-owner members when user can manage', () => {
-    // Arrange — owner viewing a regular member should see a Select, not a Badge
+    // Arrange -- owner viewing a regular member should see a Select, not a Badge
     setupOrg({
       members: [
         createMember({ id: 'm-dev', role: 'member', user: { name: 'Dev', email: 'dev@acme.com' } }),
@@ -369,7 +369,7 @@ describe('OrgMembersPage', () => {
     const Page = captured.Component
     render(<Page />)
 
-    // Assert — should see SelectItem options for admin and member
+    // Assert -- should see SelectItem options for admin and member
     const adminOptions = screen.getAllByText('org_role_admin')
     expect(adminOptions.length).toBeGreaterThanOrEqual(1)
     const memberOptions = screen.getAllByText('org_role_member')
@@ -377,7 +377,7 @@ describe('OrgMembersPage', () => {
   })
 
   it('should filter invitations to only show pending ones', () => {
-    // Arrange — provide a mix of pending and non-pending invitations
+    // Arrange -- provide a mix of pending and non-pending invitations
     setupOrg({
       invitations: [
         createInvitation({ id: 'inv-1', email: 'pending@acme.com', status: 'pending' }),
@@ -389,7 +389,7 @@ describe('OrgMembersPage', () => {
     const Page = captured.Component
     render(<Page />)
 
-    // Assert — only the pending invitation should be visible
+    // Assert -- only the pending invitation should be visible
     expect(screen.getByText('pending@acme.com')).toBeInTheDocument()
     expect(screen.queryByText('accepted@acme.com')).not.toBeInTheDocument()
   })

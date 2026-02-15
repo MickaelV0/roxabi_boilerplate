@@ -35,34 +35,44 @@ vi.mock('@/lib/config', () => ({
 import { HeroSection } from './HeroSection'
 
 describe('HeroSection', () => {
-  it('renders the hero title', () => {
+  it('should render the hero title', () => {
+    // Arrange & Act
     render(<HeroSection />)
 
+    // Assert
     expect(screen.getByText('Build Your SaaS Faster')).toBeInTheDocument()
   })
 
-  it('renders the hero subtitle', () => {
+  it('should render the hero subtitle', () => {
+    // Arrange & Act
     render(<HeroSection />)
 
+    // Assert
     expect(screen.getByText('A modern SaaS boilerplate')).toBeInTheDocument()
   })
 
-  it('renders the badge', () => {
+  it('should render the badge', () => {
+    // Arrange & Act
     render(<HeroSection />)
 
+    // Assert
     expect(screen.getByText('Open Source')).toBeInTheDocument()
   })
 
-  it('renders CTA buttons', () => {
+  it('should render CTA buttons', () => {
+    // Arrange & Act
     render(<HeroSection />)
 
+    // Assert
     expect(screen.getByText('Get Started')).toBeInTheDocument()
     expect(screen.getByText('View on GitHub')).toBeInTheDocument()
   })
 
-  it('renders stats', () => {
+  it('should render stats', () => {
+    // Arrange & Act
     render(<HeroSection />)
 
+    // Assert
     expect(screen.getByText('5 min')).toBeInTheDocument()
     expect(screen.getByText('Setup time')).toBeInTheDocument()
     expect(screen.getByText('Zero')).toBeInTheDocument()
