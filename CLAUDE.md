@@ -265,7 +265,7 @@ Agent definitions: `.claude/agents/*.md`
 
 ### Deployment
 
-Both apps deploy to **Vercel** automatically on push to `main`. See [docs/guides/deployment.mdx](docs/guides/deployment.mdx) for full setup.
+Both apps deploy to **Vercel** automatically on push to `main`. Preview deploys are triggered by pushing to `staging` via the GitHub CD pipeline. **Do NOT use `vercel` CLI to trigger preview or production deploys — always go through CI/CD.** See [docs/guides/deployment.mdx](docs/guides/deployment.mdx) for full setup.
 
 | Project | Root Directory | Framework |
 |---------|---------------|-----------|
@@ -274,22 +274,19 @@ Both apps deploy to **Vercel** automatically on push to `main`. See [docs/guides
 
 #### Vercel CLI
 
-The `vercel` CLI is available for deployment management. **All deployment tasks must be delegated to the `devops` agent.**
+The `vercel` CLI is available for **management tasks only** (listing deployments, env vars, logs, inspect). **All deployment tasks must be delegated to the `devops` agent.** Do NOT use the CLI to trigger deploys — use `git push` to `staging` (preview) or `main` (production) instead.
 
 > **Important:** Always run `vercel` commands from the **repository root**, not from `apps/web` or `apps/api`. The Vercel project linking and TurboRepo build pipeline expect the root as the working directory.
 
 ```bash
-vercel                           # Preview deploy (from repo root)
 vercel ls                        # List deployments
 vercel env ls                    # List environment variables
 vercel env add SECRET_NAME       # Add environment variable
 vercel logs <url>                # View deployment logs
 vercel inspect <url>             # Inspect a deployment
-vercel promote <url>             # Promote to production
-vercel redeploy                  # Trigger a redeploy
 ```
 
-**Prefer Vercel CLI over browser automation** for deployment tasks (env vars, redeploys, logs, rollbacks). When browser interaction is needed (e.g., initial project creation, visual verification), use the `/agent-browser` skill.
+**Deploys must go through CI/CD** (`git push` to `staging` or `main`). Use the Vercel CLI only for management tasks (env vars, logs, inspect). When browser interaction is needed (e.g., initial project creation, visual verification), use the `/agent-browser` skill.
 
 ### Hooks
 
