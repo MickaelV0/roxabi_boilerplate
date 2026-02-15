@@ -77,7 +77,7 @@ Each agent's `.md` file in `.claude/agents/` defines its behavior through YAML f
 
 - **`permissionMode`** — `bypassPermissions` (agent can execute tools freely) or `plan` (agent proposes changes but cannot execute them)
 - **`maxTurns`** — Maximum API round-trips before stopping (20-50 depending on role)
-- **`memory: project`** — Enables persistent learnings across sessions in `.claude/agent-memory/`
+- **`memory: project`** — Enables persistent learnings across sessions in `.claude/agent-memory/`. Agents automatically read their memory at start and may write back discovered knowledge (workarounds, project-specific patterns, gotchas). This is for *emergent* knowledge — things agents discover during work. *Prescribed* knowledge (rules, standards, conventions) belongs in docs, CLAUDE.md, AGENTS.md, or agent definitions.
 - **`skills`** — Core skill preloaded per agent (e.g., `commit`, `test`, `context7`)
 - **`disallowedTools`** — Explicit deny list for tools an agent should never use (defense-in-depth)
 

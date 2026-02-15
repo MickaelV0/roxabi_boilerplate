@@ -186,17 +186,17 @@ Specialized agents for multi-agent coordination. Requires `CLAUDE_CODE_EXPERIMEN
 
 ### Available Agents
 
-| Agent | Tier | Domain | Permission | Tools |
-|-------|------|--------|------------|-------|
-| `frontend-dev` | Domain | `apps/web`, `packages/ui` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
-| `backend-dev` | Domain | `apps/api`, `packages/types` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
-| `devops` | Domain | `packages/config`, root configs | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
-| `fixer` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, SendMessage |
-| `tester` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
-| `security-auditor` | Quality | All packages | plan | Read, Glob, Grep, Bash, WebSearch, Task, SendMessage |
-| `architect` | Strategy | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage |
-| `product-lead` | Strategy | `docs/analyses/`, `docs/specs/`, GitHub issues | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage |
-| `doc-writer` | Strategy | `docs/`, `CLAUDE.md` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
+| Agent | Tier | Domain | Permission | Tools | Deny |
+|-------|------|--------|------------|-------|------|
+| `frontend-dev` | Domain | `apps/web`, `packages/ui` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage | — |
+| `backend-dev` | Domain | `apps/api`, `packages/types` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage | — |
+| `devops` | Domain | `packages/config`, root configs | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage | — |
+| `fixer` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, SendMessage | — |
+| `tester` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage | — |
+| `security-auditor` | Quality | All packages | plan | Read, Glob, Grep, Bash, WebSearch, Task, SendMessage | Write, Edit |
+| `architect` | Strategy | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage | — |
+| `product-lead` | Strategy | `docs/analyses/`, `docs/specs/`, GitHub issues | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage | — |
+| `doc-writer` | Strategy | `docs/`, `CLAUDE.md` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage | — |
 
 ### Routing Decision Tree
 
