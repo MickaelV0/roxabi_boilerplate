@@ -177,6 +177,26 @@ jobs:
       - name: Install Vercel CLI and Turbo
         run: npm install -g vercel@latest turbo
 
+      - name: Initialize database if empty
+        working-directory: apps/api
+        env:
+          DATABASE_URL: ${{ steps.db.outputs.url }}
+        run: |
+          TABLE_COUNT=$(bun -e "
+            const postgres = require('postgres');
+            const sql = postgres(process.env.DATABASE_URL);
+            const rows = await sql\`SELECT count(*)::int AS cnt FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'\`;
+            console.log(rows[0].cnt);
+            await sql.end();
+          ")
+          echo "Found $TABLE_COUNT tables in database"
+          if [ "$TABLE_COUNT" = "0" ] || [ -z "$TABLE_COUNT" ]; then
+            echo "::notice::Database is empty — running drizzle-kit push to create schema"
+            bunx drizzle-kit push --force
+          else
+            echo "Database has $TABLE_COUNT table(s) — skipping initialization"
+          fi
+
       - name: Pull Vercel environment
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
         env:
@@ -206,12 +226,29 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
 
+      - name: Health check (best-effort)
+        continue-on-error: true
+        run: |
+          PREVIEW_URL="${{ steps.deploy.outputs.url }}"
+          echo "Checking preview URL: $PREVIEW_URL"
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$PREVIEW_URL" || echo "000")
+          echo "HTTP status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" = "401" ]; then
+            echo "::warning::Preview URL returned 401 — Vercel Deployment Protection (SSO) is enabled. Preview requires Vercel team authentication to access."
+          elif [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "302" ]; then
+            echo "Preview URL is accessible"
+          else
+            echo "::warning::Preview URL returned unexpected status $HTTP_STATUS"
+          fi
+
       - name: Summary
         run: |
           echo "### API Preview" >> "$GITHUB_STEP_SUMMARY"
           echo "${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**Neon branch:** \`preview/${GITHUB_REF_NAME}\` (${{ needs.create-neon-branch.outputs.branch_id }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "> **Note:** If Vercel Deployment Protection is enabled, preview URLs return HTTP 401 and require Vercel team SSO authentication." >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "To clean up: re-run this workflow with target=cleanup (or delete via Neon console)" >> "$GITHUB_STEP_SUMMARY"
 
