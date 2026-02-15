@@ -27,135 +27,34 @@ If you copied `.env.example` but changed nothing, verify the default credentials
 docker exec -it roxabi-postgres psql -U roxabi -d roxabi -c "SELECT 1"
 ```
 
-## Authentication Not Working in Development
+## Bun Version Mismatch
 
-**Symptom:** Login succeeds (API returns 200) but the frontend still shows the user as unauthenticated. `useSession()` returns `null`. Requests to protected routes return `401 Unauthorized`.
+**Symptom:** `error: package manager mismatch` during install, or unexpected runtime behavior.
 
-**Cause:** Better Auth uses cookie-based sessions. In development, the frontend (port 3000) and API (port 4000) run on different ports. The Vite dev proxy at `/api/**` forwards requests to the API so that cookies stay on the same origin (`localhost:3000`). If the proxy is not active or the frontend client sends requests directly to `localhost:4000`, cookies are set on a different origin and the browser will not include them in subsequent requests.
+**Cause:** Your local Bun version does not match the `packageManager` field declared in the root `package.json`.
 
-Another common cause is a missing or default `BETTER_AUTH_SECRET` in `.env`. If the secret is not set, session tokens cannot be signed correctly.
-
-**Fix:**
-
-1. Make sure `bun dev` is running for **both** the web and API apps (or use `bun dev` at the monorepo root, which starts both).
-
-2. Confirm the auth client uses the browser origin, not the API URL directly:
-
-```ts
-// apps/web/src/lib/auth-client.ts
-export const authClient = createAuthClient({
-  baseURL: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
-  // ...
-})
-```
-
-3. Verify `BETTER_AUTH_SECRET` is set in your `.env` and is not the placeholder value:
+**Fix:** Upgrade Bun to the latest version, or install the exact version the project expects:
 
 ```bash
-grep BETTER_AUTH_SECRET .env
-# Should NOT be: change-me-to-a-random-32-char-string
+bun upgrade
 ```
 
-Generate a proper secret:
+If the project pins a specific version, check `package.json` for the `packageManager` field and install that version.
+
+## Port Already in Use
+
+**Symptom:** `EADDRINUSE` error when starting the dev server or API.
+
+**Cause:** Another process is already listening on port 3000 (web) or 4000 (API).
+
+**Fix:** Kill the process occupying the port, or start on a different port:
 
 ```bash
-openssl rand -base64 32
+lsof -ti:3000 | xargs -r kill
+lsof -ti:4000 | xargs -r kill
 ```
 
-4. Check that the Vite proxy is forwarding `/api/**` requests. Open DevTools Network tab, sign in, and confirm requests go to `localhost:3000/api/auth/*` (not `localhost:4000`).
-
-## CORS Errors
-
-**Symptom:** Browser console shows `Access to fetch at 'http://localhost:4000/...' has been blocked by CORS policy` or similar cross-origin errors.
-
-**Cause:** The API's `CORS_ORIGIN` environment variable does not include the origin the browser is sending requests from. In development, `CORS_ORIGIN` defaults to `http://localhost:3000`. If you are accessing the frontend on a different host (e.g., `127.0.0.1:3000` or a custom domain), the origins will not match.
-
-Another cause is making requests directly to the API (port 4000) from frontend code instead of going through the Vite dev proxy. The proxy eliminates CORS entirely in development because both the page and the API appear to be on the same origin.
-
-**Fix:**
-
-1. Ensure you access the frontend at `http://localhost:3000` (not `127.0.0.1` or another hostname).
-
-2. Verify `CORS_ORIGIN` in `.env` matches the exact origin you use in the browser:
-
-```bash
-# .env
-CORS_ORIGIN=http://localhost:3000
-```
-
-For multiple origins (e.g., staging and local), use a comma-separated list:
-
-```bash
-CORS_ORIGIN=http://localhost:3000,https://staging.example.com
-```
-
-3. If you need to call the API directly (bypassing the proxy), update `CORS_ORIGIN` to include `http://localhost:4000` or the origin making the request.
-
-4. In production, set `CORS_ORIGIN` to your exact frontend domain in the Vercel API project settings:
-
-```
-CORS_ORIGIN=https://app.yourdomain.com
-```
-
-Wildcards (`*`) are stripped in production mode for security. The API logs a warning if a wildcard is detected.
-
-## Worktree Database Not Found
-
-**Symptom:** After creating a git worktree, the API fails to start with a database error like `database "roxabi_<number>" does not exist` or migrations fail.
-
-**Cause:** Each worktree is intended to use its own isolated branch database (`roxabi_<issue_number>`). The `db:branch:create` script creates this database, runs migrations, seeds it, and updates the worktree's `.env` with the correct `DATABASE_URL`. If you skipped this step, the worktree's `.env` still points to the default `roxabi` database (or worse, no database at all).
-
-**Fix:**
-
-From inside the worktree directory, run the branch database setup:
-
-```bash
-cd apps/api
-bun run db:branch:create --force <issue_number>
-```
-
-This will:
-- Create the `roxabi_<issue_number>` database in the Docker container
-- Run all migrations
-- Seed the database with dev data (`dev@roxabi.local` / `password123`)
-- Update your `.env` `DATABASE_URL` to point to the new database
-
-If you already started working and need to check which branch databases exist:
-
-```bash
-cd apps/api
-bun run db:branch:list
-```
-
-To clean up a branch database you no longer need:
-
-```bash
-cd apps/api
-bun run db:branch:drop
-```
-
-## BETTER_AUTH_SECRET Errors on Startup
-
-**Symptom:** The API crashes on startup with an error about `BETTER_AUTH_SECRET` being invalid or set to a known default value.
-
-**Cause:** In production (`NODE_ENV=production`), Better Auth validates that the secret is not a placeholder. The `.env.example` ships with `BETTER_AUTH_SECRET=change-me-to-a-random-32-char-string`, which is rejected in production mode.
-
-**Fix:**
-
-Generate a cryptographically random secret and set it in your `.env`:
-
-```bash
-# Generate a 32-character random secret
-openssl rand -base64 32
-```
-
-Update your `.env`:
-
-```bash
-BETTER_AUTH_SECRET=<paste-your-generated-secret-here>
-```
-
-For Vercel deployments, set it in the API project's environment variables dashboard. Make sure the value is at least 32 characters.
+Alternatively, set the `PORT` environment variable to use a different port.
 
 ## Dependency Install Failures After Updates
 
@@ -182,40 +81,130 @@ rm bun.lock
 bun install
 ```
 
+> **Warning:** Deleting `bun.lock` changes resolved dependency versions. Only do this if the lockfile has unresolvable merge conflicts. Run `bun run typecheck && bun test` afterward to catch any version drift.
+
 After reinstalling, verify everything builds:
 
 ```bash
 bun run typecheck && bun run build
 ```
 
-## Bun Version Mismatch
+## Authentication Not Working in Development
 
-**Symptom:** `error: package manager mismatch` during install, or unexpected runtime behavior.
+**Symptom:** Login succeeds (API returns 200) but the frontend still shows the user as unauthenticated. `useSession()` returns `null`. Requests to protected routes return `401 Unauthorized`.
 
-**Cause:** Your local Bun version does not match the `packageManager` field declared in the root `package.json`.
+**Cause:** Better Auth uses cookie-based sessions. In development, the frontend (port 3000) and API (port 4000) run on different ports. The dev proxy configured in `vite.config.ts` at `/api/**` forwards requests to the API so that cookies stay on the same origin (`localhost:3000`). If the proxy is not active or the frontend client sends requests directly to `localhost:4000`, cookies are set on a different origin and the browser will not include them in subsequent requests.
 
-**Fix:** Upgrade Bun to the latest version, or install the exact version the project expects:
+Another common cause is a missing or default `BETTER_AUTH_SECRET` in `.env`. If the secret is not set, session tokens cannot be signed correctly.
+
+**Fix:**
+
+1. Make sure `bun dev` is running for **both** the web and API apps (or use `bun dev` at the monorepo root, which starts both).
+
+2. Confirm the auth client in `apps/web/src/lib/auth-client.ts` uses `window.location.origin` (not the API URL directly) as the `baseURL`. The default configuration does this correctly -- if you've modified it, revert to using `window.location.origin`.
+
+If the API fails to start with a secret-related error, see [BETTER_AUTH_SECRET Errors on Startup](#better_auth_secret-errors-on-startup) below.
+
+3. Check that the dev proxy is forwarding `/api/**` requests. Open DevTools Network tab, sign in, and confirm requests go to `localhost:3000/api/auth/*` (not `localhost:4000`).
+
+For a full explanation of the cookie-based auth architecture, see the [Authentication guide](../authentication).
+
+## CORS Errors
+
+**Symptom:** Browser console shows `Access to fetch at 'http://localhost:4000/...' has been blocked by CORS policy` or similar cross-origin errors.
+
+**Cause:** The API's `CORS_ORIGIN` environment variable does not include the origin the browser is sending requests from. In development, `CORS_ORIGIN` defaults to `http://localhost:3000`. If you are accessing the frontend on a different host (e.g., `127.0.0.1:3000` or a custom domain), the origins will not match.
+
+Another cause is making requests directly to the API (port 4000) from frontend code instead of going through the dev proxy. The proxy eliminates CORS entirely in development because both the page and the API appear to be on the same origin.
+
+**Fix:**
+
+1. Ensure you access the frontend at `http://localhost:3000` (not `127.0.0.1` or another hostname).
+
+2. Verify `CORS_ORIGIN` in `.env` matches the exact origin you use in the browser:
 
 ```bash
-bun upgrade
+# .env
+CORS_ORIGIN=http://localhost:3000
 ```
 
-If the project pins a specific version, check `package.json` for the `packageManager` field and install that version.
-
-## Port Already in Use
-
-**Symptom:** `EADDRINUSE` error when starting the dev server or API.
-
-**Cause:** Another process is already listening on port 3000 (web) or 4000 (API).
-
-**Fix:** Kill the process occupying the port, or start on a different port:
+For multiple origins (e.g., staging and local), use a comma-separated list:
 
 ```bash
-lsof -ti:3000 | xargs kill
-lsof -ti:4000 | xargs kill
+CORS_ORIGIN=http://localhost:3000,https://staging.example.com
 ```
 
-Alternatively, set the `PORT` environment variable to use a different port.
+3. If you need to call the API directly (bypassing the proxy), ensure `CORS_ORIGIN` includes the origin your frontend is served from (e.g., `http://localhost:3000`). The value must match the browser's origin, not the API's address.
+
+4. In production, set `CORS_ORIGIN` to your exact frontend domain in the Vercel API project settings:
+
+```
+CORS_ORIGIN=https://app.yourdomain.com
+```
+
+In production, if `CORS_ORIGIN` contains only `*`, CORS will be disabled entirely (all cross-origin requests blocked). If `*` appears alongside valid origins, only the wildcard entry is removed. The API logs a warning in both cases.
+
+## BETTER_AUTH_SECRET Errors on Startup
+
+**Symptom:** The API crashes on startup with an error about `BETTER_AUTH_SECRET` being invalid or set to a known default value.
+
+**Cause:** In production (`NODE_ENV=production`), Better Auth validates that the secret is not a placeholder. The `.env.example` ships with `BETTER_AUTH_SECRET=change-me-to-a-random-32-char-string`, which is rejected in production mode.
+
+**Fix:**
+
+Generate a cryptographically random secret and set it in your `.env`:
+
+```bash
+# Generate a 32-character random secret
+openssl rand -base64 32
+```
+
+Update your `.env`:
+
+```bash
+BETTER_AUTH_SECRET=<paste-your-generated-secret-here>
+```
+
+For Vercel deployments, set it in the API project's environment variables dashboard. A value of at least 32 characters is recommended.
+
+For the full list of auth-related environment variables, see the [Authentication guide](../authentication#environment-variables).
+
+## Worktree Database Not Found
+
+**Symptom:** After creating a git worktree, the API fails to start with a database error like `database "roxabi_<number>" does not exist` or migrations fail.
+
+**Cause:** Each worktree is intended to use its own isolated branch database (`roxabi_<issue_number>`). The `db:branch:create` script creates this database, runs migrations, seeds it, and updates the worktree's `.env` with the correct `DATABASE_URL`. If you skipped this step, the worktree's `.env` still points to the default `roxabi` database (or worse, no database at all).
+
+**Fix:**
+
+**Important:** Run this from inside your worktree directory (e.g., `../roxabi-42/`), not from the main repository checkout. Running from the wrong directory will update the wrong `.env` file.
+
+```bash
+cd apps/api
+bun run db:branch:create --force <issue_number>
+```
+
+This will:
+- Create the `roxabi_<issue_number>` database in the Docker container
+- Run all migrations
+- Seed the database with dev data (`dev@roxabi.local` / `password123`)
+- Update your `.env` `DATABASE_URL` to point to the new database
+
+If you already started working and need to check which branch databases exist:
+
+```bash
+cd apps/api
+bun run db:branch:list
+```
+
+To clean up a branch database you no longer need:
+
+```bash
+cd apps/api
+bun run db:branch:drop
+```
+
+For more on branch databases, see [Configuration -- Branch Databases](../configuration#branch-databases-local-development).
 
 ## Pre-commit Hook Failures
 
@@ -240,6 +229,9 @@ For commit message rejections, use the Conventional Commits format: `type(scope)
 **Fix:** Clear the build cache and re-run the type checker:
 
 ```bash
+# Remove stale incremental compilation files
+find . -name '*.tsbuildinfo' -not -path '*/node_modules/*' -delete
+
 bun run clean:cache && bun run typecheck
 ```
 
