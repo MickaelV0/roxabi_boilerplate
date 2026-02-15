@@ -33,8 +33,8 @@ describe('env validation', () => {
         NODE_ENV: env,
         BETTER_AUTH_SECRET: 'a-safe-secret-for-testing-purposes',
         ...(env === 'production' && {
-          UPSTASH_REDIS_REST_URL: 'https://redis.upstash.io',
-          UPSTASH_REDIS_REST_TOKEN: 'test-token',
+          KV_REST_API_URL: 'https://redis.upstash.io',
+          KV_REST_API_TOKEN: 'test-token',
         }),
       })
       expect(result.NODE_ENV).toBe(env)
@@ -97,8 +97,8 @@ describe('env validation', () => {
         validate({
           NODE_ENV: 'production',
           BETTER_AUTH_SECRET: 'dev-secret-do-not-use-in-production',
-          UPSTASH_REDIS_REST_URL: 'https://redis.upstash.io',
-          UPSTASH_REDIS_REST_TOKEN: 'test-token',
+          KV_REST_API_URL: 'https://redis.upstash.io',
+          KV_REST_API_TOKEN: 'test-token',
         })
       ).toThrow('BETTER_AUTH_SECRET must be set to a secure value in production')
     })
@@ -108,8 +108,8 @@ describe('env validation', () => {
         validate({
           NODE_ENV: 'production',
           BETTER_AUTH_SECRET: 'change-me-to-a-random-32-char-string',
-          UPSTASH_REDIS_REST_URL: 'https://redis.upstash.io',
-          UPSTASH_REDIS_REST_TOKEN: 'test-token',
+          KV_REST_API_URL: 'https://redis.upstash.io',
+          KV_REST_API_TOKEN: 'test-token',
         })
       ).toThrow('BETTER_AUTH_SECRET must be set to a secure value in production')
     })
@@ -128,33 +128,33 @@ describe('env validation', () => {
       const result = validate({
         NODE_ENV: 'production',
         BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
-        UPSTASH_REDIS_REST_URL: 'https://redis.upstash.io',
-        UPSTASH_REDIS_REST_TOKEN: 'test-token',
+        KV_REST_API_URL: 'https://redis.upstash.io',
+        KV_REST_API_TOKEN: 'test-token',
       })
       expect(result.BETTER_AUTH_SECRET).toBe('a-real-secret-that-is-safe-for-prod')
     })
   })
 
   describe('Upstash Redis production guard', () => {
-    it('should throw when UPSTASH_REDIS_REST_URL is missing in production with rate limiting enabled', () => {
+    it('should throw when KV_REST_API_URL is missing in production with rate limiting enabled', () => {
       expect(() =>
         validate({
           NODE_ENV: 'production',
           BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
           RATE_LIMIT_ENABLED: 'true',
         })
-      ).toThrow('UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production')
+      ).toThrow('KV_REST_API_URL and KV_REST_API_TOKEN are required in production')
     })
 
-    it('should throw when UPSTASH_REDIS_REST_TOKEN is missing in production with rate limiting enabled', () => {
+    it('should throw when KV_REST_API_TOKEN is missing in production with rate limiting enabled', () => {
       expect(() =>
         validate({
           NODE_ENV: 'production',
           BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
           RATE_LIMIT_ENABLED: 'true',
-          UPSTASH_REDIS_REST_URL: 'https://redis.upstash.io',
+          KV_REST_API_URL: 'https://redis.upstash.io',
         })
-      ).toThrow('UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production')
+      ).toThrow('KV_REST_API_URL and KV_REST_API_TOKEN are required in production')
     })
 
     it('should allow missing Upstash vars in production when rate limiting is disabled', () => {
@@ -163,8 +163,8 @@ describe('env validation', () => {
         BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
         RATE_LIMIT_ENABLED: 'false',
       })
-      expect(result.UPSTASH_REDIS_REST_URL).toBeUndefined()
-      expect(result.UPSTASH_REDIS_REST_TOKEN).toBeUndefined()
+      expect(result.KV_REST_API_URL).toBeUndefined()
+      expect(result.KV_REST_API_TOKEN).toBeUndefined()
     })
 
     it('should log security error when rate limiting is disabled in production', () => {
@@ -180,14 +180,14 @@ describe('env validation', () => {
       errorSpy.mockRestore()
     })
 
-    it('should allow missing UPSTASH_REDIS_REST_URL in development', () => {
+    it('should allow missing KV_REST_API_URL in development', () => {
       const result = validate({ NODE_ENV: 'development' })
-      expect(result.UPSTASH_REDIS_REST_URL).toBeUndefined()
+      expect(result.KV_REST_API_URL).toBeUndefined()
     })
 
-    it('should accept UPSTASH_REDIS_REST_URL when provided', () => {
-      const result = validate({ UPSTASH_REDIS_REST_URL: 'https://redis.upstash.io' })
-      expect(result.UPSTASH_REDIS_REST_URL).toBe('https://redis.upstash.io')
+    it('should accept KV_REST_API_URL when provided', () => {
+      const result = validate({ KV_REST_API_URL: 'https://redis.upstash.io' })
+      expect(result.KV_REST_API_URL).toBe('https://redis.upstash.io')
     })
   })
 

@@ -198,9 +198,7 @@ vercel env add RESEND_API_KEY production
 
 #### Upstash Redis (rate limiting)
 
-Rate limiting is **enabled by default** (`RATE_LIMIT_ENABLED=true`) and requires Upstash Redis. The code uses `@upstash/redis` and reads `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
-
-> **Important:** Use the **Upstash** integration, not the Vercel native Redis/KV integration. They produce different env var names. Our code expects `UPSTASH_REDIS_REST_*`, not `KV_REST_API_*`.
+Rate limiting is **enabled by default** (`RATE_LIMIT_ENABLED=true`) and requires Upstash Redis. The code uses `@upstash/redis` and reads `KV_REST_API_URL` and `KV_REST_API_TOKEN` — the env var names auto-injected by the Vercel Upstash integration.
 
 **Step-by-step via Vercel Integration:**
 
@@ -212,7 +210,7 @@ Rate limiting is **enabled by default** (`RATE_LIMIT_ENABLED=true`) and requires
    - **Region:** choose the closest to your Neon database region
    - **Plan:** Free tier is sufficient for development
 5. Link the database to your **API project** (e.g. `roxabi-api`)
-6. Vercel auto-creates `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` as environment variables on the API project
+6. Vercel auto-creates `KV_REST_API_URL` and `KV_REST_API_TOKEN` as environment variables on the API project
 7. **Redeploy** the API project for the new env vars to take effect
 
 **Via Vercel CLI:**
@@ -227,10 +225,10 @@ vercel integration add upstash/upstash-kv --name roxabi-redis
 **Verify the env vars were added:**
 
 ```bash
-cd apps/api && vercel env ls | grep UPSTASH
+cd apps/api && vercel env ls | grep KV_REST
 ```
 
-You should see `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` listed.
+You should see `KV_REST_API_URL` and `KV_REST_API_TOKEN` listed.
 
 **Alternative — manual setup (without the integration):**
 
@@ -241,8 +239,8 @@ You should see `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` listed.
 ```bash
 cd apps/api
 for env in production preview development; do
-  printf '%s' "https://your-redis.upstash.io" | vercel env add UPSTASH_REDIS_REST_URL "$env"
-  printf '%s' "your-upstash-token"             | vercel env add UPSTASH_REDIS_REST_TOKEN "$env"
+  printf '%s' "https://your-redis.upstash.io" | vercel env add KV_REST_API_URL "$env"
+  printf '%s' "your-upstash-token"             | vercel env add KV_REST_API_TOKEN "$env"
 done
 ```
 
@@ -258,8 +256,8 @@ done
 | `API_URL` | This project's URL |
 | `EMAIL_FROM` | Sender email address |
 | `RESEND_API_KEY` | Resend API key for transactional emails |
-| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL (for rate limiting) |
-| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token (for rate limiting) |
+| `KV_REST_API_URL` | Upstash Redis REST URL (for rate limiting) |
+| `KV_REST_API_TOKEN` | Upstash Redis REST token (for rate limiting) |
 
 ### 5. Verify
 

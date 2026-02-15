@@ -18,8 +18,8 @@ const envSchema = z.object({
   EMAIL_FROM: z.string().default('noreply@yourdomain.com'),
   APP_URL: z.string().url().optional(),
   // Rate limiting & Upstash Redis
-  UPSTASH_REDIS_REST_URL: z.string().optional(),
-  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+  KV_REST_API_URL: z.string().optional(),
+  KV_REST_API_TOKEN: z.string().optional(),
   RATE_LIMIT_ENABLED: z.enum(['true', 'false']).default('true'),
   SWAGGER_ENABLED: z.enum(['true', 'false']).optional(),
   RATE_LIMIT_GLOBAL_TTL: z.coerce.number().positive().default(60_000),
@@ -63,17 +63,17 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
   if (validatedConfig.NODE_ENV === 'production' && validatedConfig.RATE_LIMIT_ENABLED === 'false') {
     console.error(
       '[SECURITY] RATE_LIMIT_ENABLED=false in production — auth brute-force protection is DISABLED. ' +
-        'Set RATE_LIMIT_ENABLED=true and configure UPSTASH_REDIS_REST_URL/TOKEN.'
+        'Set RATE_LIMIT_ENABLED=true and configure KV_REST_API_URL/TOKEN.'
     )
   }
 
   if (
     validatedConfig.NODE_ENV === 'production' &&
     validatedConfig.RATE_LIMIT_ENABLED === 'true' &&
-    (!validatedConfig.UPSTASH_REDIS_REST_URL || !validatedConfig.UPSTASH_REDIS_REST_TOKEN)
+    (!validatedConfig.KV_REST_API_URL || !validatedConfig.KV_REST_API_TOKEN)
   ) {
     throw new Error(
-      'UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production when rate limiting is enabled. ' +
+      'KV_REST_API_URL and KV_REST_API_TOKEN are required in production when rate limiting is enabled. ' +
         'Provision Upstash Redis via Vercel Marketplace, set them manually, or set RATE_LIMIT_ENABLED=false for previews.'
     )
   }

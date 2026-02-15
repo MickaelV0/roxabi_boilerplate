@@ -372,7 +372,7 @@ Storage backend selection:
 | Development | No | In-memory (single process) |
 | Production | **Required** | Upstash Redis (distributed) |
 
-The env validation (`apps/api/src/config/env.validation.ts`) enforces that `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set in production, preventing accidental deployment with in-memory rate limiting that would not work across serverless invocations.
+The env validation (`apps/api/src/config/env.validation.ts`) enforces that `KV_REST_API_URL` and `KV_REST_API_TOKEN` are set in production, preventing accidental deployment with in-memory rate limiting that would not work across serverless invocations.
 
 ## Frontend Auth Client
 

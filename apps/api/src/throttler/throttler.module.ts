@@ -18,8 +18,8 @@ import { UpstashThrottlerStorage } from './upstash-throttler-storage.js'
           )
         }
 
-        const upstashUrl = config.get<string>('UPSTASH_REDIS_REST_URL')
-        const upstashToken = config.get<string>('UPSTASH_REDIS_REST_TOKEN')
+        const upstashUrl = config.get<string>('KV_REST_API_URL')
+        const upstashToken = config.get<string>('KV_REST_API_TOKEN')
         const upstashConfigured = Boolean(upstashUrl && upstashToken)
 
         if (upstashConfigured) {

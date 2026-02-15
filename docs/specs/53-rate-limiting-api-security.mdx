@@ -114,8 +114,8 @@ ThrottlerModule.forRootAsync({
     ],
     storage: upstashConfigured
       ? new UpstashThrottlerStorage(
-          config.get('UPSTASH_REDIS_REST_URL'),
-          config.get('UPSTASH_REDIS_REST_TOKEN'),
+          config.get('KV_REST_API_URL'),
+          config.get('KV_REST_API_TOKEN'),
         )
       : undefined, // falls back to in-memory
   }),
@@ -246,15 +246,15 @@ URL=$(vercel deploy --prebuilt \
   --token=${{ secrets.VERCEL_TOKEN }})
 ```
 
-Preview deployments use in-memory rate limiting (no Upstash) since `UPSTASH_REDIS_REST_URL` is not set. Swagger is enabled in previews for testing.
+Preview deployments use in-memory rate limiting (no Upstash) since `KV_REST_API_URL` is not set. Swagger is enabled in previews for testing.
 
 **Production deploys (Vercel Git integration):**
 Production env vars are managed in the Vercel dashboard (or via `vercel env add`). The following must be configured as **Production** environment variables on the API project before the first production deploy of this feature:
 
 | Variable | Value | Source |
 |----------|-------|--------|
-| `UPSTASH_REDIS_REST_URL` | Auto-injected | Vercel Marketplace &rarr; Upstash Redis |
-| `UPSTASH_REDIS_REST_TOKEN` | Auto-injected | Vercel Marketplace &rarr; Upstash Redis |
+| `KV_REST_API_URL` | Auto-injected | Vercel Marketplace &rarr; Upstash Redis |
+| `KV_REST_API_TOKEN` | Auto-injected | Vercel Marketplace &rarr; Upstash Redis |
 | `SWAGGER_ENABLED` | `false` | Manual (default, can omit — code defaults to `false` in production) |
 | `RATE_LIMIT_ENABLED` | `true` | Manual (default, can omit — code defaults to `true`) |
 
@@ -278,7 +278,7 @@ No changes needed. The test job runs against in-memory rate limiting storage (no
 | `apps/api/src/app.module.ts` | Modify | Import `ThrottlerModule` **after** `AuthModule` |
 | `apps/api/src/app.controller.ts` | Modify | Add `@SkipThrottle()` to health endpoint (alongside existing `@AllowAnonymous()`) |
 | `.env.example` | Modify | Add Upstash and rate limit env vars (commented out) |
-| `apps/api/turbo.json` | Modify | Add to `passThroughEnv`: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `RATE_LIMIT_ENABLED`, `SWAGGER_ENABLED`, `RATE_LIMIT_GLOBAL_TTL`, `RATE_LIMIT_GLOBAL_LIMIT`, `RATE_LIMIT_AUTH_TTL`, `RATE_LIMIT_AUTH_LIMIT`, `RATE_LIMIT_AUTH_BLOCK_DURATION`, `RATE_LIMIT_API_TTL`, `RATE_LIMIT_API_LIMIT` |
+| `apps/api/turbo.json` | Modify | Add to `passThroughEnv`: `KV_REST_API_URL`, `KV_REST_API_TOKEN`, `RATE_LIMIT_ENABLED`, `SWAGGER_ENABLED`, `RATE_LIMIT_GLOBAL_TTL`, `RATE_LIMIT_GLOBAL_LIMIT`, `RATE_LIMIT_AUTH_TTL`, `RATE_LIMIT_AUTH_LIMIT`, `RATE_LIMIT_AUTH_BLOCK_DURATION`, `RATE_LIMIT_API_TTL`, `RATE_LIMIT_API_LIMIT` |
 | `docs/configuration.mdx` | Modify | Document new env vars in the Vercel API Project table |
 | `.github/workflows/deploy-preview.yml` | Modify | Add `SWAGGER_ENABLED` and `RATE_LIMIT_ENABLED` env vars to API preview deploy step |
 
@@ -286,8 +286,8 @@ No changes needed. The test job runs against in-memory rate limiting storage (no
 
 | Variable | Default | Required | Description |
 |----------|---------|----------|-------------|
-| `UPSTASH_REDIS_REST_URL` | — | Production only | Upstash Redis REST URL (Vercel Marketplace auto-injects this name) |
-| `UPSTASH_REDIS_REST_TOKEN` | — | Production only | Upstash Redis REST token (Vercel Marketplace auto-injects this name) |
+| `KV_REST_API_URL` | — | Production only | Upstash Redis REST URL (Vercel Marketplace auto-injects this name) |
+| `KV_REST_API_TOKEN` | — | Production only | Upstash Redis REST token (Vercel Marketplace auto-injects this name) |
 | `SWAGGER_ENABLED` | `true` (dev), `false` (prod) | No | Gate Swagger UI at `/api/docs`. Disabled in production by default. |
 | `RATE_LIMIT_ENABLED` | `true` | No | Master kill switch. Set to `false` to disable all rate limiting. |
 | `RATE_LIMIT_GLOBAL_TTL` | `60000` (60s) | No | Global tier window in ms |
@@ -298,7 +298,7 @@ No changes needed. The test job runs against in-memory rate limiting storage (no
 | `RATE_LIMIT_API_TTL` | `60000` (60s) | No | Public API tier window in ms (reserved for future use) |
 | `RATE_LIMIT_API_LIMIT` | `100` | No | Public API tier max requests per window (reserved for future use) |
 
-**Env validation strategy:** `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are validated as optional in development (falls back to in-memory with a startup warning) and required in production, following the same conditional pattern used for `BETTER_AUTH_SECRET`.
+**Env validation strategy:** `KV_REST_API_URL` and `KV_REST_API_TOKEN` are validated as optional in development (falls back to in-memory with a startup warning) and required in production, following the same conditional pattern used for `BETTER_AUTH_SECRET`.
 
 In development (no Upstash configured), rate limiting falls back to in-memory storage from `@nestjs/throttler` default. A warning is logged at startup: "Rate limiting using in-memory storage — not suitable for production."
 
@@ -330,7 +330,7 @@ In development (no Upstash configured), rate limiting falls back to in-memory st
 
 ## Open Questions
 
-- **Upstash provisioning**: Should Upstash be provisioned via Vercel Marketplace integration or standalone? (Can be decided during implementation — both work identically from the code side. Marketplace auto-injects `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.)
+- **Upstash provisioning**: Should Upstash be provisioned via Vercel Marketplace integration or standalone? (Can be decided during implementation — both work identically from the code side. Marketplace auto-injects `KV_REST_API_URL` and `KV_REST_API_TOKEN`.)
 
 ## Recommended Follow-ups
 
