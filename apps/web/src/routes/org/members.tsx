@@ -34,7 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from '@repo/ui'
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
@@ -43,13 +43,6 @@ import { hasPermission } from '@/lib/permissions'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/org/members')({
-  beforeLoad: async () => {
-    if (typeof window === 'undefined') return
-    const { data } = await authClient.getSession()
-    if (!data) {
-      throw redirect({ to: '/login' })
-    }
-  },
   component: OrgMembersPage,
   head: () => ({
     meta: [{ title: `${m.org_members_title()} | Roxabi` }],

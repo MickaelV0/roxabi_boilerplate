@@ -16,40 +16,7 @@ vi.mock('@tanstack/react-router', () => ({
   useBlocker: () => ({ status: 'idle', proceed: vi.fn(), reset: vi.fn() }),
 }))
 
-vi.mock('@repo/ui', () => ({
-  Button: ({
-    children,
-    asChild,
-    ...props
-  }: React.PropsWithChildren<{ asChild?: boolean; [key: string]: unknown }>) => (
-    <button {...props}>{children}</button>
-  ),
-  Card: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardDescription: ({ children }: React.PropsWithChildren) => <p>{children}</p>,
-  CardHeader: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardTitle: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <h2 {...props}>{children}</h2>
-  ),
-  Dialog: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DialogClose: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DialogContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DialogDescription: ({ children }: React.PropsWithChildren) => <p>{children}</p>,
-  DialogFooter: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DialogHeader: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DialogTitle: ({ children }: React.PropsWithChildren) => <h2>{children}</h2>,
-  DialogTrigger: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  Input: (props: Record<string, unknown>) => <input {...props} />,
-  Label: ({
-    children,
-    htmlFor,
-    ...props
-  }: React.PropsWithChildren<{ htmlFor?: string; [key: string]: unknown }>) => (
-    <label htmlFor={htmlFor} {...props}>
-      {children}
-    </label>
-  ),
-}))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 vi.mock('@/lib/auth-client', () => ({
   authClient: {

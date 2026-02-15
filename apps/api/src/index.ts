@@ -85,11 +85,8 @@ async function bootstrap() {
   app.enableCors({ origin: corsResult.origins, credentials: true })
 
   // Swagger setup — gated by SWAGGER_ENABLED env var
-  const swaggerEnabled = configService.get<string>(
-    'SWAGGER_ENABLED',
-    nodeEnv !== 'production' ? 'true' : 'false'
-  )
-  if (swaggerEnabled === 'true') {
+  const swaggerEnabled = configService.get<boolean>('SWAGGER_ENABLED', nodeEnv !== 'production')
+  if (swaggerEnabled) {
     const config = new DocumentBuilder()
       .setTitle('Roxabi API')
       .setDescription('Roxabi SaaS Backend API')

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { and, eq } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import type { DrizzleDB } from '../database/drizzle.provider.js'
@@ -21,6 +21,8 @@ function slugify(name: string): string {
 
 @Injectable()
 export class RbacService {
+  private readonly logger = new Logger(RbacService.name)
+
   constructor(
     private readonly tenantService: TenantService,
     private readonly cls: ClsService
@@ -358,7 +360,10 @@ export class RbacService {
           })
           .returning()
 
-        if (!role) continue
+        if (!role) {
+          this.logger.warn(`Failed to insert default role "${def.name}" for org ${organizationId}`)
+          continue
+        }
 
         await this.syncPermissions(tx, role.id, def.permissions)
       }

@@ -1,5 +1,5 @@
 import { AnimatedSection } from '@repo/ui'
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { AiTeamSection } from '@/components/landing/AiTeamSection'
 import { CtaSection } from '@/components/landing/CtaSection'
 import { DxSection } from '@/components/landing/DxSection'
@@ -7,18 +7,10 @@ import { FeaturesSection } from '@/components/landing/FeaturesSection'
 import { HeroSection } from '@/components/landing/HeroSection'
 import { StatsSection } from '@/components/landing/StatsSection'
 import { TechStackSection } from '@/components/landing/TechStackSection'
-import { authClient } from '@/lib/auth-client'
+import { requireGuest } from '@/lib/route-guards'
 
 export const Route = createFileRoute('/')({
-  beforeLoad: async () => {
-    // Skip auth check during SSR — no session cookie is forwarded and
-    // the auth client would try to reach localhost, which doesn't exist on Vercel.
-    if (typeof window === 'undefined') return
-    const { data } = await authClient.getSession()
-    if (data) {
-      throw redirect({ to: '/dashboard' })
-    }
-  },
+  beforeLoad: requireGuest,
   component: LandingPage,
 })
 

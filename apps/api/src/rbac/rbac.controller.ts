@@ -7,16 +7,19 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
 import { PermissionService } from './permission.service.js'
 import { RbacService } from './rbac.service.js'
 
+/** Matches "resource:action" where both segments are lowercase letters with optional hyphens (e.g. "audit-log:read"). */
+export const PERMISSION_FORMAT = /^[a-z][a-z-]*:[a-z][a-z-]*$/
+
 const createRoleSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
-  permissions: z.array(z.string().regex(/^[a-z]+:[a-z]+$/)).min(1),
+  permissions: z.array(z.string().regex(PERMISSION_FORMAT)).min(1),
 })
 
 const updateRoleSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(500).optional(),
-  permissions: z.array(z.string()).optional(),
+  permissions: z.array(z.string().regex(PERMISSION_FORMAT)).optional(),
 })
 
 const transferOwnershipSchema = z.object({

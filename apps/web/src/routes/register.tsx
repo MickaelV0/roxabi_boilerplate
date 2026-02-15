@@ -11,11 +11,12 @@ import {
   OAuthButton,
   PasswordInput,
 } from '@repo/ui'
-import { createFileRoute, Link, redirect } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { CheckCircle } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, fetchEnabledProviders } from '@/lib/auth-client'
+import { requireGuest } from '@/lib/route-guards'
 import { m } from '@/paraglide/messages'
 import { AuthLayout } from '../components/AuthLayout'
 import { OrDivider } from '../components/OrDivider'
@@ -23,13 +24,7 @@ import { OrDivider } from '../components/OrDivider'
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export const Route = createFileRoute('/register')({
-  beforeLoad: async () => {
-    if (typeof window === 'undefined') return
-    const { data } = await authClient.getSession()
-    if (data) {
-      throw redirect({ to: '/dashboard' })
-    }
-  },
+  beforeLoad: requireGuest,
   loader: fetchEnabledProviders,
   component: RegisterPage,
   head: () => ({

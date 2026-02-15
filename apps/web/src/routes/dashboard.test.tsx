@@ -23,21 +23,7 @@ vi.mock('@tanstack/react-router', () => ({
   redirect: vi.fn(),
 }))
 
-vi.mock('@repo/ui', () => ({
-  Button: ({
-    children,
-    asChild,
-    ...props
-  }: React.PropsWithChildren<{ asChild?: boolean; [key: string]: unknown }>) => (
-    <button {...props}>{children}</button>
-  ),
-  Card: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardHeader: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardTitle: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <h2 {...props}>{children}</h2>
-  ),
-}))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 vi.mock('@/lib/auth-client', () => ({
   authClient: {

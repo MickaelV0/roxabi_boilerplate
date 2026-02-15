@@ -16,7 +16,7 @@ import {
   Input,
   Label,
 } from '@repo/ui'
-import { createFileRoute, redirect, useBlocker, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, useBlocker, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
@@ -26,13 +26,6 @@ import { m } from '@/paraglide/messages'
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
 
 export const Route = createFileRoute('/org/settings')({
-  beforeLoad: async () => {
-    if (typeof window === 'undefined') return
-    const { data } = await authClient.getSession()
-    if (!data) {
-      throw redirect({ to: '/login' })
-    }
-  },
   component: OrgSettingsPage,
   head: () => ({
     meta: [{ title: `${m.org_settings_title()} | Roxabi` }],
