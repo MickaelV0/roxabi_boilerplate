@@ -186,7 +186,7 @@ jobs:
           DATABASE_URL: ${{ steps.db.outputs.url }}
         run: |
           TABLE_COUNT=$(bun -e "
-            const postgres = require('postgres');
+            const postgres = (await import('postgres')).default;
             const sql = postgres(process.env.DATABASE_URL);
             const rows = await sql\`SELECT count(*)::int AS cnt FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'\`;
             console.log(rows[0].cnt);
