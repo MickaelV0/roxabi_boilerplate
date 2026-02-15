@@ -98,6 +98,7 @@ Update these documents to reflect the new integration-based setup:
 **`docs/configuration.mdx`:**
 - Update the API project env var table to indicate which vars are auto-injected by marketplace integrations vs manually configured
 - Add notes for `DATABASE_URL`, `RESEND_API_KEY`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`
+- **No `turbo.jsonc` changes needed** — wildcard patterns (`KV_*`, `REDIS_*`) already cover marketplace-injected Upstash vars, and `DATABASE_URL` is a passThroughEnv in `apps/api/turbo.json` (runtime secret, not build cache)
 
 **`.env.example`:**
 - Update comments to mark auto-injected vars (e.g., `# Auto-injected by Vercel Marketplace integration — manual setup only needed for local dev`)
