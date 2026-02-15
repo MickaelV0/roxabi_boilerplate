@@ -114,22 +114,22 @@ jobs:
 
           BRANCH_ID=$(echo "$RESPONSE" | jq -r '.branch.id')
 
+          if [ "$BRANCH_ID" = "null" ] || [ -z "$BRANCH_ID" ]; then
+            echo "::error::Failed to create Neon branch (branch_id was null or empty)"
+            exit 1
+          fi
+
           # Wait for Neon branch endpoint to be ready
           for i in $(seq 1 12); do
-            STATUS=$(curl -s -H "Authorization: Bearer $NEON_API_KEY" \
+            STATUS=$(curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
               "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID" \
-              | jq -r '.branch.current_state')
+              | jq -r '.branch.current_state' || echo "error")
             if [ "$STATUS" = "ready" ]; then break; fi
             echo "Waiting for Neon branch... (attempt $i/12)"
             sleep 5
           done
           if [ "$STATUS" != "ready" ]; then
             echo "::error::Neon branch did not become ready after 60 seconds (last status: $STATUS)"
-            exit 1
-          fi
-
-          if [ "$BRANCH_ID" = "null" ] || [ -z "$BRANCH_ID" ]; then
-            echo "::error::Failed to create Neon branch (branch_id was null or empty)"
             exit 1
           fi
 
@@ -212,7 +212,6 @@ jobs:
       - name: Health check (best-effort)
         continue-on-error: true
         run: |
-          set -euo pipefail
           PREVIEW_URL="${{ steps.deploy.outputs.url }}"
           echo "Checking preview URL: $PREVIEW_URL"
           HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$PREVIEW_URL" || echo "000")
