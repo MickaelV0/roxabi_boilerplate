@@ -262,16 +262,16 @@ function UnsavedChangesDialog({ status, proceed, reset }: UnsavedChangesDialogPr
   }
 
   return (
-    <Dialog open onOpenChange={() => reset()}>
+    <Dialog open onOpenChange={() => reset?.()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{m.org_unsaved_changes()}</DialogTitle>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => reset()}>
+          <Button variant="outline" onClick={() => reset?.()}>
             {m.org_unsaved_stay()}
           </Button>
-          <Button variant="destructive" onClick={() => proceed()}>
+          <Button variant="destructive" onClick={() => proceed?.()}>
             {m.org_unsaved_leave()}
           </Button>
         </DialogFooter>
