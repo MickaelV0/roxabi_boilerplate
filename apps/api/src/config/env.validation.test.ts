@@ -100,7 +100,7 @@ describe('env validation', () => {
           KV_REST_API_URL: 'https://redis.upstash.io',
           KV_REST_API_TOKEN: 'test-token',
         })
-      ).toThrow('BETTER_AUTH_SECRET must be set to a secure value in production')
+      ).toThrow('BETTER_AUTH_SECRET must be set to a secure value in non-development environments')
     })
 
     it('should throw when using placeholder secret in production', () => {
@@ -111,7 +111,7 @@ describe('env validation', () => {
           KV_REST_API_URL: 'https://redis.upstash.io',
           KV_REST_API_TOKEN: 'test-token',
         })
-      ).toThrow('BETTER_AUTH_SECRET must be set to a secure value in production')
+      ).toThrow('BETTER_AUTH_SECRET must be set to a secure value in non-development environments')
     })
 
     it('should allow default secret in development', () => {
@@ -119,9 +119,18 @@ describe('env validation', () => {
       expect(result.BETTER_AUTH_SECRET).toBe('dev-secret-do-not-use-in-production')
     })
 
-    it('should allow default secret in test environment', () => {
-      const result = validate({ NODE_ENV: 'test' })
-      expect(result.BETTER_AUTH_SECRET).toBe('dev-secret-do-not-use-in-production')
+    it('should throw when using default secret in test environment', () => {
+      expect(() => validate({ NODE_ENV: 'test' })).toThrow(
+        'BETTER_AUTH_SECRET must be set to a secure value in non-development environments'
+      )
+    })
+
+    it('should allow explicit secret in test environment', () => {
+      const result = validate({
+        NODE_ENV: 'test',
+        BETTER_AUTH_SECRET: 'test-secret-minimum-32-characters-long',
+      })
+      expect(result.BETTER_AUTH_SECRET).toBe('test-secret-minimum-32-characters-long')
     })
 
     it('should allow custom secret in production', () => {
@@ -132,6 +141,52 @@ describe('env validation', () => {
         KV_REST_API_TOKEN: 'test-token',
       })
       expect(result.BETTER_AUTH_SECRET).toBe('a-real-secret-that-is-safe-for-prod')
+    })
+  })
+
+  describe('VERCEL_ENV validation', () => {
+    it('should accept valid VERCEL_ENV values', () => {
+      for (const env of ['production', 'preview', 'development']) {
+        const result = validate({
+          VERCEL_ENV: env,
+          BETTER_AUTH_SECRET: 'test-secret-minimum-32-characters-long',
+          ...(env === 'production' && {
+            KV_REST_API_URL: 'https://redis.upstash.io',
+            KV_REST_API_TOKEN: 'test-token',
+          }),
+        })
+        expect(result.VERCEL_ENV).toBe(env)
+      }
+    })
+
+    it('should reject invalid VERCEL_ENV values', () => {
+      expect(() => validate({ VERCEL_ENV: 'staging' })).toThrow()
+    })
+
+    it('should allow VERCEL_ENV to be omitted', () => {
+      const result = validate({})
+      expect(result.VERCEL_ENV).toBeUndefined()
+    })
+  })
+
+  describe('VERCEL_ENV secondary guard', () => {
+    it('should throw when using default secret with VERCEL_ENV set', () => {
+      expect(() =>
+        validate({
+          NODE_ENV: 'development',
+          VERCEL_ENV: 'preview',
+          BETTER_AUTH_SECRET: 'dev-secret-do-not-use-in-production',
+        })
+      ).toThrow('BETTER_AUTH_SECRET must be set to a secure value on Vercel deployments')
+    })
+
+    it('should allow explicit secret with VERCEL_ENV set', () => {
+      const result = validate({
+        NODE_ENV: 'development',
+        VERCEL_ENV: 'preview',
+        BETTER_AUTH_SECRET: 'test-secret-minimum-32-characters-long',
+      })
+      expect(result.BETTER_AUTH_SECRET).toBe('test-secret-minimum-32-characters-long')
     })
   })
 

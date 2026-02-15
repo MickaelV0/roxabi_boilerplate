@@ -1,8 +1,9 @@
 import { createFileRoute, notFound, Outlet } from '@tanstack/react-router'
+import { clientEnv } from '@/lib/env.client.js'
 
 export const Route = createFileRoute('/demo')({
   beforeLoad: () => {
-    if (import.meta.env.VITE_ENABLE_DEMO !== 'true') {
+    if (clientEnv.VITE_ENABLE_DEMO !== 'true') {
       throw notFound()
     }
   },

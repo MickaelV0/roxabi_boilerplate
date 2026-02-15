@@ -4,6 +4,7 @@ import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { ChevronLeft } from 'lucide-react'
 import { useCallback, useState } from 'react'
+import { clientEnv } from '@/lib/env.client.js'
 import { m } from '@/paraglide/messages'
 
 /*
@@ -38,7 +39,7 @@ async function readTodos() {
 const getTodos = createServerFn({
   method: 'GET',
 }).handler(async () => {
-  if (import.meta.env.VITE_ENABLE_DEMO !== 'true') {
+  if (clientEnv.VITE_ENABLE_DEMO !== 'true') {
     throw new Error('Not Found')
   }
   return await readTodos()
@@ -47,7 +48,7 @@ const getTodos = createServerFn({
 const addTodo = createServerFn({ method: 'POST' })
   .inputValidator((d: string) => d)
   .handler(async ({ data }) => {
-    if (import.meta.env.VITE_ENABLE_DEMO !== 'true') {
+    if (clientEnv.VITE_ENABLE_DEMO !== 'true') {
       throw new Error('Not Found')
     }
     const todos = await readTodos()

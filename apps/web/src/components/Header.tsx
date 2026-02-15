@@ -4,6 +4,7 @@ import { BookOpenIcon, Menu, X } from 'lucide-react'
 import { Collapsible } from 'radix-ui'
 import { useEffect, useRef, useState } from 'react'
 import { useSession } from '@/lib/auth-client'
+import { clientEnv } from '@/lib/env.client.js'
 import { m } from '@/paraglide/messages'
 import { GithubIcon } from './GithubIcon'
 import { LocaleSwitcher } from './LocaleSwitcher'
@@ -12,7 +13,7 @@ import { OrgSwitcher } from './OrgSwitcher'
 import { ThemeToggle } from './ThemeToggle'
 import { UserMenu } from './UserMenu'
 
-const isDemoEnabled = import.meta.env.VITE_ENABLE_DEMO === 'true'
+const isDemoEnabled = clientEnv.VITE_ENABLE_DEMO === 'true'
 
 export function Header() {
   const { data: session } = useSession()

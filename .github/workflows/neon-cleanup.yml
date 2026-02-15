@@ -1,0 +1,36 @@
+name: Neon Branch Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup-pr-branch:
+    name: Cleanup PR Neon Branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Neon branch for closed PR
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+          BRANCH_REF: ${{ github.head_ref }}
+        run: |
+          BRANCH_NAME="preview/$BRANCH_REF"
+          BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._/-]//g')
+
+          BRANCH_ID=$(curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" \
+            | jq -r --arg name "$BRANCH_NAME" '.branches[] | select(.name == $name) | .id')
+
+          if [ -z "$BRANCH_ID" ]; then
+            echo "No Neon branch found for: $BRANCH_NAME (already cleaned up)"
+            exit 0
+          fi
+
+          curl -sf -X DELETE -H "Authorization: Bearer $NEON_API_KEY" \
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID"
+
+          echo "Deleted Neon branch: $BRANCH_NAME ($BRANCH_ID)"

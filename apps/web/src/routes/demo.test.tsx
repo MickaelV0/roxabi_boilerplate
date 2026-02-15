@@ -1,6 +1,15 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
+const mockClientEnv = vi.hoisted(() => ({
+  VITE_ENABLE_DEMO: 'true' as string | undefined,
+  VITE_GITHUB_REPO_URL: undefined as string | undefined,
+}))
+
+vi.mock('@/lib/env.client.js', () => ({
+  clientEnv: mockClientEnv,
+}))
+
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
   beforeLoad: (() => undefined) as () => void,
@@ -15,8 +24,6 @@ vi.mock('@tanstack/react-router', () => ({
   notFound: () => new Error('Not Found'),
   Outlet: () => <div data-testid="outlet" />,
 }))
-
-vi.stubEnv('VITE_ENABLE_DEMO', 'true')
 
 import './demo'
 
@@ -36,9 +43,12 @@ describe('DemoLayout', () => {
 
   it('should throw notFound in beforeLoad when VITE_ENABLE_DEMO is false', () => {
     // Arrange
-    vi.stubEnv('VITE_ENABLE_DEMO', 'false')
+    mockClientEnv.VITE_ENABLE_DEMO = 'false'
 
     // Act & Assert
     expect(() => captured.beforeLoad()).toThrow()
+
+    // Cleanup
+    mockClientEnv.VITE_ENABLE_DEMO = 'true'
   })
 })
