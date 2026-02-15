@@ -60,8 +60,6 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
-    "@content-collections/core": "^0.14.0",
-    "@content-collections/vite": "^0.2.8",
     "@faker-js/faker": "^10.3.0",
     "@inlang/paraglide-js": "^2.11.0",
     "@repo/config": "workspace:*",

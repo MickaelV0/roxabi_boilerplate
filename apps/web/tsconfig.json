@@ -16,7 +16,6 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "content-collections": ["./.content-collections/generated"],
       "fumadocs-mdx:collections/*": [".source/*"]
     }
   }
