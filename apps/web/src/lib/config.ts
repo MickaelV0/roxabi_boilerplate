@@ -1,1 +1,3 @@
-export const GITHUB_REPO_URL = import.meta.env.VITE_GITHUB_REPO_URL || '#'
+import { clientEnv } from './env.client.js'
+
+export const GITHUB_REPO_URL = clientEnv.VITE_GITHUB_REPO_URL || '#'

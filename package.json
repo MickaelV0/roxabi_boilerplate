@@ -28,6 +28,7 @@
     "typecheck:affected": "turbo run typecheck --filter=...[origin/main]",
     "test:affected": "turbo run test --filter=...[origin/main]",
     "license:check": "bun run tools/license-checker.ts",
+    "check:env": "bun run scripts/check-env-sync.ts",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down"
   },

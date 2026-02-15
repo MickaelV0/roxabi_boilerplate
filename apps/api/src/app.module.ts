@@ -21,7 +21,7 @@ import { UserModule } from './user/user.module.js'
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['../../.env.local', '../../.env', '.env.local', '.env'],
+      envFilePath: ['../../.env.local', '../../.env'],
       validate,
     }),
     ClsModule.forRoot({

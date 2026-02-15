@@ -46,6 +46,9 @@ jobs:
       - name: Run Biome lint
         run: bun lint
 
+      - name: Check env sync
+        run: bun run check:env
+
       - name: Validate translations
         run: bun run i18n:validate
 
@@ -176,6 +179,7 @@ jobs:
         run: bun test:coverage
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+          BETTER_AUTH_SECRET: test-secret-minimum-32-characters-long
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 

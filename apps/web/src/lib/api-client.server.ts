@@ -1,8 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { ofetch } from 'ofetch'
-
-/** Default API URL for local development */
-const DEFAULT_API_URL = 'http://localhost:4000'
+import { env } from './env.server.js'
 
 /**
  * Creates a configured ofetch instance for API communication.
@@ -28,10 +26,9 @@ export function createApiClient(baseURL: string) {
 }
 
 /**
- * Default API client instance using the API_URL environment variable.
- * Fallback to DEFAULT_API_URL for local development.
+ * Default API client instance using the validated API_URL environment variable.
  */
-export const api = createApiClient(process.env.API_URL || DEFAULT_API_URL)
+export const api = createApiClient(env.API_URL)
 
 export type { FetchError } from 'ofetch'
 // Re-export error utilities from the shared module (no server-only deps)

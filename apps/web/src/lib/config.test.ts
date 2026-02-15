@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 
-async function importConfig(envValue: string) {
-  vi.stubEnv('VITE_GITHUB_REPO_URL', envValue)
+async function importConfig(envValue?: string) {
+  vi.doMock('./env.client.js', () => ({
+    clientEnv: {
+      VITE_ENABLE_DEMO: 'true',
+      VITE_GITHUB_REPO_URL: envValue || undefined,
+    },
+  }))
   vi.resetModules()
   return import('./config')
 }
@@ -9,7 +14,7 @@ async function importConfig(envValue: string) {
 describe('config', () => {
   it('should default GITHUB_REPO_URL to "#" when env is not set', async () => {
     // Arrange & Act
-    const { GITHUB_REPO_URL } = await importConfig('')
+    const { GITHUB_REPO_URL } = await importConfig()
 
     // Assert
     expect(GITHUB_REPO_URL).toBe('#')

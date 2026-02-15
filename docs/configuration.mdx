@@ -96,6 +96,77 @@ export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
 
 Agent definitions are in `.claude/agents/*.md`. See the [Agent Teams Guide](./guides/agent-teams) for details.
 
+## Complete Environment Variable Reference
+
+> Environment files (`.env`, `.env.local`) are resolved from the monorepo root only. Do not place `.env` files in app directories.
+
+### Core
+
+| Variable | App | Required | Default | Scope | Description |
+|----------|-----|----------|---------|-------|-------------|
+| `NODE_ENV` | API, Web | No | `development` | Server | Environment mode |
+| `PORT` | API | No | `4000` | Server | API server port |
+| `WEB_PORT` | Web | No | `3000` | Server | Web dev server port |
+| `API_URL` | Web | Dev: No, Prod: Yes | `http://localhost:4000` | Server | Backend API URL |
+| `APP_URL` | API, Web | No | — | Server | Frontend URL |
+| `CORS_ORIGIN` | API | No | `http://localhost:3000` | Server | Allowed CORS origin |
+| `LOG_LEVEL` | API | No | `debug` | Server | Log verbosity |
+
+### Database
+
+| Variable | App | Required | Default | Scope | Description |
+|----------|-----|----------|---------|-------|-------------|
+| `DATABASE_URL` | API | Yes (prod) | — | Server | PostgreSQL connection string |
+
+### Authentication
+
+| Variable | App | Required | Default | Scope | Description |
+|----------|-----|----------|---------|-------|-------------|
+| `BETTER_AUTH_SECRET` | API | Yes (non-dev) | `dev-secret-...` | Server | Auth session secret |
+| `BETTER_AUTH_URL` | API | No | `http://localhost:4000` | Server | Auth base URL |
+| `GOOGLE_CLIENT_ID` | API | No | — | Server | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | API | No | — | Server | Google OAuth client secret |
+| `GITHUB_CLIENT_ID` | API | No | — | Server | GitHub OAuth client ID |
+| `GITHUB_CLIENT_SECRET` | API | No | — | Server | GitHub OAuth client secret |
+| `RESEND_API_KEY` | API | No | — | Server | Resend email API key |
+| `EMAIL_FROM` | API | No | `noreply@yourdomain.com` | Server | Sender email |
+
+### Rate Limiting &amp; API Features
+
+| Variable | App | Required | Default | Scope | Description |
+|----------|-----|----------|---------|-------|-------------|
+| `KV_REST_API_URL` | API | Prod (if rate limit) | — | Server | Upstash Redis URL |
+| `KV_REST_API_TOKEN` | API | Prod (if rate limit) | — | Server | Upstash Redis token |
+| `RATE_LIMIT_ENABLED` | API | No | `true` | Server | Rate limiting toggle |
+| `SWAGGER_ENABLED` | API | No | — | Server | Swagger UI toggle |
+| `RATE_LIMIT_GLOBAL_TTL` | API | No | `60000` | Server | Global window (ms) |
+| `RATE_LIMIT_GLOBAL_LIMIT` | API | No | `60` | Server | Global max requests |
+| `RATE_LIMIT_AUTH_TTL` | API | No | `60000` | Server | Auth window (ms) |
+| `RATE_LIMIT_AUTH_LIMIT` | API | No | `5` | Server | Auth max requests |
+| `RATE_LIMIT_AUTH_BLOCK_DURATION` | API | No | `300000` | Server | Auth block (ms) |
+| `RATE_LIMIT_API_TTL` | API | No | `60000` | Server | API key window (ms) |
+| `RATE_LIMIT_API_LIMIT` | API | No | `100` | Server | API key max requests |
+
+### Deployment
+
+| Variable | App | Required | Default | Scope | Description |
+|----------|-----|----------|---------|-------|-------------|
+| `VERCEL_ENV` | API, Web | No | — | Server | Auto-injected by Vercel (`production` / `preview` / `development`) |
+
+### Public (Client-Side)
+
+| Variable | App | Required | Default | Scope | Description |
+|----------|-----|----------|---------|-------|-------------|
+| `VITE_ENABLE_DEMO` | Web | No | `true` | Client | Demo pages toggle |
+| `VITE_GITHUB_REPO_URL` | Web | No | — | Client | GitHub URL in header |
+
+### Tooling
+
+| Variable | App | Required | Default | Scope | Description |
+|----------|-----|----------|---------|-------|-------------|
+| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | — | No | `0` | Local | Agent teams toggle |
+| `GITHUB_TOKEN` | — | No | — | Local/CI | GitHub API access |
+
 ## TypeScript Configuration
 
 Root `tsconfig.json` provides base settings. Each app/package extends it:

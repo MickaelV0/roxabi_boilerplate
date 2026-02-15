@@ -1,4 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('./env.server.js', () => ({
+  env: { API_URL: 'http://localhost:4000', NODE_ENV: 'test' },
+}))
+
 import { createApiClient, getApiErrorData, isFetchError } from './api-client.server'
 
 describe('api-client', () => {
