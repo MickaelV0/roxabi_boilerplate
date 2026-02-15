@@ -43,6 +43,14 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -52,7 +60,16 @@ jobs:
       - name: Deploy
         id: deploy
         run: |
-          URL=$(vercel deploy)
+          for attempt in 1 2 3; do
+            if URL=$(vercel deploy); then break; fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::Deploy attempt $attempt/3 failed, retrying in 10s..."
+              sleep 10
+            else
+              echo "::error::All 3 deploy attempts failed"
+              exit 1
+            fi
+          done
           echo "url=$URL" >> "$GITHUB_OUTPUT"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -89,24 +106,39 @@ jobs:
           NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
         run: |
           set -euo pipefail
+
+          # Retry helper: retry_cmd <max_attempts> <delay_seconds> <command...>
+          retry_cmd() {
+            local max=$1 delay=$2; shift 2
+            for attempt in $(seq 1 "$max"); do
+              if "$@"; then return 0; fi
+              if [ "$attempt" -lt "$max" ]; then
+                echo "::warning::Attempt $attempt/$max failed, retrying in ${delay}s..."
+                sleep "$delay"
+              fi
+            done
+            echo "::error::All $max attempts failed"
+            return 1
+          }
+
           BRANCH_NAME="preview/${GITHUB_REF_NAME}"
           # Sanitize: keep only alphanumeric, hyphens, underscores, slashes, dots
           BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._/-]//g')
 
           # Delete existing branch with same name (if any) to avoid conflicts
-          EXISTING=$(curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
+          EXISTING=$(retry_cmd 3 5 curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
             "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" \
             | jq -r --arg name "$BRANCH_NAME" '.branches[] | select(.name == $name) | .id')
 
           if [ -n "$EXISTING" ]; then
             echo "Deleting existing branch: $EXISTING"
-            curl -sf -X DELETE -H "Authorization: Bearer $NEON_API_KEY" \
+            retry_cmd 3 5 curl -sf -X DELETE -H "Authorization: Bearer $NEON_API_KEY" \
               "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$EXISTING"
           fi
 
           # Create new branch from the main branch
           PAYLOAD=$(jq -n --arg name "$BRANCH_NAME" '{branch: {name: $name}, endpoints: [{type: "read_write"}]}')
-          RESPONSE=$(curl -sf -X POST \
+          RESPONSE=$(retry_cmd 3 5 curl -sf -X POST \
             -H "Authorization: Bearer $NEON_API_KEY" \
             -H "Content-Type: application/json" \
             "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" \
@@ -176,6 +208,14 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -199,12 +239,27 @@ jobs:
 
       - name: Deploy API preview
         id: deploy
-        # Note: --env flag injects per-deployment env vars on the Vercel preview.
+        # Note: DATABASE_URL is passed via step env to avoid direct secret
+        # interpolation in the shell command. The ::add-mask:: from earlier
+        # steps ensures the value is redacted in logs.
         # Rate limiting uses in-memory storage in previews (no Upstash) — resets on cold start.
         run: |
-          URL=$(vercel deploy --env DATABASE_URL=${{ steps.db.outputs.url }} --env SWAGGER_ENABLED=true --env RATE_LIMIT_ENABLED=false)
+          for attempt in 1 2 3; do
+            if URL=$(vercel deploy \
+              --env "DATABASE_URL=$DATABASE_URL" \
+              --env "SWAGGER_ENABLED=true" \
+              --env "RATE_LIMIT_ENABLED=false"); then break; fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::Deploy attempt $attempt/3 failed, retrying in 10s..."
+              sleep 10
+            else
+              echo "::error::All 3 deploy attempts failed"
+              exit 1
+            fi
+          done
           echo "url=$URL" >> "$GITHUB_OUTPUT"
         env:
+          DATABASE_URL: ${{ steps.db.outputs.url }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
