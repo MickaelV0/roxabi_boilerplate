@@ -1,0 +1,474 @@
+---
+title: Roles and Permissions (RBAC)
+description: How to use the Role-Based Access Control system to protect endpoints, check permissions in components, and manage custom roles.
+---
+
+## Overview
+
+Roxabi uses a **flat, per-organization RBAC model**. Each organization (tenant) has its own set of roles, and each role is an explicit list of `resource:action` permission strings. There is no role inheritance -- every role declares exactly what it can do.
+
+The system has two layers:
+
+| Layer | Scope | Stored in | Example |
+|-------|-------|-----------|---------|
+| **Platform** | Global, cross-tenant | `users.role` | `superadmin`, `admin`, `user` |
+| **Tenant** | Per-organization | `roles` + `role_permissions` tables | Owner, Admin, Member, Viewer, custom roles |
+
+Platform `superadmin` users bypass all permission checks. Tenant-level roles are resolved from the user's membership in the active organization.
+
+For the full design rationale, see the [RBAC analysis](../analyses/24-rbac).
+
+## Default Roles
+
+Every organization is seeded with four built-in roles on creation. These roles cannot be deleted, but their permissions can be customized (except Owner, which always has all permissions).
+
+| Role | Slug | Purpose | Permissions |
+|------|------|---------|-------------|
+| **Owner** | `owner` | Full control + org administration | All permissions including `organizations:delete` |
+| **Admin** | `admin` | Manage members, roles, invitations | All except `organizations:delete`, `users:delete` |
+| **Member** | `member` | Standard read access | Read-only on all resources + `roles:read` |
+| **Viewer** | `viewer` | Read-only access | Same as Member (read-only baseline) |
+
+The exact permission lists are defined in `apps/api/src/rbac/rbac.constants.ts`:
+
+```ts
+export const DEFAULT_ROLES: DefaultRoleDefinition[] = [
+  {
+    name: 'Owner',
+    slug: 'owner',
+    description: 'Full access — organization owner',
+    permissions: [
+      'users:read',
+      'users:write',
+      'users:delete',
+      'organizations:read',
+      'organizations:write',
+      'organizations:delete',
+      'members:read',
+      'members:write',
+      'members:delete',
+      'invitations:read',
+      'invitations:write',
+      'invitations:delete',
+      'roles:read',
+      'roles:write',
+      'roles:delete',
+    ],
+  },
+  // Admin, Member, Viewer follow the same pattern...
+]
+```
+
+## Permission Format
+
+Permissions follow the `resource:action` pattern. The valid combinations are defined in `packages/types/src/rbac.ts`:
+
+```ts
+export type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles'
+export type PermissionAction = 'read' | 'write' | 'delete'
+export type PermissionString = `${PermissionResource}:${PermissionAction}`
+```
+
+This gives you type-safe permission strings throughout the stack. New resources and actions can be added by extending these union types -- every consuming file gets compile-time checking automatically.
+
+## Protecting API Endpoints
+
+### The `@Permissions()` Decorator
+
+Use the `@Permissions()` decorator on controller methods to require specific permissions. The decorator is defined in `apps/api/src/auth/decorators/permissions.decorator.ts`:
+
+```ts
+import { SetMetadata } from '@nestjs/common'
+import type { PermissionString } from '@repo/types'
+
+export const Permissions = (...permissions: PermissionString[]) =>
+  SetMetadata('PERMISSIONS', permissions)
+```
+
+Using `@Permissions()` implicitly requires an active organization context (equivalent to `@RequireOrg()`). If no active organization is set on the session, the guard returns `403 Forbidden`.
+
+### Usage in Controllers
+
+Apply the decorator to any controller method. All listed permissions are required (AND logic):
+
+```ts
+import { Permissions } from '../auth/decorators/permissions.decorator.js'
+
+@Controller('api/roles')
+export class RbacController {
+  @Get()
+  @Permissions('roles:read')
+  async listRoles() {
+    return this.rbacService.listRoles()
+  }
+
+  @Post()
+  @Permissions('roles:write')
+  async createRole(@Body(new ZodValidationPipe(createRoleSchema)) body: CreateRoleDto) {
+    return this.rbacService.createRole(body)
+  }
+
+  @Delete(':id')
+  @Permissions('roles:delete')
+  async deleteRole(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
+    return this.rbacService.deleteRole(id)
+  }
+
+  @Patch('members/:id/role')
+  @Permissions('members:write')
+  async changeMemberRole(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body(new ZodValidationPipe(changeMemberRoleSchema)) body: ChangeMemberRoleDto
+  ) {
+    return this.rbacService.changeMemberRole(id, body.roleId)
+  }
+}
+```
+
+### Guard Evaluation Order
+
+The `AuthGuard` (registered globally via `APP_GUARD`) checks metadata in this order:
+
+1. `PUBLIC` -- if `@AllowAnonymous()` is set, allow immediately
+2. Fetch session from Better Auth (includes resolved permissions)
+3. `OPTIONAL_AUTH` -- if set and no session, allow
+4. No session -- `401 Unauthorized`
+5. `ROLES` -- check global user role (`users.role`) -- `403 Forbidden` if mismatch
+6. `REQUIRE_ORG` -- check active organization -- `403 Forbidden` if missing
+7. `PERMISSIONS` -- check tenant-scoped permissions -- `403 Forbidden` if insufficient
+
+The permission check in the guard (`apps/api/src/auth/auth.guard.ts`):
+
+```ts
+private checkPermissions(context: ExecutionContext, session: AuthSession) {
+  const requiredPermissions = this.reflector.getAllAndOverride<string[]>('PERMISSIONS', [
+    context.getHandler(),
+    context.getClass(),
+  ])
+  if (!requiredPermissions?.length) return
+
+  const orgId = session.session.activeOrganizationId
+  if (!orgId) {
+    throw new ForbiddenException('No active organization')
+  }
+
+  // Platform superadmins bypass all permission checks
+  if (session.user.role === 'superadmin') return
+
+  // Permissions are already resolved by AuthService.getSession()
+  const hasAll = requiredPermissions.every((p) => session.permissions.includes(p))
+  if (!hasAll) {
+    throw new ForbiddenException('Insufficient permissions')
+  }
+}
+```
+
+Key details:
+
+- Permissions are resolved **once** during session fetch, not on every request
+- `superadmin` users bypass permission checks entirely at the guard level
+- All required permissions must be present (AND logic, not OR)
+
+## Checking Permissions in the Frontend
+
+### Permission Utilities
+
+The frontend provides three helper functions in `apps/web/src/lib/permissions.ts`:
+
+```ts
+import type { PermissionString } from '@repo/types'
+
+// Check a single permission
+export function hasPermission(
+  session: SessionWithPermissions | null | undefined,
+  permission: PermissionString
+): boolean {
+  if (!session?.permissions) return false
+  return session.permissions.includes(permission)
+}
+
+// Check that ALL permissions are present
+export function hasAllPermissions(
+  session: SessionWithPermissions | null | undefined,
+  permissions: PermissionString[]
+): boolean {
+  return permissions.every((p) => hasPermission(session, p))
+}
+
+// Check that ANY permission is present
+export function hasAnyPermission(
+  session: SessionWithPermissions | null | undefined,
+  permissions: PermissionString[]
+): boolean {
+  return permissions.some((p) => hasPermission(session, p))
+}
+```
+
+### Usage in Components
+
+Use `hasPermission()` with the session from `useSession()` to conditionally render UI elements:
+
+```tsx
+import { useSession } from '@/lib/auth-client'
+import { hasPermission } from '@/lib/permissions'
+
+function OrgMembersPage() {
+  const { data: session } = useSession()
+
+  const canManage = hasPermission(session, 'members:write')
+
+  return (
+    <>
+      <h1>Members</h1>
+
+      {/* Only show the invite button if user can manage members */}
+      {canManage && (
+        <Button onClick={openInviteDialog}>Invite Member</Button>
+      )}
+
+      {/* Conditionally render management controls */}
+      {canManage && member.role !== 'owner' && (
+        <Button variant="ghost" onClick={() => removeMember(member.id)}>
+          Remove
+        </Button>
+      )}
+    </>
+  )
+}
+```
+
+This pattern is used in the actual codebase. For example, in `apps/web/src/routes/org/settings.tsx`:
+
+```tsx
+const canDeleteOrg = hasPermission(session, 'organizations:delete')
+
+// Disable form inputs for users without write permissions
+<Input disabled={!canDeleteOrg || saving} />
+
+// Only show the danger zone for users who can delete the org
+{canDeleteOrg && (
+  <Card>
+    <CardTitle className="text-destructive">Danger Zone</CardTitle>
+    <Button variant="destructive">Delete Organization</Button>
+  </Card>
+)}
+```
+
+### Session Shape
+
+Permissions are resolved server-side and included in the session response. No extra API calls are needed:
+
+```ts
+type AuthSession = {
+  user: { id: string; role?: Role }
+  session: { id: string; activeOrganizationId?: string | null }
+  permissions: string[]  // e.g. ["users:read", "members:write", ...]
+}
+```
+
+When the user switches organizations, the session refreshes and permissions update automatically.
+
+## Adding New Permissions
+
+To add a new resource or action to the permission system, follow these steps:
+
+### Step 1: Update the Type Definitions
+
+Add the new resource or action to the union types in `packages/types/src/rbac.ts`:
+
+```ts
+// Before
+export type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles'
+
+// After (adding a "billing" resource)
+export type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles' | 'billing'
+```
+
+### Step 2: Create a Database Migration
+
+Add the new permission rows to the `permissions` table. Permissions are global (not tenant-scoped) and seeded via migration:
+
+```sql
+INSERT INTO permissions (id, resource, action, description)
+VALUES
+  (gen_random_uuid(), 'billing', 'read', 'View billing and subscription information'),
+  (gen_random_uuid(), 'billing', 'write', 'Manage billing settings and payment methods');
+```
+
+### Step 3: Update Default Role Definitions
+
+If default roles should include the new permissions, update `apps/api/src/rbac/rbac.constants.ts`:
+
+```ts
+{
+  name: 'Owner',
+  slug: 'owner',
+  description: 'Full access — organization owner',
+  permissions: [
+    // ... existing permissions
+    'billing:read',
+    'billing:write',
+  ],
+},
+```
+
+### Step 4: Use the Permission
+
+Apply the new permission in controllers and components:
+
+```ts
+// Backend
+@Permissions('billing:read')
+@Get('billing')
+async getBilling() { ... }
+
+// Frontend
+const canManageBilling = hasPermission(session, 'billing:write')
+```
+
+## Custom Roles
+
+Organizations can create custom roles through the RBAC API. Custom roles are tenant-scoped (isolated by RLS) and work exactly like default roles.
+
+### Creating a Custom Role
+
+`POST /api/roles` with `roles:write` permission:
+
+```json
+{
+  "name": "Billing Manager",
+  "description": "Can manage billing but not members",
+  "permissions": ["organizations:read", "billing:read", "billing:write"]
+}
+```
+
+The slug is auto-generated from the name (`billing-manager`). Duplicate slugs within the same organization are rejected with `409 Conflict`.
+
+### Updating a Custom Role
+
+`PATCH /api/roles/:id` with `roles:write` permission:
+
+```json
+{
+  "name": "Billing Admin",
+  "permissions": ["organizations:read", "billing:read", "billing:write", "members:read"]
+}
+```
+
+### Deleting a Custom Role
+
+`DELETE /api/roles/:id` with `roles:delete` permission. Default roles cannot be deleted. When a custom role is deleted, all members with that role are automatically reassigned to Viewer.
+
+### Changing a Member's Role
+
+`PATCH /api/roles/members/:id/role` with `members:write` permission:
+
+```json
+{
+  "roleId": "uuid-of-target-role"
+}
+```
+
+The system enforces that at least one Owner must exist at all times. Attempting to change the last Owner's role will fail with an ownership constraint error.
+
+## Ownership Transfer
+
+Ownership can be transferred from the current Owner to an Admin:
+
+`POST /api/roles/transfer-ownership` with `members:write` permission:
+
+```json
+{
+  "targetMemberId": "uuid-of-admin-member"
+}
+```
+
+This atomically swaps roles: the current Owner becomes Admin, and the target Admin becomes Owner. The target must already have the Admin role.
+
+## How Roles are Seeded
+
+When a new organization is created, the `RbacListener` handles the `ORGANIZATION_CREATED` event:
+
+1. Seeds all four default roles for the organization (Owner, Admin, Member, Viewer)
+2. Assigns the Owner role to the organization creator
+
+This is implemented in `apps/api/src/rbac/rbac.listener.ts`:
+
+```ts
+@OnEvent(ORGANIZATION_CREATED)
+async handleOrganizationCreated(event: OrganizationCreatedEvent) {
+  // Seed default roles with their permission sets
+  await this.rbacService.seedDefaultRoles(event.organizationId)
+
+  // Assign Owner role to the creator
+  await this.tenantService.queryAs(event.organizationId, async (tx) => {
+    const [ownerRole] = await tx
+      .select({ id: roles.id })
+      .from(roles)
+      .where(and(eq(roles.tenantId, event.organizationId), eq(roles.slug, 'owner')))
+      .limit(1)
+
+    if (ownerRole) {
+      await tx
+        .update(members)
+        .set({ roleId: ownerRole.id })
+        .where(
+          and(
+            eq(members.userId, event.creatorUserId),
+            eq(members.organizationId, event.organizationId)
+          )
+        )
+    }
+  })
+}
+```
+
+## Database Schema
+
+The RBAC system uses three tables defined in `apps/api/src/database/schema/rbac.schema.ts`:
+
+| Table | Scope | Purpose |
+|-------|-------|---------|
+| `permissions` | Global | All available `resource:action` pairs. Seeded via migration. |
+| `roles` | Tenant-scoped | Role definitions per organization. Has `tenant_id` + RLS. |
+| `role_permissions` | Tenant-scoped (via FK) | Join table mapping roles to permissions. |
+
+The `members` table (managed by Better Auth) has a `roleId` column that references `roles.id`, linking each membership to an organization-specific role.
+
+## PermissionService
+
+The `PermissionService` (`apps/api/src/rbac/permission.service.ts`) resolves permissions for authentication contexts. It intentionally uses the raw database connection (not `TenantService`) because it runs during session validation -- before tenant context is established:
+
+```ts
+@Injectable()
+export class PermissionService {
+  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+
+  async getPermissions(userId: string, organizationId: string): Promise<string[]> {
+    // Look up the member's roleId
+    const member = await this.db
+      .select({ roleId: members.roleId })
+      .from(members)
+      .where(and(eq(members.userId, userId), eq(members.organizationId, organizationId)))
+      .limit(1)
+
+    const roleId = member[0]?.roleId
+    if (!roleId) return []
+
+    // Resolve role -> permissions via join table
+    const rows = await this.db
+      .select({ resource: permissions.resource, action: permissions.action })
+      .from(rolePermissions)
+      .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+      .where(eq(rolePermissions.roleId, roleId))
+
+    return rows.map((r) => `${r.resource}:${r.action}`)
+  }
+}
+```
+
+## Related Documentation
+
+- [RBAC analysis](../analyses/24-rbac) -- Full design rationale and architectural decisions
+- [Authentication guide](./authentication) -- Auth guard, session management, and decorators
+- [Multi-tenant guide](./multi-tenant) -- How tenant context and RLS interact with RBAC
