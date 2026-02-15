@@ -399,7 +399,7 @@ Build settings are version-controlled in `vercel.json` files — no dashboard co
 ```json
 {
   "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ] || npx turbo-ignore @repo/web",
-  "installCommand": "bun install",
+  "installCommand": "bun install --ignore-scripts",
   "buildCommand": "turbo run build"
 }
 ```
@@ -409,7 +409,7 @@ Build settings are version-controlled in `vercel.json` files — no dashboard co
 ```json
 {
   "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ] || npx turbo-ignore @repo/api",
-  "installCommand": "bun install",
+  "installCommand": "bun install --ignore-scripts",
   "buildCommand": "bun run db:migrate && turbo run build"
 }
 ```
@@ -421,7 +421,7 @@ Nitro (TanStack Start) outputs to `.vercel/output/` using the Vercel Build Outpu
 > curl -X PATCH -H "Authorization: Bearer $TOKEN" \
 >   "https://api.vercel.com/v9/projects/$PROJECT_ID?teamId=$TEAM_ID" \
 >   -H "Content-Type: application/json" \
->   -d '{"buildCommand":"bun run db:migrate && turbo run build","installCommand":"bun install"}'
+>   -d '{"buildCommand":"bun run db:migrate && turbo run build","installCommand":"bun install --ignore-scripts"}'
 > ```
 
 ---
@@ -441,11 +441,12 @@ As a secondary safeguard, both projects also use `ignoreCommand` in `vercel.json
 | **Primary** | `previewDeploymentsDisabled: true` (project setting) | Prevents Vercel from even attempting preview deployments |
 | **Secondary** | `ignoreCommand` in `vercel.json` | Skips builds on non-`main` branches if a deployment is triggered |
 
-Preview deploys are **manual only** — use the **Deploy Preview** GitHub Action (see [Preview Deploys](#preview-deploys) above) or the Vercel CLI:
+Preview deploys are **manual only** — use the **Deploy Preview** GitHub Action (see [Preview Deploys](#preview-deploys) above) or the Vercel CLI.
+
+> **Important:** Always run `vercel` preview deploys from the **repository root**, not from `apps/web` or `apps/api`. The Vercel project linking (`.vercel/project.json`) and TurboRepo build pipeline expect the root as the working directory. Running from a subdirectory may produce broken builds or skip workspace dependencies.
 
 ```bash
-cd apps/web && vercel        # Preview deploy
-cd apps/api && vercel        # Preview deploy
+vercel                       # Preview deploy (from repo root)
 ```
 
 ---

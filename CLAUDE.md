@@ -8,7 +8,8 @@
 - **Always** use `AskUserQuestion` for multiple-choice questions — never ask in plain text
 - **Never** commit without asking, push without explicit request, or use `--force`/`--hard`/`--amend`
 - **Always** use the appropriate skill (see [Available Skills](#available-skills)) even without a slash command
-- **Before writing code:** Read the relevant standards doc (see [Rule 7](#7-coding-standards-critical))
+- **Before writing code:** Read the relevant standards doc (see [Rule 8](#8-coding-standards-critical))
+- **Orchestrator** delegates all code/docs/deploy changes to agents — only minor fixes directly
 
 ---
 
@@ -65,7 +66,24 @@ If you find yourself writing "Do you want me to...", "Should I...", "Do you pref
 
 ---
 
-### 3. Parallel Execution for Large Tasks
+### 3. Orchestrator Delegation (CRITICAL)
+
+**The orchestrator (main Claude session) must NOT directly modify code or documentation files.** Delegate all changes to the appropriate specialized agent:
+
+- **Frontend code** → `frontend-dev`
+- **Backend code** → `backend-dev`
+- **Configuration / infra / deployment** → `devops`
+- **Documentation** → `doc-writer`
+- **Tests** → `tester`
+- **Review fixes** → `fixer`
+
+**Exception:** Truly minor changes (typo fix, single-line config tweak) may be done directly by the orchestrator when spawning an agent would be disproportionate overhead. Use judgment — if in doubt, delegate.
+
+**Deployment tasks** (preview deploys, production deploys, Vercel CLI operations, env var management) **MUST be handled by the `devops` agent**, never by the orchestrator directly.
+
+---
+
+### 4. Parallel Execution for Large Tasks
 
 When detecting a large workload (3+ complex tasks, migrations, or multi-component implementations), **ALWAYS propose execution mode** using `AskUserQuestion`:
 - **Sequential**: One task at a time, better control
@@ -73,7 +91,7 @@ When detecting a large workload (3+ complex tasks, migrations, or multi-componen
 
 ---
 
-### 4. Git Commits
+### 5. Git Commits
 
 - **ALWAYS ask before committing** unless explicitly requested
 - Format: `<type>(<scope>): <description>` with `Co-Authored-By: Claude <model> <noreply@anthropic.com>`
@@ -85,7 +103,7 @@ When detecting a large workload (3+ complex tasks, migrations, or multi-componen
 
 ---
 
-### 5. Mandatory Worktree (All Tiers) (CRITICAL)
+### 6. Mandatory Worktree (All Tiers) (CRITICAL)
 
 **ALL code changes require a worktree. Create worktree BEFORE coding:**
 
@@ -106,7 +124,7 @@ cd apps/api && bun run db:branch:create --force XXX
 
 ---
 
-### 6. Code Review (CRITICAL)
+### 7. Code Review (CRITICAL)
 
 **When reviewing PRs or code: MUST read [docs/standards/code-review.mdx](docs/standards/code-review.mdx).**
 
@@ -116,7 +134,7 @@ cd apps/api && bun run db:branch:create --force XXX
 
 ---
 
-### 7. Coding Standards (CRITICAL)
+### 8. Coding Standards (CRITICAL)
 
 **When writing or modifying code: MUST read the relevant standards doc.**
 
@@ -256,9 +274,12 @@ Both apps deploy to **Vercel** automatically on push to `main`. See [docs/guides
 
 #### Vercel CLI
 
-The `vercel` CLI is available for deployment management:
+The `vercel` CLI is available for deployment management. **All deployment tasks must be delegated to the `devops` agent.**
+
+> **Important:** Always run `vercel` commands from the **repository root**, not from `apps/web` or `apps/api`. The Vercel project linking and TurboRepo build pipeline expect the root as the working directory.
 
 ```bash
+vercel                           # Preview deploy (from repo root)
 vercel ls                        # List deployments
 vercel env ls                    # List environment variables
 vercel env add SECRET_NAME       # Add environment variable

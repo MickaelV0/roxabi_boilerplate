@@ -55,6 +55,6 @@ BEFORE writing any tests, you MUST read:
 
 ## Coordination
 - Claim test tasks from the shared task list
-- After writing tests, run them: `bun test` or `bun test:api` / `bun test:web`
+- After writing tests, run them: `bun test` or `turbo test --filter=@repo/web` / `turbo test --filter=@repo/api`
 - Mark tasks complete and report coverage results
 - If tests fail due to source bugs, create a task for the relevant domain agent

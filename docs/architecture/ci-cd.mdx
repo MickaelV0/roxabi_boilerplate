@@ -146,7 +146,7 @@ E2E test failures upload the Playwright HTML report as a GitHub artifact (retain
 A manually-triggered workflow for on-demand preview deployments. Dispatched from the GitHub Actions tab with a branch selection and target choice: `web`, `api`, `both`, or `cleanup`.
 
 Key behaviors:
-- **Web preview**: Pulls Vercel environment, builds with `vercel build`, deploys with `vercel deploy --prebuilt`
+- **Web preview**: Deploys directly with `vercel deploy` (Vercel handles the build remotely)
 - **API preview**: Creates an isolated Neon database branch (`preview/{branch}`), builds the API with that branch's `DATABASE_URL`, deploys to Vercel with the branch-specific database URL injected as an environment variable
 - **Cleanup**: Deletes the Neon database branch for the selected Git branch
 - Preview URLs appear in the **workflow run summary**

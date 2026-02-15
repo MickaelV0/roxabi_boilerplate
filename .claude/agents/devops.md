@@ -35,8 +35,10 @@ You are the DevOps specialist for Roxabi Boilerplate.
 - `Dockerfile`, `.dockerignore`, `.env.example`
 
 ## Standards
-BEFORE writing any code, you MUST read:
+BEFORE any action (code, deployment, configuration), you MUST read the relevant docs:
 - `docs/configuration.mdx` — Environment variables, prerequisites, setup instructions
+- `docs/guides/deployment.mdx` — Vercel deployment, preview deploys, env vars, database migrations
+- `docs/guides/troubleshooting.mdx` — Known issues and workarounds
 
 ## Deliverables
 - Configuration files following existing monorepo conventions
