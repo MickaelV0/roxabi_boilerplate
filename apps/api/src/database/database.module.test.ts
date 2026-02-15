@@ -11,9 +11,11 @@ const mockedReadFile = readFile as Mock
 function createMockClient({
   pingResult,
   migrationsCount,
+  existingCoreTables,
 }: {
   pingResult?: 'success' | Error
   migrationsCount?: number
+  existingCoreTables?: string[]
 } = {}) {
   const handler = (strings: TemplateStringsArray) => {
     const query = strings[0]?.trim()
@@ -23,6 +25,11 @@ function createMockClient({
       return [{ '?column?': 1 }]
     }
 
+    if (query?.includes('information_schema.tables')) {
+      const tables = existingCoreTables ?? []
+      return tables.map((t) => ({ table_name: t }))
+    }
+
     if (query?.includes('__drizzle_migrations')) {
       return [{ count: migrationsCount ?? 0 }]
     }
@@ -30,7 +37,10 @@ function createMockClient({
     return []
   }
 
-  return Object.assign(vi.fn(handler), { end: vi.fn() })
+  // The client is both a tagged template function and a regular function
+  // (postgres uses client(array) for SQL fragments inside tagged templates)
+  const fn = vi.fn(handler)
+  return Object.assign(fn, { end: vi.fn() })
 }
 
 function createModule(client: ReturnType<typeof createMockClient> | null) {
@@ -53,7 +63,8 @@ describe('DatabaseModule', () => {
 
     it('should verify connection with SELECT 1', async () => {
       // Arrange
-      const client = createMockClient({ pingResult: 'success' })
+      const allCoreTables = ['users', 'sessions', 'accounts', 'verifications']
+      const client = createMockClient({ pingResult: 'success', existingCoreTables: allCoreTables })
       const mod = createModule(client)
       mockedReadFile.mockRejectedValue(new Error('ENOENT'))
 
@@ -79,7 +90,8 @@ describe('DatabaseModule', () => {
   describe('checkPendingMigrations', () => {
     it('should skip when no journal file exists', async () => {
       // Arrange
-      const client = createMockClient({ pingResult: 'success' })
+      const allCoreTables = ['users', 'sessions', 'accounts', 'verifications']
+      const client = createMockClient({ pingResult: 'success', existingCoreTables: allCoreTables })
       const mod = createModule(client)
       mockedReadFile.mockRejectedValue(new Error('ENOENT'))
 
@@ -89,7 +101,12 @@ describe('DatabaseModule', () => {
 
     it('should warn when pending migrations are detected', async () => {
       // Arrange
-      const client = createMockClient({ pingResult: 'success', migrationsCount: 1 })
+      const allCoreTables = ['users', 'sessions', 'accounts', 'verifications']
+      const client = createMockClient({
+        pingResult: 'success',
+        migrationsCount: 1,
+        existingCoreTables: allCoreTables,
+      })
       const mod = createModule(client)
 
       const journal = {
@@ -107,7 +124,12 @@ describe('DatabaseModule', () => {
 
     it('should succeed when all migrations are applied', async () => {
       // Arrange
-      const client = createMockClient({ pingResult: 'success', migrationsCount: 2 })
+      const allCoreTables = ['users', 'sessions', 'accounts', 'verifications']
+      const client = createMockClient({
+        pingResult: 'success',
+        migrationsCount: 2,
+        existingCoreTables: allCoreTables,
+      })
       const mod = createModule(client)
 
       const journal = {
@@ -124,10 +146,13 @@ describe('DatabaseModule', () => {
 
     it('should handle missing __drizzle_migrations table gracefully', async () => {
       // Arrange
+      const allCoreTables = ['users', 'sessions', 'accounts', 'verifications']
       const client = Object.assign(
         vi.fn((strings: TemplateStringsArray) => {
           const query = strings[0]?.trim()
           if (query === 'SELECT 1') return [{ '?column?': 1 }]
+          if (query?.includes('information_schema.tables'))
+            return allCoreTables.map((t) => ({ table_name: t }))
           if (query?.includes('__drizzle_migrations')) throw new Error('relation does not exist')
           return []
         }),
@@ -141,6 +166,51 @@ describe('DatabaseModule', () => {
       mockedReadFile.mockResolvedValue(JSON.stringify(journal))
 
       // Act & Assert — should warn about pending, not throw
+      await expect(mod.onModuleInit()).resolves.toBeUndefined()
+    })
+  })
+
+  describe('checkCoreTables', () => {
+    it('should log success when all core tables exist', async () => {
+      // Arrange
+      const allCoreTables = ['users', 'sessions', 'accounts', 'verifications']
+      const client = createMockClient({ pingResult: 'success', existingCoreTables: allCoreTables })
+      const mod = createModule(client)
+      mockedReadFile.mockRejectedValue(new Error('ENOENT'))
+
+      // Act & Assert — should not throw
+      await expect(mod.onModuleInit()).resolves.toBeUndefined()
+    })
+
+    it('should warn when some core tables are missing', async () => {
+      // Arrange
+      const client = createMockClient({
+        pingResult: 'success',
+        existingCoreTables: ['users', 'accounts'],
+      })
+      const mod = createModule(client)
+      mockedReadFile.mockRejectedValue(new Error('ENOENT'))
+
+      // Act & Assert — should not throw (warns, doesn't fail)
+      await expect(mod.onModuleInit()).resolves.toBeUndefined()
+    })
+
+    it('should warn when query fails', async () => {
+      // Arrange
+      const client = Object.assign(
+        vi.fn((strings: TemplateStringsArray) => {
+          const query = strings[0]?.trim()
+          if (query === 'SELECT 1') return [{ '?column?': 1 }]
+          if (query?.includes('information_schema.tables'))
+            throw new Error('permission denied for schema information_schema')
+          return []
+        }),
+        { end: vi.fn() }
+      )
+      const mod = createModule(client)
+      mockedReadFile.mockRejectedValue(new Error('ENOENT'))
+
+      // Act & Assert — should not throw (warns, doesn't fail)
       await expect(mod.onModuleInit()).resolves.toBeUndefined()
     })
   })
