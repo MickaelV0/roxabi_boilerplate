@@ -136,23 +136,35 @@ describe('env validation', () => {
   })
 
   describe('Upstash Redis production guard', () => {
-    it('should throw when UPSTASH_REDIS_REST_URL is missing in production', () => {
+    it('should throw when UPSTASH_REDIS_REST_URL is missing in production with rate limiting enabled', () => {
       expect(() =>
         validate({
           NODE_ENV: 'production',
           BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
+          RATE_LIMIT_ENABLED: 'true',
         })
       ).toThrow('UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production')
     })
 
-    it('should throw when UPSTASH_REDIS_REST_TOKEN is missing in production', () => {
+    it('should throw when UPSTASH_REDIS_REST_TOKEN is missing in production with rate limiting enabled', () => {
       expect(() =>
         validate({
           NODE_ENV: 'production',
           BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
+          RATE_LIMIT_ENABLED: 'true',
           UPSTASH_REDIS_REST_URL: 'https://redis.upstash.io',
         })
       ).toThrow('UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production')
+    })
+
+    it('should allow missing Upstash vars in production when rate limiting is disabled', () => {
+      const result = validate({
+        NODE_ENV: 'production',
+        BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
+        RATE_LIMIT_ENABLED: 'false',
+      })
+      expect(result.UPSTASH_REDIS_REST_URL).toBeUndefined()
+      expect(result.UPSTASH_REDIS_REST_TOKEN).toBeUndefined()
     })
 
     it('should allow missing UPSTASH_REDIS_REST_URL in development', () => {

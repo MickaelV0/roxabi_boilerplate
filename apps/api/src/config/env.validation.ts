@@ -62,11 +62,12 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
 
   if (
     validatedConfig.NODE_ENV === 'production' &&
+    validatedConfig.RATE_LIMIT_ENABLED === 'true' &&
     (!validatedConfig.UPSTASH_REDIS_REST_URL || !validatedConfig.UPSTASH_REDIS_REST_TOKEN)
   ) {
     throw new Error(
-      'UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production for distributed rate limiting. ' +
-        'Provision Upstash Redis via Vercel Marketplace or set them manually.'
+      'UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production when rate limiting is enabled. ' +
+        'Provision Upstash Redis via Vercel Marketplace, set them manually, or set RATE_LIMIT_ENABLED=false for previews.'
     )
   }
 

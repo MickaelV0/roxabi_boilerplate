@@ -50,12 +50,14 @@ jobs:
         run: npm install -g vercel@latest
 
       - name: Pull Vercel environment
+        working-directory: apps/web
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
 
       - name: Build
+        working-directory: apps/web
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -63,6 +65,7 @@ jobs:
 
       - name: Deploy
         id: deploy
+        working-directory: apps/web
         run: |
           URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$URL" >> "$GITHUB_OUTPUT"
@@ -198,12 +201,14 @@ jobs:
           fi
 
       - name: Pull Vercel environment
+        working-directory: apps/api
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
 
       - name: Build
+        working-directory: apps/api
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -212,6 +217,7 @@ jobs:
 
       - name: Deploy API preview
         id: deploy
+        working-directory: apps/api
         # Note: --env flag is required to set DATABASE_URL on the Vercel preview
         # deployment itself (not just in the CI runner). This is the only way to
         # inject per-deployment env vars for preview builds. The value is masked
@@ -219,7 +225,7 @@ jobs:
         # exposure is low risk.
         run: |
           # Rate limiting uses in-memory storage in previews (no Upstash) — resets on cold start
-          URL=$(vercel deploy --prebuilt --env DATABASE_URL=${{ steps.db.outputs.url }} --env SWAGGER_ENABLED=true --env RATE_LIMIT_ENABLED=true --token=${{ secrets.VERCEL_TOKEN }})
+          URL=$(vercel deploy --prebuilt --env DATABASE_URL=${{ steps.db.outputs.url }} --env SWAGGER_ENABLED=true --env RATE_LIMIT_ENABLED=false --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$URL" >> "$GITHUB_OUTPUT"
         env:
           DATABASE_URL: ${{ steps.db.outputs.url }}
