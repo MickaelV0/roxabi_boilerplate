@@ -120,7 +120,7 @@ Linting and formatting configured in `biome.json`:
 
 ## TurboRepo Configuration
 
-Tasks defined in `turbo.json`:
+Tasks defined in `turbo.jsonc`:
 
 - `dev` - Run development servers
 - `build` - Build all packages
@@ -131,7 +131,7 @@ Tasks defined in `turbo.json`:
 
 ### Environment Variables in Turbo
 
-The root `turbo.json` declares `env` arrays for variables that affect build output — changing these values invalidates the Turbo cache:
+The root `turbo.jsonc` declares `env` arrays for variables that affect build output — changing these values invalidates the Turbo cache:
 
 - `codegen` and `build`: `API_URL`, `APP_URL`, `VITE_ENABLE_DEMO`
 - `test`: `CI`, `VITEST`

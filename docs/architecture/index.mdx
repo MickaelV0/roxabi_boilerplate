@@ -181,7 +181,7 @@ Workspaces configuration:
 
 TurboRepo distinguishes between two types of environment variables:
 
-- **`env`** (root `turbo.json`) — Variables that affect build output (`API_URL`, `APP_URL`, `VITE_ENABLE_DEMO`). Changing these invalidates the Turbo cache.
+- **`env`** (root `turbo.jsonc`) — Variables that affect build output (`API_URL`, `APP_URL`, `VITE_ENABLE_DEMO`). Changing these invalidates the Turbo cache.
 - **`passThroughEnv`** (`apps/api/turbo.json`) — Runtime-only secrets (database, auth). Available at runtime but excluded from cache keys, preventing unnecessary rebuilds when only secrets rotate.
 
 App-specific `turbo.json` files extend the root config with `"extends": ["//"]`.

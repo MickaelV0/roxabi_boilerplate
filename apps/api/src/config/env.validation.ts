@@ -60,6 +60,13 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
     )
   }
 
+  if (validatedConfig.NODE_ENV === 'production' && validatedConfig.RATE_LIMIT_ENABLED === 'false') {
+    console.error(
+      '[SECURITY] RATE_LIMIT_ENABLED=false in production — auth brute-force protection is DISABLED. ' +
+        'Set RATE_LIMIT_ENABLED=true and configure UPSTASH_REDIS_REST_URL/TOKEN.'
+    )
+  }
+
   if (
     validatedConfig.NODE_ENV === 'production' &&
     validatedConfig.RATE_LIMIT_ENABLED === 'true' &&

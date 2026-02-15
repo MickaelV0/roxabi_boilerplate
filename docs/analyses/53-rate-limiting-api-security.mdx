@@ -7,7 +7,7 @@ description: Analysis of rate limiting and security hardening for the NestJS/Fas
 
 Production APIs need protection against brute force attacks, abuse, and resource exhaustion. Auth endpoints (login, register, password reset) are especially sensitive targets. The Roxabi API runs on NestJS + Fastify and deploys to Vercel as serverless functions, which introduces constraints on state persistence — in-memory rate limiting resets per invocation and cannot track request rates across function instances.
 
-Issue [#53](https://github.com/AikidoSec/roxabi_boilerplate/issues/53) captures this requirement. It depends on [#19 (Auth + Users)](https://github.com/AikidoSec/roxabi_boilerplate/issues/19) for user-based rate limiting identification.
+Issue [#53](https://github.com/MickaelV0/roxabi_boilerplate/issues/53) captures this requirement. It depends on [#19 (Auth + Users)](https://github.com/MickaelV0/roxabi_boilerplate/issues/19) for user-based rate limiting identification.
 
 ## Questions Explored
 

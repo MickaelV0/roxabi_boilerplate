@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { validate } from './env.validation.js'
 
 describe('env validation', () => {
@@ -165,6 +165,19 @@ describe('env validation', () => {
       })
       expect(result.UPSTASH_REDIS_REST_URL).toBeUndefined()
       expect(result.UPSTASH_REDIS_REST_TOKEN).toBeUndefined()
+    })
+
+    it('should log security error when rate limiting is disabled in production', () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      validate({
+        NODE_ENV: 'production',
+        BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
+        RATE_LIMIT_ENABLED: 'false',
+      })
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[SECURITY] RATE_LIMIT_ENABLED=false in production')
+      )
+      errorSpy.mockRestore()
     })
 
     it('should allow missing UPSTASH_REDIS_REST_URL in development', () => {

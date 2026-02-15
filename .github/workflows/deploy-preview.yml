@@ -52,11 +52,12 @@ jobs:
       - name: Deploy
         id: deploy
         run: |
-          URL=$(vercel deploy --token=${{ secrets.VERCEL_TOKEN }})
+          URL=$(vercel deploy)
           echo "url=$URL" >> "$GITHUB_OUTPUT"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
       - name: Summary
         run: |
@@ -190,11 +191,12 @@ jobs:
         # Note: --env flag injects per-deployment env vars on the Vercel preview.
         # Rate limiting uses in-memory storage in previews (no Upstash) — resets on cold start.
         run: |
-          URL=$(vercel deploy --env DATABASE_URL=${{ steps.db.outputs.url }} --env SWAGGER_ENABLED=true --env RATE_LIMIT_ENABLED=false --token=${{ secrets.VERCEL_TOKEN }})
+          URL=$(vercel deploy --env DATABASE_URL=${{ steps.db.outputs.url }} --env SWAGGER_ENABLED=true --env RATE_LIMIT_ENABLED=false)
           echo "url=$URL" >> "$GITHUB_OUTPUT"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
       - name: Health check (best-effort)
         continue-on-error: true
