@@ -91,7 +91,7 @@ describe('env validation', () => {
     })
   })
 
-  describe('BETTER_AUTH_SECRET production guard', () => {
+  describe('BETTER_AUTH_SECRET non-development guard', () => {
     it('should throw when using default secret in production', () => {
       expect(() =>
         validate({
@@ -178,6 +178,18 @@ describe('env validation', () => {
           BETTER_AUTH_SECRET: 'dev-secret-do-not-use-in-production',
         })
       ).toThrow('BETTER_AUTH_SECRET must be set to a secure value on Vercel deployments')
+    })
+
+    it('should throw when NODE_ENV=production even if VERCEL_ENV=development', () => {
+      expect(() =>
+        validate({
+          NODE_ENV: 'production',
+          VERCEL_ENV: 'development',
+          BETTER_AUTH_SECRET: 'dev-secret-do-not-use-in-production',
+          KV_REST_API_URL: 'https://redis.upstash.io',
+          KV_REST_API_TOKEN: 'test-token',
+        })
+      ).toThrow('BETTER_AUTH_SECRET must be set to a secure value in non-development environments')
     })
 
     it('should allow explicit secret with VERCEL_ENV set', () => {

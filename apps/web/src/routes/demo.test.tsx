@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const mockClientEnv = vi.hoisted(() => ({
   VITE_ENABLE_DEMO: 'true' as string | undefined,
@@ -9,6 +9,11 @@ const mockClientEnv = vi.hoisted(() => ({
 vi.mock('@/lib/env.client.js', () => ({
   clientEnv: mockClientEnv,
 }))
+
+afterEach(() => {
+  mockClientEnv.VITE_ENABLE_DEMO = 'true'
+  mockClientEnv.VITE_GITHUB_REPO_URL = undefined
+})
 
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
@@ -47,8 +52,5 @@ describe('DemoLayout', () => {
 
     // Act & Assert
     expect(() => captured.beforeLoad()).toThrow()
-
-    // Cleanup
-    mockClientEnv.VITE_ENABLE_DEMO = 'true'
   })
 })

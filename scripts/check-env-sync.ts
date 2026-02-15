@@ -32,6 +32,10 @@ const TOOLING_ALLOWLIST = new Set([
   'VERCEL_ENV',
 ])
 
+/** Prefix for client-side environment variables exposed by Vite. */
+// biome-ignore lint/correctness/noUnusedVariables: documentation constant for future use
+const CLIENT_ENV_PREFIX = 'VITE_'
+
 /** Parse .env.example: extract keys from both uncommented and commented lines. */
 async function parseEnvExample(): Promise<Set<string>> {
   const content = await readFile(ENV_EXAMPLE_PATH, 'utf-8')
@@ -60,16 +64,40 @@ function schemaKeys(schema: { shape: Record<string, unknown> }): string[] {
   return Object.keys(schema.shape)
 }
 
+/** Check that the vite.config.ts inline schema matches clientEnvSchema. */
+async function checkViteConfigDrift(clientSchemaKeys: string[]): Promise<{ errors: string[] }> {
+  const errors: string[] = []
+  const viteConfigPath = join(ROOT, 'apps/web/vite.config.ts')
+  const viteConfigContent = await readFile(viteConfigPath, 'utf-8')
+
+  const viteSchemaMatch = viteConfigContent.match(/const schema = z\.object\(\{([^}]+)\}\)/)
+  if (!viteSchemaMatch) {
+    console.warn('WARN: Could not find inline schema in vite.config.ts — skipping drift check')
+    return { errors }
+  }
+
+  const viteKeys = new Set([...viteSchemaMatch[1].matchAll(/(\w+)\s*:/g)].map((m) => m[1]))
+  const clientKeys = new Set(clientSchemaKeys)
+
+  for (const key of clientKeys) {
+    if (!viteKeys.has(key)) {
+      errors.push(`${key} is in clientEnvSchema but missing from vite.config.ts inline schema`)
+    }
+  }
+  for (const key of viteKeys) {
+    if (!clientKeys.has(key)) {
+      errors.push(`${key} is in vite.config.ts inline schema but missing from clientEnvSchema`)
+    }
+  }
+
+  return { errors }
+}
+
 async function main() {
   console.log('Checking env schema sync with .env.example...\n')
 
-  // Set dummy env vars to prevent side-effect crashes on import.
-  // env.server.ts parses process.env at module level; env.client.ts uses import.meta.env.
-  process.env.API_URL = process.env.API_URL || 'http://localhost:4000'
-
-  // Dynamic imports so dummy vars are set before module-level side effects run
   const { envSchema: apiEnvSchema } = await import('../apps/api/src/config/env.validation')
-  const { envSchema: webServerEnvSchema } = await import('../apps/web/src/lib/env.server')
+  const { envSchema: webServerEnvSchema } = await import('../apps/web/src/lib/env.server.schema')
   const { clientEnvSchema: webClientEnvSchema } = await import('../apps/web/src/lib/env.client')
 
   const envExampleKeys = await parseEnvExample()
@@ -97,6 +125,13 @@ async function main() {
     if (!allSchemaKeys.has(key)) {
       console.warn(`WARN:  ${key} is in .env.example but not in any schema`)
     }
+  }
+
+  // Check vite.config.ts inline schema drift
+  const viteDrift = await checkViteConfigDrift(schemaKeys(webClientEnvSchema))
+  for (const error of viteDrift.errors) {
+    console.error(`ERROR: ${error}`)
+    hasErrors = true
   }
 
   console.log()

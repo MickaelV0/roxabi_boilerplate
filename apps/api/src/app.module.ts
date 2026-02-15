@@ -21,6 +21,7 @@ import { UserModule } from './user/user.module.js'
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      // Load .env from monorepo root — all env vars are centralized there (no per-app .env files)
       envFilePath: ['../../.env.local', '../../.env'],
       validate,
     }),
