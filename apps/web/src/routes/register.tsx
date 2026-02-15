@@ -24,6 +24,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export const Route = createFileRoute('/register')({
   beforeLoad: async () => {
+    if (typeof window === 'undefined') return
     const { data } = await authClient.getSession()
     if (data) {
       throw redirect({ to: '/dashboard' })

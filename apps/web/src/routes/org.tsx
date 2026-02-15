@@ -5,6 +5,7 @@ import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/org')({
   beforeLoad: async () => {
+    if (typeof window === 'undefined') return
     const { data } = await authClient.getSession()
     if (!data) {
       throw redirect({ to: '/login' })

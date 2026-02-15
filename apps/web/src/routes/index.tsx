@@ -11,6 +11,9 @@ import { authClient } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/')({
   beforeLoad: async () => {
+    // Skip auth check during SSR — no session cookie is forwarded and
+    // the auth client would try to reach localhost, which doesn't exist on Vercel.
+    if (typeof window === 'undefined') return
     const { data } = await authClient.getSession()
     if (data) {
       throw redirect({ to: '/dashboard' })

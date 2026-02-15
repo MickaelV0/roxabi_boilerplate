@@ -22,6 +22,7 @@ import { OrDivider } from '../components/OrDivider'
 
 export const Route = createFileRoute('/login')({
   beforeLoad: async () => {
+    if (typeof window === 'undefined') return
     const { data } = await authClient.getSession()
     if (data) {
       throw redirect({ to: '/dashboard' })

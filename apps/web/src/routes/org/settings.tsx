@@ -27,6 +27,7 @@ const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
 
 export const Route = createFileRoute('/org/settings')({
   beforeLoad: async () => {
+    if (typeof window === 'undefined') return
     const { data } = await authClient.getSession()
     if (!data) {
       throw redirect({ to: '/login' })
