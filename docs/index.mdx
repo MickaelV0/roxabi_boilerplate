@@ -40,9 +40,34 @@ bun dev
 
 Then open:
 - **Frontend**: http://localhost:3000
-- **API**: http://localhost:3001/api (direct) or http://localhost:3000/api (via web proxy)
+- **API**: http://localhost:4000/api (direct) or http://localhost:3000/api (via web proxy)
 - **Docs**: http://localhost:3000/docs
-- **Swagger**: http://localhost:3001/api/docs (direct) or http://localhost:3000/api/docs (via web proxy)
+- **Swagger**: http://localhost:4000/api/docs (direct) or http://localhost:3000/api/docs (via web proxy)
+
+## Feature Matrix
+
+A snapshot of what ships today and what is on the roadmap.
+
+| Feature | Status | Details |
+|---------|--------|---------|
+| Authentication | **Built** | Better Auth with session management and OAuth |
+| Multi-tenancy | **Built** | Row-Level Security (RLS) on PostgreSQL |
+| RBAC | **Built** | Role-based access control with permissions |
+| i18n | **Built** | Paraglide JS — compile-time, type-safe translations |
+| Design System | **Built** | Shadcn/UI + CVA + design tokens |
+| API Client | **Built** | Typed server-side client with shared contracts |
+| Rate Limiting | **Built** | Configurable per-route API rate limiting |
+| Security Hardening | **Built** | CORS, CSP, input sanitization |
+| CI/CD Pipeline | **Built** | GitHub Actions + Vercel auto-deploy |
+| Documentation | **Built** | Fumadocs with MDX, integrated in the app |
+| AI Agent System | **Built** | 10-agent development team with skills and orchestration |
+| Admin Panel | **Planned** | Back-office UI for tenant and user management |
+| Audit Logs | **Planned** | Trackable history of sensitive operations |
+| Notifications | **Planned** | Email and in-app notification system |
+| Billing | **Planned** | Stripe / Paddle / Lemon Squeezy via abstraction layer |
+| CLI for AI Agents | **Planned** | Auto-generated from OpenAPI for human and AI use |
+
+For the full roadmap and phasing, see [Vision](./vision).
 
 ## Next Steps
 
