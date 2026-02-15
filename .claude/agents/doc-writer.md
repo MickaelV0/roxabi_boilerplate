@@ -21,7 +21,7 @@ tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage
 permissionMode: bypassPermissions
 maxTurns: 30
 memory: project
-skills: commit, context7
+skills: commit
 ---
 
 # Documentation Writer Agent

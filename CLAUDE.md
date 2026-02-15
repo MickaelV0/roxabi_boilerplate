@@ -120,6 +120,8 @@ cd apps/api && bun run db:branch:create --force XXX
 
 **Bootstrap exception:** `/bootstrap` commits analysis and spec documents (`docs/analyses/`, `docs/specs/`) directly to staging. These are documentation artifacts, not code changes, and are produced before scaffold creates a worktree.
 
+**Promote exception:** `/promote` commits changelog and release notes (`CHANGELOG.md`, `docs/changelog/`) directly to staging before creating the staging→main promotion PR. These are release artifacts, not code changes.
+
 **FORBIDDEN: Modifying code files on main/staging without a worktree.**
 
 ---
@@ -165,7 +167,7 @@ cd apps/api && bun run db:branch:create --force XXX
 | 1b1, one by one, walk through | `1b1` | "go through these one by one", "/1b1" |
 | adr, architecture decision | `adr` | "create an ADR", "list ADRs", "/adr --list" |
 | browser, open website, screenshot | `agent-browser` | "open a website", "take a screenshot", "/agent-browser" |
-| documentation, library docs, lookup | `context7` | "look up React docs", "check API reference", "/context7" |
+| documentation, library docs, lookup | `context7` (plugin) | "look up React docs", "check API reference", "/context7" |
 | promote, release, staging to main, finalize | `promote` | "promote staging", "release to production", "/promote", "/promote --finalize" |
 | deploy, vercel deploy | `vercel:deploy` | "deploy to Vercel", "push to production", "go live" |
 | vercel setup, configure vercel | `vercel:setup` | "set up Vercel", "configure Vercel", "link to Vercel" |
@@ -211,10 +213,10 @@ Is this a code change?
     │   ├── /scaffold (spec → PR, skip bootstrap):
     │   │   ├── Single-domain → subagents (Task tool)
     │   │   └── Multi-domain  → Agent Teams (TeamCreate)
-    │   │   ├── Frontend? → frontend-dev + tester
-    │   │   ├── Backend?  → backend-dev + tester
-    │   │   ├── Full-stack? → frontend-dev + backend-dev + tester
-    │   │   └── Security-sensitive? → + security-auditor
+    │   │       ├── Frontend? → frontend-dev + tester
+    │   │       ├── Backend?  → backend-dev + tester
+    │   │       ├── Full-stack? → frontend-dev + backend-dev + tester
+    │   │       └── Security-sensitive? → + security-auditor
     │   └── Then /review (fresh domain reviewers + 1b1 + fixer)
     │
     └── Tier F-full (new arch, unclear requirements, >2 domains)
@@ -222,11 +224,11 @@ Is this a code change?
         ├── /scaffold (spec → PR):
         │   ├── Single-domain → subagents (Task tool)
         │   └── Multi-domain  → Agent Teams (TeamCreate)
-        │   ├── Frontend? → frontend-dev + tester
-        │   ├── Backend?  → backend-dev + tester
-        │   ├── Full-stack? → frontend-dev + backend-dev + tester
-        │   ├── Large scope? → + architect + doc-writer
-        │   └── Security-sensitive? → + security-auditor
+        │       ├── Frontend? → frontend-dev + tester
+        │       ├── Backend?  → backend-dev + tester
+        │       ├── Full-stack? → frontend-dev + backend-dev + tester
+        │       ├── Large scope? → + architect + doc-writer
+        │       └── Security-sensitive? → + security-auditor
         └── Then /review (fresh domain reviewers + 1b1 + fixer)
 ```
 

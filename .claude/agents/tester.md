@@ -21,7 +21,7 @@ tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
-skills: test, context7
+skills: test
 ---
 
 # Tester Agent

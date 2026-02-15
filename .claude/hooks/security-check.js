@@ -43,6 +43,24 @@ const STATE_DIR = path.resolve(__dirname, '..', 'security_warnings')
 const today = new Date().toISOString().slice(0, 10)
 const STATE_FILE = path.join(STATE_DIR, `${today}.json`)
 
+function pruneOldStateFiles() {
+  const MAX_AGE_DAYS = 7
+  try {
+    const files = fs.readdirSync(STATE_DIR)
+    const cutoff = Date.now() - MAX_AGE_DAYS * 24 * 60 * 60 * 1000
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue
+      const filePath = path.join(STATE_DIR, file)
+      const stat = fs.statSync(filePath)
+      if (stat.mtimeMs < cutoff) {
+        fs.unlinkSync(filePath)
+      }
+    }
+  } catch {
+    // Ignore cleanup errors
+  }
+}
+
 function loadState() {
   try {
     return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))
@@ -89,6 +107,8 @@ function checkContent(content, filePath) {
 }
 
 function main() {
+  pruneOldStateFiles()
+
   const input = process.env.CLAUDE_TOOL_INPUT
   if (!input) {
     process.exit(0)

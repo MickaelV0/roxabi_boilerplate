@@ -19,9 +19,9 @@ model: inherit
 color: white
 tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage
 permissionMode: bypassPermissions
-maxTurns: 20
+maxTurns: 50
 memory: project
-skills: adr, commit, context7
+skills: adr, commit
 ---
 
 # Architect Agent
