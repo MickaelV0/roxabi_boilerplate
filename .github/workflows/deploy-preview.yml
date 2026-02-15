@@ -51,7 +51,6 @@ jobs:
 
       - name: Deploy
         id: deploy
-        working-directory: apps/web
         run: |
           URL=$(vercel deploy --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$URL" >> "$GITHUB_OUTPUT"
@@ -188,7 +187,6 @@ jobs:
 
       - name: Deploy API preview
         id: deploy
-        working-directory: apps/api
         # Note: --env flag injects per-deployment env vars on the Vercel preview.
         # Rate limiting uses in-memory storage in previews (no Upstash) — resets on cold start.
         run: |
