@@ -252,8 +252,8 @@ function GeneralSettingsCard({
 
 type UnsavedChangesDialogProps = {
   status: string
-  proceed: () => void
-  reset: () => void
+  proceed?: () => void
+  reset?: () => void
 }
 
 function UnsavedChangesDialog({ status, proceed, reset }: UnsavedChangesDialogProps) {
