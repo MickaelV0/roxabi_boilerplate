@@ -16,6 +16,6 @@ export default defineConfig({
     name: 'web',
     root: import.meta.dirname,
     setupFiles: ['./src/test/setup.ts'],
-    passWithNoTests: true,
+    passWithNoTests: false,
   },
 })
