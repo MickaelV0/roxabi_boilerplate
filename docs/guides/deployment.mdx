@@ -209,15 +209,15 @@ Install the Resend integration to auto-inject `RESEND_API_KEY`:
 
 1. Go to [vercel.com/marketplace/resend](https://vercel.com/marketplace/resend) and click **Install**
 2. Select your Vercel team/account and link to the **API project**
-3. Trigger a redeploy: `vercel redeploy <latest-deployment-url>`
-4. Verify: `cd apps/api && vercel env ls | grep RESEND`
+3. Verify: `cd apps/api && vercel env ls production | grep RESEND`
+4. Trigger a redeploy: `vercel redeploy <latest-deployment-url>`
 5. Test: trigger a password reset email from the production deployment to confirm the API key works
 
 > **Rollback:** If email fails, uninstall the integration and re-add manually: `vercel env add RESEND_API_KEY production`
 
-#### Upstash Redis (rate limiting)
+#### Upstash Redis (Rate Limiting) — Vercel Marketplace Integration
 
-Rate limiting is **enabled by default** (`RATE_LIMIT_ENABLED=true`) and requires Upstash Redis. The code uses `@upstash/redis` and reads `KV_REST_API_URL` and `KV_REST_API_TOKEN` — the env var names auto-injected by the Vercel Upstash integration.
+Rate limiting is **enabled by default** (`RATE_LIMIT_ENABLED=true`) and requires Upstash Redis. The code uses `@upstash/redis` and reads `KV_REST_API_URL` and `KV_REST_API_TOKEN` — the env var names auto-injected by the Upstash Marketplace integration.
 
 **Step-by-step via Vercel Integration:**
 
@@ -275,19 +275,21 @@ done
 | `API_URL` | This project's URL |
 | `EMAIL_FROM` | Sender email address |
 | `RESEND_API_KEY` | Resend API key for transactional emails (auto-injected by Resend Marketplace integration) |
-| `KV_REST_API_URL` | Upstash Redis REST URL (for rate limiting) |
-| `KV_REST_API_TOKEN` | Upstash Redis REST token (for rate limiting) |
+| `KV_REST_API_URL` | Upstash Redis REST URL (auto-injected by Upstash Marketplace integration) |
+| `KV_REST_API_TOKEN` | Upstash Redis REST token (auto-injected by Upstash Marketplace integration) |
 
 #### Credential Rotation
 
 | Credential | Rotation method |
 |-----------|-----------------|
-| `DATABASE_URL` (production) | Auto-rotates via Neon Marketplace integration — no manual action needed |
+| `DATABASE_URL` (production) | Auto-managed via Neon Marketplace integration — no manual action needed |
 | `RESEND_API_KEY` (production) | Auto-managed via Resend Marketplace integration — no manual action needed |
 | `KV_REST_API_URL` / `KV_REST_API_TOKEN` (production) | Auto-managed via Upstash Marketplace integration — no manual action needed |
 | `NEON_API_KEY` (GitHub Actions) | Manual rotation: GitHub Settings → Secrets → update `NEON_API_KEY` |
 | `NEON_PROJECT_ID` (GitHub Actions) | Static — only changes if Neon project is recreated |
 | `BETTER_AUTH_SECRET` | Manual rotation: `vercel env rm BETTER_AUTH_SECRET production && vercel env add BETTER_AUTH_SECRET production` |
+
+> **Tip:** `BETTER_AUTH_SECRET` rotation requires a redeploy to take effect. Between `env rm` and the completed redeploy with the new value, auth sessions will be invalid. Plan rotation during a maintenance window.
 
 ### 5. Verify
 
@@ -347,7 +349,7 @@ Add these 6 secrets at **Settings** &gt; **Secrets and variables** &gt; **Action
 
 ### 4. Provision Upstash Redis (Rate Limiting)
 
-Rate limiting is enabled by default and requires Upstash Redis. Follow the step-by-step in [Upstash Redis setup](#upstash-redis-rate-limiting) above, or set `RATE_LIMIT_ENABLED=false` temporarily if you need to deploy without it.
+Rate limiting is enabled by default and requires Upstash Redis. Follow the step-by-step in [Upstash Redis setup](#upstash-redis-rate-limiting--vercel-marketplace-integration) above, or set `RATE_LIMIT_ENABLED=false` temporarily if you need to deploy without it.
 
 > **Note:** If you skip this step, the API will crash at startup in production.
 
@@ -357,7 +359,8 @@ Install the Resend integration for transactional emails:
 
 1. Go to [vercel.com/marketplace/resend](https://vercel.com/marketplace/resend) and click **Install**
 2. Link to the **API project**
-3. Redeploy: `vercel redeploy <latest-deployment-url>`
+3. Verify: `cd apps/api && vercel env ls production | grep RESEND`
+4. Redeploy: `vercel redeploy <latest-deployment-url>`
 
 > **Alternative:** Add manually: `vercel env add RESEND_API_KEY production`
 
