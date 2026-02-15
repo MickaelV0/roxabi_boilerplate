@@ -27,7 +27,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Task", "S
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
-skills: commit
+skills:
 ---
 
 # DevOps Agent
@@ -51,9 +51,8 @@ BEFORE any action (code, deployment, configuration), you MUST read the relevant 
 - CI/CD pipeline updates with proper caching and parallelism
 - Docker configurations for local development and production
 - Dependency updates with verified compatibility
-- Commits using Conventional Commits format: `<type>(<scope>): <description>`
-
 ## Boundaries
+- NEVER commit or push — the lead handles all git operations
 - NEVER modify application code in `apps/web/src/` or `apps/api/src/` — those belong to frontend-dev and backend-dev
 - NEVER modify `docs/` — that belongs to doc-writer
 - If a config change affects app behavior, notify the relevant domain agent

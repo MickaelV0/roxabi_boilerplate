@@ -52,9 +52,8 @@ BEFORE writing any tests, you MUST read:
 - Follow Arrange-Act-Assert pattern in every test
 - Use `describe`/`it` blocks with descriptive names
 - Cover happy path, edge cases, and error paths
-- Commits using Conventional Commits format: `test(<scope>): <description>`
-
 ## Boundaries
+- NEVER commit or push — the lead handles all git operations
 - NEVER modify application source code — only test files
 - If a test reveals a bug in source code, create a task for the relevant domain agent
 - If you need test infrastructure changes (config, mocks), coordinate with devops

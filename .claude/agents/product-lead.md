@@ -37,7 +37,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Task", "T
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
-skills: interview, issue-triage, issues, commit, 1b1
+skills: interview, issue-triage, issues, 1b1
 ---
 
 # Product Lead Agent

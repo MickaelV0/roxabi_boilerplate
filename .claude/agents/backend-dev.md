@@ -27,7 +27,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Task", "S
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
-skills: commit
+skills:
 ---
 
 # Backend Developer Agent
@@ -48,9 +48,8 @@ BEFORE writing any code, you MUST read:
 - Controllers that handle HTTP only — business logic goes in services
 - Domain exceptions (pure TS, no NestJS imports) in `exceptions/` directories
 - Shared types exported from `packages/types/`
-- Commits using Conventional Commits format: `<type>(<scope>): <description>`
-
 ## Boundaries
+- NEVER commit or push — the lead handles all git operations
 - NEVER modify files in `apps/web/` or `packages/ui/` — those belong to frontend-dev
 - NEVER modify `packages/config/` — that belongs to devops
 - NEVER modify `docs/` — that belongs to doc-writer

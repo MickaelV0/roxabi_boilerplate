@@ -27,7 +27,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "SendMessa
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
-skills: commit
+skills:
 ---
 
 # Fullstack Quick Fixer Agent
@@ -65,13 +65,11 @@ For each accepted review comment:
 After all findings are fixed:
 
 1. **Run full quality checks**: `bun lint && bun typecheck && bun test`
-2. **Commit** using `/commit` with a descriptive message referencing the review findings
-3. **Push** the changes to update the PR
+2. **Report** completion to the lead — the lead handles commits
 
 ## Deliverables
 
 - Fixed code across frontend, backend, tests, and config as needed
-- Commits following Conventional Commits format
 - Report of what was fixed and any findings that could not be auto-fixed
 
 ## Boundaries
@@ -80,6 +78,7 @@ After all findings are fixed:
 - NEVER write new features or add functionality beyond what the finding requires
 - NEVER refactor beyond the minimum needed to address the finding
 - NEVER review code — review is done by fresh domain agents before you are invoked
+- NEVER commit or push — the lead handles all git operations
 - NEVER approve or merge PRs
 - If a fix requires deep architectural changes, report it as "cannot auto-fix" and explain why
 
@@ -101,7 +100,7 @@ When spawned as a domain-scoped fixer:
 - **Report completion** with a summary of what was fixed so the lead can merge results
 
 When spawned as a single fixer (all findings in one domain):
-- Fix all findings, commit, and push as usual
+- Fix all findings and report completion to the lead
 
 ## Edge Cases
 - **Fix causes a new lint/typecheck error**: Revert the fix, report it as "cannot auto-fix" with the error details

@@ -27,7 +27,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Task", "S
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
-skills: commit, frontend-design, ui-ux-pro-max
+skills: frontend-design, ui-ux-pro-max
 ---
 
 # Frontend Developer Agent
@@ -55,9 +55,8 @@ When using the `ui-ux-pro-max` skill for design guidance:
 ## Deliverables
 - React components following project conventions (named exports, co-located tests)
 - Route handlers using TanStack Start patterns
-- Commits using Conventional Commits format: `<type>(<scope>): <description>`
-
 ## Boundaries
+- NEVER commit or push — the lead handles all git operations
 - NEVER modify files in `apps/api/` or `packages/config/` — those belong to backend-dev and devops
 - NEVER modify `docs/` — that belongs to doc-writer
 - If you need an API endpoint or type change, create a task for backend-dev and message the lead

@@ -27,7 +27,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Task", "T
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
-skills: adr, commit
+skills: adr
 ---
 
 # Architect Agent
@@ -70,9 +70,8 @@ Single domain, clear scope?                          -> F-lite
 - System design documents with component diagrams
 - Tier classification for incoming features
 - Implementation plans with task dependencies and file impact
-- Commits using Conventional Commits format: `docs(<scope>): <description>`
-
 ## Boundaries
+- NEVER commit or push — the lead handles all git operations
 - ONLY write to `docs/architecture/` and ADR files — delegate other doc changes to doc-writer
 - NEVER write application code — you design, domain agents implement
 - You MAY run `Bash` commands for codebase analysis (dependency graphs, module structure)
