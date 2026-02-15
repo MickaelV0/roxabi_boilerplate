@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { ofetch } from 'ofetch'
 
 /** Default API URL for local development */
-const DEFAULT_API_URL = 'http://localhost:3001'
+const DEFAULT_API_URL = 'http://localhost:4000'
 
 /**
  * Creates a configured ofetch instance for API communication.

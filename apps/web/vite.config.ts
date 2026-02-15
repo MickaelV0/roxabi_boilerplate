@@ -10,7 +10,7 @@ import { nitro } from 'nitro/vite'
 import { defineConfig } from 'vite'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
 
-const apiTarget = process.env.API_URL || `http://localhost:${process.env.API_PORT || 3001}`
+const apiTarget = process.env.API_URL || `http://localhost:${process.env.API_PORT || 4000}`
 
 const config = defineConfig(async () => ({
   envDir: '../..',

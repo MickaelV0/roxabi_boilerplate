@@ -33,7 +33,6 @@
     "132-ci-db-migrations",
     "presentation-claude-code",
     "53-rate-limiting-api-security",
-    "user-profile",
     "local-db-isolation"
   ]
 }

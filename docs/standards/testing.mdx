@@ -310,7 +310,7 @@ function createMockHost(headers: Record<string, string> = {}) {
 - **Inline data:** Use directly in the test for simple, self-contained cases.
 - **Factory functions:** Build helper functions that produce complex entities with sensible defaults and optional overrides.
 - **Fixtures:** Store static JSON data in `__tests__/fixtures/` for large or shared datasets.
-- **Database:** Use Testcontainers for integration tests that require a real PostgreSQL instance.
+- **Database:** *(Planned)* Use Testcontainers for integration tests that require a real PostgreSQL instance. Not yet configured in this project.
 - **Cleanup:** Each test owns its data. Do not rely on shared mutable state between tests.
 
 ## AI-Assisted TDD Workflow
