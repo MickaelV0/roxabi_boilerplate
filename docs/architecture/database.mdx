@@ -164,17 +164,22 @@ export default defineConfig({
 
 ## Migration Workflow
 
-All commands run from the `apps/api/` directory:
+Run from the **repository root** (recommended) — the dispatcher loads `.env` automatically:
 
 ```bash
 # 1. Generate a migration from schema changes
-bunx drizzle-kit generate
+bun db:generate
 
 # 2. Apply pending migrations to the database
-bunx drizzle-kit migrate
+bun db:migrate
+```
 
-# 3. Open Drizzle Studio for visual inspection
-bunx drizzle-kit studio
+Or from `apps/api/` directly (requires `DATABASE_URL` to be set):
+
+```bash
+bunx drizzle-kit generate
+bunx drizzle-kit migrate
+bunx drizzle-kit studio   # Visual inspection (no root wrapper)
 ```
 
 **Workflow:**

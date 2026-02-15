@@ -66,6 +66,31 @@ bun run db:seed
 
 All scripts run from `apps/api/` and use `docker exec` against the `roxabi-postgres` container. No local `psql` installation is required.
 
+### Database Scripts (Root-Level)
+
+Root-level wrappers load `.env` automatically and delegate to `apps/api/`. No need to `cd` into `apps/api` or set `DATABASE_URL` manually.
+
+| Command | Description | Production |
+|---------|-------------|------------|
+| `bun db:up` | Start PostgreSQL (Docker Compose) | — |
+| `bun db:down` | Stop PostgreSQL (preserves data) | — |
+| `bun db:migrate` | Apply pending Drizzle migrations | Allowed |
+| `bun db:generate` | Generate migrations from schema changes | Allowed |
+| `bun db:seed` | Seed dev data (user, org, RBAC) | Blocked |
+| `bun db:reset` | Truncate all tables (CASCADE) | Blocked |
+
+**Common workflow:**
+
+```bash
+# Fresh start after cloning
+bun db:up && bun db:migrate && bun db:seed
+
+# Reset and re-seed during development
+bun db:reset && bun db:seed
+```
+
+> `db:reset` and `db:seed` refuse to run when `NODE_ENV=production` (enforced at both the bash dispatcher and TypeScript script level).
+
 ### Optional Variables
 
 | Variable | Description | Default |
