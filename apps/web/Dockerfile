@@ -44,7 +44,7 @@ RUN bun run build
 # Stage 3: Production runtime (minimal image)
 # Nitro bundles all dependencies — no node_modules needed
 # ---------------------------------------------------------------------------
-FROM node:24-slim AS runtime
+FROM node:25-slim AS runtime
 
 WORKDIR /app
 
