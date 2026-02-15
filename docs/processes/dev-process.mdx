@@ -81,7 +81,7 @@ Single domain, clear scope?                          -> F-lite
 
 | Artifact | When | Files |
 |----------|------|-------|
-| Environment variables | New config | `.env.example` |
+| Environment variables | New config | `.env.example`, `turbo.jsonc` |
 | Package dependencies | New packages | `package.json`, `bun.lock` |
 | TypeScript config | Compiler settings | `tsconfig.json` |
 
@@ -101,6 +101,8 @@ Single domain, clear scope?                          -> F-lite
 ```bash
 git worktree add ../roxabi-XXX -b fix/XXX-description staging
 cd ../roxabi-XXX
+cp .env.example .env && bun install
+cd apps/api && bun run db:branch:create --force XXX
 ```
 
 ### S.3 — Validate
@@ -330,7 +332,8 @@ Human: "develop #XXX"
 6. **Setup** — Creates the GitHub issue (if none exists), creates worktree:
    ```bash
    git worktree add ../roxabi-XXX -b feat/XXX-slug staging
-   cd ../roxabi-XXX && bun install
+   cd ../roxabi-XXX && cp .env.example .env && bun install
+   cd apps/api && bun run db:branch:create --force XXX
    ```
 
 7. **Scaffold** — Creates boilerplate stubs (types, API, UI, test shells) from the spec. Commits.
@@ -341,7 +344,7 @@ Human: "develop #XXX"
    |-------------|-------|
    | Frontend | frontend-dev |
    | Backend | backend-dev |
-   | CI/CD / config | infra-ops |
+   | CI/CD / config | devops |
    | Any code change | tester (always) |
    | Security-sensitive | security-auditor (during review) |
    | Documentation | doc-writer |
@@ -369,7 +372,7 @@ Human: "develop #XXX"
     |--------|-------------|
     | security-auditor | frontend-dev (if FE changes) |
     | architect | backend-dev (if BE changes) |
-    | product-lead | infra-ops (if config changes) |
+    | product-lead | devops (if config changes) |
     | tester | |
 
     Each reviewer produces Conventional Comments scoped to their domain.
@@ -387,7 +390,7 @@ Human: "develop #XXX"
     - **Frontend fixer** — if findings touch `apps/web/` or `packages/ui/`
     - **Infra fixer** — if findings touch `packages/config/`, root configs, or CI
     - Single-domain findings → one fixer. Multi-domain → parallel fixers.
-15. Push combined fixes, update PR.
+15. Push combined fixes, post a follow-up comment on the PR confirming which findings were addressed (and noting any rejected/deferred).
 16. CI runs:
     - **Pass** — merge and cleanup worktree
     - **Fail** — fixer investigates and fixes, CI again, loop until green
@@ -408,9 +411,10 @@ Human: "develop #XXX"
 After features have been validated on staging:
 
 19. Human runs `/promote` to merge staging → main.
-20. `/promote` creates a PR from staging to main, verifies Vercel preview, and generates a changelog.
-21. Human reviews and approves the promotion PR.
-22. After merge, run `/promote --finalize` to tag the release and generate release notes.
+20. `/promote` computes the version, generates the changelog and release notes, commits them to staging, and creates a PR from staging to main.
+21. Human reviews the promotion PR (which includes the changelog).
+22. Merge → Vercel auto-deploys with changelog and release notes already included.
+23. Run `/promote --finalize` to tag the release and create the GitHub Release.
 
 > Promotion is **not per-feature** — it batches all staging changes into a single release. See the `/promote` skill for details.
 
@@ -463,3 +467,4 @@ After features have been validated on staging:
 - [ ] `/review` completed with fresh domain agents (Tier F)
 - [ ] Human walked through all review comments via `/1b1`
 - [ ] Accepted comments fixed by fixer agent
+- [ ] Fix confirmation comment posted to PR

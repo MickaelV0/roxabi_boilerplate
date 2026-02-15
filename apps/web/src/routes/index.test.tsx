@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
+
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
 }))
@@ -10,69 +12,63 @@ vi.mock('@tanstack/react-router', () => ({
     captured.Component = config.component
     return { component: config.component }
   },
+  redirect: vi.fn(),
 }))
 
-vi.mock('@/components/AnimatedSection', () => ({
-  AnimatedSection: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-}))
-
-vi.mock('@/components/Footer', () => ({
-  Footer: () => <footer data-testid="footer" />,
+vi.mock('@/lib/auth-client', () => ({
+  authClient: { getSession: vi.fn().mockResolvedValue({ data: null }) },
 }))
 
 vi.mock('@/components/landing/AiTeamSection', () => ({
-  AiTeamSection: () => <section data-testid="ai-team-section" />,
+  AiTeamSection: () => <section aria-label="AI Team" />,
 }))
 
 vi.mock('@/components/landing/CtaSection', () => ({
-  CtaSection: () => <section data-testid="cta-section" />,
+  CtaSection: () => <section aria-label="CTA" />,
 }))
 
 vi.mock('@/components/landing/DxSection', () => ({
-  DxSection: () => <section data-testid="dx-section" />,
+  DxSection: () => <section aria-label="DX" />,
 }))
 
 vi.mock('@/components/landing/FeaturesSection', () => ({
-  FeaturesSection: () => <section data-testid="features-section" />,
+  FeaturesSection: () => <section aria-label="Features" />,
 }))
 
 vi.mock('@/components/landing/HeroSection', () => ({
-  HeroSection: () => <section data-testid="hero-section" />,
+  HeroSection: () => <section aria-label="Hero" />,
+}))
+
+vi.mock('@/components/landing/StatsSection', () => ({
+  StatsSection: () => <section aria-label="Stats" />,
 }))
 
 vi.mock('@/components/landing/TechStackSection', () => ({
-  TechStackSection: () => <section data-testid="tech-stack-section" />,
+  TechStackSection: () => <section aria-label="Tech Stack" />,
 }))
 
 import './index'
 
 describe('LandingPage', () => {
-  it('should render without crashing', () => {
+  it('should render hero section when component mounts', () => {
     // Arrange & Act
     render(<captured.Component />)
 
     // Assert
-    expect(screen.getByTestId('hero-section')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Hero' })).toBeInTheDocument()
   })
 
-  it('should render all landing page sections', () => {
+  it('should render all landing page sections when component mounts', () => {
     // Arrange & Act
     render(<captured.Component />)
 
     // Assert
-    expect(screen.getByTestId('hero-section')).toBeInTheDocument()
-    expect(screen.getByTestId('features-section')).toBeInTheDocument()
-    expect(screen.getByTestId('ai-team-section')).toBeInTheDocument()
-    expect(screen.getByTestId('dx-section')).toBeInTheDocument()
-    expect(screen.getByTestId('tech-stack-section')).toBeInTheDocument()
-    expect(screen.getByTestId('cta-section')).toBeInTheDocument()
-  })
-
-  it('should render the footer', () => {
-    // Arrange & Act
-    render(<captured.Component />)
-
-    // Assert
-    expect(screen.getByTestId('footer')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Hero' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Features' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'AI Team' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'DX' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Tech Stack' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Stats' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'CTA' })).toBeInTheDocument()
   })
 })

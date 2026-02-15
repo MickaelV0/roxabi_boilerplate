@@ -2,16 +2,15 @@
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
   "tasks": {
-    // Root script uses 'trap kill 0' to kill the full process group on Ctrl+C.
-    // Workaround for https://github.com/vercel/turborepo/issues/444 —
-    // turbo does not propagate SIGINT to child processes, leaving Vite/NestJS as orphans.
+    // If orphaned processes hold dev ports after Ctrl+C, run `bun run dev:clean`.
+    // See https://github.com/vercel/turborepo/issues/444
     "dev": {
       "cache": false,
       "persistent": true
     },
     "codegen": {
       "outputs": ["src/routeTree.gen.ts", "src/paraglide/**"],
-      "env": ["API_URL", "APP_URL", "VITE_ENABLE_DEMO"]
+      "env": ["API_URL", "APP_URL", "VITE_*"]
     },
     "build": {
       "dependsOn": ["codegen", "^build"],
@@ -22,7 +21,7 @@
         "!**/*.stories.{tsx,mdx}"
       ],
       "outputs": ["dist/**", ".output/**", ".vercel/output/**", ".next/**", "build/**"],
-      "env": ["API_URL", "APP_URL", "VITE_ENABLE_DEMO"]
+      "env": ["API_URL", "APP_URL", "KV_*", "REDIS_*", "VITE_*"]
     },
     "typecheck": {
       "dependsOn": ["codegen", "^typecheck", "^build"],

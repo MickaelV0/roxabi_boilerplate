@@ -19,41 +19,51 @@ vi.mock('@/paraglide/messages', () => ({
 import { TechStackSection } from './TechStackSection'
 
 describe('TechStackSection', () => {
-  it('renders the section title', () => {
+  it('should render the section title', () => {
+    // Arrange & Act
     render(<TechStackSection />)
 
+    // Assert
     expect(screen.getByText('Tech Stack')).toBeInTheDocument()
   })
 
-  it('renders the tech group labels', () => {
+  it('should render the tech group labels', () => {
+    // Arrange & Act
     render(<TechStackSection />)
 
+    // Assert
     expect(screen.getByText('Frontend')).toBeInTheDocument()
     expect(screen.getByText('Backend')).toBeInTheDocument()
     expect(screen.getByText('Tooling')).toBeInTheDocument()
   })
 
-  it('renders frontend technologies', () => {
+  it('should render frontend technologies', () => {
+    // Arrange & Act
     render(<TechStackSection />)
 
+    // Assert
     expect(screen.getByText('React 19')).toBeInTheDocument()
     expect(screen.getByText('TanStack Start')).toBeInTheDocument()
     expect(screen.getByText('Tailwind CSS 4')).toBeInTheDocument()
     expect(screen.getByText('Radix UI')).toBeInTheDocument()
   })
 
-  it('renders backend technologies', () => {
+  it('should render backend technologies', () => {
+    // Arrange & Act
     render(<TechStackSection />)
 
+    // Assert
     expect(screen.getByText('NestJS')).toBeInTheDocument()
     expect(screen.getByText('Fastify')).toBeInTheDocument()
     expect(screen.getByText('Drizzle ORM')).toBeInTheDocument()
     expect(screen.getByText('PostgreSQL')).toBeInTheDocument()
   })
 
-  it('renders tooling technologies', () => {
+  it('should render tooling technologies', () => {
+    // Arrange & Act
     render(<TechStackSection />)
 
+    // Assert
     expect(screen.getByText('Bun')).toBeInTheDocument()
     expect(screen.getByText('TurboRepo')).toBeInTheDocument()
     expect(screen.getByText('Biome')).toBeInTheDocument()

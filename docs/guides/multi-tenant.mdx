@@ -1,0 +1,479 @@
+---
+title: Multi-tenant Architecture
+description: How tenant isolation works in Roxabi -- from the request interceptor through CLS context to PostgreSQL Row-Level Security.
+---
+
+## Overview
+
+Roxabi uses **PostgreSQL Row-Level Security (RLS)** for tenant data isolation. Every organization is a tenant, and business data is scoped by a `tenant_id` column that maps to `organizations.id`.
+
+The system follows a simple principle: **the organization IS the tenant**. There is no separate `tenants` table. The `activeOrganizationId` from the user's session determines which tenant's data is visible.
+
+For the full design rationale, see the [Multi-tenant RLS analysis](../analyses/21-multi-tenant-rls).
+
+## How Tenant Context Flows
+
+Every authenticated request goes through this pipeline:
+
+```
+Request
+  -> AuthGuard (validates session, resolves permissions)
+  -> TenantInterceptor (extracts activeOrganizationId -> CLS)
+  -> Controller
+  -> Service -> TenantService.query(callback)
+       -> BEGIN transaction
+       -> set_config('app.tenant_id', tenantId, true)
+       -> execute callback queries (RLS enforced)
+       -> COMMIT
+```
+
+### Step 1: TenantInterceptor
+
+The `TenantInterceptor` is a global NestJS interceptor (registered via `APP_INTERCEPTOR` in `TenantModule`). It reads the active organization from the session and stores it in CLS (Continuation-Local Storage):
+
+```ts
+@Injectable()
+export class TenantInterceptor implements NestInterceptor {
+  constructor(
+    private readonly cls: ClsService,
+    @Optional() @Inject(DRIZZLE) private readonly db: DrizzleDB | null
+  ) {}
+
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>()
+    const activeOrganizationId = request.session?.session?.activeOrganizationId ?? null
+
+    if (!activeOrganizationId) {
+      this.cls.set('tenantId', null)
+      return next.handle()
+    }
+
+    // Resolve child org -> parent org (child orgs share parent's tenant boundary)
+    return from(this.resolveParentOrg(activeOrganizationId)).pipe(
+      switchMap((tenantId) => {
+        this.cls.set('tenantId', tenantId)
+        return next.handle()
+      })
+    )
+  }
+}
+```
+
+Key details:
+
+- If no active organization is set, `tenantId` is `null` (endpoints that require org context will fail at the guard level via `@RequireOrg()`)
+- Child organizations resolve to their parent's `tenant_id` -- they share the same tenant boundary
+- The resolved mapping is cached within the request to avoid repeated DB lookups
+- If the database connection is unavailable, the interceptor falls back to using `activeOrganizationId` directly without resolving through the parent org hierarchy
+
+### Step 2: TenantService
+
+The `TenantService` wraps database queries in a tenant-scoped transaction. It reads the tenant ID from CLS and sets it as a PostgreSQL session variable before executing the callback:
+
+```ts
+@Injectable()
+export class TenantService {
+  constructor(
+    private readonly cls: ClsService,
+    @Inject(DRIZZLE) private readonly db: DrizzleDB | null
+  ) {}
+
+  async query<T>(callback: (tx: TenantTx) => Promise<T>): Promise<T> {
+    const tenantId = this.cls.get('tenantId') as string | null
+
+    if (!tenantId) {
+      throw new TenantContextMissingException()
+    }
+
+    return this.executeWithTenant(tenantId, callback)
+  }
+
+  async queryAs<T>(tenantId: string, callback: (tx: TenantTx) => Promise<T>): Promise<T> {
+    return this.executeWithTenant(tenantId, callback)
+  }
+
+  private async executeWithTenant<T>(
+    tenantId: string,
+    callback: (tx: TenantTx) => Promise<T>
+  ): Promise<T> {
+    if (!this.db) {
+      throw new DatabaseUnavailableException()
+    }
+
+    return this.db.transaction(async (tx) => {
+      // Set tenant context for this transaction — RLS policies read this value
+      await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`)
+
+      return callback(tx)
+    })
+  }
+}
+```
+
+Two methods are available:
+
+| Method | When to use |
+|--------|-------------|
+| `query(callback)` | Normal HTTP requests -- reads tenant ID from CLS (set by interceptor) |
+| `queryAs(tenantId, callback)` | Background jobs, cron tasks, event handlers, or cross-tenant admin operations where no HTTP context exists |
+
+:::warning
+Do not use `queryAs()` in HTTP request handlers. Use `query()` instead, which reads the tenant ID from CLS set by the interceptor. Using `queryAs()` with a user-supplied tenant ID in an HTTP context could allow cross-tenant data access.
+:::
+
+### Step 3: RLS Enforcement
+
+PostgreSQL RLS policies enforce isolation at the database level. The `set_config('app.tenant_id', ...)` call sets a transaction-local variable that RLS policies check:
+
+```sql
+CREATE POLICY tenant_isolation ON business_table
+  USING (tenant_id = current_setting('app.tenant_id', true))
+  WITH CHECK (tenant_id = current_setting('app.tenant_id', true));
+```
+
+The `true` parameter in `set_config()` makes the value **transaction-local** -- it is automatically cleared when the transaction ends, making it safe with connection pooling.
+
+## Adding Tenant-Scoped Tables
+
+When creating a new business table that needs tenant isolation, follow these three steps.
+
+### Step 1: Add the Tenant Column to Your Schema
+
+Use the `tenantColumn` helper from `apps/api/src/database/schema/base.ts`:
+
+```ts
+import { pgTable, text } from 'drizzle-orm/pg-core'
+import { tenantColumn, timestamps } from './base.js'
+
+export const projects = pgTable('projects', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  ...tenantColumn,  // Adds tenant_id with FK to organizations.id
+  name: text('name').notNull(),
+  description: text('description'),
+  ...timestamps,
+})
+```
+
+The `tenantColumn` is defined as:
+
+```ts
+export const tenantColumn = {
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+}
+```
+
+### Step 2: Create the Migration
+
+In your SQL migration, enable RLS and apply the reusable policy function:
+
+```sql
+CREATE TABLE projects (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT now(),
+  updated_at TIMESTAMP DEFAULT now()
+);
+
+-- Enable RLS and apply the standard tenant isolation policy
+SELECT create_tenant_rls_policy('projects');
+
+-- Grant permissions to the application role
+GRANT ALL ON TABLE projects TO app_user;
+```
+
+The `create_tenant_rls_policy()` function was created by the RLS infrastructure migration. It handles enabling RLS, forcing it (so table owners are also subject to policies), and creating the USING/WITH CHECK policy.
+
+### Step 3: Use TenantService in Your Service
+
+All queries on tenant-scoped tables must go through `TenantService.query()`:
+
+```ts
+@Injectable()
+export class ProjectService {
+  constructor(
+    private readonly tenantService: TenantService,
+    private readonly cls: ClsService
+  ) {}
+
+  async listProjects() {
+    return this.tenantService.query((tx) =>
+      tx.select().from(projects)
+    )
+  }
+
+  async createProject(data: { name: string; description?: string }) {
+    const tenantId = this.cls.get('tenantId') as string
+
+    return this.tenantService.query(async (tx) => {
+      const [project] = await tx
+        .insert(projects)
+        .values({
+          tenantId,
+          name: data.name,
+          description: data.description ?? null,
+        })
+        .returning()
+
+      return project
+    })
+  }
+}
+```
+
+Note that `SELECT` queries do not need to include a `WHERE tenant_id = ...` clause -- RLS handles the filtering automatically. However, `INSERT` statements must set the correct `tenant_id` because the `WITH CHECK` policy validates it matches the current session variable.
+
+## Organization Hierarchy and Tenant Boundaries
+
+Child organizations are subdivisions within a tenant, **not** separate tenants:
+
+| Entity | Role | tenant_id |
+|--------|------|-----------|
+| Acme Corp | Parent org (tenant) | `acme_corp_id` |
+| Acme Sales | Child org (department) | `acme_corp_id` |
+| Acme Engineering | Child org (department) | `acme_corp_id` |
+
+All child orgs share the parent's `tenant_id`. The `TenantInterceptor` resolves child organizations to their parent automatically. This means:
+
+- RLS policies use a single `tenant_id` check per table
+- Members of any child org see all data within the tenant
+
+:::warning
+Child orgs are for organizational grouping, not security boundaries. All members of any child org have full visibility into the parent tenant's data.
+:::
+
+## What is NOT Under RLS
+
+Better Auth tables (`users`, `sessions`, `accounts`, `verifications`, `organizations`, `members`, `invitations`) are **excluded** from RLS. These tables are queried during authentication flows before tenant context is known.
+
+| Auth Flow | Tables Queried | Tenant Context Available? |
+|-----------|---------------|--------------------------|
+| Login/signup | `users`, `accounts` | No |
+| Session validation | `sessions`, `users` | No |
+| List user's orgs | `members` JOIN `organizations` | No (queries by `userId`) |
+| Accept invitation | `invitations`, `members` | Ambiguous |
+
+Isolation for these tables is handled by Better Auth's own application-level filtering (scoping queries by `userId` and `organizationId`).
+
+RLS applies **only to business tables** -- tables you create for your application's domain logic.
+
+## Super Admin Access
+
+Platform `superadmin` users need cross-tenant data access. This is handled at two levels:
+
+1. **Guard-level bypass**: The `AuthGuard` skips permission checks when `session.user.role === 'superadmin'`
+2. **Database-level bypass** (future): A separate PostgreSQL role with `BYPASSRLS` capability for admin queries
+
+For the current implementation, guard-level bypass is sufficient. Admin-specific services can use `queryAs()` to explicitly target a specific tenant when needed.
+
+## Testing with Multiple Tenants
+
+The codebase includes integration tests that verify RLS isolation using a real PostgreSQL database. The test pattern in `apps/api/src/tenant/tenant.integration.test.ts` demonstrates how to test tenant boundaries:
+
+### Helper: Scoped Transaction
+
+The tests use a helper function that mirrors what `TenantService` does in production:
+
+```ts
+import { describe, it, expect } from 'vitest'
+
+async function withTenant<T>(
+  tenantId: string,
+  callback: (tx: typeof db) => Promise<T>
+): Promise<T> {
+  return db.transaction(async (tx) => {
+    // Switch to app_user role so RLS is enforced
+    await tx.execute(sql`SET LOCAL ROLE app_user`)
+    await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`)
+    return callback(tx as unknown as typeof db)
+  })
+}
+```
+
+### Test: Cross-Tenant Isolation
+
+```ts
+it('should isolate data between tenants -- Tenant B cannot see Tenant A rows', async () => {
+  // Insert as Tenant A
+  await withTenant(TENANT_A, async (tx) => {
+    await tx.execute(sql`
+      INSERT INTO ${sql.identifier(TEST_TABLE)} (tenant_id, data)
+      VALUES (${TENANT_A}, 'secret-data-for-a')
+    `)
+    return null
+  })
+
+  // Query as Tenant B -- should see nothing
+  const result = await withTenant(TENANT_B, async (tx) => {
+    return tx.execute(sql`
+      SELECT * FROM ${sql.identifier(TEST_TABLE)}
+    `)
+  })
+
+  expect(result).toHaveLength(0)
+})
+```
+
+### Test: Mismatched Tenant ID on INSERT
+
+```ts
+it('should reject INSERT with mismatched tenant_id', async () => {
+  // Set context as Tenant A but insert with Tenant B's ID
+  const insertAsMismatch = withTenant(TENANT_A, async (tx) => {
+    await tx.execute(sql`
+      INSERT INTO ${sql.identifier(TEST_TABLE)} (tenant_id, data)
+      VALUES (${TENANT_B}, 'should-fail')
+    `)
+    return null
+  })
+
+  // PostgreSQL rejects this via the WITH CHECK policy
+  await expect(insertAsMismatch).rejects.toThrow()
+})
+```
+
+### Test: Context Does Not Leak Between Transactions
+
+```ts
+it('should clear tenant context after transaction ends', async () => {
+  // Insert as Tenant A
+  await withTenant(TENANT_A, async (tx) => {
+    await tx.execute(sql`
+      INSERT INTO ${sql.identifier(TEST_TABLE)} (tenant_id, data)
+      VALUES (${TENANT_A}, 'persisted-row')
+    `)
+    return null
+  })
+
+  // New transaction without tenant context -- should see nothing
+  const result = await db.transaction(async (tx) => {
+    await tx.execute(sql`SET LOCAL ROLE app_user`)
+    return tx.execute(sql`
+      SELECT * FROM ${sql.identifier(TEST_TABLE)}
+    `)
+  })
+
+  expect(result).toHaveLength(0)
+})
+```
+
+### Running Integration Tests
+
+The tenant integration tests require a running PostgreSQL database with the RLS infrastructure migration applied:
+
+```bash
+# Ensure the database is set up
+cd apps/api && bun run db:migrate
+
+# Run tenant integration tests
+bun test apps/api/src/tenant/tenant.integration.test.ts
+```
+
+The tests are automatically skipped (not executed) when `DATABASE_URL` is not set, so they will not break CI environments without a database.
+
+## Module Structure
+
+The tenant system is encapsulated in the `TenantModule`:
+
+```ts
+@Module({
+  providers: [
+    TenantService,
+    { provide: APP_INTERCEPTOR, useClass: TenantInterceptor },
+    { provide: APP_FILTER, useClass: TenantContextMissingFilter },
+    { provide: APP_FILTER, useClass: DatabaseUnavailableFilter },
+  ],
+  exports: [TenantService],
+})
+export class TenantModule {}
+```
+
+The module registers:
+
+- **TenantService** -- the query wrapper that injects tenant context into transactions
+- **TenantInterceptor** -- globally intercepts requests to extract and store tenant ID in CLS
+- **TenantContextMissingFilter** -- handles `TenantContextMissingException` (thrown when `query()` is called without CLS context)
+- **DatabaseUnavailableFilter** -- handles `DatabaseUnavailableException` (thrown when the database connection is not available)
+
+Import `TenantModule` in any module that needs tenant-scoped database access:
+
+```ts
+@Module({
+  imports: [TenantModule],
+  providers: [ProjectService],
+  controllers: [ProjectController],
+})
+export class ProjectModule {}
+```
+
+## Common Patterns
+
+### Background Jobs Without HTTP Context
+
+Use `queryAs()` when there is no HTTP request (and therefore no CLS context):
+
+```ts
+@Injectable()
+export class ReportService {
+  constructor(private readonly tenantService: TenantService) {}
+
+  async generateMonthlyReport(tenantId: string) {
+    return this.tenantService.queryAs(tenantId, async (tx) => {
+      // Queries run with the specified tenant context
+      return tx.select().from(reports).where(eq(reports.month, currentMonth))
+    })
+  }
+}
+```
+
+### Event Handlers
+
+The RBAC listener demonstrates using `queryAs()` in event handlers where no HTTP context exists:
+
+```ts
+@OnEvent(ORGANIZATION_CREATED)
+async handleOrganizationCreated(event: OrganizationCreatedEvent) {
+  await this.rbacService.seedDefaultRoles(event.organizationId)
+
+  await this.tenantService.queryAs(event.organizationId, async (tx) => {
+    // Assign Owner role to creator within the new org's tenant context
+    const [ownerRole] = await tx
+      .select({ id: roles.id })
+      .from(roles)
+      .where(and(eq(roles.tenantId, event.organizationId), eq(roles.slug, 'owner')))
+      .limit(1)
+
+    if (ownerRole) {
+      await tx
+        .update(members)
+        .set({ roleId: ownerRole.id })
+        .where(
+          and(
+            eq(members.userId, event.creatorUserId),
+            eq(members.organizationId, event.organizationId)
+          )
+        )
+    }
+  })
+}
+```
+
+### Reading Tenant ID in Services
+
+When you need the raw tenant ID (for example, to set it on an INSERT), read it from CLS:
+
+```ts
+const tenantId = this.cls.get('tenantId') as string
+```
+
+This is already set by the `TenantInterceptor` before your service code runs.
+
+## Related Documentation
+
+- [Multi-tenant RLS analysis](../analyses/21-multi-tenant-rls) -- Full design rationale and architectural decisions
+- [Multi-tenant architecture](../architecture/multi-tenant) -- System architecture and module boundaries
+- [RBAC guide](./rbac) -- How roles and permissions interact with tenant context
+- [Authentication guide](./authentication) -- Auth guard, session management, and `@RequireOrg()` decorator

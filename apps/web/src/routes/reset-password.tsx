@@ -1,13 +1,18 @@
-import { Button, Input, Label } from '@repo/ui'
+import { Button, FormMessage, Input, Label } from '@repo/ui'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
 import { m } from '@/paraglide/messages'
 import { AuthLayout } from '../components/AuthLayout'
 
+const COOLDOWN_SECONDS = 60
+
 export const Route = createFileRoute('/reset-password')({
   component: ResetPasswordPage,
+  head: () => ({
+    meta: [{ title: `${m.auth_reset_password_title()} | Roxabi` }],
+  }),
 })
 
 function ResetPasswordPage() {
@@ -15,6 +20,13 @@ function ResetPasswordPage() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setTimeout(() => setCooldown((c) => c - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [cooldown])
 
   async function handleRequestReset(e: React.FormEvent) {
     e.preventDefault()
@@ -22,13 +34,11 @@ function ResetPasswordPage() {
     setMessage('')
     setLoading(true)
     try {
-      const { error: resetError } = await authClient.requestPasswordReset({ email })
-      if (resetError) {
-        setError(resetError.message ?? 'Failed to send reset email')
-      } else {
-        toast.success(m.auth_toast_reset_link_sent())
-        setMessage(m.auth_check_email_reset())
-      }
+      await authClient.requestPasswordReset({ email })
+      // Always show the same message regardless of whether the email exists (security guardrail)
+      toast.success(m.auth_toast_reset_link_sent())
+      setMessage(m.auth_reset_password_sent())
+      setCooldown(COOLDOWN_SECONDS)
     } catch {
       toast.error(m.auth_toast_error())
     } finally {
@@ -36,12 +46,14 @@ function ResetPasswordPage() {
     }
   }
 
+  const canSubmit = !loading && cooldown <= 0
+
   return (
     <AuthLayout title={m.auth_reset_password_title()} description={m.auth_reset_password_desc()}>
       {error && (
-        <p role="alert" aria-live="polite" className="text-sm text-destructive text-center">
+        <FormMessage variant="error" className="justify-center">
           {error}
-        </p>
+        </FormMessage>
       )}
       {message && (
         <p aria-live="polite" className="text-sm text-muted-foreground text-center">
@@ -61,8 +73,12 @@ function ResetPasswordPage() {
             disabled={loading}
           />
         </div>
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? m.auth_sending() : m.auth_send_reset_link()}
+        <Button type="submit" className="w-full" disabled={!canSubmit}>
+          {loading
+            ? m.auth_sending()
+            : cooldown > 0
+              ? m.auth_resend_reset_in({ seconds: String(cooldown) })
+              : m.auth_send_reset_link()}
         </Button>
       </form>
 

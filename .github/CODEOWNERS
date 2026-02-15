@@ -1,0 +1,19 @@
+# Default owner for everything
+*                       @MickaelV0
+
+# Frontend
+apps/web/               @MickaelV0
+packages/ui/             @MickaelV0
+
+# Backend
+apps/api/               @MickaelV0
+
+# Infrastructure & CI
+.github/                @MickaelV0
+turbo.jsonc             @MickaelV0
+biome.json              @MickaelV0
+lefthook.yml            @MickaelV0
+
+# Documentation
+docs/                   @MickaelV0
+CLAUDE.md               @MickaelV0

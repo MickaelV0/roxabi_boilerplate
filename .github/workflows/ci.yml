@@ -22,9 +22,10 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -32,7 +33,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: node_modules
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -45,15 +46,22 @@ jobs:
       - name: Run Biome lint
         run: bun lint
 
+      - name: Check env sync
+        run: bun run check:env
+
       - name: Validate translations
         run: bun run i18n:validate
+
+      - name: Check dependency licenses
+        run: bun run license:check
 
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -61,12 +69,12 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: node_modules
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -77,7 +85,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Cache Turbo
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .turbo
           key: turbo-typecheck-${{ runner.os }}-${{ github.sha }}
@@ -103,14 +111,32 @@ jobs:
             exit 1
           fi
         env:
+          # drizzle-kit generate only reads the schema files to produce SQL
+          # migrations — it does NOT connect to a database. This dummy URL
+          # satisfies the DATABASE_URL requirement in the Drizzle config file.
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
 
   test:
     name: Test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -118,12 +144,12 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: node_modules
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -134,7 +160,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Cache Turbo
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .turbo
           key: turbo-test-${{ runner.os }}-${{ github.sha }}
@@ -144,9 +170,16 @@ jobs:
       - name: Generate Paraglide & route tree
         run: cd apps/web && bun run codegen
 
+      - name: Apply RLS migration for integration tests
+        run: psql "$DATABASE_URL" -f apps/api/drizzle/migrations/0000_rls_infrastructure.sql
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+
       - name: Run tests with coverage
         run: bun test:coverage
         env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+          BETTER_AUTH_SECRET: test-secret-minimum-32-characters-long
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
@@ -160,10 +193,11 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [lint, typecheck, test]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -171,12 +205,12 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: node_modules
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -187,7 +221,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Cache Turbo
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .turbo
           key: turbo-build-${{ runner.os }}-${{ github.sha }}
@@ -208,7 +242,7 @@ jobs:
       should-run: ${{ steps.filter.outputs.e2e }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check changed paths
         uses: dorny/paths-filter@v3
@@ -226,6 +260,7 @@ jobs:
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [build, check-e2e-paths]
     if: |
       !cancelled() &&
@@ -238,7 +273,7 @@ jobs:
       )
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -246,12 +281,12 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: node_modules
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -261,9 +296,17 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Cache Turbo
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: turbo-build-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-build-${{ runner.os }}-
+
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('apps/web/package.json') }}
@@ -283,7 +326,7 @@ jobs:
         run: bun test:e2e
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: playwright-report

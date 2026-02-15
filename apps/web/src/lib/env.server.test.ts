@@ -1,0 +1,289 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { envSchema } from './env.server.schema'
+
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllEnvs()
+})
+
+describe('envSchema', () => {
+  describe('default values', () => {
+    it('should default API_URL to "http://localhost:4000" when not provided', () => {
+      // Arrange
+      const input = {}
+
+      // Act
+      const result = envSchema.parse(input)
+
+      // Assert
+      expect(result.API_URL).toBe('http://localhost:4000')
+    })
+
+    it('should default NODE_ENV to "development" when not provided', () => {
+      // Arrange
+      const input = {}
+
+      // Act
+      const result = envSchema.parse(input)
+
+      // Assert
+      expect(result.NODE_ENV).toBe('development')
+    })
+
+    it('should default VITE_ENABLE_DEMO to "true" when not provided', () => {
+      // Arrange
+      const input = {}
+
+      // Act
+      const result = envSchema.parse(input)
+
+      // Assert
+      expect(result.VITE_ENABLE_DEMO).toBe('true')
+    })
+  })
+
+  describe('API_URL', () => {
+    it('should accept a valid HTTPS URL', () => {
+      // Arrange
+      const input = { API_URL: 'https://api.example.com' }
+
+      // Act
+      const result = envSchema.parse(input)
+
+      // Assert
+      expect(result.API_URL).toBe('https://api.example.com')
+    })
+
+    it('should accept a valid HTTP URL with port', () => {
+      // Arrange
+      const input = { API_URL: 'http://localhost:4000' }
+
+      // Act
+      const result = envSchema.parse(input)
+
+      // Assert
+      expect(result.API_URL).toBe('http://localhost:4000')
+    })
+
+    it('should reject an invalid URL string', () => {
+      // Arrange
+      const input = { API_URL: 'not-a-url' }
+
+      // Act & Assert
+      expect(() => envSchema.parse(input)).toThrow()
+    })
+
+    it('should reject a bare domain without protocol', () => {
+      // Arrange
+      const input = { API_URL: 'api.example.com' }
+
+      // Act & Assert
+      expect(() => envSchema.parse(input)).toThrow()
+    })
+  })
+
+  describe('APP_URL', () => {
+    it('should accept a valid URL', () => {
+      // Arrange
+      const input = { APP_URL: 'https://app.example.com' }
+
+      // Act
+      const result = envSchema.parse(input)
+
+      // Assert
+      expect(result.APP_URL).toBe('https://app.example.com')
+    })
+
+    it('should be undefined when not provided (optional)', () => {
+      // Arrange
+      const input = {}
+
+      // Act
+      const result = envSchema.parse(input)
+
+      // Assert
+      expect(result.APP_URL).toBeUndefined()
+    })
+
+    it('should reject an invalid URL', () => {
+      // Arrange
+      const input = { APP_URL: 'not-valid' }
+
+      // Act & Assert
+      expect(() => envSchema.parse(input)).toThrow()
+    })
+  })
+
+  describe('NODE_ENV', () => {
+    it('should accept "development"', () => {
+      // Arrange
+      const input = { NODE_ENV: 'development' }
+
+      // Act
+      const result = envSchema.parse(input)
+
+      // Assert
+      expect(result.NODE_ENV).toBe('development')
+    })
+
+    it('should accept "production"', () => {
+      // Arrange
+      const input = { NODE_ENV: 'production' }
+
+      // Act
+      const result = envSchema.parse(input)
+
+      // Assert
+      expect(result.NODE_ENV).toBe('production')
+    })
+
+    it('should accept "test"', () => {
+      // Arrange
+      const input = { NODE_ENV: 'test' }
+
+      // Act
+      const result = envSchema.parse(input)
+
+      // Assert
+      expect(result.NODE_ENV).toBe('test')
+    })
+
+    it('should reject an invalid NODE_ENV value', () => {
+      // Arrange
+      const input = { NODE_ENV: 'staging' }
+
+      // Act & Assert
+      expect(() => envSchema.parse(input)).toThrow()
+    })
+  })
+
+  describe('VERCEL_ENV', () => {
+    it('should accept "production"', () => {
+      // Arrange
+      const input = { VERCEL_ENV: 'production' }
+
+      // Act
+      const result = envSchema.parse(input)
+
+      // Assert
+      expect(result.VERCEL_ENV).toBe('production')
+    })
+
+    it('should accept "preview"', () => {
+      // Arrange
+      const input = { VERCEL_ENV: 'preview' }
+
+      // Act
+      const result = envSchema.parse(input)
+
+      // Assert
+      expect(result.VERCEL_ENV).toBe('preview')
+    })
+
+    it('should accept "development"', () => {
+      // Arrange
+      const input = { VERCEL_ENV: 'development' }
+
+      // Act
+      const result = envSchema.parse(input)
+
+      // Assert
+      expect(result.VERCEL_ENV).toBe('development')
+    })
+
+    it('should be undefined when not provided (optional)', () => {
+      // Arrange
+      const input = {}
+
+      // Act
+      const result = envSchema.parse(input)
+
+      // Assert
+      expect(result.VERCEL_ENV).toBeUndefined()
+    })
+
+    it('should reject an invalid VERCEL_ENV value', () => {
+      // Arrange
+      const input = { VERCEL_ENV: 'staging' }
+
+      // Act & Assert
+      expect(() => envSchema.parse(input)).toThrow()
+    })
+  })
+})
+
+describe('env.server module-level validation', () => {
+  async function importEnvServer(envOverrides: Record<string, string>) {
+    vi.resetModules()
+    for (const [key, value] of Object.entries(envOverrides)) {
+      vi.stubEnv(key, value)
+    }
+    return import('./env.server')
+  }
+
+  it('should succeed in development without explicit API_URL (uses default)', async () => {
+    // Arrange
+    const envVars = { NODE_ENV: 'development' }
+
+    // Act
+    const mod = await importEnvServer(envVars)
+
+    // Assert
+    expect(mod.env.API_URL).toBe('http://localhost:4000')
+    expect(mod.env.NODE_ENV).toBe('development')
+  })
+
+  it('should succeed with a valid API_URL in production', async () => {
+    // Arrange
+    const envVars = {
+      NODE_ENV: 'production',
+      API_URL: 'https://api.production.example.com',
+    }
+
+    // Act
+    const mod = await importEnvServer(envVars)
+
+    // Assert
+    expect(mod.env.API_URL).toBe('https://api.production.example.com')
+    expect(mod.env.NODE_ENV).toBe('production')
+  })
+
+  it('should throw when API_URL is not set in production', async () => {
+    // Arrange
+    const envVars = { NODE_ENV: 'production' }
+
+    // Act & Assert
+    await expect(importEnvServer(envVars)).rejects.toThrow(
+      'API_URL must be explicitly set in non-development environments'
+    )
+  })
+
+  it('should throw when API_URL is not set in test environment', async () => {
+    // Arrange
+    const envVars = { NODE_ENV: 'test' }
+
+    // Act & Assert
+    await expect(importEnvServer(envVars)).rejects.toThrow(
+      'API_URL must be explicitly set in non-development environments'
+    )
+  })
+
+  it('should throw on schema validation failure with invalid API_URL', async () => {
+    // Arrange
+    const envVars = { API_URL: 'not-a-url' }
+
+    // Act & Assert
+    await expect(importEnvServer(envVars)).rejects.toThrow('Server env validation failed')
+  })
+
+  it('should throw on schema validation failure with invalid NODE_ENV', async () => {
+    // Arrange
+    const envVars = {
+      API_URL: 'http://localhost:4000',
+      NODE_ENV: 'invalid',
+    }
+
+    // Act & Assert
+    await expect(importEnvServer(envVars)).rejects.toThrow('Server env validation failed')
+  })
+})

@@ -18,29 +18,42 @@ function renderSelect({ open }: { open?: boolean } = {}) {
 }
 
 describe('Select', () => {
-  it('renders trigger with placeholder', () => {
+  it('should render trigger with placeholder', () => {
+    // Arrange & Act
     renderSelect()
+
+    // Assert
     expect(screen.getByText('Select a fruit')).toBeInTheDocument()
   })
 
-  it('has data-slot on trigger', () => {
+  it('should have data-slot on trigger when rendered', () => {
+    // Arrange & Act
     renderSelect()
+
+    // Assert
     const trigger = screen.getByRole('combobox')
     expect(trigger).toHaveAttribute('data-slot', 'select-trigger')
   })
 
-  it('trigger has combobox role', () => {
+  it('should have combobox role on trigger', () => {
+    // Arrange & Act
     renderSelect()
+
+    // Assert
     expect(screen.getByRole('combobox')).toBeInTheDocument()
   })
 
-  it('applies default size', () => {
+  it('should apply default size when no size is specified', () => {
+    // Arrange & Act
     renderSelect()
+
+    // Assert
     const trigger = screen.getByRole('combobox')
     expect(trigger).toHaveAttribute('data-size', 'default')
   })
 
-  it('applies sm size', () => {
+  it('should apply sm size when size is sm', () => {
+    // Arrange & Act
     render(
       <Select>
         <SelectTrigger size="sm" aria-label="Fruit">
@@ -51,10 +64,13 @@ describe('Select', () => {
         </SelectContent>
       </Select>
     )
+
+    // Assert
     expect(screen.getByRole('combobox')).toHaveAttribute('data-size', 'sm')
   })
 
-  it('applies custom className to trigger', () => {
+  it('should apply custom className to trigger when provided', () => {
+    // Arrange & Act
     render(
       <Select>
         <SelectTrigger className="custom-class" aria-label="Fruit">
@@ -65,10 +81,13 @@ describe('Select', () => {
         </SelectContent>
       </Select>
     )
+
+    // Assert
     expect(screen.getByRole('combobox')).toHaveClass('custom-class')
   })
 
-  it('renders selected value when controlled', () => {
+  it('should render selected value when controlled', () => {
+    // Arrange & Act
     render(
       <Select value="banana">
         <SelectTrigger aria-label="Fruit">
@@ -80,6 +99,8 @@ describe('Select', () => {
         </SelectContent>
       </Select>
     )
+
+    // Assert
     expect(screen.getByText('Banana')).toBeInTheDocument()
   })
 })

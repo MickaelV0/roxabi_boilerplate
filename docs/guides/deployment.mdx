@@ -65,7 +65,7 @@ The **Deploy Preview** workflow requires these repository secrets:
 
 | Secret | Description | Where to find |
 |--------|-------------|---------------|
-| `VERCEL_TOKEN` | Vercel personal access token | [vercel.com/account/tokens](https://vercel.com/account/tokens) |
+| `VERCEL_TOKEN` | Vercel personal access token — used **only** by the Deploy Preview workflow, not by production CD (which uses the Vercel GitHub Integration) | [vercel.com/account/tokens](https://vercel.com/account/tokens) |
 | `VERCEL_ORG_ID` | Vercel team/org ID | `.vercel/project.json` → `orgId` (after `vercel link`) |
 | `VERCEL_PROJECT_ID_WEB` | Vercel project ID for web | `apps/web/.vercel/project.json` → `projectId` |
 | `VERCEL_PROJECT_ID_API` | Vercel project ID for API | `apps/api/.vercel/project.json` → `projectId` |
@@ -189,23 +189,107 @@ for env in production preview development; do
 done
 ```
 
-Add secrets interactively (values not stored in shell history):
+#### Neon (Database) — Vercel Marketplace Integration
+
+Install the Neon integration to auto-inject `DATABASE_URL` for production:
+
+1. Go to [vercel.com/marketplace/neon](https://vercel.com/marketplace/neon) and click **Install**
+2. Select your Vercel team/account and link to the **API project**
+3. Verify: `cd apps/api && vercel env ls production | grep DATABASE_URL`
+4. Trigger a redeploy: `vercel redeploy <latest-deployment-url>`
+5. Test: verify `/api/health` returns 200
+
+> **Note:** The integration also injects `DATABASE_URL` into preview and development scopes. Preview scope is overridden by the Deploy Preview workflow's `--env` flag. Development scope is unused (local dev reads `.env` files).
+
+> **Rollback:** If production fails after install, re-add manually: `vercel env add DATABASE_URL production` and redeploy.
+
+#### Resend (Email) — Vercel Marketplace Integration
+
+Install the Resend integration to auto-inject `RESEND_API_KEY`:
+
+1. Go to [vercel.com/marketplace/resend](https://vercel.com/marketplace/resend) and click **Install**
+2. Select your Vercel team/account and link to the **API project**
+3. Verify: `cd apps/api && vercel env ls production | grep RESEND`
+4. Trigger a redeploy: `vercel redeploy <latest-deployment-url>`
+5. Test: trigger a password reset email from the production deployment to confirm the API key works
+
+> **Rollback:** If email fails, uninstall the integration and re-add manually: `vercel env add RESEND_API_KEY production`
+
+#### Upstash Redis (Rate Limiting) — Vercel Marketplace Integration
+
+Rate limiting is **enabled by default** (`RATE_LIMIT_ENABLED=true`) and requires Upstash Redis. The code uses `@upstash/redis` and reads `KV_REST_API_URL` and `KV_REST_API_TOKEN` — the env var names auto-injected by the Upstash Marketplace integration.
+
+**Step-by-step via Vercel Integration:**
+
+1. Go to [vercel.com/marketplace/upstash](https://vercel.com/marketplace/upstash) and click **Install** (or go to your team's integrations page: `https://vercel.com/<team>/~/integrations/upstash`)
+2. Select your Vercel team/account when prompted
+3. Choose **Redis** as the product
+4. Configure the database:
+   - **Name:** e.g. `roxabi-redis`
+   - **Region:** choose the closest to your Neon database region
+   - **Plan:** Free tier is sufficient for development
+5. Link the database to your **API project** (e.g. `roxabi-api`)
+6. Vercel auto-creates `KV_REST_API_URL` and `KV_REST_API_TOKEN` as environment variables on the API project
+7. **Redeploy** the API project for the new env vars to take effect
+
+**Via Vercel CLI:**
 
 ```bash
-vercel env add DATABASE_URL production
-vercel env add RESEND_API_KEY production
+cd apps/api
+vercel integration add upstash/upstash-kv --name roxabi-redis
 ```
+
+> **Note:** The CLI requires accepting the Upstash terms of service in the dashboard first. If you see a "Terms have not been accepted" prompt, visit the integration page above first.
+
+**Verify the env vars were added:**
+
+```bash
+cd apps/api && vercel env ls | grep KV_REST
+```
+
+You should see `KV_REST_API_URL` and `KV_REST_API_TOKEN` listed.
+
+**Alternative — manual setup (without the integration):**
+
+1. Create a Redis database at [console.upstash.com](https://console.upstash.com)
+2. Copy the REST URL and token from the database details page
+3. Add them to the API project:
+
+```bash
+cd apps/api
+for env in production preview development; do
+  printf '%s' "https://your-redis.upstash.io" | vercel env add KV_REST_API_URL "$env"
+  printf '%s' "your-upstash-token"             | vercel env add KV_REST_API_TOKEN "$env"
+done
+```
+
+> **Warning:** Without these vars, the API will **crash at startup** in production. If you do not need rate limiting (e.g., early development), set `RATE_LIMIT_ENABLED=false` explicitly — but note this disables auth brute-force protection.
 
 | Variable | Description |
 |----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string |
+| `DATABASE_URL` | PostgreSQL connection string (auto-injected by Neon Marketplace integration) |
 | `CORS_ORIGIN` | Web project URL (for CORS) |
 | `BETTER_AUTH_SECRET` | Random 32+ character string |
 | `BETTER_AUTH_URL` | This project's URL |
 | `APP_URL` | Web project URL |
 | `API_URL` | This project's URL |
 | `EMAIL_FROM` | Sender email address |
-| `RESEND_API_KEY` | Resend API key for transactional emails |
+| `RESEND_API_KEY` | Resend API key for transactional emails (auto-injected by Resend Marketplace integration) |
+| `KV_REST_API_URL` | Upstash Redis REST URL (auto-injected by Upstash Marketplace integration) |
+| `KV_REST_API_TOKEN` | Upstash Redis REST token (auto-injected by Upstash Marketplace integration) |
+
+#### Credential Rotation
+
+| Credential | Rotation method |
+|-----------|-----------------|
+| `DATABASE_URL` (production) | Auto-managed via Neon Marketplace integration — no manual action needed |
+| `RESEND_API_KEY` (production) | Auto-managed via Resend Marketplace integration — no manual action needed |
+| `KV_REST_API_URL` / `KV_REST_API_TOKEN` (production) | Auto-managed via Upstash Marketplace integration — no manual action needed |
+| `NEON_API_KEY` (GitHub Actions) | Manual rotation: GitHub Settings → Secrets → update `NEON_API_KEY` |
+| `NEON_PROJECT_ID` (GitHub Actions) | Static — only changes if Neon project is recreated |
+| `BETTER_AUTH_SECRET` | Manual rotation: `vercel env rm BETTER_AUTH_SECRET production && vercel env add BETTER_AUTH_SECRET production` |
+
+> **Tip:** `BETTER_AUTH_SECRET` rotation requires a redeploy to take effect. Between `env rm` and the completed redeploy with the new value, auth sessions will be invalid. Plan rotation during a maintenance window.
 
 ### 5. Verify
 
@@ -213,6 +297,90 @@ vercel env add RESEND_API_KEY production
 cd apps/web && vercel env ls
 cd apps/api && vercel env ls
 ```
+
+---
+
+## Fork Setup Checklist
+
+If you are forking the Roxabi Boilerplate to start your own SaaS project, follow this step-by-step checklist to get a fully working CI/CD pipeline.
+
+### 1. Create Vercel Projects
+
+Create **two Vercel projects** from the same GitHub repository:
+
+1. Sign up at [vercel.com](https://vercel.com) and connect your GitHub account
+2. Click **Add New Project**, import the repository, set Root Directory to `apps/web`
+3. Repeat for a second project with Root Directory set to `apps/api`
+4. Link each project locally with `vercel link` (see [Initial Setup](#initial-setup) above)
+
+### 2. Create and Initialize the Neon Database
+
+1. Create a [Neon](https://console.neon.tech) account and project
+
+> **Tip:** Instead of manual setup, you can install the [Neon Marketplace integration](https://vercel.com/marketplace/neon) to auto-inject `DATABASE_URL` into your Vercel API project. You'll still need to initialize the database schema (steps 3-4 below).
+
+2. Copy the `DATABASE_URL` connection string from the Neon dashboard
+3. Initialize the database schema (required before any migration can run — see [Database Initialization](#database-initialization) for why):
+
+```bash
+cd apps/api
+DATABASE_URL="<your-neon-connection-string>" bunx drizzle-kit push --force
+```
+
+4. Register existing migrations so Drizzle does not re-apply them:
+
+```bash
+cd apps/api
+DATABASE_URL="<your-neon-connection-string>" bun run db:migrate
+```
+
+### 3. Configure GitHub Actions Secrets
+
+Add these 6 secrets at **Settings** &gt; **Secrets and variables** &gt; **Actions** &gt; **New repository secret**:
+
+| Secret | Description | Where to find |
+|--------|-------------|---------------|
+| `VERCEL_TOKEN` | Vercel personal access token — used **only** by the Deploy Preview workflow, not by production CD (which uses the Vercel GitHub Integration) | [vercel.com/account/tokens](https://vercel.com/account/tokens) |
+| `VERCEL_ORG_ID` | Vercel team/org ID | `.vercel/project.json` &gt; `orgId` (after `vercel link`) |
+| `VERCEL_PROJECT_ID_WEB` | Vercel project ID for web | `apps/web/.vercel/project.json` &gt; `projectId` |
+| `VERCEL_PROJECT_ID_API` | Vercel project ID for API | `apps/api/.vercel/project.json` &gt; `projectId` |
+| `NEON_API_KEY` | Neon API key (for preview DB branches) | [console.neon.tech](https://console.neon.tech) &gt; Account &gt; API Keys |
+| `NEON_PROJECT_ID` | Neon project ID | [console.neon.tech](https://console.neon.tech) &gt; Project Settings |
+
+### 4. Provision Upstash Redis (Rate Limiting)
+
+Rate limiting is enabled by default and requires Upstash Redis. Follow the step-by-step in [Upstash Redis setup](#upstash-redis-rate-limiting--vercel-marketplace-integration) above, or set `RATE_LIMIT_ENABLED=false` temporarily if you need to deploy without it.
+
+> **Note:** If you skip this step, the API will crash at startup in production.
+
+### 5. Install Resend Integration (Email)
+
+Install the Resend integration for transactional emails:
+
+1. Go to [vercel.com/marketplace/resend](https://vercel.com/marketplace/resend) and click **Install**
+2. Link to the **API project**
+3. Verify: `cd apps/api && vercel env ls production | grep RESEND`
+4. Redeploy: `vercel redeploy <latest-deployment-url>`
+
+> **Alternative:** Add manually: `vercel env add RESEND_API_KEY production`
+
+### 6. Disable Automatic Preview Deployments
+
+Disable Vercel's automatic preview deployments on **both** projects to prevent rate-limit exhaustion. See [Disable Automatic Preview Deployments](#3-disable-automatic-preview-deployments) for the API commands.
+
+### 7. Deploy to Production
+
+Push to `main` (or merge `staging` into `main`) to trigger the initial production deploy:
+
+```bash
+git push origin main
+```
+
+Vercel auto-deploys both projects. Verify by checking the deployment URLs in the Vercel dashboard.
+
+### 8. (Optional) Configure Deployment Protection
+
+Both Vercel projects ship with SSO deployment protection enabled by default. See [Deployment Protection](#deployment-protection) for options to adjust this for preview environments.
 
 ---
 
@@ -277,7 +445,7 @@ Build settings are version-controlled in `vercel.json` files — no dashboard co
 ```json
 {
   "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ] || npx turbo-ignore @repo/web",
-  "installCommand": "bun install",
+  "installCommand": "bun install --ignore-scripts",
   "buildCommand": "turbo run build"
 }
 ```
@@ -287,7 +455,7 @@ Build settings are version-controlled in `vercel.json` files — no dashboard co
 ```json
 {
   "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ] || npx turbo-ignore @repo/api",
-  "installCommand": "bun install",
+  "installCommand": "bun install --ignore-scripts",
   "buildCommand": "bun run db:migrate && turbo run build"
 }
 ```
@@ -299,7 +467,7 @@ Nitro (TanStack Start) outputs to `.vercel/output/` using the Vercel Build Outpu
 > curl -X PATCH -H "Authorization: Bearer $TOKEN" \
 >   "https://api.vercel.com/v9/projects/$PROJECT_ID?teamId=$TEAM_ID" \
 >   -H "Content-Type: application/json" \
->   -d '{"buildCommand":"bun run db:migrate && turbo run build","installCommand":"bun install"}'
+>   -d '{"buildCommand":"bun run db:migrate && turbo run build","installCommand":"bun install --ignore-scripts"}'
 > ```
 
 ---
@@ -319,11 +487,12 @@ As a secondary safeguard, both projects also use `ignoreCommand` in `vercel.json
 | **Primary** | `previewDeploymentsDisabled: true` (project setting) | Prevents Vercel from even attempting preview deployments |
 | **Secondary** | `ignoreCommand` in `vercel.json` | Skips builds on non-`main` branches if a deployment is triggered |
 
-Preview deploys are **manual only** — use the **Deploy Preview** GitHub Action (see [Preview Deploys](#preview-deploys) above) or the Vercel CLI:
+Preview deploys are **manual only** — use the **Deploy Preview** GitHub Action (see [Preview Deploys](#preview-deploys) above) or the Vercel CLI.
+
+> **Important:** Always run `vercel` preview deploys from the **repository root**, not from `apps/web` or `apps/api`. The Vercel project linking (`.vercel/project.json`) and TurboRepo build pipeline expect the root as the working directory. Running from a subdirectory may produce broken builds or skip workspace dependencies.
 
 ```bash
-cd apps/web && vercel        # Preview deploy
-cd apps/api && vercel        # Preview deploy
+vercel                       # Preview deploy (from repo root)
 ```
 
 ---
@@ -399,6 +568,50 @@ The workflow deletes the Neon branch named `preview/{branch}`. You can also dele
 
 ---
 
+## Database Initialization
+
+On a **fresh database** (new Neon project, empty PostgreSQL instance), you must initialize the schema before migrations can run. This is due to a chicken-and-egg dependency between Better Auth and Drizzle.
+
+### The Better Auth + Drizzle Problem
+
+Better Auth creates its core tables (`users`, `sessions`, `accounts`, `verifications`) **at runtime** via the Drizzle adapter — these tables are NOT defined in the migration files. Drizzle migrations (RLS policies, added columns, indexes) **ALTER** these tables and assume they already exist. On a fresh database, migrations fail because the tables they reference have not been created yet.
+
+### How to Initialize
+
+**Option A: Push the full schema (recommended)**
+
+Use `drizzle-kit push --force` to create all tables from the Drizzle schema definition, then run migrations to register them:
+
+```bash
+cd apps/api
+DATABASE_URL="<your-production-url>" bunx drizzle-kit push --force
+DATABASE_URL="<your-production-url>" bun run db:migrate
+```
+
+The `--force` flag skips interactive confirmation prompts. The `db:migrate` step registers all existing migration files as "already applied" so they are not re-run on the next deploy.
+
+**Option B: Let Better Auth bootstrap tables**
+
+Start the application once with a valid `DATABASE_URL` to let Better Auth create its tables at runtime, then run migrations:
+
+```bash
+# Start the API locally against production (or let Vercel deploy once — the build will fail on migrations, but Better Auth tables will exist)
+DATABASE_URL="<your-production-url>" bun run dev
+
+# Then apply migrations
+DATABASE_URL="<your-production-url>" bun run db:migrate
+```
+
+Option A is preferred because it is a single atomic step and does not require running the app.
+
+### Neon Preview Branches and Production State
+
+Neon database branching creates a **copy-on-write snapshot** of the parent branch (production). If production is empty, every preview branch inherits that empty state and migrations fail with missing-table errors. **Production must be initialized first** before preview branches work correctly.
+
+> **Important:** If you see migration errors like `relation "users" does not exist` in preview deploys or production builds, your database has not been initialized. Run `drizzle-kit push --force` against the production database as described above.
+
+---
+
 ## Custom Domains
 
 ```bash
@@ -410,6 +623,59 @@ Then configure DNS with a CNAME record pointing to `cname.vercel-dns.com`. Verce
 
 ---
 
+## Deployment Protection
+
+Both Vercel projects have SSO deployment protection enabled by default:
+
+```json
+{
+  "ssoProtection": {
+    "deploymentType": "all_except_custom_domains"
+  }
+}
+```
+
+This requires **Vercel team SSO authentication** to access any deployment URL that is not a custom domain. Since preview deployments have no custom domain, they are always gated behind SSO login.
+
+### Options for Preview Access
+
+| Option | Behavior | Trade-off |
+|--------|----------|-----------|
+| **A. Relax protection to production only** | Previews become publicly accessible | Anyone with the URL can access previews |
+| **B. Protection Bypass header** | CI health checks pass, humans still need SSO | Only useful for automation, not manual review |
+| **C. Accept the default** | All previews require SSO login | Most secure, but requires Vercel team membership |
+
+**Option A — Make previews public:**
+
+```bash
+TOKEN="<your-vercel-token>"
+TEAM_ID="<your-team-id>"
+
+# Update web project
+curl -X PATCH -H "Authorization: Bearer $TOKEN" \
+  "https://api.vercel.com/v9/projects/<web-project-id>?teamId=$TEAM_ID" \
+  -H "Content-Type: application/json" \
+  -d '{"ssoProtection":{"deploymentType":"prod_deployment_urls_only"}}'
+
+# Update API project
+curl -X PATCH -H "Authorization: Bearer $TOKEN" \
+  "https://api.vercel.com/v9/projects/<api-project-id>?teamId=$TEAM_ID" \
+  -H "Content-Type: application/json" \
+  -d '{"ssoProtection":{"deploymentType":"prod_deployment_urls_only"}}'
+```
+
+**Option B — Protection Bypass for Automation:**
+
+Vercel supports a `x-vercel-protection-bypass` header that CI workflows can use to access protected preview URLs without SSO. Generate a bypass secret in the Vercel dashboard under **Settings** &gt; **Deployment Protection** &gt; **Protection Bypass for Automation**, then pass it as a header in health check requests:
+
+```bash
+curl -H "x-vercel-protection-bypass: <your-bypass-secret>" https://<preview-url>/api/health
+```
+
+**Option C — Keep the default:** No configuration needed. All team members log in via Vercel SSO to access preview URLs.
+
+---
+
 ## Important Notes
 
 - Vercel automatically sets `NODE_ENV=production`
@@ -418,8 +684,20 @@ Then configure DNS with a CNAME record pointing to `cname.vercel-dns.com`. Verce
 - NestJS middlewares with the Fastify adapter receive raw Node.js `ServerResponse` objects — use `res.setHeader()`, not `res.header()`
 - Free tier: 10s execution limit per request. Pro tier: 60s
 - 250MB max application size (Vercel Functions limitation)
-- `API_URL`, `APP_URL`, and `VITE_ENABLE_DEMO` are declared in `turbo.json` build env to ensure Turbo invalidates cache when they change
+- `API_URL`, `APP_URL`, and `VITE_ENABLE_DEMO` are declared in `turbo.jsonc` build env to ensure Turbo invalidates cache when they change
 - `apps/api/turbo.json` declares runtime secrets (database, auth) as `passThroughEnv` — these are available at runtime but don't affect build cache
+
+---
+
+## Troubleshooting Marketplace Integrations
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Env var not showing after integration install | Vercel requires a redeploy for new env vars to take effect | Run `vercel redeploy <latest-deployment-url>` |
+| Manual env var conflicts with integration var | Both exist — manual var may take precedence | Remove the manual var: `vercel env rm <VAR> production` and redeploy |
+| Preview deploy connects to production database | `--env` override missing or incorrect in workflow | Check `deploy-preview.yml` — the `--env "DATABASE_URL=$DATABASE_URL"` line must be present in the "Deploy API preview" step |
+| Integration shows in dashboard but var missing in `vercel env ls` | Integration not linked to the correct project | Uninstall and reinstall, ensuring you select the API project |
+| `POSTGRES_*` vars appear after Neon install | Neon integration injects extra vars | Harmless — code only reads `DATABASE_URL`. Ignore extra vars. |
 
 ---
 

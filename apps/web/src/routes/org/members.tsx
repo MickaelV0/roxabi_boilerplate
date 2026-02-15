@@ -1,4 +1,12 @@
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   Badge,
   Button,
   Card,
@@ -19,50 +27,33 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@repo/ui'
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { authClient } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/auth-client'
+import { roleBadgeVariant, roleLabel } from '@/lib/org-utils'
+import { hasPermission } from '@/lib/permissions'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/org/members')({
-  beforeLoad: async () => {
-    const { data } = await authClient.getSession()
-    if (!data) {
-      throw redirect({ to: '/login' })
-    }
-  },
   component: OrgMembersPage,
+  head: () => ({
+    meta: [{ title: `${m.org_members_title()} | Roxabi` }],
+  }),
 })
 
-function roleLabel(role: string) {
-  switch (role) {
-    case 'owner':
-      return m.org_role_owner()
-    case 'admin':
-      return m.org_role_admin()
-    default:
-      return m.org_role_member()
-  }
-}
-
-function roleBadgeVariant(role: string) {
-  switch (role) {
-    case 'owner':
-      return 'default' as const
-    case 'admin':
-      return 'secondary' as const
-    default:
-      return 'outline' as const
-  }
-}
-
 function OrgMembersPage() {
+  const { data: session } = useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
-  const { data: activeMember } = authClient.useActiveMember()
 
-  const canManage = activeMember?.role === 'owner' || activeMember?.role === 'admin'
+  const canManage = hasPermission(session, 'members:write')
   const members = activeOrg?.members ?? []
   const invitations = activeOrg?.invitations?.filter((inv) => inv.status === 'pending') ?? []
 
@@ -70,13 +61,23 @@ function OrgMembersPage() {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<'admin' | 'member'>('member')
   const [inviting, setInviting] = useState(false)
+  const [removeMemberId, setRemoveMemberId] = useState<string | null>(null)
+
+  // I9: Client-side search
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const filteredMembers = members.filter(
+    (member) =>
+      member.user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.user.email.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   if (!activeOrg) {
     return (
-      <div className="mx-auto max-w-4xl space-y-6 p-6">
+      <>
         <h1 className="text-2xl font-bold">{m.org_members_title()}</h1>
         <p className="text-muted-foreground">{m.org_switcher_no_org()}</p>
-      </div>
+      </>
     )
   }
 
@@ -103,9 +104,12 @@ function OrgMembersPage() {
     }
   }
 
-  async function handleRemoveMember(memberId: string) {
+  async function handleRemoveMember() {
+    if (!removeMemberId) return
     try {
-      const { error } = await authClient.organization.removeMember({ memberIdOrEmail: memberId })
+      const { error } = await authClient.organization.removeMember({
+        memberIdOrEmail: removeMemberId,
+      })
       if (error) {
         toast.error(error.message ?? m.auth_toast_error())
       } else {
@@ -113,6 +117,8 @@ function OrgMembersPage() {
       }
     } catch {
       toast.error(m.auth_toast_error())
+    } finally {
+      setRemoveMemberId(null)
     }
   }
 
@@ -143,7 +149,7 @@ function OrgMembersPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6">
+    <>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{m.org_members_title()}</h1>
 
@@ -204,31 +210,47 @@ function OrgMembersPage() {
         )}
       </div>
 
+      {/* I9: Client-side search */}
+      <Input
+        placeholder={m.org_members_search_placeholder()}
+        value={searchQuery}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+        className="max-w-sm"
+      />
+
       <Card>
         <CardHeader>
           <CardTitle>{m.org_members_active()}</CardTitle>
         </CardHeader>
         <CardContent>
-          {members.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{m.org_members_empty()}</p>
+          {filteredMembers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {searchQuery ? m.org_members_no_results() : m.org_members_empty()}
+            </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="pb-2 pr-4 font-medium">{m.org_members_name()}</th>
-                    <th className="pb-2 pr-4 font-medium">{m.org_members_email()}</th>
-                    <th className="pb-2 pr-4 font-medium">{m.org_members_role()}</th>
-                    <th className="pb-2 pr-4 font-medium">{m.org_members_joined()}</th>
-                    {canManage && <th className="pb-2 font-medium">{m.org_members_actions()}</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {members.map((member) => (
-                    <tr key={member.id} className="border-b last:border-0">
-                      <td className="py-3 pr-4">{member.user.name}</td>
-                      <td className="py-3 pr-4 text-muted-foreground">{member.user.email}</td>
-                      <td className="py-3 pr-4">
+              <Table className="w-full text-sm">
+                <TableHeader>
+                  <TableRow className="border-b text-left text-muted-foreground">
+                    <TableHead className="pb-2 pr-4 font-medium">{m.org_members_name()}</TableHead>
+                    <TableHead className="pb-2 pr-4 font-medium">{m.org_members_email()}</TableHead>
+                    <TableHead className="pb-2 pr-4 font-medium">{m.org_members_role()}</TableHead>
+                    <TableHead className="pb-2 pr-4 font-medium">
+                      {m.org_members_joined()}
+                    </TableHead>
+                    {canManage && (
+                      <TableHead className="pb-2 font-medium">{m.org_members_actions()}</TableHead>
+                    )}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredMembers.map((member) => (
+                    <TableRow key={member.id} className="border-b last:border-0">
+                      <TableCell className="py-3 pr-4">{member.user.name}</TableCell>
+                      <TableCell className="py-3 pr-4 text-muted-foreground">
+                        {member.user.email}
+                      </TableCell>
+                      <TableCell className="py-3 pr-4">
                         {canManage && member.role !== 'owner' ? (
                           <Select
                             value={member.role}
@@ -247,28 +269,28 @@ function OrgMembersPage() {
                             {roleLabel(member.role)}
                           </Badge>
                         )}
-                      </td>
-                      <td className="py-3 pr-4 text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="py-3 pr-4 text-muted-foreground">
                         {new Date(member.createdAt).toLocaleDateString()}
-                      </td>
+                      </TableCell>
                       {canManage && (
-                        <td className="py-3">
+                        <TableCell className="py-3">
                           {member.role !== 'owner' && (
                             <Button
                               variant="ghost"
                               size="sm"
                               className="text-destructive hover:text-destructive"
-                              onClick={() => handleRemoveMember(member.id)}
+                              onClick={() => setRemoveMemberId(member.id)}
                             >
                               {m.org_members_remove()}
                             </Button>
                           )}
-                        </td>
+                        </TableCell>
                       )}
-                    </tr>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
@@ -283,27 +305,35 @@ function OrgMembersPage() {
             <p className="text-sm text-muted-foreground">{m.org_invitations_empty()}</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="pb-2 pr-4 font-medium">{m.org_invitations_email()}</th>
-                    <th className="pb-2 pr-4 font-medium">{m.org_invitations_role()}</th>
-                    <th className="pb-2 pr-4 font-medium">{m.org_invitations_status()}</th>
-                    {canManage && <th className="pb-2 font-medium">{m.org_members_actions()}</th>}
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="w-full text-sm">
+                <TableHeader>
+                  <TableRow className="border-b text-left text-muted-foreground">
+                    <TableHead className="pb-2 pr-4 font-medium">
+                      {m.org_invitations_email()}
+                    </TableHead>
+                    <TableHead className="pb-2 pr-4 font-medium">
+                      {m.org_invitations_role()}
+                    </TableHead>
+                    <TableHead className="pb-2 pr-4 font-medium">
+                      {m.org_invitations_status()}
+                    </TableHead>
+                    {canManage && (
+                      <TableHead className="pb-2 font-medium">{m.org_members_actions()}</TableHead>
+                    )}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {invitations.map((inv) => (
-                    <tr key={inv.id} className="border-b last:border-0">
-                      <td className="py-3 pr-4">{inv.email}</td>
-                      <td className="py-3 pr-4">
+                    <TableRow key={inv.id} className="border-b last:border-0">
+                      <TableCell className="py-3 pr-4">{inv.email}</TableCell>
+                      <TableCell className="py-3 pr-4">
                         <Badge variant={roleBadgeVariant(inv.role)}>{roleLabel(inv.role)}</Badge>
-                      </td>
-                      <td className="py-3 pr-4">
+                      </TableCell>
+                      <TableCell className="py-3 pr-4">
                         <Badge variant="outline">{inv.status}</Badge>
-                      </td>
+                      </TableCell>
                       {canManage && (
-                        <td className="py-3">
+                        <TableCell className="py-3">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -312,16 +342,39 @@ function OrgMembersPage() {
                           >
                             {m.org_invitations_revoke()}
                           </Button>
-                        </td>
+                        </TableCell>
                       )}
-                    </tr>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
       </Card>
-    </div>
+
+      <AlertDialog
+        open={removeMemberId !== null}
+        onOpenChange={(open: boolean) => {
+          if (!open) setRemoveMemberId(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{m.org_members_remove()}</AlertDialogTitle>
+            <AlertDialogDescription>{m.org_members_remove_confirm()}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleRemoveMember}
+            >
+              {m.org_members_remove()}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

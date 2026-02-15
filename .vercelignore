@@ -1,0 +1,18 @@
+# Prevent local-only files from being uploaded to Vercel builds.
+# NODE_ENV=development in .env was causing @vitejs/plugin-react to emit
+# jsxDEV calls in the SSR bundle, crashing preview deployments with:
+#   TypeError: jsxDevRuntimeExports.jsxDEV is not a function
+
+.env
+.env.local
+.env.*.local
+
+# Development tooling
+.claude/
+.vscode/
+.idea/
+coverage/
+reports/
+playwright-report/
+test-results/
+*.log

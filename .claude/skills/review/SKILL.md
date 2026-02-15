@@ -1,6 +1,6 @@
 ---
 argument-hint: [#PR]
-description: Multi-domain code review with fresh agents and Conventional Comments. Review findings are walked through with the human via /1b1.
+description: This skill should be used when the user asks to review code, review changes, review a PR, do a code review, or check a branch for issues. Triggers include "review my changes", "review PR #42", "code review this", and "check my code". Performs multi-domain review using fresh agents and Conventional Comments, with findings walked through via /1b1.
 allowed-tools: Bash, AskUserQuestion, Read, Grep, Task
 ---
 
@@ -76,7 +76,7 @@ Spawn **fresh review agents** via the `Task` tool. Each agent is a new instance 
    | **tester** | Always | Test coverage, AAA structure, edge cases |
    | **frontend-dev** | If `apps/web/` or `packages/ui/` changed | Frontend patterns, component structure, hooks |
    | **backend-dev** | If `apps/api/` or `packages/types/` changed | Backend patterns, API design, error handling |
-   | **infra-ops** | If config files or CI changed | Configuration, deployment, infrastructure |
+   | **devops** | If config files or CI changed | Configuration, deployment, infrastructure |
 
 2. **Spawn each agent** with a Task that includes:
    - The full diff (`git diff staging...HEAD` or `gh pr diff`)
@@ -174,16 +174,20 @@ After presenting findings locally, **post the full review as a PR comment** so t
 
 2. **Post the review comment:**
 
+   Write the review body to a temp file, then post:
+
    ```bash
-   gh pr comment <number> --body "$(cat <<'EOF'
+   # Write review to temp file (avoids shell escaping issues with backticks in findings)
+   cat > /tmp/review-comment.md << 'REVIEW_EOF'
    ## Code Review
 
    <full review output from Phase 3: all findings grouped by category + summary + verdict>
 
    ---
    _Review by Claude Code via `/review`_
-   EOF
-   )"
+   REVIEW_EOF
+
+   gh pr comment <number> --body-file /tmp/review-comment.md
    ```
 
 3. **Format rules:**
@@ -222,6 +226,32 @@ After the walkthrough:
 
 - After all fixers complete, **stage, commit, and push** the combined fixes in a single commit
 - CI runs; if it fails, spawn the relevant domain fixer to investigate and fix until green
+- **Post a follow-up comment** on the PR confirming the fixes:
+
+  Write the fixes summary to a temp file, then post:
+
+  ```bash
+  cat > /tmp/review-fixes.md << 'FIXES_EOF'
+  ## Review Fixes Applied
+
+  All **N** accepted findings from the review have been addressed in <commit_sha>.
+
+  | # | Finding | Status |
+  |---|---------|--------|
+  | 1 | `issue(blocking):` <short description> | Fixed |
+  | 2 | `suggestion(blocking):` <short description> | Fixed |
+  | … | … | … |
+
+  Rejected/deferred findings (if any):
+  - `<label>:` <short description> — <reason>
+
+  ---
+  _Fixes by Claude Code via `/review` fixer agents_
+  FIXES_EOF
+
+  gh pr comment <number> --body-file /tmp/review-fixes.md
+  ```
+
 - Human approves the merge
 
 > **Note:** The `/review` skill no longer includes a `--fix` flag. Fixing is handled separately by the fixer agent(s) after the human validates findings via `/1b1`.
@@ -244,7 +274,7 @@ After the walkthrough:
 1. **Fresh agents only** — review agents must be new instances with no implementation context
 2. **Never auto-merge** or approve PRs on GitHub
 3. **Human decides on every finding** — findings go through 1b1 walkthrough before any fix is applied
-4. **Always post review to PR** — if a PR exists, findings must be posted as a comment for traceability
+4. **Always post review to PR** — if a PR exists, findings must be posted as a comment for traceability. After fixes are applied, post a follow-up comment confirming which findings were addressed.
 5. **Fixer handles fixes** — the review skill does not fix code; that is the fixer agent's responsibility after 1b1
 
 $ARGUMENTS

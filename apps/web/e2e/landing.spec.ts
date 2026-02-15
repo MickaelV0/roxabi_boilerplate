@@ -1,64 +1,70 @@
 import { expect, test } from '@playwright/test'
+import { LandingPage } from './landing.page'
 
-// Selectors match the v2 landing page (Feb 2026 redesign)
 test.describe('Landing Page', () => {
-  test('should load the landing page with correct content', async ({ page }) => {
-    await page.goto('/')
+  test('should display hero content with CTA buttons when page loads', async ({ page }) => {
+    // Arrange
+    const landing = new LandingPage(page)
 
-    // Verify hero badge
-    await expect(page.getByText('Open-Source SaaS Boilerplate')).toBeVisible()
+    // Act
+    await landing.goto()
 
-    // Verify hero title
-    await expect(page.getByText('Skip the infrastructure.')).toBeVisible()
-
-    // Verify CTA buttons exist
-    await expect(page.getByRole('link', { name: 'Get Started' }).first()).toBeVisible()
-    await expect(page.getByRole('link', { name: 'GitHub' }).first()).toBeVisible()
+    // Assert
+    await expect(landing.heroBadge).toBeVisible()
+    await expect(landing.heroTitle).toBeVisible()
+    await expect(landing.getStartedLink).toBeVisible()
+    await expect(landing.githubLink).toBeVisible()
   })
 
-  test('should display feature cards', async ({ page }) => {
-    await page.goto('/')
+  test('should display feature cards when page loads', async ({ page }) => {
+    // Arrange
+    const landing = new LandingPage(page)
 
-    // Verify feature section
-    await expect(page.getByText('Everything you need to ship')).toBeVisible()
+    // Act
+    await landing.goto()
 
-    // Verify feature cards
-    await expect(page.getByText('Full-Stack TypeScript')).toBeVisible()
-    await expect(page.getByText('Auth & Users')).toBeVisible()
-    await expect(page.getByText('AI-Powered Dev', { exact: true })).toBeVisible()
+    // Assert
+    await expect(landing.featuresSectionHeading).toBeVisible()
+    await expect(landing.fullStackTypeScriptCard).toBeVisible()
+    await expect(landing.authAndUsersCard).toBeVisible()
+    await expect(landing.aiPoweredDevCard).toBeVisible()
   })
 
-  test('should have working header navigation', async ({ page }) => {
-    await page.goto('/')
+  test('should display header navigation when page loads', async ({ page }) => {
+    // Arrange
+    const landing = new LandingPage(page)
 
-    // Verify header is visible
-    const header = page.locator('header')
-    await expect(header).toBeVisible()
+    // Act
+    await landing.goto()
 
-    // Verify logo/brand link
-    await expect(page.getByRole('link', { name: 'Roxabi' })).toBeVisible()
-
-    // Verify docs link in header
-    await expect(header.getByRole('link', { name: /docs/i }).first()).toBeVisible()
+    // Assert
+    await expect(landing.header).toBeVisible()
+    await expect(landing.brandLink).toBeVisible()
+    await expect(landing.docsHeaderLink).toBeVisible()
   })
 
-  test('should navigate to docs from Get Started button', async ({ page }) => {
-    await page.goto('/')
+  test('should navigate to docs when Get Started button is clicked', async ({ page }) => {
+    // Arrange
+    const landing = new LandingPage(page)
+    await landing.goto()
 
-    // Click Get Started CTA
-    await page.getByRole('link', { name: 'Get Started' }).first().click()
+    // Act
+    await landing.getStartedLink.click()
 
-    // Verify navigation to docs
+    // Assert
     await expect(page).toHaveURL(/\/docs/)
   })
 
-  test('should have a footer with links', async ({ page }) => {
-    await page.goto('/')
+  test('should display footer with links when page loads', async ({ page }) => {
+    // Arrange
+    const landing = new LandingPage(page)
 
-    // Verify footer content
-    const footer = page.locator('footer')
-    await expect(footer).toBeVisible()
-    await expect(footer.getByText('Roxabi')).toBeVisible()
-    await expect(footer.getByRole('link', { name: 'GitHub' })).toBeVisible()
+    // Act
+    await landing.goto()
+
+    // Assert
+    await expect(landing.footer).toBeVisible()
+    await expect(landing.footerBrand).toBeVisible()
+    await expect(landing.footerGithubLink).toBeVisible()
   })
 })

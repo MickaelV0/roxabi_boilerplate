@@ -1,0 +1,463 @@
+---
+title: Auth & Security Architecture
+description: Better Auth integration, session management, guard system, OAuth, CORS/CSP hardening, and organization-scoped authentication.
+---
+
+## Overview
+
+Authentication and security form a layered defense across the Roxabi stack. The system is built on **Better Auth** — a library that handles session lifecycle, OAuth flows, email verification, and organization management — integrated into NestJS through a thin service wrapper and a global guard.
+
+The architecture follows two core principles:
+
+- **Deny by default.** Every API endpoint requires authentication unless explicitly opted out with a decorator. There is no "open by default" surface.
+- **Configuration over code.** OAuth providers, email services, and security policies are driven by environment variables. Adding a new OAuth provider requires setting two env vars, not writing code.
+
+```txt
+                            ┌───────────────────┐
+                            │   Client Browser   │
+                            │  (Better Auth SDK) │
+                            └────────┬──────────┘
+                                     │ Cookie-based sessions
+                                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    NestJS + Fastify API                          │
+│                                                                 │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐   │
+│  │  Helmet   │  │  CORS    │  │  Rate    │  │  Auth Guard  │   │
+│  │  (CSP,    │  │ (origin  │  │  Limiter │  │  (global,    │   │
+│  │  HSTS,    │  │  allow)  │  │ (Upstash)│  │   deny-by-   │   │
+│  │  headers) │  │          │  │          │  │   default)   │   │
+│  └──────────┘  └──────────┘  └──────────┘  └──────┬───────┘   │
+│                                                    │            │
+│  ┌──────────────────────────────────────────────┐  │            │
+│  │               AuthService                     │  │            │
+│  │  ┌──────────────────┐  ┌──────────────────┐  │  │            │
+│  │  │  Better Auth     │  │  Permission      │  │◀─┘            │
+│  │  │  Instance        │  │  Service (RBAC)  │  │               │
+│  │  │  (auth.instance) │  │                  │  │               │
+│  │  └────────┬─────────┘  └──────────────────┘  │               │
+│  └───────────┼──────────────────────────────────┘               │
+│              │ Drizzle adapter                                   │
+│              ▼                                                   │
+│  ┌──────────────────┐                                           │
+│  │  PostgreSQL       │                                           │
+│  │  (auth tables)    │                                           │
+│  └──────────────────┘                                           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+For usage instructions (decorators, frontend hooks, environment setup), see the [Authentication Guide](../guides/authentication).
+
+## Design Decisions
+
+### Why Better Auth over NextAuth / Lucia / custom?
+
+Better Auth was chosen for three reasons:
+
+1. **Framework-agnostic.** It exposes a standard `Request/Response` handler, which maps cleanly onto Fastify via a thin adapter. No tight coupling to Next.js or any other meta-framework.
+2. **Drizzle-native.** The `drizzleAdapter` reads schema definitions directly, with `usePlural: true` matching the project's plural table naming convention. No ORM mismatch.
+3. **Plugin system.** Organization management, admin capabilities, and magic links are added as plugins rather than custom code. Each plugin extends both server routes and the client SDK.
+
+### Why a global guard instead of per-route middleware?
+
+A global `APP_GUARD` ensures no endpoint is accidentally left unprotected. Developers must explicitly opt out with `@AllowAnonymous()` or `@OptionalAuth()`, which is safer than opt-in protection where a missing decorator means an open endpoint.
+
+### Why cookie-based sessions instead of JWTs?
+
+Cookie sessions with server-side validation provide near-immediate revocation — within the cookie cache window (5 minutes by default). Banning a user or rotating secrets takes effect once the cached cookie expires. JWT-based approaches require either short expiry (poor UX) or a revocation list (equivalent complexity). The cookie cache (`maxAge: 5min`) reduces database lookups without sacrificing revocation speed.
+
+## Auth Module Structure
+
+The auth system is split into a pure configuration layer and a NestJS integration layer.
+
+| File | Responsibility |
+|------|----------------|
+| `auth.instance.ts` | Pure function `createBetterAuth()` that configures Better Auth. No NestJS imports. Testable in isolation. |
+| `auth.service.ts` | NestJS `@Injectable()` wrapper. Creates the Better Auth instance with injected dependencies (DB, email, config). Exposes `handler()` and `getSession()`. |
+| `auth.guard.ts` | Global `CanActivate` guard. Reads decorator metadata, calls `getSession()`, enforces access rules. |
+| `auth.controller.ts` | Catch-all route `@All('api/auth/*')` that forwards raw Fastify requests to Better Auth's internal router. |
+| `auth.module.ts` | Wires providers: `AuthService`, `ResendEmailProvider`, and registers `AuthGuard` as `APP_GUARD`. |
+
+The separation between `auth.instance.ts` and `auth.service.ts` is intentional. The pure function has no NestJS dependency, so it can be unit-tested with mock DB and email providers. The service layer handles DI wiring and event emission.
+
+```ts
+// auth.instance.ts — pure function, no NestJS
+export function createBetterAuth(
+  db: DrizzleDB,
+  emailProvider: EmailProvider,
+  config: AuthInstanceConfig,
+  onOrganizationCreated?: OrganizationCreatedCallback
+) {
+  return betterAuth({
+    basePath: '/api/auth',
+    secret: config.secret,
+    baseURL: config.baseURL,
+    trustedOrigins: config.appURL ? [config.appURL] : [],
+    database: drizzleAdapter(db, { provider: 'pg', usePlural: true }),
+    // ... plugins, session config, social providers
+  })
+}
+```
+
+## Session Lifecycle
+
+### Creation
+
+Sessions are created when a user authenticates via email/password, OAuth, or magic link. Better Auth stores the session in the `sessions` table and sets an HTTP-only cookie on the response.
+
+### Validation
+
+On every authenticated request, `AuthGuard.canActivate()` calls `AuthService.getSession()`, which:
+
+1. Converts Fastify headers to standard `Headers` using `toFetchHeaders()`
+2. Calls `betterAuth.api.getSession({ headers })` — Better Auth reads the session cookie, validates it against the database (or cookie cache)
+3. If the session has an `activeOrganizationId`, resolves RBAC permissions via `PermissionService.getPermissions()`
+4. Returns the enriched session object: `{ user, session, permissions }`
+
+### Refresh
+
+Better Auth automatically refreshes sessions when `updateAge` (1 day) has passed since the last activity. The session lifetime (`expiresIn`) is 7 days. This means an active user's session is silently extended, while inactive sessions expire after 7 days.
+
+### Cookie Cache
+
+To reduce database round-trips, session data is cached in the cookie itself for up to 5 minutes (`cookieCache.maxAge`). During this window, `getSession()` reads from the cookie without hitting PostgreSQL. After 5 minutes, the next request re-validates against the database.
+
+| Setting | Value | Why |
+|---------|-------|-----|
+| `expiresIn` | 7 days | Balance between security (short sessions) and UX (don't force re-login daily) |
+| `updateAge` | 1 day | Refresh only once per day to minimize writes |
+| `cookieCache.maxAge` | 5 minutes | Reduce DB lookups for rapid successive requests without stale data risk |
+
+## Guard System
+
+The `AuthGuard` is registered globally via `APP_GUARD` in `AuthModule`. It evaluates decorator metadata in a strict order.
+
+### Evaluation Order
+
+```txt
+Request arrives
+  │
+  ├─ 1. @AllowAnonymous() (PUBLIC metadata)?
+  │     └─ Yes → ALLOW immediately
+  │
+  ├─ 2. Fetch session via AuthService.getSession()
+  │
+  ├─ 3. @OptionalAuth() (OPTIONAL_AUTH metadata)?
+  │     └─ No session + optional → ALLOW (session = null)
+  │
+  ├─ 4. No session?
+  │     └─ 401 Unauthorized
+  │
+  ├─ 5. @Roles(...) (ROLES metadata)?
+  │     └─ User role not in list → 403 Forbidden
+  │
+  ├─ 6. @RequireOrg() (REQUIRE_ORG metadata)?
+  │     └─ No activeOrganizationId → 403 "No active organization"
+  │
+  ├─ 7. @Permissions(...) (PERMISSIONS metadata)?
+  │     ├─ No activeOrganizationId → 403 "No active organization"
+  │     ├─ User role is superadmin → ALLOW (bypass)
+  │     └─ Missing any required permission → 403 "Insufficient permissions"
+  │
+  └─ ALLOW
+```
+
+### Decorators
+
+All decorators are thin `SetMetadata` wrappers. They set metadata keys that the guard reads via NestJS `Reflector`.
+
+| Decorator | Metadata Key | Effect |
+|-----------|-------------|--------|
+| `@AllowAnonymous()` | `PUBLIC` | Skip all auth checks |
+| `@OptionalAuth()` | `OPTIONAL_AUTH` | Allow unauthenticated, attach session if present |
+| `@Roles('admin')` | `ROLES` | Require user's global `role` to match |
+| `@RequireOrg()` | `REQUIRE_ORG` | Require `activeOrganizationId` on the session |
+| `@Permissions('members:write')` | `PERMISSIONS` | Require RBAC permission(s); implies org context |
+| `@Session()` | *(param decorator)* | Extract session from `request.session` |
+
+The `@Permissions()` decorator implicitly requires an active organization. If the session has no `activeOrganizationId`, the guard returns 403 before checking permissions.
+
+## OAuth Provider Setup
+
+OAuth providers are **conditionally enabled** based on environment variables. The `createBetterAuth()` function checks for both client ID and secret; if either is missing, the provider is silently skipped.
+
+```ts
+const socialProviders: Record<string, unknown> = {}
+
+if (config.googleClientId && config.googleClientSecret) {
+  socialProviders.google = {
+    clientId: config.googleClientId,
+    clientSecret: config.googleClientSecret,
+  }
+}
+
+if (config.githubClientId && config.githubClientSecret) {
+  socialProviders.github = {
+    clientId: config.githubClientId,
+    clientSecret: config.githubClientSecret,
+  }
+}
+```
+
+The frontend discovers which providers are available at runtime by calling `GET /api/auth/providers`, which returns `{ google: boolean, github: boolean }`. This endpoint is `@AllowAnonymous()` so login pages can conditionally render OAuth buttons.
+
+### Adding a New Provider
+
+1. Add the provider's client ID/secret to the env schema (`apps/api/src/config/env.validation.ts`)
+2. Add the conditional block in `createBetterAuth()` (`apps/api/src/auth/auth.instance.ts`)
+3. Update `enabledProviders` in `AuthService` (`apps/api/src/auth/auth.service.ts`)
+4. Update the frontend `EnabledProviders` type (`apps/web/src/lib/auth-client.ts`)
+
+No new routes or controllers are needed — Better Auth handles the OAuth callback flow at `/api/auth/callback/{provider}`.
+
+## Organization-Scoped Authentication
+
+Organizations are first-class in the auth system via Better Auth's `organization` plugin.
+
+### activeOrganizationId
+
+When a user switches organizations in the UI, Better Auth updates the `activeOrganizationId` column on their session row. This value flows through the entire request lifecycle:
+
+1. **Session** — Stored in `sessions.active_organization_id`
+2. **Guard** — `@RequireOrg()` and `@Permissions()` check it
+3. **RBAC** — `PermissionService.getPermissions(userId, orgId)` resolves org-scoped permissions
+4. **Tenant isolation** — Downstream services use it to set the PostgreSQL `app.tenant_id` variable for RLS
+
+### Organization Creation Hook
+
+When a new organization is created through Better Auth, the `AuthService` emits an `ORGANIZATION_CREATED` event via NestJS `EventEmitter2`. The `RbacListener` handles this event by:
+
+1. Seeding the four default roles (`owner`, `admin`, `member`, `viewer`) for the new organization
+2. Assigning the `owner` role to the creator's membership record
+
+```ts
+// auth.service.ts — emits event on org creation
+this.auth = createBetterAuth(db, emailProvider, config,
+  async ({ organizationId, creatorUserId }) => {
+    await this.eventEmitter.emitAsync(
+      ORGANIZATION_CREATED,
+      new OrganizationCreatedEvent(organizationId, creatorUserId)
+    )
+  }
+)
+```
+
+This event-driven approach decouples auth from RBAC — the auth module does not import role-seeding logic directly.
+
+## Email Verification Flow
+
+Email/password authentication requires email verification (`requireEmailVerification: true`). The flow:
+
+1. User signs up via `POST /api/auth/sign-up/email`
+2. Better Auth creates the user with `emailVerified: false` and calls `sendVerificationEmail()`
+3. The `EmailProvider` (Resend by default) sends a verification link
+4. User clicks the link, which hits Better Auth's verification endpoint
+5. Better Auth sets `emailVerified: true` on the user record
+6. The user can now sign in
+
+### Email Provider Abstraction
+
+Email sending is abstracted behind a Symbol-based injection token:
+
+```ts
+export const EMAIL_PROVIDER = Symbol('EMAIL_PROVIDER')
+
+export type EmailProvider = {
+  send(params: { to: string; subject: string; html: string; text?: string }): Promise<void>
+}
+```
+
+The default implementation (`ResendEmailProvider`) degrades gracefully:
+
+| Environment | RESEND_API_KEY set? | Behavior |
+|-------------|-------------------|----------|
+| Development | No | Logs email content to console |
+| Development | Yes | Sends via Resend API |
+| Production | No | Logs error (emails silently fail) |
+| Production | Yes | Sends via Resend API |
+
+Failed sends emit an `EMAIL_SEND_FAILED` event and throw an `EmailSendException`, allowing upstream code to handle the failure.
+
+> **Production note:** Since `requireEmailVerification` is enabled, a missing `RESEND_API_KEY` in production means users can register but never receive verification emails, effectively blocking sign-up. Treat `RESEND_API_KEY` as required in production.
+
+## CORS Configuration
+
+CORS is configured in the bootstrap function (`apps/api/src/index.ts`) using a dedicated parser (`apps/api/src/cors.ts`).
+
+### How Origins are Resolved
+
+The `CORS_ORIGIN` environment variable accepts a comma-separated list of origins. The `parseCorsOrigins()` function handles edge cases:
+
+| Input | Production? | Result |
+|-------|------------|--------|
+| `http://localhost:3000` | No | Allow that origin |
+| `http://a.com,http://b.com` | No | Allow both origins |
+| `*` | No | Allow all (wildcard) |
+| `*` | **Yes** | **No CORS headers** — returns `false`, logs warning. Cross-origin browser requests will fail but same-origin requests are unaffected. |
+| `*,https://app.example.com` | **Yes** | Strip wildcard, allow `https://app.example.com` |
+
+Credentials are always enabled (`credentials: true`) because authentication relies on cookies.
+
+### Same-Origin Cookie Strategy
+
+In development, the frontend (port 3000) and API (port 3001) run on different ports. Cross-port cookies would require `SameSite=None` and HTTPS, which is impractical for local development. Instead, the frontend uses a **Nitro dev proxy**:
+
+```ts
+// apps/web/vite.config.ts
+nitro({
+  config: {
+    devProxy: {
+      '/api/**': { target: apiTarget, changeOrigin: true },
+    },
+    routeRules: {
+      '/api/**': { proxy: `${apiTarget}/api/**` },
+    },
+  },
+})
+```
+
+The browser sends requests to `localhost:3000/api/*`, which Nitro proxies to the API. Cookies are set on `localhost:3000` (same origin as the frontend), avoiding cross-origin cookie issues entirely.
+
+In production, both apps deploy to Vercel on the same domain, so cookies work natively without proxying.
+
+## Security Headers (CSP, HSTS, and More)
+
+Security headers are applied globally via `@fastify/helmet`, registered before any routes in the bootstrap function.
+
+### Content Security Policy
+
+```ts
+contentSecurityPolicy: {
+  directives: {
+    defaultSrc: ["'none'"],
+    scriptSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
+    styleSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
+    imgSrc: ["'self'", 'data:'],
+    fontSrc: ["'self'"],
+    connectSrc: ["'self'"],
+  },
+}
+```
+
+The CSP starts restrictive (`defaultSrc: 'none'`) and opens specific directives. The `unpkg.com` allowlist supports Swagger UI assets. Note that both `'unsafe-inline'` and the `unpkg.com` allowlist apply in all environments including production. For production hardening, consider replacing `'unsafe-inline'` with nonce-based CSP and removing `unpkg.com` from `scriptSrc` by self-hosting Swagger UI assets.
+
+### Other Headers
+
+| Header | Value | Purpose |
+|--------|-------|---------|
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Force HTTPS for 1 year |
+| `X-Frame-Options` | `DENY` | Prevent clickjacking |
+| `X-Content-Type-Options` | `nosniff` | Prevent MIME sniffing |
+| `Referrer-Policy` | `no-referrer` | Don't leak referrer information |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` | Disable unused browser APIs |
+| `Cross-Origin-Embedder-Policy` | *(disabled)* | Allow cross-origin resources (fonts, images) |
+
+The `Permissions-Policy` header is set via a custom Fastify `onSend` hook because Helmet v8 does not include it natively.
+
+## Rate Limiting
+
+Rate limiting is implemented via `@nestjs/throttler` with two tiers, configured in `ThrottlerConfigModule`.
+
+| Tier | TTL | Limit | Block Duration | Purpose |
+|------|-----|-------|----------------|---------|
+| `global` | 60s | 60 req | *(none)* | General API abuse prevention |
+| `auth` | 60s | 5 req | 5 min | Brute-force login protection |
+
+All values shown are defaults. TTL, limit, and block duration are configurable via environment variables (`RATE_LIMIT_GLOBAL_TTL`, `RATE_LIMIT_AUTH_TTL`, `RATE_LIMIT_AUTH_BLOCK_DURATION`).
+
+Storage backend selection:
+
+| Environment | Upstash configured? | Storage |
+|-------------|-------------------|---------|
+| Development | No | In-memory (single process) |
+| Production | **Required** | Upstash Redis (distributed) |
+
+The env validation (`apps/api/src/config/env.validation.ts`) enforces that `KV_REST_API_URL` and `KV_REST_API_TOKEN` are set in production, preventing accidental deployment with in-memory rate limiting that would not work across serverless invocations.
+
+## Frontend Auth Client
+
+The frontend uses Better Auth's React SDK, configured in `apps/web/src/lib/auth-client.ts`:
+
+```ts
+import { adminClient, magicLinkClient, organizationClient } from 'better-auth/client/plugins'
+import { createAuthClient } from 'better-auth/react'
+
+export const authClient = createAuthClient({
+  baseURL: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
+  plugins: [organizationClient(), adminClient(), magicLinkClient()],
+})
+
+export const { useSession, signIn, signUp, signOut } = authClient
+```
+
+### Key Design Choices
+
+- **`baseURL` uses `window.location.origin`** in the browser, so requests go through the Nitro proxy in development and hit the same domain in production. Server-side rendering falls back to `http://localhost:3000`.
+- **Plugins mirror the server** — `organizationClient()`, `adminClient()`, and `magicLinkClient()` match the server-side `organization()`, `admin()`, and `magicLink()` plugins. Mismatched plugins cause runtime errors.
+- **Provider discovery** — `fetchEnabledProviders()` calls `GET /api/auth/providers` to discover which OAuth buttons to render, rather than hardcoding them.
+
+### Frontend Permission Helpers
+
+Permission checks on the frontend use utility functions in `apps/web/src/lib/permissions.ts`:
+
+```ts
+import { hasPermission, hasAllPermissions, hasAnyPermission } from '~/lib/permissions'
+
+// Single permission check
+const canInvite = hasPermission(session, 'members:write')
+
+// Multiple permissions (AND)
+const canManageRoles = hasAllPermissions(session, ['roles:write', 'roles:delete'])
+
+// Multiple permissions (OR)
+const canViewMembers = hasAnyPermission(session, ['members:read', 'members:write'])
+```
+
+These functions read from the `permissions` array that `AuthService.getSession()` attaches to the session object.
+
+## Environment Variable Reference
+
+| Variable | Required | Default | Purpose |
+|----------|----------|---------|---------|
+| `BETTER_AUTH_SECRET` | Yes | *(dev default)* | Session signing secret. Must be 32+ chars in production. |
+| `BETTER_AUTH_URL` | No | `http://localhost:4000` | Base URL for Better Auth (used for OAuth callbacks) |
+| `APP_URL` | No | `http://localhost:3000` | Frontend URL, added to `trustedOrigins` |
+| `CORS_ORIGIN` | No | `http://localhost:3000` | Allowed CORS origins (comma-separated) |
+| `GOOGLE_CLIENT_ID` | No | *(none)* | Google OAuth — provider enabled when both ID and secret are set |
+| `GOOGLE_CLIENT_SECRET` | No | *(none)* | Google OAuth secret |
+| `GITHUB_CLIENT_ID` | No | *(none)* | GitHub OAuth — provider enabled when both ID and secret are set |
+| `GITHUB_CLIENT_SECRET` | No | *(none)* | GitHub OAuth secret |
+| `RESEND_API_KEY` | No | *(none)* | Resend email service. Required for email verification in production. |
+| `EMAIL_FROM` | No | `noreply@yourdomain.com` | Sender address for transactional emails |
+
+The env validation schema (`apps/api/src/config/env.validation.ts`) enforces that `BETTER_AUTH_SECRET` is not a known insecure default in production.
+
+## File Reference
+
+| File | Path |
+|------|------|
+| Auth instance (pure) | `apps/api/src/auth/auth.instance.ts` |
+| Auth service (NestJS) | `apps/api/src/auth/auth.service.ts` |
+| Auth guard | `apps/api/src/auth/auth.guard.ts` |
+| Auth controller | `apps/api/src/auth/auth.controller.ts` |
+| Auth module | `apps/api/src/auth/auth.module.ts` |
+| Fastify header conversion | `apps/api/src/auth/fastify-headers.ts` |
+| Decorators | `apps/api/src/auth/decorators/` |
+| Email provider interface | `apps/api/src/auth/email/email.provider.ts` |
+| Resend implementation | `apps/api/src/auth/email/resend.provider.ts` |
+| Auth schema (tables) | `apps/api/src/database/schema/auth.schema.ts` |
+| RBAC schema | `apps/api/src/database/schema/rbac.schema.ts` |
+| Permission service | `apps/api/src/rbac/permission.service.ts` |
+| CORS parser | `apps/api/src/cors.ts` |
+| Bootstrap (headers, CORS) | `apps/api/src/index.ts` |
+| Env validation | `apps/api/src/config/env.validation.ts` |
+| Frontend auth client | `apps/web/src/lib/auth-client.ts` |
+| Frontend permissions | `apps/web/src/lib/permissions.ts` |
+| Vite proxy config | `apps/web/vite.config.ts` |
+
+## Related Documentation
+
+- [Architecture overview](./index) -- Monorepo structure and data flow
+- [Multi-Tenant Architecture](./multi-tenant) -- RLS and tenant isolation
+- [RBAC Architecture](./rbac) -- Permission model and role hierarchy
+- [Authentication guide](../guides/authentication) -- Usage instructions and setup

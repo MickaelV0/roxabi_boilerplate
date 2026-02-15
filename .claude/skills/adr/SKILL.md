@@ -1,6 +1,6 @@
 ---
 argument-hint: ["Title of decision" | --list]
-description: Create Architecture Decision Records to document why technical choices were made.
+description: This skill should be used when the user wants to create an ADR, write an architecture decision record, document a technical decision, list existing ADRs, or review architecture decisions. Triggers include "create an ADR", "architecture decision", "document why we chose", "list ADRs", and "/adr".
 allowed-tools: AskUserQuestion, Write, Read, Glob
 ---
 

@@ -15,6 +15,11 @@ function findOrThrow<T>(items: T[], predicate: (item: T) => boolean): T {
 }
 
 vi.mock('@repo/ui', () => ({
+  Badge: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <span data-testid="badge" {...props}>
+      {children}
+    </span>
+  ),
   Button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
     <button {...props}>{children}</button>
   ),
@@ -59,6 +64,7 @@ vi.mock('lucide-react', () => ({
 }))
 
 vi.mock('@/lib/auth-client', () => ({
+  useSession: vi.fn(() => ({ data: { user: { id: 'user-1' } } })),
   authClient: {
     useListOrganizations: vi.fn(() => ({ data: null })),
     useActiveOrganization: vi.fn(() => ({ data: null })),
@@ -79,7 +85,7 @@ import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
 import { OrgSwitcher } from './OrgSwitcher'
 
-function setupWithOrgs() {
+function setupWithOrgs({ includeMembers = false }: { includeMembers?: boolean } = {}) {
   vi.mocked(authClient.useListOrganizations).mockReturnValue({
     data: [
       { id: 'org-1', name: 'Acme Corp', slug: 'acme-corp' },
@@ -87,7 +93,12 @@ function setupWithOrgs() {
     ],
   } as ReturnType<typeof authClient.useListOrganizations>)
   vi.mocked(authClient.useActiveOrganization).mockReturnValue({
-    data: { id: 'org-1', name: 'Acme Corp', slug: 'acme-corp' },
+    data: {
+      id: 'org-1',
+      name: 'Acme Corp',
+      slug: 'acme-corp',
+      ...(includeMembers ? { members: [{ userId: 'user-1', role: 'admin', id: 'member-1' }] } : {}),
+    },
   } as ReturnType<typeof authClient.useActiveOrganization>)
 }
 
@@ -125,6 +136,19 @@ describe('OrgSwitcher', () => {
 
     // The Check icon should be rendered for the active org
     expect(screen.getByTestId('check-icon')).toBeInTheDocument()
+  })
+
+  it('should show role badge when active org includes members data', () => {
+    // Arrange
+    setupWithOrgs({ includeMembers: true })
+
+    // Act
+    render(<OrgSwitcher />)
+
+    // Assert
+    const badge = screen.getByTestId('badge')
+    expect(badge).toBeInTheDocument()
+    expect(badge).toHaveTextContent('org_role_admin')
   })
 
   it('should call setActive when clicking a non-active org', async () => {

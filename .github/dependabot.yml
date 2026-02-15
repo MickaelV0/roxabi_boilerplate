@@ -1,0 +1,46 @@
+version: 2
+
+updates:
+  # npm / bun dependencies
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ci
+
+  # Docker (apps/api)
+  - package-ecosystem: docker
+    directory: /apps/api
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies
+      - docker
+
+  # Docker (apps/web)
+  - package-ecosystem: docker
+    directory: /apps/web
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies
+      - docker

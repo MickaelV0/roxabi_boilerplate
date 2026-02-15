@@ -19,7 +19,7 @@ export function DxSection() {
           {dxFeatures.map((feature) => (
             <FeatureCard
               key={feature.title}
-              icon={<feature.icon className="mb-2 h-8 w-8 text-primary" />}
+              icon={<feature.icon className="mb-2 size-8 text-primary" />}
               title={feature.title}
               description={feature.description}
             />

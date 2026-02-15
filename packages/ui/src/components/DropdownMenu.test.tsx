@@ -34,52 +34,77 @@ function renderDropdownMenu({ open }: { open?: boolean } = {}) {
 }
 
 describe('DropdownMenu', () => {
-  it('renders trigger', () => {
+  it('should render trigger', () => {
+    // Arrange & Act
     renderDropdownMenu()
+
+    // Assert
     expect(screen.getByText('Open Menu')).toBeInTheDocument()
   })
 
-  it('trigger has correct role', () => {
+  it('should have correct role on trigger', () => {
+    // Arrange & Act
     renderDropdownMenu()
+
+    // Assert
     expect(screen.getByRole('button')).toBeInTheDocument()
   })
 
-  it('does not show content initially', () => {
+  it('should not show content initially', () => {
+    // Arrange & Act
     renderDropdownMenu()
+
+    // Assert
     expect(screen.queryByText('Edit')).not.toBeInTheDocument()
   })
 
-  it('has data-slot on trigger', () => {
+  it('should have data-slot on trigger when rendered', () => {
+    // Arrange & Act
     renderDropdownMenu()
+
+    // Assert
     const trigger = screen.getByText('Open Menu')
     expect(trigger).toHaveAttribute('data-slot', 'dropdown-menu-trigger')
   })
 
-  it('shows content when controlled open', () => {
+  it('should show content when controlled open', () => {
+    // Arrange & Act
     renderDropdownMenu({ open: true })
+
+    // Assert
     expect(screen.getByText('Edit')).toBeVisible()
     expect(screen.getByText('Delete')).toBeVisible()
   })
 
-  it('renders label in menu content when open', () => {
+  it('should render label in menu content when open', () => {
+    // Arrange & Act
     renderDropdownMenu({ open: true })
+
+    // Assert
     expect(screen.getByText('Actions')).toBeVisible()
   })
 
-  it('renders shortcut text when open', () => {
+  it('should render shortcut text when open', () => {
+    // Arrange & Act
     renderDropdownMenu({ open: true })
+
+    // Assert
     expect(screen.getByText('Ctrl+E')).toBeVisible()
   })
 
-  it('applies destructive variant to menu items', () => {
+  it('should apply destructive variant to menu items', () => {
+    // Arrange & Act
     renderDropdownMenu({ open: true })
+
+    // Assert
     const deleteItem = screen.getByText('Delete').closest('[data-slot="dropdown-menu-item"]')
     expect(deleteItem).toHaveAttribute('data-variant', 'destructive')
   })
 })
 
 describe('DropdownMenuCheckboxItem', () => {
-  it('renders with data-slot attribute', () => {
+  it('should render with data-slot attribute when rendered', () => {
+    // Arrange & Act
     render(
       <DropdownMenu open>
         <DropdownMenuContent>
@@ -87,13 +112,16 @@ describe('DropdownMenuCheckboxItem', () => {
         </DropdownMenuContent>
       </DropdownMenu>
     )
+
+    // Assert
     const item = screen.getByText('Option A').closest('[data-slot="dropdown-menu-checkbox-item"]')
     expect(item).toBeInTheDocument()
   })
 })
 
 describe('DropdownMenuRadioGroup and DropdownMenuRadioItem', () => {
-  it('renders radio items with data-slot attribute', () => {
+  it('should render radio items with data-slot attribute', () => {
+    // Arrange & Act
     render(
       <DropdownMenu open>
         <DropdownMenuContent>
@@ -104,6 +132,8 @@ describe('DropdownMenuRadioGroup and DropdownMenuRadioItem', () => {
         </DropdownMenuContent>
       </DropdownMenu>
     )
+
+    // Assert
     const itemA = screen.getByText('Choice A').closest('[data-slot="dropdown-menu-radio-item"]')
     expect(itemA).toBeInTheDocument()
     expect(screen.getByText('Choice B')).toBeVisible()
@@ -111,7 +141,8 @@ describe('DropdownMenuRadioGroup and DropdownMenuRadioItem', () => {
 })
 
 describe('DropdownMenuGroup', () => {
-  it('renders with data-slot attribute', () => {
+  it('should render with data-slot attribute when rendered', () => {
+    // Arrange & Act
     render(
       <DropdownMenu open>
         <DropdownMenuContent>
@@ -121,12 +152,15 @@ describe('DropdownMenuGroup', () => {
         </DropdownMenuContent>
       </DropdownMenu>
     )
+
+    // Assert
     expect(screen.getByText('Grouped Item')).toBeVisible()
   })
 })
 
 describe('DropdownMenuSub', () => {
-  it('renders sub menu with trigger and content', () => {
+  it('should render sub menu with trigger and content', () => {
+    // Arrange & Act
     render(
       <DropdownMenu open>
         <DropdownMenuContent>
@@ -139,6 +173,8 @@ describe('DropdownMenuSub', () => {
         </DropdownMenuContent>
       </DropdownMenu>
     )
+
+    // Assert
     expect(screen.getByText('More')).toBeVisible()
     const subTrigger = screen.getByText('More').closest('[data-slot="dropdown-menu-sub-trigger"]')
     expect(subTrigger).toBeInTheDocument()

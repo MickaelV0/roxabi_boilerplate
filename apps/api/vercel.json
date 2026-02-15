@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ] || npx turbo-ignore @repo/api",
-  "installCommand": "bun install",
+  "installCommand": "bun install --ignore-scripts",
   "buildCommand": "bun run db:migrate && turbo run build"
 }

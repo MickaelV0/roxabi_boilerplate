@@ -971,11 +971,12 @@ export function getComposedConfig(base: ShadcnPreset, color?: ShadcnPreset | nul
       border: v('border'),
     },
     typography: {
-      fontFamily: 'Inter, system-ui, sans-serif',
+      fontFamily:
+        "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
       baseFontSize: '16px',
     },
     radius: v('radius') || '0.625rem',
-    shadows: 'subtle',
+    shadows: 'medium',
   }
 }
 

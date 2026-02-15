@@ -13,49 +13,17 @@ vi.mock('@tanstack/react-router', () => ({
   },
   redirect: vi.fn(),
   useNavigate: () => vi.fn(),
+  useBlocker: () => ({ status: 'idle', proceed: vi.fn(), reset: vi.fn() }),
 }))
 
-vi.mock('@repo/ui', () => ({
-  Button: ({
-    children,
-    asChild,
-    ...props
-  }: React.PropsWithChildren<{ asChild?: boolean; [key: string]: unknown }>) => (
-    <button {...props}>{children}</button>
-  ),
-  Card: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardDescription: ({ children }: React.PropsWithChildren) => <p>{children}</p>,
-  CardHeader: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardTitle: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <h2 {...props}>{children}</h2>
-  ),
-  Dialog: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DialogClose: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DialogContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DialogDescription: ({ children }: React.PropsWithChildren) => <p>{children}</p>,
-  DialogFooter: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DialogHeader: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DialogTitle: ({ children }: React.PropsWithChildren) => <h2>{children}</h2>,
-  DialogTrigger: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  Input: (props: Record<string, unknown>) => <input {...props} />,
-  Label: ({
-    children,
-    htmlFor,
-    ...props
-  }: React.PropsWithChildren<{ htmlFor?: string; [key: string]: unknown }>) => (
-    <label htmlFor={htmlFor} {...props}>
-      {children}
-    </label>
-  ),
-}))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
     useActiveOrganization: vi.fn(() => ({ data: null })),
-    useActiveMember: vi.fn(() => ({ data: null })),
     organization: { update: vi.fn(), delete: vi.fn() },
   },
+  useSession: vi.fn(() => ({ data: null })),
 }))
 
 vi.mock('sonner', () => ({
@@ -66,8 +34,8 @@ mockParaglideMessages()
 
 // Import after mocks to trigger createFileRoute and capture the component
 import { toast } from 'sonner'
-import { authClient } from '@/lib/auth-client'
-import './settings'
+import { authClient, useSession } from '@/lib/auth-client'
+import { slugify } from './settings'
 
 function setupActiveOrg() {
   vi.mocked(authClient.useActiveOrganization).mockReturnValue({
@@ -76,15 +44,15 @@ function setupActiveOrg() {
 }
 
 function setupOwnerMember() {
-  vi.mocked(authClient.useActiveMember).mockReturnValue({
-    data: { role: 'owner' },
-  } as ReturnType<typeof authClient.useActiveMember>)
+  vi.mocked(useSession).mockReturnValue({
+    data: { permissions: ['organizations:read', 'organizations:write', 'organizations:delete'] },
+  } as unknown as ReturnType<typeof useSession>)
 }
 
 function setupMemberRole() {
-  vi.mocked(authClient.useActiveMember).mockReturnValue({
-    data: { role: 'member' },
-  } as ReturnType<typeof authClient.useActiveMember>)
+  vi.mocked(useSession).mockReturnValue({
+    data: { permissions: ['organizations:read'] },
+  } as unknown as ReturnType<typeof useSession>)
 }
 
 describe('OrgSettingsPage', () => {
@@ -234,8 +202,12 @@ describe('OrgSettingsPage', () => {
 
     render(<OrgSettings />)
 
+    // Make form dirty first
+    const nameInput = screen.getByLabelText('org_name')
+    fireEvent.change(nameInput, { target: { value: 'Changed Name' } })
+
     // Act
-    const form = screen.getByLabelText('org_name').closest('form')
+    const form = nameInput.closest('form')
     if (!form) throw new Error('form not found')
     fireEvent.submit(form)
 
@@ -256,8 +228,12 @@ describe('OrgSettingsPage', () => {
 
     render(<OrgSettings />)
 
+    // Make form dirty first
+    const nameInput = screen.getByLabelText('org_name')
+    fireEvent.change(nameInput, { target: { value: 'Changed' } })
+
     // Act
-    const form = screen.getByLabelText('org_name').closest('form')
+    const form = nameInput.closest('form')
     if (!form) throw new Error('form not found')
     fireEvent.submit(form)
 
@@ -276,8 +252,12 @@ describe('OrgSettingsPage', () => {
 
     render(<OrgSettings />)
 
+    // Make form dirty first
+    const nameInput = screen.getByLabelText('org_name')
+    fireEvent.change(nameInput, { target: { value: 'Changed' } })
+
     // Act
-    const form = screen.getByLabelText('org_name').closest('form')
+    const form = nameInput.closest('form')
     if (!form) throw new Error('form not found')
     fireEvent.submit(form)
 
@@ -285,5 +265,128 @@ describe('OrgSettingsPage', () => {
     await waitFor(() => {
       expect(vi.mocked(toast.error)).toHaveBeenCalledWith('auth_toast_error')
     })
+  })
+
+  it('should disable save button when form is not dirty (I8)', () => {
+    // Arrange
+    setupActiveOrg()
+    setupOwnerMember()
+    const OrgSettings = captured.Component
+
+    // Act
+    render(<OrgSettings />)
+
+    // Assert -- save button should be disabled when values match the active org
+    const saveButton = screen.getByRole('button', { name: 'org_settings_save' })
+    expect(saveButton).toBeDisabled()
+  })
+
+  it('should enable save button when form is dirty (I8)', () => {
+    // Arrange
+    setupActiveOrg()
+    setupOwnerMember()
+    const OrgSettings = captured.Component
+
+    render(<OrgSettings />)
+
+    // Act
+    fireEvent.change(screen.getByLabelText('org_name'), { target: { value: 'Changed Name' } })
+
+    // Assert
+    const saveButton = screen.getByRole('button', { name: 'org_settings_save' })
+    expect(saveButton).not.toBeDisabled()
+  })
+
+  it('should show type-to-confirm input in delete dialog (P2)', () => {
+    // Arrange
+    setupActiveOrg()
+    setupOwnerMember()
+    const OrgSettings = captured.Component
+
+    // Act
+    render(<OrgSettings />)
+
+    // Assert -- delete dialog content is rendered (mock renders all children)
+    // The type-to-confirm prompt includes the org name parameter
+    expect(screen.getByText('org_delete_type_confirm({"name":"Acme Corp"})')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('org_delete_type_placeholder')).toBeInTheDocument()
+  })
+
+  it('should show generate slug button for owners (P11)', () => {
+    // Arrange
+    setupActiveOrg()
+    setupOwnerMember()
+    const OrgSettings = captured.Component
+
+    // Act
+    render(<OrgSettings />)
+
+    // Assert
+    expect(screen.getByRole('button', { name: 'org_slug_generate' })).toBeInTheDocument()
+  })
+
+  it('should not show generate slug button for non-owner members (P11)', () => {
+    // Arrange
+    setupActiveOrg()
+    setupMemberRole()
+    const OrgSettings = captured.Component
+
+    // Act
+    render(<OrgSettings />)
+
+    // Assert
+    expect(screen.queryByRole('button', { name: 'org_slug_generate' })).not.toBeInTheDocument()
+  })
+
+  it('should generate slug from name when button is clicked (P11)', () => {
+    // Arrange
+    setupActiveOrg()
+    setupOwnerMember()
+    const OrgSettings = captured.Component
+
+    render(<OrgSettings />)
+
+    // Change the name
+    fireEvent.change(screen.getByLabelText('org_name'), { target: { value: 'My New Org' } })
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'org_slug_generate' }))
+
+    // Assert
+    expect(screen.getByLabelText('org_slug')).toHaveValue('my-new-org')
+  })
+})
+
+describe('slugify', () => {
+  it('should convert text to lowercase slug', () => {
+    expect(slugify('My New Org')).toBe('my-new-org')
+  })
+
+  it('should strip leading dashes', () => {
+    expect(slugify('--leading')).toBe('leading')
+  })
+
+  it('should strip trailing dashes', () => {
+    expect(slugify('trailing--')).toBe('trailing')
+  })
+
+  it('should collapse consecutive dashes', () => {
+    expect(slugify('hello   world')).toBe('hello-world')
+  })
+
+  it('should remove non-ASCII characters', () => {
+    expect(slugify('cafe resume')).toBe('cafe-resume')
+  })
+
+  it('should return empty string for empty input', () => {
+    expect(slugify('')).toBe('')
+  })
+
+  it('should return input unchanged when already a valid slug', () => {
+    expect(slugify('already-valid')).toBe('already-valid')
+  })
+
+  it('should replace underscores with dashes', () => {
+    expect(slugify('hello_world')).toBe('hello-world')
   })
 })

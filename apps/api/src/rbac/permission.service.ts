@@ -4,6 +4,14 @@ import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { members } from '../database/schema/auth.schema.js'
 import { permissions, rolePermissions } from '../database/schema/rbac.schema.js'
 
+/**
+ * Resolves RBAC permissions for users within organizations.
+ *
+ * This service intentionally uses the raw DB connection (not TenantService.queryAs)
+ * because it runs in auth context before tenant context is established. The WHERE
+ * clauses on userId and organizationId in each query provide equivalent row-level
+ * isolation to RLS policies.
+ */
 @Injectable()
 export class PermissionService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}

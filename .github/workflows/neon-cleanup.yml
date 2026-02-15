@@ -1,0 +1,23 @@
+name: Neon Branch Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup-pr-branch:
+    name: Cleanup PR Neon Branch
+    runs-on: ubuntu-latest
+    # Defense-in-depth: fork PRs don't have access to secrets anyway,
+    # but skip explicitly to avoid confusing "missing secret" errors in logs.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Delete Neon branch for closed PR
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch: preview/${{ github.head_ref }}
+          api_key: ${{ secrets.NEON_API_KEY }}

@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
   Separator,
+  SHADOW_PRESETS,
   Skeleton,
   Slider,
   Switch,
@@ -40,6 +41,7 @@ import {
 } from '@repo/ui'
 import { createFileRoute } from '@tanstack/react-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { m } from '@/paraglide/messages'
 
 import { ComponentShowcase } from './-components/ComponentShowcase'
 import { AuthForms } from './-components/compositions/AuthForms'
@@ -49,6 +51,9 @@ import { ThemeEditor } from './-components/ThemeEditor'
 
 export const Route = createFileRoute('/design-system/')({
   component: DesignSystemPage,
+  head: () => ({
+    meta: [{ title: `${m.ds_title()} | Roxabi` }],
+  }),
 })
 
 // ---------------------------------------------------------------------------
@@ -57,15 +62,7 @@ export const Route = createFileRoute('/design-system/')({
 
 const STORAGE_KEY = 'roxabi-theme'
 
-const TABS = [
-  { id: 'colors', label: 'Colors' },
-  { id: 'typography', label: 'Typography' },
-  { id: 'spacing', label: 'Spacing & Radius' },
-  { id: 'components', label: 'Components' },
-  { id: 'compositions', label: 'Compositions' },
-] as const
-
-type TabId = (typeof TABS)[number]['id']
+type TabId = 'colors' | 'typography' | 'spacing' | 'components' | 'compositions'
 
 const SEED_COLOR_KEYS = [
   'primary',
@@ -103,6 +100,9 @@ const HEADING_EXAMPLES = [
 // before React hydrates.
 // ---------------------------------------------------------------------------
 
+/** @security The entire dangerouslySetInnerHTML template literal must not interpolate
+ *  user-controlled values. STORAGE_KEY must remain a hardcoded constant and no other
+ *  dynamic sources should be injected into the inline script. */
 function ThemeScript() {
   const script = `
 (function() {
@@ -138,6 +138,18 @@ if (!_zincPreset) throw new Error('Zinc preset not found in BASE_PRESETS')
 const ZINC_PRESET = _zincPreset
 const ZINC_CONFIG = getComposedConfig(ZINC_PRESET, null)
 
+/** Overlay shadow CSS variables onto a derived theme (mutates in place). */
+function overlayShadows(
+  derived: { light: Record<string, string>; dark: Record<string, string> },
+  config: ThemeConfig
+) {
+  const shadowVars = SHADOW_PRESETS[config.shadows]
+  if (shadowVars && Object.keys(shadowVars).length > 0) {
+    Object.assign(derived.light, shadowVars)
+    Object.assign(derived.dark, shadowVars)
+  }
+}
+
 /** Look up a base preset by name (stable — only depends on constants). */
 function findBase(name: string): ShadcnPreset {
   return BASE_PRESETS.find((p) => p.name === name) ?? ZINC_PRESET
@@ -150,6 +162,14 @@ function findColor(name: string | null): ShadcnPreset | null {
 }
 
 function DesignSystemPage() {
+  const TABS: { id: TabId; label: string }[] = [
+    { id: 'colors', label: m.ds_tab_colors() },
+    { id: 'typography', label: m.ds_tab_typography() },
+    { id: 'spacing', label: m.ds_tab_spacing() },
+    { id: 'components', label: m.ds_tab_components() },
+    { id: 'compositions', label: m.ds_tab_compositions() },
+  ]
+
   const [activeTab, setActiveTab] = useState<TabId>('colors')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [themeConfig, setThemeConfig] = useState<ThemeConfig>(ZINC_CONFIG)
@@ -157,37 +177,65 @@ function DesignSystemPage() {
   const [activeColor, setActiveColor] = useState<string | null>(null)
   const announcementRef = useRef<HTMLOutputElement>(null)
 
-  /** Apply the composed base + color theme and sync UI state + localStorage. */
-  const applyComposed = useCallback((baseName: string, colorName: string | null) => {
-    const base = findBase(baseName)
-    const color = findColor(colorName)
+  /** Apply the composed base + color theme and sync UI state + localStorage.
+   *  When `resetAll` is true the ZINC_CONFIG defaults for typography, radius,
+   *  and shadows are restored instead of preserving the current values. */
+  const applyComposed = useCallback(
+    (baseName: string, colorName: string | null, resetAll = false) => {
+      const base = findBase(baseName)
+      const color = findColor(colorName)
 
-    const isDefault = baseName === 'zinc' && !colorName
-    if (isDefault) {
-      resetTheme()
-    } else {
-      const derived = getComposedDerivedTheme(base, color)
-      applyTheme(derived)
-    }
+      const config = getComposedConfig(base, color)
 
-    const config = getComposedConfig(base, color)
-    setThemeConfig(config)
-    setActiveBase(baseName)
-    setActiveColor(colorName)
-
-    try {
-      if (isDefault) {
-        localStorage.removeItem(STORAGE_KEY)
+      if (resetAll) {
+        // Restore ZINC_CONFIG defaults for non-color settings
+        config.typography = ZINC_CONFIG.typography
+        config.radius = ZINC_CONFIG.radius
+        config.shadows = ZINC_CONFIG.shadows
       } else {
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({ base: baseName, color: colorName, config })
-        )
+        // Preserve current non-color settings across preset switches
+        config.typography = themeConfig.typography
+        config.radius = themeConfig.radius
+        config.shadows = themeConfig.shadows
       }
-    } catch {
-      // localStorage unavailable
-    }
-  }, [])
+
+      const isDefault = baseName === 'zinc' && !colorName && resetAll
+
+      if (isDefault) {
+        // Full reset: remove all CSS overrides, restoring stylesheet defaults
+        resetTheme()
+      } else {
+        // Apply the composed theme with current overrides
+        const derived = getComposedDerivedTheme(base, color)
+        derived.light.radius = config.radius
+        derived.dark.radius = config.radius
+        derived.light['font-family'] = config.typography.fontFamily
+        derived.dark['font-family'] = config.typography.fontFamily
+        derived.light['font-size'] = config.typography.baseFontSize
+        derived.dark['font-size'] = config.typography.baseFontSize
+        overlayShadows(derived, config)
+        applyTheme(derived)
+      }
+
+      setThemeConfig(config)
+      setActiveBase(baseName)
+      setActiveColor(colorName)
+
+      try {
+        if (isDefault) {
+          localStorage.removeItem(STORAGE_KEY)
+        } else {
+          localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({ base: baseName, color: colorName, config })
+          )
+        }
+      } catch {
+        // localStorage unavailable
+      }
+    },
+    [themeConfig]
+  )
 
   // Load theme from localStorage on mount
   useEffect(() => {
@@ -206,6 +254,18 @@ function DesignSystemPage() {
         const base = findBase(data.base)
         const color = findColor(data.color ?? null)
         const derived = getComposedDerivedTheme(base, color)
+
+        // Overlay non-color settings saved alongside the preset
+        if (data.config) {
+          derived.light.radius = data.config.radius
+          derived.dark.radius = data.config.radius
+          derived.light['font-family'] = data.config.typography.fontFamily
+          derived.dark['font-family'] = data.config.typography.fontFamily
+          derived.light['font-size'] = data.config.typography.baseFontSize
+          derived.dark['font-size'] = data.config.typography.baseFontSize
+          overlayShadows(derived, data.config)
+        }
+
         applyTheme(derived)
         setThemeConfig(data.config)
         setActiveBase(data.base)
@@ -225,21 +285,60 @@ function DesignSystemPage() {
     }
   }, [])
 
-  // Handle manual config changes from color pickers / sliders
-  const handleConfigChange = useCallback((newConfig: ThemeConfig) => {
-    setThemeConfig(newConfig)
-    setActiveBase('zinc')
-    setActiveColor(null)
+  // Handle manual config changes from color pickers / sliders.
+  // When only non-color settings (typography, radius, shadows) change we keep the
+  // active preset selection and compose the derived theme from the preset + overrides.
+  // When seed colors change we depart from the preset.
+  const handleConfigChange = useCallback(
+    (newConfig: ThemeConfig) => {
+      const colorsChanged = SEED_COLOR_KEYS.some(
+        (key) => newConfig.colors[key] !== themeConfig.colors[key]
+      )
 
-    const derived = deriveFullTheme(newConfig)
-    applyTheme(derived)
+      setThemeConfig(newConfig)
 
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ config: newConfig }))
-    } catch {
-      // localStorage unavailable
-    }
-  }, [])
+      if (colorsChanged) {
+        // Manual color edit — depart from preset
+        setActiveBase('zinc')
+        setActiveColor(null)
+
+        const derived = deriveFullTheme(newConfig)
+        applyTheme(derived)
+
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ config: newConfig }))
+        } catch {
+          // localStorage unavailable
+        }
+      } else {
+        // Non-color change — preserve preset selection
+        const base = findBase(activeBase)
+        const color = findColor(activeColor)
+        const derived = getComposedDerivedTheme(base, color)
+
+        // Overlay non-color settings from the updated config
+        derived.light.radius = newConfig.radius
+        derived.dark.radius = newConfig.radius
+        derived.light['font-family'] = newConfig.typography.fontFamily
+        derived.dark['font-family'] = newConfig.typography.fontFamily
+        derived.light['font-size'] = newConfig.typography.baseFontSize
+        derived.dark['font-size'] = newConfig.typography.baseFontSize
+        overlayShadows(derived, newConfig)
+
+        applyTheme(derived)
+
+        try {
+          localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({ base: activeBase, color: activeColor, config: newConfig })
+          )
+        } catch {
+          // localStorage unavailable
+        }
+      }
+    },
+    [themeConfig, activeBase, activeColor]
+  )
 
   // Handle base preset selection (keeps current color overlay)
   const handleBaseSelect = useCallback(
@@ -257,9 +356,9 @@ function DesignSystemPage() {
     [applyComposed, activeBase]
   )
 
-  // Reset to Zinc base with no color overlay
+  // Reset to Zinc base with no color overlay, restoring all defaults
   const handleReset = useCallback(() => {
-    applyComposed('zinc', null)
+    applyComposed('zinc', null, true)
   }, [applyComposed])
 
   function toggleSidebar() {
@@ -278,16 +377,14 @@ function DesignSystemPage() {
       >
         {/* Page header */}
         <div className="mb-12 text-center">
-          <h1 className="text-4xl font-bold tracking-tight">Design System</h1>
-          <p className="mt-3 text-lg text-muted-foreground">
-            Interactive component playground &amp; theme customization.
-          </p>
+          <h1 className="text-4xl font-bold tracking-tight">{m.ds_title()}</h1>
+          <p className="mt-3 text-lg text-muted-foreground">{m.ds_subtitle()}</p>
         </div>
 
         {/* Tab navigation */}
         <div
           role="tablist"
-          aria-label="Design system sections"
+          aria-label={m.ds_sections_label()}
           className="mb-8 flex flex-wrap gap-1 rounded-lg border border-border bg-muted/50 p-1"
         >
           {TABS.map((tab) => (
@@ -378,10 +475,8 @@ function DesignSystemPage() {
 function ColorsSection({ config }: { config: ThemeConfig }) {
   return (
     <section>
-      <h2 className="mb-2 text-2xl font-semibold">Seed Colors</h2>
-      <p className="mb-6 text-muted-foreground">
-        The 8 semantic color tokens that seed the entire theme. Each value is in OKLch color space.
-      </p>
+      <h2 className="mb-2 text-2xl font-semibold">{m.ds_colors_title()}</h2>
+      <p className="mb-6 text-muted-foreground">{m.ds_colors_desc()}</p>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {SEED_COLOR_KEYS.map((key) => {
@@ -412,11 +507,8 @@ function ColorsSection({ config }: { config: ThemeConfig }) {
       </div>
 
       {/* Derived variable preview */}
-      <h3 className="mb-3 mt-10 text-xl font-semibold">Derived Variables</h3>
-      <p className="mb-4 text-sm text-muted-foreground">
-        These CSS custom properties are derived from the seed colors above and applied as Tailwind
-        utility classes.
-      </p>
+      <h3 className="mb-3 mt-10 text-xl font-semibold">{m.ds_colors_derived_title()}</h3>
+      <p className="mb-4 text-sm text-muted-foreground">{m.ds_colors_derived_desc()}</p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { name: 'bg-primary', className: 'bg-primary' },
@@ -445,25 +537,23 @@ function ColorsSection({ config }: { config: ThemeConfig }) {
 function TypographySection({ config }: { config: ThemeConfig }) {
   return (
     <section>
-      <h2 className="mb-2 text-2xl font-semibold">Typography</h2>
-      <p className="mb-6 text-muted-foreground">Font family, size scale, and heading hierarchy.</p>
+      <h2 className="mb-2 text-2xl font-semibold">{m.ds_typography_title()}</h2>
+      <p className="mb-6 text-muted-foreground">{m.ds_typography_desc()}</p>
 
       {/* Current font info */}
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle className="text-base">Current Font</CardTitle>
-          <CardDescription>
-            Active typography settings from the theme configuration.
-          </CardDescription>
+          <CardTitle className="text-base">{m.ds_typography_current()}</CardTitle>
+          <CardDescription>{m.ds_typography_current_desc()}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label className="text-xs text-muted-foreground">Font Family</Label>
+              <Label className="text-xs text-muted-foreground">{m.ds_typography_family()}</Label>
               <p className="mt-1 font-mono text-sm">{config.typography.fontFamily}</p>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Base Font Size</Label>
+              <Label className="text-xs text-muted-foreground">{m.ds_typography_base_size()}</Label>
               <p className="mt-1 font-mono text-sm">{config.typography.baseFontSize}</p>
             </div>
           </div>
@@ -471,7 +561,7 @@ function TypographySection({ config }: { config: ThemeConfig }) {
       </Card>
 
       {/* Size scale */}
-      <h3 className="mb-4 text-xl font-semibold">Size Scale</h3>
+      <h3 className="mb-4 text-xl font-semibold">{m.ds_typography_size_scale()}</h3>
       <div className="space-y-3">
         {FONT_SIZES.map((size) => (
           <div
@@ -480,13 +570,13 @@ function TypographySection({ config }: { config: ThemeConfig }) {
           >
             <code className="w-16 shrink-0 text-xs text-muted-foreground">{size.label}</code>
             <code className="w-12 shrink-0 text-xs text-muted-foreground">{size.px}</code>
-            <span className={size.class}>The quick brown fox jumps over the lazy dog.</span>
+            <span className={size.class}>{m.ds_typography_sample()}</span>
           </div>
         ))}
       </div>
 
       {/* Headings */}
-      <h3 className="mb-4 mt-10 text-xl font-semibold">Heading Hierarchy</h3>
+      <h3 className="mb-4 mt-10 text-xl font-semibold">{m.ds_typography_headings()}</h3>
       <div className="space-y-4">
         {HEADING_EXAMPLES.map((heading) => (
           <div key={heading.level} className="flex items-baseline gap-4">
@@ -497,17 +587,12 @@ function TypographySection({ config }: { config: ThemeConfig }) {
       </div>
 
       {/* Paragraph & prose */}
-      <h3 className="mb-4 mt-10 text-xl font-semibold">Body Text</h3>
+      <h3 className="mb-4 mt-10 text-xl font-semibold">{m.ds_typography_body()}</h3>
       <Card>
         <CardContent className="pt-6">
-          <p className="text-base leading-7">
-            This is a paragraph of body text demonstrating the default reading experience. Good
-            typography creates a visual hierarchy that guides users through content. The line
-            height, letter spacing, and font weight all contribute to readability.
-          </p>
+          <p className="text-base leading-7">{m.ds_typography_body_primary()}</p>
           <p className="mt-4 text-sm text-muted-foreground leading-6">
-            This is a secondary paragraph using muted foreground for supplementary information. It
-            uses a smaller font size and reduced visual weight compared to the primary text above.
+            {m.ds_typography_body_secondary()}
           </p>
         </CardContent>
       </Card>
@@ -529,14 +614,11 @@ function SpacingSection({ config }: { config: ThemeConfig }) {
 
   return (
     <section>
-      <h2 className="mb-2 text-2xl font-semibold">Spacing &amp; Radius</h2>
-      <p className="mb-6 text-muted-foreground">
-        Border radius scale derived from the base radius value. Current base:{' '}
-        <code className="font-mono">{config.radius}</code>.
-      </p>
+      <h2 className="mb-2 text-2xl font-semibold">{m.ds_spacing_title()}</h2>
+      <p className="mb-6 text-muted-foreground">{m.ds_spacing_desc({ radius: config.radius })}</p>
 
       {/* Radius scale */}
-      <h3 className="mb-4 text-xl font-semibold">Border Radius Scale</h3>
+      <h3 className="mb-4 text-xl font-semibold">{m.ds_spacing_radius_title()}</h3>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {radiusSizes.map((size) => (
           <Card key={size.label}>
@@ -555,11 +637,11 @@ function SpacingSection({ config }: { config: ThemeConfig }) {
       </div>
 
       {/* Applied examples */}
-      <h3 className="mb-4 mt-10 text-xl font-semibold">Applied Examples</h3>
+      <h3 className="mb-4 mt-10 text-xl font-semibold">{m.ds_spacing_applied()}</h3>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardContent className="pt-6">
-            <p className="mb-3 text-sm font-medium">Button Radius</p>
+            <p className="mb-3 text-sm font-medium">{m.ds_spacing_button_radius()}</p>
             <div className="flex gap-2">
               <Button size="sm">Small</Button>
               <Button>Default</Button>
@@ -569,13 +651,13 @@ function SpacingSection({ config }: { config: ThemeConfig }) {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="mb-3 text-sm font-medium">Input Radius</p>
+            <p className="mb-3 text-sm font-medium">{m.ds_spacing_input_radius()}</p>
             <Input placeholder="Text input..." />
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="mb-3 text-sm font-medium">Badge Radius</p>
+            <p className="mb-3 text-sm font-medium">{m.ds_spacing_badge_radius()}</p>
             <div className="flex flex-wrap gap-2">
               <Badge>Default</Badge>
               <Badge variant="secondary">Secondary</Badge>
@@ -586,10 +668,8 @@ function SpacingSection({ config }: { config: ThemeConfig }) {
       </div>
 
       {/* Spacing scale reference */}
-      <h3 className="mb-4 mt-10 text-xl font-semibold">Spacing Scale</h3>
-      <p className="mb-4 text-sm text-muted-foreground">
-        Tailwind spacing utilities used throughout the design system.
-      </p>
+      <h3 className="mb-4 mt-10 text-xl font-semibold">{m.ds_spacing_scale_title()}</h3>
+      <p className="mb-4 text-sm text-muted-foreground">{m.ds_spacing_scale_desc()}</p>
       <div className="space-y-2">
         {[
           { label: '1', px: '4px' },
@@ -621,17 +701,14 @@ function SpacingSection({ config }: { config: ThemeConfig }) {
 function ComponentsSection() {
   return (
     <section>
-      <h2 className="mb-2 text-2xl font-semibold">Components</h2>
-      <p className="mb-8 text-muted-foreground">
-        Interactive previews of @repo/ui components. Adjust props using the controls below each
-        component.
-      </p>
+      <h2 className="mb-2 text-2xl font-semibold">{m.ds_components_title()}</h2>
+      <p className="mb-8 text-muted-foreground">{m.ds_components_desc()}</p>
 
       <div className="space-y-10">
         {/* Button */}
         <ComponentShowcase
           name="Button"
-          category="Inputs"
+          category={m.ds_category_inputs()}
           propControls={[
             {
               name: 'variant',
@@ -655,7 +732,7 @@ function ComponentsSection() {
               size={props.size as 'default'}
               disabled={Boolean(props.disabled)}
             >
-              {props.size === 'icon' ? 'A' : 'Click me'}
+              {props.size === 'icon' ? 'A' : m.ds_demo_click_me()}
             </Button>
           )}
         </ComponentShowcase>
@@ -663,7 +740,7 @@ function ComponentsSection() {
         {/* Badge */}
         <ComponentShowcase
           name="Badge"
-          category="Data Display"
+          category={m.ds_category_data_display()}
           propControls={[
             {
               name: 'variant',
@@ -681,9 +758,9 @@ function ComponentsSection() {
         {/* Input */}
         <ComponentShowcase
           name="Input"
-          category="Inputs"
+          category={m.ds_category_inputs()}
           propControls={[
-            { name: 'placeholder', type: 'text', defaultValue: 'Type something...' },
+            { name: 'placeholder', type: 'text', defaultValue: m.ds_demo_type_something() },
             { name: 'disabled', type: 'boolean', defaultValue: false },
           ]}
         >
@@ -699,9 +776,9 @@ function ComponentsSection() {
         {/* Textarea */}
         <ComponentShowcase
           name="Textarea"
-          category="Inputs"
+          category={m.ds_category_inputs()}
           propControls={[
-            { name: 'placeholder', type: 'text', defaultValue: 'Enter a message...' },
+            { name: 'placeholder', type: 'text', defaultValue: m.ds_demo_enter_message() },
             { name: 'disabled', type: 'boolean', defaultValue: false },
           ]}
         >
@@ -717,13 +794,13 @@ function ComponentsSection() {
         {/* Checkbox */}
         <ComponentShowcase
           name="Checkbox"
-          category="Inputs"
+          category={m.ds_category_inputs()}
           propControls={[{ name: 'disabled', type: 'boolean', defaultValue: false }]}
         >
           {(props) => (
             <div className="flex items-center gap-2">
               <Checkbox id="demo-cb" disabled={Boolean(props.disabled)} />
-              <Label htmlFor="demo-cb">Accept terms and conditions</Label>
+              <Label htmlFor="demo-cb">{m.ds_demo_accept_terms()}</Label>
             </div>
           )}
         </ComponentShowcase>
@@ -731,28 +808,28 @@ function ComponentsSection() {
         {/* Switch */}
         <ComponentShowcase
           name="Switch"
-          category="Inputs"
+          category={m.ds_category_inputs()}
           propControls={[{ name: 'disabled', type: 'boolean', defaultValue: false }]}
         >
           {(props) => (
             <div className="flex items-center gap-2">
               <Switch id="demo-sw" disabled={Boolean(props.disabled)} />
-              <Label htmlFor="demo-sw">Airplane Mode</Label>
+              <Label htmlFor="demo-sw">{m.ds_demo_airplane_mode()}</Label>
             </div>
           )}
         </ComponentShowcase>
 
         {/* Select */}
-        <ComponentShowcase name="Select" category="Inputs" propControls={[]}>
+        <ComponentShowcase name="Select" category={m.ds_category_inputs()} propControls={[]}>
           {() => (
             <Select>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Pick a fruit" />
+                <SelectValue placeholder={m.ds_demo_pick_fruit()} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="apple">Apple</SelectItem>
-                <SelectItem value="banana">Banana</SelectItem>
-                <SelectItem value="cherry">Cherry</SelectItem>
+                <SelectItem value="apple">{m.ds_demo_apple()}</SelectItem>
+                <SelectItem value="banana">{m.ds_demo_banana()}</SelectItem>
+                <SelectItem value="cherry">{m.ds_demo_cherry()}</SelectItem>
               </SelectContent>
             </Select>
           )}
@@ -761,7 +838,7 @@ function ComponentsSection() {
         {/* Slider */}
         <ComponentShowcase
           name="Slider"
-          category="Inputs"
+          category={m.ds_category_inputs()}
           propControls={[{ name: 'disabled', type: 'boolean', defaultValue: false }]}
         >
           {(props) => (
@@ -776,20 +853,20 @@ function ComponentsSection() {
         </ComponentShowcase>
 
         {/* Card */}
-        <ComponentShowcase name="Card" category="Layout" propControls={[]}>
+        <ComponentShowcase name="Card" category={m.ds_category_layout()} propControls={[]}>
           {() => (
             <Card className="max-w-sm">
               <CardHeader>
-                <CardTitle>Card Title</CardTitle>
-                <CardDescription>Card description with supporting text.</CardDescription>
+                <CardTitle>{m.ds_demo_card_title()}</CardTitle>
+                <CardDescription>{m.ds_demo_card_desc()}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">Card content goes here.</p>
+                <p className="text-sm text-muted-foreground">{m.ds_demo_card_content()}</p>
               </CardContent>
               <CardFooter className="gap-2">
-                <Button size="sm">Action</Button>
+                <Button size="sm">{m.ds_demo_action()}</Button>
                 <Button size="sm" variant="outline">
-                  Cancel
+                  {m.common_cancel()}
                 </Button>
               </CardFooter>
             </Card>
@@ -797,11 +874,11 @@ function ComponentsSection() {
         </ComponentShowcase>
 
         {/* Avatar */}
-        <ComponentShowcase name="Avatar" category="Data Display" propControls={[]}>
+        <ComponentShowcase name="Avatar" category={m.ds_category_data_display()} propControls={[]}>
           {() => (
             <div className="flex items-center gap-4">
               <Avatar>
-                <AvatarImage src="https://github.com/shadcn.png" alt="User" />
+                <AvatarImage src="https://github.com/shadcn.png" alt={m.ds_demo_user()} />
                 <AvatarFallback>CN</AvatarFallback>
               </Avatar>
               <Avatar>
@@ -815,24 +892,24 @@ function ComponentsSection() {
         </ComponentShowcase>
 
         {/* Separator */}
-        <ComponentShowcase name="Separator" category="Layout" propControls={[]}>
+        <ComponentShowcase name="Separator" category={m.ds_category_layout()} propControls={[]}>
           {() => (
             <div className="max-w-sm space-y-4">
               <div>
-                <h4 className="text-sm font-medium">Section Above</h4>
-                <p className="text-sm text-muted-foreground">Content above the separator.</p>
+                <h4 className="text-sm font-medium">{m.ds_demo_section_above()}</h4>
+                <p className="text-sm text-muted-foreground">{m.ds_demo_content_above()}</p>
               </div>
               <Separator />
               <div>
-                <h4 className="text-sm font-medium">Section Below</h4>
-                <p className="text-sm text-muted-foreground">Content below the separator.</p>
+                <h4 className="text-sm font-medium">{m.ds_demo_section_below()}</h4>
+                <p className="text-sm text-muted-foreground">{m.ds_demo_content_below()}</p>
               </div>
             </div>
           )}
         </ComponentShowcase>
 
         {/* Skeleton */}
-        <ComponentShowcase name="Skeleton" category="Feedback" propControls={[]}>
+        <ComponentShowcase name="Skeleton" category={m.ds_category_feedback()} propControls={[]}>
           {() => (
             <div className="flex items-center gap-4">
               <Skeleton className="size-12 rounded-full" />
@@ -845,15 +922,15 @@ function ComponentsSection() {
         </ComponentShowcase>
 
         {/* Tooltip */}
-        <ComponentShowcase name="Tooltip" category="Feedback" propControls={[]}>
+        <ComponentShowcase name="Tooltip" category={m.ds_category_feedback()} propControls={[]}>
           {() => (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline">Hover me</Button>
+                  <Button variant="outline">{m.ds_demo_hover_me()}</Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>This is a tooltip</p>
+                  <p>{m.ds_demo_tooltip_text()}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -871,29 +948,26 @@ function ComponentsSection() {
 function CompositionsSection() {
   return (
     <section>
-      <h2 className="mb-2 text-2xl font-semibold">Compositions</h2>
-      <p className="mb-8 text-muted-foreground">
-        Real-world UI patterns assembled from @repo/ui components. Copy these patterns as starting
-        points for your features.
-      </p>
+      <h2 className="mb-2 text-2xl font-semibold">{m.ds_compositions_title()}</h2>
+      <p className="mb-8 text-muted-foreground">{m.ds_compositions_desc()}</p>
 
       <div className="space-y-12">
         <div>
-          <h3 className="mb-4 text-xl font-semibold">Authentication Forms</h3>
+          <h3 className="mb-4 text-xl font-semibold">{m.ds_compositions_auth()}</h3>
           <AuthForms />
         </div>
 
         <Separator />
 
         <div>
-          <h3 className="mb-4 text-xl font-semibold">Data Display</h3>
+          <h3 className="mb-4 text-xl font-semibold">{m.ds_compositions_data()}</h3>
           <DataDisplay />
         </div>
 
         <Separator />
 
         <div>
-          <h3 className="mb-4 text-xl font-semibold">Feedback Patterns</h3>
+          <h3 className="mb-4 text-xl font-semibold">{m.ds_compositions_feedback()}</h3>
           <FeedbackPatterns />
         </div>
       </div>

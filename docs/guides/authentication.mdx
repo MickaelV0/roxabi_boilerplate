@@ -124,10 +124,10 @@ Better Auth uses **cookie-based sessions**:
 
 ### Same-origin cookies
 
-The frontend (port 3000) and API (port 3001) run on different ports in development. To keep cookies on the same origin (avoiding `SameSite=None`), the frontend uses a **Vite dev proxy**:
+The frontend (port 3000) and API (port 4000) run on different ports in development. To keep cookies on the same origin (avoiding `SameSite=None`), the frontend uses a **Vite dev proxy**:
 
 ```
-/api/* → http://localhost:3001
+/api/* → http://localhost:4000
 ```
 
 This means the browser sends requests to `localhost:3000/api/auth/*`, which are proxied to the API. Cookies are set on `localhost:3000` — same origin as the frontend.

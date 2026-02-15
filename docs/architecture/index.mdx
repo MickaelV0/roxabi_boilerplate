@@ -53,6 +53,8 @@ Frontend application built with TanStack Start.
 - File-based routing
 - TypeScript strict mode
 
+See [Frontend Architecture](./frontend) for the full deep-dive.
+
 ### API (`apps/api`)
 
 Backend API built with NestJS and Fastify.
@@ -60,6 +62,8 @@ Backend API built with NestJS and Fastify.
 - REST API
 - Modular architecture
 - OpenAPI documentation
+
+See [Auth & Security Architecture](./auth-security) for authentication, guards, CORS, and security headers. See [Multi-Tenant Architecture](./multi-tenant) for RLS and tenant isolation. See [RBAC Architecture](./rbac) for the permission model and role hierarchy. See [Database Architecture](./database) for Drizzle ORM setup, schema conventions, and migration workflow.
 
 ### CLI (`apps/cli`) - Planned
 
@@ -177,7 +181,7 @@ Workspaces configuration:
 
 TurboRepo distinguishes between two types of environment variables:
 
-- **`env`** (root `turbo.json`) — Variables that affect build output (`API_URL`, `APP_URL`, `VITE_ENABLE_DEMO`). Changing these invalidates the Turbo cache.
+- **`env`** (root `turbo.jsonc`) — Variables that affect build output (`API_URL`, `APP_URL`, `VITE_ENABLE_DEMO`). Changing these invalidates the Turbo cache.
 - **`passThroughEnv`** (`apps/api/turbo.json`) — Runtime-only secrets (database, auth). Available at runtime but excluded from cache keys, preventing unnecessary rebuilds when only secrets rotate.
 
 App-specific `turbo.json` files extend the root config with `"extends": ["//"]`.
@@ -214,3 +218,5 @@ Key decisions:
 - **Vercel for API** — Zero-config NestJS support with Fluid compute
 - **Serverless PostgreSQL** — Managed by Neon
 - **Docker configs included** — For local dev and self-hosted VPS alternative
+
+See [CI/CD Architecture](./ci-cd) for the full pipeline from git hooks through deployment.

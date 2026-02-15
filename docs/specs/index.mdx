@@ -15,6 +15,7 @@ Technical specifications for planned and implemented features.
 - [Docker Compose](./47-docker-compose) — Docker Compose configuration for local development with PostgreSQL
 - [Staging Environment with Preview Deploys](./114-staging-environment-preview-deploys) — Staging branch with manual preview deploys
 - [CI/CD Database Migrations](./132-ci-db-migrations) — Automate Drizzle DB migrations in CI/CD pipeline with drift detection
+- [Local Database Isolation per Worktree](./local-db-isolation) — Branch-named databases with fresh migrate + seed for isolated local development
 
 ## Frontend
 
@@ -22,13 +23,19 @@ Technical specifications for planned and implemented features.
 - [API Client](./49-api-client) — Typed HTTP client for frontend-to-backend communication using ofetch
 - [Auth UI/UX](./68-auth-ui-ux) — Polished authentication pages, organization management UI, and shared auth components
 - [Design System &amp; Theme Customization](./70-design-system) — Public design system page with interactive component playground and theme editor
+- [Claude Code &amp; Agent Teams Presentation](./presentation-claude-code) — Standalone full-screen presentation page for a ~30-minute Claude Code talk
+- [TanStack Start i18n Integration](./33-tanstack-start-i18n-integration) — *(Deprecated)* Original i18n integration with TanStack Start
+- [Paraglide i18n Migration](./64-paraglide-i18n-migration) — *(Deprecated)* Migration from i18next to Paraglide JS
 
 ## Auth &amp; Security
 
 - [Auth + Users (Better Auth)](./19-auth-users) — Full-stack authentication and user management with Better Auth
 - [Multi-tenant Row-Level Security (RLS)](./21-multi-tenant-rls) — PostgreSQL RLS-based tenant isolation
 - [RBAC (Roles and Permissions)](./24-rbac) — Role-based access control with per-tenant roles
+- [Rate Limiting &amp; API Security](./53-rate-limiting-api-security) — Distributed rate limiting with Upstash Redis and configurable tiers
 - [Pre-Production Security Hardening](./89-security-hardening) — Address 7 medium-severity security items from the project audit
+- [Env Var Hardening](./158-env-var-hardening) — Harden env var validation, security guards, Neon cleanup, and sync checks across CI/CD
+- [Migrate to Vercel Marketplace Integrations](./181-vercel-marketplace-migration) — Migrate Neon, Resend, and Upstash to auto-injected env vars via Vercel Marketplace
 
 ## Process &amp; Quality
 

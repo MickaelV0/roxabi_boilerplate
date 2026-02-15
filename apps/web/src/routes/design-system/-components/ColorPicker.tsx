@@ -1,5 +1,6 @@
 import { Badge, cn, hexToOklch, meetsWcagAA, oklchToHex } from '@repo/ui'
 import { useMemo } from 'react'
+import { m } from '@/paraglide/messages'
 
 type ColorPickerProps = {
   /** Semantic token name (e.g., "Primary", "Secondary") */
@@ -56,14 +57,14 @@ export function ColorPicker({ label, value, onChange, contrastAgainst }: ColorPi
     <div className="flex items-center gap-3">
       <label
         className="group relative flex size-10 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md border border-border shadow-sm"
-        aria-label={`${label} color`}
+        aria-label={m.ds_color_aria({ label })}
       >
         <input
           type="color"
           value={hexValue}
           onChange={handleColorChange}
           className="absolute inset-0 size-full cursor-pointer opacity-0"
-          aria-label={`${label} color picker`}
+          aria-label={m.ds_color_picker_aria({ label })}
         />
         <span className="block size-full rounded-md" style={{ backgroundColor: hexValue }} />
       </label>
@@ -76,7 +77,7 @@ export function ColorPicker({ label, value, onChange, contrastAgainst }: ColorPi
               variant={passesContrast ? 'secondary' : 'destructive'}
               className="text-[10px] leading-none"
             >
-              {passesContrast ? 'AA' : 'Fail'}
+              {passesContrast ? m.ds_contrast_pass() : m.ds_contrast_fail()}
             </Badge>
           )}
         </div>

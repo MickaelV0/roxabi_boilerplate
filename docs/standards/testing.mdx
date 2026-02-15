@@ -125,8 +125,6 @@ import { describe, it, expect, vi } from 'vitest'
 
 **Threshold:** Maintain 70% coverage across lines, functions, branches, and statements.
 
-**Ratcheting:** Enable `thresholds.autoUpdate: true` in Vitest config so the threshold automatically increases as coverage grows. It never decreases.
-
 **Provider:** Use V8 with `text`, `json`, and `html` reporters.
 
 **Per-directory targets:**
@@ -304,15 +302,26 @@ function createMockHost(headers: Record<string, string> = {}) {
 - Build factory functions that accept `Partial<T>` overrides for flexibility.
 - Keep mocks close to the tests that use them.
 - **Backend:** Prefer dependency injection over module-level mocking. Pass `vi.fn()` stubs through DI. Avoid `vi.mock()`.
-- **Frontend:** Use `vi.fn()` and `vi.spyOn()` for internal code. Use `vi.mock()` only for third-party modules that cannot be injected.
 - **Environment variables:** Use `vi.stubEnv()` as shown in `apps/api/src/test/setup.ts`.
+
+### Frontend Mocking Rules
+
+**Default: Render real components.** Do not mock `@repo/ui` or other internal packages. Rendering real components produces integration-style tests with higher confidence.
+
+**Accepted uses of `vi.mock()`:**
+
+- **Codegen modules** (`@/paraglide/messages`): Auto-generated i18n modules have no injection point. Mock to return predictable strings.
+- **TanStack Router file-based routes**: Route components are loaded via file conventions. Module-level mocking is required to isolate route-level tests from child route components.
+- **Third-party libraries** with side effects or browser APIs not available in jsdom (e.g., `next/navigation`, `IntersectionObserver`).
+
+**Prefer `vi.fn()` and `vi.spyOn()`** for everything else. Use factory helpers to construct mock objects.
 
 ## Test Data Management
 
 - **Inline data:** Use directly in the test for simple, self-contained cases.
 - **Factory functions:** Build helper functions that produce complex entities with sensible defaults and optional overrides.
 - **Fixtures:** Store static JSON data in `__tests__/fixtures/` for large or shared datasets.
-- **Database:** Use Testcontainers for integration tests that require a real PostgreSQL instance.
+- **Database:** *(Planned)* Use Testcontainers for integration tests that require a real PostgreSQL instance. Not yet configured in this project.
 - **Cleanup:** Each test owns its data. Do not rely on shared mutable state between tests.
 
 ## AI-Assisted TDD Workflow

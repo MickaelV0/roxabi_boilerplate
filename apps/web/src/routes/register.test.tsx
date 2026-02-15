@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { authClient } from '@/lib/auth-client'
 import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
@@ -27,25 +27,7 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }))
 
-vi.mock('@repo/ui', () => ({
-  Button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <button {...props}>{children}</button>
-  ),
-  Input: (props: Record<string, unknown>) => <input {...props} />,
-  Label: ({
-    children,
-    htmlFor,
-    ...props
-  }: React.PropsWithChildren<{ htmlFor?: string; [key: string]: unknown }>) => (
-    <label htmlFor={htmlFor} {...props}>
-      {children}
-    </label>
-  ),
-  OAuthButton: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <button {...props}>{children}</button>
-  ),
-  PasswordInput: (props: Record<string, unknown>) => <input type="password" {...props} />,
-}))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
@@ -77,60 +59,92 @@ vi.mock('../components/AuthLayout', () => ({
   ),
 }))
 
+vi.mock('../components/OrDivider', () => ({
+  OrDivider: () => <hr />,
+}))
+
+vi.mock('lucide-react', () => ({
+  CheckCircle: () => <span data-testid="check-circle-icon" />,
+}))
+
 mockParaglideMessages()
 
 // Import to trigger createFileRoute and capture the component
 import './register'
 
-describe('RegisterPage', () => {
-  beforeEach(() => {
-    captured.loaderData = { google: true, github: true }
-  })
+function createDefaultLoaderData() {
+  return { google: true, github: true }
+}
 
-  it('should render name, email, and password inputs', () => {
+describe('RegisterPage', () => {
+  it('should render name, email, and password inputs when component mounts', () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
     const RegisterPage = captured.Component
+
+    // Act
     render(<RegisterPage />)
 
+    // Assert
     expect(screen.getByLabelText('auth_name')).toBeInTheDocument()
     expect(screen.getByLabelText('auth_email')).toBeInTheDocument()
     expect(screen.getByLabelText('auth_password')).toBeInTheDocument()
   })
 
-  it('should render create account button', () => {
+  it('should render create account button when component mounts', () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
     const RegisterPage = captured.Component
+
+    // Act
     render(<RegisterPage />)
 
+    // Assert
     expect(screen.getByRole('button', { name: 'auth_create_account_button' })).toBeInTheDocument()
   })
 
-  it('should render OAuth buttons for Google and GitHub', () => {
+  it('should render OAuth buttons when Google and GitHub are enabled', () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
     const RegisterPage = captured.Component
+
+    // Act
     render(<RegisterPage />)
 
+    // Assert
     expect(screen.getByText('auth_sign_up_with_google')).toBeInTheDocument()
     expect(screen.getByText('auth_sign_up_with_github')).toBeInTheDocument()
   })
 
-  it('should render sign in link for existing accounts', () => {
+  it('should render sign in link for existing accounts when component mounts', () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
     const RegisterPage = captured.Component
+
+    // Act
     render(<RegisterPage />)
 
-    const link = screen.getByText('auth_sign_in_link')
-    expect(link).toBeInTheDocument()
-    expect(link.closest('a')).toHaveAttribute('href', '/login')
+    // Assert
+    const link = screen.getByRole('link', { name: /auth_sign_in_link/ })
+    expect(link).toHaveAttribute('href', '/login')
   })
 
   it('should hide OAuth buttons when providers are not configured', () => {
+    // Arrange
     captured.loaderData = { google: false, github: false }
     const RegisterPage = captured.Component
+
+    // Act
     render(<RegisterPage />)
 
+    // Assert
     expect(screen.queryByText('auth_sign_up_with_google')).not.toBeInTheDocument()
     expect(screen.queryByText('auth_sign_up_with_github')).not.toBeInTheDocument()
   })
 
-  it('should display error message when signUp.email returns an error', async () => {
+  it('should display generic error message when signUp.email returns an error (security guardrail)', async () => {
     // Arrange
+    captured.loaderData = createDefaultLoaderData()
     vi.mocked(authClient.signUp.email).mockResolvedValueOnce({
       error: { message: 'Email already exists' },
       data: null,
@@ -151,9 +165,41 @@ describe('RegisterPage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'auth_create_account_button' }))
 
-    // Assert
+    // Assert -- generic error, NOT the backend message
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Email already exists')
+      expect(screen.getByRole('alert')).toHaveTextContent('auth_register_unable')
     })
+  })
+
+  it('should show success card and hide form after successful registration', async () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
+    vi.mocked(authClient.signUp.email).mockResolvedValueOnce({
+      error: null,
+      data: { user: { id: '1' } },
+    } as never)
+
+    const RegisterPage = captured.Component
+    render(<RegisterPage />)
+
+    // Act
+    fireEvent.change(screen.getByLabelText('auth_name'), {
+      target: { value: 'New User' },
+    })
+    fireEvent.change(screen.getByLabelText('auth_email'), {
+      target: { value: 'new@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('auth_password'), {
+      target: { value: 'StrongP@ss1' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'auth_create_account_button' }))
+
+    // Assert -- form hidden, success card shown
+    await waitFor(() => {
+      expect(screen.getByText('auth_register_success_title')).toBeInTheDocument()
+      expect(screen.getByText('auth_check_email_verify')).toBeInTheDocument()
+    })
+    expect(screen.queryByLabelText('auth_name')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('auth_password')).not.toBeInTheDocument()
   })
 })

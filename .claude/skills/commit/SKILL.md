@@ -1,6 +1,6 @@
 ---
 argument-hint: [--all | -m "message"]
-description: Commit staged changes with Conventional Commits validation and guard rails.
+description: This skill should be used when the user wants to commit changes, stage and commit, run git commit, or says "commit staged files", "commit my changes", or "commit --all". Enforces Conventional Commits format, runs guard rails (secret detection, debug artifact scanning), and handles pre-commit hook failures.
 allowed-tools: Bash, AskUserQuestion, Read, Grep
 ---
 
@@ -166,7 +166,7 @@ Rules:
 
 ### 4. Commit
 
-**Present the commit message to the user for approval** before committing.
+**Display the commit message** to the user, then commit immediately without asking for confirmation.
 
 Execute the commit using HEREDOC format:
 

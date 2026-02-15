@@ -32,7 +32,6 @@ vi.mock('@tanstack/react-router', () => ({
         href = href.replace(`$${key === '_splat' ? '' : key}`, value)
       }
     }
-    // Remove 'params' from props so it's not spread onto the <a>
     return (
       <a href={href} {...props}>
         {children}
@@ -44,37 +43,49 @@ vi.mock('@tanstack/react-router', () => ({
 import { Footer } from './Footer'
 
 describe('Footer', () => {
-  it('renders the footer element', () => {
+  it('should render the footer element', () => {
+    // Arrange & Act
     render(<Footer />)
 
+    // Assert
     const footer = screen.getByRole('contentinfo')
     expect(footer).toBeInTheDocument()
   })
 
-  it('displays the copyright text with current year', () => {
+  it('should display the copyright text with current year', () => {
+    // Arrange
+    const year = new Date().getFullYear().toString()
+
+    // Act
     render(<Footer />)
 
-    const year = new Date().getFullYear().toString()
+    // Assert
     expect(screen.getByText(`Copyright ${year} Roxabi`)).toBeInTheDocument()
   })
 
-  it('renders the changelog link', () => {
+  it('should render the changelog link', () => {
+    // Arrange & Act
     render(<Footer />)
 
+    // Assert
     const link = screen.getByRole('link', { name: 'Changelog' })
     expect(link).toHaveAttribute('href', '/docs/changelog')
   })
 
-  it('renders the GitHub link', () => {
+  it('should render the GitHub link', () => {
+    // Arrange & Act
     render(<Footer />)
 
+    // Assert
     const link = screen.getByRole('link', { name: 'GitHub' })
     expect(link).toHaveAttribute('href', 'https://github.com/test/repo')
   })
 
-  it('opens the GitHub link in a new tab', () => {
+  it('should open the GitHub link in a new tab', () => {
+    // Arrange & Act
     render(<Footer />)
 
+    // Assert
     const link = screen.getByRole('link', { name: 'GitHub' })
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')

@@ -14,13 +14,15 @@ import { validate } from './config/env.validation.js'
 import { DatabaseModule } from './database/database.module.js'
 import { RbacModule } from './rbac/rbac.module.js'
 import { TenantModule } from './tenant/tenant.module.js'
+import { ThrottlerConfigModule } from './throttler/throttler.module.js'
 import { UserModule } from './user/user.module.js'
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['../../.env.local', '../../.env', '.env.local', '.env'],
+      // Load .env from monorepo root — all env vars are centralized there (no per-app .env files)
+      envFilePath: ['../../.env.local', '../../.env'],
       validate,
     }),
     ClsModule.forRoot({
@@ -42,6 +44,7 @@ import { UserModule } from './user/user.module.js'
     TenantModule,
     UserModule,
     RbacModule,
+    ThrottlerConfigModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],

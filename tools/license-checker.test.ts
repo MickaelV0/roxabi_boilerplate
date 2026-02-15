@@ -46,7 +46,7 @@ describe('policy loading', () => {
 
   it('loads a valid policy file', () => {
     writeFileSync(
-      join(tmpDir, 'license-policy.json'),
+      join(tmpDir, '.license-policy.json'),
       JSON.stringify({
         allowedLicenses: ['MIT', 'ISC'],
         overrides: { 'foo@1.0.0': 'MIT' },
@@ -58,12 +58,12 @@ describe('policy loading', () => {
   })
 
   it('throws when policy file is missing', () => {
-    expect(() => loadPolicy(tmpDir)).toThrow('No license-policy.json found at repo root')
+    expect(() => loadPolicy(tmpDir)).toThrow('No .license-policy.json found at repo root')
   })
 
   it('handles empty allowedLicenses (strict mode)', () => {
     writeFileSync(
-      join(tmpDir, 'license-policy.json'),
+      join(tmpDir, '.license-policy.json'),
       JSON.stringify({
         allowedLicenses: [],
         overrides: {},

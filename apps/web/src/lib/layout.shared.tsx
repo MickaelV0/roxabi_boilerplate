@@ -1,4 +1,5 @@
 import type { BaseLayoutProps, LinkItemType } from 'fumadocs-ui/layouts/shared'
+import { clientEnv } from './env.client.js'
 
 export function baseOptions(): BaseLayoutProps {
   const links: LinkItemType[] = [
@@ -9,7 +10,7 @@ export function baseOptions(): BaseLayoutProps {
     },
   ]
 
-  const githubUrl = import.meta.env.VITE_GITHUB_REPO_URL
+  const githubUrl = clientEnv.VITE_GITHUB_REPO_URL
   if (githubUrl) {
     links.push({
       text: 'GitHub',

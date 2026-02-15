@@ -10,12 +10,17 @@ import {
   Label,
   Separator,
 } from '@repo/ui'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 
+import { m } from '@/paraglide/messages'
+
 export const Route = createFileRoute('/demo/form/steps')({
   component: StepsFormPage,
+  head: () => ({
+    meta: [{ title: `${m.demo_form_steps_heading()} | Roxabi` }],
+  }),
 })
 
 type FormData = {
@@ -43,16 +48,20 @@ const initialFormData: FormData = {
   notifications: true,
 }
 
-const steps = [
-  { id: 1, name: 'Personal Info', description: 'Your basic information' },
-  { id: 2, name: 'Company', description: 'Tell us about your company' },
-  { id: 3, name: 'Preferences', description: 'Customize your experience' },
-]
-
 function StepsFormPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [isSubmitted, setIsSubmitted] = useState(false)
+
+  const steps = [
+    { id: 1, name: m.demo_form_steps_personal(), description: m.demo_form_steps_personal_desc() },
+    { id: 2, name: m.demo_form_steps_company(), description: m.demo_form_steps_company_desc() },
+    {
+      id: 3,
+      name: m.demo_form_steps_preferences(),
+      description: m.demo_form_steps_preferences_desc(),
+    },
+  ]
 
   const updateField = (field: keyof FormData, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -84,13 +93,20 @@ function StepsFormPage() {
     return (
       <div className="min-h-screen bg-background py-12">
         <div className="mx-auto max-w-lg px-6">
+          <Link
+            to="/demo"
+            className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronLeft className="size-4" />
+            {m.demo_back_to_demos()}
+          </Link>
           <Card className="text-center">
             <CardHeader>
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                <CheckCircle2 className="h-8 w-8 text-green-600" />
+                <CheckCircle2 className="size-8 text-green-600" />
               </div>
-              <CardTitle className="text-2xl">Thank You!</CardTitle>
-              <CardDescription>Your form has been submitted successfully.</CardDescription>
+              <CardTitle className="text-2xl">{m.demo_form_steps_thank_you()}</CardTitle>
+              <CardDescription>{m.demo_form_steps_submitted()}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="rounded-lg bg-muted p-4 text-left text-sm">
@@ -113,7 +129,7 @@ function StepsFormPage() {
             </CardContent>
             <CardFooter>
               <Button onClick={resetForm} className="w-full">
-                Start Over
+                {m.demo_form_steps_start_over()}
               </Button>
             </CardFooter>
           </Card>
@@ -125,10 +141,17 @@ function StepsFormPage() {
   return (
     <div className="min-h-screen bg-background py-12">
       <div className="mx-auto max-w-2xl px-6">
+        <Link
+          to="/demo"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="size-4" />
+          {m.demo_back_to_demos()}
+        </Link>
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold">Get Started</h1>
-          <p className="mt-2 text-muted-foreground">Complete the form to create your account</p>
+          <h1 className="text-3xl font-bold">{m.demo_form_steps_heading()}</h1>
+          <p className="mt-2 text-muted-foreground">{m.demo_form_steps_subtitle()}</p>
         </div>
 
         {/* Progress Steps */}
@@ -146,7 +169,7 @@ function StepsFormPage() {
                           : 'border-muted-foreground/30 text-muted-foreground'
                     }`}
                   >
-                    {currentStep > step.id ? <CheckCircle2 className="h-5 w-5" /> : step.id}
+                    {currentStep > step.id ? <CheckCircle2 className="size-5" /> : step.id}
                   </div>
                   <div className="mt-2 text-center">
                     <p
@@ -183,7 +206,7 @@ function StepsFormPage() {
               <div className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
+                    <Label htmlFor="firstName">{m.demo_form_steps_first_name()}</Label>
                     <Input
                       id="firstName"
                       placeholder="John"
@@ -192,7 +215,7 @@ function StepsFormPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
+                    <Label htmlFor="lastName">{m.demo_form_steps_last_name()}</Label>
                     <Input
                       id="lastName"
                       placeholder="Doe"
@@ -202,7 +225,7 @@ function StepsFormPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{m.demo_form_steps_email()}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -218,7 +241,7 @@ function StepsFormPage() {
             {currentStep === 2 && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="company">Company Name</Label>
+                  <Label htmlFor="company">{m.demo_form_steps_company_name()}</Label>
                   <Input
                     id="company"
                     placeholder="Acme Inc."
@@ -227,7 +250,7 @@ function StepsFormPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="role">Your Role</Label>
+                  <Label htmlFor="role">{m.demo_form_steps_your_role()}</Label>
                   <Input
                     id="role"
                     placeholder="Software Engineer"
@@ -236,7 +259,7 @@ function StepsFormPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="teamSize">Team Size</Label>
+                  <Label htmlFor="teamSize">{m.demo_form_steps_team_size()}</Label>
                   <Input
                     id="teamSize"
                     placeholder="10-50"
@@ -251,7 +274,7 @@ function StepsFormPage() {
             {currentStep === 3 && (
               <div className="space-y-6">
                 <div className="space-y-3">
-                  <Label>Select a Plan</Label>
+                  <Label>{m.demo_form_steps_select_plan()}</Label>
                   <div className="grid gap-3 sm:grid-cols-3">
                     {['starter', 'pro', 'enterprise'].map((plan) => (
                       <button
@@ -266,9 +289,9 @@ function StepsFormPage() {
                       >
                         <p className="font-medium capitalize">{plan}</p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {plan === 'starter' && 'Free forever'}
-                          {plan === 'pro' && '$19/month'}
-                          {plan === 'enterprise' && 'Custom pricing'}
+                          {plan === 'starter' && m.demo_form_steps_free_forever()}
+                          {plan === 'pro' && m.demo_form_steps_pro_price()}
+                          {plan === 'enterprise' && m.demo_form_steps_enterprise_price()}
                         </p>
                       </button>
                     ))}
@@ -277,9 +300,9 @@ function StepsFormPage() {
                 <Separator />
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Email Notifications</p>
+                    <p className="font-medium">{m.demo_form_steps_notifications()}</p>
                     <p className="text-sm text-muted-foreground">
-                      Receive updates about your account
+                      {m.demo_form_steps_notifications_desc()}
                     </p>
                   </div>
                   <button
@@ -292,7 +315,7 @@ function StepsFormPage() {
                     }`}
                   >
                     <span
-                      className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                      className={`absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition-transform ${
                         formData.notifications ? 'translate-x-5' : 'translate-x-0'
                       }`}
                     />
@@ -303,15 +326,15 @@ function StepsFormPage() {
           </CardContent>
           <CardFooter className="flex justify-between">
             <Button variant="outline" onClick={prevStep} disabled={currentStep === 1}>
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Back
+              <ChevronLeft className="mr-2 size-4" />
+              {m.demo_form_steps_back()}
             </Button>
             {currentStep === steps.length ? (
-              <Button onClick={handleSubmit}>Submit</Button>
+              <Button onClick={handleSubmit}>{m.demo_form_steps_submit()}</Button>
             ) : (
               <Button onClick={nextStep}>
-                Next
-                <ChevronRight className="ml-2 h-4 w-4" />
+                {m.demo_form_steps_next()}
+                <ChevronRight className="ml-2 size-4" />
               </Button>
             )}
           </CardFooter>

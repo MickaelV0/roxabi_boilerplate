@@ -37,6 +37,7 @@ vi.mock('@repo/ui', () => ({
       {children}
     </button>
   ),
+  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
 }))
 
 vi.mock('@tanstack/react-router', () => ({
@@ -91,85 +92,101 @@ vi.mock('next-themes', () => ({
 import { Header } from './Header'
 
 describe('Header', () => {
-  it('renders the Roxabi logo', () => {
+  it('should render the Roxabi logo', () => {
+    // Arrange & Act
     render(<Header />)
 
+    // Assert
     expect(screen.getByText('Roxabi')).toBeInTheDocument()
   })
 
-  it('renders navigation links', () => {
+  it('should render navigation links', () => {
+    // Arrange & Act
     render(<Header />)
 
+    // Assert
     expect(screen.getAllByText('nav_home').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('nav_docs').length).toBeGreaterThanOrEqual(1)
   })
 
-  it('renders the mobile menu toggle button', () => {
+  it('should render the mobile menu toggle button', () => {
+    // Arrange & Act
     render(<Header />)
 
+    // Assert
     const menuButton = screen.getByLabelText('menu_open')
     expect(menuButton).toBeInTheDocument()
   })
 
-  it('toggles mobile menu when clicking the menu button', () => {
+  it('should toggle mobile menu when clicking the menu button', () => {
+    // Arrange
     render(<Header />)
-
     const menuButton = screen.getByLabelText('menu_open')
+
+    // Act
     fireEvent.click(menuButton)
 
+    // Assert
     expect(screen.getByLabelText('menu_close')).toBeInTheDocument()
   })
 
-  it('links the logo to the home page', () => {
+  it('should link the logo to the home page', () => {
+    // Arrange & Act
     render(<Header />)
 
-    const logoLink = screen.getByText('Roxabi').closest('a')
+    // Assert
+    const logoLink = screen.getByRole('link', { name: 'Roxabi' })
     expect(logoLink).toHaveAttribute('href', '/')
   })
 
-  it('renders the Design System link in desktop nav', () => {
+  it('should render the Design System link in desktop nav', () => {
+    // Arrange & Act
     render(<Header />)
 
-    const links = screen.getAllByText('Design System')
+    // Assert
+    const links = screen.getAllByText('nav_design_system')
     expect(links.length).toBeGreaterThanOrEqual(1)
 
     const desktopLink = links[0]?.closest('a')
     expect(desktopLink).toHaveAttribute('href', '/design-system')
   })
 
-  it('renders the Design System link in mobile nav when open', () => {
+  it('should render the Design System link in mobile nav when open', () => {
+    // Arrange
     render(<Header />)
-
-    // Open mobile menu
     const menuButton = screen.getByLabelText('menu_open')
+
+    // Act
     fireEvent.click(menuButton)
 
-    // Both desktop and mobile links should exist
-    const links = screen.getAllByText('Design System')
+    // Assert
+    const links = screen.getAllByText('nav_design_system')
     expect(links.length).toBeGreaterThanOrEqual(2)
   })
 
-  it('closes mobile menu when Escape key is pressed', () => {
+  it('should close mobile menu when Escape key is pressed', () => {
+    // Arrange
     render(<Header />)
-
-    // Open mobile menu
     fireEvent.click(screen.getByLabelText('menu_open'))
     expect(screen.getByLabelText('menu_close')).toBeInTheDocument()
 
-    // Press Escape
+    // Act
     fireEvent.keyDown(document, { key: 'Escape' })
+
+    // Assert
     expect(screen.getByLabelText('menu_open')).toBeInTheDocument()
   })
 
-  it('closes mobile menu when clicking outside', () => {
+  it('should close mobile menu when clicking outside', () => {
+    // Arrange
     render(<Header />)
-
-    // Open mobile menu
     fireEvent.click(screen.getByLabelText('menu_open'))
     expect(screen.getByLabelText('menu_close')).toBeInTheDocument()
 
-    // Click outside (on document body)
+    // Act
     fireEvent.click(document.body)
+
+    // Assert
     expect(screen.getByLabelText('menu_open')).toBeInTheDocument()
   })
 })

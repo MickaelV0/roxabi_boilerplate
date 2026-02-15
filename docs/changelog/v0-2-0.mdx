@@ -1,0 +1,63 @@
+---
+title: v0.2.0
+description: Released 2026-02-15
+---
+
+Released on February 15, 2026.
+
+## Features
+- feat(env): harden env var validation across CI/CD pipeline (#197)
+- feat(ui,web): Claude Code presentation page + design system expansion (#145)
+- feat(api): rate limiting with Upstash Redis & Swagger gating (#148)
+- feat(db): local database isolation per worktree (#162)
+- feat(ui,web): UX & Design Audit — 41 findings implemented (#177)
+- feat(web): internationalize Claude Code presentation and demo routes
+- feat(web): add i18n page titles and design-system translation keys
+- feat(api): implement database seed script for dev essentials
+- feat(web): add catch-all route to render 404 page for unmatched paths
+- feat(web): add talks link to navbar
+- feat(issue-triage): add create command, parent/child management
+
+## Fixes
+- fix: apply 25 non-blocking findings from staging audit (#180)
+- fix: resolve 25 review findings across backend, frontend, devops, and tests (#149)
+- fix(env): address review findings for env var hardening
+- fix(web): use optional chaining for UnsavedChangesDialog callbacks
+- fix(web): make UnsavedChangesDialog props optional to match useBlocker types
+- fix(config): use wildcard env patterns in turbo.jsonc to prevent drift
+- fix(web): prioritize cookie and browser language over URL for locale detection
+- fix: replace dev trap with explicit dev:clean script for port cleanup
+- fix(web): exclude internal docs from production build to fix OOM
+- fix(web): preserve selected theme when editing non-color settings
+- fix: update license to BSL 1.1 and fix GitHub link in prod
+- fix(ci): install Vercel CLI and Turbo in deploy preview workflow
+- fix(ci): base64-encode database URL to bypass GitHub Actions secret masking
+- fix(ci): validate Neon secrets before API calls
+
+## Performance & Refactoring
+- perf(web): switch to async MDX loading and Rolldown bundler to fix OOM
+- refactor(web): extract sub-components from OrgSettingsPage to reduce cognitive complexity
+- refactor(web): overhaul presentation sections layout and content
+- refactor(agents): rename infra-ops to devops, add expert review to bootstrap
+- refactor(bootstrap): remove team spawn, use direct orchestration
+- refactor(promote): move changelog generation before merge to fix deploy race
+- test: align test suite with updated testing standards (#191)
+
+## Documentation
+- docs(guides): add RBAC and multi-tenant usage guides (#196)
+- docs(guides): expand troubleshooting guide with common issues (#195)
+- docs(deploy): update docs for Vercel Marketplace integration migration (#198)
+- docs(architecture): add frontend, CI/CD, multi-tenant, auth-security, RBAC subsystem docs (#169)
+- docs(infra): add analysis and spec for Vercel Marketplace migration
+- docs(env): add analysis and spec for env var hardening epic
+- docs(security): add analysis and spec for rate limiting & API security
+- docs(presentation): add analysis and spec for Claude Code talk page
+- docs(db): integrate branch database scripts into project documentation
+
+## Chores
+- chore(license): switch from BUSL-1.1 to MIT
+- chore(deps): bump actions/cache, setup-node, upload-artifact, checkout (#184, #186, #187, #188)
+- chore(deps): bump the minor-and-patch group with 3 updates (#189)
+- chore(deps): update outdated dependencies (#161)
+- chore(web): remove unused content-collections dependency
+- chore(config): align Biome schema version with CLI 2.3.15

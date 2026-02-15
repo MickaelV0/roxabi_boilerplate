@@ -1,7 +1,7 @@
 ---
 argument-hint: [--spec <number> | --issue <number>]
-description: Execute a feature from spec to PR — plans, scaffolds, spawns agents, implements, and opens the pull request.
-allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Edit, Task, Skill
+description: This skill should be used when the user wants to scaffold a feature, execute a spec, implement from a spec, or build a feature end-to-end. Triggers include "scaffold from spec", "implement this feature", "execute the spec", "build from spec", and "/scaffold --issue 42". Takes an approved spec and drives it to a PR — plans, scaffolds, spawns agents, and opens the pull request.
+allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Edit, Task, Skill, TeamCreate, TeamDelete, SendMessage
 ---
 
 # Scaffold
@@ -75,7 +75,7 @@ Analyze file paths from the spec to recommend agents:
 |-----------------|-------|
 | `apps/web/`, `packages/ui/` | `frontend-dev` |
 | `apps/api/`, `packages/types/` | `backend-dev` |
-| `packages/config/`, root configs | `infra-ops` |
+| `packages/config/`, root configs | `devops` |
 | `docs/` | `doc-writer` |
 
 **Always include:** `tester` (for any code change)
@@ -156,8 +156,13 @@ git fetch origin staging
 
 ```bash
 git worktree add ../roxabi-<issue_number> -b feat/<issue_number>-<slug> staging
-cd ../roxabi-<issue_number> && bun install
+cd ../roxabi-<issue_number> && cp .env.example .env && bun install
+cd apps/api && bun run db:branch:create --force <issue_number>
 ```
+
+The `.env.example` copy ensures the worktree has all required environment variables for local dev (e.g., `VITE_GITHUB_REPO_URL`, `API_URL`).
+
+The `--force` flag ensures non-interactive behavior (no prompts) when called from `/scaffold`. The `db:branch:create` script handles database creation, migration, seed, and `.env` update in a single step.
 
 All subsequent operations run in the worktree directory.
 

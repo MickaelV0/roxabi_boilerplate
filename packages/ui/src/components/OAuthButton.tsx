@@ -27,6 +27,8 @@ type OAuthButtonProps = React.ComponentProps<'button'> &
     provider: OAuthProvider
     /** Show loading spinner */
     loading?: boolean
+    /** Fallback label when no children provided. Overrides the default English label. */
+    fallbackLabel?: string
   }
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -87,10 +89,11 @@ function OAuthButton({
   loading = false,
   children,
   disabled,
+  fallbackLabel,
   ...props
 }: OAuthButtonProps) {
   const Icon = providerIcons[provider]
-  const label = children ?? `Sign in with ${providerLabels[provider]}`
+  const label = children ?? fallbackLabel ?? `Sign in with ${providerLabels[provider]}`
 
   return (
     <button

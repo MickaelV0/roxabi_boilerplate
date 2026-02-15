@@ -56,9 +56,9 @@ export interface LicenseReport {
 // ─── Policy Loading ──────────────────────────────────────────────────────────
 
 export function loadPolicy(repoRoot: string): LicensePolicy {
-  const policyPath = join(repoRoot, 'license-policy.json')
+  const policyPath = join(repoRoot, '.license-policy.json')
   if (!existsSync(policyPath)) {
-    throw new Error('No license-policy.json found at repo root')
+    throw new Error('No .license-policy.json found at repo root')
   }
   const raw = readFileSync(policyPath, 'utf-8')
   const policy = JSON.parse(raw) as LicensePolicy

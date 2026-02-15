@@ -1,49 +1,87 @@
 import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('./env.server.js', () => ({
+  env: { API_URL: 'http://localhost:4000', NODE_ENV: 'test' },
+}))
+
 import { createApiClient, getApiErrorData, isFetchError } from './api-client.server'
 
 describe('api-client', () => {
   describe('createApiClient', () => {
-    it('creates a client with the provided baseURL', () => {
+    it('should create a client with the provided baseURL', () => {
+      // Arrange & Act
       const client = createApiClient('http://test.example.com')
+
+      // Assert
       expect(client).toBeDefined()
       expect(typeof client).toBe('function')
     })
   })
 
   describe('isFetchError', () => {
-    it('returns true for FetchError-like objects', () => {
+    it('should return true for FetchError-like objects', () => {
+      // Arrange
       const fetchError = {
         data: { statusCode: 400, message: 'Bad Request' },
         status: 400,
       }
-      expect(isFetchError(fetchError)).toBe(true)
+
+      // Act
+      const result = isFetchError(fetchError)
+
+      // Assert
+      expect(result).toBe(true)
     })
 
-    it('returns false for null', () => {
-      expect(isFetchError(null)).toBe(false)
+    it('should return false for null', () => {
+      // Act
+      const result = isFetchError(null)
+
+      // Assert
+      expect(result).toBe(false)
     })
 
-    it('returns false for undefined', () => {
-      expect(isFetchError(undefined)).toBe(false)
+    it('should return false for undefined', () => {
+      // Act
+      const result = isFetchError(undefined)
+
+      // Assert
+      expect(result).toBe(false)
     })
 
-    it('returns false for primitive values', () => {
+    it('should return false for primitive values', () => {
+      // Act & Assert
       expect(isFetchError('error')).toBe(false)
       expect(isFetchError(123)).toBe(false)
       expect(isFetchError(true)).toBe(false)
     })
 
-    it('returns false for objects without data property', () => {
-      expect(isFetchError({ status: 400 })).toBe(false)
+    it('should return false for objects without data property', () => {
+      // Arrange
+      const error = { status: 400 }
+
+      // Act
+      const result = isFetchError(error)
+
+      // Assert
+      expect(result).toBe(false)
     })
 
-    it('returns false for objects without status property', () => {
-      expect(isFetchError({ data: {} })).toBe(false)
+    it('should return false for objects without status property', () => {
+      // Arrange
+      const error = { data: {} }
+
+      // Act
+      const result = isFetchError(error)
+
+      // Assert
+      expect(result).toBe(false)
     })
   })
 
   describe('getApiErrorData', () => {
-    it('extracts error data from a FetchError', () => {
+    it('should extract error data from a FetchError', () => {
+      // Arrange
       const errorData = {
         statusCode: 400,
         timestamp: '2025-01-01T00:00:00.000Z',
@@ -52,40 +90,51 @@ describe('api-client', () => {
         message: 'Bad Request',
       }
       const fetchError = { data: errorData, status: 400 }
-      expect(getApiErrorData(fetchError)).toEqual(errorData)
+
+      // Act
+      const result = getApiErrorData(fetchError)
+
+      // Assert
+      expect(result).toEqual(errorData)
     })
 
-    it('returns null for non-FetchError objects', () => {
+    it('should return null for non-FetchError objects', () => {
+      // Act & Assert
       expect(getApiErrorData(new Error('test'))).toBe(null)
       expect(getApiErrorData({})).toBe(null)
       expect(getApiErrorData(null)).toBe(null)
     })
 
-    it('returns null when FetchError has no data', () => {
+    it('should return null when FetchError has no data', () => {
+      // Arrange
       const fetchError = { data: null, status: 400 }
-      expect(getApiErrorData(fetchError)).toBe(null)
+
+      // Act
+      const result = getApiErrorData(fetchError)
+
+      // Assert
+      expect(result).toBe(null)
     })
   })
 
   describe('correlation ID header', () => {
-    it('sets x-correlation-id header on requests', async () => {
+    it('should set x-correlation-id header on requests', async () => {
+      // Arrange
       const client = createApiClient('http://test.example.com')
-
-      // Mock fetch to capture the request
-      const mockFetch = vi.fn().mockResolvedValue(
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
         new Response(JSON.stringify({ status: 'ok' }), {
           status: 200,
           headers: { 'content-type': 'application/json' },
         })
       )
-      const originalFetch = globalThis.fetch
-      globalThis.fetch = mockFetch
 
       try {
+        // Act
         await client('/health')
 
-        expect(mockFetch).toHaveBeenCalled()
-        const call = mockFetch.mock.calls[0] as [string, RequestInit | undefined]
+        // Assert
+        expect(fetchSpy).toHaveBeenCalled()
+        const call = fetchSpy.mock.calls[0] as [string, RequestInit | undefined]
         const [, requestInit] = call
         const headers = new Headers(requestInit?.headers)
         const correlationId = headers.get('x-correlation-id')
@@ -94,7 +143,7 @@ describe('api-client', () => {
           /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
         )
       } finally {
-        globalThis.fetch = originalFetch
+        fetchSpy.mockRestore()
       }
     })
   })

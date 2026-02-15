@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import { authClient } from '@/lib/auth-client'
 import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
@@ -28,33 +28,7 @@ vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => vi.fn(),
 }))
 
-vi.mock('@repo/ui', () => ({
-  Button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <button {...props}>{children}</button>
-  ),
-  Checkbox: ({
-    id,
-    ...props
-  }: {
-    id?: string
-    checked?: boolean
-    onCheckedChange?: (v: boolean) => void
-  }) => <input type="checkbox" id={id} {...props} />,
-  Input: (props: Record<string, unknown>) => <input {...props} />,
-  PasswordInput: (props: Record<string, unknown>) => <input {...props} />,
-  Label: ({
-    children,
-    htmlFor,
-    ...props
-  }: React.PropsWithChildren<{ htmlFor?: string; [key: string]: unknown }>) => (
-    <label htmlFor={htmlFor} {...props}>
-      {children}
-    </label>
-  ),
-  OAuthButton: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <button {...props}>{children}</button>
-  ),
-}))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
@@ -85,76 +59,132 @@ vi.mock('../components/AuthLayout', () => ({
   ),
 }))
 
+vi.mock('../components/OrDivider', () => ({
+  OrDivider: () => <hr />,
+}))
+
 mockParaglideMessages()
 
 // Import to trigger createFileRoute and capture the component
 import './login'
 
+function createDefaultLoaderData() {
+  return { google: true, github: true }
+}
+
 describe('LoginPage', () => {
-  beforeEach(() => {
-    captured.loaderData = { google: true, github: true }
-  })
-
-  it('should render email and password inputs', () => {
+  it('should render email and password inputs when component mounts', () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
     const LoginPage = captured.Component
+
+    // Act
     render(<LoginPage />)
 
-    expect(screen.getByLabelText('auth_email')).toBeInTheDocument()
-    expect(screen.getByLabelText('auth_password')).toBeInTheDocument()
+    // Assert
+    const panels = screen.getAllByRole('tabpanel')
+    const passwordPanel = panels[0] as HTMLElement
+    expect(within(passwordPanel).getByLabelText('auth_email')).toBeInTheDocument()
+    expect(within(passwordPanel).getByLabelText('auth_password')).toBeInTheDocument()
   })
 
-  it('should render sign in button', () => {
+  it('should render sign in button when component mounts', () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
     const LoginPage = captured.Component
+
+    // Act
     render(<LoginPage />)
 
+    // Assert
     expect(screen.getByRole('button', { name: 'auth_sign_in_button' })).toBeInTheDocument()
   })
 
-  it('should render OAuth buttons for Google and GitHub', () => {
+  it('should render OAuth buttons when Google and GitHub are enabled', () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
     const LoginPage = captured.Component
+
+    // Act
     render(<LoginPage />)
 
+    // Assert
     expect(screen.getByText('auth_sign_in_with_google')).toBeInTheDocument()
     expect(screen.getByText('auth_sign_in_with_github')).toBeInTheDocument()
   })
 
-  it('should render magic link section', () => {
+  it('should render tab triggers for Password and Magic Link when component mounts', () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
     const LoginPage = captured.Component
+
+    // Act
     render(<LoginPage />)
 
-    expect(screen.getByLabelText('auth_magic_link')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'auth_send_magic_link' })).toBeInTheDocument()
+    // Assert
+    expect(screen.getByRole('tab', { name: 'auth_tab_password' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'auth_tab_magic_link' })).toBeInTheDocument()
   })
 
-  it('should render forgot password link', () => {
+  it('should render magic link form in tab when component mounts', () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
     const LoginPage = captured.Component
+
+    // Act
     render(<LoginPage />)
 
-    const link = screen.getByText('auth_forgot_password')
-    expect(link).toBeInTheDocument()
-    expect(link.closest('a')).toHaveAttribute('href', '/reset-password')
+    // Assert
+    const panels = screen.getAllByRole('tabpanel')
+    const magicLinkPanel = panels[1] as HTMLElement
+    expect(within(magicLinkPanel).getByLabelText('auth_email')).toBeInTheDocument()
+    expect(
+      within(magicLinkPanel).getByRole('button', { name: 'auth_send_magic_link' })
+    ).toBeInTheDocument()
   })
 
-  it('should render register link', () => {
+  it('should render forgot password link when component mounts', () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
     const LoginPage = captured.Component
+
+    // Act
     render(<LoginPage />)
 
-    const link = screen.getByText('auth_register_link')
-    expect(link).toBeInTheDocument()
-    expect(link.closest('a')).toHaveAttribute('href', '/register')
+    // Assert
+    const link = screen.getByRole('link', { name: /auth_forgot_password/ })
+    expect(link).toHaveAttribute('href', '/reset-password')
+  })
+
+  it('should render register link when component mounts', () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
+    const LoginPage = captured.Component
+
+    // Act
+    render(<LoginPage />)
+
+    // Assert
+    const link = screen.getByRole('link', { name: /auth_register_link/ })
+    expect(link).toHaveAttribute('href', '/register')
   })
 
   it('should hide OAuth buttons when providers are not configured', () => {
+    // Arrange
     captured.loaderData = { google: false, github: false }
     const LoginPage = captured.Component
+
+    // Act
     render(<LoginPage />)
 
+    // Assert
     expect(screen.queryByText('auth_sign_in_with_google')).not.toBeInTheDocument()
     expect(screen.queryByText('auth_sign_in_with_github')).not.toBeInTheDocument()
   })
 
-  it('should display error message when signIn.email returns an error', async () => {
+  it('should display generic error message when signIn.email returns an error (security guardrail)', async () => {
     // Arrange
+    captured.loaderData = createDefaultLoaderData()
     vi.mocked(authClient.signIn.email).mockResolvedValueOnce({
       error: { message: 'Invalid credentials' },
       data: null,
@@ -163,8 +193,11 @@ describe('LoginPage', () => {
     const LoginPage = captured.Component
     render(<LoginPage />)
 
-    // Act
-    fireEvent.change(screen.getByLabelText('auth_email'), {
+    // Act -- target the password tab's email input via Testing Library
+    const panels = screen.getAllByRole('tabpanel')
+    const passwordPanel = panels[0] as HTMLElement
+    const emailInput = within(passwordPanel).getByLabelText('auth_email')
+    fireEvent.change(emailInput, {
       target: { value: 'user@example.com' },
     })
     fireEvent.change(screen.getByLabelText('auth_password'), {
@@ -172,9 +205,9 @@ describe('LoginPage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'auth_sign_in_button' }))
 
-    // Assert
+    // Assert -- always "Invalid email or password", never the backend message
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Invalid credentials')
+      expect(screen.getByRole('alert')).toHaveTextContent('auth_login_invalid_credentials')
     })
   })
 })

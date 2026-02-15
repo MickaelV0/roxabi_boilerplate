@@ -1,6 +1,6 @@
 ---
 name: agent-browser
-description: Browser automation CLI for AI agents. Use when the user needs to interact with websites, including navigating pages, filling forms, clicking buttons, taking screenshots, extracting data, testing web apps, or automating any browser task. Triggers include requests to "open a website", "fill out a form", "click a button", "take a screenshot", "scrape data from a page", "test this web app", "login to a site", "automate browser actions", or any task requiring programmatic web interaction.
+description: This skill provides browser automation using the agent-browser CLI. It should be used when the user asks to open a website, navigate web pages, fill out a form, click a button, take a screenshot, scrape or extract data from a page, test a web app in a browser, login to a site, automate browser actions, verify a deployment visually, or check what a page looks like. Triggers include "open a website", "take a screenshot", "scrape data", "test this web app", "verify the deployment", and "check what this page looks like".
 allowed-tools: Bash(agent-browser:*)
 ---
 

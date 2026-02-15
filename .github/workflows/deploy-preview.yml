@@ -31,7 +31,7 @@ jobs:
     if: inputs.target == 'web' || inputs.target == 'both'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -39,33 +39,42 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: node_modules
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Pull Vercel environment
-        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
-
-      - name: Build
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
 
       - name: Deploy
         id: deploy
         run: |
-          URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          for attempt in 1 2 3; do
+            if URL=$(vercel deploy --token "$VERCEL_TOKEN"); then break; fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::Deploy attempt $attempt/3 failed, retrying in 10s..."
+              sleep 10
+            else
+              echo "::error::All 3 deploy attempts failed"
+              exit 1
+            fi
+          done
           echo "url=$URL" >> "$GITHUB_OUTPUT"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
       - name: Summary
         run: |
@@ -78,32 +87,58 @@ jobs:
     if: inputs.target == 'api' || inputs.target == 'both'
     outputs:
       branch_id: ${{ steps.create.outputs.branch_id }}
-      database_url: ${{ steps.create.outputs.database_url }}
+      database_url_b64: ${{ steps.create.outputs.database_url_b64 }}
     steps:
+      - name: Validate Neon secrets
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+        run: |
+          if [ -z "$NEON_API_KEY" ] || [ -z "$NEON_PROJECT_ID" ]; then
+            echo "::error::Missing required secrets: NEON_API_KEY and/or NEON_PROJECT_ID are not configured"
+            exit 1
+          fi
+
       - name: Create Neon database branch
         id: create
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
         run: |
+          set -euo pipefail
+
+          # Retry helper: retry_cmd <max_attempts> <delay_seconds> <command...>
+          retry_cmd() {
+            local max=$1 delay=$2; shift 2
+            for attempt in $(seq 1 "$max"); do
+              if "$@"; then return 0; fi
+              if [ "$attempt" -lt "$max" ]; then
+                echo "::warning::Attempt $attempt/$max failed, retrying in ${delay}s..."
+                sleep "$delay"
+              fi
+            done
+            echo "::error::All $max attempts failed"
+            return 1
+          }
+
           BRANCH_NAME="preview/${GITHUB_REF_NAME}"
           # Sanitize: keep only alphanumeric, hyphens, underscores, slashes, dots
           BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._/-]//g')
 
           # Delete existing branch with same name (if any) to avoid conflicts
-          EXISTING=$(curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
+          EXISTING=$(retry_cmd 3 5 curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
             "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" \
             | jq -r --arg name "$BRANCH_NAME" '.branches[] | select(.name == $name) | .id')
 
           if [ -n "$EXISTING" ]; then
             echo "Deleting existing branch: $EXISTING"
-            curl -sf -X DELETE -H "Authorization: Bearer $NEON_API_KEY" \
+            retry_cmd 3 5 curl -sf -X DELETE -H "Authorization: Bearer $NEON_API_KEY" \
               "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$EXISTING"
           fi
 
           # Create new branch from the main branch
           PAYLOAD=$(jq -n --arg name "$BRANCH_NAME" '{branch: {name: $name}, endpoints: [{type: "read_write"}]}')
-          RESPONSE=$(curl -sf -X POST \
+          RESPONSE=$(retry_cmd 3 5 curl -sf -X POST \
             -H "Authorization: Bearer $NEON_API_KEY" \
             -H "Content-Type: application/json" \
             "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" \
@@ -116,6 +151,20 @@ jobs:
             exit 1
           fi
 
+          # Wait for Neon branch endpoint to be ready
+          for i in $(seq 1 12); do
+            STATUS=$(curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
+              "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID" \
+              | jq -r '.branch.current_state' || echo "error")
+            if [ "$STATUS" = "ready" ]; then break; fi
+            echo "Waiting for Neon branch... (attempt $i/12)"
+            sleep 5
+          done
+          if [ "$STATUS" != "ready" ]; then
+            echo "::error::Neon branch did not become ready after 60 seconds (last status: $STATUS)"
+            exit 1
+          fi
+
           # Get connection URI from the response
           CONNECTION_URI=$(echo "$RESPONSE" | jq -r '.connection_uris[0].connection_uri')
 
@@ -125,9 +174,12 @@ jobs:
           fi
 
           echo "branch_id=$BRANCH_ID" >> "$GITHUB_OUTPUT"
-          # Mask the connection string in logs
-          echo "::add-mask::$CONNECTION_URI"
-          echo "database_url=$CONNECTION_URI" >> "$GITHUB_OUTPUT"
+          # Base64-encode the connection URI to bypass GitHub Actions secret masking.
+          # GitHub suppresses job outputs that match registered secrets, which breaks
+          # cross-job secret passing. Encoding avoids the pattern match.
+          DB_URL_B64=$(echo -n "$CONNECTION_URI" | base64 -w0)
+          echo "::add-mask::$DB_URL_B64"
+          echo "database_url_b64=$DB_URL_B64" >> "$GITHUB_OUTPUT"
           echo "Created Neon branch: $BRANCH_NAME ($BRANCH_ID)"
 
   deploy-api:
@@ -136,11 +188,15 @@ jobs:
     needs: [create-neon-branch]
     if: inputs.target == 'api' || inputs.target == 'both'
     steps:
-      - name: Mask database URL
-        run: echo "::add-mask::${{ needs.create-neon-branch.outputs.database_url }}"
+      - name: Decode and mask database URL
+        id: db
+        run: |
+          DB_URL=$(echo "${{ needs.create-neon-branch.outputs.database_url_b64 }}" | base64 -d)
+          echo "::add-mask::$DB_URL"
+          echo "url=$DB_URL" >> "$GITHUB_OUTPUT"
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -148,34 +204,83 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: node_modules
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Pull Vercel environment
-        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
+      - name: Install Vercel CLI and Turbo
+        run: npm install -g vercel@latest turbo
 
-      - name: Build
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Initialize database if empty
+        working-directory: apps/api
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
-          DATABASE_URL: ${{ needs.create-neon-branch.outputs.database_url }}
-
-      - name: Deploy
-        id: deploy
+          DATABASE_URL: ${{ steps.db.outputs.url }}
         run: |
-          URL=$(vercel deploy --prebuilt --env DATABASE_URL=${{ needs.create-neon-branch.outputs.database_url }} --token=${{ secrets.VERCEL_TOKEN }})
+          set -euo pipefail
+          TABLE_COUNT=$(bun run scripts/check-db-schema.ts)
+          echo "Found $TABLE_COUNT tables in database"
+          if [ "$TABLE_COUNT" = "0" ] || [ -z "$TABLE_COUNT" ]; then
+            echo "::notice::Database is empty — running drizzle-kit push to create schema"
+            bunx drizzle-kit push --force
+          else
+            echo "Database has $TABLE_COUNT table(s) — skipping initialization"
+          fi
+
+      - name: Deploy API preview
+        id: deploy
+        # Note: DATABASE_URL is passed via step env to avoid direct secret
+        # interpolation in the shell command. The ::add-mask:: from earlier
+        # steps ensures the value is redacted in logs.
+        # Rate limiting uses in-memory storage in previews (no Upstash) — resets on cold start.
+        run: |
+          for attempt in 1 2 3; do
+            # --env overrides are intentional: DATABASE_URL points to an isolated Neon
+            # preview branch (not production), even when the Neon Marketplace integration
+            # injects a production DATABASE_URL into the project's environment variables.
+            if URL=$(vercel deploy --token "$VERCEL_TOKEN" \
+              --env "DATABASE_URL=$DATABASE_URL" \
+              --env "SWAGGER_ENABLED=true" \
+              --env "RATE_LIMIT_ENABLED=false"); then break; fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::Deploy attempt $attempt/3 failed, retrying in 10s..."
+              sleep 10
+            else
+              echo "::error::All 3 deploy attempts failed"
+              exit 1
+            fi
+          done
           echo "url=$URL" >> "$GITHUB_OUTPUT"
         env:
+          DATABASE_URL: ${{ steps.db.outputs.url }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Health check (best-effort)
+        continue-on-error: true
+        run: |
+          PREVIEW_URL="${{ steps.deploy.outputs.url }}"
+          echo "Checking preview URL: $PREVIEW_URL"
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$PREVIEW_URL" || echo "000")
+          echo "HTTP status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" = "401" ]; then
+            echo "::warning::Preview URL returned 401 — Vercel Deployment Protection (SSO) is enabled. Preview requires Vercel team authentication to access."
+          elif [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "302" ]; then
+            echo "Preview URL is accessible"
+          else
+            echo "::warning::Preview URL returned unexpected status $HTTP_STATUS"
+          fi
 
       - name: Summary
         run: |
@@ -183,6 +288,8 @@ jobs:
           echo "${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**Neon branch:** \`preview/${GITHUB_REF_NAME}\` (${{ needs.create-neon-branch.outputs.branch_id }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "> **Note:** If Vercel Deployment Protection is enabled, preview URLs return HTTP 401 and require Vercel team SSO authentication." >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "To clean up: re-run this workflow with target=cleanup (or delete via Neon console)" >> "$GITHUB_STEP_SUMMARY"
 

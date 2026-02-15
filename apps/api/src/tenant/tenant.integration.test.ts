@@ -56,6 +56,16 @@ describe.skipIf(!DATABASE_URL)('Tenant RLS Integration', () => {
     await db.execute(sql`
       SELECT create_tenant_rls_policy(${TEST_TABLE})
     `)
+
+    // Grant permissions to app_user so SET LOCAL ROLE works within transactions.
+    // Superusers bypass RLS entirely, so tests must run as the non-superuser
+    // app_user role created by the 0000_rls_infrastructure migration.
+    await db.execute(sql`
+      GRANT ALL ON TABLE ${sql.identifier(TEST_TABLE)} TO app_user
+    `)
+    await db.execute(sql`
+      GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_user
+    `)
   })
 
   afterEach(async () => {
@@ -92,6 +102,9 @@ describe.skipIf(!DATABASE_URL)('Tenant RLS Integration', () => {
     callback: (tx: typeof db) => Promise<T>
   ): Promise<T> {
     return db.transaction(async (tx) => {
+      // Switch to app_user role so RLS is enforced (superusers bypass RLS entirely).
+      // SET LOCAL scopes the role change to this transaction only.
+      await tx.execute(sql`SET LOCAL ROLE app_user`)
       await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`)
       return callback(tx as unknown as typeof db)
     })
@@ -146,7 +159,9 @@ describe.skipIf(!DATABASE_URL)('Tenant RLS Integration', () => {
     // When app.tenant_id is not set, current_setting returns empty string (due to `true` flag),
     // so no rows should match
     const result = await db.transaction(async (tx) => {
-      // Do NOT call set_config — simulate a request with no tenant context
+      // Switch to app_user so RLS applies, but do NOT call set_config —
+      // simulate a request with no tenant context
+      await tx.execute(sql`SET LOCAL ROLE app_user`)
       return tx.execute(sql`
         SELECT * FROM ${sql.identifier(TEST_TABLE)}
       `)
@@ -193,6 +208,7 @@ describe.skipIf(!DATABASE_URL)('Tenant RLS Integration', () => {
     // Act — open a new transaction without setting tenant context
     // The set_config with local=true should NOT persist across transactions
     const result = await db.transaction(async (tx) => {
+      await tx.execute(sql`SET LOCAL ROLE app_user`)
       return tx.execute(sql`
         SELECT * FROM ${sql.identifier(TEST_TABLE)}
       `)

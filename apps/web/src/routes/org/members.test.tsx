@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
@@ -14,53 +14,11 @@ vi.mock('@tanstack/react-router', () => ({
   redirect: vi.fn(),
 }))
 
-vi.mock('@repo/ui', () => ({
-  Badge: ({ children, variant, ...props }: React.PropsWithChildren<{ variant?: string }>) => (
-    <span data-variant={variant} {...props}>
-      {children}
-    </span>
-  ),
-  Button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <button {...props}>{children}</button>
-  ),
-  Card: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardHeader: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardTitle: ({ children }: React.PropsWithChildren) => <h3>{children}</h3>,
-  Dialog: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DialogClose: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DialogContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DialogFooter: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DialogHeader: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DialogTitle: ({ children }: React.PropsWithChildren) => <h2>{children}</h2>,
-  DialogTrigger: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  Input: (props: Record<string, unknown>) => <input {...props} />,
-  Label: ({
-    children,
-    htmlFor,
-    ...props
-  }: React.PropsWithChildren<{ htmlFor?: string; [key: string]: unknown }>) => (
-    <label htmlFor={htmlFor} {...props}>
-      {children}
-    </label>
-  ),
-  Select: ({
-    children,
-  }: React.PropsWithChildren<{ value?: string; onValueChange?: (v: string) => void }>) => (
-    <div>{children}</div>
-  ),
-  SelectContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  SelectItem: ({ children, value }: React.PropsWithChildren<{ value: string }>) => (
-    <option value={value}>{children}</option>
-  ),
-  SelectTrigger: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  SelectValue: () => <span />,
-}))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
     useActiveOrganization: vi.fn(() => ({ data: null })),
-    useActiveMember: vi.fn(() => ({ data: null })),
     organization: {
       inviteMember: vi.fn(),
       removeMember: vi.fn(),
@@ -68,6 +26,7 @@ vi.mock('@/lib/auth-client', () => ({
       cancelInvitation: vi.fn(),
     },
   },
+  useSession: vi.fn(() => ({ data: null })),
 }))
 
 vi.mock('sonner', () => ({
@@ -78,7 +37,7 @@ mockParaglideMessages()
 
 // Import after mocks to trigger createFileRoute and capture the component
 import './members'
-import { authClient } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/auth-client'
 
 // ---------------------------------------------------------------------------
 // Test data factories
@@ -116,6 +75,16 @@ function createInvitation(
   }
 }
 
+function permissionsForRole(role: string): string[] {
+  switch (role) {
+    case 'owner':
+    case 'admin':
+      return ['members:read', 'members:write', 'members:delete']
+    default:
+      return ['members:read']
+  }
+}
+
 function setupOrg({
   members = [createMember()],
   invitations = [] as ReturnType<typeof createInvitation>[],
@@ -135,9 +104,9 @@ function setupOrg({
     },
   } as unknown as ReturnType<typeof authClient.useActiveOrganization>)
 
-  vi.mocked(authClient.useActiveMember).mockReturnValue({
-    data: { id: 'me', role: activeMemberRole },
-  } as unknown as ReturnType<typeof authClient.useActiveMember>)
+  vi.mocked(useSession).mockReturnValue({
+    data: { permissions: permissionsForRole(activeMemberRole) },
+  } as unknown as ReturnType<typeof useSession>)
 }
 
 // ---------------------------------------------------------------------------
@@ -193,7 +162,7 @@ describe('OrgMembersPage', () => {
     const Page = captured.Component
     render(<Page />)
 
-    // Assert — appears in trigger button and dialog title
+    // Assert -- appears in trigger button and dialog title
     const inviteElements = screen.getAllByText('org_invite_title')
     expect(inviteElements.length).toBeGreaterThanOrEqual(1)
   })
@@ -206,7 +175,7 @@ describe('OrgMembersPage', () => {
     const Page = captured.Component
     render(<Page />)
 
-    // Assert — appears in trigger button and dialog title
+    // Assert -- appears in trigger button and dialog title
     const inviteElements = screen.getAllByText('org_invite_title')
     expect(inviteElements.length).toBeGreaterThanOrEqual(1)
   })
@@ -220,7 +189,7 @@ describe('OrgMembersPage', () => {
     render(<Page />)
 
     // Assert
-    // The invite title appears inside the dialog trigger — it should not render at all
+    // The invite title appears inside the dialog trigger -- it should not render at all
     const inviteButtons = screen.queryAllByText('org_invite_title')
     expect(inviteButtons.length).toBe(0)
   })
@@ -243,7 +212,7 @@ describe('OrgMembersPage', () => {
     const Page = captured.Component
     render(<Page />)
 
-    // Assert — only 1 remove button (for the non-owner member), not 2
+    // Assert -- only 1 remove button (for the non-owner member), not 2
     const removeButtons = screen.getAllByText('org_members_remove')
     expect(removeButtons).toHaveLength(1)
   })
@@ -283,7 +252,7 @@ describe('OrgMembersPage', () => {
   })
 
   it('should render role badges correctly for owner', () => {
-    // Arrange — a regular member viewing (no canManage), so owner role renders as Badge
+    // Arrange -- a regular member viewing (no canManage), so owner role renders as Badge
     setupOrg({
       members: [
         createMember({
@@ -306,7 +275,7 @@ describe('OrgMembersPage', () => {
   })
 
   it('should render role badges correctly for admin', () => {
-    // Arrange — a regular member viewing, so admin role renders as Badge
+    // Arrange -- a regular member viewing, so admin role renders as Badge
     setupOrg({
       members: [
         createMember({
@@ -329,7 +298,7 @@ describe('OrgMembersPage', () => {
   })
 
   it('should render role badges correctly for member', () => {
-    // Arrange — a regular member viewing, so member role renders as Badge
+    // Arrange -- a regular member viewing, so member role renders as Badge
     setupOrg({
       members: [
         createMember({
@@ -388,7 +357,7 @@ describe('OrgMembersPage', () => {
   })
 
   it('should render role select (not badge) for non-owner members when user can manage', () => {
-    // Arrange — owner viewing a regular member should see a Select, not a Badge
+    // Arrange -- owner viewing a regular member should see a Select, not a Badge
     setupOrg({
       members: [
         createMember({ id: 'm-dev', role: 'member', user: { name: 'Dev', email: 'dev@acme.com' } }),
@@ -400,7 +369,7 @@ describe('OrgMembersPage', () => {
     const Page = captured.Component
     render(<Page />)
 
-    // Assert — should see SelectItem options for admin and member
+    // Assert -- should see SelectItem options for admin and member
     const adminOptions = screen.getAllByText('org_role_admin')
     expect(adminOptions.length).toBeGreaterThanOrEqual(1)
     const memberOptions = screen.getAllByText('org_role_member')
@@ -408,7 +377,7 @@ describe('OrgMembersPage', () => {
   })
 
   it('should filter invitations to only show pending ones', () => {
-    // Arrange — provide a mix of pending and non-pending invitations
+    // Arrange -- provide a mix of pending and non-pending invitations
     setupOrg({
       invitations: [
         createInvitation({ id: 'inv-1', email: 'pending@acme.com', status: 'pending' }),
@@ -420,8 +389,101 @@ describe('OrgMembersPage', () => {
     const Page = captured.Component
     render(<Page />)
 
-    // Assert — only the pending invitation should be visible
+    // Assert -- only the pending invitation should be visible
     expect(screen.getByText('pending@acme.com')).toBeInTheDocument()
     expect(screen.queryByText('accepted@acme.com')).not.toBeInTheDocument()
+  })
+
+  it('should show search input (I9)', () => {
+    // Arrange
+    setupOrg()
+
+    // Act
+    const Page = captured.Component
+    render(<Page />)
+
+    // Assert
+    expect(screen.getByPlaceholderText('org_members_search_placeholder')).toBeInTheDocument()
+  })
+
+  it('should filter members by name when searching (I9)', () => {
+    // Arrange
+    setupOrg({
+      members: [
+        createMember({
+          id: 'm-alice',
+          role: 'member',
+          user: { name: 'Alice Smith', email: 'alice@acme.com' },
+        }),
+        createMember({
+          id: 'm-bob',
+          role: 'member',
+          user: { name: 'Bob Jones', email: 'bob@acme.com' },
+        }),
+      ],
+    })
+
+    const Page = captured.Component
+    render(<Page />)
+
+    // Act
+    const searchInput = screen.getByPlaceholderText('org_members_search_placeholder')
+    fireEvent.change(searchInput, { target: { value: 'Alice' } })
+
+    // Assert
+    expect(screen.getByText('Alice Smith')).toBeInTheDocument()
+    expect(screen.queryByText('Bob Jones')).not.toBeInTheDocument()
+  })
+
+  it('should filter members by email when searching (I9)', () => {
+    // Arrange
+    setupOrg({
+      members: [
+        createMember({
+          id: 'm-alice',
+          role: 'member',
+          user: { name: 'Alice Smith', email: 'alice@acme.com' },
+        }),
+        createMember({
+          id: 'm-bob',
+          role: 'member',
+          user: { name: 'Bob Jones', email: 'bob@acme.com' },
+        }),
+      ],
+    })
+
+    const Page = captured.Component
+    render(<Page />)
+
+    // Act
+    const searchInput = screen.getByPlaceholderText('org_members_search_placeholder')
+    fireEvent.change(searchInput, { target: { value: 'bob@' } })
+
+    // Assert
+    expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument()
+    expect(screen.getByText('Bob Jones')).toBeInTheDocument()
+  })
+
+  it('should show no-results message when search has no matches (I9)', () => {
+    // Arrange
+    setupOrg({
+      members: [
+        createMember({
+          id: 'm-alice',
+          role: 'member',
+          user: { name: 'Alice Smith', email: 'alice@acme.com' },
+        }),
+      ],
+    })
+
+    const Page = captured.Component
+    render(<Page />)
+
+    // Act
+    const searchInput = screen.getByPlaceholderText('org_members_search_placeholder')
+    fireEvent.change(searchInput, { target: { value: 'nonexistent' } })
+
+    // Assert
+    expect(screen.getByText('org_members_no_results')).toBeInTheDocument()
   })
 })

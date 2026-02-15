@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { and, eq } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import type { DrizzleDB } from '../database/drizzle.provider.js'
@@ -10,82 +10,7 @@ import { MemberNotFoundException } from './exceptions/member-not-found.exception
 import { OwnershipConstraintException } from './exceptions/ownership-constraint.exception.js'
 import { RoleNotFoundException } from './exceptions/role-not-found.exception.js'
 import { RoleSlugConflictException } from './exceptions/role-slug-conflict.exception.js'
-
-type DefaultRoleDefinition = {
-  name: string
-  slug: string
-  description: string
-  permissions: string[]
-}
-
-const DEFAULT_ROLES: DefaultRoleDefinition[] = [
-  {
-    name: 'Owner',
-    slug: 'owner',
-    description: 'Full access — organization owner',
-    permissions: [
-      'users:read',
-      'users:write',
-      'users:delete',
-      'organizations:read',
-      'organizations:write',
-      'organizations:delete',
-      'members:read',
-      'members:write',
-      'members:delete',
-      'invitations:read',
-      'invitations:write',
-      'invitations:delete',
-      'roles:read',
-      'roles:write',
-      'roles:delete',
-    ],
-  },
-  {
-    name: 'Admin',
-    slug: 'admin',
-    description: 'Manage members, roles, and invitations',
-    permissions: [
-      'users:read',
-      'users:write',
-      'organizations:read',
-      'organizations:write',
-      'members:read',
-      'members:write',
-      'members:delete',
-      'invitations:read',
-      'invitations:write',
-      'invitations:delete',
-      'roles:read',
-      'roles:write',
-      'roles:delete',
-    ],
-  },
-  {
-    name: 'Member',
-    slug: 'member',
-    description: 'Standard member access',
-    permissions: [
-      'users:read',
-      'organizations:read',
-      'members:read',
-      'invitations:read',
-      'roles:read',
-    ],
-  },
-  {
-    name: 'Viewer',
-    slug: 'viewer',
-    description: 'Read-only access',
-    permissions: [
-      'users:read',
-      'organizations:read',
-      'members:read',
-      'invitations:read',
-      'roles:read',
-    ],
-  },
-]
+import { DEFAULT_ROLES } from './rbac.constants.js'
 
 function slugify(name: string): string {
   return name
@@ -96,6 +21,8 @@ function slugify(name: string): string {
 
 @Injectable()
 export class RbacService {
+  private readonly logger = new Logger(RbacService.name)
+
   constructor(
     private readonly tenantService: TenantService,
     private readonly cls: ClsService
@@ -433,7 +360,10 @@ export class RbacService {
           })
           .returning()
 
-        if (!role) continue
+        if (!role) {
+          this.logger.warn(`Failed to insert default role "${def.name}" for org ${organizationId}`)
+          continue
+        }
 
         await this.syncPermissions(tx, role.id, def.permissions)
       }

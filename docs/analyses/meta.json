@@ -30,6 +30,11 @@
     "process-retrospective-2026-02-12",
     "ux-audit",
     "design-audit",
-    "132-ci-db-migrations"
+    "132-ci-db-migrations",
+    "presentation-claude-code",
+    "53-rate-limiting-api-security",
+    "local-db-isolation",
+    "181-vercel-marketplace-migration",
+    "158-env-var-hardening"
   ]
 }

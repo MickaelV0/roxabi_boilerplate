@@ -42,6 +42,7 @@ export class DatabaseModule implements OnModuleInit, OnModuleDestroy {
 
     const client = this.client
     await this.ping(client)
+    await this.checkCoreTables(client)
     await this.checkPendingMigrations(client)
   }
 
@@ -52,6 +53,35 @@ export class DatabaseModule implements OnModuleInit, OnModuleDestroy {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       throw new Error(`Database connection failed: ${message}`)
+    }
+  }
+
+  private async checkCoreTables(client: PostgresClient) {
+    const coreTables = ['users', 'sessions', 'accounts', 'verifications'] as const
+
+    try {
+      const rows = await client`
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name IN ${client(coreTables)}
+      `
+      const existing = new Set(rows.map((r) => r.table_name as string))
+      const missing = coreTables.filter((t) => !existing.has(t))
+
+      if (missing.length > 0) {
+        this.logger.warn(
+          `Missing core tables: ${missing.join(', ')}. ` +
+            'These tables are created by Better Auth at first startup. ' +
+            'Run "drizzle-kit push --force" to create all tables from the schema, ' +
+            'or start the app with a valid DATABASE_URL to let Better Auth create them.'
+        )
+      } else {
+        this.logger.log('All core tables verified')
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      this.logger.warn(`Could not verify core tables: ${message}`)
     }
   }
 

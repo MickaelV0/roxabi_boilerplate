@@ -1,6 +1,7 @@
 ---
 title: "Agent Teams Architecture (Multi-Agent Swarm)"
 description: Implement a 10-agent team architecture using Claude Code Agent Teams to replace the single-agent, skill-invoked model.
+status: implemented
 ---
 
 ## Context
@@ -107,7 +108,7 @@ tools: ["Tool1", "Tool2"]
 |-------|-------|-------|-------|-----------------|
 | `frontend-dev` | inherit | cyan | Read, Write, Edit, Glob, Grep, Bash | `apps/web`, `packages/ui` |
 | `backend-dev` | inherit | green | Read, Write, Edit, Glob, Grep, Bash | `apps/api`, `packages/types` |
-| `infra-ops` | inherit | yellow | Read, Write, Edit, Glob, Grep, Bash | `packages/config`, root configs |
+| `devops` | inherit | yellow | Read, Write, Edit, Glob, Grep, Bash | `packages/config`, root configs |
 
 #### Tier 2 — Quality Agents (verification)
 
@@ -157,7 +158,7 @@ How to interact with teammates:
 |-------|-------------------|
 | `frontend-dev` | `docs/standards/frontend-patterns.mdx` |
 | `backend-dev` | `docs/standards/backend-patterns.mdx` |
-| `infra-ops` | `docs/configuration.mdx` |
+| `devops` | `docs/configuration.mdx` |
 | `reviewer` | `docs/standards/code-review.mdx` |
 | `tester` | `docs/standards/testing.mdx` |
 | `security-auditor` | OWASP top 10 + `.claude/hooks/security-check.js` patterns |
@@ -212,7 +213,7 @@ BEFORE writing any code, you MUST read:
 - Commits using Conventional Commits format: `<type>(<scope>): <description>`
 
 ## Boundaries
-- NEVER modify files in `apps/api/` or `packages/config/` — those belong to backend-dev and infra-ops
+- NEVER modify files in `apps/api/` or `packages/config/` — those belong to backend-dev and devops
 - NEVER modify `docs/` — that belongs to doc-writer
 - If you need an API endpoint or type change, create a task for backend-dev and message the lead
 - If you encounter a security concern, message security-auditor
@@ -286,7 +287,7 @@ No additional configuration files (e.g., `.claude/teams/`) are needed for v1. Ag
   agents/
     frontend-dev.md
     backend-dev.md
-    infra-ops.md
+    devops.md
     reviewer.md
     tester.md
     security-auditor.md

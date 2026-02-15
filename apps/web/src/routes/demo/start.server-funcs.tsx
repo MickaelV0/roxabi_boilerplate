@@ -1,8 +1,11 @@
 import fs from 'node:fs'
 import { Button, Card, CardContent, CardHeader, CardTitle, Input } from '@repo/ui'
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { ChevronLeft } from 'lucide-react'
 import { useCallback, useState } from 'react'
+import { env } from '@/lib/env.server.js'
+import { m } from '@/paraglide/messages'
 
 /*
 const loggingMiddleware = createMiddleware().server(
@@ -36,7 +39,7 @@ async function readTodos() {
 const getTodos = createServerFn({
   method: 'GET',
 }).handler(async () => {
-  if (import.meta.env.VITE_ENABLE_DEMO !== 'true') {
+  if (env.VITE_ENABLE_DEMO !== 'true') {
     throw new Error('Not Found')
   }
   return await readTodos()
@@ -45,7 +48,7 @@ const getTodos = createServerFn({
 const addTodo = createServerFn({ method: 'POST' })
   .inputValidator((d: string) => d)
   .handler(async ({ data }) => {
-    if (import.meta.env.VITE_ENABLE_DEMO !== 'true') {
+    if (env.VITE_ENABLE_DEMO !== 'true') {
       throw new Error('Not Found')
     }
     const todos = await readTodos()
@@ -57,6 +60,9 @@ const addTodo = createServerFn({ method: 'POST' })
 export const Route = createFileRoute('/demo/start/server-funcs')({
   component: Home,
   loader: async () => await getTodos(),
+  head: () => ({
+    meta: [{ title: `${m.demo_server_heading()} | Roxabi` }],
+  }),
 })
 
 function Home() {
@@ -74,16 +80,21 @@ function Home() {
   return (
     <div className="min-h-screen bg-background py-12">
       <div className="mx-auto max-w-2xl px-6">
+        <Link
+          to="/demo"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="size-4" />
+          {m.demo_back_to_demos()}
+        </Link>
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold">Server Functions</h1>
-          <p className="mt-2 text-muted-foreground">
-            TanStack Start server functions with file-based persistence
-          </p>
+          <h1 className="text-3xl font-bold">{m.demo_server_heading()}</h1>
+          <p className="mt-2 text-muted-foreground">{m.demo_server_subtitle()}</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Todos</CardTitle>
+            <CardTitle>{m.demo_server_todos()}</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="mb-4 space-y-2">
@@ -103,10 +114,10 @@ function Home() {
                     submitTodo()
                   }
                 }}
-                placeholder="Enter a new todo..."
+                placeholder={m.demo_server_placeholder()}
               />
               <Button type="button" disabled={todo.trim().length === 0} onClick={submitTodo}>
-                Add todo
+                {m.demo_server_add()}
               </Button>
             </div>
           </CardContent>

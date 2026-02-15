@@ -6,7 +6,7 @@ description: "Multi-agent debate on development process improvements across work
 **Date:** 2026-02-12
 **Branch:** staging (commit cf98e89)
 **Facilitator:** product-lead
-**Participants:** architect, reviewer, security-auditor, tester, doc-writer
+**Participants:** architect, reviewer (now fixer), security-auditor, tester, doc-writer
 
 ---
 
@@ -365,13 +365,13 @@ Transition rule: when a spec's PR merges, doc-writer marks the analysis as `impl
 | 1 | Security hardening sprint (C-1 to C-4) | backend-dev + security-auditor | **P0** | L |
 | 2 | Write AuthService + ZodValidationPipe + fastify-headers tests | tester | **P0** | M |
 | 3 | Add "Security Considerations" to spec template | product-lead | **P0** | XS |
-| 4 | Add `bun audit` + semgrep to CI | infra-ops | **P1** | S |
+| 4 | Add `bun audit` + semgrep to CI | devops | **P1** | S |
 | 5 | Trim CLAUDE.md to ~120 lines | doc-writer | **P1** | S |
-| 6 | CI docs-lint script (env vars, ports, links) | infra-ops | **P1** | S |
+| 6 | CI docs-lint script (env vars, ports, links) | devops | **P1** | S |
 | 7 | Update dev-process: F-lite/F-full tracks, test-first ordering | doc-writer | **P1** | S |
 | 8 | Bake self-review checklist into agent .md files | doc-writer | **P1** | S |
-| 9 | Add security hook patterns (sql.raw, Zod defaults, XSS to blocking) | infra-ops | **P1** | S |
-| 10 | Mandatory security-auditor path filter in CI | infra-ops | **P2** | M |
+| 9 | Add security hook patterns (sql.raw, Zod defaults, XSS to blocking) | devops | **P1** | S |
+| 10 | Mandatory security-auditor path filter in CI | devops | **P2** | M |
 | 11 | Analysis lifecycle: status frontmatter + auto-index | doc-writer | **P2** | S |
 | 12 | Auth E2E tests (5 core flows) | tester | **P1** | M |
 

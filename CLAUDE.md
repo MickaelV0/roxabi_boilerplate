@@ -8,7 +8,8 @@
 - **Always** use `AskUserQuestion` for multiple-choice questions — never ask in plain text
 - **Never** commit without asking, push without explicit request, or use `--force`/`--hard`/`--amend`
 - **Always** use the appropriate skill (see [Available Skills](#available-skills)) even without a slash command
-- **Before writing code:** Read the relevant standards doc (see [Rule 7](#7-coding-standards-critical))
+- **Before writing code:** Read the relevant standards doc (see [Rule 8](#8-coding-standards-critical))
+- **Orchestrator** delegates all code/docs/deploy changes to agents — only minor fixes directly
 
 ---
 
@@ -65,7 +66,24 @@ If you find yourself writing "Do you want me to...", "Should I...", "Do you pref
 
 ---
 
-### 3. Parallel Execution for Large Tasks
+### 3. Orchestrator Delegation (CRITICAL)
+
+**The orchestrator (main Claude session) must NOT directly modify code or documentation files.** Delegate all changes to the appropriate specialized agent:
+
+- **Frontend code** → `frontend-dev`
+- **Backend code** → `backend-dev`
+- **Configuration / infra / deployment** → `devops`
+- **Documentation** → `doc-writer`
+- **Tests** → `tester`
+- **Review fixes** → `fixer`
+
+**Exception:** Truly minor changes (typo fix, single-line config tweak) may be done directly by the orchestrator when spawning an agent would be disproportionate overhead. Use judgment — if in doubt, delegate.
+
+**Deployment tasks** (preview deploys, production deploys, Vercel CLI operations, env var management) **MUST be handled by the `devops` agent**, never by the orchestrator directly.
+
+---
+
+### 4. Parallel Execution for Large Tasks
 
 When detecting a large workload (3+ complex tasks, migrations, or multi-component implementations), **ALWAYS propose execution mode** using `AskUserQuestion`:
 - **Sequential**: One task at a time, better control
@@ -73,7 +91,7 @@ When detecting a large workload (3+ complex tasks, migrations, or multi-componen
 
 ---
 
-### 4. Git Commits
+### 5. Git Commits
 
 - **ALWAYS ask before committing** unless explicitly requested
 - Format: `<type>(<scope>): <description>` with `Co-Authored-By: Claude <model> <noreply@anthropic.com>`
@@ -85,13 +103,15 @@ When detecting a large workload (3+ complex tasks, migrations, or multi-componen
 
 ---
 
-### 5. Mandatory Worktree (All Tiers) (CRITICAL)
+### 6. Mandatory Worktree (All Tiers) (CRITICAL)
 
 **ALL code changes require a worktree. Create worktree BEFORE coding:**
 
 ```bash
 git worktree add ../roxabi-XXX -b feat/XXX-slug staging
 cd ../roxabi-XXX
+cp .env.example .env && bun install
+cd apps/api && bun run db:branch:create --force XXX
 ```
 
 > XXX = GitHub issue number (e.g., 123), slug = short description
@@ -100,11 +120,13 @@ cd ../roxabi-XXX
 
 **Bootstrap exception:** `/bootstrap` commits analysis and spec documents (`docs/analyses/`, `docs/specs/`) directly to staging. These are documentation artifacts, not code changes, and are produced before scaffold creates a worktree.
 
+**Promote exception:** `/promote` commits changelog and release notes (`CHANGELOG.md`, `docs/changelog/`) directly to staging before creating the staging→main promotion PR. These are release artifacts, not code changes.
+
 **FORBIDDEN: Modifying code files on main/staging without a worktree.**
 
 ---
 
-### 6. Code Review (CRITICAL)
+### 7. Code Review (CRITICAL)
 
 **When reviewing PRs or code: MUST read [docs/standards/code-review.mdx](docs/standards/code-review.mdx).**
 
@@ -114,7 +136,7 @@ cd ../roxabi-XXX
 
 ---
 
-### 7. Coding Standards (CRITICAL)
+### 8. Coding Standards (CRITICAL)
 
 **When writing or modifying code: MUST read the relevant standards doc.**
 
@@ -133,7 +155,7 @@ cd ../roxabi-XXX
 | Trigger | Skill | Examples |
 |---------|-------|----------|
 | issues, list issues | `issues` | "list GitHub issues", "/issues" |
-| issue triage, labeling, status update | `issue-triage` | "triage issues", "label open issues", "update issue status" |
+| issue triage, create issue, parent/child, blocked by | `issue-triage` | "triage issues", "create issue", "set parent", "add child", "blocked by" |
 | interview, spec, brainstorm, analysis | `interview` | "create a spec", "interview for feature", "brainstorm ideas" |
 | cleanup, git cleanup | `cleanup` | "clean branches", "cleanup worktrees", "/cleanup" |
 | commit, stage, git commit | `commit` | "commit changes", "commit staged files", "/commit --all" |
@@ -145,7 +167,7 @@ cd ../roxabi-XXX
 | 1b1, one by one, walk through | `1b1` | "go through these one by one", "/1b1" |
 | adr, architecture decision | `adr` | "create an ADR", "list ADRs", "/adr --list" |
 | browser, open website, screenshot | `agent-browser` | "open a website", "take a screenshot", "/agent-browser" |
-| documentation, library docs, lookup | `context7` | "look up React docs", "check API reference", "/context7" |
+| documentation, library docs, lookup | `context7` (plugin) | "look up React docs", "check API reference", "/context7" |
 | promote, release, staging to main, finalize | `promote` | "promote staging", "release to production", "/promote", "/promote --finalize" |
 | deploy, vercel deploy | `vercel:deploy` | "deploy to Vercel", "push to production", "go live" |
 | vercel setup, configure vercel | `vercel:setup` | "set up Vercel", "configure Vercel", "link to Vercel" |
@@ -164,17 +186,17 @@ Specialized agents for multi-agent coordination. Requires `CLAUDE_CODE_EXPERIMEN
 
 ### Available Agents
 
-| Agent | Tier | Domain | Permission | Tools |
-|-------|------|--------|------------|-------|
-| `frontend-dev` | Domain | `apps/web`, `packages/ui` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
-| `backend-dev` | Domain | `apps/api`, `packages/types` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
-| `infra-ops` | Domain | `packages/config`, root configs | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
-| `fixer` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, SendMessage |
-| `tester` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
-| `security-auditor` | Quality | All packages | plan | Read, Glob, Grep, Bash, WebSearch, Task, SendMessage |
-| `architect` | Strategy | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage |
-| `product-lead` | Strategy | `docs/analyses/`, `docs/specs/`, GitHub issues | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage |
-| `doc-writer` | Strategy | `docs/`, `CLAUDE.md` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage |
+| Agent | Tier | Domain | Permission | Tools | Deny |
+|-------|------|--------|------------|-------|------|
+| `frontend-dev` | Domain | `apps/web`, `packages/ui` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage | — |
+| `backend-dev` | Domain | `apps/api`, `packages/types` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage | — |
+| `devops` | Domain | `packages/config`, root configs | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage | — |
+| `fixer` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, SendMessage | — |
+| `tester` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage | — |
+| `security-auditor` | Quality | All packages | plan | Read, Glob, Grep, Bash, WebSearch, Task, SendMessage | Write, Edit |
+| `architect` | Strategy | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage | — |
+| `product-lead` | Strategy | `docs/analyses/`, `docs/specs/`, GitHub issues | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage | — |
+| `doc-writer` | Strategy | `docs/`, `CLAUDE.md` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage | — |
 
 ### Routing Decision Tree
 
@@ -191,22 +213,22 @@ Is this a code change?
     │   ├── /scaffold (spec → PR, skip bootstrap):
     │   │   ├── Single-domain → subagents (Task tool)
     │   │   └── Multi-domain  → Agent Teams (TeamCreate)
-    │   │   ├── Frontend? → frontend-dev + tester
-    │   │   ├── Backend?  → backend-dev + tester
-    │   │   ├── Full-stack? → frontend-dev + backend-dev + tester
-    │   │   └── Security-sensitive? → + security-auditor
+    │   │       ├── Frontend? → frontend-dev + tester
+    │   │       ├── Backend?  → backend-dev + tester
+    │   │       ├── Full-stack? → frontend-dev + backend-dev + tester
+    │   │       └── Security-sensitive? → + security-auditor
     │   └── Then /review (fresh domain reviewers + 1b1 + fixer)
     │
     └── Tier F-full (new arch, unclear requirements, >2 domains)
-        ├── /bootstrap (idea → spec): product-lead + architect + doc-writer
+        ├── /bootstrap (idea → spec): direct orchestration + expert review (architect, doc-writer, devops, product-lead — configurable)
         ├── /scaffold (spec → PR):
         │   ├── Single-domain → subagents (Task tool)
         │   └── Multi-domain  → Agent Teams (TeamCreate)
-        │   ├── Frontend? → frontend-dev + tester
-        │   ├── Backend?  → backend-dev + tester
-        │   ├── Full-stack? → frontend-dev + backend-dev + tester
-        │   ├── Large scope? → + architect + doc-writer
-        │   └── Security-sensitive? → + security-auditor
+        │       ├── Frontend? → frontend-dev + tester
+        │       ├── Backend?  → backend-dev + tester
+        │       ├── Full-stack? → frontend-dev + backend-dev + tester
+        │       ├── Large scope? → + architect + doc-writer
+        │       └── Security-sensitive? → + security-auditor
         └── Then /review (fresh domain reviewers + 1b1 + fixer)
 ```
 
@@ -245,7 +267,7 @@ Agent definitions: `.claude/agents/*.md`
 
 ### Deployment
 
-Both apps deploy to **Vercel** automatically on push to `main`. See [docs/guides/deployment.mdx](docs/guides/deployment.mdx) for full setup.
+Both apps deploy to **Vercel** automatically on push to `main`. Preview deploys are triggered by pushing to `staging` via the GitHub CD pipeline. **Do NOT use `vercel` CLI to trigger preview or production deploys — always go through CI/CD.** See [docs/guides/deployment.mdx](docs/guides/deployment.mdx) for full setup.
 
 | Project | Root Directory | Framework |
 |---------|---------------|-----------|
@@ -254,7 +276,9 @@ Both apps deploy to **Vercel** automatically on push to `main`. See [docs/guides
 
 #### Vercel CLI
 
-The `vercel` CLI is available for deployment management:
+The `vercel` CLI is available for **management tasks only** (listing deployments, env vars, logs, inspect). **All deployment tasks must be delegated to the `devops` agent.** Do NOT use the CLI to trigger deploys — use `git push` to `staging` (preview) or `main` (production) instead.
+
+> **Important:** Always run `vercel` commands from the **repository root**, not from `apps/web` or `apps/api`. The Vercel project linking and TurboRepo build pipeline expect the root as the working directory.
 
 ```bash
 vercel ls                        # List deployments
@@ -262,11 +286,9 @@ vercel env ls                    # List environment variables
 vercel env add SECRET_NAME       # Add environment variable
 vercel logs <url>                # View deployment logs
 vercel inspect <url>             # Inspect a deployment
-vercel promote <url>             # Promote to production
-vercel redeploy                  # Trigger a redeploy
 ```
 
-**Prefer Vercel CLI over browser automation** for deployment tasks (env vars, redeploys, logs, rollbacks). When browser interaction is needed (e.g., initial project creation, visual verification), use the `/agent-browser` skill.
+**Deploys must go through CI/CD** (`git push` to `staging` or `main`). Use the Vercel CLI only for management tasks (env vars, logs, inspect). When browser interaction is needed (e.g., initial project creation, visual verification), use the `/agent-browser` skill.
 
 ### Hooks
 
