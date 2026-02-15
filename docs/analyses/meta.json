@@ -33,6 +33,8 @@
     "132-ci-db-migrations",
     "presentation-claude-code",
     "53-rate-limiting-api-security",
-    "local-db-isolation"
+    "local-db-isolation",
+    "181-vercel-marketplace-migration",
+    "158-env-var-hardening"
   ]
 }

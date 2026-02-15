@@ -30,6 +30,7 @@
     "33-tanstack-start-i18n-integration",
     "64-paraglide-i18n-migration",
     "53-rate-limiting-api-security",
-    "local-db-isolation"
+    "local-db-isolation",
+    "158-env-var-hardening"
   ]
 }
