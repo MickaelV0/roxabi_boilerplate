@@ -2,7 +2,7 @@
   "name": "roxabi-boilerplate",
   "version": "0.1.0",
   "private": true,
-  "license": "BUSL-1.1",
+  "license": "MIT",
   "workspaces": [
     "apps/*",
     "packages/*"
