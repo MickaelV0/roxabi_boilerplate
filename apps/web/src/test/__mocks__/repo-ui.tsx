@@ -18,7 +18,21 @@
 // Utilities
 // ---------------------------------------------------------------------------
 
+/**
+ * Simplified mock: filter + join. Diverges from the real cn() which uses
+ * clsx + tailwind-merge (class deduplication & conflict resolution).
+ * Do NOT rely on this mock for class-assertion tests.
+ */
 export const cn = (...args: unknown[]) => args.filter(Boolean).join(' ')
+
+// ---------------------------------------------------------------------------
+// Animation
+// ---------------------------------------------------------------------------
+
+export const AnimatedSection = ({
+  children,
+  className,
+}: React.PropsWithChildren<{ className?: string }>) => <div className={className}>{children}</div>
 
 // ---------------------------------------------------------------------------
 // Layout / Card

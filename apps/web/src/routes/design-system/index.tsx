@@ -100,7 +100,9 @@ const HEADING_EXAMPLES = [
 // before React hydrates.
 // ---------------------------------------------------------------------------
 
-/** @security STORAGE_KEY MUST remain a hardcoded constant. Never interpolate user input. */
+/** @security The entire dangerouslySetInnerHTML template literal must not interpolate
+ *  user-controlled values. STORAGE_KEY must remain a hardcoded constant and no other
+ *  dynamic sources should be injected into the inline script. */
 function ThemeScript() {
   const script = `
 (function() {
