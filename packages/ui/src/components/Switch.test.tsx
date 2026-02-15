@@ -3,52 +3,83 @@ import { describe, expect, it, vi } from 'vitest'
 import { Switch } from './Switch'
 
 describe('Switch', () => {
-  it('renders correctly', () => {
+  it('should render correctly', () => {
+    // Arrange & Act
     render(<Switch aria-label="Toggle" />)
+
+    // Assert
     expect(screen.getByRole('switch')).toBeInTheDocument()
   })
 
-  it('has data-slot attribute', () => {
+  it('should have data-slot attribute when rendered', () => {
+    // Arrange & Act
     render(<Switch aria-label="Toggle" />)
+
+    // Assert
     expect(screen.getByRole('switch')).toHaveAttribute('data-slot', 'switch')
   })
 
-  it('is unchecked by default', () => {
+  it('should be unchecked by default', () => {
+    // Arrange & Act
     render(<Switch aria-label="Toggle" />)
+
+    // Assert
     expect(screen.getByRole('switch')).toHaveAttribute('data-state', 'unchecked')
   })
 
-  it('toggles when clicked', () => {
+  it('should toggle when clicked', () => {
+    // Arrange
     render(<Switch aria-label="Toggle" />)
     const switchEl = screen.getByRole('switch')
+
+    // Act
     fireEvent.click(switchEl)
+
+    // Assert
     expect(switchEl).toHaveAttribute('data-state', 'checked')
   })
 
-  it('can be controlled with defaultChecked', () => {
+  it('should be checked when defaultChecked is set', () => {
+    // Arrange & Act
     render(<Switch aria-label="Toggle" defaultChecked />)
+
+    // Assert
     expect(screen.getByRole('switch')).toHaveAttribute('data-state', 'checked')
   })
 
-  it('can be disabled', () => {
+  it('should be disabled when disabled prop is set', () => {
+    // Arrange & Act
     render(<Switch aria-label="Toggle" disabled />)
+
+    // Assert
     expect(screen.getByRole('switch')).toBeDisabled()
   })
 
-  it('calls onCheckedChange when toggled', () => {
+  it('should call onCheckedChange when toggled', () => {
+    // Arrange
     const handleChange = vi.fn()
     render(<Switch aria-label="Toggle" onCheckedChange={handleChange} />)
+
+    // Act
     fireEvent.click(screen.getByRole('switch'))
+
+    // Assert
     expect(handleChange).toHaveBeenCalledWith(true)
   })
 
-  it('applies default size', () => {
+  it('should apply default size when no size is specified', () => {
+    // Arrange & Act
     render(<Switch aria-label="Toggle" />)
+
+    // Assert
     expect(screen.getByRole('switch')).toHaveAttribute('data-size', 'default')
   })
 
-  it('applies sm size', () => {
+  it('should apply sm size when size is sm', () => {
+    // Arrange & Act
     render(<Switch aria-label="Toggle" size="sm" />)
+
+    // Assert
     expect(screen.getByRole('switch')).toHaveAttribute('data-size', 'sm')
   })
 })

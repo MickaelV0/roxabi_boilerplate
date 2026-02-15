@@ -3,45 +3,47 @@ import { describe, expect, it } from 'vitest'
 import { FormMessage } from './FormMessage'
 
 describe('FormMessage', () => {
-  it('renders default (error) variant with correct icon and styling', () => {
+  it('should render default (error) variant with correct icon and styling', () => {
     // Arrange & Act
     const { container } = render(<FormMessage>Something went wrong</FormMessage>)
 
     // Assert
     const alert = screen.getByRole('alert')
     expect(alert).toBeInTheDocument()
+    // FormMessage does not expose a data-variant attribute;
+    // CSS class assertion is the only way to verify the variant styling
     expect(alert).toHaveClass('text-destructive')
     expect(container.querySelector('[data-slot="form-message"]')).toBeInTheDocument()
   })
 
-  it('renders success variant correctly', () => {
+  it('should render success variant correctly', () => {
     // Arrange & Act
     render(<FormMessage variant="success">Saved</FormMessage>)
 
-    // Assert
+    // Assert — no data-variant attribute; CSS class verifies variant
     const alert = screen.getByRole('alert')
     expect(alert).toHaveClass('text-success')
   })
 
-  it('renders warning variant correctly', () => {
+  it('should render warning variant correctly', () => {
     // Arrange & Act
     render(<FormMessage variant="warning">Careful</FormMessage>)
 
-    // Assert
+    // Assert — no data-variant attribute; CSS class verifies variant
     const alert = screen.getByRole('alert')
     expect(alert).toHaveClass('text-warning')
   })
 
-  it('renders info variant correctly', () => {
+  it('should render info variant correctly', () => {
     // Arrange & Act
     render(<FormMessage variant="info">FYI</FormMessage>)
 
-    // Assert
+    // Assert — no data-variant attribute; CSS class verifies variant
     const alert = screen.getByRole('alert')
     expect(alert).toHaveClass('text-info')
   })
 
-  it('renders children text', () => {
+  it('should render children text', () => {
     // Arrange & Act
     render(<FormMessage>Error message text</FormMessage>)
 
@@ -49,7 +51,7 @@ describe('FormMessage', () => {
     expect(screen.getByText('Error message text')).toBeInTheDocument()
   })
 
-  it('has role="alert" and aria-live="polite"', () => {
+  it('should have role="alert" and aria-live="polite"', () => {
     // Arrange & Act
     render(<FormMessage>Alert message</FormMessage>)
 
@@ -58,7 +60,7 @@ describe('FormMessage', () => {
     expect(alert).toHaveAttribute('aria-live', 'polite')
   })
 
-  it('passes through custom className', () => {
+  it('should pass through custom className when provided', () => {
     // Arrange & Act
     render(<FormMessage className="custom-class">Message</FormMessage>)
 

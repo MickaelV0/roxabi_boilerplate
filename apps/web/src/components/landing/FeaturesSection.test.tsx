@@ -45,21 +45,27 @@ vi.mock('@/paraglide/messages', () => ({
 import { FeaturesSection } from './FeaturesSection'
 
 describe('FeaturesSection', () => {
-  it('renders the section heading', () => {
+  it('should render the section heading', () => {
+    // Arrange & Act
     render(<FeaturesSection />)
 
+    // Assert
     expect(screen.getByText('Features')).toBeInTheDocument()
   })
 
-  it('renders the subtitle', () => {
+  it('should render the subtitle', () => {
+    // Arrange & Act
     render(<FeaturesSection />)
 
+    // Assert
     expect(screen.getByText('Everything you need')).toBeInTheDocument()
   })
 
-  it('renders all eight feature cards', () => {
+  it('should render all eight feature cards', () => {
+    // Arrange & Act
     render(<FeaturesSection />)
 
+    // Assert
     expect(screen.getByText('Full Stack')).toBeInTheDocument()
     expect(screen.getByText('Authentication')).toBeInTheDocument()
     expect(screen.getByText('Multi-tenant')).toBeInTheDocument()
@@ -70,17 +76,21 @@ describe('FeaturesSection', () => {
     expect(screen.getByText('AI')).toBeInTheDocument()
   })
 
-  it('renders feature descriptions', () => {
+  it('should render feature descriptions', () => {
+    // Arrange & Act
     render(<FeaturesSection />)
 
+    // Assert
     expect(screen.getByText('Full stack framework')).toBeInTheDocument()
     expect(screen.getByText('Built-in auth')).toBeInTheDocument()
     expect(screen.getByText('AI integration')).toBeInTheDocument()
   })
 
-  it('renders within a section element', () => {
+  it('should render within a section element', () => {
+    // Arrange & Act
     const { container } = render(<FeaturesSection />)
 
+    // Assert
     const section = container.querySelector('section')
     expect(section).toBeInTheDocument()
   })

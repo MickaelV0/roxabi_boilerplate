@@ -3,45 +3,71 @@ import { describe, expect, it, vi } from 'vitest'
 import { Textarea } from './Textarea'
 
 describe('Textarea', () => {
-  it('renders correctly', () => {
+  it('should render correctly', () => {
+    // Arrange & Act
     render(<Textarea aria-label="Message" />)
+
+    // Assert
     expect(screen.getByRole('textbox')).toBeInTheDocument()
   })
 
-  it('has data-slot attribute', () => {
+  it('should have data-slot attribute when rendered', () => {
+    // Arrange & Act
     render(<Textarea aria-label="Message" />)
+
+    // Assert
     expect(screen.getByRole('textbox')).toHaveAttribute('data-slot', 'textarea')
   })
 
-  it('renders as a textarea element', () => {
+  it('should render as a textarea element', () => {
+    // Arrange & Act
     render(<Textarea aria-label="Message" />)
+
+    // Assert
     expect(screen.getByRole('textbox').tagName).toBe('TEXTAREA')
   })
 
-  it('accepts and displays a value', () => {
+  it('should accept and display a value when defaultValue is set', () => {
+    // Arrange & Act
     render(<Textarea aria-label="Message" defaultValue="Hello world" />)
+
+    // Assert
     expect(screen.getByRole('textbox')).toHaveValue('Hello world')
   })
 
-  it('fires onChange when typing', () => {
+  it('should fire onChange when typing', () => {
+    // Arrange
     const handleChange = vi.fn()
     render(<Textarea aria-label="Message" onChange={handleChange} />)
+
+    // Act
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'New text' } })
+
+    // Assert
     expect(handleChange).toHaveBeenCalledTimes(1)
   })
 
-  it('renders with placeholder', () => {
+  it('should render with placeholder when provided', () => {
+    // Arrange & Act
     render(<Textarea placeholder="Enter message..." />)
+
+    // Assert
     expect(screen.getByPlaceholderText('Enter message...')).toBeInTheDocument()
   })
 
-  it('can be disabled', () => {
+  it('should be disabled when disabled prop is set', () => {
+    // Arrange & Act
     render(<Textarea aria-label="Message" disabled />)
+
+    // Assert
     expect(screen.getByRole('textbox')).toBeDisabled()
   })
 
-  it('applies custom className', () => {
+  it('should apply custom className when provided', () => {
+    // Arrange & Act
     render(<Textarea aria-label="Message" className="custom-class" />)
+
+    // Assert
     expect(screen.getByRole('textbox')).toHaveClass('custom-class')
   })
 })

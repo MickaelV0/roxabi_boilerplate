@@ -48,39 +48,49 @@ vi.mock('@/paraglide/messages', () => ({
 import { AiTeamSection } from './AiTeamSection'
 
 describe('AiTeamSection', () => {
-  it('renders the section heading', () => {
+  it('should render the section heading', () => {
+    // Arrange & Act
     render(<AiTeamSection />)
 
+    // Assert
     expect(screen.getByText('AI Team')).toBeInTheDocument()
     expect(screen.getByText('Your AI-powered development team')).toBeInTheDocument()
   })
 
-  it('renders development agents', () => {
+  it('should render development agents', () => {
+    // Arrange & Act
     render(<AiTeamSection />)
 
+    // Assert
     expect(screen.getByText('Dev Agent')).toBeInTheDocument()
     expect(screen.getByText('Review Agent')).toBeInTheDocument()
     expect(screen.getByText('Test Agent')).toBeInTheDocument()
     expect(screen.getByText('Frontend Agent')).toBeInTheDocument()
   })
 
-  it('renders runtime agents', () => {
+  it('should render runtime agents', () => {
+    // Arrange & Act
     render(<AiTeamSection />)
 
+    // Assert
     expect(screen.getByText('Domain Agent')).toBeInTheDocument()
     expect(screen.getByText('Personas Agent')).toBeInTheDocument()
     expect(screen.getByText('Integration Agent')).toBeInTheDocument()
   })
 
-  it('renders the development agents card title', () => {
+  it('should render the development agents card title', () => {
+    // Arrange & Act
     render(<AiTeamSection />)
 
+    // Assert
     expect(screen.getByText('Development Agents')).toBeInTheDocument()
   })
 
-  it('renders the runtime agents card title', () => {
+  it('should render the runtime agents card title', () => {
+    // Arrange & Act
     render(<AiTeamSection />)
 
+    // Assert
     expect(screen.getByText('Runtime Agents')).toBeInTheDocument()
   })
 })

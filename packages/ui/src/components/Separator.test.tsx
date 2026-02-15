@@ -3,41 +3,59 @@ import { describe, expect, it } from 'vitest'
 import { Separator } from './Separator'
 
 describe('Separator', () => {
-  it('renders correctly', () => {
+  it('should render correctly', () => {
+    // Arrange & Act
     const { container } = render(<Separator />)
+
+    // Assert
     expect(container.querySelector('[data-slot="separator"]')).toBeInTheDocument()
   })
 
-  it('has horizontal orientation by default', () => {
+  it('should have horizontal orientation by default', () => {
+    // Arrange & Act
     const { container } = render(<Separator />)
+
+    // Assert
     expect(container.querySelector('[data-slot="separator"]')).toHaveAttribute(
       'data-orientation',
       'horizontal'
     )
   })
 
-  it('supports vertical orientation', () => {
+  it('should support vertical orientation when specified', () => {
+    // Arrange & Act
     const { container } = render(<Separator orientation="vertical" />)
+
+    // Assert
     expect(container.querySelector('[data-slot="separator"]')).toHaveAttribute(
       'data-orientation',
       'vertical'
     )
   })
 
-  it('is decorative by default', () => {
+  it('should be decorative by default', () => {
+    // Arrange & Act
     const { container } = render(<Separator />)
+
+    // Assert
     const separator = container.querySelector('[data-slot="separator"]')
     expect(separator).toHaveAttribute('role', 'none')
   })
 
-  it('renders as separator role when not decorative', () => {
+  it('should render as separator role when not decorative', () => {
+    // Arrange & Act
     const { container } = render(<Separator decorative={false} />)
+
+    // Assert
     const separator = container.querySelector('[data-slot="separator"]')
     expect(separator).toHaveAttribute('role', 'separator')
   })
 
-  it('applies custom className', () => {
+  it('should apply custom className when provided', () => {
+    // Arrange & Act
     const { container } = render(<Separator className="custom-class" />)
+
+    // Assert
     expect(container.querySelector('[data-slot="separator"]')).toHaveClass('custom-class')
   })
 })

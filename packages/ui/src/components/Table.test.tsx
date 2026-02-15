@@ -12,7 +12,7 @@ import {
 } from './Table'
 
 describe('Table', () => {
-  it('renders children correctly', () => {
+  it('should render children correctly', () => {
     // Arrange & Act
     render(
       <Table>
@@ -28,7 +28,7 @@ describe('Table', () => {
     expect(screen.getByText('Cell content')).toBeInTheDocument()
   })
 
-  it('has data-slot attributes', () => {
+  it('should have data-slot attributes when rendered', () => {
     // Arrange & Act
     const { container } = render(
       <Table>
@@ -45,7 +45,7 @@ describe('Table', () => {
     expect(container.querySelector('[data-slot="table"]')).toBeInTheDocument()
   })
 
-  it('applies custom className to the table element', () => {
+  it('should apply custom className to the table element when provided', () => {
     // Arrange & Act
     render(
       <Table className="custom-class">
@@ -63,7 +63,7 @@ describe('Table', () => {
 })
 
 describe('TableHeader', () => {
-  it('renders with data-slot attribute', () => {
+  it('should render with data-slot attribute when rendered', () => {
     // Arrange & Act
     const { container } = render(
       <table>
@@ -81,7 +81,7 @@ describe('TableHeader', () => {
 })
 
 describe('TableBody', () => {
-  it('renders with data-slot attribute', () => {
+  it('should render with data-slot attribute when rendered', () => {
     // Arrange & Act
     const { container } = render(
       <table>
@@ -99,7 +99,7 @@ describe('TableBody', () => {
 })
 
 describe('TableFooter', () => {
-  it('renders with data-slot attribute', () => {
+  it('should render with data-slot attribute when rendered', () => {
     // Arrange & Act
     const { container } = render(
       <table>
@@ -117,7 +117,7 @@ describe('TableFooter', () => {
 })
 
 describe('TableRow', () => {
-  it('renders with data-slot attribute', () => {
+  it('should render with data-slot attribute when rendered', () => {
     // Arrange & Act
     const { container } = render(
       <table>
@@ -135,7 +135,7 @@ describe('TableRow', () => {
 })
 
 describe('TableHead', () => {
-  it('renders header text', () => {
+  it('should render header text', () => {
     // Arrange & Act
     render(
       <table>
@@ -151,7 +151,7 @@ describe('TableHead', () => {
     expect(screen.getByText('Column Name')).toBeInTheDocument()
   })
 
-  it('has data-slot attribute', () => {
+  it('should have data-slot attribute when rendered', () => {
     // Arrange & Act
     const { container } = render(
       <table>
@@ -169,7 +169,7 @@ describe('TableHead', () => {
 })
 
 describe('TableCell', () => {
-  it('renders cell content', () => {
+  it('should render cell content', () => {
     // Arrange & Act
     render(
       <table>
@@ -185,7 +185,7 @@ describe('TableCell', () => {
     expect(screen.getByText('Cell data')).toBeInTheDocument()
   })
 
-  it('has data-slot attribute', () => {
+  it('should have data-slot attribute when rendered', () => {
     // Arrange & Act
     const { container } = render(
       <table>
@@ -203,7 +203,7 @@ describe('TableCell', () => {
 })
 
 describe('TableCaption', () => {
-  it('renders caption text', () => {
+  it('should render caption text', () => {
     // Arrange & Act
     render(
       <table>
@@ -215,7 +215,7 @@ describe('TableCaption', () => {
     expect(screen.getByText('A list of items')).toBeInTheDocument()
   })
 
-  it('has data-slot attribute', () => {
+  it('should have data-slot attribute when rendered', () => {
     // Arrange & Act
     const { container } = render(
       <table>
@@ -229,7 +229,7 @@ describe('TableCaption', () => {
 })
 
 describe('Table composed', () => {
-  it('renders a full table with all subcomponents', () => {
+  it('should render a full table with all subcomponents', () => {
     // Arrange & Act
     const { container } = render(
       <Table>

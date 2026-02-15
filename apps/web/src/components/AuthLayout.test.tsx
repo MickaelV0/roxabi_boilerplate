@@ -36,43 +36,52 @@ import { AuthLayout } from './AuthLayout'
 
 describe('AuthLayout', () => {
   it('should render the title', () => {
+    // Arrange & Act
     render(<AuthLayout title="Sign In">content</AuthLayout>)
 
+    // Assert
     expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument()
   })
 
   it('should render description when provided', () => {
+    // Arrange & Act
     render(
       <AuthLayout title="Sign In" description="Welcome back">
         content
       </AuthLayout>
     )
 
+    // Assert
     expect(screen.getByText('Welcome back')).toBeInTheDocument()
   })
 
   it('should not render description when not provided', () => {
+    // Arrange & Act
     render(<AuthLayout title="Sign In">content</AuthLayout>)
 
-    // The card should exist but no <p> description element
+    // Assert
     const card = screen.getByTestId('card')
     const paragraphs = card.querySelectorAll('p')
     expect(paragraphs).toHaveLength(0)
   })
 
   it('should render children', () => {
+    // Arrange & Act
     render(
       <AuthLayout title="Sign In">
         <button type="button">Submit</button>
       </AuthLayout>
     )
 
+    // Assert
     expect(screen.getByRole('button', { name: 'Submit' })).toBeInTheDocument()
   })
 
   it('should render branding link to home', () => {
+    // Arrange & Act
     render(<AuthLayout title="Sign In">content</AuthLayout>)
 
+    // Assert
     const brandingLink = screen.getByRole('link', { name: 'Roxabi' })
     expect(brandingLink).toHaveAttribute('href', '/')
   })

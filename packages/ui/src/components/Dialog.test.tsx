@@ -27,65 +27,105 @@ function renderDialog({ showCloseButton = true }: { showCloseButton?: boolean } 
 }
 
 describe('Dialog', () => {
-  it('renders trigger button', () => {
+  it('should render trigger button', () => {
+    // Arrange & Act
     renderDialog()
+
+    // Assert
     expect(screen.getByText('Open Dialog')).toBeInTheDocument()
   })
 
-  it('does not show content initially', () => {
+  it('should not show content initially', () => {
+    // Arrange & Act
     renderDialog()
+
+    // Assert
     expect(screen.queryByText('Dialog Title')).not.toBeInTheDocument()
   })
 
-  it('shows content when trigger is clicked', () => {
+  it('should show content when trigger is clicked', () => {
+    // Arrange
     renderDialog()
+
+    // Act
     fireEvent.click(screen.getByText('Open Dialog'))
+
+    // Assert
     expect(screen.getByText('Dialog Title')).toBeVisible()
     expect(screen.getByText('Dialog description text')).toBeVisible()
     expect(screen.getByText('Dialog body')).toBeVisible()
   })
 
-  it('shows close button by default', () => {
+  it('should show close button by default', () => {
+    // Arrange
     renderDialog()
+
+    // Act
     fireEvent.click(screen.getByText('Open Dialog'))
+
+    // Assert
     expect(screen.getByText('Close')).toBeInTheDocument()
   })
 
-  it('hides close button when showCloseButton is false', () => {
+  it('should hide close button when showCloseButton is false', () => {
+    // Arrange
     renderDialog({ showCloseButton: false })
+
+    // Act
     fireEvent.click(screen.getByText('Open Dialog'))
+
+    // Assert
     expect(screen.queryByText('Close')).not.toBeInTheDocument()
   })
 
-  it('has data-slot attributes on content elements', () => {
+  it('should have data-slot attributes on content elements when open', () => {
+    // Arrange
     renderDialog()
+
+    // Act
     fireEvent.click(screen.getByText('Open Dialog'))
+
+    // Assert
     const content = document.querySelector('[data-slot="dialog-content"]')
     expect(content).toBeInTheDocument()
   })
 
-  it('renders dialog title with correct role', () => {
+  it('should render dialog title with correct role', () => {
+    // Arrange
     renderDialog()
+
+    // Act
     fireEvent.click(screen.getByText('Open Dialog'))
+
+    // Assert
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Dialog Title')
   })
 })
 
 describe('DialogHeader', () => {
-  it('has data-slot attribute', () => {
+  it('should have data-slot attribute when rendered', () => {
+    // Arrange & Act
     const { container } = render(<DialogHeader>Header</DialogHeader>)
+
+    // Assert
     expect(container.querySelector('[data-slot="dialog-header"]')).toBeInTheDocument()
   })
 })
 
 describe('DialogFooter', () => {
-  it('has data-slot attribute', () => {
+  it('should have data-slot attribute when rendered', () => {
+    // Arrange & Act
     const { container } = render(<DialogFooter>Footer</DialogFooter>)
+
+    // Assert
     expect(container.querySelector('[data-slot="dialog-footer"]')).toBeInTheDocument()
   })
 
-  it('renders children', () => {
+  it('should render children', () => {
+    // Arrange & Act
     render(<DialogFooter>Footer text</DialogFooter>)
+
+    // Assert
     expect(screen.getByText('Footer text')).toBeInTheDocument()
   })
 })

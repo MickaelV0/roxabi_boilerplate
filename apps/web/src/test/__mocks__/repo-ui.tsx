@@ -225,6 +225,74 @@ export const AlertDialogHeader = ({ children }: React.PropsWithChildren) => <div
 export const AlertDialogTitle = ({ children }: React.PropsWithChildren) => <h2>{children}</h2>
 
 // ---------------------------------------------------------------------------
+// DropdownMenu
+// ---------------------------------------------------------------------------
+
+export const DropdownMenu = ({ children }: React.PropsWithChildren) => <div>{children}</div>
+
+export const DropdownMenuTrigger = ({
+  children,
+  ...props
+}: React.PropsWithChildren<Record<string, unknown>>) => <div {...props}>{children}</div>
+
+export const DropdownMenuContent = ({ children }: React.PropsWithChildren) => <div>{children}</div>
+
+export const DropdownMenuItem = ({
+  children,
+  ...props
+}: React.PropsWithChildren<Record<string, unknown>>) => (
+  <button type="button" role="menuitem" {...props}>
+    {children}
+  </button>
+)
+
+export const DropdownMenuSeparator = () => <hr />
+
+export const DropdownMenuLabel = ({ children }: React.PropsWithChildren) => <div>{children}</div>
+
+// ---------------------------------------------------------------------------
+// Hooks
+// ---------------------------------------------------------------------------
+
+export const useInView = () => ({ ref: { current: null }, inView: true })
+
+export const useReducedMotion = () => false
+
+// ---------------------------------------------------------------------------
+// Presentation
+// ---------------------------------------------------------------------------
+
+export const PresentationNav = ({
+  sections,
+}: {
+  sections?: ReadonlyArray<{ id: string; label: string }>
+  onEscape?: () => void
+}) => (
+  <nav data-testid="presentation-nav">
+    {sections?.map((s) => (
+      <button key={s.id} type="button">
+        {s.label}
+      </button>
+    ))}
+  </nav>
+)
+
+export const StatCounter = ({
+  value,
+  label,
+}: {
+  value?: number
+  label?: string
+  suffix?: string
+  delay?: number
+}) => (
+  <div data-testid="stat-counter">
+    <span>{value}</span>
+    <span>{label}</span>
+  </div>
+)
+
+// ---------------------------------------------------------------------------
 // Table
 // ---------------------------------------------------------------------------
 

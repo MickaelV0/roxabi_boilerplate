@@ -5,6 +5,8 @@ const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
 }))
 
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
+
 vi.mock('@tanstack/react-router', () => ({
   createFileRoute: () => (config: { component: React.ComponentType }) => {
     captured.Component = config.component
@@ -14,8 +16,6 @@ vi.mock('@tanstack/react-router', () => ({
     <a {...props}>{children}</a>
   ),
 }))
-
-vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 vi.mock('@/paraglide/messages', () => ({
   m: new Proxy(
@@ -44,31 +44,35 @@ vi.mock('../components/LocaleSwitcher', () => ({
 import './demo.i18n'
 
 describe('I18nDemo', () => {
-  it('should render the page heading', () => {
+  it('should render the page heading when component mounts', () => {
     // Arrange & Act
     render(<captured.Component />)
 
     // Assert
-    expect(screen.getByText('demo_i18n_heading')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('demo_i18n_heading')
   })
 
-  it('should render the globe icon', () => {
+  it('should render the globe icon when component mounts', () => {
     // Arrange & Act
     render(<captured.Component />)
 
     // Assert
+    // Using getByTestId because lucide-react icons are mocked as plain SVGs
+    // without semantic roles or accessible names
     expect(screen.getByTestId('globe-icon')).toBeInTheDocument()
   })
 
-  it('should render the locale switcher', () => {
+  it('should render the locale switcher when component mounts', () => {
     // Arrange & Act
     render(<captured.Component />)
 
     // Assert
+    // Using getByTestId because LocaleSwitcher is a mocked component
+    // without semantic role
     expect(screen.getByTestId('locale-switcher')).toBeInTheDocument()
   })
 
-  it('should render translated message with username parameter', () => {
+  it('should render translated message with username parameter when component mounts', () => {
     // Arrange & Act
     render(<captured.Component />)
 
@@ -76,7 +80,7 @@ describe('I18nDemo', () => {
     expect(screen.getByText('example_message({"username":"TanStack Router"})')).toBeInTheDocument()
   })
 
-  it('should render the learn more link', () => {
+  it('should render the learn more link when component mounts', () => {
     // Arrange & Act
     render(<captured.Component />)
 

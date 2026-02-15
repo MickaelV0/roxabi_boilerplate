@@ -18,29 +18,37 @@ vi.mock('@/paraglide/messages', () => ({
 import { CtaSection } from './CtaSection'
 
 describe('CtaSection', () => {
-  it('renders the section heading', () => {
+  it('should render the section heading', () => {
+    // Arrange & Act
     render(<CtaSection />)
 
+    // Assert
     expect(screen.getByText('Ready to Start?')).toBeInTheDocument()
   })
 
-  it('renders the subtitle', () => {
+  it('should render the subtitle', () => {
+    // Arrange & Act
     render(<CtaSection />)
 
+    // Assert
     expect(screen.getByText('Get started building your SaaS today')).toBeInTheDocument()
   })
 
-  it('renders the CTA button', () => {
+  it('should render the CTA button', () => {
+    // Arrange & Act
     render(<CtaSection />)
 
+    // Assert
     const button = screen.getByText('Get Started')
     expect(button).toBeInTheDocument()
   })
 
-  it('links the CTA button to docs', () => {
+  it('should link the CTA button to docs', () => {
+    // Arrange & Act
     render(<CtaSection />)
 
-    const link = screen.getByText('Get Started').closest('a')
+    // Assert
+    const link = screen.getByRole('link', { name: 'Get Started' })
     expect(link).toHaveAttribute('href', '/docs')
   })
 })

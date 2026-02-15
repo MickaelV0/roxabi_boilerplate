@@ -67,7 +67,7 @@ afterEach(() => {
 })
 
 describe('PresentationNav', () => {
-  it('renders correct number of dots (8)', () => {
+  it('should render correct number of dots (8)', () => {
     // Arrange & Act
     render(<PresentationNav sections={sections} />)
 
@@ -76,7 +76,7 @@ describe('PresentationNav', () => {
     expect(dots).toHaveLength(8)
   })
 
-  it('each dot has aria-label with section name', () => {
+  it('should have aria-label with section name on each dot', () => {
     // Arrange & Act
     render(<PresentationNav sections={sections} />)
 
@@ -86,7 +86,7 @@ describe('PresentationNav', () => {
     }
   })
 
-  it('click on dot triggers scroll behavior', () => {
+  it('should trigger scroll behavior when dot is clicked', () => {
     // Arrange
     const sectionEl = createSectionElement('setup')
     render(<PresentationNav sections={sections} />)
@@ -102,7 +102,7 @@ describe('PresentationNav', () => {
   })
 
   describe('keyboard navigation', () => {
-    it('ArrowDown scrolls to next section', () => {
+    it('should scroll to next section when ArrowDown is pressed', () => {
       // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)
@@ -116,7 +116,7 @@ describe('PresentationNav', () => {
       )
     })
 
-    it('ArrowUp scrolls to previous section', () => {
+    it('should scroll to previous section when ArrowUp is pressed', () => {
       // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)
@@ -130,7 +130,7 @@ describe('PresentationNav', () => {
       )
     })
 
-    it('Escape calls onEscape callback', () => {
+    it('should call onEscape callback when Escape is pressed', () => {
       // Arrange
       createAllSectionElements()
       render(<PresentationNav sections={sections} onEscape={mockOnEscape} />)
@@ -142,7 +142,7 @@ describe('PresentationNav', () => {
       expect(mockOnEscape).toHaveBeenCalledOnce()
     })
 
-    it('number key scrolls to the correct section', () => {
+    it('should scroll to the correct section when number key is pressed', () => {
       // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)
@@ -156,7 +156,7 @@ describe('PresentationNav', () => {
       )
     })
 
-    it('Home scrolls to first section', () => {
+    it('should scroll to first section when Home is pressed', () => {
       // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)
@@ -170,7 +170,7 @@ describe('PresentationNav', () => {
       )
     })
 
-    it('End scrolls to last section', () => {
+    it('should scroll to last section when End is pressed', () => {
       // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)
@@ -184,7 +184,7 @@ describe('PresentationNav', () => {
       )
     })
 
-    it('Space advances to next section', () => {
+    it('should advance to next section when Space is pressed', () => {
       // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)
@@ -198,7 +198,7 @@ describe('PresentationNav', () => {
       )
     })
 
-    it('PageDown advances to next section', () => {
+    it('should advance to next section when PageDown is pressed', () => {
       // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)
@@ -212,7 +212,7 @@ describe('PresentationNav', () => {
       )
     })
 
-    it('PageUp scrolls to previous section', () => {
+    it('should scroll to previous section when PageUp is pressed', () => {
       // Arrange
       const elements = createAllSectionElements()
       render(<PresentationNav sections={sections} />)

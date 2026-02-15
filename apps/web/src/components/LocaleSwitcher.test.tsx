@@ -48,30 +48,38 @@ vi.mock('@/paraglide/runtime', () => ({
 import { LocaleSwitcher } from './LocaleSwitcher'
 
 describe('LocaleSwitcher', () => {
-  it('renders the language button', () => {
+  it('should render the language button', () => {
+    // Arrange & Act
     render(<LocaleSwitcher />)
 
+    // Assert
     const button = screen.getByLabelText('Language')
     expect(button).toBeInTheDocument()
   })
 
-  it('renders as a button element', () => {
+  it('should render as a button element', () => {
+    // Arrange & Act
     render(<LocaleSwitcher />)
 
+    // Assert
     const button = screen.getByRole('button', { name: 'Language' })
     expect(button).toBeInTheDocument()
   })
 
-  it('renders locale options', () => {
+  it('should render locale options', () => {
+    // Arrange & Act
     render(<LocaleSwitcher />)
 
+    // Assert
     expect(screen.getByText('English')).toBeInTheDocument()
     expect(screen.getByText('Français')).toBeInTheDocument()
   })
 
-  it('has the correct aria-label for accessibility', () => {
+  it('should have the correct aria-label for accessibility', () => {
+    // Arrange & Act
     render(<LocaleSwitcher />)
 
+    // Assert
     const button = screen.getByLabelText('Language')
     expect(button).toHaveAttribute('aria-label', 'Language')
   })

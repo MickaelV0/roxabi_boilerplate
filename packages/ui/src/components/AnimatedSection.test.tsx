@@ -20,7 +20,7 @@ afterEach(() => {
 })
 
 describe('AnimatedSection', () => {
-  it('renders children', async () => {
+  it('should render children', async () => {
     // Arrange & Act
     render(
       <AnimatedSection>
@@ -34,7 +34,7 @@ describe('AnimatedSection', () => {
     })
   })
 
-  it('applies custom className', async () => {
+  it('should apply custom className when provided', async () => {
     // Arrange & Act
     const { container } = render(
       <AnimatedSection className="custom-class">
@@ -48,7 +48,7 @@ describe('AnimatedSection', () => {
     })
   })
 
-  it('becomes visible when inView is true', async () => {
+  it('should become visible when inView is true', async () => {
     // Arrange & Act
     const { container } = render(
       <AnimatedSection>
@@ -56,14 +56,15 @@ describe('AnimatedSection', () => {
       </AnimatedSection>
     )
 
-    // Assert
+    // Assert — CSS classes are the only mechanism to verify animation state
+    // since AnimatedSection does not expose data attributes for visibility
     await vi.waitFor(() => {
       expect(container.firstChild).toHaveClass('opacity-100')
       expect(container.firstChild).toHaveClass('translate-y-0')
     })
   })
 
-  it('applies transition classes', () => {
+  it('should apply transition classes when motion is enabled', () => {
     // Arrange & Act
     const { container } = render(
       <AnimatedSection>
@@ -71,13 +72,14 @@ describe('AnimatedSection', () => {
       </AnimatedSection>
     )
 
-    // Assert
+    // Assert — CSS classes are the only mechanism to verify animation config
+    // since AnimatedSection does not expose data attributes for transition state
     expect(container.firstChild).toHaveClass('transition-[opacity,transform]')
     expect(container.firstChild).toHaveClass('duration-700')
     expect(container.firstChild).toHaveClass('ease-out')
   })
 
-  it('renders without transition classes when reduced motion is preferred', () => {
+  it('should render without transition classes when reduced motion is preferred', () => {
     // Arrange
     mockUseReducedMotion.mockReturnValue(true)
 
@@ -97,7 +99,7 @@ describe('AnimatedSection', () => {
     expect(wrapper).not.toHaveClass('translate-y-8')
   })
 
-  it('preserves custom className when reduced motion is preferred', () => {
+  it('should preserve custom className when reduced motion is preferred', () => {
     // Arrange
     mockUseReducedMotion.mockReturnValue(true)
 

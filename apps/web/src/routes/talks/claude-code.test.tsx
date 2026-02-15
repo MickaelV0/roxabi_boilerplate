@@ -2,29 +2,14 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
+
 mockParaglideMessages()
 
 vi.mock('@/paraglide/runtime', () => ({
   getLocale: () => 'en',
   locales: ['en', 'fr'],
   setLocale: vi.fn(),
-}))
-
-vi.mock('@repo/ui', () => ({
-  AnimatedSection: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  Badge: ({ children }: React.PropsWithChildren) => <span>{children}</span>,
-  Button: ({ children }: React.PropsWithChildren) => <button type="button">{children}</button>,
-  Card: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  CardContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
-  DropdownMenu: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DropdownMenuContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DropdownMenuItem: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-  DropdownMenuTrigger: ({ children }: React.PropsWithChildren) => <>{children}</>,
-  PresentationNav: () => <nav aria-label="Presentation sections" />,
-  StatCounter: ({ label }: { label: string }) => <div>{label}</div>,
-  useInView: () => ({ ref: () => {}, inView: true }),
-  useReducedMotion: () => false,
 }))
 
 // Mock matchMedia
@@ -42,7 +27,7 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
-// Mock IntersectionObserver (passive — no callback needed for page render tests)
+// Mock IntersectionObserver (passive -- no callback needed for page render tests)
 import { setupIntersectionObserverMock } from '@/test/mocks/intersection-observer'
 
 setupIntersectionObserverMock('passive')
@@ -64,47 +49,43 @@ vi.mock('@tanstack/react-router', () => ({
   Link: ({ children }: React.PropsWithChildren) => children,
 }))
 
-// Import the page component — the default export from the route module
-// The actual component is the function composed inside the route, which we
-// extract here. If the route file exports the component separately (e.g.,
-// as a named export), adjust the import accordingly.
+// Import the page component
 import { ClaudeCodePresentation } from './claude-code'
 
-const EXPECTED_SECTION_IDS = [
-  'intro',
-  'building-blocks',
-  'specialization',
-  'dev-process',
-  'agent-teams',
-  'end-to-end',
-  'closing',
-]
-
 describe('ClaudeCodePresentation page', () => {
-  it('renders all 6 sections with correct ids', () => {
-    // Arrange & Act
+  it('should render all sections with correct ids when page loads', () => {
+    // Arrange
+    const expectedSectionIds = [
+      'intro',
+      'building-blocks',
+      'specialization',
+      'dev-process',
+      'agent-teams',
+      'end-to-end',
+      'closing',
+    ]
+
+    // Act
     render(<ClaudeCodePresentation />)
 
-    // Assert — each section id should be present in the document
-    for (const sectionId of EXPECTED_SECTION_IDS) {
+    // Assert -- each section id should be present in the document.
+    // Using document.getElementById because SectionContainer renders plain
+    // divs with id attributes, not semantic region elements with accessible names.
+    for (const sectionId of expectedSectionIds) {
       const section = document.getElementById(sectionId)
       expect(section, `Section with id "${sectionId}" should exist`).toBeInTheDocument()
     }
   })
 
-  it('renders key section headings', () => {
+  it('should render key section headings when page loads', () => {
     // Arrange & Act
     render(<ClaudeCodePresentation />)
 
-    // Assert — mock returns key names (e.g. "talk_intro_title")
+    // Assert
     expect(screen.getByRole('heading', { name: /talk_intro_title/i })).toBeInTheDocument()
-
     expect(screen.getByRole('heading', { name: /talk_blocks_title/i })).toBeInTheDocument()
-
     expect(screen.getByRole('heading', { name: /talk_spec_title/i })).toBeInTheDocument()
-
     expect(screen.getByRole('heading', { name: /talk_teams_title/i })).toBeInTheDocument()
-
     expect(screen.getByRole('heading', { name: /talk_e2e_title/i })).toBeInTheDocument()
   })
 })

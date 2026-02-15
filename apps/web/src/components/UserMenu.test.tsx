@@ -78,36 +78,57 @@ import { UserMenu } from './UserMenu'
 
 describe('UserMenu', () => {
   it('should render nothing when no session', () => {
+    // Arrange
     useSessionFn.mockReturnValue({ data: null })
+
+    // Act
     const { container } = render(<UserMenu />)
+
+    // Assert
     expect(container.innerHTML).toBe('')
   })
 
   it('should render user initials when session exists', () => {
+    // Arrange
     useSessionFn.mockReturnValue({
       data: { user: { name: 'John Doe', email: 'john@example.com', image: null } },
     })
+
+    // Act
     render(<UserMenu />)
+
+    // Assert
     expect(screen.getByText('JD')).toBeInTheDocument()
   })
 
   it('should render first letter of email when no name', () => {
+    // Arrange
     useSessionFn.mockReturnValue({
       data: { user: { name: '', email: 'alice@example.com', image: null } },
     })
+
+    // Act
     render(<UserMenu />)
+
+    // Assert
     expect(screen.getByText('A')).toBeInTheDocument()
   })
 
   it('should show sign out button', () => {
+    // Arrange
     useSessionFn.mockReturnValue({
       data: { user: { name: 'Jane', email: 'jane@example.com', image: null } },
     })
+
+    // Act
     render(<UserMenu />)
+
+    // Assert
     expect(screen.getByText('user_menu_sign_out')).toBeInTheDocument()
   })
 
   it('should show org links when active org exists', () => {
+    // Arrange
     useSessionFn.mockReturnValue({
       data: { user: { name: 'Jane', email: 'jane@example.com', image: null } },
     })
@@ -115,16 +136,24 @@ describe('UserMenu', () => {
       data: { id: 'org-1', name: 'Acme' },
     } as ReturnType<typeof authClient.useActiveOrganization>)
 
+    // Act
     render(<UserMenu />)
+
+    // Assert
     expect(screen.getByText('user_menu_org_settings')).toBeInTheDocument()
     expect(screen.getByText('user_menu_org_members')).toBeInTheDocument()
   })
 
   it('should display user email', () => {
+    // Arrange
     useSessionFn.mockReturnValue({
       data: { user: { name: 'Jane', email: 'jane@example.com', image: null } },
     })
+
+    // Act
     render(<UserMenu />)
+
+    // Assert
     expect(screen.getByText('jane@example.com')).toBeInTheDocument()
   })
 
@@ -134,12 +163,10 @@ describe('UserMenu', () => {
       data: { user: { name: 'Jane', email: 'jane@example.com', image: null } },
     })
     vi.mocked(authClient.signOut).mockResolvedValue({} as never)
-
     render(<UserMenu />)
 
     // Act
-    const signOutButton = screen.getByText('user_menu_sign_out').closest('button')
-    if (!signOutButton) throw new Error('sign out button not found')
+    const signOutButton = screen.getByRole('menuitem', { name: /user_menu_sign_out/ })
     fireEvent.click(signOutButton)
 
     // Assert
@@ -157,12 +184,10 @@ describe('UserMenu', () => {
       data: { user: { name: 'Jane', email: 'jane@example.com', image: null } },
     })
     vi.mocked(authClient.signOut).mockRejectedValue(new Error('network error'))
-
     render(<UserMenu />)
 
     // Act
-    const signOutButton = screen.getByText('user_menu_sign_out').closest('button')
-    if (!signOutButton) throw new Error('sign out button not found')
+    const signOutButton = screen.getByRole('menuitem', { name: /user_menu_sign_out/ })
     fireEvent.click(signOutButton)
 
     // Assert

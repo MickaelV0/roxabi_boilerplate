@@ -53,7 +53,7 @@ afterEach(() => {
 })
 
 describe('StatCounter', () => {
-  it('renders target value when animation completes', async () => {
+  it('should render target value when animation completes', async () => {
     // Arrange & Act
     render(<StatCounter value={808} label="Sessions" />)
 
@@ -66,7 +66,7 @@ describe('StatCounter', () => {
     expect(screen.getByText('Sessions')).toBeInTheDocument()
   })
 
-  it('respects prefers-reduced-motion by showing final value immediately', async () => {
+  it('should show final value immediately when prefers-reduced-motion is active', async () => {
     // Arrange
     mockMatchMedia.mockImplementation((query: string) => ({
       matches: query === '(prefers-reduced-motion: reduce)',
@@ -89,7 +89,7 @@ describe('StatCounter', () => {
     expect(screen.getByText('Commits')).toBeInTheDocument()
   })
 
-  it('displays label and suffix correctly', async () => {
+  it('should display label and suffix correctly', async () => {
     // Arrange & Act
     render(<StatCounter value={88} label="Completion Rate" suffix="%" />)
 

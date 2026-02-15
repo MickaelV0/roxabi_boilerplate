@@ -40,32 +40,41 @@ vi.mock('next-themes', () => ({
 import { ThemeToggle } from './ThemeToggle'
 
 describe('ThemeToggle', () => {
-  it('renders the toggle button', () => {
+  it('should render the toggle button', () => {
+    // Arrange & Act
     render(<ThemeToggle />)
 
+    // Assert
     const button = screen.getByRole('button', { name: 'Toggle theme' })
     expect(button).toBeInTheDocument()
   })
 
-  it('has the correct aria-label', () => {
+  it('should have the correct aria-label', () => {
+    // Arrange & Act
     render(<ThemeToggle />)
 
+    // Assert
     const button = screen.getByLabelText('Toggle theme')
     expect(button).toBeInTheDocument()
   })
 
-  it('calls setTheme when clicked', () => {
+  it('should call setTheme when clicked', () => {
+    // Arrange
     render(<ThemeToggle />)
-
     const button = screen.getByRole('button', { name: 'Toggle theme' })
+
+    // Act
     fireEvent.click(button)
 
+    // Assert
     expect(mockSetTheme).toHaveBeenCalledWith('dark')
   })
 
-  it('renders without being disabled after mounting', () => {
+  it('should render without being disabled after mounting', () => {
+    // Arrange & Act
     render(<ThemeToggle />)
 
+    // Assert
     const button = screen.getByRole('button', { name: 'Toggle theme' })
     expect(button).not.toBeDisabled()
   })

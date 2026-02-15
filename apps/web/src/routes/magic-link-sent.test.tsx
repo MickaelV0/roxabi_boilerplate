@@ -23,11 +23,7 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }))
 
-vi.mock('@repo/ui', () => ({
-  Button: ({ children, ...props }: React.PropsWithChildren<{ [key: string]: unknown }>) => (
-    <button {...props}>{children}</button>
-  ),
-}))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
@@ -55,6 +51,10 @@ vi.mock('../components/AuthLayout', () => ({
   ),
 }))
 
+vi.mock('lucide-react', () => ({
+  ExternalLink: () => <span data-testid="external-link-icon" />,
+}))
+
 mockParaglideMessages()
 
 import { toast } from 'sonner'
@@ -63,7 +63,7 @@ import { authClient } from '@/lib/auth-client'
 import { detectEmailProvider } from './magic-link-sent'
 
 describe('MagicLinkSentPage', () => {
-  it('should render title and description', () => {
+  it('should render title and description when component mounts', () => {
     // Arrange
     useSearchFn.mockReturnValue({ email: undefined })
     const MagicLinkSentPage = captured.Component
@@ -127,7 +127,7 @@ describe('MagicLinkSentPage', () => {
     expect(screen.queryByRole('button', { name: 'auth_resend_magic_link' })).not.toBeInTheDocument()
   })
 
-  it('should render back to sign in link', () => {
+  it('should render back to sign in link when component mounts', () => {
     // Arrange
     useSearchFn.mockReturnValue({ email: undefined })
     const MagicLinkSentPage = captured.Component
@@ -141,7 +141,7 @@ describe('MagicLinkSentPage', () => {
     expect(link.closest('a')).toHaveAttribute('href', '/login')
   })
 
-  it('should call authClient.signIn.magicLink on resend click', async () => {
+  it('should call authClient.signIn.magicLink when resend button is clicked', async () => {
     // Arrange
     vi.mocked(authClient.signIn.magicLink).mockResolvedValueOnce({
       error: null,
@@ -200,55 +200,82 @@ describe('MagicLinkSentPage', () => {
 })
 
 describe('detectEmailProvider', () => {
-  it('should detect Gmail', () => {
+  it('should detect Gmail when given a gmail.com address', () => {
+    // Arrange & Act
     const result = detectEmailProvider('user@gmail.com')
+
+    // Assert
     expect(result).toEqual({ name: 'Gmail', url: 'https://mail.google.com' })
   })
 
-  it('should detect Outlook from outlook.com', () => {
+  it('should detect Outlook when given an outlook.com address', () => {
+    // Arrange & Act
     const result = detectEmailProvider('user@outlook.com')
+
+    // Assert
     expect(result).toEqual({ name: 'Outlook', url: 'https://outlook.live.com/mail' })
   })
 
-  it('should detect Outlook from hotmail.com', () => {
+  it('should detect Outlook when given a hotmail.com address', () => {
+    // Arrange & Act
     const result = detectEmailProvider('user@hotmail.com')
+
+    // Assert
     expect(result).toEqual({ name: 'Outlook', url: 'https://outlook.live.com/mail' })
   })
 
-  it('should detect Yahoo Mail', () => {
+  it('should detect Yahoo Mail when given a yahoo.com address', () => {
+    // Arrange & Act
     const result = detectEmailProvider('user@yahoo.com')
+
+    // Assert
     expect(result).toEqual({ name: 'Yahoo Mail', url: 'https://mail.yahoo.com' })
   })
 
-  it('should detect iCloud Mail', () => {
+  it('should detect iCloud Mail when given an icloud.com address', () => {
+    // Arrange & Act
     const result = detectEmailProvider('user@icloud.com')
+
+    // Assert
     expect(result).toEqual({ name: 'iCloud Mail', url: 'https://www.icloud.com/mail' })
   })
 
-  it('should detect ProtonMail from protonmail.com', () => {
+  it('should detect ProtonMail when given a protonmail.com address', () => {
+    // Arrange & Act
     const result = detectEmailProvider('user@protonmail.com')
+
+    // Assert
     expect(result).toEqual({ name: 'ProtonMail', url: 'https://mail.proton.me' })
   })
 
-  it('should detect ProtonMail from proton.me', () => {
+  it('should detect ProtonMail when given a proton.me address', () => {
+    // Arrange & Act
     const result = detectEmailProvider('user@proton.me')
+
+    // Assert
     expect(result).toEqual({ name: 'ProtonMail', url: 'https://mail.proton.me' })
   })
 
-  it('should return null for unknown domain', () => {
+  it('should return null when given an unknown domain', () => {
+    // Arrange & Act & Assert
     expect(detectEmailProvider('user@custom-domain.org')).toBeNull()
   })
 
-  it('should return null for email without @', () => {
+  it('should return null when given an email without @', () => {
+    // Arrange & Act & Assert
     expect(detectEmailProvider('no-at-sign')).toBeNull()
   })
 
-  it('should return null for empty string', () => {
+  it('should return null when given an empty string', () => {
+    // Arrange & Act & Assert
     expect(detectEmailProvider('')).toBeNull()
   })
 
-  it('should be case-insensitive for domain', () => {
+  it('should be case-insensitive for domain matching', () => {
+    // Arrange & Act
     const result = detectEmailProvider('user@GMAIL.COM')
+
+    // Assert
     expect(result).toEqual({ name: 'Gmail', url: 'https://mail.google.com' })
   })
 })
