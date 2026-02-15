@@ -302,8 +302,19 @@ function createMockHost(headers: Record<string, string> = {}) {
 - Build factory functions that accept `Partial<T>` overrides for flexibility.
 - Keep mocks close to the tests that use them.
 - **Backend:** Prefer dependency injection over module-level mocking. Pass `vi.fn()` stubs through DI. Avoid `vi.mock()`.
-- **Frontend:** Use `vi.fn()` and `vi.spyOn()` for internal code. Use `vi.mock()` only for third-party modules that cannot be injected.
 - **Environment variables:** Use `vi.stubEnv()` as shown in `apps/api/src/test/setup.ts`.
+
+### Frontend Mocking Rules
+
+**Default: Render real components.** Do not mock `@repo/ui` or other internal packages. Rendering real components produces integration-style tests with higher confidence.
+
+**Accepted uses of `vi.mock()`:**
+
+- **Codegen modules** (`@/paraglide/messages`): Auto-generated i18n modules have no injection point. Mock to return predictable strings.
+- **TanStack Router file-based routes**: Route components are loaded via file conventions. Module-level mocking is required to isolate route-level tests from child route components.
+- **Third-party libraries** with side effects or browser APIs not available in jsdom (e.g., `next/navigation`, `IntersectionObserver`).
+
+**Prefer `vi.fn()` and `vi.spyOn()`** for everything else. Use factory helpers to construct mock objects.
 
 ## Test Data Management
 
