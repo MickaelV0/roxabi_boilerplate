@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Entries are generated automatically by `/promote` and committed to staging before the promotion PR.
 
+## [v0.2.1] - 2026-02-16
+
+### Added
+- feat(web): add tips & tricks section to claude code presentation
+- feat(claude): add show more/less toggle to issues dashboard
+
+### Documentation
+- docs: add root-level database scripts to getting-started, configuration, and architecture docs
+
+### Chores
+- chore: add db convenience scripts, fix landing page links, and remove guest guard
+
 ## [v0.2.0] - 2026-02-15
 
 ### Added
