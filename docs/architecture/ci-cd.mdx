@@ -9,14 +9,14 @@ Roxabi uses a **three-layer quality pipeline** to catch issues at progressively 
 
 ```txt
 Developer workstation          GitHub                    Vercel
-┌───────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+┌───────────────────┐    ┌───────────────────┐    ┌──────────────────┐
 │  pre-commit       │    │  CI Workflow      │    │  Auto-deploy     │
 │  ├─ Biome check   │    │  ├─ Lint          │    │  (main only)     │
-│  commit-msg       │───▶│  ├─ Type Check    │───▶│  ├─ Web (SSR)    │
+│  commit-msg       │──❯ │  ├─ Type Check    │──❯ │  ├─ Web (SSR)    │
 │  ├─ Commitlint    │    │  ├─ Test+Coverage │    │  └─ API (NestJS) │
 │  pre-push         │    │  ├─ Build         │    │                  │
 │  ├─ Lint          │    │  └─ E2E (cond.)   │    │  Deploy Preview  │
-│  ├─ Typecheck     │    └──────────────────┘    │  (manual trigger)│
+│  ├─ Typecheck     │    └───────────────────┘    │  (manual trigger)│
 │  └─ Test+Coverage │                             └──────────────────┘
 └───────────────────┘
 ```

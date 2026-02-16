@@ -147,7 +147,7 @@ Three tables implement the RBAC model, defined in `apps/api/src/database/schema/
 
 ```txt
 ┌─────────────────┐
-│   permissions    │  (global, seeded via migration)
+│   permissions   │  (global, seeded via migration)
 │─────────────────│
 │ id          PK  │
 │ resource        │
@@ -162,15 +162,15 @@ Three tables implement the RBAC model, defined in `apps/api/src/database/schema/
          │ permission_id (FK, CASCADE)
          │
 ┌────────┴────────┐
-│role_permissions  │  (join table, composite PK)
+│role_permissions │  (join table, composite PK)
 │─────────────────│
 │ role_id     PK  │──┐
 │ permission_id PK│  │
 └─────────────────┘  │
                      │ role_id (FK, CASCADE)
                      │
-┌────────────────────┘
-│
+         ┌───────────┘
+         │
 ┌────────┴────────┐
 │     roles       │  (tenant-scoped, RLS)
 │─────────────────│

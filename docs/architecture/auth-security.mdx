@@ -13,35 +13,35 @@ The architecture follows two core principles:
 - **Configuration over code.** OAuth providers, email services, and security policies are driven by environment variables. Adding a new OAuth provider requires setting two env vars, not writing code.
 
 ```txt
-                            ┌───────────────────┐
+                            ┌────────────────────┐
                             │   Client Browser   │
                             │  (Better Auth SDK) │
-                            └────────┬──────────┘
+                            └────────┬───────────┘
                                      │ Cookie-based sessions
                                      ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    NestJS + Fastify API                          │
+│                    NestJS + Fastify API                         │
 │                                                                 │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐   │
-│  │  Helmet   │  │  CORS    │  │  Rate    │  │  Auth Guard  │   │
-│  │  (CSP,    │  │ (origin  │  │  Limiter │  │  (global,    │   │
-│  │  HSTS,    │  │  allow)  │  │ (Upstash)│  │   deny-by-   │   │
-│  │  headers) │  │          │  │          │  │   default)   │   │
-│  └──────────┘  └──────────┘  └──────────┘  └──────┬───────┘   │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐     │
+│  │  Helmet  │  │  CORS    │  │  Rate    │  │  Auth Guard  │     │
+│  │  (CSP,   │  │ (origin  │  │  Limiter │  │  (global,    │     │
+│  │  HSTS,   │  │  allow)  │  │ (Upstash)│  │   deny-by-   │     │
+│  │  headers)│  │          │  │          │  │   default)   │     │
+│  └──────────┘  └──────────┘  └──────────┘  └───────┬──────┘     │
 │                                                    │            │
 │  ┌──────────────────────────────────────────────┐  │            │
-│  │               AuthService                     │  │            │
+│  │               AuthService                    │  │            │
 │  │  ┌──────────────────┐  ┌──────────────────┐  │  │            │
-│  │  │  Better Auth     │  │  Permission      │  │◀─┘            │
+│  │  │  Better Auth     │  │  Permission      │  │❮─┘            │
 │  │  │  Instance        │  │  Service (RBAC)  │  │               │
 │  │  │  (auth.instance) │  │                  │  │               │
 │  │  └────────┬─────────┘  └──────────────────┘  │               │
 │  └───────────┼──────────────────────────────────┘               │
-│              │ Drizzle adapter                                   │
-│              ▼                                                   │
+│              │ Drizzle adapter                                  │
+│              ▼                                                  │
 │  ┌──────────────────┐                                           │
-│  │  PostgreSQL       │                                           │
-│  │  (auth tables)    │                                           │
+│  │  PostgreSQL      │                                           │
+│  │  (auth tables)   │                                           │
 │  └──────────────────┘                                           │
 └─────────────────────────────────────────────────────────────────┘
 ```
