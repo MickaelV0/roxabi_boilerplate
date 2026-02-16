@@ -1,6 +1,45 @@
 import { cn } from '@repo/ui'
 import { m } from '@/paraglide/messages'
 
+const rows = [
+  {
+    id: '#42',
+    title: 'Avatar upload feature',
+    size: 'M',
+    priority: 'P1',
+    priorityColor: 'bg-red-500/20 text-red-400',
+    status: 'blocked',
+    statusColor: 'text-red-400',
+  },
+  {
+    id: '#38',
+    title: 'RBAC permission cache',
+    size: 'L',
+    priority: 'P2',
+    priorityColor: 'bg-orange-500/20 text-orange-400',
+    status: 'blocking',
+    statusColor: 'text-orange-400',
+  },
+  {
+    id: '#51',
+    title: 'Dashboard skill',
+    size: 'S',
+    priority: 'P1',
+    priorityColor: 'bg-red-500/20 text-red-400',
+    status: 'ready',
+    statusColor: 'text-green-400',
+  },
+  {
+    id: '#29',
+    title: 'Multi-tenant onboarding',
+    size: 'L',
+    priority: 'P2',
+    priorityColor: 'bg-orange-500/20 text-orange-400',
+    status: 'ready',
+    statusColor: 'text-green-400',
+  },
+]
+
 export function DashboardMockup() {
   return (
     <div className="rounded-lg border border-border/50 bg-muted/30 p-3 font-mono text-[10px] leading-relaxed overflow-hidden">
@@ -21,69 +60,23 @@ export function DashboardMockup() {
         <span>Status</span>
       </div>
 
-      {/* Row 1 */}
-      <div className="grid grid-cols-[2rem_1fr_3rem_3rem_4rem] gap-1 py-0.5">
-        <span className="text-muted-foreground">#42</span>
-        <span className="text-foreground truncate">Avatar upload feature</span>
-        <span className="text-blue-400">M</span>
-        <span
-          className={cn(
-            'inline-flex items-center justify-center rounded px-1',
-            'bg-red-500/20 text-red-400'
-          )}
-        >
-          P1
-        </span>
-        <span className="text-red-400">blocked</span>
-      </div>
-
-      {/* Row 2 */}
-      <div className="grid grid-cols-[2rem_1fr_3rem_3rem_4rem] gap-1 py-0.5">
-        <span className="text-muted-foreground">#38</span>
-        <span className="text-foreground truncate">RBAC permission cache</span>
-        <span className="text-blue-400">L</span>
-        <span
-          className={cn(
-            'inline-flex items-center justify-center rounded px-1',
-            'bg-orange-500/20 text-orange-400'
-          )}
-        >
-          P2
-        </span>
-        <span className="text-orange-400">blocking</span>
-      </div>
-
-      {/* Row 3 */}
-      <div className="grid grid-cols-[2rem_1fr_3rem_3rem_4rem] gap-1 py-0.5">
-        <span className="text-muted-foreground">#51</span>
-        <span className="text-foreground truncate">Dashboard skill</span>
-        <span className="text-blue-400">S</span>
-        <span
-          className={cn(
-            'inline-flex items-center justify-center rounded px-1',
-            'bg-red-500/20 text-red-400'
-          )}
-        >
-          P1
-        </span>
-        <span className="text-green-400">ready</span>
-      </div>
-
-      {/* Row 4 */}
-      <div className="grid grid-cols-[2rem_1fr_3rem_3rem_4rem] gap-1 py-0.5">
-        <span className="text-muted-foreground">#29</span>
-        <span className="text-foreground truncate">Multi-tenant onboarding</span>
-        <span className="text-blue-400">L</span>
-        <span
-          className={cn(
-            'inline-flex items-center justify-center rounded px-1',
-            'bg-orange-500/20 text-orange-400'
-          )}
-        >
-          P2
-        </span>
-        <span className="text-green-400">ready</span>
-      </div>
+      {/* Issue rows */}
+      {rows.map((row) => (
+        <div key={row.id} className="grid grid-cols-[2rem_1fr_3rem_3rem_4rem] gap-1 py-0.5">
+          <span className="text-muted-foreground">{row.id}</span>
+          <span className="text-foreground truncate">{row.title}</span>
+          <span className="text-blue-400">{row.size}</span>
+          <span
+            className={cn(
+              'inline-flex items-center justify-center rounded px-1',
+              row.priorityColor
+            )}
+          >
+            {row.priority}
+          </span>
+          <span className={row.statusColor}>{row.status}</span>
+        </div>
+      ))}
 
       {/* Show more link */}
       <div className="mt-1 text-primary/70 cursor-pointer">{m.talk_tips_dashboard_show_more()}</div>

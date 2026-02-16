@@ -44,7 +44,17 @@ async function reset() {
 
   try {
     const tableList = TABLES.map((t) => `"${t}"`).join(', ')
-    await client.unsafe(`TRUNCATE ${tableList} CASCADE`)
+    try {
+      await client.unsafe(`TRUNCATE ${tableList} CASCADE`)
+    } catch (truncateError) {
+      const message = truncateError instanceof Error ? truncateError.message : String(truncateError)
+      if (message.includes('does not exist') || message.includes('relation')) {
+        console.error(
+          "db-reset: one or more tables do not exist. Run 'bun run db:migrate' first to create them."
+        )
+      }
+      throw truncateError
+    }
     console.log(`Reset: truncated ${TABLES.length} tables`)
   } catch (error) {
     console.error('db-reset: failed to reset database:', error)
