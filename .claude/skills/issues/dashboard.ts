@@ -716,7 +716,17 @@ function buildHtml(
 ): string {
   const totalCount = issues.reduce((sum, i) => sum + 1 + i.children.length, 0)
 
-  const rows = issues.map((i) => issueRow(i)).join('')
+  const INITIAL_VISIBLE = 8
+  const visibleRows = issues
+    .slice(0, INITIAL_VISIBLE)
+    .map((i) => issueRow(i))
+    .join('')
+  const hiddenRows = issues
+    .slice(INITIAL_VISIBLE)
+    .map((i) => issueRow(i))
+    .join('')
+  const hasMore = issues.length > INITIAL_VISIBLE
+  const hiddenCount = issues.length - INITIAL_VISIBLE
   const depNodes = buildDepGraph(issues)
   const depGraphHtml = renderDepGraph(depNodes, issues)
   const prsHtml = renderPRs(prs)
@@ -962,6 +972,21 @@ function buildHtml(
   .branch-issue { color: var(--accent); font-size: 12px; }
   .wt-path { font-size: 11px; color: var(--text-muted); margin-left: auto; }
 
+  #show-more-btn {
+    background: var(--surface);
+    color: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 20px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  #show-more-btn:hover {
+    border-color: var(--accent);
+    background: rgba(88,166,255,.1);
+  }
+
   .empty-state {
     color: var(--text-muted);
     font-size: 13px;
@@ -990,7 +1015,24 @@ function buildHtml(
       </tr>
     </thead>
     <tbody>
-      ${rows}
+      ${visibleRows}
+      ${
+        hasMore
+          ? `<tr id="show-more-row"><td colspan="7" style="text-align:center;padding:12px;">
+        <button id="show-more-btn" onclick="document.getElementById('hidden-issues').style.display='';document.getElementById('show-less-row').style.display='';this.parentElement.parentElement.style.display='none';">
+          Show ${hiddenCount} more issue${hiddenCount > 1 ? 's' : ''}
+        </button>
+      </td></tr>`
+          : ''
+      }
+    </tbody>
+    <tbody id="hidden-issues" style="display:none;">
+      ${hiddenRows}
+      <tr id="show-less-row" style="display:none;"><td colspan="7" style="text-align:center;padding:12px;">
+        <button id="show-more-btn" onclick="document.getElementById('hidden-issues').style.display='none';document.getElementById('show-less-row').style.display='none';document.getElementById('show-more-row').style.display='';">
+          Show less
+        </button>
+      </td></tr>
     </tbody>
   </table>
 
