@@ -5,10 +5,14 @@ import { useFumadocsLoader } from 'fumadocs-core/source/client'
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
-import { Suspense } from 'react'
+import type { ComponentProps } from 'react'
+import { createContext, Suspense, useContext } from 'react'
 import { DocsErrorBoundary } from '@/components/docs-error-boundary'
 import { baseOptions } from '@/lib/layout.shared'
 import { source } from '@/lib/source'
+
+/** Directory URL for the current page, used to resolve relative MDX links. */
+const LinkBaseContext = createContext('')
 
 export const Route = createFileRoute('/docs/$')({
   component: Page,
@@ -36,13 +40,46 @@ const serverLoader = createServerFn({
     const page = source.getPage(slugs)
     if (!page) throw notFound()
 
+    // Compute the directory URL for relative link resolution.
+    // page.path is the virtual file path (e.g., "index", "getting-started",
+    // "architecture/auth-security"). We extract its directory and prepend
+    // the docs base URL to get a trailing-slash base for new URL() resolution.
+    const pageDir = page.path.includes('/')
+      ? page.path.substring(0, page.path.lastIndexOf('/'))
+      : ''
+    const linkBase = `/docs${pageDir ? `/${pageDir}` : ''}/`
+
     return {
       path: page.path,
+      linkBase,
       pageTree: await source.serializePageTree(source.getPageTree()),
       title: page.data.title,
       description: page.data.description,
     }
   })
+
+/**
+ * Resolve relative MDX links (./foo, ../bar) against the current page URL.
+ *
+ * TanStack Router's <Link to="./foo"> resolves relative to the *route*,
+ * not the URL pathname, which produces wrong paths for splat routes.
+ * We resolve them ourselves using standard URL resolution and pass
+ * an absolute path to the Link component.
+ */
+function DocsLink(props: ComponentProps<'a'>) {
+  const linkBase = useContext(LinkBaseContext)
+  const DefaultLink = defaultMdxComponents.a ?? 'a'
+
+  if (props.href && (props.href.startsWith('./') || props.href.startsWith('../'))) {
+    // linkBase is a trailing-slash directory URL (e.g., "/docs/" or "/docs/architecture/").
+    // new URL("./vision", "http://n/docs/") resolves to /docs/vision.
+    const url = new URL(props.href, `http://n${linkBase}`)
+    const resolved = url.pathname + url.hash
+    return <DefaultLink {...props} href={resolved} />
+  }
+
+  return <DefaultLink {...props} />
+}
 
 const clientLoader = browserCollections.docs.createClientLoader({
   component(
@@ -59,6 +96,7 @@ const clientLoader = browserCollections.docs.createClientLoader({
           <MDX
             components={{
               ...defaultMdxComponents,
+              a: DocsLink,
             }}
           />
         </DocsBody>
@@ -73,7 +111,9 @@ function Page() {
   return (
     <DocsErrorBoundary>
       <DocsLayout {...baseOptions()} tree={data.pageTree}>
-        <Suspense>{clientLoader.useContent(data.path)}</Suspense>
+        <LinkBaseContext value={data.linkBase}>
+          <Suspense>{clientLoader.useContent(data.path)}</Suspense>
+        </LinkBaseContext>
       </DocsLayout>
     </DocsErrorBoundary>
   )
