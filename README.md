@@ -62,4 +62,4 @@ GitHub Issue → Branch → Implement → PR → Review → Merge
 
 ## Documentation
 
-See [docs/INDEX.md](docs/INDEX.md) for full documentation.
+See [docs/index.mdx](docs/index.mdx) for full documentation.

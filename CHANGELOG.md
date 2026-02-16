@@ -17,6 +17,7 @@ Entries are generated automatically by `/promote` and committed to staging befor
 
 ### Documentation
 - docs(docs): fix ASCII diagram alignment in architecture pages
+- fix(docs): fix dead README link and ASCII arrows in vision page
 
 ## [v0.2.1] - 2026-02-16
 
