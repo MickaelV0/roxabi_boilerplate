@@ -25,6 +25,7 @@
         "react": "^19.2.4",
         "react-dom": "^19.2.4",
         "turbo": "^2.8.9",
+        "turbo-ignore": "^2.8.9",
         "typescript": "^5.9.3",
         "vitest": "^4.0.18",
       },
@@ -2157,6 +2158,8 @@
     "turbo-darwin-64": ["turbo-darwin-64@2.8.9", "", { "os": "darwin", "cpu": "x64" }, "sha512-KnCw1ZI9KTnEAhdI9avZrnZ/z4wsM++flMA1w8s8PKOqi5daGpFV36qoPafg4S8TmYMe52JPWEoFr0L+lQ5JIw=="],
 
     "turbo-darwin-arm64": ["turbo-darwin-arm64@2.8.9", "", { "os": "darwin", "cpu": "arm64" }, "sha512-CbD5Y2NKJKBXTOZ7z7Cc7vGlFPZkYjApA7ri9lH4iFwKV1X7MoZswh9gyRLetXYWImVX1BqIvP8KftulJg/wIA=="],
+
+    "turbo-ignore": ["turbo-ignore@2.8.9", "", { "dependencies": { "json5": "2.2.3" }, "bin": { "turbo-ignore": "dist/cli.js" } }, "sha512-TbZA8uEwKJCNn+xEfta5zXVv+AalySMjzA4qE5WKwi2RDE7UabIY+ZNkXE8KAmxXiUUujNQHiHaVqB9Yt4WLaQ=="],
 
     "turbo-linux-64": ["turbo-linux-64@2.8.9", "", { "os": "linux", "cpu": "x64" }, "sha512-OXC9HdCtsHvyH+5KUoH8ds+p5WU13vdif0OPbsFzZca4cUXMwKA3HWwUuCgQetk0iAE4cscXpi/t8A263n3VTg=="],
 

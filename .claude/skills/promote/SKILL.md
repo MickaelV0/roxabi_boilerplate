@@ -138,40 +138,57 @@ Prepend the new release entry to `CHANGELOG.md` in [Keep a Changelog](https://ke
 
 Use the Edit tool to prepend the entry after the header (after the line "Entries are generated automatically by `/promote` and committed to staging before the promotion PR.").
 
-#### 4b. Create Fumadocs version page
+#### 4b. Update Fumadocs changelog page (grouped by minor version)
 
-Create `docs/changelog/vX-Y-Z.mdx` (replace dots with dashes in the version for URL-friendliness):
+Changelog pages are grouped by **minor version**: one page per `vX.Y` (e.g., `docs/changelog/v0-2.mdx` covers v0.2.0, v0.2.1, v0.2.2, etc.). Patch releases are appended to the existing minor page, newest first.
+
+**If the minor page already exists** (e.g., releasing v0.2.2 and `docs/changelog/v0-2.mdx` exists):
+
+1. Read the existing page
+2. Prepend the new patch entry **after the frontmatter**, before the previous entries
+3. Separate entries with `---` (horizontal rule)
+
+**If the minor page does not exist** (e.g., releasing v0.3.0):
+
+1. Create `docs/changelog/vX-Y.mdx`
+2. Add frontmatter and the first entry
+
+Page format:
 
 ```mdx
 ---
-title: vX.Y.Z
-description: Released YYYY-MM-DD
+title: vX.Y.x
+description: All vX.Y releases
 ---
 
-Released on Month DD, YYYY.
+## vX.Y.Z — Month DD, YYYY
 
-## Features
+### Features
 - feat(web): add user profile page (#42)
 
-## Fixes
+### Fixes
 - fix(api): resolve timeout on large queries (#43)
 
-## Other
-- docs: update deployment guide (#44)
+---
+
+## vX.Y.0 — Month DD, YYYY
+
+### Features
+- feat(api): initial release (#1)
 ```
 
 #### 4c. Update docs/changelog/meta.json
 
-Insert the new version slug at the **beginning** of the `pages` array (newest first):
+Only update `meta.json` if a **new minor page** was created. Insert the minor slug (e.g., `v0-3`) at the **beginning** of the `pages` array:
 
 ```json
 {
   "title": "Changelog",
-  "pages": ["vX-Y-Z", ...existing]
+  "pages": ["v0-3", "v0-2", "v0-1-0", "index"]
 }
 ```
 
-Use the Edit tool to update the file.
+If the minor page already existed (patch release), `meta.json` does not change.
 
 #### 4d. Commit to staging
 

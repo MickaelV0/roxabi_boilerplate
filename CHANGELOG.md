@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Entries are generated automatically by `/promote` and committed to staging before the promotion PR.
 
+## [v0.2.2] - 2026-02-16
+
+### Fixed
+- fix(web): resolve relative links in Fumadocs documentation
+- fix(devops): add turbo-ignore devDep and missing passThroughEnv vars
+- fix(ci): make Neon branch cleanup tolerant of missing branches
+- fix(claude): make project board failures non-fatal in issue-triage scripts
+
+### Documentation
+- docs(docs): fix ASCII diagram alignment in architecture pages
+- fix(docs): fix dead README link and ASCII arrows in vision page
+
 ## [v0.2.1] - 2026-02-16
 
 ### Added

@@ -119,37 +119,37 @@ bun docs
 
 ```txt
 ┌──────────────────────────────────────────────────────────────────────────┐
-│                              Client Browser                               │
+│                              Client Browser                              │
 │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐          │
 │  │   React    │  │  TanStack  │  │  TanStack  │  │  TanStack  │          │
-│  │ Components │◀▶│   Router   │◀▶│   Query    │◀▶│   Form     │          │
+│  │ Components │❮❯│   Router   │❮❯│   Query    │❮❯│   Form     │          │
 │  └────────────┘  └────────────┘  └─────┬──────┘  └────────────┘          │
 └────────────────────────────────────────┼─────────────────────────────────┘
                                          │ HTTP/SSR
                                          ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
-│                         Web App (TanStack Start)                          │
+│                         Web App (TanStack Start)                         │
 │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐          │
 │  │   SSR      │  │  Server    │  │  Loaders   │  │  Fumadocs  │          │
-│  │  Renderer  │◀▶│  Functions │◀▶│  & Actions │  │   (Docs)   │          │
+│  │  Renderer  │❮❯│  Functions │❮❯│  & Actions │  │   (Docs)   │          │
 │  └────────────┘  └─────┬──────┘  └────────────┘  └────────────┘          │
 └────────────────────────┼─────────────────────────────────────────────────┘
                          │ HTTP (REST)
                          ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
-│                          API (NestJS + Fastify)                           │
+│                          API (NestJS + Fastify)                          │
 │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐          │
-│  │ Controllers│─▶│  Services  │─▶│   Guards   │  │  OpenAPI   │          │
-│  │  (Routes)  │◀─│  (Logic)   │◀─│ & Pipes    │  │   Docs     │          │
+│  │ Controllers│─❯│  Services  │─❯│   Guards   │  │  OpenAPI   │          │
+│  │  (Routes)  │❮─│  (Logic)   │❮─│ & Pipes    │  │   Docs     │          │
 │  └────────────┘  └─────┬──────┘  └────────────┘  └────────────┘          │
 └────────────────────────┼─────────────────────────────────────────────────┘
                          │ ORM/Query
                          ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
-│                              Database Layer                               │
+│                              Database Layer                              │
 │  ┌────────────┐  ┌────────────┐                                          │
-│  │  Drizzle   │─▶│  Database  │                                          │
-│  │    ORM     │◀─│ (Postgres) │                                          │
+│  │  Drizzle   │─❯│  Database  │                                          │
+│  │    ORM     │❮─│ (Postgres) │                                          │
 │  └────────────┘  └────────────┘                                          │
 └──────────────────────────────────────────────────────────────────────────┘
 
@@ -192,7 +192,7 @@ Production uses **Vercel** for both web and API with automatic deploys from GitH
 
 ```txt
 ┌──────────────┐     ┌──────────────┐
-│   Developer  │────▶│   GitHub     │
+│   Developer  │────❯│   GitHub     │
 │  Push/Merge  │     │   (main)     │
 └──────────────┘     └──────┬───────┘
                             │
@@ -202,7 +202,7 @@ Production uses **Vercel** for both web and API with automatic deploys from GitH
          │   Vercel     │    │   Vercel     │
          │   (Web)      │    │   (API)      │
          │  TanStack    │    │  NestJS +    │
-         │  Start SSR   │───▶│  Fastify     │
+         │  Start SSR   │───❯│  Fastify     │
          └──────────────┘    └──────┬───────┘
                                     │
                                     ▼
