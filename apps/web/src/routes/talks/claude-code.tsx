@@ -10,6 +10,7 @@ import { EndToEndSection } from '@/components/presentation/EndToEndSection'
 import { IntroSection } from '@/components/presentation/IntroSection'
 import { SectionContainer } from '@/components/presentation/SectionContainer'
 import { SpecializationSection } from '@/components/presentation/SpecializationSection'
+import { TipsSection } from '@/components/presentation/TipsSection'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { m } from '@/paraglide/messages'
 
@@ -30,6 +31,7 @@ export function ClaudeCodePresentation() {
       { id: 'dev-process', label: m.talk_nav_dev_process() },
       { id: 'agent-teams', label: m.talk_nav_agent_teams() },
       { id: 'end-to-end', label: m.talk_nav_end_to_end() },
+      { id: 'tips', label: m.talk_nav_tips() },
       { id: 'closing', label: m.talk_nav_closing() },
     ],
     []
@@ -87,6 +89,10 @@ export function ClaudeCodePresentation() {
 
         <SectionContainer id="end-to-end">
           <EndToEndSection />
+        </SectionContainer>
+
+        <SectionContainer id="tips">
+          <TipsSection />
         </SectionContainer>
 
         <SectionContainer id="closing">

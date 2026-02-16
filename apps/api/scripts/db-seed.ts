@@ -9,8 +9,9 @@
  *   2. Account: credential provider with hashed password
  *   3. Organization: "Roxabi Dev" (slug: roxabi-dev)
  *   4. Member: user → org (role: owner)
- *   5. RBAC: 4 default roles (Owner, Admin, Member, Viewer) with permissions
- *   6. Update member.roleId to Owner role
+ *   5. Permissions: 15 resource:action pairs (idempotent via ON CONFLICT)
+ *   6. RBAC: 4 default roles (Owner, Admin, Member, Viewer) with permissions
+ *   7. Update member.roleId to Owner role
  *
  * Usage:
  *   DATABASE_URL=postgresql://... tsx scripts/db-seed.ts
@@ -25,8 +26,35 @@ import postgres from 'postgres'
 import * as schema from '../src/database/schema/index.js'
 import { DEFAULT_ROLES } from '../src/rbac/rbac.constants.js'
 
+const DEFAULT_PERMISSIONS = [
+  { resource: 'users', action: 'read', description: 'View user profiles' },
+  { resource: 'users', action: 'write', description: 'Edit user profiles' },
+  { resource: 'users', action: 'delete', description: 'Delete users' },
+  { resource: 'organizations', action: 'read', description: 'View organization details' },
+  { resource: 'organizations', action: 'write', description: 'Edit organization settings' },
+  { resource: 'organizations', action: 'delete', description: 'Delete organization' },
+  { resource: 'members', action: 'read', description: 'View organization members' },
+  { resource: 'members', action: 'write', description: 'Manage members and roles' },
+  { resource: 'members', action: 'delete', description: 'Remove members from organization' },
+  { resource: 'invitations', action: 'read', description: 'View pending invitations' },
+  { resource: 'invitations', action: 'write', description: 'Send invitations' },
+  { resource: 'invitations', action: 'delete', description: 'Revoke invitations' },
+  { resource: 'roles', action: 'read', description: 'View roles and permissions' },
+  { resource: 'roles', action: 'write', description: 'Create and edit roles' },
+  { resource: 'roles', action: 'delete', description: 'Delete custom roles' },
+] as const
+
 type DbInstance = PostgresJsDatabase<typeof schema>
 type Tx = Parameters<Parameters<DbInstance['transaction']>[0]>[0]
+
+/** Insert the 15 global permissions (idempotent — uses ON CONFLICT DO NOTHING). */
+async function seedPermissions(tx: Tx): Promise<number> {
+  const result = await tx
+    .insert(schema.permissions)
+    .values(DEFAULT_PERMISSIONS.map((p) => ({ ...p })))
+    .onConflictDoNothing({ target: [schema.permissions.resource, schema.permissions.action] })
+  return result.length
+}
 
 /** Build a map of "resource:action" → permission ID from pre-seeded permissions. */
 async function buildPermissionMap(tx: Tx): Promise<Map<string, string>> {
@@ -131,18 +159,19 @@ async function seed() {
         roleId: null,
       })
 
-      // 5. Seed RBAC roles and permissions
+      // 5. Seed global permissions (idempotent — safe after db:reset)
+      const permCount = await seedPermissions(tx)
+
+      // 6. Seed RBAC roles and permissions
       const permMap = await buildPermissionMap(tx)
       if (permMap.size === 0) {
         console.warn(
-          'db-seed: permMap is empty — no permissions found in the database. ' +
-            'This is expected on initial schema setup or the first run before permissions are seeded. ' +
-            'Role-permission assignments will be skipped.'
+          'db-seed: no permissions found after seeding — role-permission assignments will be skipped'
         )
       }
       const { ownerRoleId, totalRolePermissions } = await seedRbac(tx, orgId, permMap)
 
-      // 6. Update member.roleId to Owner role
+      // 7. Update member.roleId to Owner role
       if (ownerRoleId) {
         await tx
           .update(schema.members)
@@ -151,7 +180,7 @@ async function seed() {
       }
 
       console.log(
-        `Seeded: 1 user, 1 org, 1 member, ${DEFAULT_ROLES.length} roles, ${totalRolePermissions} role_permissions`
+        `Seeded: 1 user, 1 org, 1 member, ${permCount} permissions, ${DEFAULT_ROLES.length} roles, ${totalRolePermissions} role_permissions`
       )
     })
   } catch (error) {

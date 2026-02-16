@@ -166,9 +166,15 @@ bun db:up
 
 # Verify it's running and healthy
 docker compose ps
+
+# Apply migrations
+bun db:migrate
+
+# Seed dev data (user, org, RBAC)
+bun db:seed
 ```
 
-> **Note:** Data persists across restarts. To stop: `bun db:down`. To reset data: `docker compose down -v`.
+> **Note:** Data persists across restarts. To stop: `bun db:down`. To wipe and re-seed: `bun db:reset && bun db:seed`.
 
 > **Troubleshooting:** If port 5432 is already in use, stop your local PostgreSQL first (`sudo systemctl stop postgresql` or `brew services stop postgresql`).
 
@@ -204,6 +210,10 @@ bun --filter @repo/api dev
 | `bun docs` | Start documentation server (runs apps/web) |
 | `bun db:up` | Start PostgreSQL (Docker Compose) |
 | `bun db:down` | Stop PostgreSQL (preserves data) |
+| `bun db:migrate` | Apply pending database migrations |
+| `bun db:seed` | Seed dev data (user, org, RBAC roles) |
+| `bun db:reset` | Truncate all tables (dev only) |
+| `bun db:generate` | Generate migrations from schema changes |
 
 ## Next Steps
 

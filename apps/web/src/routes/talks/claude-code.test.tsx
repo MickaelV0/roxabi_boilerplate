@@ -62,6 +62,7 @@ describe('ClaudeCodePresentation page', () => {
       'dev-process',
       'agent-teams',
       'end-to-end',
+      'tips',
       'closing',
     ]
 
@@ -87,5 +88,6 @@ describe('ClaudeCodePresentation page', () => {
     expect(screen.getByRole('heading', { name: /talk_spec_title/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /talk_teams_title/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /talk_e2e_title/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /talk_tips_title/i })).toBeInTheDocument()
   })
 })
