@@ -24,25 +24,27 @@ set_issue() {
     [[ -z "$issue_number" ]] && { echo "Error: Issue number required" >&2; exit 1; }
     [[ -z "$size" && -z "$priority" && -z "$status" && -z "$blocked_by" && -z "$blocks" && -z "$rm_blocked_by" && -z "$rm_blocks" && -z "$parent" && -z "$add_child" && "$rm_parent" == false && -z "$rm_child" ]] && { echo "Error: Specify --size, --priority, --status, --blocked-by, --blocks, --rm-blocked-by, --rm-blocks, --parent, --add-child, --rm-parent, and/or --rm-child" >&2; exit 1; }
 
-    # Project field updates need item_id
+    # Project field updates need item_id (non-fatal — dependency and parent/child ops must still run)
     if [[ -n "$size" || -n "$priority" || -n "$status" ]]; then
-        item_id=$(get_item_id "$issue_number")
-        [[ -z "$item_id" ]] && { echo "Error: Issue #$issue_number not found in project" >&2; exit 1; }
-
-        if [[ -n "$status" ]]; then
-            [[ -z "${STATUS_OPTIONS[$status]:-}" ]] && { echo "Error: Invalid status. Valid: Backlog, Analysis, Specs, \"In Progress\", Review, Done" >&2; exit 1; }
-            update_field "$item_id" "$STATUS_FIELD_ID" "${STATUS_OPTIONS[$status]}"
-            echo "Status=$status #$issue_number"
-        fi
-        if [[ -n "$size" ]]; then
-            [[ -z "${SIZE_OPTIONS[$size]:-}" ]] && { echo "Error: Invalid size. Valid: ${!SIZE_OPTIONS[*]}" >&2; exit 1; }
-            update_field "$item_id" "$SIZE_FIELD_ID" "${SIZE_OPTIONS[$size]}"
-            echo "Size=$size #$issue_number"
-        fi
-        if [[ -n "$priority" ]]; then
-            [[ -z "${PRIORITY_OPTIONS[$priority]:-}" ]] && { echo "Error: Invalid priority. Valid: Urgent, High, Medium, Low" >&2; exit 1; }
-            update_field "$item_id" "$PRIORITY_FIELD_ID" "${PRIORITY_OPTIONS[$priority]}"
-            echo "Priority=$priority #$issue_number"
+        local item_id=""
+        if item_id=$(get_item_id "$issue_number" 2>&1) && [[ -n "$item_id" ]]; then
+            if [[ -n "$status" ]]; then
+                [[ -z "${STATUS_OPTIONS[$status]:-}" ]] && { echo "Error: Invalid status. Valid: Backlog, Analysis, Specs, \"In Progress\", Review, Done" >&2; exit 1; }
+                update_field "$item_id" "$STATUS_FIELD_ID" "${STATUS_OPTIONS[$status]}"
+                echo "Status=$status #$issue_number"
+            fi
+            if [[ -n "$size" ]]; then
+                [[ -z "${SIZE_OPTIONS[$size]:-}" ]] && { echo "Error: Invalid size. Valid: ${!SIZE_OPTIONS[*]}" >&2; exit 1; }
+                update_field "$item_id" "$SIZE_FIELD_ID" "${SIZE_OPTIONS[$size]}"
+                echo "Size=$size #$issue_number"
+            fi
+            if [[ -n "$priority" ]]; then
+                [[ -z "${PRIORITY_OPTIONS[$priority]:-}" ]] && { echo "Error: Invalid priority. Valid: Urgent, High, Medium, Low" >&2; exit 1; }
+                update_field "$item_id" "$PRIORITY_FIELD_ID" "${PRIORITY_OPTIONS[$priority]}"
+                echo "Priority=$priority #$issue_number"
+            fi
+        else
+            echo "Warning: Issue #$issue_number not found in project — skipping project field updates (status/size/priority)" >&2
         fi
     fi
 
