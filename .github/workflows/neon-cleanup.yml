@@ -17,6 +17,7 @@ jobs:
     steps:
       - name: Delete Neon branch for closed PR
         uses: neondatabase/delete-branch-action@v3
+        continue-on-error: true
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
           branch: preview/${{ github.head_ref }}
