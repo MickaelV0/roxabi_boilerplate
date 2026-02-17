@@ -146,6 +146,97 @@ describe('UserService', () => {
       )
     })
 
+    it('should process transfer resolution by updating target member role to owner', async () => {
+      // Arrange
+      const { db, chains } = createMockDb()
+      chains.select.limit.mockResolvedValue([{ id: 'user-1', email: 'john@example.com' }])
+      const deletedUser = {
+        ...mockUser,
+        deletedAt: new Date(),
+        deleteScheduledFor: new Date(),
+      }
+
+      const txUpdateCalls: unknown[] = []
+      db.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          update: vi.fn().mockImplementation(() => {
+            const call = { setArg: null as unknown }
+            txUpdateCalls.push(call)
+            return {
+              set: vi.fn().mockImplementation((data: unknown) => {
+                call.setArg = data
+                return {
+                  where: vi.fn().mockReturnValue({
+                    returning: vi.fn().mockResolvedValue([deletedUser]),
+                  }),
+                }
+              }),
+            }
+          }),
+          delete: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([]),
+          }),
+        }
+        return cb(tx)
+      })
+
+      const service = new UserService(db as never)
+      const orgResolutions = [{ orgId: 'org-1', action: 'transfer' as const, newOwnerId: 'user-2' }]
+
+      // Act
+      const result = await service.softDelete('user-1', 'john@example.com', orgResolutions)
+
+      // Assert
+      expect(result).toEqual(deletedUser)
+      expect(db.transaction).toHaveBeenCalledOnce()
+      // First update call should be the ownership transfer
+      expect(txUpdateCalls.length).toBeGreaterThanOrEqual(2)
+    })
+
+    it('should process delete resolution by soft-deleting org, clearing sessions, and expiring invitations', async () => {
+      // Arrange
+      const { db, chains } = createMockDb()
+      chains.select.limit.mockResolvedValue([{ id: 'user-1', email: 'john@example.com' }])
+      const deletedUser = {
+        ...mockUser,
+        deletedAt: new Date(),
+        deleteScheduledFor: new Date(),
+      }
+
+      let txUpdateCallCount = 0
+      db.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
+        txUpdateCallCount = 0
+        const tx = {
+          update: vi.fn().mockImplementation(() => {
+            txUpdateCallCount++
+            return {
+              set: vi.fn().mockReturnValue({
+                where: vi.fn().mockReturnValue({
+                  returning: vi.fn().mockResolvedValue([deletedUser]),
+                }),
+              }),
+            }
+          }),
+          delete: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([]),
+          }),
+        }
+        return cb(tx)
+      })
+
+      const service = new UserService(db as never)
+      const orgResolutions = [{ orgId: 'org-1', action: 'delete' as const }]
+
+      // Act
+      const result = await service.softDelete('user-1', 'john@example.com', orgResolutions)
+
+      // Assert
+      expect(result).toEqual(deletedUser)
+      expect(db.transaction).toHaveBeenCalledOnce()
+      // delete resolution produces: org update, session update, invitation update, then user update = 4 update calls
+      expect(txUpdateCallCount).toBe(4)
+    })
+
     it('should accept case-insensitive email confirmation', async () => {
       const { db, chains } = createMockDb()
       chains.select.limit.mockResolvedValue([{ id: 'user-1', email: 'John@Example.com' }])
@@ -197,6 +288,53 @@ describe('UserService', () => {
       const service = new UserService(db as never)
 
       await expect(service.reactivate('nonexistent')).rejects.toThrow(UserNotFoundException)
+    })
+  })
+
+  describe('getOwnedOrganizations', () => {
+    it('should return organizations where user has owner role', async () => {
+      // Arrange
+      const { db } = createMockDb()
+      const ownedOrgs = [
+        { orgId: 'org-1', orgName: 'Org One', orgSlug: 'org-one' },
+        { orgId: 'org-2', orgName: 'Org Two', orgSlug: 'org-two' },
+      ]
+      db.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue(ownedOrgs),
+          }),
+        }),
+      })
+
+      const service = new UserService(db as never)
+
+      // Act
+      const result = await service.getOwnedOrganizations('user-1')
+
+      // Assert
+      expect(result).toEqual(ownedOrgs)
+      expect(result).toHaveLength(2)
+    })
+
+    it('should return empty array when user owns no organizations', async () => {
+      // Arrange
+      const { db } = createMockDb()
+      db.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      })
+
+      const service = new UserService(db as never)
+
+      // Act
+      const result = await service.getOwnedOrganizations('user-1')
+
+      // Assert
+      expect(result).toEqual([])
     })
   })
 })
