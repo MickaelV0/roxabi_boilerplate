@@ -6,17 +6,12 @@ export function ConsentBanner() {
 
   if (!showBanner) return null
 
-  // TODO: implement
-  // - Banner slides in at bottom of page
-  // - Text: "We use cookies to improve your experience..."
-  // - Three buttons with EQUAL visual prominence (CNIL requirement): Accept All, Reject All, Customize
-  // - Customize opens ConsentModal via openSettings()
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background p-4 shadow-lg">
       <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 sm:flex-row sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          {/* TODO: implement — i18n or hardcoded French text */}
-          Nous utilisons des cookies pour améliorer votre expérience.
+          Nous utilisons des cookies pour améliorer votre expérience. Vous pouvez tout accepter,
+          tout refuser ou personnaliser vos préférences.
         </p>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={rejectAll}>

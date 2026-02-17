@@ -1,4 +1,5 @@
-import { Body, Controller, Get, HttpCode, Post, Req, Res } from '@nestjs/common'
+import { Body, Controller, Get, HttpCode, NotFoundException, Post, Req, Res } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
@@ -21,10 +22,20 @@ const saveConsentSchema = z.object({
 
 type SaveConsentDto = z.infer<typeof saveConsentSchema>
 
+const CONSENT_COOKIE_NAME = 'consent'
+const CONSENT_COOKIE_MAX_AGE = 15778800 // ~6 months in seconds
+
 @ApiTags('Consent')
 @Controller('api/consent')
 export class ConsentController {
-  constructor(private readonly consentService: ConsentService) {}
+  private readonly isProduction: boolean
+
+  constructor(
+    private readonly consentService: ConsentService,
+    config: ConfigService
+  ) {
+    this.isProduction = config.get<string>('NODE_ENV') === 'production'
+  }
 
   @Post()
   @OptionalAuth()
@@ -39,12 +50,34 @@ export class ConsentController {
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply
   ) {
-    // TODO: implement
-    // - If session exists (authenticated): persist to DB via consentService.saveConsent() AND set cookie
-    // - If no session (anonymous): set consent cookie only, return 204
-    // - Cookie should contain: categories, consentedAt, policyVersion, action
-    // - Extract ip_address from request, user_agent from headers for audit trail
-    throw new Error('Not implemented')
+    const consentedAt = new Date().toISOString()
+
+    const cookiePayload = JSON.stringify({
+      categories: body.categories,
+      consentedAt,
+      policyVersion: body.policyVersion,
+      action: body.action,
+    })
+
+    const securePart = this.isProduction ? '; Secure' : ''
+    const cookieHeader = `${CONSENT_COOKIE_NAME}=${encodeURIComponent(cookiePayload)}; Path=/; SameSite=Lax; Max-Age=${CONSENT_COOKIE_MAX_AGE}${securePart}`
+    reply.header('Set-Cookie', cookieHeader)
+
+    if (!session) {
+      reply.status(204)
+      return
+    }
+
+    const ipAddress = request.ip ?? null
+    const userAgent = request.headers['user-agent'] ?? null
+
+    const record = await this.consentService.saveConsent(session.user.id, {
+      ...body,
+      ipAddress,
+      userAgent,
+    })
+
+    return record
   }
 
   @Get()
@@ -54,9 +87,10 @@ export class ConsentController {
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   @ApiResponse({ status: 404, description: 'No consent record found' })
   async getConsent(@Session() session: { user: { id: string } }) {
-    // TODO: implement
-    // - Call consentService.getLatestConsent(session.user.id)
-    // - Return 404 if no record found
-    throw new Error('Not implemented')
+    const record = await this.consentService.getLatestConsent(session.user.id)
+    if (!record) {
+      throw new NotFoundException('No consent record found')
+    }
+    return record
   }
 }

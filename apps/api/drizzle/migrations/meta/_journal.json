@@ -22,6 +22,13 @@
       "when": 1770980756085,
       "tag": "0002_rbac-tables-and-members-role-id",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771326234761,
+      "tag": "0003_useful_psylocke",
+      "breakpoints": true
     }
   ]
 }

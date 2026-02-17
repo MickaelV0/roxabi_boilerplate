@@ -14,6 +14,12 @@ vi.mock('@/lib/config', () => ({
   GITHUB_REPO_URL: 'https://github.com/test/repo',
 }))
 
+vi.mock('@/lib/consent', () => ({
+  useConsent: () => ({
+    openSettings: vi.fn(),
+  }),
+}))
+
 vi.mock('@tanstack/react-router', () => ({
   Link: ({
     to,

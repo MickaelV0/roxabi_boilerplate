@@ -19,11 +19,11 @@ export class GdprController {
     @Session() session: { user: { id: string } },
     @Res({ passthrough: true }) reply: FastifyReply
   ) {
-    // TODO: implement
-    // - Call gdprService.exportUserData(session.user.id)
-    // - Set Content-Disposition header for file download: attachment; filename="gdpr-export-{userId}-{timestamp}.json"
-    // - Must be allowed for soft-deleted users (ensure query does not filter by deleted_at)
-    // - Return the export data as JSON
-    throw new Error('Not implemented')
+    const data = await this.gdprService.exportUserData(session.user.id)
+
+    const date = new Date().toISOString().split('T')[0]
+    reply.header('Content-Disposition', `attachment; filename="roxabi-data-export-${date}.json"`)
+
+    return data
   }
 }

@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { ArrowLeft } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 type LegalPageLayoutProps = {
@@ -7,14 +8,14 @@ type LegalPageLayoutProps = {
 }
 
 export function LegalPageLayout({ title, children }: LegalPageLayoutProps) {
-  // TODO: implement — back link, consistent typography
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
       <Link
         to="/"
-        className="mb-8 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+        className="mb-8 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
-        ← Retour
+        <ArrowLeft className="size-4" />
+        Retour
       </Link>
       <h1 className="mb-8 text-3xl font-bold">{title}</h1>
       <div className="prose prose-neutral dark:prose-invert max-w-none">{children}</div>

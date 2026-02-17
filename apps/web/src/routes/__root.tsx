@@ -16,6 +16,7 @@ import { getLocale } from '@/paraglide/runtime'
 import { Footer } from '../components/Footer'
 import { Header } from '../components/Header'
 import { TanStackQueryDevtools } from '../integrations/tanstack-query/devtools'
+import { ConsentProvider } from '../lib/consent/ConsentProvider'
 import { demoStoreDevtools } from '../lib/demo-store-devtools'
 import appCss from '../styles.css?url'
 
@@ -52,8 +53,6 @@ function ErrorFallback({
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   beforeLoad: async () => {
-    // Other redirect strategies are possible; see
-    // https://github.com/TanStack/router/tree/main/examples/react/i18n-paraglide#offline-redirect
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('lang', getLocale())
     }
@@ -104,14 +103,16 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <RootProvider>
-      <div className="flex min-h-screen flex-col">
-        {!isChromeless && <Header />}
-        <div className="flex-1">
-          <ErrorBoundary FallbackComponent={ErrorFallback}>{children}</ErrorBoundary>
+      <ConsentProvider initialConsent={null}>
+        <div className="flex min-h-screen flex-col">
+          {!isChromeless && <Header />}
+          <div className="flex-1">
+            <ErrorBoundary FallbackComponent={ErrorFallback}>{children}</ErrorBoundary>
+          </div>
+          {!isChromeless && <Footer />}
         </div>
-        {!isChromeless && <Footer />}
-      </div>
-      <Toaster richColors position="top-right" offset="4rem" />
+        <Toaster richColors position="top-right" offset="4rem" />
+      </ConsentProvider>
     </RootProvider>
   )
 }
