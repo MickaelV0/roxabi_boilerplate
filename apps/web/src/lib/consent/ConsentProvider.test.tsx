@@ -39,7 +39,8 @@ vi.mock('@repo/ui', async () => {
 })
 
 // Must import after vi.mock
-import { ConsentProvider, useConsent } from './ConsentProvider'
+import { ConsentProvider } from './ConsentProvider'
+import { useConsent } from './useConsent'
 
 function ConsentTestConsumer() {
   const ctx = useConsent()

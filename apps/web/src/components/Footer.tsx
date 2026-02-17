@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { GITHUB_REPO_URL } from '@/lib/config'
-import { useConsent } from '@/lib/consent'
+import { useConsent } from '@/lib/consent/useConsent'
 import { m } from '@/paraglide/messages'
 
 const CURRENT_YEAR = new Date().getFullYear().toString()

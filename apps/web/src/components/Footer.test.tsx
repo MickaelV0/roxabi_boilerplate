@@ -14,7 +14,7 @@ vi.mock('@/lib/config', () => ({
   GITHUB_REPO_URL: 'https://github.com/test/repo',
 }))
 
-vi.mock('@/lib/consent', () => ({
+vi.mock('@/lib/consent/useConsent', () => ({
   useConsent: () => ({
     openSettings: vi.fn(),
   }),

@@ -5,7 +5,7 @@ import type {
   ConsentCookiePayload,
   ConsentState,
 } from '@repo/types'
-import { createContext, type ReactNode, useContext, useEffect, useState } from 'react'
+import { createContext, type ReactNode, useEffect, useState } from 'react'
 import { ConsentBanner } from '@/components/consent/ConsentBanner'
 import { ConsentModal } from '@/components/consent/ConsentModal'
 import { legalConfig } from '@/config/legal.config'
@@ -14,9 +14,9 @@ import { useSession } from '@/lib/auth-client'
 const SIX_MONTHS_MS = 6 * 30 * 24 * 60 * 60 * 1000
 const SIX_MONTHS_SECONDS = 15778800
 
-type ConsentContextValue = ConsentState & ConsentActions
+export type ConsentContextValue = ConsentState & ConsentActions
 
-const ConsentContext = createContext<ConsentContextValue | null>(null)
+export const ConsentContext = createContext<ConsentContextValue | null>(null)
 
 type ConsentProviderProps = {
   children: ReactNode
@@ -204,12 +204,4 @@ export function ConsentProvider({ children, initialConsent: serverConsent }: Con
       />
     </ConsentContext.Provider>
   )
-}
-
-export function useConsent(): ConsentContextValue {
-  const context = useContext(ConsentContext)
-  if (!context) {
-    throw new Error('useConsent must be used within a ConsentProvider')
-  }
-  return context
 }

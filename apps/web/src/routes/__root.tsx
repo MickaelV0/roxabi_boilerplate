@@ -1,3 +1,4 @@
+import type { ConsentCookiePayload } from '@repo/types'
 import { Toaster } from '@repo/ui'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import type { QueryClient } from '@tanstack/react-query'
@@ -17,11 +18,13 @@ import { Footer } from '../components/Footer'
 import { Header } from '../components/Header'
 import { TanStackQueryDevtools } from '../integrations/tanstack-query/devtools'
 import { ConsentProvider } from '../lib/consent/ConsentProvider'
+import { getServerConsent } from '../lib/consent/server'
 import { demoStoreDevtools } from '../lib/demo-store-devtools'
 import appCss from '../styles.css?url'
 
 export type MyRouterContext = {
   queryClient: QueryClient
+  serverConsent?: ConsentCookiePayload | null
 }
 
 function ErrorFallback({
@@ -56,6 +59,11 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('lang', getLocale())
     }
+  },
+
+  loader: async () => {
+    const serverConsent = await getServerConsent()
+    return { serverConsent }
   },
 
   head: () => ({
@@ -100,10 +108,14 @@ const CHROMELESS_PREFIXES = ['/docs', '/talks'] as const
 function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const isChromeless = CHROMELESS_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  const loaderData = Route.useLoaderData() as
+    | { serverConsent: ConsentCookiePayload | null }
+    | undefined
+  const serverConsent = loaderData?.serverConsent ?? null
 
   return (
     <RootProvider>
-      <ConsentProvider initialConsent={null}>
+      <ConsentProvider initialConsent={serverConsent}>
         <div className="flex min-h-screen flex-col">
           {!isChromeless && <Header />}
           <div className="flex-1">

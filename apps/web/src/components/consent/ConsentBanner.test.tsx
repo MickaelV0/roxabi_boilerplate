@@ -7,7 +7,7 @@ const mockRejectAll = vi.fn()
 const mockOpenSettings = vi.fn()
 const mockUseConsent = vi.fn()
 
-vi.mock('@/lib/consent', () => ({
+vi.mock('@/lib/consent/useConsent', () => ({
   useConsent: () => mockUseConsent(),
 }))
 

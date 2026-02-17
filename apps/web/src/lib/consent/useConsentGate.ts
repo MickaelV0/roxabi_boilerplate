@@ -1,4 +1,4 @@
-import { useConsent } from './ConsentProvider'
+import { useConsent } from './useConsent'
 
 export function useConsentGate(category: 'analytics' | 'marketing'): boolean {
   const { categories } = useConsent()

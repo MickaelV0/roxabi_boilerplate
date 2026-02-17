@@ -1,8 +1,8 @@
-import { NotFoundException } from '@nestjs/common'
 import type { ConsentRecord } from '@repo/types'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ConsentController } from './consent.controller.js'
 import type { ConsentService } from './consent.service.js'
+import { ConsentNotFoundException } from './exceptions/consent-not-found.exception.js'
 
 const mockConsentService = {
   saveConsent: vi.fn(),
@@ -48,7 +48,7 @@ describe('ConsentController', () => {
         headers: { 'user-agent': 'TestBrowser/1.0' },
       }
       const reply = {
-        header: vi.fn(),
+        setCookie: vi.fn(),
         status: vi.fn().mockReturnThis(),
       }
       vi.mocked(mockConsentService.saveConsent).mockResolvedValue(mockConsentRecord)
@@ -73,7 +73,7 @@ describe('ConsentController', () => {
       expect(result).toEqual(mockConsentRecord)
     })
 
-    it('should set Set-Cookie header for both authenticated and anonymous users', async () => {
+    it('should set cookie via setCookie for both authenticated and anonymous users', async () => {
       // Arrange
       const session = { user: { id: 'user-1' } }
       const request = {
@@ -81,7 +81,7 @@ describe('ConsentController', () => {
         headers: { 'user-agent': 'TestBrowser/1.0' },
       }
       const reply = {
-        header: vi.fn(),
+        setCookie: vi.fn(),
         status: vi.fn().mockReturnThis(),
       }
       vi.mocked(mockConsentService.saveConsent).mockResolvedValue(mockConsentRecord)
@@ -89,8 +89,16 @@ describe('ConsentController', () => {
       // Act
       await controller.saveConsent(session, validBody, request as never, reply as never)
 
-      // Assert — Set-Cookie header should be set with consent data
-      expect(reply.header).toHaveBeenCalledWith('Set-Cookie', expect.stringContaining('consent='))
+      // Assert — setCookie should be called with consent cookie name and options
+      expect(reply.setCookie).toHaveBeenCalledWith(
+        'consent',
+        expect.any(String),
+        expect.objectContaining({
+          path: '/',
+          sameSite: 'lax',
+          httpOnly: false,
+        })
+      )
     })
 
     it('should return 204 and skip DB write for anonymous user', async () => {
@@ -101,7 +109,7 @@ describe('ConsentController', () => {
         headers: { 'user-agent': 'TestBrowser/1.0' },
       }
       const reply = {
-        header: vi.fn(),
+        setCookie: vi.fn(),
         status: vi.fn().mockReturnThis(),
       }
 
@@ -127,7 +135,7 @@ describe('ConsentController', () => {
         headers: { 'user-agent': 'AuditBot/2.0' },
       }
       const reply = {
-        header: vi.fn(),
+        setCookie: vi.fn(),
         status: vi.fn().mockReturnThis(),
       }
       vi.mocked(mockConsentService.saveConsent).mockResolvedValue(mockConsentRecord)
@@ -145,14 +153,14 @@ describe('ConsentController', () => {
       )
     })
 
-    it('should not include Secure flag in cookie when not in production', async () => {
+    it('should set secure: false in cookie when not in production', async () => {
       // Arrange
       const testConfig = createMockConfig({ NODE_ENV: 'test' })
       const testController = new ConsentController(mockConsentService, testConfig as never)
       const session = { user: { id: 'user-1' } }
       const request = { ip: '127.0.0.1', headers: {} }
       const reply = {
-        header: vi.fn(),
+        setCookie: vi.fn(),
         status: vi.fn().mockReturnThis(),
       }
       vi.mocked(mockConsentService.saveConsent).mockResolvedValue(mockConsentRecord)
@@ -161,21 +169,21 @@ describe('ConsentController', () => {
       await testController.saveConsent(session, validBody, request as never, reply as never)
 
       // Assert
-      const setCookieCall = reply.header.mock.calls.find(
-        (call: unknown[]) => call[0] === 'Set-Cookie'
+      expect(reply.setCookie).toHaveBeenCalledWith(
+        'consent',
+        expect.any(String),
+        expect.objectContaining({ secure: false })
       )
-      expect(setCookieCall).toBeDefined()
-      expect(setCookieCall?.[1]).not.toContain('; Secure')
     })
 
-    it('should include Secure flag in cookie when in production', async () => {
+    it('should set secure: true in cookie when in production', async () => {
       // Arrange
       const prodConfig = createMockConfig({ NODE_ENV: 'production' })
       const prodController = new ConsentController(mockConsentService, prodConfig as never)
       const session = { user: { id: 'user-1' } }
       const request = { ip: '127.0.0.1', headers: {} }
       const reply = {
-        header: vi.fn(),
+        setCookie: vi.fn(),
         status: vi.fn().mockReturnThis(),
       }
       vi.mocked(mockConsentService.saveConsent).mockResolvedValue(mockConsentRecord)
@@ -184,11 +192,11 @@ describe('ConsentController', () => {
       await prodController.saveConsent(session, validBody, request as never, reply as never)
 
       // Assert
-      const setCookieCall = reply.header.mock.calls.find(
-        (call: unknown[]) => call[0] === 'Set-Cookie'
+      expect(reply.setCookie).toHaveBeenCalledWith(
+        'consent',
+        expect.any(String),
+        expect.objectContaining({ secure: true })
       )
-      expect(setCookieCall).toBeDefined()
-      expect(setCookieCall?.[1]).toContain('; Secure')
     })
   })
 
@@ -206,13 +214,15 @@ describe('ConsentController', () => {
       expect(mockConsentService.getLatestConsent).toHaveBeenCalledWith('user-1')
     })
 
-    it('should throw NotFoundException when no consent record exists', async () => {
+    it('should propagate ConsentNotFoundException when no consent record exists', async () => {
       // Arrange
       const session = { user: { id: 'user-1' } }
-      vi.mocked(mockConsentService.getLatestConsent).mockResolvedValue(null)
+      vi.mocked(mockConsentService.getLatestConsent).mockRejectedValue(
+        new ConsentNotFoundException('user-1')
+      )
 
       // Act & Assert
-      await expect(controller.getConsent(session)).rejects.toThrow(NotFoundException)
+      await expect(controller.getConsent(session)).rejects.toThrow(ConsentNotFoundException)
     })
   })
 })

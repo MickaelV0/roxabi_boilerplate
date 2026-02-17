@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, NotFoundException, Post, Req, Res } from '@nestjs/common'
+import { Body, Controller, Get, HttpCode, Post, Req, Res } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import type { FastifyReply, FastifyRequest } from 'fastify'
@@ -59,9 +59,15 @@ export class ConsentController {
       action: body.action,
     })
 
-    const securePart = this.isProduction ? '; Secure' : ''
-    const cookieHeader = `${CONSENT_COOKIE_NAME}=${encodeURIComponent(cookiePayload)}; Path=/; SameSite=Lax; Max-Age=${CONSENT_COOKIE_MAX_AGE}${securePart}`
-    reply.header('Set-Cookie', cookieHeader)
+    // httpOnly is intentionally false — the frontend reads this cookie client-side
+    // to hydrate the consent banner without an extra API call.
+    reply.setCookie(CONSENT_COOKIE_NAME, cookiePayload, {
+      path: '/',
+      sameSite: 'lax',
+      maxAge: CONSENT_COOKIE_MAX_AGE,
+      secure: this.isProduction,
+      httpOnly: false,
+    })
 
     if (!session) {
       reply.status(204)
@@ -87,10 +93,6 @@ export class ConsentController {
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   @ApiResponse({ status: 404, description: 'No consent record found' })
   async getConsent(@Session() session: { user: { id: string } }) {
-    const record = await this.consentService.getLatestConsent(session.user.id)
-    if (!record) {
-      throw new NotFoundException('No consent record found')
-    }
-    return record
+    return this.consentService.getLatestConsent(session.user.id)
   }
 }

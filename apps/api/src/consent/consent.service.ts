@@ -3,6 +3,8 @@ import type { ConsentRecord } from '@repo/types'
 import { desc, eq } from 'drizzle-orm'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { consentRecords } from '../database/schema/consent.schema.js'
+import { ConsentInsertFailedException } from './exceptions/consent-insert-failed.exception.js'
+import { ConsentNotFoundException } from './exceptions/consent-not-found.exception.js'
 
 export interface SaveConsentDto {
   categories: { necessary: true; analytics: boolean; marketing: boolean }
@@ -43,12 +45,12 @@ export class ConsentService {
 
     const row = rows[0]
     if (!row) {
-      throw new Error('Insert did not return a row')
+      throw new ConsentInsertFailedException(userId)
     }
     return toConsentRecord(row)
   }
 
-  async getLatestConsent(userId: string): Promise<ConsentRecord | null> {
+  async getLatestConsent(userId: string): Promise<ConsentRecord> {
     const [row] = await this.db
       .select()
       .from(consentRecords)
@@ -56,7 +58,9 @@ export class ConsentService {
       .orderBy(desc(consentRecords.createdAt))
       .limit(1)
 
-    if (!row) return null
+    if (!row) {
+      throw new ConsentNotFoundException(userId)
+    }
     return toConsentRecord(row)
   }
 }

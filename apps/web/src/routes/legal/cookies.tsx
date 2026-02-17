@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { LegalPageLayout } from '@/components/legal/LegalPageLayout'
-import { useConsent } from '@/lib/consent'
+import { useConsent } from '@/lib/consent/useConsent'
 
 export const Route = createFileRoute('/legal/cookies')({
   component: CookiesPage,

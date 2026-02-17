@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ConsentService, type SaveConsentDto } from './consent.service.js'
+import { ConsentInsertFailedException } from './exceptions/consent-insert-failed.exception.js'
+import { ConsentNotFoundException } from './exceptions/consent-not-found.exception.js'
 
 const mockConsentRow = {
   id: 'consent-1',
@@ -101,6 +103,22 @@ describe('ConsentService', () => {
       )
     })
 
+    it('should throw ConsentInsertFailedException when insert returns no rows', async () => {
+      // Arrange
+      const { db, chains } = createMockDb()
+      chains.insert.returning.mockResolvedValue([])
+      const service = new ConsentService(db as never)
+
+      const dto: SaveConsentDto = {
+        categories: { necessary: true, analytics: false, marketing: false },
+        policyVersion: '2026-02-v1',
+        action: 'rejected',
+      }
+
+      // Act & Assert
+      await expect(service.saveConsent('user-1', dto)).rejects.toThrow(ConsentInsertFailedException)
+    })
+
     it('should set ipAddress and userAgent to null when not provided', async () => {
       // Arrange
       const { db, chains } = createMockDb()
@@ -151,17 +169,16 @@ describe('ConsentService', () => {
       expect(chains.select.limit).toHaveBeenCalledWith(1)
     })
 
-    it('should return null when no consent record exists for the user', async () => {
+    it('should throw ConsentNotFoundException when no consent record exists for the user', async () => {
       // Arrange
       const { db, chains } = createMockDb()
       chains.select.limit.mockResolvedValue([])
       const service = new ConsentService(db as never)
 
-      // Act
-      const result = await service.getLatestConsent('nonexistent-user')
-
-      // Assert
-      expect(result).toBeNull()
+      // Act & Assert
+      await expect(service.getLatestConsent('nonexistent-user')).rejects.toThrow(
+        ConsentNotFoundException
+      )
     })
   })
 })

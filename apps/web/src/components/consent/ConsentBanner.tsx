@@ -1,5 +1,5 @@
 import { Button } from '@repo/ui'
-import { useConsent } from '@/lib/consent'
+import { useConsent } from '@/lib/consent/useConsent'
 
 export function ConsentBanner() {
   const { showBanner, acceptAll, rejectAll, openSettings } = useConsent()
