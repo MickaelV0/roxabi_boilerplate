@@ -1,5 +1,7 @@
 # Bootstrap Edge Cases
 
+Edge cases handled by the bootstrap skill pipeline.
+
 | Scenario | Behavior |
 |----------|----------|
 | Issue already has a spec | Skip Gate 1, present existing spec at Gate 2 for validation |

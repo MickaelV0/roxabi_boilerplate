@@ -1,5 +1,7 @@
 # Bootstrap Templates
 
+Templates used by the bootstrap skill for subagent investigation prompts and findings formatting.
+
 ## Subagent Investigation Prompt Template
 
 ```

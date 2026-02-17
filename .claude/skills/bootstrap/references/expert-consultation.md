@@ -23,4 +23,4 @@ Do NOT spawn experts upfront — only when a specific question arises during wri
 
 ## At Review Gates (1b, 2b)
 
-Expert review at gates is auto-selected based on document content (see Gate 1b and Gate 2b above). Spawn all selected reviewers in parallel for maximum speed.
+Expert review at gates is auto-selected based on document content (see Gate 1b and Gate 2b in SKILL.md). Spawn all selected reviewers in parallel for maximum speed.
