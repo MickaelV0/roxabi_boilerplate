@@ -2,7 +2,7 @@
 
 SaaS boilerplate with AI team integration.
 
-![Roxabi Boilerplate demo — signup, dashboard, and multi-tenant organization switching](docs/assets/demo.gif)
+<!-- TODO: Add demo GIF once seed data is ready — see scripts/record-demo.ts -->
 
 ## Stack
 

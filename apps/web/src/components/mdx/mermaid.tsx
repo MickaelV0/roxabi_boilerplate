@@ -1,13 +1,33 @@
 'use client'
 
 import { useTheme } from 'next-themes'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 
 type MermaidProps = {
   chart: string
 }
 
 type RenderResult = { success: true; svg: string } | { success: false; error: string }
+
+let lastInitializedTheme: string | undefined
+
+async function ensureMermaidInitialized(
+  theme: string | undefined
+): Promise<typeof import('mermaid')['default']> {
+  const mermaid = (await import('mermaid')).default
+  const mermaidTheme = theme === 'dark' ? 'dark' : 'default'
+
+  if (lastInitializedTheme !== mermaidTheme) {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: mermaidTheme,
+      suppressErrorRendering: true,
+    })
+    lastInitializedTheme = mermaidTheme
+  }
+
+  return mermaid
+}
 
 /** Render a Mermaid chart string to SVG using the mermaid library. */
 async function renderMermaidChart(
@@ -16,16 +36,11 @@ async function renderMermaidChart(
   theme: string | undefined
 ): Promise<RenderResult> {
   try {
-    const mermaid = (await import('mermaid')).default
-
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: theme === 'dark' ? 'dark' : 'default',
-      suppressErrorRendering: true,
-    })
-
+    const mermaid = await ensureMermaidInitialized(theme)
     const { svg } = await mermaid.render(containerId, chart)
-    return { success: true, svg }
+    const DOMPurify = (await import('dompurify')).default
+    const cleanSvg = DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true, svgFilters: true } })
+    return { success: true, svg: cleanSvg }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to render Mermaid diagram'
     return { success: false, error: message }
@@ -42,7 +57,6 @@ async function renderMermaidChart(
 function Mermaid({ chart }: MermaidProps) {
   const id = useId()
   const containerId = `mermaid-${id.replace(/:/g, '')}`
-  const containerRef = useRef<HTMLDivElement>(null)
   const [svg, setSvg] = useState<string>('')
   const [error, setError] = useState<string>('')
   const { resolvedTheme } = useTheme()
@@ -83,17 +97,19 @@ function Mermaid({ chart }: MermaidProps) {
 
   if (!svg) {
     return (
-      <div className="my-4 flex items-center justify-center rounded-lg border p-8 text-sm text-muted-foreground">
+      <output
+        aria-label="Loading diagram"
+        className="my-4 flex items-center justify-center rounded-lg border p-8 text-sm text-muted-foreground"
+      >
         Loading diagram...
-      </div>
+      </output>
     )
   }
 
   return (
     <div
-      ref={containerRef}
       className="my-4 flex justify-center [&>svg]:max-w-full"
-      // biome-ignore lint/security/noDangerouslySetInnerHtml: Mermaid produces trusted SVG from controlled chart definitions in MDX source files
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: SVG is sanitized by DOMPurify after Mermaid renders from controlled MDX chart definitions
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   )

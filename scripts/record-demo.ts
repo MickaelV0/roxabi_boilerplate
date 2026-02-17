@@ -104,6 +104,7 @@ async function recordDemo(
   })
 
   const page = await context.newPage()
+  let videoPath: string | null = null
 
   try {
     console.log('  Step 1/6: Landing page')
@@ -151,14 +152,13 @@ async function recordDemo(
       await sleep(PAUSE.short)
     }
   } finally {
+    // Capture video reference BEFORE closing the page (Playwright requirement)
+    const video = page.video()
+    videoPath = video ? await video.path() : null
     await page.close()
+    await context.close()
+    await browser.close()
   }
-
-  // Retrieve the video path before closing the context
-  const video = page.video()
-  const videoPath = video ? await video.path() : null
-  await context.close()
-  await browser.close()
 
   if (!videoPath || !existsSync(videoPath)) {
     console.error('ERROR: Video file was not created by Playwright.')
