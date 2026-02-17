@@ -581,6 +581,10 @@
   "auth_resend_reset_in": "Renvoyer dans {seconds}s...",
   "auth_open_email_provider": "Ouvrir {provider}",
   "auth_register_success_title": "Compte créé",
+  "auth_accept_privacy_prefix": "J'accepte la",
+  "auth_accept_privacy_policy": "Politique de confidentialité",
+  "auth_accept_terms_and": "et les",
+  "auth_accept_terms_of_service": "Conditions d'utilisation",
   "org_slug_invalid": "L'identifiant doit contenir uniquement des lettres minuscules, des chiffres et des tirets (pas de tirets en debut ou fin)",
 
   "demo_back_to_demos": "Retour aux Démos",

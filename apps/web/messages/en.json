@@ -581,6 +581,10 @@
   "auth_resend_reset_in": "Resend in {seconds}s...",
   "auth_open_email_provider": "Open {provider}",
   "auth_register_success_title": "Account Created",
+  "auth_accept_privacy_prefix": "I agree to the",
+  "auth_accept_privacy_policy": "Privacy Policy",
+  "auth_accept_terms_and": "and",
+  "auth_accept_terms_of_service": "Terms of Service",
   "org_slug_invalid": "Slug must be lowercase letters, numbers, and hyphens only (no leading/trailing hyphens)",
 
   "demo_back_to_demos": "Back to Demos",
