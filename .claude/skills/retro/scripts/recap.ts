@@ -10,6 +10,7 @@
  *   bun run .claude/skills/retro/scripts/recap.ts
  *   bun run .claude/skills/retro/scripts/recap.ts --period weekly
  *   bun run .claude/skills/retro/scripts/recap.ts --period monthly
+ *   bun run .claude/skills/retro/scripts/recap.ts --period 4d
  */
 
 import type { Database } from 'bun:sqlite'
@@ -344,9 +345,25 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2)
 
   const periodIdx = args.indexOf('--period')
-  const period = periodIdx !== -1 ? args[periodIdx + 1] : 'monthly'
+  const periodArg = periodIdx !== -1 ? args[periodIdx + 1] : 'monthly'
 
-  const days = period === 'weekly' ? 7 : 30
+  // Support: weekly, monthly, Nd (e.g. 4d), or plain number (e.g. 4)
+  let days: number
+  let period: string
+  const customMatch = periodArg?.match(/^(\d+)d?$/)
+  if (periodArg === 'weekly') {
+    days = 7
+    period = 'weekly'
+  } else if (periodArg === 'monthly') {
+    days = 30
+    period = 'monthly'
+  } else if (customMatch) {
+    days = Number.parseInt(customMatch[1], 10)
+    period = `${days}-day`
+  } else {
+    console.error(`Invalid period: ${periodArg}. Use weekly, monthly, or Nd (e.g. 4d).`)
+    process.exit(1)
+  }
 
   console.log(`Generating ${period} recap (last ${days} days)...`)
 
