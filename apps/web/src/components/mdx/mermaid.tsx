@@ -13,7 +13,9 @@ let lastInitializedTheme: string | undefined
 
 async function ensureMermaidInitialized(
   theme: string | undefined
-): Promise<typeof import('mermaid')['default']> {
+): Promise<typeof import('mermaid')['default'] | null> {
+  if (import.meta.env.SSR) return null
+
   const mermaid = (await import('mermaid')).default
   const mermaidTheme = theme === 'dark' ? 'dark' : 'default'
 
@@ -37,6 +39,8 @@ async function renderMermaidChart(
 ): Promise<RenderResult> {
   try {
     const mermaid = await ensureMermaidInitialized(theme)
+    if (!mermaid) return { success: true, svg: '' }
+
     const { svg } = await mermaid.render(containerId, chart)
     const DOMPurify = (await import('dompurify')).default
     const cleanSvg = DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true, svgFilters: true } })
