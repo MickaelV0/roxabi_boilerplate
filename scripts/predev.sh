@@ -18,17 +18,16 @@ if [ ! -f "$JOURNAL" ]; then
   exit 0
 fi
 
-# Count expected migrations from journal (pure JSON, no deps needed)
-EXPECTED=$(bun -e "
-  const j = JSON.parse(await Bun.file('$JOURNAL').text());
-  console.log(j.entries?.length ?? 0);
-")
+# Count expected migrations from journal (pure grep, no bun needed)
+EXPECTED=$(grep -c '"tag"' "$JOURNAL" || echo "0")
+EXPECTED=$((EXPECTED + 0))
 
 if [ "$EXPECTED" -eq 0 ]; then
   exit 0
 fi
 
 # Count applied migrations from DB (needs postgres package from apps/api)
+# tr -dc strips any non-digit chars from bun output (ANSI codes, CR, etc.)
 APPLIED=$(cd "$ROOT_DIR/apps/api" && bun -e "
   import postgres from 'postgres';
   const sql = postgres(process.env.DATABASE_URL, { max: 1 });
@@ -40,7 +39,8 @@ APPLIED=$(cd "$ROOT_DIR/apps/api" && bun -e "
   } finally {
     await sql.end();
   }
-" 2>/dev/null || echo "0")
+" 2>/dev/null | tr -dc '0-9' || echo "0")
+APPLIED=${APPLIED:-0}
 
 PENDING=$((EXPECTED - APPLIED))
 if [ "$PENDING" -le 0 ]; then
