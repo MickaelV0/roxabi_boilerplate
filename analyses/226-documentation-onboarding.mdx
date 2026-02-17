@@ -28,7 +28,7 @@ The [repo comparison analysis](./repo-comparisons/163-consolidated-summary) (epi
 
 ### Task 0: Add Mermaid Support to Fumadocs (Size: XS)
 
-**Current state:** The Fumadocs setup (`apps/web/source.config.ts`) has no remark/rehype plugins configured. Mermaid code blocks (e.g., in `docs/analyses/00-infrastructure-setup-summary.mdx`) render as plain code blocks, not diagrams.
+**Current state:** The Fumadocs setup (`apps/web/source.config.ts`) has no remark/rehype plugins configured. Mermaid code blocks (e.g., in `analyses/00-infrastructure-setup-summary.mdx`) render as plain code blocks, not diagrams.
 
 **Proposed approach:**
 
@@ -137,7 +137,7 @@ The original issue included a "When to use roxabi vs X" comparison section for t
 ## Next Steps
 
 - [ ] Update issue #226 to remove the comparison table acceptance criterion (or create a separate follow-up issue)
-- [ ] Create spec from this analysis: `docs/specs/226-documentation-onboarding.mdx`
+- [ ] Create spec from this analysis: `specs/226-documentation-onboarding.mdx`
 - [ ] Implementation order: Mermaid support (XS) → `.env.example` (XS) → ubiquitous language (S) → demo GIF (S)
 - [ ] Verify seed script produces representative data before starting the GIF task
 - [ ] Add a note to `docs/contributing.mdx` about re-recording the demo GIF after major UI changes
