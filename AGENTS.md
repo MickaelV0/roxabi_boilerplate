@@ -59,7 +59,7 @@ Each agent operates within specific packages. **Never modify files outside your 
 | tester | Test files in all packages | Never modifies source files |
 | security-auditor | Read-only + `Bash` for auditing | Never modifies source files |
 | architect | `docs/architecture/`, ADR files | Never writes application code |
-| product-lead | `docs/analyses/`, `docs/specs/`, GitHub issues via `gh` | Never writes application code |
+| product-lead | `analyses/`, `specs/`, GitHub issues via `gh` | Never writes application code |
 | doc-writer | `docs/`, `CLAUDE.md` | Never writes application code |
 
 ### Standards

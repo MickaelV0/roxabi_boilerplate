@@ -36,7 +36,7 @@ Reduce onboarding friction for new developers and improve documentation quality 
 
 1. Install a Mermaid rendering plugin compatible with Fumadocs MDX
 2. Configure the plugin in `apps/web/source.config.ts` via `remarkPlugins` or `rehypePlugins`
-3. Existing Mermaid code blocks (e.g., in `docs/analyses/00-infrastructure-setup-summary.mdx`) render as SVG diagrams instead of plain code
+3. Existing Mermaid code blocks (e.g., in `analyses/00-infrastructure-setup-summary.mdx`) render as SVG diagrams instead of plain code
 4. New Mermaid blocks can be authored in any `.mdx` file and render correctly
 
 #### Technical approach — Client-side (decided)
@@ -309,7 +309,7 @@ Primary targets (6 architecture docs, ~25 `txt` blocks):
 
 - **Complex ASCII art**: Some diagrams may not map cleanly to Mermaid's syntax (e.g., deeply nested tree structures). In these cases, keep the ASCII version and add a comment `<!-- TODO: migrate to Mermaid when syntax supports this layout -->`
 - **Semantic changes**: Conversion must preserve the exact same information. Do not simplify or change the diagram content during migration.
-- **Existing mermaid blocks**: `docs/analyses/00-infrastructure-setup-summary.mdx` already has a Mermaid block. Leave existing Mermaid blocks untouched.
+- **Existing mermaid blocks**: `analyses/00-infrastructure-setup-summary.mdx` already has a Mermaid block. Leave existing Mermaid blocks untouched.
 
 ## Constraints
 

@@ -9,4 +9,27 @@ export const docs = defineDocs({
   },
 })
 
-export default defineConfig()
+export default defineConfig({
+  mdxOptions: {
+    rehypeCodeOptions: {
+      themes: {
+        light: 'github-light',
+        dark: 'github-dark',
+      },
+      langs: [
+        'typescript',
+        'ts',
+        'tsx',
+        'javascript',
+        'js',
+        'bash',
+        'lua',
+        'json',
+        'jsonc',
+        'yaml',
+        'sql',
+        'toml',
+      ],
+    },
+  },
+})
