@@ -26,6 +26,41 @@ Analyze Claude Code session transcripts to extract, search, and trend actionable
 - **sqlite-vec** extension (installed as devDependency, loaded automatically)
 - **Embedding model**: `all-MiniLM-L6-v2` (384 dimensions, auto-downloaded on setup)
 
+## Configuration
+
+The analyze phase supports multiple AI providers. Configure via `.claude/skills/retro/retro.config.yaml` (gitignored, user-specific).
+
+**Quick start:** Copy the example config and edit:
+
+```bash
+cp .claude/skills/retro/retro.config.yaml.example .claude/skills/retro/retro.config.yaml
+```
+
+**Supported providers:**
+
+| Provider | Config value | Requirements |
+|----------|-------------|--------------|
+| Claude CLI (default) | `claude-cli` | `claude` binary on PATH |
+| OpenRouter | `openrouter` | `OPENROUTER_API_KEY` env var |
+
+**Example config (`.claude/skills/retro/retro.config.yaml`):**
+
+```yaml
+provider: openrouter
+model: anthropic/claude-sonnet-4-20250514
+api_key_env: OPENROUTER_API_KEY
+```
+
+**Config fields:**
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `provider` | `claude-cli` | AI provider for finding extraction |
+| `model` | `anthropic/claude-sonnet-4-20250514` | Model ID (OpenRouter format) |
+| `api_key_env` | `OPENROUTER_API_KEY` | Environment variable holding the API key |
+
+If no config file exists, the skill falls back to `claude-cli` (fully backward compatible).
+
 ## Instructions
 
 ### Parse Arguments
@@ -75,7 +110,7 @@ The sessions directory defaults to `~/.claude/projects/-home-mickael-projects-ro
 
 ### Analyze (`--analyze`)
 
-Send unanalyzed session transcripts to `claude -p --output-format json` for AI-powered finding extraction. Each finding has a type (praise/blocker/suggestion/nitpick), severity, content, context, and tags. Embeddings are generated locally via Transformers.js.
+Send unanalyzed session transcripts to the configured AI provider for finding extraction. By default uses `claude -p --output-format json`; set `provider: openrouter` in the config file to use the OpenRouter API instead. See [Configuration](#configuration) above. Each finding has a type (praise/blocker/suggestion/nitpick), severity, content, context, and tags. Embeddings are generated locally via Transformers.js.
 
 ```bash
 # Analyze all unanalyzed sessions
@@ -156,7 +191,8 @@ Database location: `.claude/skills/retro/data/retro.db` (gitignored).
 
 - **Missing database**: Prompt user to run `--setup`
 - **Missing sessions directory**: Scripts log a warning and return empty results
-- **Claude CLI timeout**: 2-minute timeout per session; failures logged to `processing_log` and skipped
+- **Provider timeout**: 2-minute timeout per session; failures logged to `processing_log` and skipped
+- **Missing API key**: Clear error when `provider: openrouter` but the env var from `api_key_env` is not set
 - **Malformed JSONL**: Individual lines are skipped, session still processes
 - **Embedding failure**: Finding is stored without embedding; search still works via BM25
 
