@@ -1,6 +1,7 @@
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@repo/ui'
 import { Download } from 'lucide-react'
 import { useState } from 'react'
+import { m } from '@/paraglide/messages'
 
 export function PrivacyDataSection() {
   const [loading, setLoading] = useState(false)
@@ -38,22 +39,22 @@ export function PrivacyDataSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Confidentialité et données</CardTitle>
-        <CardDescription>Gérez vos données personnelles</CardDescription>
+        <CardTitle>{m.privacy_section_title()}</CardTitle>
+        <CardDescription>{m.privacy_section_description()}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Button
           variant="outline"
           onClick={handleExport}
           loading={loading}
-          loadingText="Téléchargement..."
+          loadingText={m.privacy_downloading()}
         >
           <Download />
-          Télécharger mes données
+          {m.privacy_download_data()}
         </Button>
         <p className="text-sm text-muted-foreground">
-          <a href="/settings/account" className="text-destructive hover:underline">
-            Supprimer mon compte
+          <a href="#danger-zone" className="text-destructive hover:underline">
+            {m.privacy_delete_account()}
           </a>
         </p>
       </CardContent>

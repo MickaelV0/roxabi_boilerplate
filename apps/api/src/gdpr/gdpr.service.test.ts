@@ -279,12 +279,8 @@ describe('GdprService', () => {
 
       // Assert
       expect(result.invitations.length).toBeGreaterThan(0)
-      const sentInvitation = result.invitations.find(
-        (i) => (i as Record<string, unknown>).direction === 'sent'
-      )
-      const receivedInvitation = result.invitations.find(
-        (i) => (i as Record<string, unknown>).direction === 'received'
-      )
+      const sentInvitation = result.invitations.find((i) => i.direction === 'sent')
+      const receivedInvitation = result.invitations.find((i) => i.direction === 'received')
       expect(sentInvitation).toBeDefined()
       expect(receivedInvitation).toBeDefined()
     })

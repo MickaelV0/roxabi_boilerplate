@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import {
@@ -11,21 +11,70 @@ import {
 } from '../database/schema/auth.schema.js'
 import { consentRecords } from '../database/schema/consent.schema.js'
 
+const EXPORT_QUERY_LIMIT = 10_000
+
+interface GdprUserData {
+  name: string
+  email: string
+  image: string | null
+  role: string | null
+  emailVerified: boolean
+  createdAt: Date | null
+}
+
+interface GdprSessionData {
+  ipAddress: string | null
+  userAgent: string | null
+  createdAt: Date | null
+  expiresAt: Date
+}
+
+interface GdprAccountData {
+  providerId: string
+  scope: string | null
+  createdAt: Date | null
+}
+
+interface GdprOrganizationData {
+  name: string
+  role: string
+  joinedAt: Date | null
+}
+
+interface GdprInvitationData {
+  email: string
+  organizationName: string
+  role: string
+  status: string
+  direction: 'sent' | 'received'
+}
+
+interface GdprConsentData {
+  categories: unknown
+  action: string
+  consentedAt: Date | null
+  policyVersion: string
+}
+
 export interface GdprExportData {
   exportedAt: string
-  user: Record<string, unknown>
-  sessions: Record<string, unknown>[]
-  accounts: Record<string, unknown>[]
-  organizations: Record<string, unknown>[]
-  invitations: Record<string, unknown>[]
-  consent: Record<string, unknown>[]
+  user: GdprUserData | Record<string, never>
+  sessions: GdprSessionData[]
+  accounts: GdprAccountData[]
+  organizations: GdprOrganizationData[]
+  invitations: GdprInvitationData[]
+  consent: GdprConsentData[]
 }
 
 @Injectable()
 export class GdprService {
+  private readonly logger = new Logger(GdprService.name)
+
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
   async exportUserData(userId: string): Promise<GdprExportData> {
+    this.logger.log(`GDPR export requested for userId=${userId}`)
+
     const [userData, sessionData, accountData, orgData, consentData] = await Promise.all([
       this.db
         .select({
@@ -48,7 +97,8 @@ export class GdprService {
           expiresAt: sessions.expiresAt,
         })
         .from(sessions)
-        .where(eq(sessions.userId, userId)),
+        .where(eq(sessions.userId, userId))
+        .limit(EXPORT_QUERY_LIMIT),
 
       this.db
         .select({
@@ -57,7 +107,8 @@ export class GdprService {
           createdAt: accounts.createdAt,
         })
         .from(accounts)
-        .where(eq(accounts.userId, userId)),
+        .where(eq(accounts.userId, userId))
+        .limit(EXPORT_QUERY_LIMIT),
 
       this.db
         .select({
@@ -77,13 +128,14 @@ export class GdprService {
           policyVersion: consentRecords.policyVersion,
         })
         .from(consentRecords)
-        .where(eq(consentRecords.userId, userId)),
+        .where(eq(consentRecords.userId, userId))
+        .limit(EXPORT_QUERY_LIMIT),
     ])
 
     const user = userData[0]
     const userEmail = user?.email
 
-    let invitationData: Record<string, unknown>[] = []
+    let invitationData: GdprInvitationData[] = []
     if (userEmail) {
       const [sentInvitations, receivedInvitations] = await Promise.all([
         this.db
@@ -118,6 +170,10 @@ export class GdprService {
           .map((i) => ({ ...i, direction: 'received' as const })),
       ]
     }
+
+    this.logger.log(
+      `GDPR export completed for userId=${userId}: ${sessionData.length} sessions, ${accountData.length} accounts, ${orgData.length} orgs, ${invitationData.length} invitations, ${consentData.length} consent records`
+    )
 
     return {
       exportedAt: new Date().toISOString(),

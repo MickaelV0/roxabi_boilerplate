@@ -24,6 +24,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AlertTriangleIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { PrivacyDataSection } from '@/components/settings/PrivacyDataSection'
 import { authClient, useSession } from '@/lib/auth-client'
 import { parseErrorMessage } from '@/lib/error-utils'
 
@@ -419,7 +420,7 @@ function DeleteAccountSection() {
 
   return (
     <>
-      <Card>
+      <Card id="danger-zone">
         <CardHeader>
           <CardTitle className="text-destructive">Danger Zone</CardTitle>
           <CardDescription>
@@ -506,6 +507,8 @@ function AccountSettingsPage() {
           </CardHeader>
         </Card>
       )}
+
+      <PrivacyDataSection />
 
       <Separator />
 

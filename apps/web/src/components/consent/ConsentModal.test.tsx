@@ -2,6 +2,20 @@ import type { ConsentCategories } from '@repo/types'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('@/paraglide/messages', () => ({
+  m: {
+    consent_modal_title: () => 'Cookie Settings',
+    consent_modal_description: () => 'Choose which cookies you want to allow.',
+    consent_necessary_label: () => 'Necessary',
+    consent_necessary_description: () => 'Essential cookies for the site to function',
+    consent_analytics_label: () => 'Analytics',
+    consent_analytics_description: () => 'Help us understand how you use the site',
+    consent_marketing_label: () => 'Marketing',
+    consent_marketing_description: () => 'Allow us to show you relevant advertisements',
+    consent_save_preferences: () => 'Save preferences',
+  },
+}))
+
 vi.mock('@repo/ui', async () => {
   const mocks = await import('@/test/__mocks__/repo-ui')
   return {
@@ -61,9 +75,9 @@ describe('ConsentModal', () => {
     )
 
     // Assert
-    expect(screen.getByText(/n[ée]cessaires/i)).toBeInTheDocument()
-    expect(screen.getByText(/analytiques/i)).toBeInTheDocument()
-    expect(screen.getByText(/marketing/i)).toBeInTheDocument()
+    expect(screen.getByText('Necessary')).toBeInTheDocument()
+    expect(screen.getByText('Analytics')).toBeInTheDocument()
+    expect(screen.getByText('Marketing')).toBeInTheDocument()
   })
 
   it('should not render when open is false', () => {
@@ -112,7 +126,7 @@ describe('ConsentModal', () => {
     )
 
     // Act
-    const saveButton = screen.getByRole('button', { name: /enregistrer/i })
+    const saveButton = screen.getByRole('button', { name: /save preferences/i })
     fireEvent.click(saveButton)
 
     // Assert

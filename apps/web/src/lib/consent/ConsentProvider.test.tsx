@@ -1,5 +1,5 @@
 import type { ConsentCookiePayload } from '@repo/types'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock auth-client to control useSession
@@ -201,6 +201,144 @@ describe('ConsentProvider / useConsent', () => {
       expect(() => {
         render(<ConsentTestConsumer />)
       }).toThrow('useConsent must be used within a ConsentProvider')
+    })
+  })
+
+  describe('server sync (POST /api/consent)', () => {
+    type FetchCall = [url: string, options: { method: string; credentials: string; body: string }]
+
+    it('should call POST /api/consent with all categories true and action accepted after acceptAll', async () => {
+      // Arrange
+      const mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+      vi.stubGlobal('fetch', mockFetch)
+      renderWithProvider(null)
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: 'Accept All' }))
+
+      // Assert
+      await waitFor(() => {
+        const postCalls = (mockFetch.mock.calls as FetchCall[]).filter(
+          (call) => call[1]?.method === 'POST'
+        )
+        expect(postCalls.length).toBeGreaterThanOrEqual(1)
+
+        const firstCall = postCalls[0]
+        if (!firstCall) throw new Error('Expected at least one POST call')
+        const [url, options] = firstCall
+        expect(url).toBe('/api/consent')
+        expect(options.credentials).toBe('include')
+
+        const body = JSON.parse(options.body)
+        expect(body.categories).toEqual({
+          necessary: true,
+          analytics: true,
+          marketing: true,
+        })
+        expect(body.action).toBe('accepted')
+        expect(body.policyVersion).toBe('2026-02-v1')
+      })
+    })
+
+    it('should call POST /api/consent with analytics/marketing false and action rejected after rejectAll', async () => {
+      // Arrange
+      const mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+      vi.stubGlobal('fetch', mockFetch)
+      renderWithProvider(null)
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: 'Reject All' }))
+
+      // Assert
+      await waitFor(() => {
+        const postCalls = (mockFetch.mock.calls as FetchCall[]).filter(
+          (call) => call[1]?.method === 'POST'
+        )
+        expect(postCalls.length).toBeGreaterThanOrEqual(1)
+
+        const firstCall = postCalls[0]
+        if (!firstCall) throw new Error('Expected at least one POST call')
+        const [url, options] = firstCall
+        expect(url).toBe('/api/consent')
+        expect(options.credentials).toBe('include')
+
+        const body = JSON.parse(options.body)
+        expect(body.categories.analytics).toBe(false)
+        expect(body.categories.marketing).toBe(false)
+        expect(body.action).toBe('rejected')
+      })
+    })
+
+    it('should call POST /api/consent with custom categories and action customized after saveCustom', async () => {
+      // Arrange
+      const mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+      vi.stubGlobal('fetch', mockFetch)
+      renderWithProvider(null)
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: 'Save Custom' }))
+
+      // Assert
+      await waitFor(() => {
+        const postCalls = (mockFetch.mock.calls as FetchCall[]).filter(
+          (call) => call[1]?.method === 'POST'
+        )
+        expect(postCalls.length).toBeGreaterThanOrEqual(1)
+
+        const firstCall = postCalls[0]
+        if (!firstCall) throw new Error('Expected at least one POST call')
+        const [url, options] = firstCall
+        expect(url).toBe('/api/consent')
+        expect(options.credentials).toBe('include')
+
+        const body = JSON.parse(options.body)
+        expect(body.categories).toEqual({
+          necessary: true,
+          analytics: true,
+          marketing: false,
+        })
+        expect(body.action).toBe('customized')
+      })
+    })
+  })
+
+  describe('DB reconciliation', () => {
+    it('should update state to match DB record when authenticated user has a different DB consent', async () => {
+      // Arrange — authenticated session
+      mockUseSession.mockReturnValue({ data: { user: { id: 'user-1' } } })
+
+      // DB consent record differs from cookie consent
+      const dbConsent = {
+        categories: { necessary: true, analytics: true, marketing: true },
+        policyVersion: '2026-02-v1',
+        action: 'accepted',
+        createdAt: new Date().toISOString(),
+      }
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(dbConsent),
+      })
+      vi.stubGlobal('fetch', mockFetch)
+
+      // Initial cookie consent has analytics/marketing false
+      const cookieConsent: ConsentCookiePayload = {
+        categories: { necessary: true, analytics: false, marketing: false },
+        consentedAt: new Date().toISOString(),
+        policyVersion: '2026-02-v1',
+        action: 'rejected',
+      }
+
+      // Act
+      renderWithProvider(cookieConsent)
+
+      // Assert — DB record wins: analytics and marketing should become true
+      await waitFor(() => {
+        expect(screen.getByTestId('analytics')).toHaveTextContent('true')
+        expect(screen.getByTestId('marketing')).toHaveTextContent('true')
+        expect(screen.getByTestId('action')).toHaveTextContent('accepted')
+      })
     })
   })
 })

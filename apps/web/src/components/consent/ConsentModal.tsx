@@ -12,6 +12,7 @@ import {
   Switch,
 } from '@repo/ui'
 import { useEffect, useState } from 'react'
+import { m } from '@/paraglide/messages'
 
 type ConsentModalProps = {
   open: boolean
@@ -38,54 +39,46 @@ export function ConsentModal({ open, onOpenChange, categories, onSave }: Consent
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Paramètres des cookies</DialogTitle>
-          <DialogDescription>
-            Choisissez les cookies que vous souhaitez autoriser.
-          </DialogDescription>
+          <DialogTitle>{m.consent_modal_title()}</DialogTitle>
+          <DialogDescription>{m.consent_modal_description()}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5">
-              <Label>Nécessaires</Label>
-              <p className="text-xs text-muted-foreground">
-                Cookies essentiels au fonctionnement du site
-              </p>
+              <Label>{m.consent_necessary_label()}</Label>
+              <p className="text-xs text-muted-foreground">{m.consent_necessary_description()}</p>
             </div>
-            <Switch checked disabled aria-label="Nécessaires" />
+            <Switch checked disabled aria-label={m.consent_necessary_label()} />
           </div>
           <Separator />
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5">
-              <Label htmlFor="consent-analytics">Analytiques</Label>
-              <p className="text-xs text-muted-foreground">
-                Nous aident à comprendre comment vous utilisez le site
-              </p>
+              <Label htmlFor="consent-analytics">{m.consent_analytics_label()}</Label>
+              <p className="text-xs text-muted-foreground">{m.consent_analytics_description()}</p>
             </div>
             <Switch
               id="consent-analytics"
               checked={analytics}
               onCheckedChange={setAnalytics}
-              aria-label="Analytiques"
+              aria-label={m.consent_analytics_label()}
             />
           </div>
           <Separator />
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5">
-              <Label htmlFor="consent-marketing">Marketing</Label>
-              <p className="text-xs text-muted-foreground">
-                Permettent de vous proposer des publicités pertinentes
-              </p>
+              <Label htmlFor="consent-marketing">{m.consent_marketing_label()}</Label>
+              <p className="text-xs text-muted-foreground">{m.consent_marketing_description()}</p>
             </div>
             <Switch
               id="consent-marketing"
               checked={marketing}
               onCheckedChange={setMarketing}
-              aria-label="Marketing"
+              aria-label={m.consent_marketing_label()}
             />
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={handleSave}>Enregistrer les préférences</Button>
+          <Button onClick={handleSave}>{m.consent_save_preferences()}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

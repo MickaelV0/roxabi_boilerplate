@@ -1,6 +1,17 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('@/paraglide/messages', () => ({
+  m: {
+    consent_banner_aria_label: () => 'Cookie consent',
+    consent_banner_text: () =>
+      'We use cookies to improve your experience. You can accept all, reject all, or customize your preferences.',
+    consent_reject_all: () => 'Reject all',
+    consent_customize: () => 'Customize',
+    consent_accept_all: () => 'Accept all',
+  },
+}))
+
 // Mock useConsent
 const mockAcceptAll = vi.fn()
 const mockRejectAll = vi.fn()
@@ -66,9 +77,9 @@ describe('ConsentBanner', () => {
     render(<ConsentBanner />)
 
     // Assert — all three buttons should be present
-    const acceptBtn = screen.getByRole('button', { name: /tout accepter/i })
-    const rejectBtn = screen.getByRole('button', { name: /tout refuser/i })
-    const customizeBtn = screen.getByRole('button', { name: /personnaliser/i })
+    const acceptBtn = screen.getByRole('button', { name: /accept all/i })
+    const rejectBtn = screen.getByRole('button', { name: /reject all/i })
+    const customizeBtn = screen.getByRole('button', { name: /customize/i })
 
     expect(acceptBtn).toBeInTheDocument()
     expect(rejectBtn).toBeInTheDocument()
@@ -80,7 +91,7 @@ describe('ConsentBanner', () => {
     render(<ConsentBanner />)
 
     // Act
-    fireEvent.click(screen.getByRole('button', { name: /tout accepter/i }))
+    fireEvent.click(screen.getByRole('button', { name: /accept all/i }))
 
     // Assert
     expect(mockAcceptAll).toHaveBeenCalledOnce()
@@ -91,7 +102,7 @@ describe('ConsentBanner', () => {
     render(<ConsentBanner />)
 
     // Act
-    fireEvent.click(screen.getByRole('button', { name: /tout refuser/i }))
+    fireEvent.click(screen.getByRole('button', { name: /reject all/i }))
 
     // Assert
     expect(mockRejectAll).toHaveBeenCalledOnce()
@@ -102,7 +113,7 @@ describe('ConsentBanner', () => {
     render(<ConsentBanner />)
 
     // Act
-    fireEvent.click(screen.getByRole('button', { name: /personnaliser/i }))
+    fireEvent.click(screen.getByRole('button', { name: /customize/i }))
 
     // Assert
     expect(mockOpenSettings).toHaveBeenCalledOnce()

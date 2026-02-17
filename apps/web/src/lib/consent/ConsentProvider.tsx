@@ -10,6 +10,7 @@ import { ConsentBanner } from '@/components/consent/ConsentBanner'
 import { ConsentModal } from '@/components/consent/ConsentModal'
 import { legalConfig } from '@/config/legal.config'
 import { useSession } from '@/lib/auth-client'
+import { parseConsentCookie } from '@/lib/consent/parse'
 
 const SIX_MONTHS_MS = 6 * 30 * 24 * 60 * 60 * 1000
 const SIX_MONTHS_SECONDS = 15778800
@@ -21,20 +22,6 @@ export const ConsentContext = createContext<ConsentContextValue | null>(null)
 type ConsentProviderProps = {
   children: ReactNode
   initialConsent: ConsentCookiePayload | null
-}
-
-function parseConsentCookie(raw: string | undefined | null): ConsentCookiePayload | null {
-  if (!raw) return null
-  try {
-    const decoded = decodeURIComponent(raw)
-    const parsed = JSON.parse(decoded)
-    if (parsed && typeof parsed === 'object' && parsed.categories) {
-      return parsed as ConsentCookiePayload
-    }
-    return null
-  } catch {
-    return null
-  }
 }
 
 function readCookieClient(): ConsentCookiePayload | null {
@@ -119,8 +106,9 @@ export function ConsentProvider({ children, initialConsent: serverConsent }: Con
   }, [serverConsent])
 
   // Client-side reconciliation: if authenticated, fetch DB consent and let DB win
+  const userId = session.data?.user?.id
   useEffect(() => {
-    if (!session.data?.user) return
+    if (!userId) return
 
     async function reconcile() {
       try {
@@ -153,7 +141,7 @@ export function ConsentProvider({ children, initialConsent: serverConsent }: Con
     }
 
     reconcile()
-  }, [session.data?.user])
+  }, [userId])
 
   function saveConsent(categories: ConsentCategories, action: ConsentAction) {
     const payload = buildPayload(categories, action)

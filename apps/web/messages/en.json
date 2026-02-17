@@ -917,5 +917,26 @@
   "legal_cookies_manage_title": "Managing your preferences",
   "legal_cookies_manage_body": "You can change your cookie preferences at any time by clicking the button below or via the \"Cookie Settings\" link in the footer.",
   "legal_cookies_manage_button": "Manage my cookie preferences",
-  "legal_cookies_manage_browser": "You can also configure your browser to block or delete cookies. Note that disabling certain cookies may affect the website's functionality."
+  "legal_cookies_manage_browser": "You can also configure your browser to block or delete cookies. Note that disabling certain cookies may affect the website's functionality.",
+
+  "consent_banner_text": "We use cookies to improve your experience. You can accept all, reject all, or customize your preferences.",
+  "consent_banner_aria_label": "Cookie consent",
+  "consent_reject_all": "Reject all",
+  "consent_customize": "Customize",
+  "consent_accept_all": "Accept all",
+  "consent_modal_title": "Cookie Settings",
+  "consent_modal_description": "Choose which cookies you want to allow.",
+  "consent_necessary_label": "Necessary",
+  "consent_necessary_description": "Essential cookies for the site to function",
+  "consent_analytics_label": "Analytics",
+  "consent_analytics_description": "Help us understand how you use the site",
+  "consent_marketing_label": "Marketing",
+  "consent_marketing_description": "Allow us to show you relevant advertisements",
+  "consent_save_preferences": "Save preferences",
+
+  "privacy_section_title": "Privacy & Data",
+  "privacy_section_description": "Manage your personal data",
+  "privacy_download_data": "Download my data",
+  "privacy_downloading": "Downloading...",
+  "privacy_delete_account": "Delete my account"
 }

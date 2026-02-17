@@ -917,5 +917,26 @@
   "legal_cookies_manage_title": "Gestion de vos preferences",
   "legal_cookies_manage_body": "Vous pouvez modifier vos preferences de cookies a tout moment en cliquant sur le bouton ci-dessous ou via le lien \"Parametres cookies\" present en pied de page.",
   "legal_cookies_manage_button": "Gerer mes preferences de cookies",
-  "legal_cookies_manage_browser": "Vous pouvez egalement configurer votre navigateur pour bloquer ou supprimer les cookies. Notez que la desactivation de certains cookies peut affecter le fonctionnement du site."
+  "legal_cookies_manage_browser": "Vous pouvez egalement configurer votre navigateur pour bloquer ou supprimer les cookies. Notez que la desactivation de certains cookies peut affecter le fonctionnement du site.",
+
+  "consent_banner_text": "Nous utilisons des cookies pour ameliorer votre experience. Vous pouvez tout accepter, tout refuser ou personnaliser vos preferences.",
+  "consent_banner_aria_label": "Consentement cookies",
+  "consent_reject_all": "Tout refuser",
+  "consent_customize": "Personnaliser",
+  "consent_accept_all": "Tout accepter",
+  "consent_modal_title": "Parametres des cookies",
+  "consent_modal_description": "Choisissez les cookies que vous souhaitez autoriser.",
+  "consent_necessary_label": "Necessaires",
+  "consent_necessary_description": "Cookies essentiels au fonctionnement du site",
+  "consent_analytics_label": "Analytiques",
+  "consent_analytics_description": "Nous aident a comprendre comment vous utilisez le site",
+  "consent_marketing_label": "Marketing",
+  "consent_marketing_description": "Permettent de vous proposer des publicites pertinentes",
+  "consent_save_preferences": "Enregistrer les preferences",
+
+  "privacy_section_title": "Confidentialite et donnees",
+  "privacy_section_description": "Gerez vos donnees personnelles",
+  "privacy_download_data": "Telecharger mes donnees",
+  "privacy_downloading": "Telechargement...",
+  "privacy_delete_account": "Supprimer mon compte"
 }

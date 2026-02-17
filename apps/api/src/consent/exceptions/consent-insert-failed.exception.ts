@@ -5,8 +5,12 @@ export class ConsentInsertFailedException extends Error {
   static readonly errorCode = ErrorCode.CONSENT_INSERT_FAILED
   readonly errorCode = ConsentInsertFailedException.errorCode
 
-  constructor(public readonly userId: string) {
-    super(`Failed to insert consent record for user ${userId}`)
+  constructor(private readonly userId: string) {
+    super('Failed to save consent record')
     this.name = 'ConsentInsertFailedException'
+  }
+
+  getUserId(): string {
+    return this.userId
   }
 }

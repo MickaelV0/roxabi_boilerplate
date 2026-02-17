@@ -5,8 +5,12 @@ export class ConsentNotFoundException extends Error {
   static readonly errorCode = ErrorCode.CONSENT_NOT_FOUND
   readonly errorCode = ConsentNotFoundException.errorCode
 
-  constructor(public readonly userId: string) {
-    super(`No consent record found for user ${userId}`)
+  constructor(private readonly userId: string) {
+    super('No consent record found')
     this.name = 'ConsentNotFoundException'
+  }
+
+  getUserId(): string {
+    return this.userId
   }
 }

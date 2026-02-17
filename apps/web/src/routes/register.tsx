@@ -88,7 +88,7 @@ function RegisterPage() {
           body: JSON.stringify({
             categories: { necessary: true, analytics: false, marketing: false },
             policyVersion: legalConfig.consentPolicyVersion,
-            action: 'accepted',
+            action: 'customized',
           }),
         }).catch(() => {
           // Consent sync failure is non-critical
