@@ -15,6 +15,12 @@ const REDACTION_PATTERNS: RegExp[] = [
   /(?:postgres|mysql|mongodb|redis):\/\/[^\s'"]+/gi,
   // Base64 credentials
   /(?:Basic|Bearer)\s+[A-Za-z0-9+/]{20,}={0,2}/g,
+  // AWS access keys
+  /AKIA[0-9A-Z]{16}/g,
+  // GitHub tokens
+  /gh[pousr]_[a-zA-Z0-9]{36,}/g,
+  // PEM private keys
+  /-----BEGIN\s(?:RSA\s|EC\s|OPENSSH\s)?PRIVATE\sKEY-----[\s\S]*?-----END\s(?:RSA\s|EC\s|OPENSSH\s)?PRIVATE\sKEY-----/g,
 ]
 
 /**

@@ -21,7 +21,7 @@ interface TypeCount {
 }
 
 interface BlockerEntry {
-  tags: string | null
+  tag: string
   content: string
   count: number
 }
@@ -59,9 +59,9 @@ function querySummary(db: Database, days: number): TypeCount[] {
  */
 function queryTopBlockers(db: Database, days: number): BlockerEntry[] {
   const stmt = db.prepare(`
-    SELECT tags, content, COUNT(*) as count FROM findings
-    WHERE type = 'blocker' AND session_timestamp >= datetime('now', '-' || ? || ' days')
-    GROUP BY tags
+    SELECT j.value as tag, f.content, COUNT(*) as count FROM findings f, json_each(f.tags) j
+    WHERE f.type = 'blocker' AND f.session_timestamp >= datetime('now', '-' || ? || ' days')
+    GROUP BY j.value
     ORDER BY count DESC
     LIMIT 10
   `)
@@ -269,9 +269,8 @@ function formatBlockersSection(blockers: BlockerEntry[]): string {
 
   for (let i = 0; i < blockers.length; i++) {
     const b = blockers[i]
-    const tagLabel = parseTags(b.tags, 'untagged')
     const sample = b.content.length > 100 ? `${b.content.substring(0, 100)}...` : b.content
-    md += `${i + 1}. **${tagLabel}** (${b.count}x) — ${sample}\n`
+    md += `${i + 1}. **${b.tag}** (${b.count}x) — ${sample}\n`
   }
   return `${md}\n`
 }

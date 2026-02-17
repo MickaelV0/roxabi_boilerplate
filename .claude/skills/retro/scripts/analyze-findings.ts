@@ -16,7 +16,7 @@
 
 import type { Database } from 'bun:sqlite'
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readSync } from 'node:fs'
 import { join } from 'node:path'
 import { getDatabase } from '../lib/db'
 import { embed, initEmbedder } from '../lib/embedder'
@@ -33,6 +33,17 @@ interface Finding {
 
 const VALID_TYPES = new Set(['praise', 'blocker', 'suggestion', 'nitpick'])
 const VALID_SEVERITIES = new Set(['low', 'medium', 'high'])
+
+function logProcessing(
+  db: Database,
+  sessionId: string,
+  status: string,
+  errorMessage: string | null
+): void {
+  db.prepare(
+    'INSERT OR REPLACE INTO processing_log (session_id, phase, status, error_message) VALUES (?, ?, ?, ?)'
+  ).run(sessionId, 'analyze', status, errorMessage)
+}
 
 function isValidFinding(f: unknown): f is Finding {
   if (typeof f !== 'object' || f === null) return false
@@ -65,8 +76,7 @@ Session transcript:
 ${transcript}`
 }
 
-function extractTranscript(filePath: string): string {
-  const content = readFileSync(filePath, 'utf-8')
+function extractTranscript(content: string): string {
   const lines = content.split('\n').filter((l) => l.trim())
 
   const messages: string[] = []
@@ -137,21 +147,17 @@ async function analyzeSession(
     fileContent = readFileSync(filePath, 'utf-8')
   } catch {
     console.error(`  Session file not found: ${filePath}`)
-    db.prepare(
-      'INSERT OR REPLACE INTO processing_log (session_id, phase, status, error_message) VALUES (?, ?, ?, ?)'
-    ).run(sessionId, 'analyze', 'error', `Session file not found: ${filePath}`)
+    logProcessing(db, sessionId, 'error', `Session file not found: ${filePath}`)
     return
   }
 
   if (!fileContent.trim()) {
     console.error(`  Session file is empty: ${filePath}`)
-    db.prepare(
-      'INSERT OR REPLACE INTO processing_log (session_id, phase, status, error_message) VALUES (?, ?, ?, ?)'
-    ).run(sessionId, 'analyze', 'error', 'Session file is empty')
+    logProcessing(db, sessionId, 'error', 'Session file is empty')
     return
   }
 
-  const transcript = extractTranscript(filePath)
+  const transcript = extractTranscript(fileContent)
   const prompt = buildPrompt(transcript)
 
   let findings: Finding[]
@@ -160,14 +166,17 @@ async function analyzeSession(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`  CLI invocation failed for session ${sessionId}: ${msg}`)
-    db.prepare(
-      'INSERT OR REPLACE INTO processing_log (session_id, phase, status, error_message) VALUES (?, ?, ?, ?)'
-    ).run(sessionId, 'analyze', 'error', `CLI failed: ${msg}`)
+    logProcessing(db, sessionId, 'error', `CLI failed: ${msg}`)
     return
   }
 
+  const session = db.prepare('SELECT created_at FROM sessions WHERE id = ?').get(sessionId) as
+    | { created_at: string | null }
+    | undefined
+  const sessionTimestamp = session?.created_at ?? null
+
   const insertFinding = db.prepare(
-    'INSERT INTO findings (session_id, type, content, context, severity, tags) VALUES (?, ?, ?, ?, ?, ?)'
+    'INSERT INTO findings (session_id, type, content, context, severity, tags, session_timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)'
   )
 
   const insertEmbedding = db.prepare(
@@ -184,7 +193,8 @@ async function analyzeSession(
       redacted.content,
       redacted.context ?? null,
       finding.severity,
-      tagsJson
+      tagsJson,
+      sessionTimestamp
     )
 
     const findingId = Number(result.lastInsertRowid)
@@ -202,25 +212,47 @@ async function analyzeSession(
 
   db.prepare('UPDATE sessions SET analyzed_at = datetime("now") WHERE id = ?').run(sessionId)
 
-  db.prepare(
-    'INSERT OR REPLACE INTO processing_log (session_id, phase, status, error_message) VALUES (?, ?, ?, ?)'
-  ).run(sessionId, 'analyze', 'success', null)
+  logProcessing(db, sessionId, 'success', null)
 
   console.log(`  Found ${findings.length} findings`)
+}
+
+function deleteFindingEmbeddings(db: Database, findingIds: { id: number }[]): void {
+  if (findingIds.length === 0) return
+  const deleteEmbedding = db.prepare('DELETE FROM finding_embeddings WHERE finding_id = ?')
+  for (const r of findingIds) {
+    deleteEmbedding.run(r.id)
+  }
+}
+
+function confirmReanalyzeAll(db: Database): boolean {
+  const sessionCount = (
+    db.prepare('SELECT COUNT(*) as count FROM sessions').get() as { count: number }
+  ).count
+  const findingCount = (
+    db.prepare('SELECT COUNT(*) as count FROM findings').get() as { count: number }
+  ).count
+  console.log(`This will delete ${findingCount} findings and re-analyze ${sessionCount} sessions.`)
+  process.stdout.write('Continue? (y/N) ')
+  const buf = Buffer.alloc(10)
+  const bytesRead = readSync(0, buf, 0, 10)
+  const answer = buf.toString('utf-8', 0, bytesRead).trim().toLowerCase()
+  return answer === 'y' || answer === 'yes'
 }
 
 async function handleReanalyze(db: Database, target: string): Promise<void> {
   if (target === 'all') {
     console.log('WARNING: This will re-analyze ALL sessions. This may take a long time.')
+
+    if (!confirmReanalyzeAll(db)) {
+      console.log('Aborted.')
+      return
+    }
+
     console.log('Clearing all findings and embeddings...')
 
-    // Get all finding IDs for embedding cleanup
     const findingIds = db.prepare('SELECT id FROM findings').all() as { id: number }[]
-
-    if (findingIds.length > 0) {
-      const ids = findingIds.map((r) => r.id).join(',')
-      db.run(`DELETE FROM finding_embeddings WHERE finding_id IN (${ids})`)
-    }
+    deleteFindingEmbeddings(db, findingIds)
 
     db.run('DELETE FROM findings')
     db.run('UPDATE sessions SET analyzed_at = NULL')
@@ -228,7 +260,6 @@ async function handleReanalyze(db: Database, target: string): Promise<void> {
 
     console.log('Cleared. Re-analyzing all sessions...')
   } else {
-    // Reanalyze a specific session
     const session = db.prepare('SELECT id FROM sessions WHERE id = ?').get(target) as
       | { id: string }
       | undefined
@@ -239,15 +270,10 @@ async function handleReanalyze(db: Database, target: string): Promise<void> {
 
     console.log(`Clearing findings for session ${target}...`)
 
-    // Get finding IDs for this session
     const findingIds = db.prepare('SELECT id FROM findings WHERE session_id = ?').all(target) as {
       id: number
     }[]
-
-    if (findingIds.length > 0) {
-      const ids = findingIds.map((r) => r.id).join(',')
-      db.run(`DELETE FROM finding_embeddings WHERE finding_id IN (${ids})`)
-    }
+    deleteFindingEmbeddings(db, findingIds)
 
     db.prepare('DELETE FROM findings WHERE session_id = ?').run(target)
     db.prepare('UPDATE sessions SET analyzed_at = NULL WHERE id = ?').run(target)
@@ -257,7 +283,7 @@ async function handleReanalyze(db: Database, target: string): Promise<void> {
   }
 }
 
-async function main(): Promise<void> {
+function parseArgs(): { limit: number | undefined; reanalyzeTarget: string | undefined } {
   const args = process.argv.slice(2)
 
   const limitIdx = args.indexOf('--limit')
@@ -265,6 +291,35 @@ async function main(): Promise<void> {
 
   const reanalyzeIdx = args.indexOf('--reanalyze')
   const reanalyzeTarget = reanalyzeIdx !== -1 ? args[reanalyzeIdx + 1] : undefined
+
+  if (limit !== undefined && (Number.isNaN(limit) || limit <= 0)) {
+    console.error('--limit must be a positive integer')
+    process.exit(1)
+  }
+
+  if (reanalyzeTarget && reanalyzeTarget !== 'all' && !/^[a-zA-Z0-9_-]+$/.test(reanalyzeTarget)) {
+    console.error(
+      'Invalid session ID format. Session IDs must be alphanumeric (with hyphens and underscores).'
+    )
+    process.exit(1)
+  }
+
+  return { limit, reanalyzeTarget }
+}
+
+function printSummary(total: number, counts: Record<string, number>): void {
+  const totalFindings = Object.values(counts).reduce((a, b) => a + b, 0)
+  console.log('\n--- Analysis Summary ---')
+  console.log(`Sessions analyzed: ${total}`)
+  console.log(`Total findings: ${totalFindings}`)
+  console.log(`  Praise:     ${counts.praise}`)
+  console.log(`  Blockers:   ${counts.blocker}`)
+  console.log(`  Suggestions: ${counts.suggestion}`)
+  console.log(`  Nitpicks:   ${counts.nitpick}`)
+}
+
+async function main(): Promise<void> {
+  const { limit, reanalyzeTarget } = parseArgs()
 
   console.log('Phase 2: Analyzing sessions with AI...')
 
@@ -276,7 +331,6 @@ async function main(): Promise<void> {
       await handleReanalyze(db, reanalyzeTarget)
     }
 
-    // Query unanalyzed sessions
     let sessions = db.prepare('SELECT id FROM sessions WHERE analyzed_at IS NULL').all() as {
       id: string
     }[]
@@ -285,43 +339,26 @@ async function main(): Promise<void> {
       sessions = sessions.slice(0, limit)
     }
 
-    const total = sessions.length
-
-    if (total === 0) {
+    if (sessions.length === 0) {
       console.log('No unanalyzed sessions found.')
       return
     }
 
-    console.log(`Found ${total} session(s) to analyze.`)
+    console.log(`Found ${sessions.length} session(s) to analyze.`)
 
-    const counts: Record<string, number> = {
-      praise: 0,
-      blocker: 0,
-      suggestion: 0,
-      nitpick: 0,
-    }
+    const counts: Record<string, number> = { praise: 0, blocker: 0, suggestion: 0, nitpick: 0 }
 
     for (let i = 0; i < sessions.length; i++) {
       try {
-        await analyzeSession(db, sessions[i].id, i, total, counts)
+        await analyzeSession(db, sessions[i].id, i, sessions.length, counts)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         console.error(`  Unexpected error analyzing session ${sessions[i].id}: ${msg}`)
-        db.prepare(
-          'INSERT OR REPLACE INTO processing_log (session_id, phase, status, error_message) VALUES (?, ?, ?, ?)'
-        ).run(sessions[i].id, 'analyze', 'error', `Unexpected: ${msg}`)
+        logProcessing(db, sessions[i].id, 'error', `Unexpected: ${msg}`)
       }
     }
 
-    // Report summary
-    const totalFindings = Object.values(counts).reduce((a, b) => a + b, 0)
-    console.log('\n--- Analysis Summary ---')
-    console.log(`Sessions analyzed: ${total}`)
-    console.log(`Total findings: ${totalFindings}`)
-    console.log(`  Praise:     ${counts.praise}`)
-    console.log(`  Blockers:   ${counts.blocker}`)
-    console.log(`  Suggestions: ${counts.suggestion}`)
-    console.log(`  Nitpicks:   ${counts.nitpick}`)
+    printSummary(sessions.length, counts)
   } finally {
     db.close()
   }

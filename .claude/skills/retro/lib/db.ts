@@ -7,11 +7,12 @@
 
 import { Database } from 'bun:sqlite'
 import { existsSync, mkdirSync } from 'node:fs'
+import path from 'node:path'
 import * as sqliteVec from 'sqlite-vec'
 import { applySchema } from './schema'
 
-const DATA_DIR = '.claude/skills/retro/data'
-const DB_PATH = `${DATA_DIR}/retro.db`
+const DATA_DIR = path.join(import.meta.dir, '..', 'data')
+const DB_PATH = path.join(DATA_DIR, 'retro.db')
 
 /**
  * Open or create the retro database with WAL mode and sqlite-vec extension.

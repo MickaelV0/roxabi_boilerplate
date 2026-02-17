@@ -45,7 +45,13 @@ export async function embed(text: string): Promise<Float32Array> {
  * Check if the embedding model is already cached.
  */
 export function isModelCached(): boolean {
-  const cacheDir = path.join(process.env.HOME || '', '.cache', 'huggingface')
+  const cacheDir = path.join(
+    process.env.HOME || '',
+    '.cache',
+    'huggingface',
+    'hub',
+    'models--Xenova--all-MiniLM-L6-v2'
+  )
   return existsSync(cacheDir)
 }
 

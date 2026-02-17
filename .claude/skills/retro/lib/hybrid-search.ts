@@ -108,11 +108,19 @@ export function hybridSearch(
   const scored = computeRrfScores(rankMap)
   const topScored = scored.slice(0, MAX_RESULTS)
 
-  const findingStmt = db.prepare('SELECT * FROM findings WHERE id = ?')
   const results: SearchResult[] = []
 
+  if (topScored.length === 0) return results
+
+  const ids = topScored.map((e) => e.findingId)
+  const placeholders = ids.map(() => '?').join(',')
+  const findings = db
+    .prepare(`SELECT * FROM findings WHERE id IN (${placeholders})`)
+    .all(...ids) as FindingRow[]
+  const findingMap = new Map(findings.map((f) => [f.id, f]))
+
   for (const entry of topScored) {
-    const finding = findingStmt.get(entry.findingId) as FindingRow | null
+    const finding = findingMap.get(entry.findingId)
     if (finding) {
       results.push({
         finding,

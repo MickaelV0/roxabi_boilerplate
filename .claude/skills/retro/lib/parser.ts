@@ -9,7 +9,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 /** Path to Claude Code session transcripts */
-const SESSIONS_DIR = '~/.claude/projects/-home-mickael-projects-roxabi-boilerplate'
+const SESSIONS_DIR =
+  process.env.RETRO_SESSIONS_DIR || '~/.claude/projects/-home-mickael-projects-roxabi-boilerplate'
 
 /** Parsed session metadata before DB insertion */
 export interface ParsedSession {
@@ -194,6 +195,19 @@ export function parseSessionFile(filePath: string): ParsedSession | null {
   }
 }
 
+/** Enrich a session with data from the sessions index. */
+function enrichFromIndex(
+  session: ParsedSession,
+  sessionId: string,
+  sessionsIndex: Record<string, unknown> | null
+): void {
+  if (!sessionsIndex || !(sessionId in sessionsIndex)) return
+  const indexEntry = sessionsIndex[sessionId] as Record<string, unknown> | undefined
+  if (indexEntry && typeof indexEntry.summary === 'string' && !session.summary) {
+    session.summary = indexEntry.summary
+  }
+}
+
 /**
  * Parse all session files and insert into the database.
  * Idempotent: skips sessions already in the database.
@@ -227,12 +241,11 @@ export function parseAllSessions(db: import('bun:sqlite').Database): {
   let skipped = 0
   const existing = existingIds.size
 
-  for (const filePath of files) {
+  const processFile = (filePath: string): void => {
     const sessionId = path.basename(filePath, '.jsonl')
 
-    // Skip if already in DB
     if (existingIds.has(sessionId)) {
-      continue
+      return
     }
 
     const session = parseSessionFile(filePath)
@@ -240,18 +253,11 @@ export function parseAllSessions(db: import('bun:sqlite').Database): {
     if (!session) {
       skipped++
       insertLog.run(sessionId, 'skipped', 'Malformed or empty session file')
-      continue
+      return
     }
 
-    // Enrich with sessions index data
-    if (sessionsIndex && sessionId in sessionsIndex) {
-      const indexEntry = sessionsIndex[sessionId] as Record<string, unknown> | undefined
-      if (indexEntry && typeof indexEntry.summary === 'string' && !session.summary) {
-        session.summary = indexEntry.summary
-      }
-    }
+    enrichFromIndex(session, sessionId, sessionsIndex)
 
-    // Insert into sessions table
     insertSession.run(
       session.id,
       session.project_path,
@@ -264,15 +270,20 @@ export function parseAllSessions(db: import('bun:sqlite').Database): {
       session.duration_minutes
     )
 
-    // Log success
     insertLog.run(sessionId, 'success', null)
     parsed++
 
-    // Progress every 50 sessions
     if (parsed % 50 === 0) {
       console.log(`  Progress: ${parsed} sessions parsed...`)
     }
   }
+
+  const runInTransaction = db.transaction(() => {
+    for (const filePath of files) {
+      processFile(filePath)
+    }
+  })
+  runInTransaction()
 
   const total = existing + parsed
 
