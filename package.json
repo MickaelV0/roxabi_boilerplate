@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "prepare": "lefthook install",
-    "dev": "turbo dev",
+    "dev": "bash scripts/predev.sh && turbo dev",
     "dev:clean": "fuser -k ${NITRO_PORT:-42069}/tcp ${PORT:-4000}/tcp ${WEB_PORT:-3000}/tcp 2>/dev/null || true",
     "build": "turbo build",
     "lint": "biome check .",
@@ -55,7 +55,9 @@
     "turbo": "^2.8.9",
     "turbo-ignore": "^2.8.9",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "@huggingface/transformers": "^3.0.0",
+    "sqlite-vec": "0.1.7-alpha.2"
   },
   "packageManager": "bun@1.3.9",
   "engines": {
@@ -63,6 +65,7 @@
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
+    "fumadocs-mdx": "^14.2.7",
     "shiki": "^3.22.0"
   }
 }

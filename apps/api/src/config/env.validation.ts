@@ -34,6 +34,8 @@ export const envSchema = z.object({
   RATE_LIMIT_AUTH_TTL: z.coerce.number().positive().default(60_000),
   RATE_LIMIT_AUTH_LIMIT: z.coerce.number().positive().default(5),
   RATE_LIMIT_AUTH_BLOCK_DURATION: z.coerce.number().positive().default(300_000),
+  // CRON secret for scheduled jobs (purge, etc.)
+  CRON_SECRET: z.string().optional(),
   // Reserved for the future API key rate-limit tier
   RATE_LIMIT_API_TTL: z.coerce.number().default(60_000),
   RATE_LIMIT_API_LIMIT: z.coerce.number().default(100),
@@ -82,6 +84,17 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
     console.error(
       '[SECURITY] RATE_LIMIT_ENABLED=false in production — auth brute-force protection is DISABLED. ' +
         'Set RATE_LIMIT_ENABLED=true and configure KV_REST_API_URL/TOKEN.'
+    )
+  }
+
+  // Warn when CRON_SECRET is unset in non-development environments.
+  // The purge endpoint degrades gracefully (rejects unauthenticated requests),
+  // so this is a warning, not a hard failure.
+  if (validatedConfig.NODE_ENV !== 'development' && !validatedConfig.CRON_SECRET) {
+    console.warn(
+      '[SECURITY] CRON_SECRET is not set in a non-development environment. ' +
+        'Scheduled job endpoints (e.g., purge) will reject all requests. ' +
+        'Set CRON_SECRET to a secure value: openssl rand -base64 32'
     )
   }
 

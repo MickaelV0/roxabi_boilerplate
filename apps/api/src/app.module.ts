@@ -14,6 +14,8 @@ import { validate } from './config/env.validation.js'
 import { ConsentModule } from './consent/consent.module.js'
 import { DatabaseModule } from './database/database.module.js'
 import { GdprModule } from './gdpr/gdpr.module.js'
+import { OrganizationModule } from './organization/organization.module.js'
+import { PurgeModule } from './purge/purge.module.js'
 import { RbacModule } from './rbac/rbac.module.js'
 import { TenantModule } from './tenant/tenant.module.js'
 import { ThrottlerConfigModule } from './throttler/throttler.module.js'
@@ -45,6 +47,8 @@ import { UserModule } from './user/user.module.js'
     AuthModule,
     TenantModule,
     UserModule,
+    OrganizationModule,
+    PurgeModule,
     RbacModule,
     ConsentModule,
     GdprModule,

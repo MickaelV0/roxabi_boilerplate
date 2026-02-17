@@ -1,0 +1,25 @@
+import { Module } from '@nestjs/common'
+import { APP_FILTER } from '@nestjs/core'
+import { AuthModule } from '../auth/auth.module.js'
+import {
+  OrgNameConfirmationMismatchFilter,
+  OrgNotDeletedFilter,
+  OrgNotOwnerFilter,
+} from './filters/org-forbidden.filter.js'
+import { OrgNotFoundFilter } from './filters/org-not-found.filter.js'
+import { OrganizationController } from './organization.controller.js'
+import { OrganizationService } from './organization.service.js'
+
+@Module({
+  imports: [AuthModule],
+  controllers: [OrganizationController],
+  providers: [
+    OrganizationService,
+    { provide: APP_FILTER, useClass: OrgNotFoundFilter },
+    { provide: APP_FILTER, useClass: OrgNotOwnerFilter },
+    { provide: APP_FILTER, useClass: OrgNameConfirmationMismatchFilter },
+    { provide: APP_FILTER, useClass: OrgNotDeletedFilter },
+  ],
+  exports: [OrganizationService],
+})
+export class OrganizationModule {}

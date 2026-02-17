@@ -22,6 +22,17 @@ export type ApiErrorResponse = {
   errorCode?: string
 }
 
+export type {
+  AccountDeletionStatus,
+  AvatarStyle,
+  DeleteAccountPayload,
+  DeleteOrgPayload,
+  DeletionImpact,
+  OrgOwnershipResolution,
+  UpdateProfilePayload,
+  UserProfile,
+} from './account.js'
+export { ERROR_CODES } from './account.js'
 export * from './consent.js'
 export type {
   DefaultRoleSlug,

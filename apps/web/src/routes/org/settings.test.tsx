@@ -297,19 +297,32 @@ describe('OrgSettingsPage', () => {
     expect(saveButton).not.toBeDisabled()
   })
 
-  it('should show type-to-confirm input in delete dialog (P2)', () => {
+  it('should show type-to-confirm input in delete dialog (P2)', async () => {
     // Arrange
     setupActiveOrg()
     setupOwnerMember()
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ memberCount: 2, invitationCount: 0, customRoleCount: 0 }),
+    })
+    globalThis.fetch = mockFetch
+
     const OrgSettings = captured.Component
 
     // Act
     render(<OrgSettings />)
 
-    // Assert -- delete dialog content is rendered (mock renders all children)
-    // The type-to-confirm prompt includes the org name parameter
-    expect(screen.getByText('org_delete_type_confirm({"name":"Acme Corp"})')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('org_delete_type_placeholder')).toBeInTheDocument()
+    // Click delete button to open the dialog
+    const deleteButtons = screen.getAllByRole('button', { name: 'org_delete' })
+    expect(deleteButtons.length).toBeGreaterThanOrEqual(1)
+    fireEvent.click(deleteButtons[0] as HTMLElement)
+
+    // Assert -- DestructiveConfirmDialog opens with org name as confirm text
+    await waitFor(() => {
+      expect(screen.getByText('org_delete_type_confirm({"name":"Acme Corp"})')).toBeInTheDocument()
+    })
+    expect(screen.getByPlaceholderText('Acme Corp')).toBeInTheDocument()
   })
 
   it('should show generate slug button for owners (P11)', () => {

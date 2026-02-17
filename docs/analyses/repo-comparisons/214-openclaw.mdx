@@ -258,7 +258,7 @@ OpenClaw enforces 70% coverage on lines/branches/functions/statements via Vitest
 Adoption: Add `coverageThreshold` to `vitest.config.ts` in roxabi.
 
 **4. Test tier separation (unit / e2e / live / docker)**
-Multiple Vitest configs for different test tiers means the fast unit suite can run in <30s while the full integration suite runs separately. roxabi mixes unit and integration tests in one run.
+Multiple Vitest configs for different test tiers means the fast unit suite can run in &lt;30s while the full integration suite runs separately. roxabi mixes unit and integration tests in one run.
 
 Adoption: Create `vitest.unit.config.ts` that excludes slow integration tests. Run fast tests on every commit, full suite only on PR.
 

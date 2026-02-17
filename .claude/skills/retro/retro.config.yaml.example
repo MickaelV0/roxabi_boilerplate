@@ -1,0 +1,13 @@
+# Retro skill — AI provider configuration
+# Copy this file to retro.config.yaml and adjust settings.
+# retro.config.yaml is gitignored (user-specific).
+
+# Provider: claude-cli (default) | openrouter
+provider: claude-cli
+
+# OpenRouter settings (used when provider: openrouter)
+model: anthropic/claude-sonnet-4-20250514
+api_key_env: OPENROUTER_API_KEY
+
+# Number of sessions to analyze in parallel (1-10, default: 3)
+concurrency: 3
