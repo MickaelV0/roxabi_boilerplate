@@ -321,6 +321,8 @@ Human: "develop #XXX"
    - If deeper technical analysis is needed, product-lead requests **architect** agent
    - Once spec is approved, product-lead returns control to Main Claude
 
+> **Investigation (optional):** If the analysis reveals technical uncertainty, the orchestrator may suggest spiking a solution before writing the spec. See the bootstrap skill (Gate 1.5) for details.
+
 > **F-lite shortcut:** If the task is classified as F-lite (clear scope, documented requirements), the assessment phase is brief — Main Claude confirms the spec exists and proceeds to `/scaffold`.
 
 ### Scaffold and Implementation (`/scaffold`)
@@ -428,6 +430,7 @@ After features have been validated on staging:
 | Branch | `fix/XXX-slug` | `fix/456-login-bug` |
 | Branch | `hotfix/XXX-slug` | `hotfix/99-security-patch` |
 | Branch | `docs/slug` | `docs/api-reference` |
+| Branch | `spike/XXX-slug` | `spike/123-sqlite-vec` |
 | Spec | `docs/specs/XXX-slug.mdx` | `docs/specs/123-user-auth.mdx` |
 | Worktree | `../roxabi-XXX` | `../roxabi-123` |
 

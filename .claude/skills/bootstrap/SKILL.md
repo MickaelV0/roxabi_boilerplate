@@ -138,6 +138,179 @@ Options:
 
 ---
 
+## Gate 1.5: Investigation (Optional)
+
+> Runs only after Gate 1 approval. Skipped when using `--spec`.
+
+### 1.5a. Detect Uncertainty Signals
+
+Read the approved analysis and check for uncertainty signals:
+
+- **Explicit uncertainty markers:** "needs testing", "unclear if", "to be validated", "unknown performance", "requires investigation", trade-off sections without a concluded decision
+- **Multiple competing approaches:** 2+ approaches listed without a clear winner, or a recommendation "pending validation"
+- **External dependency risk:** Reliance on a third-party API, library, or service not yet tested in this project
+
+If no signals detected → skip to "Ensure GitHub Issue."
+
+### 1.5b. User Confirmation
+
+If signals are detected, present via `AskUserQuestion`:
+
+> "The analysis contains technical uncertainty: {detected signals summary}. Would you like to investigate before writing the spec?"
+
+Options:
+- **Investigate** — Spike the uncertain areas before speccing
+- **Skip to spec** — Proceed directly to Gate 2
+
+If user skips → skip to "Ensure GitHub Issue."
+
+### 1.5c. Define Scope
+
+Draft investigation question(s) and done criteria (success and failure conditions). Present to user via `AskUserQuestion` for confirmation before the spike begins.
+
+**Example:**
+
+```
+Question: "Can sqlite-vec run on Bun/WSL2 with acceptable query latency?"
+
+Done criteria:
+- Success: sqlite-vec installs, 10k vector queries complete in <50ms
+- Failure: sqlite-vec fails to install on Bun, or query latency >500ms
+```
+
+### 1.5d. Execute Spike
+
+1. Create spike branch and install dependencies:
+   ```bash
+   # Bare-text bootstrap (no issue number yet):
+   git worktree add ../roxabi-spike-{slug} -b spike/{slug} staging
+   cd ../roxabi-spike-{slug} && bun install
+
+   # --issue N bootstrap (issue number available):
+   git worktree add ../roxabi-spike-XXX -b spike/XXX-{slug} staging
+   cd ../roxabi-spike-XXX && bun install
+   ```
+
+   No `db:branch:create` is needed — spikes are for feasibility testing, not full feature development.
+
+2. Spawn the appropriate domain expert subagent(s) via the `Task` tool:
+
+   | Uncertainty domain | Subagent |
+   |-------------------|----------|
+   | Architecture, feasibility, library evaluation | `architect` |
+   | Backend API, database, ORM | `backend-dev` |
+   | Frontend rendering, UI library, browser APIs | `frontend-dev` |
+   | CI/CD, deployment, infrastructure | `devops` |
+   | Cross-cutting or unclear | `architect` (default) |
+
+   **Subagent prompt template:**
+
+   ```
+   You are investigating a technical question for the bootstrap pipeline.
+
+   **Analysis document:** {path to analysis}
+   **Working directory:** {spike worktree path}
+
+   ## Investigation Question
+
+   {question text}
+
+   ## Done Criteria
+
+   - **Success:** {success conditions}
+   - **Failure:** {failure conditions}
+
+   ## Instructions
+
+   1. Read the analysis document for full context.
+   2. Work in the spike worktree to test the approach.
+   3. If the initial approach FAILS the done criteria, pivot to alternative
+      approaches listed in the analysis. Do NOT invent new approaches.
+   4. **Self-monitoring:** If you reach 15 tool calls without meeting done
+      criteria, STOP and return your partial findings immediately.
+   5. Report findings using this structure:
+
+      **Approach tested:** {what you tested}
+      **Result:** Success | Failure | Partial
+      **Findings:** (bullet points with key observations, data, errors)
+      **Recommendation:** {what this means for the spec}
+
+   If you tested multiple approaches, report each separately.
+   ```
+
+3. For cross-domain investigations, spawn parallel subagents (one per domain) and merge findings into sub-headings per question.
+
+### 1.5e. Review Findings
+
+Present findings to user via `AskUserQuestion`:
+
+> "Investigation findings for: {question}
+> Result: {Success | Failure | Partial}
+>
+> Key findings:
+> - {finding 1}
+> - {finding 2}
+>
+> Recommendation: {what this means for the spec}"
+
+Options:
+- **Approve findings** — Append to analysis as-is
+- **Edit findings** — Collect user corrections (text only, not re-investigation), re-present for final approval
+- **Discard findings** — Proceed without appending
+
+### 1.5f. Append and Cleanup
+
+1. Append approved findings to the analysis document using this template:
+
+   ```mdx
+   ## Investigation Findings
+
+   > Investigation conducted on {YYYY-MM-DD} by {subagent_type} subagent.
+   > Branch: `spike/{slug}` (deleted after findings extraction).
+
+   ### Question 1: {investigation question}
+
+   **Approach tested:** {what was tested}
+
+   **Result:** {Success | Failure | Partial}
+
+   **Findings:**
+   - {Key finding 1}
+   - {Key finding 2}
+   - {Performance data, compatibility notes, etc.}
+
+   **Recommendation:** {What this means for the spec}
+   ```
+
+2. No `meta.json` update needed — findings are appended to the existing analysis in place.
+
+3. **Guard:** Verify findings were written (analysis contains "## Investigation Findings" with substantive content — not just the heading).
+
+4. Delete spike branch and worktree:
+   ```bash
+   git worktree remove ../roxabi-spike-{slug}
+   git branch -D spike/{slug}
+   ```
+
+   > `git branch -D` is pre-approved for throwaway spike branches.
+
+5. If the spike branch guard fails (findings not written), preserve the branch and inform the user.
+
+6. **If all approaches failed** → present via `AskUserQuestion`:
+
+   > "Investigation found all approaches infeasible. Findings have been appended to the analysis. How would you like to proceed?"
+
+   Options:
+   - **Revise analysis** — Return to Gate 1 with new direction
+   - **Proceed to spec anyway** — Accept the risk and write the spec with current findings
+   - **Abandon** — Stop the bootstrap pipeline
+
+   **"Revise analysis"** re-enters the Gate 1a → 1b → 1c cycle. The user provides new direction, the orchestrator revises the analysis (keeping investigation findings as evidence), re-runs expert review, and re-presents for approval. After re-approval, the pipeline proceeds normally (and may trigger investigation again if new uncertainties are present).
+
+7. Continue to "Ensure GitHub Issue."
+
+---
+
 ## Ensure GitHub Issue (Between Gate 1 and Gate 2)
 
 A GitHub issue is **required** before creating a spec (specs use the `{issue}-{slug}.mdx` naming pattern). After Gate 1 approval and before entering Gate 2, ensure an issue exists:
