@@ -13,6 +13,14 @@ export interface RetroConfig {
   model: string
   apiKeyEnv: string
   concurrency: number
+  qualityCapChars: number
+}
+
+/** Model metadata fetched from OpenRouter at runtime. */
+export interface ModelMetadata {
+  contextLength: number
+  supportsResponseFormat: boolean
+  supportsStructuredOutputs: boolean
 }
 
 const DEFAULTS: RetroConfig = {
@@ -20,6 +28,7 @@ const DEFAULTS: RetroConfig = {
   model: 'anthropic/claude-sonnet-4-20250514',
   apiKeyEnv: 'OPENROUTER_API_KEY',
   concurrency: 3,
+  qualityCapChars: 100_000,
 }
 
 const SKILL_ROOT = path.join(import.meta.dir, '..')
@@ -67,11 +76,18 @@ export function loadConfig(): RetroConfig {
       ? DEFAULTS.concurrency
       : Math.min(rawConcurrency, 10)
 
+  const rawQualityCap = parsed.quality_cap_chars
+    ? Number.parseInt(parsed.quality_cap_chars, 10)
+    : DEFAULTS.qualityCapChars
+  const qualityCapChars =
+    Number.isNaN(rawQualityCap) || rawQualityCap < 10_000 ? DEFAULTS.qualityCapChars : rawQualityCap
+
   return {
     provider,
     model: parsed.model || DEFAULTS.model,
     apiKeyEnv: parsed.api_key_env || DEFAULTS.apiKeyEnv,
     concurrency,
+    qualityCapChars,
   }
 }
 
@@ -87,4 +103,55 @@ export function resolveApiKey(config: RetroConfig): string {
     )
   }
   return value
+}
+
+/**
+ * Fetch model metadata from OpenRouter API.
+ * Returns null if the model is not found or the request fails.
+ */
+export async function fetchModelMetadata(
+  model: string,
+  apiKey: string
+): Promise<ModelMetadata | null> {
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/models', {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(15_000),
+    })
+    if (!response.ok) return null
+
+    const data = (await response.json()) as {
+      data: {
+        id: string
+        context_length: number
+        supported_parameters?: string[]
+      }[]
+    }
+
+    const entry = data.data.find((m) => m.id === model)
+    if (!entry) return null
+
+    const params = entry.supported_parameters ?? []
+    return {
+      contextLength: entry.context_length,
+      supportsResponseFormat: params.includes('response_format'),
+      supportsStructuredOutputs: params.includes('structured_outputs'),
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Compute the effective chunk size in characters based on model metadata.
+ *
+ * Uses 75% of the model's context for input (leaving room for response),
+ * with a conservative 3 chars/token estimate. The result is capped by
+ * the user's quality_cap_chars setting.
+ */
+export function computeChunkSize(metadata: ModelMetadata | null, qualityCapChars: number): number {
+  if (!metadata) return qualityCapChars
+  const reservedTokens = 3000
+  const hardCeiling = (metadata.contextLength - reservedTokens) * 3
+  return Math.min(hardCeiling, qualityCapChars)
 }

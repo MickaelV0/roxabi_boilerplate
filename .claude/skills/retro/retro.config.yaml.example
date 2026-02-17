@@ -11,3 +11,9 @@ api_key_env: OPENROUTER_API_KEY
 
 # Number of sessions to analyze in parallel (1-10, default: 3)
 concurrency: 3
+
+# Max characters per chunk (quality vs speed tradeoff, default: 100000)
+# Lower = deeper analysis per chunk, more API calls
+# Higher = fewer API calls, model may skim large inputs
+# Hard ceiling is auto-computed from model context length
+quality_cap_chars: 100000
