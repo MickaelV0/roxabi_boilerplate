@@ -47,6 +47,10 @@ export {
 export { Checkbox } from './components/Checkbox'
 export { ConfirmDialog } from './components/ConfirmDialog'
 export {
+  DestructiveConfirmDialog,
+  type DestructiveConfirmDialogProps,
+} from './components/DestructiveConfirmDialog'
+export {
   Dialog,
   DialogClose,
   DialogContent,

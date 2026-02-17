@@ -14,6 +14,12 @@
     "check": "biome check"
   },
   "dependencies": {
+    "@dicebear/avataaars": "^9.3.1",
+    "@dicebear/bottts": "^9.3.1",
+    "@dicebear/core": "^9.3.1",
+    "@dicebear/lorelei": "^9.3.1",
+    "@dicebear/pixel-art": "^9.3.1",
+    "@dicebear/thumbs": "^9.3.1",
     "@fontsource-variable/plus-jakarta-sans": "^5.2.8",
     "@fumadocs/mdx-remote": "^1.4.5",
     "@radix-ui/react-checkbox": "^1.2.2",

@@ -1,5 +1,7 @@
+import { ForbiddenException } from '@nestjs/common'
 import { lastValueFrom, of } from 'rxjs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ErrorCode } from '../common/error-codes.js'
 import { TenantInterceptor } from './tenant.interceptor.js'
 
 function createMockCls(store: Record<string, unknown> = {}) {
@@ -12,7 +14,22 @@ function createMockCls(store: Record<string, unknown> = {}) {
 }
 
 function createMockContext(session: Record<string, unknown> | null = null) {
-  const request = { session }
+  const request = { session, method: 'GET', url: '/api/some/endpoint' }
+  return {
+    switchToHttp: () => ({
+      getRequest: () => request,
+    }),
+    getHandler: vi.fn(),
+    getClass: vi.fn(),
+  }
+}
+
+function createMockContextWithRoute(activeOrganizationId: string, method: string, url: string) {
+  const request = {
+    session: { session: { activeOrganizationId } },
+    method,
+    url,
+  }
   return {
     switchToHttp: () => ({
       getRequest: () => request,
@@ -238,6 +255,138 @@ describe('TenantInterceptor', () => {
 
       // Assert
       expect(cls.set).toHaveBeenCalledWith('tenantId', 'org-1')
+    })
+  })
+
+  describe('soft-delete blocking', () => {
+    function createActiveOrgRow(id = 'org-1') {
+      return { id, name: 'Test Org', deletedAt: null, deleteScheduledFor: null }
+    }
+
+    function createDeletedOrgRow(id = 'org-1') {
+      return {
+        id,
+        name: 'Test Org',
+        deletedAt: new Date('2026-02-15'),
+        deleteScheduledFor: new Date('2026-03-01T00:00:00.000Z'),
+      }
+    }
+
+    it('should allow active org to pass through normally', async () => {
+      // Arrange
+      const cls = createMockCls(store)
+      const db = createMockDb([createActiveOrgRow()])
+      const interceptor = new TenantInterceptor(cls as never, db as never)
+      const context = createMockContextWithRoute(
+        'org-1',
+        'PATCH',
+        '/api/organizations/org-1/settings'
+      )
+      const next = createMockCallHandler()
+
+      // Act
+      const result$ = interceptor.intercept(context as never, next as never)
+      const result = await lastValueFrom(result$)
+
+      // Assert
+      expect(result).toBe('handler-result')
+      expect(next.handle).toHaveBeenCalled()
+    })
+
+    it('should block soft-deleted org on regular operations', async () => {
+      // Arrange
+      const cls = createMockCls(store)
+      const db = createMockDb([createDeletedOrgRow()])
+      const interceptor = new TenantInterceptor(cls as never, db as never)
+      const context = createMockContextWithRoute(
+        'org-1',
+        'PATCH',
+        '/api/organizations/org-1/settings'
+      )
+      const next = createMockCallHandler()
+
+      // Act & Assert
+      const result$ = interceptor.intercept(context as never, next as never)
+      await expect(lastValueFrom(result$)).rejects.toThrow(ForbiddenException)
+    })
+
+    it('should allow soft-deleted org POST to reactivate endpoint', async () => {
+      // Arrange
+      const cls = createMockCls(store)
+      const db = createMockDb([createDeletedOrgRow()])
+      const interceptor = new TenantInterceptor(cls as never, db as never)
+      const context = createMockContextWithRoute(
+        'org-1',
+        'POST',
+        '/api/organizations/org-1/reactivate'
+      )
+      const next = createMockCallHandler()
+
+      // Act
+      const result$ = interceptor.intercept(context as never, next as never)
+      const result = await lastValueFrom(result$)
+
+      // Assert
+      expect(result).toBe('handler-result')
+    })
+
+    it('should allow soft-deleted org GET to org detail endpoint', async () => {
+      // Arrange
+      const cls = createMockCls(store)
+      const db = createMockDb([createDeletedOrgRow()])
+      const interceptor = new TenantInterceptor(cls as never, db as never)
+      const context = createMockContextWithRoute('org-1', 'GET', '/api/organizations/org-1')
+      const next = createMockCallHandler()
+
+      // Act
+      const result$ = interceptor.intercept(context as never, next as never)
+      const result = await lastValueFrom(result$)
+
+      // Assert
+      expect(result).toBe('handler-result')
+    })
+
+    it('should block non-POST method to reactivate endpoint', async () => {
+      // Arrange
+      const cls = createMockCls(store)
+      const db = createMockDb([createDeletedOrgRow()])
+      const interceptor = new TenantInterceptor(cls as never, db as never)
+      const context = createMockContextWithRoute(
+        'org-1',
+        'GET',
+        '/api/organizations/org-1/reactivate'
+      )
+      const next = createMockCallHandler()
+
+      // Act & Assert
+      const result$ = interceptor.intercept(context as never, next as never)
+      await expect(lastValueFrom(result$)).rejects.toThrow(ForbiddenException)
+    })
+
+    it('should include deleteScheduledFor and errorCode in error response', async () => {
+      // Arrange
+      const cls = createMockCls(store)
+      const db = createMockDb([createDeletedOrgRow()])
+      const interceptor = new TenantInterceptor(cls as never, db as never)
+      const context = createMockContextWithRoute(
+        'org-1',
+        'DELETE',
+        '/api/organizations/org-1/members/m-1'
+      )
+      const next = createMockCallHandler()
+
+      // Act & Assert
+      try {
+        const result$ = interceptor.intercept(context as never, next as never)
+        await lastValueFrom(result$)
+        expect.unreachable('Should have thrown ForbiddenException')
+      } catch (error) {
+        expect(error).toBeInstanceOf(ForbiddenException)
+        const response = (error as ForbiddenException).getResponse() as Record<string, unknown>
+        expect(response.message).toBe('Organization is scheduled for deletion')
+        expect(response.errorCode).toBe(ErrorCode.ORG_SCHEDULED_FOR_DELETION)
+        expect(response.deleteScheduledFor).toBe('2026-03-01T00:00:00.000Z')
+      }
     })
   })
 })
