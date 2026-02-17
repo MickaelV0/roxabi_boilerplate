@@ -41,13 +41,11 @@ const serverLoader = createServerFn({
     if (!page) throw notFound()
 
     // Compute the directory URL for relative link resolution.
-    // page.path is the virtual file path (e.g., "index", "getting-started",
-    // "architecture/auth-security"). We extract its directory and prepend
-    // the docs base URL to get a trailing-slash base for new URL() resolution.
-    const pageDir = page.path.includes('/')
-      ? page.path.substring(0, page.path.lastIndexOf('/'))
-      : ''
-    const linkBase = `/docs${pageDir ? `/${pageDir}` : ''}/`
+    // Use the page URL directly: appending '/' makes relative links
+    // resolve within the page's own directory. This is correct for both
+    // folder index pages (e.g., /docs/analyses → /docs/analyses/) and
+    // leaf pages, matching how MDX authors expect ./foo to resolve.
+    const linkBase = `${page.url}/`
 
     return {
       path: page.path,
