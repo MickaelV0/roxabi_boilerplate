@@ -173,6 +173,7 @@ cd apps/api && bun run db:branch:create --force XXX
 | vercel setup, configure vercel | `vercel:setup` | "set up Vercel", "configure Vercel", "link to Vercel" |
 | vercel logs, check logs | `vercel:logs` | "show Vercel logs", "check deployment logs" |
 | frontend design, build UI, create page | `frontend-design` | "design a landing page", "build this component", "/frontend-design" |
+| retro, session intelligence, analyze sessions | `retro` | "analyze sessions", "search findings", "/retro --recap" |
 
 **Important notes:**
 - ALWAYS use the appropriate skill even if user doesn't explicitly mention the slash command

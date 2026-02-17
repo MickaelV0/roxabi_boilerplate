@@ -59,6 +59,9 @@ reports/
 # Claude Code hooks state
 .claude/security_warnings/
 
+# Retro session intelligence database
+.claude/skills/retro/data/
+
 # Misc
 *.pem
 .vercel
