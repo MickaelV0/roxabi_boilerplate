@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { EmailConfirmationMismatchException } from './exceptions/email-confirmation-mismatch.exception.js'
+import { TransferTargetNotMemberException } from './exceptions/transfer-target-not-member.exception.js'
 import { UserNotFoundException } from './exceptions/user-not-found.exception.js'
 import { UserService } from './user.service.js'
 
@@ -51,14 +52,83 @@ function createMockDb() {
 }
 
 describe('UserService', () => {
+  describe('getSoftDeleteStatus', () => {
+    it('should return deletedAt and deleteScheduledFor when user is soft-deleted', async () => {
+      // Arrange
+      const deletedAt = new Date('2026-02-01')
+      const deleteScheduledFor = new Date('2026-03-03')
+      const db = {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([{ deletedAt, deleteScheduledFor }]),
+            }),
+          }),
+        }),
+      }
+      const service = new UserService(db as never)
+
+      // Act
+      const result = await service.getSoftDeleteStatus('user-1')
+
+      // Assert
+      expect(result).toEqual({ deletedAt, deleteScheduledFor })
+    })
+
+    it('should return null fields when user exists and is active', async () => {
+      // Arrange
+      const limitFn = vi.fn().mockResolvedValue([{ deletedAt: null, deleteScheduledFor: null }])
+      const selectFn = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: limitFn,
+          }),
+        }),
+      })
+      const db = { select: selectFn }
+      const service = new UserService(db as never)
+
+      // Act — use unique userId to avoid module-level cache collision with other tests
+      const result = await service.getSoftDeleteStatus('user-active')
+
+      // Assert
+      expect(selectFn).toHaveBeenCalledOnce()
+      expect(limitFn).toHaveBeenCalledOnce()
+      expect(result).toEqual({ deletedAt: null, deleteScheduledFor: null })
+    })
+
+    it('should return null when user does not exist', async () => {
+      // Arrange
+      const db = {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      }
+      const service = new UserService(db as never)
+
+      // Act
+      const result = await service.getSoftDeleteStatus('nonexistent')
+
+      // Assert
+      expect(result).toBeNull()
+    })
+  })
+
   describe('getProfile', () => {
     it('should return user profile with all new fields', async () => {
+      // Arrange
       const { db, chains } = createMockDb()
       chains.select.limit.mockResolvedValue([mockUser])
-
       const service = new UserService(db as never)
+
+      // Act
       const result = await service.getProfile('user-1')
 
+      // Assert
       expect(result).toEqual(mockUser)
       expect(result).toHaveProperty('firstName')
       expect(result).toHaveProperty('lastName')
@@ -72,51 +142,57 @@ describe('UserService', () => {
     })
 
     it('should throw UserNotFoundException when user not found', async () => {
+      // Arrange
       const { db, chains } = createMockDb()
       chains.select.limit.mockResolvedValue([])
-
       const service = new UserService(db as never)
 
+      // Act & Assert
       await expect(service.getProfile('nonexistent')).rejects.toThrow(UserNotFoundException)
     })
   })
 
   describe('updateProfile', () => {
     it('should update firstName and auto-update fullName when fullNameCustomized is false', async () => {
+      // Arrange
       const { db, chains } = createMockDb()
-      // First call: select to check fullNameCustomized
       chains.select.limit.mockResolvedValueOnce([
         { firstName: 'John', lastName: 'Doe', fullNameCustomized: false },
       ])
-      // Second call: returning after update
       const updatedUser = { ...mockUser, firstName: 'Jane', fullName: 'Jane Doe' }
       chains.update.returning.mockResolvedValue([updatedUser])
-
       const service = new UserService(db as never)
+
+      // Act
       const result = await service.updateProfile('user-1', { firstName: 'Jane' })
 
+      // Assert
       expect(result.firstName).toBe('Jane')
       expect(result.fullName).toBe('Jane Doe')
     })
 
     it('should set fullNameCustomized to true when fullName is directly edited', async () => {
+      // Arrange
       const { db, chains } = createMockDb()
       const updatedUser = { ...mockUser, fullName: 'Custom Name', fullNameCustomized: true }
       chains.update.returning.mockResolvedValue([updatedUser])
-
       const service = new UserService(db as never)
+
+      // Act
       const result = await service.updateProfile('user-1', { fullName: 'Custom Name' })
 
+      // Assert
       expect(result.fullName).toBe('Custom Name')
       expect(result.fullNameCustomized).toBe(true)
     })
 
     it('should throw UserNotFoundException when user not found during update', async () => {
+      // Arrange
       const { db, chains } = createMockDb()
       chains.update.returning.mockResolvedValue([])
-
       const service = new UserService(db as never)
 
+      // Act & Assert
       await expect(service.updateProfile('nonexistent', { fullName: 'Jane' })).rejects.toThrow(
         UserNotFoundException
       )
@@ -125,25 +201,56 @@ describe('UserService', () => {
 
   describe('softDelete', () => {
     it('should throw EmailConfirmationMismatchException when email does not match', async () => {
+      // Arrange
       const { db, chains } = createMockDb()
       chains.select.limit.mockResolvedValue([{ id: 'user-1', email: 'john@example.com' }])
-
       const service = new UserService(db as never)
 
+      // Act & Assert
       await expect(service.softDelete('user-1', 'wrong@example.com', [])).rejects.toThrow(
         EmailConfirmationMismatchException
       )
     })
 
     it('should throw UserNotFoundException when user does not exist', async () => {
+      // Arrange
       const { db, chains } = createMockDb()
       chains.select.limit.mockResolvedValue([])
-
       const service = new UserService(db as never)
 
+      // Act & Assert
       await expect(service.softDelete('nonexistent', 'john@example.com', [])).rejects.toThrow(
         UserNotFoundException
       )
+    })
+
+    it('should throw TransferTargetNotMemberException when transfer target is not a member of the org', async () => {
+      // Arrange
+      const { db, chains } = createMockDb()
+      chains.select.limit.mockResolvedValue([{ id: 'user-1', email: 'john@example.com' }])
+
+      db.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
+        const txLimitFn = vi
+          .fn()
+          .mockResolvedValueOnce([{ role: 'owner' }]) // ownership check passes
+          .mockResolvedValueOnce([]) // target member check fails (not a member)
+        const txSelectWhereFn = vi.fn().mockReturnValue({ limit: txLimitFn })
+        const txFromFn = vi.fn().mockReturnValue({ where: txSelectWhereFn })
+        const tx = {
+          select: vi.fn().mockReturnValue({ from: txFromFn }),
+        }
+        return cb(tx)
+      })
+
+      const service = new UserService(db as never)
+      const orgResolutions = [
+        { organizationId: 'org-1', action: 'transfer' as const, transferToUserId: 'user-999' },
+      ]
+
+      // Act & Assert
+      await expect(
+        service.softDelete('user-1', 'john@example.com', orgResolutions)
+      ).rejects.toThrow(TransferTargetNotMemberException)
     })
 
     it('should process transfer resolution by updating target member role to owner', async () => {
@@ -251,6 +358,7 @@ describe('UserService', () => {
     })
 
     it('should accept case-insensitive email confirmation', async () => {
+      // Arrange
       const { db, chains } = createMockDb()
       chains.select.limit.mockResolvedValue([{ id: 'user-1', email: 'John@Example.com' }])
       const deletedUser = {
@@ -273,33 +381,39 @@ describe('UserService', () => {
         }
         return cb(tx)
       })
-
       const service = new UserService(db as never)
+
+      // Act
       const result = await service.softDelete('user-1', 'john@example.com', [])
 
+      // Assert
       expect(result).toEqual(deletedUser)
     })
   })
 
   describe('reactivate', () => {
     it('should clear deletedAt and deleteScheduledFor', async () => {
+      // Arrange
       const { db, chains } = createMockDb()
       const reactivatedUser = { ...mockUser, deletedAt: null, deleteScheduledFor: null }
       chains.update.returning.mockResolvedValue([reactivatedUser])
-
       const service = new UserService(db as never)
+
+      // Act
       const result = await service.reactivate('user-1')
 
+      // Assert
       expect(result.deletedAt).toBeNull()
       expect(result.deleteScheduledFor).toBeNull()
     })
 
     it('should throw UserNotFoundException when user not found', async () => {
+      // Arrange
       const { db, chains } = createMockDb()
       chains.update.returning.mockResolvedValue([])
-
       const service = new UserService(db as never)
 
+      // Act & Assert
       await expect(service.reactivate('nonexistent')).rejects.toThrow(UserNotFoundException)
     })
   })

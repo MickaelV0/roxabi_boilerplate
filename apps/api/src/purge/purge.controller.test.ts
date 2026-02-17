@@ -64,5 +64,41 @@ describe('PurgeController', () => {
       // Act & Assert
       await expect(controller.purge('Bearer any-token')).rejects.toThrow(UnauthorizedException)
     })
+
+    it('should reject Basic auth scheme', async () => {
+      // Arrange
+      const configService = createMockConfigService('my-secret')
+      const controller = new PurgeController(mockPurgeService, configService)
+
+      // Act & Assert
+      await expect(controller.purge('Basic my-secret')).rejects.toThrow(UnauthorizedException)
+    })
+
+    it('should reject Bearer without space separator', async () => {
+      // Arrange
+      const configService = createMockConfigService('my-secret')
+      const controller = new PurgeController(mockPurgeService, configService)
+
+      // Act & Assert
+      await expect(controller.purge('Bearermy-secret')).rejects.toThrow(UnauthorizedException)
+    })
+
+    it('should reject empty authorization header', async () => {
+      // Arrange
+      const configService = createMockConfigService('my-secret')
+      const controller = new PurgeController(mockPurgeService, configService)
+
+      // Act & Assert
+      await expect(controller.purge('')).rejects.toThrow(UnauthorizedException)
+    })
+
+    it('should reject Bearer with trailing space but no token', async () => {
+      // Arrange
+      const configService = createMockConfigService('my-secret')
+      const controller = new PurgeController(mockPurgeService, configService)
+
+      // Act & Assert
+      await expect(controller.purge('Bearer ')).rejects.toThrow(UnauthorizedException)
+    })
   })
 })

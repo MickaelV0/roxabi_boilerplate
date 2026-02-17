@@ -17,12 +17,12 @@ type UpdateProfileDto = z.infer<typeof updateProfileSchema>
 
 const orgResolutionSchema = z.discriminatedUnion('action', [
   z.object({
-    organizationId: z.string(),
+    organizationId: z.string().min(1),
     action: z.literal('transfer'),
-    transferToUserId: z.string(),
+    transferToUserId: z.string().min(1),
   }),
   z.object({
-    organizationId: z.string(),
+    organizationId: z.string().min(1),
     action: z.literal('delete'),
   }),
 ])

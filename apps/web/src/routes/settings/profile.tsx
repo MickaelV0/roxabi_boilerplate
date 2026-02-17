@@ -1,3 +1,4 @@
+import type { UserProfile } from '@repo/types'
 import {
   Button,
   Card,
@@ -17,6 +18,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth-client'
+import { isErrorWithMessage } from '@/lib/error-utils'
 
 const AVATAR_STYLES = [
   { value: 'lorelei', label: 'Lorelei' },
@@ -28,22 +30,8 @@ const AVATAR_STYLES = [
 
 type AvatarStyle = (typeof AVATAR_STYLES)[number]['value']
 
-type ProfileData = {
-  firstName?: string
-  lastName?: string
-  fullName?: string
-  fullNameCustomized?: boolean
-  avatarSeed?: string
-  avatarStyle?: string
-}
-
-function isErrorWithMessage(value: unknown): value is { message: string } {
-  return (
-    value != null &&
-    typeof value === 'object' &&
-    'message' in value &&
-    typeof (value as { message: unknown }).message === 'string'
-  )
+function isAvatarStyle(v: string): v is AvatarStyle {
+  return AVATAR_STYLES.some((s) => s.value === v)
 }
 
 export const Route = createFileRoute('/settings/profile')({
@@ -114,21 +102,20 @@ function ProfileSettingsPage() {
       try {
         const res = await fetch('/api/users/me', { credentials: 'include' })
         if (!res.ok) throw new Error('fetch failed')
-        const data = (await res.json()) as ProfileData
+        const data = (await res.json()) as UserProfile
         applyProfileData(data, currentUser)
       } catch {
         applyFallback(currentUser)
       }
     }
 
-    function applyProfileData(data: ProfileData, u: { id: string; name: string | null }) {
+    function applyProfileData(data: UserProfile, u: { id: string; name: string | null }) {
       setFirstName(data.firstName ?? '')
       setLastName(data.lastName ?? '')
       setFullName(data.fullName ?? u.name ?? '')
       setFullNameCustomized(data.fullNameCustomized ?? false)
       setAvatarSeed(data.avatarSeed ?? u.id)
-      const validStyle = AVATAR_STYLES.find((s) => s.value === data.avatarStyle)
-      if (validStyle) setAvatarStyle(validStyle.value)
+      if (data.avatarStyle && isAvatarStyle(data.avatarStyle)) setAvatarStyle(data.avatarStyle)
       setLoaded(true)
     }
 
@@ -280,8 +267,8 @@ function ProfileSettingsPage() {
                 <Select
                   value={avatarStyle}
                   onValueChange={(v: string) => {
-                    if (AVATAR_STYLES.some((s) => s.value === v)) {
-                      setAvatarStyle(v as AvatarStyle)
+                    if (isAvatarStyle(v)) {
+                      setAvatarStyle(v)
                     }
                   }}
                 >

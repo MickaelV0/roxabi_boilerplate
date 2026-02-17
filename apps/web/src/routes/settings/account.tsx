@@ -25,6 +25,7 @@ import { AlertTriangleIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
+import { parseErrorMessage } from '@/lib/error-utils'
 
 export const Route = createFileRoute('/settings/account')({
   component: AccountSettingsPage,
@@ -38,19 +39,6 @@ type OwnedOrg = {
   name: string
   memberCount: number
   members: Array<{ id: string; userId: string; name: string; role: string }>
-}
-
-function isErrorWithMessage(value: unknown): value is { message: string } {
-  return (
-    value != null &&
-    typeof value === 'object' &&
-    'message' in value &&
-    typeof (value as { message: unknown }).message === 'string'
-  )
-}
-
-function parseErrorMessage(data: unknown, fallback: string): string {
-  return isErrorWithMessage(data) ? data.message : fallback
 }
 
 function useIsOAuthOnly() {

@@ -17,10 +17,21 @@ import { AlertTriangleIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
+import { isErrorWithMessage } from '@/lib/error-utils'
 import { hasPermission } from '@/lib/permissions'
 import { m } from '@/paraglide/messages'
 
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
+
+type SoftDeletableOrg = {
+  deletedAt?: string | null
+  deleteScheduledFor?: string | null
+}
+
+function hasSoftDeleteFields(org: unknown): org is SoftDeletableOrg {
+  if (org == null || typeof org !== 'object') return false
+  return 'deletedAt' in org
+}
 
 export const Route = createFileRoute('/org/settings')({
   component: OrgSettingsPage,
@@ -83,8 +94,8 @@ function DangerZoneCard({ orgId, orgName, onDeleted }: DangerZoneCardProps) {
       })
 
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { message?: string } | null
-        toast.error(data?.message ?? m.auth_toast_error())
+        const data: unknown = await res.json().catch(() => null)
+        toast.error(isErrorWithMessage(data) ? data.message : m.auth_toast_error())
         return
       }
 
@@ -326,8 +337,8 @@ function ReactivationBanner({ orgId, deleteScheduledFor, canReactivate }: Reacti
       })
 
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { message?: string } | null
-        toast.error(data?.message ?? 'Failed to reactivate organization')
+        const data: unknown = await res.json().catch(() => null)
+        toast.error(isErrorWithMessage(data) ? data.message : 'Failed to reactivate organization')
         return
       }
 
@@ -383,9 +394,9 @@ function OrgSettingsPage() {
   }
 
   // Check if org is soft-deleted
-  const orgDeletedAt = (activeOrg as { deletedAt?: string | null }).deletedAt
-  const orgDeleteScheduledFor = (activeOrg as { deleteScheduledFor?: string | null })
-    .deleteScheduledFor
+  const softDelete = hasSoftDeleteFields(activeOrg) ? activeOrg : null
+  const orgDeletedAt = softDelete?.deletedAt
+  const orgDeleteScheduledFor = softDelete?.deleteScheduledFor
 
   if (orgDeletedAt) {
     return (

@@ -52,31 +52,40 @@ function createGuard(
 
 describe('AuthGuard', () => {
   it('should return true when route is public', async () => {
+    // Arrange
     const { guard } = createGuard(null, { PUBLIC: true })
     const { context } = createMockContext()
 
+    // Act
     const result = await guard.canActivate(context as never)
 
+    // Assert
     expect(result).toBe(true)
   })
 
   it('should return true when auth is optional and no session exists', async () => {
+    // Arrange
     const { guard } = createGuard(null, { OPTIONAL_AUTH: true })
     const { context } = createMockContext()
 
+    // Act
     const result = await guard.canActivate(context as never)
 
+    // Assert
     expect(result).toBe(true)
   })
 
   it('should throw UnauthorizedException when no session on protected route', async () => {
+    // Arrange
     const { guard } = createGuard(null)
     const { context } = createMockContext()
 
+    // Act & Assert
     await expect(guard.canActivate(context as never)).rejects.toThrow(UnauthorizedException)
   })
 
   it('should set request.session and request.user when session is valid', async () => {
+    // Arrange
     const session = {
       user: { id: 'user-1', name: 'Test', role: 'user' },
       session: { id: 'sess-1', activeOrganizationId: null },
@@ -85,24 +94,29 @@ describe('AuthGuard', () => {
     const { guard } = createGuard(session)
     const { context, req } = createMockContext()
 
+    // Act
     const result = await guard.canActivate(context as never)
 
+    // Assert
     expect(result).toBe(true)
     expect((req as Record<string, unknown>).session).toBe(session)
     expect((req as Record<string, unknown>).user).toBe(session.user)
   })
 
   it('should throw UnauthorizedException when session has no user', async () => {
+    // Arrange
     const session = {
       session: { id: 'sess-1', activeOrganizationId: null },
     }
     const { guard } = createGuard(session)
     const { context } = createMockContext()
 
+    // Act & Assert
     await expect(guard.canActivate(context as never)).rejects.toThrow(UnauthorizedException)
   })
 
   it('should throw ForbiddenException when role does not match', async () => {
+    // Arrange
     const session = {
       user: { id: 'user-1', role: 'user' },
       session: { id: 'sess-1', activeOrganizationId: null },
@@ -111,10 +125,12 @@ describe('AuthGuard', () => {
     const { guard } = createGuard(session, { ROLES: ['admin'] })
     const { context } = createMockContext()
 
+    // Act & Assert
     await expect(guard.canActivate(context as never)).rejects.toThrow(ForbiddenException)
   })
 
   it('should return true when role matches required roles', async () => {
+    // Arrange
     const session = {
       user: { id: 'user-1', role: 'admin' },
       session: { id: 'sess-1', activeOrganizationId: null },
@@ -123,12 +139,15 @@ describe('AuthGuard', () => {
     const { guard } = createGuard(session, { ROLES: ['admin', 'superadmin'] })
     const { context } = createMockContext()
 
+    // Act
     const result = await guard.canActivate(context as never)
 
+    // Assert
     expect(result).toBe(true)
   })
 
   it('should default to user role when user has no role property', async () => {
+    // Arrange
     const session = {
       user: { id: 'user-1' },
       session: { id: 'sess-1', activeOrganizationId: null },
@@ -137,12 +156,15 @@ describe('AuthGuard', () => {
     const { guard } = createGuard(session, { ROLES: ['user'] })
     const { context } = createMockContext()
 
+    // Act
     const result = await guard.canActivate(context as never)
 
+    // Assert
     expect(result).toBe(true)
   })
 
   it('should throw ForbiddenException with message when REQUIRE_ORG is set and no activeOrganizationId', async () => {
+    // Arrange
     const session = {
       user: { id: 'user-1', role: 'user' },
       session: { id: 'sess-1', activeOrganizationId: null },
@@ -151,12 +173,14 @@ describe('AuthGuard', () => {
     const { guard } = createGuard(session, { REQUIRE_ORG: true })
     const { context } = createMockContext()
 
+    // Act & Assert
     await expect(guard.canActivate(context as never)).rejects.toThrow(
       new ForbiddenException('No active organization')
     )
   })
 
   it('should return true when REQUIRE_ORG is set and activeOrganizationId exists', async () => {
+    // Arrange
     const session = {
       user: { id: 'user-1', role: 'user' },
       session: { id: 'sess-1', activeOrganizationId: 'org-1' },
@@ -165,13 +189,16 @@ describe('AuthGuard', () => {
     const { guard } = createGuard(session, { REQUIRE_ORG: true })
     const { context } = createMockContext()
 
+    // Act
     const result = await guard.canActivate(context as never)
 
+    // Assert
     expect(result).toBe(true)
   })
 
   describe('PERMISSIONS check', () => {
     it('should throw ForbiddenException when no active org and permissions required', async () => {
+      // Arrange
       const session = {
         user: { id: 'user-1', role: 'user' },
         session: { id: 'sess-1', activeOrganizationId: null },
@@ -180,10 +207,12 @@ describe('AuthGuard', () => {
       const { guard } = createGuard(session, { PERMISSIONS: ['roles:read'] })
       const { context } = createMockContext()
 
+      // Act & Assert
       await expect(guard.canActivate(context as never)).rejects.toThrow(ForbiddenException)
     })
 
     it('should bypass permission check for superadmin', async () => {
+      // Arrange
       const session = {
         user: { id: 'user-1', role: 'superadmin' },
         session: { id: 'sess-1', activeOrganizationId: 'org-1' },
@@ -194,12 +223,15 @@ describe('AuthGuard', () => {
       })
       const { context } = createMockContext()
 
+      // Act
       const result = await guard.canActivate(context as never)
 
+      // Assert
       expect(result).toBe(true)
     })
 
     it('should allow when user has required permissions', async () => {
+      // Arrange
       const session = {
         user: { id: 'user-1', role: 'user' },
         session: { id: 'sess-1', activeOrganizationId: 'org-1' },
@@ -208,12 +240,15 @@ describe('AuthGuard', () => {
       const { guard } = createGuard(session, { PERMISSIONS: ['roles:read'] })
       const { context } = createMockContext()
 
+      // Act
       const result = await guard.canActivate(context as never)
 
+      // Assert
       expect(result).toBe(true)
     })
 
     it('should throw ForbiddenException when user lacks required permissions', async () => {
+      // Arrange
       const session = {
         user: { id: 'user-1', role: 'user' },
         session: { id: 'sess-1', activeOrganizationId: 'org-1' },
@@ -222,12 +257,14 @@ describe('AuthGuard', () => {
       const { guard } = createGuard(session, { PERMISSIONS: ['roles:write'] })
       const { context } = createMockContext()
 
+      // Act & Assert
       await expect(guard.canActivate(context as never)).rejects.toThrow(
         new ForbiddenException('Insufficient permissions')
       )
     })
 
     it('should require all permissions when multiple are specified', async () => {
+      // Arrange
       const session = {
         user: { id: 'user-1', role: 'user' },
         session: { id: 'sess-1', activeOrganizationId: 'org-1' },
@@ -236,6 +273,7 @@ describe('AuthGuard', () => {
       const { guard } = createGuard(session, { PERMISSIONS: ['roles:read', 'members:write'] })
       const { context } = createMockContext()
 
+      // Act & Assert
       await expect(guard.canActivate(context as never)).rejects.toThrow(ForbiddenException)
     })
   })

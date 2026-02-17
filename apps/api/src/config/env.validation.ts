@@ -87,6 +87,17 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
     )
   }
 
+  // Warn when CRON_SECRET is unset in non-development environments.
+  // The purge endpoint degrades gracefully (rejects unauthenticated requests),
+  // so this is a warning, not a hard failure.
+  if (validatedConfig.NODE_ENV !== 'development' && !validatedConfig.CRON_SECRET) {
+    console.warn(
+      '[SECURITY] CRON_SECRET is not set in a non-development environment. ' +
+        'Scheduled job endpoints (e.g., purge) will reject all requests. ' +
+        'Set CRON_SECRET to a secure value: openssl rand -base64 32'
+    )
+  }
+
   if (
     validatedConfig.NODE_ENV === 'production' &&
     validatedConfig.RATE_LIMIT_ENABLED === true &&

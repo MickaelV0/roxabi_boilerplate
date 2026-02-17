@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
+import type { OrgOwnershipResolution } from '@repo/types'
 import { and, eq } from 'drizzle-orm'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { whereActive } from '../database/helpers/where-active.js'
@@ -10,6 +11,7 @@ import {
   users,
 } from '../database/schema/auth.schema.js'
 import { OrgNotOwnerException } from '../organization/exceptions/org-not-owner.exception.js'
+import { AccountAlreadyDeletedException } from './exceptions/account-already-deleted.exception.js'
 import { EmailConfirmationMismatchException } from './exceptions/email-confirmation-mismatch.exception.js'
 import { TransferTargetNotMemberException } from './exceptions/transfer-target-not-member.exception.js'
 import { UserNotFoundException } from './exceptions/user-not-found.exception.js'
@@ -32,24 +34,43 @@ const profileColumns = {
   updatedAt: users.updatedAt,
 }
 
-type OrgResolution =
-  | { organizationId: string; action: 'transfer'; transferToUserId: string }
-  | { organizationId: string; action: 'delete' }
+/** Simple in-memory TTL cache for soft-delete status lookups */
+const SOFT_DELETE_CACHE_TTL_MS = 60_000
+const softDeleteCache = new Map<
+  string,
+  { value: { deletedAt: Date | null; deleteScheduledFor: Date | null } | null; expiresAt: number }
+>()
 
 @Injectable()
 export class UserService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
   async getSoftDeleteStatus(userId: string) {
+    const cached = softDeleteCache.get(userId)
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value
+    }
+
     const [user] = await this.db
       .select({ deletedAt: users.deletedAt, deleteScheduledFor: users.deleteScheduledFor })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1)
-    return user ?? null
+
+    const result = user ?? null
+    softDeleteCache.set(userId, { value: result, expiresAt: Date.now() + SOFT_DELETE_CACHE_TTL_MS })
+    return result
+  }
+
+  /** Invalidate the soft-delete status cache for a user */
+  private invalidateSoftDeleteCache(userId: string) {
+    softDeleteCache.delete(userId)
   }
 
   async getProfile(userId: string) {
+    // whereActive is intentionally omitted: the AuthGuard blocks soft-deleted users
+    // from most endpoints, and the profile page needs to display deletion status
+    // (deletedAt, deleteScheduledFor) so users can see and reactivate their account.
     const [user] = await this.db
       .select(profileColumns)
       .from(users)
@@ -110,20 +131,25 @@ export class UserService {
     const [updated] = await this.db
       .update(users)
       .set(updateData)
-      .where(eq(users.id, userId))
+      .where(and(eq(users.id, userId), whereActive(users)))
       .returning(profileColumns)
     if (!updated) throw new UserNotFoundException(userId)
     return updated
   }
 
-  async softDelete(userId: string, confirmEmail: string, orgResolutions: OrgResolution[]) {
-    // Fetch the user to validate email
+  async softDelete(userId: string, confirmEmail: string, orgResolutions: OrgOwnershipResolution[]) {
+    // Fetch the user to validate email and check deletion status
     const [user] = await this.db
-      .select({ id: users.id, email: users.email })
+      .select({ id: users.id, email: users.email, deletedAt: users.deletedAt })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1)
     if (!user) throw new UserNotFoundException(userId)
+
+    // Block re-deletion: prevent scheduling deletion on an already-deleted account
+    if (user.deletedAt) {
+      throw new AccountAlreadyDeletedException()
+    }
 
     if (user.email.toLowerCase() !== confirmEmail.toLowerCase()) {
       throw new EmailConfirmationMismatchException()
@@ -212,6 +238,9 @@ export class UserService {
       // Delete all sessions for this user (force logout)
       await tx.delete(sessions).where(eq(sessions.userId, userId))
 
+      // Invalidate cached soft-delete status after successful deletion
+      this.invalidateSoftDeleteCache(userId)
+
       return updated
     })
   }
@@ -223,6 +252,10 @@ export class UserService {
       .where(eq(users.id, userId))
       .returning(profileColumns)
     if (!updated) throw new UserNotFoundException(userId)
+
+    // Invalidate cached soft-delete status after reactivation
+    this.invalidateSoftDeleteCache(userId)
+
     return updated
   }
 
