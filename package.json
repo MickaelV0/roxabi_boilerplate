@@ -63,6 +63,8 @@
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
-    "shiki": "^3.22.0"
+    "@huggingface/transformers": "^3.0.0",
+    "shiki": "^3.22.0",
+    "sqlite-vec": "0.1.7-alpha.2"
   }
 }

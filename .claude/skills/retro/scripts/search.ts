@@ -14,14 +14,6 @@ import { getDatabase } from '../lib/db'
 import { embed, initEmbedder } from '../lib/embedder'
 import { hybridSearch } from '../lib/hybrid-search'
 
-// TODO: implement
-// 1. Parse arguments: query string, optional --type filter
-// 2. Get database connection
-// 3. Initialize embedder
-// 4. Generate embedding for query
-// 5. Run hybridSearch()
-// 6. Format and display results
-
 async function main(): Promise<void> {
   const args = process.argv.slice(2)
 
@@ -53,14 +45,24 @@ async function main(): Promise<void> {
       return
     }
 
-    // TODO: implement result formatting
-    // [type] (severity) content
-    //   Tags: tag1, tag2
-    //   Session: id | date
-    //   Context: snippet...
     for (const result of results) {
-      console.log(`[${result.finding.type}] (${result.finding.severity}) ${result.finding.content}`)
+      const tags = result.finding.tags ? JSON.parse(result.finding.tags).join(', ') : 'none'
+      console.log(
+        `\n[${result.finding.type}] (${result.finding.severity}) ${result.finding.content}`
+      )
+      console.log(`  Tags: ${tags}`)
+      console.log(
+        `  Session: ${result.finding.session_id} | ${result.finding.session_timestamp || 'unknown date'}`
+      )
+      if (result.finding.context) {
+        const ctx =
+          result.finding.context.length > 120
+            ? `${result.finding.context.substring(0, 120)}...`
+            : result.finding.context
+        console.log(`  Context: ${ctx}`)
+      }
     }
+    console.log(`\n${results.length} result(s) found.`)
   } finally {
     db.close()
   }

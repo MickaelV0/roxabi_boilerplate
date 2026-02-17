@@ -5,22 +5,26 @@
  * Model is cached at ~/.cache/huggingface/ (~45 MB on first download).
  */
 
+import { existsSync } from 'node:fs'
+import path from 'node:path'
+
 const MODEL_NAME = 'Xenova/all-MiniLM-L6-v2'
 const EMBEDDING_DIM = 384
 
 /** Singleton pipeline instance */
-const _pipeline: unknown | null = null
+// biome-ignore lint/suspicious/noExplicitAny: Transformers.js pipeline type is complex and not easily typed
+let pipeline: any = null
 
 /**
  * Initialize the embedding pipeline (downloads model on first run).
  * Call during --setup to pre-download the model.
  */
 export async function initEmbedder(): Promise<void> {
-  // TODO: implement
-  // 1. Import @huggingface/transformers
-  // 2. Create feature-extraction pipeline with MODEL_NAME
-  // 3. Store in singleton
-  throw new Error('Not implemented')
+  if (pipeline) {
+    return
+  }
+  const { pipeline: createPipeline } = await import('@huggingface/transformers')
+  pipeline = await createPipeline('feature-extraction', MODEL_NAME, { dtype: 'fp32' })
 }
 
 /**
@@ -29,21 +33,20 @@ export async function initEmbedder(): Promise<void> {
  * @param text - The text to embed
  * @returns Float32Array of EMBEDDING_DIM dimensions
  */
-export async function embed(_text: string): Promise<Float32Array> {
-  // TODO: implement
-  // 1. Ensure pipeline is initialized
-  // 2. Run pipeline on text
-  // 3. Return Float32Array
-  throw new Error('Not implemented')
+export async function embed(text: string): Promise<Float32Array> {
+  if (pipeline === null) {
+    throw new Error('Embedder not initialized. Call initEmbedder() first.')
+  }
+  const output = await pipeline(text, { pooling: 'mean', normalize: true })
+  return new Float32Array(output.data)
 }
 
 /**
  * Check if the embedding model is already cached.
  */
 export function isModelCached(): boolean {
-  // TODO: implement
-  // Check ~/.cache/huggingface/ for the model files
-  throw new Error('Not implemented')
+  const cacheDir = path.join(process.env.HOME || '', '.cache', 'huggingface')
+  return existsSync(cacheDir)
 }
 
 export { MODEL_NAME, EMBEDDING_DIM }

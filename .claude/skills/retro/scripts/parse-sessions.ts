@@ -11,11 +11,6 @@
 import { getDatabase } from '../lib/db'
 import { parseAllSessions } from '../lib/parser'
 
-// TODO: implement
-// 1. Get database connection (fail if not initialized)
-// 2. Run parseAllSessions(db)
-// 3. Report results
-
 async function main(): Promise<void> {
   console.log('Phase 1: Parsing session transcripts...')
 

@@ -23,23 +23,25 @@ const REDACTION_PATTERNS: RegExp[] = [
  * @param text - The text to redact
  * @returns Redacted text with secrets replaced by [REDACTED]
  */
-export function redact(_text: string): string {
-  // TODO: implement
-  // 1. Apply each pattern in REDACTION_PATTERNS
-  // 2. Replace matches with [REDACTED]
-  // 3. Return redacted text
-  throw new Error('Not implemented')
+export function redact(text: string): string {
+  let result = text
+  for (const pattern of REDACTION_PATTERNS) {
+    result = result.replace(pattern, '[REDACTED]')
+  }
+  return result
 }
 
 /**
  * Redact secrets from a finding's content and context fields.
  */
-export function redactFinding(_finding: { content: string; context?: string | null }): {
+export function redactFinding(finding: { content: string; context?: string | null }): {
   content: string
   context: string | null
 } {
-  // TODO: implement
-  throw new Error('Not implemented')
+  return {
+    content: redact(finding.content),
+    context: finding.context != null ? redact(finding.context) : null,
+  }
 }
 
 export { REDACTION_PATTERNS }

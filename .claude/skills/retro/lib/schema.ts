@@ -105,15 +105,42 @@ export interface ProcessingLogRow {
 }
 
 /**
+ * Split regular SQL (no triggers) into individual statements on `;` boundaries.
+ */
+function splitSimpleStatements(sql: string): string[] {
+  return sql
+    .split(';')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => `${s};`)
+}
+
+/**
+ * Split trigger SQL into individual CREATE TRIGGER statements.
+ *
+ * Triggers contain `;` inside BEGIN...END blocks, so we split on the
+ * `END;` boundary and re-append it to each block.
+ */
+function splitTriggerStatements(sql: string): string[] {
+  return sql
+    .split(/\bEND\s*;/i)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => `${s}\nEND;`)
+}
+
+/**
  * Apply the full schema to the database.
  * Uses bun:sqlite Database.run() for DDL execution.
+ *
+ * SCHEMA_SQL contains regular statements split on `;`.
+ * TRIGGERS_SQL contains CREATE TRIGGER blocks split on `END;`.
  */
 export function applySchema(db: import('bun:sqlite').Database): void {
-  // TODO: implement — run SCHEMA_SQL and TRIGGERS_SQL statements
-  for (const statement of SCHEMA_SQL.split(';').filter((s) => s.trim())) {
-    db.run(`${statement.trim()};`)
+  for (const statement of splitSimpleStatements(SCHEMA_SQL)) {
+    db.run(statement)
   }
-  for (const statement of TRIGGERS_SQL.split('END;').filter((s) => s.trim())) {
-    db.run(`${statement.trim()} END;`)
+  for (const statement of splitTriggerStatements(TRIGGERS_SQL)) {
+    db.run(statement)
   }
 }
