@@ -15,6 +15,7 @@ out/
 apps/web/src/routeTree.gen.ts
 apps/web/.source/
 apps/web/src/paraglide/
+apps/web/.content-collections/
 
 # Turbo
 .turbo/
