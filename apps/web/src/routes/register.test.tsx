@@ -69,6 +69,9 @@ vi.mock('lucide-react', () => ({
 
 mockParaglideMessages()
 
+const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+globalThis.fetch = mockFetch
+
 // Import to trigger createFileRoute and capture the component
 import './register'
 
@@ -163,6 +166,7 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText('auth_password'), {
       target: { value: 'password123' },
     })
+    fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.click(screen.getByRole('button', { name: 'auth_create_account_button' }))
 
     // Assert -- generic error, NOT the backend message
@@ -192,6 +196,7 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText('auth_password'), {
       target: { value: 'StrongP@ss1' },
     })
+    fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.click(screen.getByRole('button', { name: 'auth_create_account_button' }))
 
     // Assert -- form hidden, success card shown

@@ -67,12 +67,21 @@ export const Button = ({
 export const Checkbox = ({
   id,
   checked,
+  onCheckedChange,
   ...props
 }: {
   id?: string
   checked?: boolean
   onCheckedChange?: (v: boolean) => void
-}) => <input type="checkbox" id={id} checked={checked} onChange={() => {}} {...props} />
+}) => (
+  <input
+    type="checkbox"
+    id={id}
+    checked={checked}
+    onChange={(e) => onCheckedChange?.(e.target.checked)}
+    {...props}
+  />
+)
 
 export const Input = (props: Record<string, unknown>) => <input {...props} />
 
