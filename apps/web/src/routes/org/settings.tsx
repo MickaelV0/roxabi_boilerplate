@@ -1,22 +1,19 @@
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  DestructiveConfirmDialog,
   Input,
   Label,
 } from '@repo/ui'
 import { createFileRoute, useBlocker, useNavigate } from '@tanstack/react-router'
+import { AlertTriangleIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
@@ -40,6 +37,12 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
+type DeletionImpact = {
+  memberCount: number
+  invitationCount: number
+  customRoleCount: number
+}
+
 type DangerZoneCardProps = {
   orgId: string
   orgName: string
@@ -49,21 +52,43 @@ type DangerZoneCardProps = {
 function DangerZoneCard({ orgId, orgName, onDeleted }: DangerZoneCardProps) {
   const [deleting, setDeleting] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [deleteConfirm, setDeleteConfirm] = useState('')
+  const [impact, setImpact] = useState<DeletionImpact | null>(null)
+  const [loadingImpact, setLoadingImpact] = useState(false)
+
+  async function handleDeleteClick() {
+    setLoadingImpact(true)
+    try {
+      const res = await fetch(`/api/organizations/${orgId}/deletion-impact`, {
+        credentials: 'include',
+      })
+      if (res.ok) {
+        setImpact((await res.json()) as DeletionImpact)
+      }
+    } catch {
+      // Proceed without impact summary
+    } finally {
+      setLoadingImpact(false)
+      setDeleteOpen(true)
+    }
+  }
 
   async function handleDelete() {
     setDeleting(true)
     try {
-      const { error } = await authClient.organization.delete({
-        organizationId: orgId,
+      const res = await fetch(`/api/organizations/${orgId}`, {
+        method: 'DELETE',
+        credentials: 'include',
       })
-      if (error) {
-        toast.error(error.message ?? m.auth_toast_error())
-      } else {
-        toast.success(m.org_toast_deleted())
-        setDeleteOpen(false)
-        onDeleted()
+
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { message?: string } | null
+        toast.error(data?.message ?? m.auth_toast_error())
+        return
       }
+
+      toast.success(m.org_toast_deleted())
+      setDeleteOpen(false)
+      onDeleted()
     } catch {
       toast.error(m.auth_toast_error())
     } finally {
@@ -78,45 +103,50 @@ function DangerZoneCard({ orgId, orgName, onDeleted }: DangerZoneCardProps) {
         <CardDescription>{m.org_settings_danger_desc()}</CardDescription>
       </CardHeader>
       <CardContent>
-        <Dialog
+        <Button variant="destructive" onClick={handleDeleteClick} disabled={loadingImpact}>
+          {loadingImpact ? m.org_deleting() : m.org_delete()}
+        </Button>
+
+        <DestructiveConfirmDialog
           open={deleteOpen}
           onOpenChange={(open: boolean) => {
-            setDeleteOpen(open)
-            if (!open) setDeleteConfirm('')
+            if (!open) {
+              setDeleteOpen(false)
+              setImpact(null)
+            }
           }}
-        >
-          <DialogTrigger asChild>
-            <Button variant="destructive">{m.org_delete()}</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{m.org_delete_title()}</DialogTitle>
-              <DialogDescription>{m.org_delete_type_confirm({ name: orgName })}</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-2 py-2">
-              <Input
-                value={deleteConfirm}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setDeleteConfirm(e.target.value)
-                }
-                placeholder={m.org_delete_type_placeholder()}
-                autoComplete="off"
-              />
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">{m.common_cancel()}</Button>
-              </DialogClose>
-              <Button
-                variant="destructive"
-                onClick={handleDelete}
-                disabled={deleting || deleteConfirm !== orgName}
-              >
-                {deleting ? m.org_deleting() : m.org_delete()}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          title={m.org_delete_title()}
+          description={m.org_delete_type_confirm({ name: orgName })}
+          confirmText={orgName}
+          confirmLabel={m.org_delete_type_placeholder()}
+          impactSummary={
+            impact ? (
+              <div className="space-y-1 text-sm">
+                <p>
+                  <span className="font-medium">{impact.memberCount}</span> member
+                  {impact.memberCount !== 1 ? 's' : ''} will lose access
+                </p>
+                {impact.invitationCount > 0 && (
+                  <p>
+                    <span className="font-medium">{impact.invitationCount}</span> pending invitation
+                    {impact.invitationCount !== 1 ? 's' : ''} will be cancelled
+                  </p>
+                )}
+                {impact.customRoleCount > 0 && (
+                  <p>
+                    <span className="font-medium">{impact.customRoleCount}</span> custom role
+                    {impact.customRoleCount !== 1 ? 's' : ''} will be removed
+                  </p>
+                )}
+                <p className="pt-1 text-muted-foreground">
+                  The organization will be permanently deleted after 30 days.
+                </p>
+              </div>
+            ) : null
+          }
+          onConfirm={handleDelete}
+          isLoading={deleting}
+        />
       </CardContent>
     </Card>
   )
@@ -262,21 +292,68 @@ function UnsavedChangesDialog({ status, proceed, reset }: UnsavedChangesDialogPr
   }
 
   return (
-    <Dialog open onOpenChange={() => reset?.()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{m.org_unsaved_changes()}</DialogTitle>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => reset?.()}>
-            {m.org_unsaved_stay()}
+    <DestructiveConfirmDialog
+      open
+      onOpenChange={() => reset?.()}
+      title={m.org_unsaved_changes()}
+      description="You have unsaved changes. Are you sure you want to leave?"
+      confirmText="leave"
+      confirmLabel="Type 'leave' to discard changes"
+      onConfirm={() => proceed?.()}
+    />
+  )
+}
+
+type ReactivationBannerProps = {
+  orgId: string
+  deleteScheduledFor: string
+  canReactivate: boolean
+}
+
+function ReactivationBanner({ orgId, deleteScheduledFor, canReactivate }: ReactivationBannerProps) {
+  const [reactivating, setReactivating] = useState(false)
+
+  const formattedDate = new Date(deleteScheduledFor).toLocaleDateString()
+
+  async function handleReactivate() {
+    setReactivating(true)
+    try {
+      const res = await fetch(`/api/organizations/${orgId}/reactivate`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { message?: string } | null
+        toast.error(data?.message ?? 'Failed to reactivate organization')
+        return
+      }
+
+      toast.success('Organization reactivated successfully')
+      // Force session refresh to clear cached state
+      window.location.reload()
+    } catch {
+      toast.error('Failed to reactivate organization')
+    } finally {
+      setReactivating(false)
+    }
+  }
+
+  return (
+    <Alert variant="destructive">
+      <AlertTriangleIcon className="size-4" />
+      <AlertTitle>Organization Scheduled for Deletion</AlertTitle>
+      <AlertDescription className="space-y-3">
+        <p>This organization is scheduled for permanent deletion on {formattedDate}.</p>
+        {canReactivate ? (
+          <Button variant="outline" size="sm" onClick={handleReactivate} disabled={reactivating}>
+            {reactivating ? 'Reactivating...' : 'Reactivate Organization'}
           </Button>
-          <Button variant="destructive" onClick={() => proceed?.()}>
-            {m.org_unsaved_leave()}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        ) : (
+          <p className="text-sm">Contact an organization owner to reactivate this organization.</p>
+        )}
+      </AlertDescription>
+    </Alert>
   )
 }
 
@@ -299,6 +376,24 @@ function OrgSettingsPage() {
       <>
         <h1 className="text-2xl font-bold">{m.org_settings_title()}</h1>
         <p className="text-muted-foreground">{m.org_switcher_no_org()}</p>
+      </>
+    )
+  }
+
+  // Check if org is soft-deleted
+  const orgDeletedAt = (activeOrg as { deletedAt?: string | null }).deletedAt
+  const orgDeleteScheduledFor = (activeOrg as { deleteScheduledFor?: string | null })
+    .deleteScheduledFor
+
+  if (orgDeletedAt) {
+    return (
+      <>
+        <h1 className="text-2xl font-bold">{m.org_settings_title()}</h1>
+        <ReactivationBanner
+          orgId={activeOrg.id}
+          deleteScheduledFor={orgDeleteScheduledFor ?? orgDeletedAt}
+          canReactivate={canDeleteOrg}
+        />
       </>
     )
   }

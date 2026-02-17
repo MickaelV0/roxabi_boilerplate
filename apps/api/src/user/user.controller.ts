@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Patch, Post } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 import { Session } from '../auth/decorators/session.decorator.js'
@@ -6,11 +6,33 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
 import { UserService } from './user.service.js'
 
 const updateProfileSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  image: z.string().url().optional(),
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().max(100).optional(),
+  name: z.string().min(1).max(200).optional(),
+  avatarSeed: z.string().max(200).nullable().optional(),
+  avatarStyle: z.string().max(50).nullable().optional(),
 })
 
 type UpdateProfileDto = z.infer<typeof updateProfileSchema>
+
+const orgResolutionSchema = z.discriminatedUnion('action', [
+  z.object({
+    orgId: z.string(),
+    action: z.literal('transfer'),
+    newOwnerId: z.string(),
+  }),
+  z.object({
+    orgId: z.string(),
+    action: z.literal('delete'),
+  }),
+])
+
+const deleteAccountSchema = z.object({
+  confirmEmail: z.string().email(),
+  orgResolutions: z.array(orgResolutionSchema).default([]),
+})
+
+type DeleteAccountDto = z.infer<typeof deleteAccountSchema>
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -20,24 +42,7 @@ export class UserController {
 
   @Get('me')
   @ApiOperation({ summary: 'Get current user profile' })
-  @ApiResponse({
-    status: 200,
-    description: 'User profile',
-    // TODO: Extract a UserProfileDto class once shared DTOs are established
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        name: { type: 'string', nullable: true },
-        email: { type: 'string' },
-        emailVerified: { type: 'boolean' },
-        image: { type: 'string', nullable: true },
-        role: { type: 'string' },
-        createdAt: { type: 'string', format: 'date-time' },
-        updatedAt: { type: 'string', format: 'date-time' },
-      },
-    },
-  })
+  @ApiResponse({ status: 200, description: 'User profile' })
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   async getMe(@Session() session: { user: { id: string } }) {
     return this.userService.getProfile(session.user.id)
@@ -45,29 +50,40 @@ export class UserController {
 
   @Patch('me')
   @ApiOperation({ summary: 'Update current user profile' })
-  @ApiResponse({
-    status: 200,
-    description: 'Updated user profile',
-    // TODO: Extract a UserProfileDto class once shared DTOs are established
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        name: { type: 'string', nullable: true },
-        email: { type: 'string' },
-        emailVerified: { type: 'boolean' },
-        image: { type: 'string', nullable: true },
-        role: { type: 'string' },
-        createdAt: { type: 'string', format: 'date-time' },
-        updatedAt: { type: 'string', format: 'date-time' },
-      },
-    },
-  })
+  @ApiResponse({ status: 200, description: 'Updated user profile' })
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   async updateMe(
     @Session() session: { user: { id: string } },
     @Body(new ZodValidationPipe(updateProfileSchema)) body: UpdateProfileDto
   ) {
     return this.userService.updateProfile(session.user.id, body)
+  }
+
+  @Delete('me')
+  @ApiOperation({ summary: 'Initiate account soft-deletion' })
+  @ApiResponse({ status: 200, description: 'Account scheduled for deletion' })
+  @ApiResponse({ status: 400, description: 'Email confirmation mismatch' })
+  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  async deleteMe(
+    @Session() session: { user: { id: string } },
+    @Body(new ZodValidationPipe(deleteAccountSchema)) body: DeleteAccountDto
+  ) {
+    return this.userService.softDelete(session.user.id, body.confirmEmail, body.orgResolutions)
+  }
+
+  @Post('me/reactivate')
+  @ApiOperation({ summary: 'Reactivate a soft-deleted account' })
+  @ApiResponse({ status: 200, description: 'Account reactivated' })
+  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  async reactivateMe(@Session() session: { user: { id: string } }) {
+    return this.userService.reactivate(session.user.id)
+  }
+
+  @Get('me/owned-organizations')
+  @ApiOperation({ summary: 'Get organizations owned by the current user' })
+  @ApiResponse({ status: 200, description: 'Owned organizations' })
+  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  async getOwnedOrganizations(@Session() session: { user: { id: string } }) {
+    return this.userService.getOwnedOrganizations(session.user.id)
   }
 }

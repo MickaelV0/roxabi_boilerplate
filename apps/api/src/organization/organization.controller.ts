@@ -1,7 +1,16 @@
 import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { z } from 'zod'
+import { Permissions } from '../auth/decorators/permissions.decorator.js'
 import { Session } from '../auth/decorators/session.decorator.js'
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
 import { OrganizationService } from './organization.service.js'
+
+const deleteOrgSchema = z.object({
+  confirmName: z.string().min(1),
+})
+
+type DeleteOrgDto = z.infer<typeof deleteOrgSchema>
 
 @ApiTags('Organizations')
 @ApiBearerAuth()
@@ -10,42 +19,40 @@ export class OrganizationController {
   constructor(private readonly organizationService: OrganizationService) {}
 
   @Delete(':id')
+  @Permissions('organizations:delete')
   @ApiOperation({ summary: 'Soft-delete an organization' })
   @ApiResponse({ status: 200, description: 'Organization scheduled for deletion' })
+  @ApiResponse({ status: 400, description: 'Name confirmation mismatch' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'Organization not found' })
   async deleteOrganization(
     @Param('id') orgId: string,
-    @Session() session: { user: { id: string }; session: { id: string } },
-    @Body() _body: { confirmName: string }
+    @Session() session: { user: { id: string } },
+    @Body(new ZodValidationPipe(deleteOrgSchema)) body: DeleteOrgDto
   ) {
-    // TODO: implement — validate confirmName matches org name (case-insensitive)
-    // TODO: implement — check organizations:delete permission
-    // TODO: implement — set deletedAt + deleteScheduledFor (now + 30 days)
-    // TODO: implement — clear activeOrganizationId on all sessions referencing this org
-    // TODO: implement — invalidate pending invitations (set status = 'expired')
-    return this.organizationService.softDelete(orgId, session.user.id)
+    return this.organizationService.softDelete(orgId, session.user.id, body.confirmName)
   }
 
   @Post(':id/reactivate')
+  @Permissions('organizations:delete')
   @ApiOperation({ summary: 'Reactivate a soft-deleted organization' })
   @ApiResponse({ status: 200, description: 'Organization reactivated' })
+  @ApiResponse({ status: 400, description: 'Organization is not deleted' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions or not owner' })
+  @ApiResponse({ status: 404, description: 'Organization not found' })
   async reactivateOrganization(
     @Param('id') orgId: string,
     @Session() session: { user: { id: string } }
   ) {
-    // TODO: implement — verify user is owner of the org
-    // TODO: implement — clear deletedAt and deleteScheduledFor
     return this.organizationService.reactivate(orgId, session.user.id)
   }
 
   @Get(':id/deletion-impact')
+  @Permissions('organizations:delete')
   @ApiOperation({ summary: 'Get deletion impact summary' })
   @ApiResponse({ status: 200, description: 'Impact summary' })
-  async getDeletionImpact(
-    @Param('id') orgId: string,
-    @Session() _session: { user: { id: string } }
-  ) {
-    // TODO: implement — return { memberCount, invitationCount, customRoleCount }
+  @ApiResponse({ status: 404, description: 'Organization not found' })
+  async getDeletionImpact(@Param('id') orgId: string) {
     return this.organizationService.getDeletionImpact(orgId)
   }
 }

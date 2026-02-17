@@ -29,13 +29,22 @@ function createMockContext(request: Record<string, unknown> = {}) {
   return { context, req }
 }
 
+function createMockDb(deletedAt: Date | null = null, deleteScheduledFor: Date | null = null) {
+  const limitFn = vi.fn().mockResolvedValue([{ deletedAt, deleteScheduledFor }])
+  const whereFn = vi.fn().mockReturnValue({ limit: limitFn })
+  const fromFn = vi.fn().mockReturnValue({ where: whereFn })
+  const selectFn = vi.fn().mockReturnValue({ from: fromFn })
+  return { select: selectFn }
+}
+
 function createGuard(
   session: Record<string, unknown> | null = null,
-  metadata: Record<string, unknown> = {}
+  metadata: Record<string, unknown> = {},
+  db: Record<string, unknown> = createMockDb()
 ) {
   const authService = createMockAuthService(session)
   const reflector = createMockReflector(metadata)
-  const guard = new AuthGuard(authService as never, reflector as never)
+  const guard = new AuthGuard(authService as never, reflector as never, db as never)
 
   return { guard, authService, reflector }
 }

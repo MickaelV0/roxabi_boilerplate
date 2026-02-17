@@ -6,6 +6,9 @@ import type { UserService } from './user.service.js'
 const mockUserService: UserService = {
   getProfile: vi.fn(),
   updateProfile: vi.fn(),
+  softDelete: vi.fn(),
+  reactivate: vi.fn(),
+  getOwnedOrganizations: vi.fn(),
 } as unknown as UserService
 
 describe('UserController', () => {
@@ -18,10 +21,17 @@ describe('UserController', () => {
   const mockUser = {
     id: 'user-1',
     name: 'John Doe',
+    firstName: 'John',
+    lastName: 'Doe',
+    fullNameCustomized: false,
     email: 'john@example.com',
     emailVerified: true,
     image: null,
+    avatarSeed: null,
+    avatarStyle: 'lorelei',
     role: 'user',
+    deletedAt: null,
+    deleteScheduledFor: null,
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
   }
@@ -38,13 +48,11 @@ describe('UserController', () => {
     })
 
     it('should propagate UserNotFoundException when user not found', async () => {
-      // Arrange
       const session = { user: { id: 'nonexistent' } }
       vi.mocked(mockUserService.getProfile).mockRejectedValue(
         new UserNotFoundException('nonexistent')
       )
 
-      // Act & Assert
       await expect(controller.getMe(session)).rejects.toThrow(UserNotFoundException)
     })
   })
@@ -52,8 +60,8 @@ describe('UserController', () => {
   describe('updateMe', () => {
     it('should update user profile', async () => {
       const session = { user: { id: 'user-1' } }
-      const updateData = { name: 'Jane Doe' }
-      const updatedUser = { ...mockUser, name: 'Jane Doe' }
+      const updateData = { firstName: 'Jane' }
+      const updatedUser = { ...mockUser, firstName: 'Jane', name: 'Jane Doe' }
       vi.mocked(mockUserService.updateProfile).mockResolvedValue(updatedUser)
 
       const result = await controller.updateMe(session, updateData)
@@ -63,15 +71,43 @@ describe('UserController', () => {
     })
 
     it('should propagate UserNotFoundException when user not found', async () => {
-      // Arrange
       const session = { user: { id: 'nonexistent' } }
-      const updateData = { name: 'Ghost' }
+      const updateData = { firstName: 'Ghost' }
       vi.mocked(mockUserService.updateProfile).mockRejectedValue(
         new UserNotFoundException('nonexistent')
       )
 
-      // Act & Assert
       await expect(controller.updateMe(session, updateData)).rejects.toThrow(UserNotFoundException)
+    })
+  })
+
+  describe('deleteMe', () => {
+    it('should initiate account soft-deletion', async () => {
+      const session = { user: { id: 'user-1' } }
+      const body = { confirmEmail: 'john@example.com', orgResolutions: [] as never[] }
+      const deletedUser = {
+        ...mockUser,
+        deletedAt: new Date(),
+        deleteScheduledFor: new Date(),
+      }
+      vi.mocked(mockUserService.softDelete).mockResolvedValue(deletedUser)
+
+      const result = await controller.deleteMe(session, body)
+
+      expect(result).toEqual(deletedUser)
+      expect(mockUserService.softDelete).toHaveBeenCalledWith('user-1', 'john@example.com', [])
+    })
+  })
+
+  describe('reactivateMe', () => {
+    it('should reactivate a soft-deleted account', async () => {
+      const session = { user: { id: 'user-1' } }
+      vi.mocked(mockUserService.reactivate).mockResolvedValue(mockUser)
+
+      const result = await controller.reactivateMe(session)
+
+      expect(result).toEqual(mockUser)
+      expect(mockUserService.reactivate).toHaveBeenCalledWith('user-1')
     })
   })
 })
