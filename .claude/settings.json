@@ -20,6 +20,15 @@
             "command": ".claude/hooks/security-check.js"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'CMD=$(echo \"$CLAUDE_TOOL_INPUT\" | jq -r .command 2>/dev/null); if echo \"$CMD\" | grep -qP \"\\bbun\\s+test\\b\" && ! echo \"$CMD\" | grep -qP \"\\bbun\\s+run\\s+test\\b\"; then echo \"BLOCKED: Use '\\''bun run test'\\'' (vitest) instead of '\\''bun test'\\'' (Bun'\\''s built-in runner). Bare '\\''bun test'\\'' causes infinite CPU spin.\"; exit 1; fi'"
+          }
+        ]
       }
     ]
   },

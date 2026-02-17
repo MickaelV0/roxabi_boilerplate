@@ -22,7 +22,7 @@ import { loadConfig, resolveApiKey } from '../lib/config'
 import { getDatabase } from '../lib/db'
 import { embed, initEmbedder } from '../lib/embedder'
 import { getSessionsDir } from '../lib/parser'
-import { redactFinding } from '../lib/redactor'
+import { redact, redactFinding } from '../lib/redactor'
 
 interface Finding {
   type: 'praise' | 'blocker' | 'suggestion' | 'nitpick'
@@ -225,7 +225,7 @@ async function analyzeSession(
     return
   }
 
-  const transcript = extractTranscript(fileContent)
+  const transcript = redact(extractTranscript(fileContent))
   const prompt = buildPrompt(transcript)
 
   let findings: Finding[]
