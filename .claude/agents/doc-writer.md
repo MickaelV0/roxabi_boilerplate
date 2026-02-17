@@ -50,8 +50,8 @@ BEFORE writing any documentation, you MUST read:
 - NEVER use `# Title` as first content line — Fumadocs renders the frontmatter `title` as the page H1. Adding `# Title` creates a duplicate H1 (bad for accessibility and SEO). Start content with `##` or prose text.
 - Use **relative paths** for internal links (e.g., `./getting-started`, `../guides/authentication`) — never absolute paths like `/docs/guides/authentication`
 - After creating a new doc, update the corresponding `meta.json` to include it in navigation
-- Specs use `docs/specs/{issue}-{slug}.mdx` format
-- Analyses use `docs/analyses/{slug}.mdx` format (prefix with issue number if applicable)
+- Specs use `specs/{issue}-{slug}.mdx` format
+- Analyses use `analyses/{slug}.mdx` format (prefix with issue number if applicable)
 
 ## Deliverables
 - Documentation files in MDX format following project conventions

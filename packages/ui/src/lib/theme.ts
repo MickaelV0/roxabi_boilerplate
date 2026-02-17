@@ -309,7 +309,7 @@ function deriveChartColors(
  * - sidebar: background +/- 0.03 lightness
  * - chart-1..5: rotate primary hue by N*60 degrees
  *
- * @see docs/specs/70-design-system.mdx "Derivation rules"
+ * @see specs/70-design-system.mdx "Derivation rules"
  */
 export function deriveFullTheme(config: ThemeConfig): DerivedTheme {
   const { colors, radius, typography } = config

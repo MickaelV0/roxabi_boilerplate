@@ -10,7 +10,7 @@
  *
  * Zero external dependencies — uses only Bun built-ins and Node.js fs/path.
  *
- * @see docs/specs/80-license-checker.mdx
+ * @see specs/80-license-checker.mdx
  */
 
 import {

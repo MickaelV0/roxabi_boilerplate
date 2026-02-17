@@ -50,7 +50,7 @@ Check if a spec exists for the linked issue and verify acceptance criteria are m
 
 2. **Look for a matching spec:**
    ```bash
-   ls docs/specs/<issue_number>-*.mdx 2>/dev/null
+   ls specs/<issue_number>-*.mdx 2>/dev/null
    ```
 
 3. **If a spec exists:**

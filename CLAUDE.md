@@ -118,7 +118,7 @@ cd apps/api && bun run db:branch:create --force XXX
 
 **XS exception:** For Size XS changes (single file, &lt;1h, zero risk), use `AskUserQuestion` to confirm with the lead. If approved, a direct branch from staging is acceptable without worktree.
 
-**Bootstrap exception:** `/bootstrap` commits analysis and spec documents (`docs/analyses/`, `docs/specs/`) directly to staging. These are documentation artifacts, not code changes, and are produced before scaffold creates a worktree.
+**Bootstrap exception:** `/bootstrap` commits analysis and spec documents (`analyses/`, `specs/`) directly to staging. These are documentation artifacts, not code changes, and are produced before scaffold creates a worktree.
 
 **Promote exception:** `/promote` commits changelog and release notes (`CHANGELOG.md`, `docs/changelog/`) directly to staging before creating the staging→main promotion PR. These are release artifacts, not code changes.
 
@@ -196,7 +196,7 @@ Specialized agents for multi-agent coordination. Requires `CLAUDE_CODE_EXPERIMEN
 | `tester` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage | — |
 | `security-auditor` | Quality | All packages | plan | Read, Glob, Grep, Bash, WebSearch, Task, SendMessage | Write, Edit |
 | `architect` | Strategy | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage | — |
-| `product-lead` | Strategy | `docs/analyses/`, `docs/specs/`, GitHub issues | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage | — |
+| `product-lead` | Strategy | `analyses/`, `specs/`, GitHub issues | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage | — |
 | `doc-writer` | Strategy | `docs/`, `CLAUDE.md` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage | — |
 
 ### Routing Decision Tree
@@ -247,8 +247,8 @@ Agent definitions: `.claude/agents/*.md`
 | Issue management | [docs/processes/issue-management.mdx](docs/processes/issue-management.mdx) |
 | Processes | [docs/processes/](docs/processes/) |
 | Architecture | [docs/architecture/](docs/architecture/) |
-| Analyses (pre-spec) | [docs/analyses/](docs/analyses/) |
-| Feature specifications | [docs/specs/](docs/specs/) |
+| Analyses (pre-spec) | [analyses/](analyses/) |
+| Feature specifications | [specs/](specs/) |
 | Coding standards | [docs/standards/](docs/standards/) |
 | Frontend patterns | [docs/standards/frontend-patterns.mdx](docs/standards/frontend-patterns.mdx) |
 | Backend patterns | [docs/standards/backend-patterns.mdx](docs/standards/backend-patterns.mdx) |
