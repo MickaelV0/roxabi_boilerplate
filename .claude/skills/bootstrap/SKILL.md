@@ -162,7 +162,7 @@ Options:
 - **Investigate** — Spike the uncertain areas before speccing
 - **Skip to spec** — Proceed directly to Gate 2
 
-If user skips → skip to "Ensure GitHub Issue."
+If user skips → skip to "Ensure GitHub Issue." No spike worktree or branch is created.
 
 ### 1.5c. Define Scope
 
@@ -194,6 +194,8 @@ Done criteria:
    No `db:branch:create` is needed — spikes are for feasibility testing, not full feature development.
 
 2. Spawn the appropriate domain expert subagent(s) via the `Task` tool:
+
+   > **Important:** The investigation question and done criteria passed to the subagent must be orchestrator-authored text confirmed by the user in step 1.5c. Do not interpolate raw analysis content into the prompt — the subagent reads the analysis file independently via the provided path.
 
    | Uncertainty domain | Subagent |
    |-------------------|----------|
@@ -238,9 +240,21 @@ Done criteria:
    If you tested multiple approaches, report each separately.
    ```
 
+> **Note:** Self-monitoring is best-effort — subagents may occasionally exceed 15 tool calls. The instruction provides a reliable soft limit, not a hard cutoff.
+
 3. For cross-domain investigations, spawn parallel subagents (one per domain) and merge findings into sub-headings per question.
 
 ### 1.5e. Review Findings
+
+**Partial findings guard:** If the subagent returned `Result: Partial` (hit the 15-turn self-monitoring limit), present a continuation prompt via `AskUserQuestion` before the standard review:
+
+> "The investigation returned partial findings (subagent reached the 15-turn limit). How would you like to proceed?"
+
+Options:
+- **Continue investigation** — Spawn a new subagent to pick up where the previous one left off
+- **Accept partial findings** — Proceed to review with what we have
+
+If the user chooses "Continue investigation," spawn a new subagent with the same prompt template plus a summary of prior partial findings. Then return to this step with the new results. If the user accepts, proceed to the review flow below.
 
 Present findings to user via `AskUserQuestion`:
 
@@ -255,7 +269,7 @@ Present findings to user via `AskUserQuestion`:
 
 Options:
 - **Approve findings** — Append to analysis as-is
-- **Edit findings** — Collect user corrections (text only, not re-investigation), re-present for final approval
+- **Edit findings** — Collect user corrections (text only, not re-investigation), re-present for final approval. This is a text-correction loop only — do not re-run expert review or re-enter Gate 1.
 - **Discard findings** — Proceed without appending
 
 ### 1.5f. Append and Cleanup
@@ -266,7 +280,7 @@ Options:
    ## Investigation Findings
 
    > Investigation conducted on {YYYY-MM-DD} by {subagent_type} subagent.
-   > Branch: `spike/{slug}` (deleted after findings extraction).
+   > Branch: `{spike branch name}` (deleted after findings extraction).
 
    ### Question 1: {investigation question}
 
@@ -284,17 +298,22 @@ Options:
 
 2. No `meta.json` update needed — findings are appended to the existing analysis in place.
 
-3. **Guard:** Verify findings were written (analysis contains "## Investigation Findings" with substantive content — not just the heading).
+3. **Guard:** Verify findings were written (analysis contains "## Investigation Findings" with at least one `**Approach tested:**` entry below the heading).
 
-4. Delete spike branch and worktree:
+4. **If guard passes:** Delete spike branch and worktree:
    ```bash
+   # Bare-text bootstrap:
    git worktree remove ../roxabi-spike-{slug}
    git branch -D spike/{slug}
+
+   # --issue N bootstrap:
+   git worktree remove ../roxabi-spike-XXX
+   git branch -D spike/XXX-{slug}
    ```
 
-   > `git branch -D` is pre-approved for throwaway spike branches.
+   > Use the same branch name and worktree path chosen in step 1.5d. `git branch -D` is pre-approved for throwaway spike branches.
 
-5. If the spike branch guard fails (findings not written), preserve the branch and inform the user.
+5. **If guard fails:** Preserve the spike branch and worktree. Inform the user that findings were not successfully written and they can manually extract findings or retry.
 
 6. **If all approaches failed** → present via `AskUserQuestion`:
 
