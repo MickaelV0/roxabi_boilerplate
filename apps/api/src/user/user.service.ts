@@ -158,6 +158,7 @@ export class UserService {
     const now = new Date()
     const deleteScheduledFor = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: inherent to multi-resolution transaction logic
     return await this.db.transaction(async (tx) => {
       // Process org resolutions
       for (const resolution of orgResolutions) {
