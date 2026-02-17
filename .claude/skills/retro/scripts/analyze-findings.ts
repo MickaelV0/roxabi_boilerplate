@@ -100,13 +100,6 @@ function extractTranscript(content: string): string {
     }
   }
 
-  // Truncate very large sessions: first 50 + last 50 messages
-  if (messages.length > 500) {
-    const first50 = messages.slice(0, 50)
-    const last50 = messages.slice(-50)
-    return [...first50, '\n[... truncated ...]\n', ...last50].join('\n')
-  }
-
   return messages.join('\n')
 }
 
@@ -179,7 +172,18 @@ async function invokeOpenRouter(prompt: string, config: RetroConfig): Promise<Fi
     content = fenceMatch[1]
   }
 
-  const parsed: unknown = JSON.parse(content)
+  // Extract JSON array from prose preamble (e.g. "Here are the findings:\n[{...}]")
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(content)
+  } catch {
+    const arrayMatch = content.match(/\[[\s\S]*\]/)
+    if (arrayMatch) {
+      parsed = JSON.parse(arrayMatch[0])
+    } else {
+      throw new Error(`No JSON array found in response: ${content.slice(0, 100)}...`)
+    }
+  }
   const arr = Array.isArray(parsed) ? parsed : []
 
   const findings: Finding[] = []
