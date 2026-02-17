@@ -1,0 +1,30 @@
+# Auto-merge PRs that have been reviewed and passed all required checks.
+# Adds the PR to GitHub's merge queue (squash) once the "reviewed" label is present.
+# GitHub natively waits for all required status checks before merging.
+name: Auto Merge
+
+on:
+  pull_request:
+    types: [labeled, synchronize]
+  check_suite:
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Enable auto-merge
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.labels.*.name, 'reviewed')
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Enable auto-merge (squash)
+        run: gh pr merge "$PR_NUMBER" --auto --squash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
