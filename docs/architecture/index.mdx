@@ -64,7 +64,7 @@ Backend API built with NestJS and Fastify.
 - Modular architecture
 - OpenAPI documentation
 
-See [Auth & Security Architecture](./auth-security) for authentication, guards, CORS, and security headers. See [Multi-Tenant Architecture](./multi-tenant) for RLS and tenant isolation. See [RBAC Architecture](./rbac) for the permission model and role hierarchy. See [Database Architecture](./database) for Drizzle ORM setup, schema conventions, and migration workflow.
+See [Auth & Security Architecture](./auth-security) for authentication, guards, CORS, and security headers. See [Multi-Tenant Architecture](./multi-tenant) for RLS and tenant isolation. See [RBAC Architecture](./rbac) for the permission model and role hierarchy. See [Database Architecture](./database) for Drizzle ORM setup, schema conventions, and migration workflow. See [Ubiquitous Language](./ubiquitous-language) for a glossary of domain terms, common confusions, and entity lifecycle diagrams.
 
 ### CLI (`apps/cli`) - Planned
 
@@ -118,47 +118,42 @@ bun docs
 
 ## Data Flow
 
-```txt
-┌──────────────────────────────────────────────────────────────────────────┐
-│                              Client Browser                              │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐          │
-│  │   React    │  │  TanStack  │  │  TanStack  │  │  TanStack  │          │
-│  │ Components │❮❯│   Router   │❮❯│   Query    │❮❯│   Form     │          │
-│  └────────────┘  └────────────┘  └─────┬──────┘  └────────────┘          │
-└────────────────────────────────────────┼─────────────────────────────────┘
-                                         │ HTTP/SSR
-                                         ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                         Web App (TanStack Start)                         │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐          │
-│  │   SSR      │  │  Server    │  │  Loaders   │  │  Fumadocs  │          │
-│  │  Renderer  │❮❯│  Functions │❮❯│  & Actions │  │   (Docs)   │          │
-│  └────────────┘  └─────┬──────┘  └────────────┘  └────────────┘          │
-└────────────────────────┼─────────────────────────────────────────────────┘
-                         │ HTTP (REST)
-                         ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                          API (NestJS + Fastify)                          │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐          │
-│  │ Controllers│─❯│  Services  │─❯│   Guards   │  │  OpenAPI   │          │
-│  │  (Routes)  │❮─│  (Logic)   │❮─│ & Pipes    │  │   Docs     │          │
-│  └────────────┘  └─────┬──────┘  └────────────┘  └────────────┘          │
-└────────────────────────┼─────────────────────────────────────────────────┘
-                         │ ORM/Query
-                         ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                              Database Layer                              │
-│  ┌────────────┐  ┌────────────┐                                          │
-│  │  Drizzle   │─❯│  Database  │                                          │
-│  │    ORM     │❮─│ (Postgres) │                                          │
-│  └────────────┘  └────────────┘                                          │
-└──────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph BROWSER["Client Browser"]
+        direction LR
+        RC["React\nComponents"] <--> TR["TanStack\nRouter"] <--> TQ["TanStack\nQuery"] <--> TF["TanStack\nForm"]
+    end
 
-Shared Packages (@repo/*)
-┌────────────┐  ┌────────────┐  ┌────────────┐
-│  @repo/ui  │  │@repo/config│  │@repo/types │
-│ Components │  │  Settings  │  │   DTOs     │
-└────────────┘  └────────────┘  └────────────┘
+    BROWSER -- "HTTP / SSR" --> WEB
+
+    subgraph WEB["Web App (TanStack Start)"]
+        direction LR
+        SSR["SSR\nRenderer"] <--> SF["Server\nFunctions"] <--> LA["Loaders\n& Actions"]
+        FD["Fumadocs\n(Docs)"]
+    end
+
+    WEB -- "HTTP (REST)" --> API
+
+    subgraph API["API (NestJS + Fastify)"]
+        direction LR
+        CTRL["Controllers\n(Routes)"] <--> SVC["Services\n(Logic)"] <--> GP["Guards\n& Pipes"]
+        OA["OpenAPI\nDocs"]
+    end
+
+    API -- "ORM / Query" --> DB
+
+    subgraph DB["Database Layer"]
+        direction LR
+        ORM["Drizzle\nORM"] <--> PG["Database\n(Postgres)"]
+    end
+
+    subgraph PKG["Shared Packages (@repo/*)"]
+        direction LR
+        UI["@repo/ui\nComponents"]
+        CFG["@repo/config\nSettings"]
+        TYPES["@repo/types\nDTOs"]
+    end
 ```
 
 ## Build System
@@ -191,26 +186,13 @@ App-specific `turbo.json` files extend the root config with `"extends": ["//"]`.
 
 Production uses **Vercel** for both web and API with automatic deploys from GitHub.
 
-```txt
-┌──────────────┐     ┌──────────────┐
-│   Developer  │────❯│   GitHub     │
-│  Push/Merge  │     │   (main)     │
-└──────────────┘     └──────┬───────┘
-                            │
-                  ┌─────────┴─────────┐
-                  ▼                   ▼
-         ┌──────────────┐    ┌──────────────┐
-         │   Vercel     │    │   Vercel     │
-         │   (Web)      │    │   (API)      │
-         │  TanStack    │    │  NestJS +    │
-         │  Start SSR   │───❯│  Fastify     │
-         └──────────────┘    └──────┬───────┘
-                                    │
-                                    ▼
-                          ┌──────────────────┐
-                          │      Neon        │
-                          │  (PostgreSQL)    │
-                          └──────────────────┘
+```mermaid
+flowchart TD
+    DEV["Developer\nPush/Merge"] --> GH["GitHub\n(main)"]
+    GH --> VW["Vercel (Web)\nTanStack Start SSR"]
+    GH --> VA["Vercel (API)\nNestJS + Fastify"]
+    VW --> VA
+    VA --> NEON["Neon\n(PostgreSQL)"]
 ```
 
 Key decisions:

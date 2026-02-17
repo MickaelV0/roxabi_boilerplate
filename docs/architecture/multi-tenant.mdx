@@ -35,27 +35,12 @@ The interceptor supports hierarchical organizations. If an organization has a `p
 
 The tenant ID propagates from the HTTP request through four layers before reaching the database:
 
-```txt
-HTTP Request
-    |
-    |  session.activeOrganizationId
-    v
-TenantInterceptor (NestJS global interceptor)
-    |
-    |  Resolves org -> tenant ID (handles parent orgs)
-    |  Stores in CLS: cls.set('tenantId', resolvedId)
-    v
-TenantService.query() (called by domain services)
-    |
-    |  Reads from CLS: cls.get('tenantId')
-    |  Opens transaction
-    |  Executes: SELECT set_config('app.tenant_id', $1, true)
-    v
-PostgreSQL RLS Policy
-    |
-    |  current_setting('app.tenant_id', true) compared to row's tenant_id
-    v
-Query results (filtered to current tenant only)
+```mermaid
+flowchart TD
+    REQ["HTTP Request"] -- "session.activeOrganizationId" --> TI["TenantInterceptor\n(NestJS global interceptor)"]
+    TI -- "Resolves org to tenant ID (handles parent orgs)\nStores in CLS: cls.set('tenantId', resolvedId)" --> TS["TenantService.query()\n(called by domain services)"]
+    TS -- "Reads from CLS: cls.get('tenantId')\nOpens transaction\nExecutes: SELECT set_config('app.tenant_id', $1, true)" --> RLS["PostgreSQL RLS Policy"]
+    RLS -- "current_setting('app.tenant_id', true)\ncompared to row's tenant_id" --> RESULT["Query results\n(filtered to current tenant only)"]
 ```
 
 ### Step-by-step
@@ -196,12 +181,12 @@ Tables fall into three categories based on their tenant scope:
 
 The `TenantModule` is registered globally in `AppModule` and provides three core pieces:
 
-```txt
-TenantModule
-├── TenantInterceptor (APP_INTERCEPTOR) -- extracts tenant from session
-├── TenantService -- executes tenant-scoped transactions
-├── TenantContextMissingFilter (APP_FILTER) -- handles missing context
-└── DatabaseUnavailableFilter (APP_FILTER) -- handles missing DB
+```mermaid
+graph TD
+    TM["TenantModule"] --> TI["TenantInterceptor (APP_INTERCEPTOR)\nextracts tenant from session"]
+    TM --> TS["TenantService\nexecutes tenant-scoped transactions"]
+    TM --> TCF["TenantContextMissingFilter (APP_FILTER)\nhandles missing context"]
+    TM --> DUF["DatabaseUnavailableFilter (APP_FILTER)\nhandles missing DB"]
 ```
 
 ### TenantInterceptor

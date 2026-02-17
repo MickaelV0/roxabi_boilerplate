@@ -4,12 +4,12 @@ import { createServerFn } from '@tanstack/react-start'
 import { useFumadocsLoader } from 'fumadocs-core/source/client'
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page'
-import defaultMdxComponents from 'fumadocs-ui/mdx'
 import type { ComponentProps } from 'react'
 import { createContext, Suspense, useContext } from 'react'
 import { DocsErrorBoundary } from '@/components/docs-error-boundary'
 import { baseOptions } from '@/lib/layout.shared'
 import { source } from '@/lib/source'
+import { getMDXComponents } from '@/mdx-components'
 
 /** Directory URL for the current page, used to resolve relative MDX links. */
 const LinkBaseContext = createContext('')
@@ -56,6 +56,9 @@ const serverLoader = createServerFn({
     }
   })
 
+/** Base MDX components including Mermaid and Fumadocs defaults. */
+const mdxComponents = getMDXComponents()
+
 /**
  * Resolve relative MDX links (./foo, ../bar) against the current page URL.
  *
@@ -66,7 +69,7 @@ const serverLoader = createServerFn({
  */
 function DocsLink(props: ComponentProps<'a'>) {
   const linkBase = useContext(LinkBaseContext)
-  const DefaultLink = defaultMdxComponents.a ?? 'a'
+  const DefaultLink = mdxComponents.a ?? 'a'
 
   if (props.href && (props.href.startsWith('./') || props.href.startsWith('../'))) {
     // linkBase is a trailing-slash directory URL (e.g., "/docs/" or "/docs/architecture/").
@@ -93,7 +96,7 @@ const clientLoader = browserCollections.docs.createClientLoader({
         <DocsBody>
           <MDX
             components={{
-              ...defaultMdxComponents,
+              ...mdxComponents,
               a: DocsLink,
             }}
           />
