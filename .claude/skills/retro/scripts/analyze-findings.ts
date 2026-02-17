@@ -18,6 +18,8 @@ import type { Database } from 'bun:sqlite'
 import { execFileSync } from 'node:child_process'
 import { readFileSync, readSync } from 'node:fs'
 import { join } from 'node:path'
+import type { RetroConfig } from '../lib/config'
+import { loadConfig, resolveApiKey } from '../lib/config'
 import { getDatabase } from '../lib/db'
 import { embed, initEmbedder } from '../lib/embedder'
 import { getSessionsDir } from '../lib/parser'
@@ -131,12 +133,64 @@ function invokeClaudeCli(prompt: string): Finding[] {
   return findings
 }
 
+async function invokeOpenRouter(prompt: string, config: RetroConfig): Promise<Finding[]> {
+  const apiKey = resolveApiKey(config)
+
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: config.model,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+    signal: AbortSignal.timeout(120_000),
+  })
+
+  if (!response.ok) {
+    throw new Error(`OpenRouter request failed: ${response.status} ${response.statusText}`)
+  }
+
+  const data = (await response.json()) as {
+    choices: { message: { content: string } }[]
+  }
+
+  let content = data.choices[0].message.content
+
+  // Strip markdown code fences if present
+  const fenceMatch = content.match(/^```(?:json)?\s*\n([\s\S]*?)\n```\s*$/m)
+  if (fenceMatch) {
+    content = fenceMatch[1]
+  }
+
+  const parsed: unknown = JSON.parse(content)
+  const arr = Array.isArray(parsed) ? parsed : []
+
+  const findings: Finding[] = []
+  for (const item of arr) {
+    if (isValidFinding(item)) {
+      findings.push(item)
+    }
+  }
+  return findings
+}
+
+async function invokeProvider(prompt: string, config: RetroConfig): Promise<Finding[]> {
+  if (config.provider === 'openrouter') {
+    return invokeOpenRouter(prompt, config)
+  }
+  return invokeClaudeCli(prompt)
+}
+
 async function analyzeSession(
   db: Database,
   sessionId: string,
   index: number,
   total: number,
-  counts: Record<string, number>
+  counts: Record<string, number>,
+  config: RetroConfig
 ): Promise<void> {
   console.log(`Analyzing session ${index + 1}/${total}...`)
 
@@ -162,7 +216,7 @@ async function analyzeSession(
 
   let findings: Finding[]
   try {
-    findings = invokeClaudeCli(prompt)
+    findings = await invokeProvider(prompt, config)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`  CLI invocation failed for session ${sessionId}: ${msg}`)
@@ -321,6 +375,11 @@ function printSummary(total: number, counts: Record<string, number>): void {
 async function main(): Promise<void> {
   const { limit, reanalyzeTarget } = parseArgs()
 
+  const config = loadConfig()
+  console.log(
+    `Provider: ${config.provider}${config.provider === 'openrouter' ? ` (${config.model})` : ''}`
+  )
+
   console.log('Phase 2: Analyzing sessions with AI...')
 
   const db = getDatabase()
@@ -350,7 +409,7 @@ async function main(): Promise<void> {
 
     for (let i = 0; i < sessions.length; i++) {
       try {
-        await analyzeSession(db, sessions[i].id, i, sessions.length, counts)
+        await analyzeSession(db, sessions[i].id, i, sessions.length, counts, config)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         console.error(`  Unexpected error analyzing session ${sessions[i].id}: ${msg}`)

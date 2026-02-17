@@ -61,6 +61,7 @@ reports/
 
 # Retro session intelligence database
 .claude/skills/retro/data/
+.claude/skills/retro/retro.config.yaml
 
 # Misc
 *.pem
