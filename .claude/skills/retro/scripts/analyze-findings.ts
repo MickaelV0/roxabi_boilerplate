@@ -15,7 +15,6 @@
  */
 
 import type { Database } from 'bun:sqlite'
-import { execFileSync } from 'node:child_process'
 import { readFileSync, readSync } from 'node:fs'
 import { join } from 'node:path'
 import type { RetroConfig } from '../lib/config'
@@ -111,26 +110,41 @@ function extractTranscript(content: string): string {
   return messages.join('\n')
 }
 
-function invokeClaudeCli(prompt: string): Finding[] {
-  const result = execFileSync('claude', ['-p', '--output-format', 'json'], {
-    input: prompt,
-    encoding: 'utf-8',
-    maxBuffer: 50 * 1024 * 1024, // 50MB
-    timeout: 120_000, // 2 min per session
+async function invokeClaudeCli(prompt: string): Promise<Finding[]> {
+  const proc = Bun.spawn(['claude', '-p', '--output-format', 'json'], {
+    stdin: Buffer.from(prompt),
+    stdout: 'pipe',
+    stderr: 'pipe',
   })
 
-  // Double JSON parse: CLI returns {"result": "...", ...} where result is a JSON string
-  const outer = JSON.parse(result)
-  const inner = typeof outer.result === 'string' ? JSON.parse(outer.result) : outer.result
+  const timeoutId = setTimeout(() => proc.kill(), 120_000)
 
-  const findings: Finding[] = []
-  const arr = Array.isArray(inner) ? inner : []
-  for (const item of arr) {
-    if (isValidFinding(item)) {
-      findings.push(item)
+  try {
+    const stdout = await new Response(proc.stdout).text()
+    const exitCode = await proc.exited
+    clearTimeout(timeoutId)
+
+    if (exitCode !== 0) {
+      const stderr = await new Response(proc.stderr).text()
+      throw new Error(`Claude CLI exited with code ${exitCode}: ${stderr}`)
     }
+
+    // Double JSON parse: CLI returns {"result": "...", ...} where result is a JSON string
+    const outer = JSON.parse(stdout)
+    const inner = typeof outer.result === 'string' ? JSON.parse(outer.result) : outer.result
+
+    const findings: Finding[] = []
+    const arr = Array.isArray(inner) ? inner : []
+    for (const item of arr) {
+      if (isValidFinding(item)) {
+        findings.push(item)
+      }
+    }
+    return findings
+  } catch (err) {
+    clearTimeout(timeoutId)
+    throw err
   }
-  return findings
 }
 
 async function invokeOpenRouter(prompt: string, config: RetroConfig): Promise<Finding[]> {
@@ -279,6 +293,20 @@ function deleteFindingEmbeddings(db: Database, findingIds: { id: number }[]): vo
   }
 }
 
+function isPaidProvider(config: RetroConfig): boolean {
+  if (config.provider === 'claude-cli') return true
+  if (config.provider === 'openrouter' && !config.model.endsWith(':free')) return true
+  return false
+}
+
+function confirmStdin(prompt: string): boolean {
+  process.stdout.write(prompt)
+  const buf = Buffer.alloc(10)
+  const bytesRead = readSync(0, buf, 0, 10)
+  const answer = buf.toString('utf-8', 0, bytesRead).trim().toLowerCase()
+  return answer === 'y' || answer === 'yes'
+}
+
 function confirmReanalyzeAll(db: Database): boolean {
   const sessionCount = (
     db.prepare('SELECT COUNT(*) as count FROM sessions').get() as { count: number }
@@ -287,11 +315,7 @@ function confirmReanalyzeAll(db: Database): boolean {
     db.prepare('SELECT COUNT(*) as count FROM findings').get() as { count: number }
   ).count
   console.log(`This will delete ${findingCount} findings and re-analyze ${sessionCount} sessions.`)
-  process.stdout.write('Continue? (y/N) ')
-  const buf = Buffer.alloc(10)
-  const bytesRead = readSync(0, buf, 0, 10)
-  const answer = buf.toString('utf-8', 0, bytesRead).trim().toLowerCase()
-  return answer === 'y' || answer === 'yes'
+  return confirmStdin('Continue? (y/N) ')
 }
 
 async function handleReanalyze(db: Database, target: string): Promise<void> {
@@ -335,6 +359,21 @@ async function handleReanalyze(db: Database, target: string): Promise<void> {
 
     console.log('Cleared. Re-analyzing...')
   }
+}
+
+async function runWithConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<void>
+): Promise<void> {
+  let nextIndex = 0
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const i = nextIndex++
+      await fn(items[i], i)
+    }
+  })
+  await Promise.all(workers)
 }
 
 function parseArgs(): { limit: number | undefined; reanalyzeTarget: string | undefined } {
@@ -403,19 +442,34 @@ async function main(): Promise<void> {
       return
     }
 
-    console.log(`Found ${sessions.length} session(s) to analyze.`)
+    console.log(
+      `Found ${sessions.length} session(s) to analyze (concurrency: ${config.concurrency}).`
+    )
+
+    if (isPaidProvider(config)) {
+      const providerLabel =
+        config.provider === 'claude-cli'
+          ? 'Claude Code CLI (paid)'
+          : `OpenRouter: ${config.model} (paid)`
+      console.log(`\nWARNING: This will make ${sessions.length} AI call(s) via ${providerLabel}.`)
+      if (!confirmStdin('Continue? (y/N) ')) {
+        console.log('Aborted.')
+        return
+      }
+      console.log()
+    }
 
     const counts: Record<string, number> = { praise: 0, blocker: 0, suggestion: 0, nitpick: 0 }
 
-    for (let i = 0; i < sessions.length; i++) {
+    await runWithConcurrency(sessions, config.concurrency, async (session, i) => {
       try {
-        await analyzeSession(db, sessions[i].id, i, sessions.length, counts, config)
+        await analyzeSession(db, session.id, i, sessions.length, counts, config)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
-        console.error(`  Unexpected error analyzing session ${sessions[i].id}: ${msg}`)
-        logProcessing(db, sessions[i].id, 'error', `Unexpected: ${msg}`)
+        console.error(`  Unexpected error analyzing session ${session.id}: ${msg}`)
+        logProcessing(db, session.id, 'error', `Unexpected: ${msg}`)
       }
-    }
+    })
 
     printSummary(sessions.length, counts)
   } finally {

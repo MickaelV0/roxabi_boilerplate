@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "case \"$CLAUDE_FILE_PATHS\" in *.ts|*.tsx|*.js|*.jsx|*.json) bunx biome check --write \"$CLAUDE_FILE_PATHS\" 2>/dev/null || true ;; esac"
+            "command": "case \"$CLAUDE_FILE_PATHS\" in *.ts|*.tsx|*.js|*.jsx|*.json) timeout 10s bunx biome check --write \"$CLAUDE_FILE_PATHS\" 2>/dev/null || true ;; esac"
           }
         ]
       }

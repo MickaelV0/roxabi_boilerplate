@@ -12,12 +12,14 @@ export interface RetroConfig {
   provider: 'claude-cli' | 'openrouter'
   model: string
   apiKeyEnv: string
+  concurrency: number
 }
 
 const DEFAULTS: RetroConfig = {
   provider: 'claude-cli',
   model: 'anthropic/claude-sonnet-4-20250514',
   apiKeyEnv: 'OPENROUTER_API_KEY',
+  concurrency: 3,
 }
 
 const SKILL_ROOT = path.join(import.meta.dir, '..')
@@ -57,10 +59,19 @@ export function loadConfig(): RetroConfig {
       ? parsed.provider
       : DEFAULTS.provider
 
+  const rawConcurrency = parsed.concurrency
+    ? Number.parseInt(parsed.concurrency, 10)
+    : DEFAULTS.concurrency
+  const concurrency =
+    Number.isNaN(rawConcurrency) || rawConcurrency < 1
+      ? DEFAULTS.concurrency
+      : Math.min(rawConcurrency, 10)
+
   return {
     provider,
     model: parsed.model || DEFAULTS.model,
     apiKeyEnv: parsed.api_key_env || DEFAULTS.apiKeyEnv,
+    concurrency,
   }
 }
 

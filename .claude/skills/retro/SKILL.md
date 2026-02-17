@@ -49,6 +49,7 @@ cp .claude/skills/retro/retro.config.yaml.example .claude/skills/retro/retro.con
 provider: openrouter
 model: anthropic/claude-sonnet-4-20250514
 api_key_env: OPENROUTER_API_KEY
+concurrency: 3
 ```
 
 **Config fields:**
@@ -58,6 +59,7 @@ api_key_env: OPENROUTER_API_KEY
 | `provider` | `claude-cli` | AI provider for finding extraction |
 | `model` | `anthropic/claude-sonnet-4-20250514` | Model ID (OpenRouter format) |
 | `api_key_env` | `OPENROUTER_API_KEY` | Environment variable holding the API key |
+| `concurrency` | `3` | Number of sessions to analyze in parallel (1-10) |
 
 If no config file exists, the skill falls back to `claude-cli` (fully backward compatible).
 
