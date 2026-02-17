@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { LegalPageLayout } from '@/components/legal/LegalPageLayout'
 import { legalConfig } from '@/config/legal.config'
+import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/legal/mentions-legales')({
   component: MentionsLegalesPage,
@@ -8,44 +9,42 @@ export const Route = createFileRoute('/legal/mentions-legales')({
 
 function MentionsLegalesPage() {
   return (
-    <LegalPageLayout title="Mentions Légales">
-      <h2>Éditeur du site</h2>
+    <LegalPageLayout title={m.legal_mentions_title()}>
+      <h2>{m.legal_mentions_editor_title()}</h2>
       <p>
-        Le site est édité par <strong>{legalConfig.companyName}</strong>, {legalConfig.legalForm} au
-        capital de {legalConfig.shareCapital}.
+        {m.legal_mentions_editor_intro()} <strong>{legalConfig.companyName}</strong>
+        {m.legal_mentions_editor_legal_form({
+          legalForm: legalConfig.legalForm,
+          shareCapital: legalConfig.shareCapital,
+        })}
       </p>
       <p>
-        <strong>Siège social :</strong> {legalConfig.registeredAddress}
+        <strong>{m.legal_mentions_registered_address()}</strong> {legalConfig.registeredAddress}
       </p>
       <p>
-        <strong>RCS :</strong> {legalConfig.rcsNumber}
+        <strong>{m.legal_mentions_rcs()}</strong> {legalConfig.rcsNumber}
       </p>
       <p>
-        <strong>SIRET :</strong> {legalConfig.siretNumber}
+        <strong>{m.legal_mentions_siret()}</strong> {legalConfig.siretNumber}
       </p>
       <p>
-        <strong>TVA intracommunautaire :</strong> {legalConfig.vatNumber}
+        <strong>{m.legal_mentions_vat()}</strong> {legalConfig.vatNumber}
       </p>
       <p>
-        <strong>Directeur de la publication :</strong> {legalConfig.publicationDirector}
+        <strong>{m.legal_mentions_publication_director()}</strong> {legalConfig.publicationDirector}
       </p>
 
-      <h2>Hébergeur</h2>
+      <h2>{m.legal_mentions_host_title()}</h2>
       <p>
         <strong>{legalConfig.host.name}</strong>
       </p>
       <p>{legalConfig.host.address}</p>
-      <p>Téléphone : {legalConfig.host.phone}</p>
+      <p>{m.legal_mentions_host_phone({ phone: legalConfig.host.phone })}</p>
 
-      <h2>Protection des données personnelles</h2>
+      <h2>{m.legal_mentions_data_protection_title()}</h2>
+      <p>{m.legal_mentions_data_protection_intro()}</p>
       <p>
-        Conformément au Règlement Général sur la Protection des Données (RGPD), vous disposez d'un
-        droit d'accès, de rectification, de portabilité, d'opposition et de suppression de vos
-        données personnelles.
-      </p>
-      <p>
-        Pour exercer ces droits, vous pouvez contacter notre Délégué à la Protection des Données à
-        l'adresse suivante :{' '}
+        {m.legal_mentions_data_protection_contact()}{' '}
         <a href={`mailto:${legalConfig.gdprContactEmail}`}>{legalConfig.gdprContactEmail}</a>
       </p>
     </LegalPageLayout>
