@@ -369,12 +369,7 @@ function DesignSystemPage() {
     <>
       <ThemeScript />
 
-      <main
-        className={cn(
-          'mx-auto max-w-7xl px-6 py-16 transition-[margin] duration-200',
-          sidebarOpen && 'lg:mr-80'
-        )}
-      >
+      <main className="mx-auto max-w-7xl px-6 py-16">
         {/* Page header */}
         <div className="mb-12 text-center">
           <h1 className="text-4xl font-bold tracking-tight">{m.ds_title()}</h1>
