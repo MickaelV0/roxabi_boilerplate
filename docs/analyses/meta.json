@@ -35,6 +35,7 @@
     "53-rate-limiting-api-security",
     "local-db-isolation",
     "181-vercel-marketplace-migration",
-    "158-env-var-hardening"
+    "158-env-var-hardening",
+    "...repo-comparisons"
   ]
 }
