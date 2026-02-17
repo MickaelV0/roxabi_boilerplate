@@ -1,4 +1,5 @@
 ---
+name: bootstrap
 argument-hint: '["idea" | --issue <N> | --spec <N>]'
 description: This skill should be used when the user wants to bootstrap a feature, plan a feature, start a new feature from an idea, or create an analysis and spec. Triggers include "bootstrap avatar upload", "plan feature", "start feature", "I have an idea for", "create a spec from issue", and "/bootstrap --issue 42". Orchestrates from raw idea to approved spec through two validation gates.
 allowed-tools: Bash, AskUserQuestion, Read, Write, Edit, Glob, Grep, Task
@@ -6,7 +7,7 @@ allowed-tools: Bash, AskUserQuestion, Read, Write, Edit, Glob, Grep, Task
 
 # Bootstrap
 
-Orchestrate the planning pipeline from a raw idea (or existing issue/spec) to an approved spec. You drive the interviews and write documents directly — no team spawn needed. You may spawn expert reviewers (via `Task`) to review analyses and specs before user approval. Enforces two user-approval gates. Stops at the approved spec — execution is handled by `/scaffold`.
+Orchestrate the planning pipeline from a raw idea (or existing issue/spec) to an approved spec. Drive interviews and write documents directly — no team spawn needed. Spawn expert reviewers (via `Task`) to review analyses and specs before user approval. Enforce two user-approval gates. Stop at the approved spec — execution is handled by `/scaffold`.
 
 ## Entry Points
 
@@ -78,12 +79,12 @@ Use **Glob** to search for files matching the topic. For `--issue N`, also match
 
 ## How It Works (No Team — Direct Orchestration)
 
-You (the bootstrap orchestrator) drive the entire pipeline yourself:
+The bootstrap orchestrator drives the entire pipeline directly:
 
-- **You** conduct interviews with the user via `/interview` skill (which uses `AskUserQuestion`)
-- **You** write analysis and spec documents
-- **You** spawn **expert reviewers** via `Task` before each user-approval gate (configurable per document)
-- **You** present gates to the user via `AskUserQuestion`
+- Conduct interviews with the user via `/interview` skill (which uses `AskUserQuestion`)
+- Write analysis and spec documents
+- Spawn **expert reviewers** via `Task` before each user-approval gate (configurable per document)
+- Present gates to the user via `AskUserQuestion`
 
 **Do NOT use `TeamCreate`.**
 
@@ -97,11 +98,11 @@ You (the bootstrap orchestrator) drive the entire pipeline yourself:
 
 - **If an analysis already exists** (found in Step 1): read it and present it to the user.
 - **If no analysis exists**: conduct a structured interview with the user (using `/interview` in Analysis mode) to produce `docs/analyses/{slug}.mdx`.
-  - If you need domain expertise during writing, spawn the relevant expert subagent via `Task` (see [Expert Consultation](#expert-consultation-on-demand)).
+  - If domain expertise is needed during writing, spawn the relevant expert subagent via `Task` (see [Expert Consultation](#expert-consultation)).
 
 ### 1b. Expert Review
 
-After generating the analysis, **you decide** which expert reviewers to spawn based on the document content. Do NOT ask the user — apply these rules automatically:
+After generating the analysis, decide which expert reviewers to spawn based on the document content. Do NOT ask the user — apply these rules automatically:
 
 | Reviewer | Auto-select when | Focus area |
 |----------|-----------------|------------|
@@ -135,6 +136,20 @@ Options:
 - **Reject** -- Provide feedback and re-enter Gate 1
 
 **If rejected:** Collect user feedback, revise the analysis (re-run expert review if the changes are substantial). Re-present for approval. Do not proceed until approved.
+
+---
+
+## Gate 1.5: Investigation (Optional)
+
+> Runs only after Gate 1 approval. Skipped when using `--spec`.
+
+When the approved analysis contains technical uncertainty (explicit markers like "needs testing", competing approaches without a clear winner, or untested external dependencies), offer the user an optional investigation spike before writing the spec.
+
+**Steps:** Detect signals → User confirms → Define scope → Execute spike on throwaway branch → Review findings → Append to analysis and cleanup.
+
+For the full procedure (steps 1.5a–1.5f), see [references/investigation.md](references/investigation.md).
+
+If no signals are detected, skip directly to "Ensure GitHub Issue."
 
 ---
 
@@ -174,11 +189,11 @@ The issue number is then used for:
 
 - **If a spec already exists** (found in Step 1, or entry point is `--spec N`): read it and present it to the user.
 - **If no spec exists**: promote the approved analysis to a spec (using `/interview` with `--promote <path-to-analysis>`) to produce `docs/specs/{issue}-{slug}.mdx`.
-  - If you need domain expertise during writing, spawn the relevant expert subagent via `Task` (see [Expert Consultation](#expert-consultation-on-demand)).
+  - If domain expertise is needed during writing, spawn the relevant expert subagent via `Task` (see [Expert Consultation](#expert-consultation)).
 
 ### 2b. Expert Review
 
-After generating the spec, **you decide** which expert reviewers to spawn — same auto-selection rules as Gate 1b. Do NOT ask the user.
+After generating the spec, decide which expert reviewers to spawn — same auto-selection rules as Gate 1b. Do NOT ask the user.
 
 Apply the same reviewer table (always **doc-writer** + **product-lead**, add **architect** / **devops** when their domain is present in the spec). Specs with implementation details should always include **architect**.
 
@@ -252,7 +267,7 @@ Once both gates are passed:
    ```
    Only include the files that were actually created or modified (e.g., if only an analysis was produced, omit the spec files).
 
-3. **Inform the user:**
+3. **Inform the user (plain text):**
 
 > "Bootstrap complete. You have an approved analysis and spec (committed). Run `/scaffold --spec <N>` to execute."
 
@@ -260,51 +275,19 @@ Once both gates are passed:
 
 ## Edge Cases
 
-| Scenario | Behavior |
-|----------|----------|
-| Issue already has a spec | Skip Gate 1, present existing spec at Gate 2 for validation |
-| Issue already has an analysis | Skip analysis generation, present existing analysis at Gate 1 for validation |
-| User rejects at any gate | Stop, collect feedback, re-enter the same gate |
-| `--spec N` but no spec found | Inform user: "No spec found matching issue #N. Try `/bootstrap --issue N` or `/bootstrap 'your idea'` to start from scratch." |
-| Analysis exists but is a brainstorm | Treat as "no analysis" -- promote brainstorm to analysis |
-| Expert reviewer subagent fails | Report the error to the user and continue without that expert's review |
-| Bare text entry, no existing issue | Create a GitHub issue from the approved analysis before entering Gate 2 |
-| Issue already has a branch or open PR | Stop and propose `/review` or `/scaffold` instead (Step 0b) |
+For the full edge case table, see [references/edge-cases.md](references/edge-cases.md).
 
 ## Skill Invocation Reference
 
-You use the `/interview` skill directly:
+Use the `/interview` skill directly:
 
 | Sub-skill | Invocation | When |
 |-----------|------------|------|
 | `/interview` (Analysis) | `skill: "interview", args: "topic text"` | Gate 1, no existing analysis |
 | `/interview` (Spec promotion) | `skill: "interview", args: "--promote docs/analyses/{slug}.mdx"` | Gate 2, no existing spec |
 
-## Expert Consultation (On-Demand)
+## Expert Consultation
 
-### During Document Writing
-
-When you need domain expertise while writing the analysis or spec, spawn the relevant expert subagent:
-
-```
-Task(
-  description: "Expert consultation - <topic>",
-  subagent_type: "architect" | "doc-writer" | "devops" | "product-lead",
-  prompt: "Research and answer: <specific question>. Return findings as bullet points."
-)
-```
-
-| Expert | Use for |
-|--------|---------|
-| **architect** | Trade-off analysis, feasibility checks, architecture decisions, integration concerns |
-| **doc-writer** | Document structure advice, MDX conventions, clarity feedback |
-| **devops** | CI/CD feasibility, deployment strategy, infrastructure requirements |
-| **product-lead** | Product fit, acceptance criteria, user story validation |
-
-Do NOT spawn experts upfront — only when a specific question arises during writing.
-
-### At Review Gates (1b, 2b)
-
-Expert review at gates is auto-selected by you based on document content (see Gate 1b and Gate 2b above). Spawn all selected reviewers in parallel for maximum speed.
+For expert consultation patterns during document writing and at review gates, see [references/expert-consultation.md](references/expert-consultation.md).
 
 $ARGUMENTS

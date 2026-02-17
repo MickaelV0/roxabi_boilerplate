@@ -36,6 +36,7 @@
     "201-user-account-management",
     "202-org-management",
     "204-legal-compliance-gdpr-cookies",
-    "227-session-intelligence"
+    "227-session-intelligence",
+    "229-bootstrap-investigation-step"
   ]
 }
