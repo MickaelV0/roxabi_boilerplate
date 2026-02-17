@@ -275,6 +275,8 @@ docs/
 3. Add an entry to the section's `index.mdx` page (with link and one-line description)
 4. Run `bun docs` to preview
 
+> **Glossary review:** When updating architecture documentation (`docs/architecture/`), review the [ubiquitous language glossary](./architecture/ubiquitous-language) for any terms that need adding or updating.
+
 ### Removing or Deprecating Pages
 
 1. Add a `> **Deprecated**` callout at the top of the file
@@ -296,6 +298,28 @@ Use **relative paths** for all internal documentation links:
 - Same directory: `./getting-started`
 - Parent directory: `../guides/authentication`
 - Never use absolute paths like `/docs/guides/authentication`
+
+---
+
+## Developer Tools
+
+### Re-recording the Demo GIF
+
+The README demo GIF is generated from a Playwright recording script. To re-record:
+
+**Prerequisites:**
+- `bun dev` running at `http://localhost:3000` (or `APP_URL`)
+- Database seeded with representative data (multiple orgs, different roles)
+- `ffmpeg` installed (`brew install ffmpeg` / `apt install ffmpeg`)
+- Playwright installed (`bun add -D @playwright/test && bunx playwright install chromium`)
+
+**Steps:**
+
+```bash
+bun run scripts/record-demo.ts
+```
+
+The script records a `.webm` video, converts it to GIF via `ffmpeg`, and saves to `docs/assets/demo.gif`. Keep the recording under 5MB -- if too large, reduce the flow to fewer steps or lower the resolution.
 
 ---
 
