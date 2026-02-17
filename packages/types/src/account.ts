@@ -33,11 +33,9 @@ export type UpdateProfilePayload = {
 
 // -- Account deletion types --
 
-export type OrgOwnershipResolution = {
-  organizationId: string
-  action: 'transfer' | 'delete'
-  transferToUserId?: string
-}
+export type OrgOwnershipResolution =
+  | { organizationId: string; action: 'transfer'; transferToUserId: string }
+  | { organizationId: string; action: 'delete' }
 
 export type DeleteAccountPayload = {
   confirmEmail: string

@@ -37,6 +37,15 @@ type ProfileData = {
   avatarStyle?: string
 }
 
+function isErrorWithMessage(value: unknown): value is { message: string } {
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    'message' in value &&
+    typeof (value as { message: unknown }).message === 'string'
+  )
+}
+
 export const Route = createFileRoute('/settings/profile')({
   component: ProfileSettingsPage,
   head: () => ({
@@ -168,8 +177,8 @@ function ProfileSettingsPage() {
       })
 
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { message?: string } | null
-        toast.error(data?.message ?? 'Failed to update profile')
+        const data: unknown = await res.json().catch(() => null)
+        toast.error(isErrorWithMessage(data) ? data.message : 'Failed to update profile')
         return
       }
 

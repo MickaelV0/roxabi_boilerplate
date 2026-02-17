@@ -2,17 +2,16 @@ import {
   type CanActivate,
   type ExecutionContext,
   ForbiddenException,
+  forwardRef,
   Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import type { Role } from '@repo/types'
-import { eq } from 'drizzle-orm'
 import type { FastifyRequest } from 'fastify'
 import { ErrorCode } from '../common/error-codes.js'
-import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
-import { users } from '../database/schema/auth.schema.js'
+import { UserService } from '../user/user.service.js'
 import { AuthService } from './auth.service.js'
 
 type AuthSession = {
@@ -49,7 +48,8 @@ export class AuthGuard implements CanActivate {
   constructor(
     private readonly authService: AuthService,
     private readonly reflector: Reflector,
-    @Inject(DRIZZLE) private readonly db: DrizzleDB
+    @Inject(forwardRef(() => UserService))
+    private readonly userService: UserService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -84,11 +84,7 @@ export class AuthGuard implements CanActivate {
   }
 
   private async checkSoftDeleted(request: AuthenticatedRequest, session: AuthSession) {
-    const [user] = await this.db
-      .select({ deletedAt: users.deletedAt, deleteScheduledFor: users.deleteScheduledFor })
-      .from(users)
-      .where(eq(users.id, session.user.id))
-      .limit(1)
+    const user = await this.userService.getSoftDeleteStatus(session.user.id)
 
     if (!user?.deletedAt) return
 

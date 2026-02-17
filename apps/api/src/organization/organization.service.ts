@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { and, count, eq } from 'drizzle-orm'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
+import { whereActive } from '../database/helpers/where-active.js'
 import { invitations, members, organizations, sessions } from '../database/schema/auth.schema.js'
 import { roles } from '../database/schema/rbac.schema.js'
 import { OrgNameConfirmationMismatchException } from './exceptions/org-name-confirmation-mismatch.exception.js'
@@ -13,11 +14,11 @@ export class OrganizationService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
   async softDelete(orgId: string, userId: string, confirmName: string) {
-    // Validate org exists
+    // Validate org exists and is active
     const [org] = await this.db
       .select({ id: organizations.id, name: organizations.name })
       .from(organizations)
-      .where(eq(organizations.id, orgId))
+      .where(and(eq(organizations.id, orgId), whereActive(organizations)))
       .limit(1)
     if (!org) throw new OrgNotFoundException(orgId)
 
@@ -108,11 +109,11 @@ export class OrganizationService {
   }
 
   async getDeletionImpact(orgId: string) {
-    // Validate org exists
+    // Validate org exists and is active
     const [org] = await this.db
       .select({ id: organizations.id })
       .from(organizations)
-      .where(eq(organizations.id, orgId))
+      .where(and(eq(organizations.id, orgId), whereActive(organizations)))
       .limit(1)
     if (!org) throw new OrgNotFoundException(orgId)
 

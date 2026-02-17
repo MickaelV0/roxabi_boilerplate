@@ -5,7 +5,7 @@ import { UserService } from './user.service.js'
 
 const mockUser = {
   id: 'user-1',
-  name: 'John Doe',
+  fullName: 'John Doe',
   firstName: 'John',
   lastName: 'Doe',
   fullNameCustomized: false,
@@ -82,32 +82,32 @@ describe('UserService', () => {
   })
 
   describe('updateProfile', () => {
-    it('should update firstName and auto-update name when fullNameCustomized is false', async () => {
+    it('should update firstName and auto-update fullName when fullNameCustomized is false', async () => {
       const { db, chains } = createMockDb()
       // First call: select to check fullNameCustomized
       chains.select.limit.mockResolvedValueOnce([
         { firstName: 'John', lastName: 'Doe', fullNameCustomized: false },
       ])
       // Second call: returning after update
-      const updatedUser = { ...mockUser, firstName: 'Jane', name: 'Jane Doe' }
+      const updatedUser = { ...mockUser, firstName: 'Jane', fullName: 'Jane Doe' }
       chains.update.returning.mockResolvedValue([updatedUser])
 
       const service = new UserService(db as never)
       const result = await service.updateProfile('user-1', { firstName: 'Jane' })
 
       expect(result.firstName).toBe('Jane')
-      expect(result.name).toBe('Jane Doe')
+      expect(result.fullName).toBe('Jane Doe')
     })
 
-    it('should set fullNameCustomized to true when name is directly edited', async () => {
+    it('should set fullNameCustomized to true when fullName is directly edited', async () => {
       const { db, chains } = createMockDb()
-      const updatedUser = { ...mockUser, name: 'Custom Name', fullNameCustomized: true }
+      const updatedUser = { ...mockUser, fullName: 'Custom Name', fullNameCustomized: true }
       chains.update.returning.mockResolvedValue([updatedUser])
 
       const service = new UserService(db as never)
-      const result = await service.updateProfile('user-1', { name: 'Custom Name' })
+      const result = await service.updateProfile('user-1', { fullName: 'Custom Name' })
 
-      expect(result.name).toBe('Custom Name')
+      expect(result.fullName).toBe('Custom Name')
       expect(result.fullNameCustomized).toBe(true)
     })
 
@@ -117,7 +117,7 @@ describe('UserService', () => {
 
       const service = new UserService(db as never)
 
-      await expect(service.updateProfile('nonexistent', { name: 'Jane' })).rejects.toThrow(
+      await expect(service.updateProfile('nonexistent', { fullName: 'Jane' })).rejects.toThrow(
         UserNotFoundException
       )
     })
@@ -158,7 +158,14 @@ describe('UserService', () => {
 
       const txUpdateCalls: unknown[] = []
       db.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
+        const txLimitFn = vi
+          .fn()
+          .mockResolvedValueOnce([{ role: 'owner' }]) // ownership check
+          .mockResolvedValueOnce([{ id: 'member-2' }]) // target member check
+        const txSelectWhereFn = vi.fn().mockReturnValue({ limit: txLimitFn })
+        const txFromFn = vi.fn().mockReturnValue({ where: txSelectWhereFn })
         const tx = {
+          select: vi.fn().mockReturnValue({ from: txFromFn }),
           update: vi.fn().mockImplementation(() => {
             const call = { setArg: null as unknown }
             txUpdateCalls.push(call)
@@ -181,7 +188,9 @@ describe('UserService', () => {
       })
 
       const service = new UserService(db as never)
-      const orgResolutions = [{ orgId: 'org-1', action: 'transfer' as const, newOwnerId: 'user-2' }]
+      const orgResolutions = [
+        { organizationId: 'org-1', action: 'transfer' as const, transferToUserId: 'user-2' },
+      ]
 
       // Act
       const result = await service.softDelete('user-1', 'john@example.com', orgResolutions)
@@ -206,7 +215,11 @@ describe('UserService', () => {
       let txUpdateCallCount = 0
       db.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
         txUpdateCallCount = 0
+        const txLimitFn = vi.fn().mockResolvedValueOnce([{ role: 'owner' }]) // ownership check
+        const txSelectWhereFn = vi.fn().mockReturnValue({ limit: txLimitFn })
+        const txFromFn = vi.fn().mockReturnValue({ where: txSelectWhereFn })
         const tx = {
+          select: vi.fn().mockReturnValue({ from: txFromFn }),
           update: vi.fn().mockImplementation(() => {
             txUpdateCallCount++
             return {
@@ -225,7 +238,7 @@ describe('UserService', () => {
       })
 
       const service = new UserService(db as never)
-      const orgResolutions = [{ orgId: 'org-1', action: 'delete' as const }]
+      const orgResolutions = [{ organizationId: 'org-1', action: 'delete' as const }]
 
       // Act
       const result = await service.softDelete('user-1', 'john@example.com', orgResolutions)

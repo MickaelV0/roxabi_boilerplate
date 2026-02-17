@@ -8,7 +8,7 @@ import { UserService } from './user.service.js'
 const updateProfileSchema = z.object({
   firstName: z.string().min(1).max(100).optional(),
   lastName: z.string().max(100).optional(),
-  name: z.string().min(1).max(200).optional(),
+  fullName: z.string().min(1).max(200).optional(),
   avatarSeed: z.string().max(200).nullable().optional(),
   avatarStyle: z.string().max(50).nullable().optional(),
 })
@@ -17,12 +17,12 @@ type UpdateProfileDto = z.infer<typeof updateProfileSchema>
 
 const orgResolutionSchema = z.discriminatedUnion('action', [
   z.object({
-    orgId: z.string(),
+    organizationId: z.string(),
     action: z.literal('transfer'),
-    newOwnerId: z.string(),
+    transferToUserId: z.string(),
   }),
   z.object({
-    orgId: z.string(),
+    organizationId: z.string(),
     action: z.literal('delete'),
   }),
 ])

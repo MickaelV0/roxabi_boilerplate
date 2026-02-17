@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { APP_FILTER } from '@nestjs/core'
 import { AuthModule } from '../auth/auth.module.js'
 import { EmailConfirmationMismatchFilter } from './filters/email-confirmation-mismatch.filter.js'
@@ -7,7 +7,7 @@ import { UserController } from './user.controller.js'
 import { UserService } from './user.service.js'
 
 @Module({
-  imports: [AuthModule],
+  imports: [forwardRef(() => AuthModule)],
   controllers: [UserController],
   providers: [
     UserService,

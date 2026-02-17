@@ -78,6 +78,8 @@ function DangerZoneCard({ orgId, orgName, onDeleted }: DangerZoneCardProps) {
       const res = await fetch(`/api/organizations/${orgId}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmName: orgName }),
       })
 
       if (!res.ok) {

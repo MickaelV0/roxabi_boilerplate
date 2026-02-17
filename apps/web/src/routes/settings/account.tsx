@@ -1,3 +1,4 @@
+import type { OrgOwnershipResolution } from '@repo/types'
 import {
   Alert,
   AlertDescription,
@@ -39,10 +40,17 @@ type OwnedOrg = {
   members: Array<{ id: string; userId: string; name: string; role: string }>
 }
 
-type OrgResolution = {
-  orgId: string
-  action: 'transfer' | 'delete'
-  transferToMemberId?: string
+function isErrorWithMessage(value: unknown): value is { message: string } {
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    'message' in value &&
+    typeof (value as { message: unknown }).message === 'string'
+  )
+}
+
+function parseErrorMessage(data: unknown, fallback: string): string {
+  return isErrorWithMessage(data) ? data.message : fallback
 }
 
 function useIsOAuthOnly() {
@@ -213,15 +221,15 @@ function OrgResolutionStep({
   onResolve,
 }: {
   orgs: OwnedOrg[]
-  resolutions: OrgResolution[]
-  onResolve: (resolutions: OrgResolution[]) => void
+  resolutions: OrgOwnershipResolution[]
+  onResolve: (resolutions: OrgOwnershipResolution[]) => void
 }) {
-  function updateResolution(orgId: string, update: Partial<OrgResolution>) {
-    const existing = resolutions.find((r) => r.orgId === orgId)
-    if (existing) {
-      onResolve(resolutions.map((r) => (r.orgId === orgId ? { ...r, ...update } : r)))
+  function setResolution(orgId: string, value: OrgOwnershipResolution) {
+    const exists = resolutions.some((r) => r.organizationId === orgId)
+    if (exists) {
+      onResolve(resolutions.map((r) => (r.organizationId === orgId ? value : r)))
     } else {
-      onResolve([...resolutions, { orgId, action: 'delete', ...update }])
+      onResolve([...resolutions, value])
     }
   }
 
@@ -237,8 +245,10 @@ function OrgResolutionStep({
       </Alert>
 
       {orgs.map((org) => {
-        const resolution = resolutions.find((r) => r.orgId === org.id)
+        const resolution = resolutions.find((r) => r.organizationId === org.id)
         const action = resolution?.action ?? 'delete'
+        const currentTransferUserId =
+          resolution?.action === 'transfer' ? resolution.transferToUserId : ''
         const eligibleMembers = org.members.filter((m) => m.role !== 'owner')
 
         return (
@@ -257,11 +267,13 @@ function OrgResolutionStep({
                 <Select
                   value={action}
                   onValueChange={(v: string) => {
-                    if (v === 'transfer' || v === 'delete') {
-                      updateResolution(org.id, {
-                        action: v,
-                        transferToMemberId:
-                          v === 'delete' ? undefined : resolution?.transferToMemberId,
+                    if (v === 'delete') {
+                      setResolution(org.id, { organizationId: org.id, action: 'delete' })
+                    } else if (v === 'transfer') {
+                      setResolution(org.id, {
+                        organizationId: org.id,
+                        action: 'transfer',
+                        transferToUserId: currentTransferUserId,
                       })
                     }
                   }}
@@ -279,9 +291,13 @@ function OrgResolutionStep({
 
                 {action === 'transfer' && eligibleMembers.length > 0 && (
                   <Select
-                    value={resolution?.transferToMemberId ?? ''}
+                    value={currentTransferUserId}
                     onValueChange={(v: string) => {
-                      updateResolution(org.id, { transferToMemberId: v })
+                      setResolution(org.id, {
+                        organizationId: org.id,
+                        action: 'transfer',
+                        transferToUserId: v,
+                      })
                     }}
                   >
                     <SelectTrigger>
@@ -289,7 +305,7 @@ function OrgResolutionStep({
                     </SelectTrigger>
                     <SelectContent>
                       {eligibleMembers.map((member) => (
-                        <SelectItem key={member.id} value={member.id}>
+                        <SelectItem key={member.userId} value={member.userId}>
                           {member.name}
                         </SelectItem>
                       ))}
@@ -313,7 +329,7 @@ function DeleteAccountSection() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [ownedOrgs, setOwnedOrgs] = useState<OwnedOrg[]>([])
-  const [resolutions, setResolutions] = useState<OrgResolution[]>([])
+  const [resolutions, setResolutions] = useState<OrgOwnershipResolution[]>([])
   const [showOrgStep, setShowOrgStep] = useState(false)
   const [loadingOrgs, setLoadingOrgs] = useState(false)
 
@@ -330,9 +346,9 @@ function DeleteAccountSection() {
         if (!fullOrg) continue
 
         const userMember = fullOrg.members.find(
-          (m: { userId: string }) => m.userId === session?.user?.id
+          (m: { userId: string; role: string }) => m.userId === session?.user?.id
         )
-        if (userMember && (userMember as { role: string }).role === 'owner') {
+        if (userMember && userMember.role === 'owner') {
           owned.push({
             id: org.id,
             name: org.name,
@@ -362,7 +378,7 @@ function DeleteAccountSection() {
 
     if (orgs.length > 0) {
       // Initialize resolutions with default "delete" for each org
-      setResolutions(orgs.map((org) => ({ orgId: org.id, action: 'delete' as const })))
+      setResolutions(orgs.map((org) => ({ organizationId: org.id, action: 'delete' as const })))
       setShowOrgStep(true)
     } else {
       setShowOrgStep(false)
@@ -374,7 +390,7 @@ function DeleteAccountSection() {
   function handleOrgStepComplete() {
     // Validate all transfer resolutions have a target member
     const allResolved = resolutions.every(
-      (r) => r.action === 'delete' || (r.action === 'transfer' && r.transferToMemberId)
+      (r) => r.action === 'delete' || (r.action === 'transfer' && r.transferToUserId)
     )
     if (!allResolved) {
       toast.error('Please select a member to transfer ownership to for all organizations')
@@ -398,8 +414,8 @@ function DeleteAccountSection() {
       })
 
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { message?: string } | null
-        toast.error(data?.message ?? 'Failed to delete account')
+        const data: unknown = await res.json().catch(() => null)
+        toast.error(parseErrorMessage(data, 'Failed to delete account'))
         return
       }
 

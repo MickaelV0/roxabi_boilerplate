@@ -1,3 +1,4 @@
+import { isNotNull } from 'drizzle-orm'
 import { boolean, index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core'
 import { timestamps } from './timestamps.js'
 
@@ -25,8 +26,10 @@ export const users = pgTable(
     ...timestamps,
   },
   (table) => [
-    index('users_deleted_at_idx').on(table.deletedAt),
-    index('users_delete_scheduled_for_idx').on(table.deleteScheduledFor),
+    index('users_deleted_at_idx').on(table.deletedAt).where(isNotNull(table.deletedAt)),
+    index('users_delete_scheduled_for_idx')
+      .on(table.deleteScheduledFor)
+      .where(isNotNull(table.deleteScheduledFor)),
   ]
 )
 
@@ -89,8 +92,10 @@ export const organizations = pgTable(
     ...timestamps,
   },
   (table) => [
-    index('organizations_deleted_at_idx').on(table.deletedAt),
-    index('organizations_delete_scheduled_for_idx').on(table.deleteScheduledFor),
+    index('organizations_deleted_at_idx').on(table.deletedAt).where(isNotNull(table.deletedAt)),
+    index('organizations_delete_scheduled_for_idx')
+      .on(table.deleteScheduledFor)
+      .where(isNotNull(table.deleteScheduledFor)),
   ]
 )
 

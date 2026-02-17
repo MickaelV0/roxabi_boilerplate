@@ -11,7 +11,7 @@ import {
 } from './AlertDialog'
 import { Input } from './Input'
 
-export interface DestructiveConfirmDialogProps {
+export type DestructiveConfirmDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string

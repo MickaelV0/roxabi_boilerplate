@@ -1,6 +1,6 @@
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common'
 import { describe, expect, it, vi } from 'vitest'
-
+import { ErrorCode } from '../common/error-codes.js'
 import { AuthGuard } from './auth.guard.js'
 
 function createMockAuthService(session: Record<string, unknown> | null = null) {
@@ -16,7 +16,7 @@ function createMockReflector(metadata: Record<string, unknown> = {}) {
 }
 
 function createMockContext(request: Record<string, unknown> = {}) {
-  const req = { ...request }
+  const req = { method: 'GET', url: '/api/some/endpoint', ...request }
 
   const context = {
     getHandler: vi.fn(),
@@ -29,22 +29,23 @@ function createMockContext(request: Record<string, unknown> = {}) {
   return { context, req }
 }
 
-function createMockDb(deletedAt: Date | null = null, deleteScheduledFor: Date | null = null) {
-  const limitFn = vi.fn().mockResolvedValue([{ deletedAt, deleteScheduledFor }])
-  const whereFn = vi.fn().mockReturnValue({ limit: limitFn })
-  const fromFn = vi.fn().mockReturnValue({ where: whereFn })
-  const selectFn = vi.fn().mockReturnValue({ from: fromFn })
-  return { select: selectFn }
+function createMockUserService(
+  deletedAt: Date | null = null,
+  deleteScheduledFor: Date | null = null
+) {
+  return {
+    getSoftDeleteStatus: vi.fn().mockResolvedValue({ deletedAt, deleteScheduledFor }),
+  }
 }
 
 function createGuard(
   session: Record<string, unknown> | null = null,
   metadata: Record<string, unknown> = {},
-  db: Record<string, unknown> = createMockDb()
+  userService: Record<string, unknown> = createMockUserService()
 ) {
   const authService = createMockAuthService(session)
   const reflector = createMockReflector(metadata)
-  const guard = new AuthGuard(authService as never, reflector as never, db as never)
+  const guard = new AuthGuard(authService as never, reflector as never, userService as never)
 
   return { guard, authService, reflector }
 }
@@ -236,6 +237,111 @@ describe('AuthGuard', () => {
       const { context } = createMockContext()
 
       await expect(guard.canActivate(context as never)).rejects.toThrow(ForbiddenException)
+    })
+  })
+
+  describe('checkSoftDeleted', () => {
+    const validSession = {
+      user: { id: 'user-1', role: 'user' },
+      session: { id: 'sess-1', activeOrganizationId: null },
+      permissions: [],
+    }
+
+    it('should allow active user (no deletedAt) to pass through', async () => {
+      // Arrange
+      const userService = createMockUserService(null, null)
+      const { guard } = createGuard(validSession, {}, userService)
+      const { context } = createMockContext({ method: 'GET', url: '/api/users/settings' })
+
+      // Act
+      const result = await guard.canActivate(context as never)
+
+      // Assert
+      expect(result).toBe(true)
+    })
+
+    it('should block soft-deleted user on normal endpoints', async () => {
+      // Arrange
+      const deleteDate = new Date('2026-03-01T00:00:00.000Z')
+      const userService = createMockUserService(new Date(), deleteDate)
+      const { guard } = createGuard(validSession, {}, userService)
+      const { context } = createMockContext({ method: 'GET', url: '/api/users/settings' })
+
+      // Act & Assert
+      await expect(guard.canActivate(context as never)).rejects.toThrow(ForbiddenException)
+    })
+
+    it('should allow soft-deleted user to access POST /api/users/me/reactivate', async () => {
+      // Arrange
+      const userService = createMockUserService(new Date(), new Date('2026-03-01'))
+      const { guard } = createGuard(validSession, {}, userService)
+      const { context } = createMockContext({ method: 'POST', url: '/api/users/me/reactivate' })
+
+      // Act
+      const result = await guard.canActivate(context as never)
+
+      // Assert
+      expect(result).toBe(true)
+    })
+
+    it('should allow soft-deleted user to access GET /api/users/me', async () => {
+      // Arrange
+      const userService = createMockUserService(new Date(), new Date('2026-03-01'))
+      const { guard } = createGuard(validSession, {}, userService)
+      const { context } = createMockContext({ method: 'GET', url: '/api/users/me' })
+
+      // Act
+      const result = await guard.canActivate(context as never)
+
+      // Assert
+      expect(result).toBe(true)
+    })
+
+    it('should block soft-deleted user on non-POST to /api/users/me/reactivate', async () => {
+      // Arrange
+      const deleteDate = new Date('2026-03-01T00:00:00.000Z')
+      const userService = createMockUserService(new Date(), deleteDate)
+      const { guard } = createGuard(validSession, {}, userService)
+      const { context } = createMockContext({ method: 'GET', url: '/api/users/me/reactivate' })
+
+      // Act & Assert
+      await expect(guard.canActivate(context as never)).rejects.toThrow(ForbiddenException)
+    })
+
+    it('should include deleteScheduledFor in error response', async () => {
+      // Arrange
+      const deleteDate = new Date('2026-03-01T00:00:00.000Z')
+      const userService = createMockUserService(new Date(), deleteDate)
+      const { guard } = createGuard(validSession, {}, userService)
+      const { context } = createMockContext({ method: 'PATCH', url: '/api/users/me/profile' })
+
+      // Act & Assert
+      try {
+        await guard.canActivate(context as never)
+        expect.unreachable('Should have thrown ForbiddenException')
+      } catch (error) {
+        expect(error).toBeInstanceOf(ForbiddenException)
+        const response = (error as ForbiddenException).getResponse() as Record<string, unknown>
+        expect(response.message).toBe('Account is scheduled for deletion')
+        expect(response.errorCode).toBe(ErrorCode.ACCOUNT_SCHEDULED_FOR_DELETION)
+        expect(response.deleteScheduledFor).toBe('2026-03-01T00:00:00.000Z')
+      }
+    })
+
+    it('should strip query string before matching allowed routes', async () => {
+      // Arrange
+      const userService = createMockUserService(new Date(), new Date('2026-03-01'))
+      const { guard } = createGuard(validSession, {}, userService)
+      const { context } = createMockContext({
+        method: 'POST',
+        url: '/api/users/me/reactivate?token=abc',
+      })
+
+      // Act
+      const result = await guard.canActivate(context as never)
+
+      // Assert
+      expect(result).toBe(true)
     })
   })
 })

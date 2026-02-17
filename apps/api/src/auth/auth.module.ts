@@ -1,6 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common'
 import { APP_GUARD } from '@nestjs/core'
 import { RbacModule } from '../rbac/rbac.module.js'
+import { UserModule } from '../user/user.module.js'
 import { AuthController } from './auth.controller.js'
 import { AuthGuard } from './auth.guard.js'
 import { AuthService } from './auth.service.js'
@@ -8,7 +9,7 @@ import { EMAIL_PROVIDER } from './email/email.provider.js'
 import { ResendEmailProvider } from './email/resend.provider.js'
 
 @Module({
-  imports: [forwardRef(() => RbacModule)],
+  imports: [forwardRef(() => RbacModule), forwardRef(() => UserModule)],
   controllers: [AuthController],
   providers: [
     AuthService,

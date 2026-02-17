@@ -4,6 +4,7 @@ import { UserController } from './user.controller.js'
 import type { UserService } from './user.service.js'
 
 const mockUserService: UserService = {
+  getSoftDeleteStatus: vi.fn(),
   getProfile: vi.fn(),
   updateProfile: vi.fn(),
   softDelete: vi.fn(),
@@ -20,7 +21,7 @@ describe('UserController', () => {
 
   const mockUser = {
     id: 'user-1',
-    name: 'John Doe',
+    fullName: 'John Doe',
     firstName: 'John',
     lastName: 'Doe',
     fullNameCustomized: false,
@@ -61,7 +62,7 @@ describe('UserController', () => {
     it('should update user profile', async () => {
       const session = { user: { id: 'user-1' } }
       const updateData = { firstName: 'Jane' }
-      const updatedUser = { ...mockUser, firstName: 'Jane', name: 'Jane Doe' }
+      const updatedUser = { ...mockUser, firstName: 'Jane', fullName: 'Jane Doe' }
       vi.mocked(mockUserService.updateProfile).mockResolvedValue(updatedUser)
 
       const result = await controller.updateMe(session, updateData)
