@@ -11,7 +11,7 @@ Full execution engine: takes an approved spec (or issue with spec) and drives it
 ## Usage
 
 ```
-/scaffold --spec 42            Execute from spec (docs/specs/42-*.mdx)
+/scaffold --spec 42            Execute from spec (specs/42-*.mdx)
 /scaffold --issue 42           Execute from issue (fetches issue, finds linked spec)
 ```
 
@@ -22,7 +22,7 @@ Full execution engine: takes an approved spec (or issue with spec) and drives it
 **If `--spec <number>` was passed:**
 
 ```bash
-ls docs/specs/<number>-*.mdx
+ls specs/<number>-*.mdx
 ```
 
 - Read the spec file in full
@@ -34,7 +34,7 @@ ls docs/specs/<number>-*.mdx
 gh issue view <number> --json title,body,labels
 ```
 
-- Read the issue, then search for a matching spec: `docs/specs/<number>-*.mdx`
+- Read the issue, then search for a matching spec: `specs/<number>-*.mdx`
 - If no spec found: inform the user and suggest `/bootstrap --issue <number>` to create one. **Stop.**
 
 **If no spec or issue is found:** inform the user and suggest:
@@ -103,7 +103,7 @@ Present via `AskUserQuestion`:
 
 ```
 Implementation Plan: {Spec Title}
-Spec: docs/specs/{N}-{slug}.mdx
+Spec: specs/{N}-{slug}.mdx
 Tier: {S|F-lite|F-full}
 Files: {N} files to create/modify
 Agents: {agent list}

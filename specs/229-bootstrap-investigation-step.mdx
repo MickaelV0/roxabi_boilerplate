@@ -424,4 +424,4 @@ Verify `CLAUDE.md` against the following before deciding to skip:
 
 - **Signal detection granularity**: Should the heuristic use simple string matching or a more nuanced LLM-based classification of uncertainty? String matching is simpler but may have a higher false-positive rate. Can be iterated on after initial implementation.
 - **Multi-round investigation**: If the user reviews findings and says "test one more thing," should the investigation support multiple rounds on the same spike branch? Current spec assumes a single round. Could be a v2 enhancement.
-- **False-positive rate validation**: Before shipping, run the signal detection against 2-3 real analysis documents from `docs/analyses/` to verify the heuristic doesn't over-trigger. If most analyses fire the prompt, the detection threshold needs tightening.
+- **False-positive rate validation**: Before shipping, run the signal detection against 2-3 real analysis documents from `analyses/` to verify the heuristic doesn't over-trigger. If most analyses fire the prompt, the detection threshold needs tightening.

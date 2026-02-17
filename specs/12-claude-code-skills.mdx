@@ -122,9 +122,9 @@ New document type alongside Spec and Analysis:
 
 | Type | Output | Purpose |
 |------|--------|---------|
-| **Brainstorm** | `docs/analyses/{slug}.mdx` (with `type: brainstorm` in frontmatter) | Explore ideas, divergent thinking, no structure imposed |
-| **Analysis** | `docs/analyses/{slug}.mdx` | Structured investigation of a topic |
-| **Spec** | `docs/specs/{slug}.mdx` | Technical specification for implementation |
+| **Brainstorm** | `analyses/{slug}.mdx` (with `type: brainstorm` in frontmatter) | Explore ideas, divergent thinking, no structure imposed |
+| **Analysis** | `analyses/{slug}.mdx` | Structured investigation of a topic |
+| **Spec** | `specs/{slug}.mdx` | Technical specification for implementation |
 
 Brainstorm template:
 
@@ -179,7 +179,7 @@ The skill should **skip questions with obvious answers** from context (e.g., don
 Allow promoting between types:
 
 ```
-/interview --promote docs/analyses/12-skills.mdx
+/interview --promote analyses/12-skills.mdx
 ```
 
 Behavior:
@@ -192,8 +192,8 @@ Behavior:
 #### 1.4 Add Existing Doc Awareness
 
 Before starting an interview, check:
-- `docs/analyses/` for existing analyses matching the topic
-- `docs/specs/` for existing specs
+- `analyses/` for existing analyses matching the topic
+- `specs/` for existing specs
 - Related GitHub issues
 
 If found, present them and ask: "An analysis already exists for this topic. Do you want to build on it, start fresh, or promote it to a spec?"
@@ -533,13 +533,13 @@ Planning orchestrator from idea to approved implementation plan. Multiple entry 
 │ Entry: /bootstrap "idea" or /bootstrap --issue 42            │
 │                                                              │
 │ 1. Check for existing docs:                                  │
-│    - docs/analyses/{issue-slug}.mdx                          │
-│    - docs/specs/{issue-slug}.mdx                             │
+│    - analyses/{issue-slug}.mdx                               │
+│    - specs/{issue-slug}.mdx                                  │
 │    - GitHub issue body                                       │
 │                                                              │
 │ 2. If no analysis exists:                                    │
 │    - Call /interview in Analysis mode                        │
-│    - Produces docs/analyses/{slug}.mdx                       │
+│    - Produces analyses/{slug}.mdx                            │
 │                                                              │
 │ 3. Present analysis → User approves ✓                        │
 ├──────────────────────────────────────────────────────────────┤
@@ -549,7 +549,7 @@ Planning orchestrator from idea to approved implementation plan. Multiple entry 
 │                                                              │
 │ 4. If no spec exists:                                        │
 │    - Call /interview in Spec mode (--promote from analysis)  │
-│    - Produces docs/specs/{slug}.mdx                          │
+│    - Produces specs/{slug}.mdx                               │
 │                                                              │
 │ 5. Present spec → User approves ✓                            │
 ├──────────────────────────────────────────────────────────────┤
@@ -570,7 +570,7 @@ Planning orchestrator from idea to approved implementation plan. Multiple entry 
 |------|-----------|-------|
 | `"idea text"` | Gate 1 (Analysis) | Nothing |
 | `--issue 42` | Gate 1 (Analysis) | Reads issue body as starting context |
-| `--spec 42` | Gate 2 (Spec) | Analysis (assumes spec exists in `docs/specs/42-*.mdx`) |
+| `--spec 42` | Gate 2 (Spec) | Analysis (assumes spec exists in `specs/42-*.mdx`) |
 
 ### Edge Cases
 
@@ -761,14 +761,14 @@ Generate a structured implementation plan from an existing spec. Extracted from 
 ### Behavior
 
 ```
-/plan --spec 42               → Generate plan from spec docs/specs/42-*.mdx
+/plan --spec 42               → Generate plan from spec specs/42-*.mdx
 /plan --spec path/to/spec.mdx → Generate plan from a specific spec file
 ```
 
 ### Process
 
 1. **Read the spec:**
-   - Locate spec by issue number (`docs/specs/{N}-*.mdx`) or by path
+   - Locate spec by issue number (`specs/{N}-*.mdx`) or by path
    - If not found: inform user, suggest running `/bootstrap` or `/interview` first
 
 2. **Analyze scope:**

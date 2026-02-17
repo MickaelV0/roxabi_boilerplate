@@ -43,7 +43,7 @@ const serverLoader = createServerFn({
     // Compute the directory URL for relative link resolution.
     // Use the page URL directly: appending '/' makes relative links
     // resolve within the page's own directory. This is correct for both
-    // folder index pages (e.g., /docs/analyses → /docs/analyses/) and
+    // folder index pages (e.g., /docs/architecture → /docs/architecture/) and
     // leaf pages, matching how MDX authors expect ./foo to resolve.
     const linkBase = `${page.url}/`
 

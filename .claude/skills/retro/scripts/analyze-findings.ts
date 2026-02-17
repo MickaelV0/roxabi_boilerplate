@@ -1,11 +1,18 @@
 #!/usr/bin/env bun
 
 /**
- * Phase 2: AI-powered finding extraction via Claude CLI.
+ * Phase 2: AI-powered finding extraction.
  *
- * Sends session transcripts to `claude -p --output-format json` for classification.
+ * Sends session transcripts to an AI provider for classification.
  * Extracts findings (praise, blocker, suggestion, nitpick) with severity and tags.
  * Generates embeddings via Transformers.js and stores in sqlite-vec.
+ *
+ * Features:
+ * - Strict JSON schema enforcement (OpenRouter structured_outputs / Claude CLI --json-schema)
+ * - Character-based chunking for large sessions (split at assistant message boundaries)
+ * - Dedup pass for multi-chunk sessions
+ * - Retry with exponential backoff (3 attempts: 0s, 5s, 30s)
+ * - Auto-detection of model capabilities via OpenRouter metadata
  *
  * Usage:
  *   bun run .claude/skills/retro/scripts/analyze-findings.ts
@@ -17,12 +24,16 @@
 import type { Database } from 'bun:sqlite'
 import { readFileSync, readSync } from 'node:fs'
 import { join } from 'node:path'
-import type { RetroConfig } from '../lib/config'
-import { loadConfig, resolveApiKey } from '../lib/config'
+import type { ModelMetadata, RetroConfig } from '../lib/config'
+import { computeChunkSize, fetchModelMetadata, loadConfig, resolveApiKey } from '../lib/config'
 import { getDatabase } from '../lib/db'
 import { embed, initEmbedder } from '../lib/embedder'
 import { getSessionsDir } from '../lib/parser'
 import { redact, redactFinding } from '../lib/redactor'
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 interface Finding {
   type: 'praise' | 'blocker' | 'suggestion' | 'nitpick'
@@ -32,19 +43,52 @@ interface Finding {
   tags: string[]
 }
 
+interface StructuredMessage {
+  role: 'user' | 'assistant' | 'unknown'
+  content: string
+}
+
+/** Runtime context resolved once at startup. */
+interface AnalysisContext {
+  config: RetroConfig
+  modelMeta: ModelMetadata | null
+  chunkSize: number
+  useJsonSchema: boolean
+}
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
 const VALID_TYPES = new Set(['praise', 'blocker', 'suggestion', 'nitpick'])
 const VALID_SEVERITIES = new Set(['low', 'medium', 'high'])
+const RETRY_DELAYS = [0, 5_000, 30_000]
 
-function logProcessing(
-  db: Database,
-  sessionId: string,
-  status: string,
-  errorMessage: string | null
-): void {
-  db.prepare(
-    'INSERT OR REPLACE INTO processing_log (session_id, phase, status, error_message) VALUES (?, ?, ?, ?)'
-  ).run(sessionId, 'analyze', status, errorMessage)
+/** JSON Schema shared by both OpenRouter and Claude CLI. */
+const FINDINGS_SCHEMA = {
+  type: 'object',
+  properties: {
+    findings: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          type: { type: 'string', enum: ['praise', 'blocker', 'suggestion', 'nitpick'] },
+          content: { type: 'string' },
+          context: { type: 'string' },
+          severity: { type: 'string', enum: ['low', 'medium', 'high'] },
+          tags: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['type', 'content', 'severity', 'tags'],
+      },
+    },
+  },
+  required: ['findings'],
 }
+
+// ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
 
 function isValidFinding(f: unknown): f is Finding {
   if (typeof f !== 'object' || f === null) return false
@@ -59,8 +103,14 @@ function isValidFinding(f: unknown): f is Finding {
   )
 }
 
-function buildPrompt(transcript: string): string {
-  return `Analyze this Claude Code session transcript and extract findings. Return ONLY a JSON array of findings, where each finding has:
+// ---------------------------------------------------------------------------
+// Prompt building
+// ---------------------------------------------------------------------------
+
+function buildAnalysisPrompt(transcript: string, partInfo?: string): string {
+  const partLine = partInfo ? `\nNote: ${partInfo}\n` : ''
+  return `Analyze this Claude Code session transcript and extract findings.
+Return a JSON object with a "findings" array. Each finding has:
 - type: "praise" | "blocker" | "suggestion" | "nitpick"
 - content: brief description of the finding (1-2 sentences)
 - context: relevant context from the session (1-2 sentences)
@@ -72,46 +122,177 @@ Finding types:
 - blocker: Problem that blocked progress or caused significant friction
 - suggestion: Improvement proposed by Claude or the developer
 - nitpick: Minor style, naming, or convention issue
-
+${partLine}
 Session transcript:
 ${transcript}`
 }
 
-function extractTranscript(content: string): string {
-  const lines = content.split('\n').filter((l) => l.trim())
+function buildDedupPrompt(findings: Finding[]): string {
+  return `You are given findings extracted from different parts of the same Claude Code session.
+Some findings may be duplicates or near-duplicates describing the same issue from different angles.
 
-  const messages: string[] = []
-  for (const line of lines) {
-    try {
-      const parsed = JSON.parse(line)
-      if (parsed.message?.content) {
-        messages.push(
-          typeof parsed.message.content === 'string'
-            ? parsed.message.content
-            : JSON.stringify(parsed.message.content)
-        )
-      } else if (parsed.content) {
-        messages.push(
-          typeof parsed.content === 'string' ? parsed.content : JSON.stringify(parsed.content)
-        )
-      }
-    } catch {
-      // Skip malformed lines
+Merge duplicates, remove redundant entries, and return the deduplicated list.
+Return a JSON object with a "findings" array using the same schema.
+
+Findings to deduplicate:
+${JSON.stringify(findings, null, 2)}`
+}
+
+// ---------------------------------------------------------------------------
+// Transcript extraction & chunking
+// ---------------------------------------------------------------------------
+
+function resolveRole(parsed: Record<string, unknown>): StructuredMessage['role'] {
+  if (parsed.role === 'user') return 'user'
+  if (parsed.role === 'assistant') return 'assistant'
+  return 'unknown'
+}
+
+function resolveContent(parsed: Record<string, unknown>): string | null {
+  const mc = (parsed.message as Record<string, unknown> | undefined)?.content
+  if (mc) return typeof mc === 'string' ? mc : JSON.stringify(mc)
+  const c = parsed.content
+  if (c) return typeof c === 'string' ? c : JSON.stringify(c)
+  return null
+}
+
+function parseJsonlLine(line: string): StructuredMessage | null {
+  try {
+    const parsed = JSON.parse(line)
+    const text = resolveContent(parsed)
+    return text ? { role: resolveRole(parsed), content: text } : null
+  } catch {
+    return null
+  }
+}
+
+function extractMessages(content: string): StructuredMessage[] {
+  return content
+    .split('\n')
+    .filter((l) => l.trim())
+    .map(parseJsonlLine)
+    .filter((m): m is StructuredMessage => m !== null)
+}
+
+/**
+ * Find the best assistant-boundary cut index within a chunk.
+ * Returns the chunk length (no split) if no boundary is found.
+ */
+function findAssistantBoundary(
+  messages: StructuredMessage[],
+  currentIdx: number,
+  chunkLen: number
+): number {
+  for (let j = currentIdx - 1; j >= currentIdx - chunkLen && j >= 0; j--) {
+    if (messages[j].role === 'assistant') {
+      return j - (currentIdx - chunkLen) + 1
+    }
+  }
+  return chunkLen
+}
+
+function splitAtBoundary(
+  chunks: string[],
+  currentChunk: string[],
+  cutIdx: number,
+  msgContent: string,
+  msgLen: number
+): { currentChunk: string[]; currentLen: number } {
+  if (cutIdx > 0 && cutIdx < currentChunk.length) {
+    chunks.push(currentChunk.slice(0, cutIdx).join('\n'))
+    const remainder = currentChunk.slice(cutIdx)
+    return {
+      currentChunk: [...remainder, msgContent],
+      currentLen: remainder.reduce((sum, c) => sum + c.length + 1, 0) + msgLen,
+    }
+  }
+  chunks.push(currentChunk.join('\n'))
+  return { currentChunk: [msgContent], currentLen: msgLen }
+}
+
+/**
+ * Split messages into chunks that fit within maxChars.
+ * Cuts at assistant message boundaries for clean conversation segments.
+ */
+function chunkMessages(messages: StructuredMessage[], maxChars: number): string[] {
+  if (messages.length === 0) return []
+
+  const fullText = messages.map((m) => m.content).join('\n')
+  if (fullText.length <= maxChars) return [fullText]
+
+  const chunks: string[] = []
+  let currentChunk: string[] = []
+  let currentLen = 0
+
+  for (let i = 0; i < messages.length; i++) {
+    const msgLen = messages[i].content.length + 1
+
+    if (currentLen + msgLen > maxChars && currentChunk.length > 0) {
+      const cutIdx = findAssistantBoundary(messages, i, currentChunk.length)
+      const result = splitAtBoundary(chunks, currentChunk, cutIdx, messages[i].content, msgLen)
+      currentChunk = result.currentChunk
+      currentLen = result.currentLen
+    } else {
+      currentChunk.push(messages[i].content)
+      currentLen += msgLen
     }
   }
 
-  // Truncate very large sessions: first 50 + last 50 messages
-  if (messages.length > 500) {
-    const first50 = messages.slice(0, 50)
-    const last50 = messages.slice(-50)
-    return [...first50, '\n[... truncated ...]\n', ...last50].join('\n')
-  }
-
-  return messages.join('\n')
+  if (currentChunk.length > 0) chunks.push(currentChunk.join('\n'))
+  return chunks
 }
 
+// ---------------------------------------------------------------------------
+// Response parsing
+// ---------------------------------------------------------------------------
+
+function stripCodeFences(text: string): string {
+  const m = text.match(/^```(?:json)?\s*\n([\s\S]*?)\n```\s*$/m)
+  return m ? m[1] : text
+}
+
+function extractJson(text: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch {
+    const arrayMatch = text.match(/\[[\s\S]*\]/)
+    if (arrayMatch) return JSON.parse(arrayMatch[0])
+
+    const objMatch = text.match(/\{[\s\S]*\}/)
+    if (objMatch) return JSON.parse(objMatch[0])
+
+    throw new Error(`No JSON found in response: ${text.slice(0, 100)}...`)
+  }
+}
+
+function unwrapFindingsArray(parsed: unknown): unknown[] {
+  if (Array.isArray(parsed)) return parsed
+  if (parsed && typeof parsed === 'object') {
+    const obj = parsed as Record<string, unknown>
+    if (Array.isArray(obj.findings)) return obj.findings
+    const arrKey = Object.keys(obj).find((k) => Array.isArray(obj[k]))
+    if (arrKey) return obj[arrKey] as unknown[]
+  }
+  return []
+}
+
+/**
+ * Parse the AI response into validated findings.
+ * Handles: raw JSON array, { findings: [...] } wrapper, prose with embedded JSON.
+ */
+function parseFindings(content: string): Finding[] {
+  const cleaned = stripCodeFences(content)
+  const parsed = extractJson(cleaned)
+  return unwrapFindingsArray(parsed).filter(isValidFinding)
+}
+
+// ---------------------------------------------------------------------------
+// Provider invocations
+// ---------------------------------------------------------------------------
+
 async function invokeClaudeCli(prompt: string): Promise<Finding[]> {
-  const proc = Bun.spawn(['claude', '-p', '--output-format', 'json'], {
+  const schemaArg = JSON.stringify(FINDINGS_SCHEMA)
+  const proc = Bun.spawn(['claude', '-p', '--output-format', 'json', '--json-schema', schemaArg], {
     stdin: Buffer.from(prompt),
     stdout: 'pipe',
     stderr: 'pipe',
@@ -129,26 +310,35 @@ async function invokeClaudeCli(prompt: string): Promise<Finding[]> {
       throw new Error(`Claude CLI exited with code ${exitCode}: ${stderr}`)
     }
 
-    // Double JSON parse: CLI returns {"result": "...", ...} where result is a JSON string
+    // CLI returns {"result": "...", ...} where result is a JSON string
     const outer = JSON.parse(stdout)
-    const inner = typeof outer.result === 'string' ? JSON.parse(outer.result) : outer.result
-
-    const findings: Finding[] = []
-    const arr = Array.isArray(inner) ? inner : []
-    for (const item of arr) {
-      if (isValidFinding(item)) {
-        findings.push(item)
-      }
-    }
-    return findings
+    const inner = typeof outer.result === 'string' ? outer.result : JSON.stringify(outer.result)
+    return parseFindings(inner)
   } catch (err) {
     clearTimeout(timeoutId)
     throw err
   }
 }
 
-async function invokeOpenRouter(prompt: string, config: RetroConfig): Promise<Finding[]> {
+async function invokeOpenRouter(
+  prompt: string,
+  config: RetroConfig,
+  ctx: AnalysisContext
+): Promise<Finding[]> {
   const apiKey = resolveApiKey(config)
+
+  const body: Record<string, unknown> = {
+    model: config.model,
+    messages: [{ role: 'user', content: prompt }],
+  }
+
+  // Use strict json_schema if supported, otherwise json_object, otherwise nothing
+  if (ctx.useJsonSchema) {
+    body.response_format = {
+      type: 'json_schema',
+      json_schema: { name: 'findings_response', strict: true, schema: FINDINGS_SCHEMA },
+    }
+  }
 
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
@@ -156,10 +346,7 @@ async function invokeOpenRouter(prompt: string, config: RetroConfig): Promise<Fi
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model: config.model,
-      messages: [{ role: 'user', content: prompt }],
-    }),
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(120_000),
   })
 
@@ -171,73 +358,125 @@ async function invokeOpenRouter(prompt: string, config: RetroConfig): Promise<Fi
     choices: { message: { content: string } }[]
   }
 
-  let content = data.choices[0].message.content
-
-  // Strip markdown code fences if present
-  const fenceMatch = content.match(/^```(?:json)?\s*\n([\s\S]*?)\n```\s*$/m)
-  if (fenceMatch) {
-    content = fenceMatch[1]
-  }
-
-  const parsed: unknown = JSON.parse(content)
-  const arr = Array.isArray(parsed) ? parsed : []
-
-  const findings: Finding[] = []
-  for (const item of arr) {
-    if (isValidFinding(item)) {
-      findings.push(item)
-    }
-  }
-  return findings
+  return parseFindings(data.choices[0].message.content)
 }
 
-async function invokeProvider(prompt: string, config: RetroConfig): Promise<Finding[]> {
+async function invokeProvider(
+  prompt: string,
+  config: RetroConfig,
+  ctx: AnalysisContext
+): Promise<Finding[]> {
   if (config.provider === 'openrouter') {
-    return invokeOpenRouter(prompt, config)
+    return invokeOpenRouter(prompt, config, ctx)
   }
   return invokeClaudeCli(prompt)
 }
 
-async function analyzeSession(
+// ---------------------------------------------------------------------------
+// Retry logic
+// ---------------------------------------------------------------------------
+
+async function invokeWithRetry(
+  prompt: string,
+  config: RetroConfig,
+  ctx: AnalysisContext
+): Promise<Finding[]> {
+  let lastError = new Error('All retry attempts failed')
+
+  for (let attempt = 0; attempt < RETRY_DELAYS.length; attempt++) {
+    const delay = RETRY_DELAYS[attempt]
+    if (delay > 0) {
+      await new Promise((r) => setTimeout(r, delay))
+    }
+
+    try {
+      return await invokeProvider(prompt, config, ctx)
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err))
+      if (attempt < RETRY_DELAYS.length - 1) {
+        const nextDelay = RETRY_DELAYS[attempt + 1] / 1000
+        console.error(
+          `  Attempt ${attempt + 1} failed: ${lastError.message.slice(0, 80)}. Retrying in ${nextDelay}s...`
+        )
+      }
+    }
+  }
+
+  throw lastError
+}
+
+// ---------------------------------------------------------------------------
+// Session analysis
+// ---------------------------------------------------------------------------
+
+function logProcessing(
   db: Database,
   sessionId: string,
-  index: number,
-  total: number,
-  counts: Record<string, number>,
-  config: RetroConfig
-): Promise<void> {
-  console.log(`Analyzing session ${index + 1}/${total}...`)
+  status: string,
+  errorMessage: string | null
+): void {
+  db.prepare(
+    'INSERT OR REPLACE INTO processing_log (session_id, phase, status, error_message) VALUES (?, ?, ?, ?)'
+  ).run(sessionId, 'analyze', status, errorMessage)
+}
 
+function readSessionFile(sessionId: string): string | null {
   const filePath = join(getSessionsDir(), `${sessionId}.jsonl`)
-
-  let fileContent: string
   try {
-    fileContent = readFileSync(filePath, 'utf-8')
+    const content = readFileSync(filePath, 'utf-8')
+    return content.trim() ? content : null
   } catch {
-    console.error(`  Session file not found: ${filePath}`)
-    logProcessing(db, sessionId, 'error', `Session file not found: ${filePath}`)
-    return
+    return null
+  }
+}
+
+async function analyzeChunks(chunks: string[], ctx: AnalysisContext): Promise<Finding[]> {
+  const findings: Finding[] = []
+  const total = chunks.length
+
+  for (let ci = 0; ci < chunks.length; ci++) {
+    const partInfo =
+      total > 1 ? `This is part ${ci + 1} of ${total} of a session transcript.` : undefined
+    const prompt = buildAnalysisPrompt(chunks[ci], partInfo)
+
+    try {
+      const chunkFindings = await invokeWithRetry(prompt, ctx.config, ctx)
+      findings.push(...chunkFindings)
+      if (total > 1) console.log(`  Chunk ${ci + 1}/${total}: ${chunkFindings.length} findings`)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error(`  Chunk ${ci + 1}/${total} failed after 3 attempts: ${msg}`)
+    }
   }
 
-  if (!fileContent.trim()) {
-    console.error(`  Session file is empty: ${filePath}`)
-    logProcessing(db, sessionId, 'error', 'Session file is empty')
-    return
-  }
+  return findings
+}
 
-  const transcript = redact(extractTranscript(fileContent))
-  const prompt = buildPrompt(transcript)
+async function deduplicateFindings(
+  findings: Finding[],
+  totalChunks: number,
+  ctx: AnalysisContext
+): Promise<Finding[]> {
+  if (totalChunks <= 1 || findings.length === 0) return findings
 
-  let findings: Finding[]
+  console.log(`  Deduplicating ${findings.length} findings from ${totalChunks} chunks...`)
   try {
-    findings = await invokeProvider(prompt, config)
+    const deduplicated = await invokeWithRetry(buildDedupPrompt(findings), ctx.config, ctx)
+    console.log(`  Dedup: ${findings.length} → ${deduplicated.length} findings`)
+    return deduplicated
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error(`  CLI invocation failed for session ${sessionId}: ${msg}`)
-    logProcessing(db, sessionId, 'error', `CLI failed: ${msg}`)
-    return
+    console.error(`  Dedup failed, keeping all findings: ${msg}`)
+    return findings
   }
+}
 
+async function storeFindings(
+  db: Database,
+  sessionId: string,
+  findings: Finding[],
+  counts: Record<string, number>
+): Promise<void> {
   const session = db.prepare('SELECT created_at FROM sessions WHERE id = ?').get(sessionId) as
     | { created_at: string | null }
     | undefined
@@ -246,25 +485,21 @@ async function analyzeSession(
   const insertFinding = db.prepare(
     'INSERT INTO findings (session_id, type, content, context, severity, tags, session_timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)'
   )
-
   const insertEmbedding = db.prepare(
     'INSERT INTO finding_embeddings (finding_id, embedding) VALUES (?, ?)'
   )
 
   for (const finding of findings) {
     const redacted = redactFinding(finding)
-    const tagsJson = JSON.stringify(finding.tags)
-
     const result = insertFinding.run(
       sessionId,
       finding.type,
       redacted.content,
       redacted.context ?? null,
       finding.severity,
-      tagsJson,
+      JSON.stringify(finding.tags),
       sessionTimestamp
     )
-
     const findingId = Number(result.lastInsertRowid)
 
     try {
@@ -277,13 +512,49 @@ async function analyzeSession(
 
     counts[finding.type] = (counts[finding.type] || 0) + 1
   }
-
-  db.prepare('UPDATE sessions SET analyzed_at = datetime("now") WHERE id = ?').run(sessionId)
-
-  logProcessing(db, sessionId, 'success', null)
-
-  console.log(`  Found ${findings.length} findings`)
 }
+
+async function analyzeSession(
+  db: Database,
+  sessionId: string,
+  index: number,
+  total: number,
+  counts: Record<string, number>,
+  ctx: AnalysisContext
+): Promise<void> {
+  console.log(`Analyzing session ${index + 1}/${total}...`)
+
+  const fileContent = readSessionFile(sessionId)
+  if (!fileContent) {
+    logProcessing(db, sessionId, 'error', 'Session file not found or empty')
+    return
+  }
+
+  const messages = extractMessages(fileContent)
+  const redactedMessages = messages.map((m) => ({ ...m, content: redact(m.content) }))
+  const chunks = chunkMessages(redactedMessages, ctx.chunkSize)
+
+  if (chunks.length > 1) console.log(`  Large session: splitting into ${chunks.length} chunks`)
+
+  const rawFindings = await analyzeChunks(chunks, ctx)
+  const allFindings = await deduplicateFindings(rawFindings, chunks.length, ctx)
+
+  if (allFindings.length === 0) {
+    logProcessing(db, sessionId, 'error', 'No findings extracted after all attempts')
+    return
+  }
+
+  await storeFindings(db, sessionId, allFindings, counts)
+  db.prepare('UPDATE sessions SET analyzed_at = datetime("now") WHERE id = ?').run(sessionId)
+  logProcessing(db, sessionId, 'success', null)
+  console.log(
+    `  Found ${allFindings.length} findings${chunks.length > 1 ? ` (from ${chunks.length} chunks)` : ''}`
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Reanalyze helpers
+// ---------------------------------------------------------------------------
 
 function deleteFindingEmbeddings(db: Database, findingIds: { id: number }[]): void {
   if (findingIds.length === 0) return
@@ -361,6 +632,10 @@ async function handleReanalyze(db: Database, target: string): Promise<void> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Concurrency
+// ---------------------------------------------------------------------------
+
 async function runWithConcurrency<T>(
   items: T[],
   concurrency: number,
@@ -375,6 +650,10 @@ async function runWithConcurrency<T>(
   })
   await Promise.all(workers)
 }
+
+// ---------------------------------------------------------------------------
+// CLI argument parsing
+// ---------------------------------------------------------------------------
 
 function parseArgs(): { limit: number | undefined; reanalyzeTarget: string | undefined } {
   const args = process.argv.slice(2)
@@ -400,6 +679,10 @@ function parseArgs(): { limit: number | undefined; reanalyzeTarget: string | und
   return { limit, reanalyzeTarget }
 }
 
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
 function printSummary(total: number, counts: Record<string, number>): void {
   const totalFindings = Object.values(counts).reduce((a, b) => a + b, 0)
   console.log('\n--- Analysis Summary ---')
@@ -411,6 +694,45 @@ function printSummary(total: number, counts: Record<string, number>): void {
   console.log(`  Nitpicks:   ${counts.nitpick}`)
 }
 
+async function resolveAnalysisContext(config: RetroConfig): Promise<AnalysisContext> {
+  if (config.provider !== 'openrouter') {
+    const chunkSize = computeChunkSize(null, config.qualityCapChars)
+    return { config, modelMeta: null, chunkSize, useJsonSchema: true }
+  }
+
+  console.log('Fetching model metadata from OpenRouter...')
+  const apiKey = resolveApiKey(config)
+  const modelMeta = await fetchModelMetadata(config.model, apiKey)
+
+  if (modelMeta) {
+    const useJsonSchema = modelMeta.supportsStructuredOutputs || modelMeta.supportsResponseFormat
+    console.log(
+      `  Context: ${modelMeta.contextLength.toLocaleString()} tokens | JSON schema: ${useJsonSchema ? 'yes' : 'no'}`
+    )
+    const chunkSize = computeChunkSize(modelMeta, config.qualityCapChars)
+    return { config, modelMeta, chunkSize, useJsonSchema }
+  }
+
+  console.log('  Could not fetch model metadata, using defaults')
+  const chunkSize = computeChunkSize(null, config.qualityCapChars)
+  return { config, modelMeta: null, chunkSize, useJsonSchema: false }
+}
+
+function confirmPaidProvider(config: RetroConfig): boolean {
+  if (!isPaidProvider(config)) return true
+  const providerLabel =
+    config.provider === 'claude-cli'
+      ? 'Claude Code CLI (paid)'
+      : `OpenRouter: ${config.model} (paid)`
+  console.log(`\nWARNING: This will make AI calls via ${providerLabel}.`)
+  if (!confirmStdin('Continue? (y/N) ')) {
+    console.log('Aborted.')
+    return false
+  }
+  console.log()
+  return true
+}
+
 async function main(): Promise<void> {
   const { limit, reanalyzeTarget } = parseArgs()
 
@@ -419,23 +741,20 @@ async function main(): Promise<void> {
     `Provider: ${config.provider}${config.provider === 'openrouter' ? ` (${config.model})` : ''}`
   )
 
+  const ctx = await resolveAnalysisContext(config)
+  console.log(`Chunk size: ${(ctx.chunkSize / 1000).toFixed(0)}K chars`)
   console.log('Phase 2: Analyzing sessions with AI...')
 
   const db = getDatabase()
   try {
     await initEmbedder()
 
-    if (reanalyzeTarget) {
-      await handleReanalyze(db, reanalyzeTarget)
-    }
+    if (reanalyzeTarget) await handleReanalyze(db, reanalyzeTarget)
 
     let sessions = db.prepare('SELECT id FROM sessions WHERE analyzed_at IS NULL').all() as {
       id: string
     }[]
-
-    if (limit && limit > 0) {
-      sessions = sessions.slice(0, limit)
-    }
+    if (limit && limit > 0) sessions = sessions.slice(0, limit)
 
     if (sessions.length === 0) {
       console.log('No unanalyzed sessions found.')
@@ -446,24 +765,13 @@ async function main(): Promise<void> {
       `Found ${sessions.length} session(s) to analyze (concurrency: ${config.concurrency}).`
     )
 
-    if (isPaidProvider(config)) {
-      const providerLabel =
-        config.provider === 'claude-cli'
-          ? 'Claude Code CLI (paid)'
-          : `OpenRouter: ${config.model} (paid)`
-      console.log(`\nWARNING: This will make ${sessions.length} AI call(s) via ${providerLabel}.`)
-      if (!confirmStdin('Continue? (y/N) ')) {
-        console.log('Aborted.')
-        return
-      }
-      console.log()
-    }
+    if (!confirmPaidProvider(config)) return
 
     const counts: Record<string, number> = { praise: 0, blocker: 0, suggestion: 0, nitpick: 0 }
 
     await runWithConcurrency(sessions, config.concurrency, async (session, i) => {
       try {
-        await analyzeSession(db, session.id, i, sessions.length, counts, config)
+        await analyzeSession(db, session.id, i, sessions.length, counts, ctx)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         console.error(`  Unexpected error analyzing session ${session.id}: ${msg}`)
