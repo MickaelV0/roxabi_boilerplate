@@ -37,6 +37,10 @@
     "181-vercel-marketplace-migration",
     "158-env-var-hardening",
     "201-202-account-org-management",
+    "227-session-intelligence",
+    "204-legal-compliance-gdpr-cookies",
+    "bootstrap-investigation-step",
+    "226-documentation-onboarding",
     "...repo-comparisons"
   ]
 }
