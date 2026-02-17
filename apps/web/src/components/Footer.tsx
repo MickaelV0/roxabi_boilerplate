@@ -1,10 +1,13 @@
 import { Link } from '@tanstack/react-router'
 import { GITHUB_REPO_URL } from '@/lib/config'
+import { useConsent } from '@/lib/consent'
 import { m } from '@/paraglide/messages'
 
 const CURRENT_YEAR = new Date().getFullYear().toString()
 
 export function Footer() {
+  const { openSettings } = useConsent()
+
   return (
     <footer className="border-t border-border">
       <div className="mx-auto max-w-7xl px-6 py-3 flex items-center justify-between">
@@ -28,6 +31,39 @@ export function Footer() {
             {m.github_label()}
           </a>
         </div>
+      </div>
+      <div className="mx-auto max-w-7xl px-6 pb-3 flex items-center justify-center gap-4">
+        <Link
+          to="/legal/mentions-legales"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Mentions légales
+        </Link>
+        <Link
+          to="/legal/cgu"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          CGU
+        </Link>
+        <Link
+          to="/legal/confidentialite"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Confidentialité
+        </Link>
+        <Link
+          to="/legal/cookies"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Cookies
+        </Link>
+        <button
+          type="button"
+          onClick={openSettings}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+        >
+          Paramètres cookies
+        </button>
       </div>
     </footer>
   )

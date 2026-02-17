@@ -22,6 +22,7 @@ export type ApiErrorResponse = {
   errorCode?: string
 }
 
+export * from './consent.js'
 export type {
   DefaultRoleSlug,
   OrgRole,
