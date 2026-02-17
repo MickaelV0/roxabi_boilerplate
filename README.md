@@ -2,6 +2,8 @@
 
 SaaS boilerplate with AI team integration.
 
+<!-- TODO: Add demo GIF once seed data is ready — see scripts/record-demo.ts -->
+
 ## Stack
 
 | Layer | Technology |
