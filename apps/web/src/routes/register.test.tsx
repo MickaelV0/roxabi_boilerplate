@@ -69,6 +69,9 @@ vi.mock('lucide-react', () => ({
 
 mockParaglideMessages()
 
+const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+globalThis.fetch = mockFetch
+
 // Import to trigger createFileRoute and capture the component
 import './register'
 
@@ -163,6 +166,7 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText('auth_password'), {
       target: { value: 'password123' },
     })
+    fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.click(screen.getByRole('button', { name: 'auth_create_account_button' }))
 
     // Assert -- generic error, NOT the backend message
@@ -192,6 +196,7 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText('auth_password'), {
       target: { value: 'StrongP@ss1' },
     })
+    fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.click(screen.getByRole('button', { name: 'auth_create_account_button' }))
 
     // Assert -- form hidden, success card shown
@@ -201,5 +206,66 @@ describe('RegisterPage', () => {
     })
     expect(screen.queryByLabelText('auth_name')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('auth_password')).not.toBeInTheDocument()
+  })
+
+  it('should sync consent to server via POST /api/consent after successful registration', async () => {
+    // Arrange — use a fresh fetch mock to isolate from prior async operations
+    const consentFetch = vi.fn().mockResolvedValue({ ok: true })
+    globalThis.fetch = consentFetch
+
+    captured.loaderData = createDefaultLoaderData()
+    vi.mocked(authClient.signUp.email).mockResolvedValueOnce({
+      error: null,
+      data: { user: { id: '1' } },
+    } as never)
+
+    const RegisterPage = captured.Component
+    render(<RegisterPage />)
+
+    // Act
+    fireEvent.change(screen.getByLabelText('auth_name'), {
+      target: { value: 'New User' },
+    })
+    fireEvent.change(screen.getByLabelText('auth_email'), {
+      target: { value: 'consent@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('auth_password'), {
+      target: { value: 'StrongP@ss1' },
+    })
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('button', { name: 'auth_create_account_button' }))
+
+    // Assert — verify POST /api/consent was called with correct body
+    type FetchCall = [url: string, options: { method: string; credentials: string; body: string }]
+    await waitFor(() => {
+      const consentCalls = (consentFetch.mock.calls as FetchCall[]).filter(
+        (call) => call[0] === '/api/consent' && call[1]?.method === 'POST'
+      )
+      expect(consentCalls.length).toBeGreaterThanOrEqual(1)
+
+      // Find the call from THIS registration (action should be 'customized')
+      const registrationCall = consentCalls.find((call) => {
+        const body = JSON.parse(call[1]?.body)
+        return body.action === 'customized'
+      })
+      expect(registrationCall).toBeDefined()
+
+      const [url, options] = registrationCall!
+      expect(url).toBe('/api/consent')
+      expect(options.method).toBe('POST')
+      expect(options.credentials).toBe('include')
+
+      const body = JSON.parse(options.body)
+      expect(body.categories).toEqual({
+        necessary: true,
+        analytics: false,
+        marketing: false,
+      })
+      expect(body.action).toBe('customized')
+      expect(body.policyVersion).toBeDefined()
+    })
+
+    // Restore original mock
+    globalThis.fetch = mockFetch
   })
 })

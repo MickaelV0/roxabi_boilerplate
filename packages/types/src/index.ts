@@ -33,6 +33,7 @@ export type {
   UserProfile,
 } from './account.js'
 export { ERROR_CODES } from './account.js'
+export * from './consent.js'
 export type {
   DefaultRoleSlug,
   OrgRole,
