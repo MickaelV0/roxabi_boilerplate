@@ -58,10 +58,10 @@ export default defineConfig({
       // Floor values — autoUpdate will ratchet these up to actual coverage on the next non-cached run.
       // See specs/17-testing-gold-standard.mdx for rationale.
       thresholds: {
-        lines: 92.69,
-        functions: 90.4,
-        branches: 83.49,
-        statements: 91.92,
+        lines: 93.04,
+        functions: 90.78,
+        branches: 84.51,
+        statements: 92.15,
         autoUpdate: true,
       },
     },
