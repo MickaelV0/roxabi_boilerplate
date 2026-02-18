@@ -73,12 +73,11 @@ describe('AuthLayout', () => {
     expect(screen.getByRole('button', { name: 'Submit' })).toBeInTheDocument()
   })
 
-  it('should render branding link to home', () => {
+  it('should render without branding link', () => {
     // Arrange & Act
     render(<AuthLayout title="Sign In">content</AuthLayout>)
 
-    // Assert
-    const brandingLink = screen.getByRole('link', { name: 'Roxabi' })
-    expect(brandingLink).toHaveAttribute('href', '/')
+    // Assert — Logo link was removed; the layout no longer renders an anchor
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 })

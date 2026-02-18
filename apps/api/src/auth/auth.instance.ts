@@ -75,6 +75,7 @@ export function createBetterAuth(
       },
     },
     emailVerification: {
+      sendOnSignIn: true,
       async sendVerificationEmail({ user, url }) {
         await emailProvider.send({
           to: user.email,
@@ -94,6 +95,22 @@ export function createBetterAuth(
     },
     plugins: [
       organization({
+        schema: {
+          organization: {
+            additionalFields: {
+              deletedAt: {
+                type: 'date',
+                required: false,
+                input: false,
+              },
+              deleteScheduledFor: {
+                type: 'date',
+                required: false,
+                input: false,
+              },
+            },
+          },
+        },
         organizationHooks: onOrganizationCreated
           ? {
               afterCreateOrganization: async ({ organization: org, member }) => {

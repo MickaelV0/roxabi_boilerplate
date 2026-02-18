@@ -42,6 +42,8 @@ const SOFT_DELETED_ALLOWED_ROUTES = [
   { method: 'POST', path: '/api/users/me/reactivate' },
   { method: 'GET', path: '/api/users/me' },
   { method: 'GET', path: '/api/gdpr/export' },
+  { method: 'POST', path: '/api/users/me/purge' },
+  { method: 'GET', path: '/api/organizations' },
 ]
 
 @Injectable()

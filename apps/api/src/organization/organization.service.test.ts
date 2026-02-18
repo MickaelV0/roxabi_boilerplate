@@ -35,6 +35,109 @@ function createMockDb() {
 }
 
 describe('OrganizationService', () => {
+  describe('listForUser', () => {
+    it('should return organizations the user belongs to', async () => {
+      // Arrange
+      const { db } = createMockDb()
+      const orgs = [
+        { id: 'org-1', name: 'Alpha', slug: 'alpha', logo: null, createdAt: new Date() },
+        { id: 'org-2', name: 'Beta', slug: 'beta', logo: null, createdAt: new Date() },
+      ]
+      db.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              orderBy: vi.fn().mockResolvedValue(orgs),
+            }),
+          }),
+        }),
+      })
+      const service = new OrganizationService(db as never)
+
+      // Act
+      const result = await service.listForUser('user-1')
+
+      // Assert
+      expect(result).toEqual(orgs)
+      expect(result).toHaveLength(2)
+    })
+
+    it('should return empty array when user has no memberships', async () => {
+      // Arrange
+      const { db } = createMockDb()
+      db.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              orderBy: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      })
+      const service = new OrganizationService(db as never)
+
+      // Act
+      const result = await service.listForUser('user-no-orgs')
+
+      // Assert
+      expect(result).toEqual([])
+    })
+
+    it('should exclude soft-deleted organizations via whereActive', async () => {
+      // Arrange -- whereActive filtering is done at the DB query level.
+      // We verify the query is called (integration with whereActive is implicit).
+      const { db } = createMockDb()
+      const activeOrgs = [
+        { id: 'org-1', name: 'Active Org', slug: 'active', logo: null, createdAt: new Date() },
+      ]
+      const whereFn = vi.fn().mockReturnValue({
+        orderBy: vi.fn().mockResolvedValue(activeOrgs),
+      })
+      db.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: whereFn,
+          }),
+        }),
+      })
+      const service = new OrganizationService(db as never)
+
+      // Act
+      const result = await service.listForUser('user-1')
+
+      // Assert
+      expect(result).toEqual(activeOrgs)
+      expect(whereFn).toHaveBeenCalled()
+    })
+
+    it('should order results by organization name', async () => {
+      // Arrange
+      const { db } = createMockDb()
+      const orderByFn = vi.fn().mockResolvedValue([
+        { id: 'org-1', name: 'Alpha', slug: 'alpha', logo: null, createdAt: new Date() },
+        { id: 'org-2', name: 'Zeta', slug: 'zeta', logo: null, createdAt: new Date() },
+      ])
+      db.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              orderBy: orderByFn,
+            }),
+          }),
+        }),
+      })
+      const service = new OrganizationService(db as never)
+
+      // Act
+      const result = await service.listForUser('user-1')
+
+      // Assert
+      expect(orderByFn).toHaveBeenCalled()
+      expect(result[0]?.name).toBe('Alpha')
+      expect(result[1]?.name).toBe('Zeta')
+    })
+  })
+
   describe('softDelete', () => {
     it('should set deletedAt and deleteScheduledFor on the organization', async () => {
       const { db, chains } = createMockDb()

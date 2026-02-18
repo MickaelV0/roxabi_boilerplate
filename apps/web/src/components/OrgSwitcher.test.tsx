@@ -14,6 +14,20 @@ function findOrThrow<T>(items: T[], predicate: (item: T) => boolean): T {
   return result
 }
 
+const mockRefetch = vi.hoisted(() => vi.fn())
+const mockUseOrganizations = vi.hoisted(() =>
+  vi.fn(() => ({
+    data: null as Array<{
+      id: string
+      name: string
+      slug: string
+      logo: string | null
+      createdAt: string
+    }> | null,
+    refetch: mockRefetch,
+  }))
+)
+
 vi.mock('@repo/ui', () => ({
   Badge: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
     <span data-testid="badge" {...props}>
@@ -36,8 +50,9 @@ vi.mock('@repo/ui', () => ({
   DropdownMenuItem: ({
     children,
     onClick,
+    asChild,
     ...props
-  }: React.PropsWithChildren<{ onClick?: () => void }>) => (
+  }: React.PropsWithChildren<{ onClick?: () => void; asChild?: boolean }>) => (
     <button type="button" role="menuitem" onClick={onClick} {...props}>
       {children}
     </button>
@@ -61,17 +76,43 @@ vi.mock('lucide-react', () => ({
   Check: () => <span data-testid="check-icon" />,
   ChevronDown: () => <span data-testid="chevron-down-icon" />,
   Plus: () => <span data-testid="plus-icon" />,
+  Settings: () => <span data-testid="settings-icon" />,
+  Users: () => <span data-testid="users-icon" />,
+}))
+
+vi.mock('@tanstack/react-router', () => ({
+  Link: ({
+    children,
+    to,
+    ...props
+  }: React.PropsWithChildren<{ to: string; className?: string }>) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
+  ),
 }))
 
 vi.mock('@/lib/auth-client', () => ({
   useSession: vi.fn(() => ({ data: { user: { id: 'user-1' } } })),
   authClient: {
-    useListOrganizations: vi.fn(() => ({ data: null })),
     useActiveOrganization: vi.fn(() => ({ data: null })),
     organization: {
       setActive: vi.fn(),
       create: vi.fn(),
     },
+  },
+}))
+
+vi.mock('@/lib/use-organizations', () => ({
+  useOrganizations: mockUseOrganizations,
+}))
+
+vi.mock('@/lib/org-utils', () => ({
+  roleLabel: (role: string) => `org_role_${role}`,
+  roleBadgeVariant: (role: string) => {
+    if (role === 'owner') return 'default'
+    if (role === 'admin') return 'secondary'
+    return 'outline'
   },
 }))
 
@@ -86,12 +127,13 @@ import { authClient } from '@/lib/auth-client'
 import { OrgSwitcher } from './OrgSwitcher'
 
 function setupWithOrgs({ includeMembers = false }: { includeMembers?: boolean } = {}) {
-  vi.mocked(authClient.useListOrganizations).mockReturnValue({
+  mockUseOrganizations.mockReturnValue({
     data: [
-      { id: 'org-1', name: 'Acme Corp', slug: 'acme-corp' },
-      { id: 'org-2', name: 'Beta Inc', slug: 'beta-inc' },
+      { id: 'org-1', name: 'Acme Corp', slug: 'acme-corp', logo: null, createdAt: '2024-01-01' },
+      { id: 'org-2', name: 'Beta Inc', slug: 'beta-inc', logo: null, createdAt: '2024-01-01' },
     ],
-  } as ReturnType<typeof authClient.useListOrganizations>)
+    refetch: mockRefetch,
+  })
   vi.mocked(authClient.useActiveOrganization).mockReturnValue({
     data: {
       id: 'org-1',
@@ -123,7 +165,7 @@ describe('OrgSwitcher', () => {
     render(<OrgSwitcher />)
 
     const menuItems = screen.getAllByRole('menuitem')
-    // 2 org items + 1 "Create organization" item
+    // 2 org items + org settings + members + "Create organization" item
     expect(menuItems.length).toBeGreaterThanOrEqual(2)
     expect(screen.getAllByText('Acme Corp').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Beta Inc')).toBeInTheDocument()
@@ -224,14 +266,27 @@ describe('OrgSwitcher', () => {
       expect(vi.mocked(toast.error)).toHaveBeenCalledWith('auth_toast_error')
     })
   })
+
+  it('should show org settings and members links when active org exists', () => {
+    // Arrange
+    setupWithOrgs()
+
+    // Act
+    render(<OrgSwitcher />)
+
+    // Assert
+    expect(screen.getByText('user_menu_org_settings')).toBeInTheDocument()
+    expect(screen.getByText('user_menu_org_members')).toBeInTheDocument()
+  })
 })
 
 describe('CreateOrgDialogContent', () => {
   it('should render form fields with labels', () => {
     // Arrange - render with no orgs so the create dialog is shown
-    vi.mocked(authClient.useListOrganizations).mockReturnValue({
+    mockUseOrganizations.mockReturnValue({
       data: null,
-    } as ReturnType<typeof authClient.useListOrganizations>)
+      refetch: mockRefetch,
+    })
 
     // Act
     render(<OrgSwitcher />)
@@ -245,9 +300,10 @@ describe('CreateOrgDialogContent', () => {
 
   it('should call organization.create with name and slug on form submit', async () => {
     // Arrange
-    vi.mocked(authClient.useListOrganizations).mockReturnValue({
+    mockUseOrganizations.mockReturnValue({
       data: null,
-    } as ReturnType<typeof authClient.useListOrganizations>)
+      refetch: mockRefetch,
+    })
     vi.mocked(authClient.organization.create).mockResolvedValue({ error: null } as never)
 
     render(<OrgSwitcher />)
@@ -271,9 +327,10 @@ describe('CreateOrgDialogContent', () => {
 
   it('should show success toast on successful org creation', async () => {
     // Arrange
-    vi.mocked(authClient.useListOrganizations).mockReturnValue({
+    mockUseOrganizations.mockReturnValue({
       data: null,
-    } as ReturnType<typeof authClient.useListOrganizations>)
+      refetch: mockRefetch,
+    })
     vi.mocked(authClient.organization.create).mockResolvedValue({ error: null } as never)
 
     render(<OrgSwitcher />)
@@ -294,9 +351,10 @@ describe('CreateOrgDialogContent', () => {
 
   it('should show error toast when create returns an error', async () => {
     // Arrange
-    vi.mocked(authClient.useListOrganizations).mockReturnValue({
+    mockUseOrganizations.mockReturnValue({
       data: null,
-    } as ReturnType<typeof authClient.useListOrganizations>)
+      refetch: mockRefetch,
+    })
     vi.mocked(authClient.organization.create).mockResolvedValue({
       error: { message: 'Slug taken' },
     } as never)
@@ -319,9 +377,10 @@ describe('CreateOrgDialogContent', () => {
 
   it('should show generic error toast when create throws', async () => {
     // Arrange
-    vi.mocked(authClient.useListOrganizations).mockReturnValue({
+    mockUseOrganizations.mockReturnValue({
       data: null,
-    } as ReturnType<typeof authClient.useListOrganizations>)
+      refetch: mockRefetch,
+    })
     vi.mocked(authClient.organization.create).mockRejectedValue(new Error('network'))
 
     render(<OrgSwitcher />)

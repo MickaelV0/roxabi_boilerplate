@@ -18,6 +18,17 @@ type DeleteOrgDto = z.infer<typeof deleteOrgSchema>
 export class OrganizationController {
   constructor(private readonly organizationService: OrganizationService) {}
 
+  // @Permissions() is intentionally omitted: this endpoint is needed before any
+  // organization is active (e.g., org switcher, post-login), which makes permission
+  // resolution impossible. The query is scoped to the authenticated user's own
+  // memberships, so no privilege escalation is possible.
+  @Get()
+  @ApiOperation({ summary: 'List active organizations for the current user' })
+  @ApiResponse({ status: 200, description: 'List of active organizations' })
+  async listOrganizations(@Session() session: { user: { id: string } }) {
+    return this.organizationService.listForUser(session.user.id)
+  }
+
   @Delete(':id')
   @Permissions('organizations:delete')
   @ApiOperation({ summary: 'Soft-delete an organization' })

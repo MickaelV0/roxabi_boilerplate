@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { AccountNotDeletedException } from './exceptions/account-not-deleted.exception.js'
 import { UserNotFoundException } from './exceptions/user-not-found.exception.js'
 import { UserController } from './user.controller.js'
 import type { UserService } from './user.service.js'
@@ -10,6 +11,7 @@ const mockUserService: UserService = {
   softDelete: vi.fn(),
   reactivate: vi.fn(),
   getOwnedOrganizations: vi.fn(),
+  purge: vi.fn(),
 } as unknown as UserService
 
 describe('UserController', () => {
@@ -144,6 +146,51 @@ describe('UserController', () => {
       // Assert
       expect(result).toEqual(ownedOrgs)
       expect(mockUserService.getOwnedOrganizations).toHaveBeenCalledWith('user-1')
+    })
+  })
+
+  describe('purgeMe', () => {
+    it('should delegate to userService.purge and return the result', async () => {
+      // Arrange
+      const session = { user: { id: 'user-1' } }
+      const body = { confirmEmail: 'john@example.com' }
+      const mockResponse = { clearCookie: vi.fn() } as never
+      vi.mocked(mockUserService.purge).mockResolvedValue({ success: true })
+
+      // Act
+      const result = await controller.purgeMe(session, body, mockResponse)
+
+      // Assert
+      expect(result).toEqual({ success: true })
+      expect(mockUserService.purge).toHaveBeenCalledWith('user-1', 'john@example.com')
+    })
+
+    it('should clear the session cookie after successful purge', async () => {
+      // Arrange
+      const session = { user: { id: 'user-1' } }
+      const body = { confirmEmail: 'john@example.com' }
+      const clearCookieFn = vi.fn()
+      const mockResponse = { clearCookie: clearCookieFn } as never
+      vi.mocked(mockUserService.purge).mockResolvedValue({ success: true })
+
+      // Act
+      await controller.purgeMe(session, body, mockResponse)
+
+      // Assert
+      expect(clearCookieFn).toHaveBeenCalledWith('better-auth.session_token', { path: '/' })
+    })
+
+    it('should propagate AccountNotDeletedException when account is not soft-deleted', async () => {
+      // Arrange
+      const session = { user: { id: 'user-1' } }
+      const body = { confirmEmail: 'john@example.com' }
+      const mockResponse = { clearCookie: vi.fn() } as never
+      vi.mocked(mockUserService.purge).mockRejectedValue(new AccountNotDeletedException())
+
+      // Act & Assert
+      await expect(controller.purgeMe(session, body, mockResponse)).rejects.toThrow(
+        AccountNotDeletedException
+      )
     })
   })
 })

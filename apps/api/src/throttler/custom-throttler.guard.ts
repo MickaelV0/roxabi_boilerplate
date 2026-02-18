@@ -16,6 +16,7 @@ const AUTH_SENSITIVE_PATHS = [
   '/api/auth/change-password',
   '/api/auth/verify-email',
   '/api/auth/send-verification-email',
+  '/api/users/me/purge',
 ]
 
 @Injectable()

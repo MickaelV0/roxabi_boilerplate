@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Patch, Post } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Patch, Post, Res } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import type { FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { Session } from '../auth/decorators/session.decorator.js'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
@@ -33,6 +34,12 @@ const deleteAccountSchema = z.object({
 })
 
 type DeleteAccountDto = z.infer<typeof deleteAccountSchema>
+
+const purgeAccountSchema = z.object({
+  confirmEmail: z.string().email(),
+})
+
+type PurgeAccountDto = z.infer<typeof purgeAccountSchema>
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -85,5 +92,26 @@ export class UserController {
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   async getOwnedOrganizations(@Session() session: { user: { id: string } }) {
     return this.userService.getOwnedOrganizations(session.user.id)
+  }
+
+  @Post('me/purge')
+  @ApiOperation({ summary: 'Permanently delete (purge) a soft-deleted account' })
+  @ApiResponse({ status: 200, description: 'Account permanently deleted' })
+  @ApiResponse({
+    status: 400,
+    description: 'Email confirmation mismatch or account not scheduled for deletion',
+  })
+  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  async purgeMe(
+    @Session() session: { user: { id: string } },
+    @Body(new ZodValidationPipe(purgeAccountSchema)) body: PurgeAccountDto,
+    @Res({ passthrough: true }) response: FastifyReply
+  ) {
+    const result = await this.userService.purge(session.user.id, body.confirmEmail)
+
+    // Clear the session cookie to ensure the browser discards any cached session
+    response.clearCookie('better-auth.session_token', { path: '/' })
+
+    return result
   }
 }

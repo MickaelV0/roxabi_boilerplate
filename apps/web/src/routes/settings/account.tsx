@@ -25,8 +25,10 @@ import { AlertTriangleIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { PrivacyDataSection } from '@/components/settings/PrivacyDataSection'
+import { deleteAccount, fetchOrganizations } from '@/lib/api'
 import { authClient, useSession } from '@/lib/auth-client'
 import { parseErrorMessage } from '@/lib/error-utils'
+import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/settings/account')({
   component: AccountSettingsPage,
@@ -324,8 +326,9 @@ function DeleteAccountSection() {
 
   async function fetchOwnedOrgs(): Promise<OwnedOrg[]> {
     try {
-      const { data: orgsData } = await authClient.organization.list()
-      if (!orgsData) return []
+      const res = await fetchOrganizations()
+      const orgsData: Array<{ id: string; name: string }> = res.ok ? await res.json() : []
+      if (orgsData.length === 0) return []
 
       const owned: OwnedOrg[] = []
       for (const org of orgsData) {
@@ -376,43 +379,36 @@ function DeleteAccountSection() {
     setLoadingOrgs(false)
   }
 
-  function handleOrgStepComplete() {
+  async function handleOrgStepComplete() {
     // Validate all transfer resolutions have a target member
     const allResolved = resolutions.every(
       (r) => r.action === 'delete' || (r.action === 'transfer' && r.transferToUserId)
     )
     if (!allResolved) {
-      toast.error('Please select a member to transfer ownership to for all organizations')
+      toast.error(m.account_delete_select_member())
       return
     }
     setShowOrgStep(false)
-    setDeleteOpen(true)
+    // Email was already confirmed in the org step — proceed directly to deletion
+    await handleConfirmDelete()
   }
 
   async function handleConfirmDelete() {
     setDeleting(true)
     try {
-      const res = await fetch('/api/users/me', {
-        method: 'DELETE',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          confirmEmail: userEmail,
-          orgResolutions: resolutions,
-        }),
-      })
+      const res = await deleteAccount(userEmail, resolutions)
 
       if (!res.ok) {
         const data: unknown = await res.json().catch(() => null)
-        toast.error(parseErrorMessage(data, 'Failed to delete account'))
+        toast.error(parseErrorMessage(data, m.account_delete_error()))
         return
       }
 
       setDeleteOpen(false)
-      await authClient.signOut()
-      navigate({ to: '/account-deleted' })
+      toast.success(m.account_delete_success())
+      navigate({ to: '/account-reactivation' })
     } catch {
-      toast.error('Failed to delete account')
+      toast.error(m.account_delete_error())
     } finally {
       setDeleting(false)
     }
@@ -422,15 +418,12 @@ function DeleteAccountSection() {
     <>
       <Card id="danger-zone">
         <CardHeader>
-          <CardTitle className="text-destructive">Danger Zone</CardTitle>
-          <CardDescription>
-            Permanently delete your account and all associated data. This action is reversible
-            during a 30-day grace period.
-          </CardDescription>
+          <CardTitle className="text-destructive">{m.account_danger_zone()}</CardTitle>
+          <CardDescription>{m.account_danger_zone_desc()}</CardDescription>
         </CardHeader>
         <CardContent>
           <Button variant="destructive" onClick={handleDeleteClick} disabled={loadingOrgs}>
-            {loadingOrgs ? 'Checking...' : 'Delete My Account'}
+            {loadingOrgs ? m.account_delete_checking() : m.account_delete_button()}
           </Button>
         </CardContent>
       </Card>
@@ -444,10 +437,10 @@ function DeleteAccountSection() {
               setResolutions([])
             }
           }}
-          title="Resolve Organization Ownership"
-          description="You must decide what happens to your organizations before deleting your account."
+          title={m.account_delete_resolve_title()}
+          description={m.account_delete_resolve_desc()}
           confirmText={userEmail}
-          confirmLabel="Type your email to continue"
+          confirmLabel={m.account_delete_resolve_email_label()}
           impactSummary={
             <OrgResolutionStep
               orgs={ownedOrgs}
@@ -465,10 +458,10 @@ function DeleteAccountSection() {
         onOpenChange={(open: boolean) => {
           if (!open) setDeleteOpen(false)
         }}
-        title="Delete Your Account"
-        description="This will schedule your account for permanent deletion. Your data will be removed after 30 days. You can reactivate by logging in during the grace period."
+        title={m.account_delete_confirm_title()}
+        description={m.account_delete_confirm_desc()}
         confirmText={userEmail}
-        confirmLabel="Type your email address to confirm"
+        confirmLabel={m.account_delete_confirm_email_label()}
         onConfirm={handleConfirmDelete}
         isLoading={deleting}
       />

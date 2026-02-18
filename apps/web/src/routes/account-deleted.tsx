@@ -1,44 +1,55 @@
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@repo/ui'
 import { createFileRoute, Link, useSearch } from '@tanstack/react-router'
+import { m } from '@/paraglide/messages'
 
 type AccountDeletedSearch = {
   purgeDate?: string
+  purged?: string
 }
 
 export const Route = createFileRoute('/account-deleted')({
   component: AccountDeletedPage,
   validateSearch: (search: Record<string, unknown>): AccountDeletedSearch => ({
     purgeDate: typeof search.purgeDate === 'string' ? search.purgeDate : undefined,
+    purged: typeof search.purged === 'string' ? search.purged : undefined,
   }),
   head: () => ({
-    meta: [{ title: 'Account Deleted | Roxabi' }],
+    meta: [{ title: `${m.account_deleted_scheduled_title()} | Roxabi` }],
   }),
 })
 
 function AccountDeletedPage() {
-  const { purgeDate } = useSearch({ from: '/account-deleted' })
+  const { purgeDate, purged } = useSearch({ from: '/account-deleted' })
 
+  const isPurged = purged === 'true'
   const formattedDate = purgeDate ? new Date(purgeDate).toLocaleDateString() : null
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6">
       <Card className="max-w-md">
         <CardHeader>
-          <CardTitle>Account Scheduled for Deletion</CardTitle>
+          <CardTitle>
+            {isPurged ? m.account_deleted_purged_title() : m.account_deleted_scheduled_title()}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-muted-foreground">
-            Your account has been scheduled for deletion.
-            {formattedDate
-              ? ` All your data will be permanently removed on ${formattedDate}.`
-              : ' All your data will be permanently removed after the 30-day grace period.'}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Changed your mind? Simply log back in before the grace period expires to reactivate your
-            account. All your data will be restored.
-          </p>
+          {isPurged ? (
+            <p className="text-muted-foreground">{m.account_deleted_purged_desc()}</p>
+          ) : (
+            <>
+              <p className="text-muted-foreground">
+                {m.account_deleted_scheduled_desc()}
+                {formattedDate
+                  ? ` ${m.account_deleted_removed_on({ date: formattedDate })}`
+                  : ` ${m.account_deleted_removed_grace()}`}
+              </p>
+              <p className="text-sm text-muted-foreground">{m.account_deleted_changed_mind()}</p>
+            </>
+          )}
           <Button variant="outline" asChild>
-            <Link to="/login">Back to Login</Link>
+            <Link to="/login">
+              {isPurged ? m.account_deleted_go_home() : m.account_deleted_back_to_login()}
+            </Link>
           </Button>
         </CardContent>
       </Card>

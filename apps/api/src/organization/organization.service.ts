@@ -13,6 +13,21 @@ import { OrgNotOwnerException } from './exceptions/org-not-owner.exception.js'
 export class OrganizationService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
+  async listForUser(userId: string) {
+    return this.db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        slug: organizations.slug,
+        logo: organizations.logo,
+        createdAt: organizations.createdAt,
+      })
+      .from(members)
+      .innerJoin(organizations, eq(members.organizationId, organizations.id))
+      .where(and(eq(members.userId, userId), whereActive(organizations)))
+      .orderBy(organizations.name)
+  }
+
   async softDelete(orgId: string, userId: string, confirmName: string) {
     // Validate org exists and is active
     const [org] = await this.db
