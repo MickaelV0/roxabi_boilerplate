@@ -8,6 +8,8 @@
     "multi-tenant",
     "rbac",
     "ci-cd",
-    "ubiquitous-language"
+    "ubiquitous-language",
+    "---",
+    "adr"
   ]
 }

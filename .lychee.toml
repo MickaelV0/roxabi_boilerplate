@@ -1,0 +1,3 @@
+exclude_path = ["node_modules", ".turbo", "coverage"]
+include_fragments = false
+exclude = ['^https?://']
