@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@repo/ui'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { LogOut, Settings, Users } from 'lucide-react'
+import { LogOut, Settings, Shield, User, Users } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
@@ -72,6 +72,19 @@ export function UserMenu() {
             <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
           </div>
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/settings/profile">
+            <User className="mr-2 size-4" />
+            {m.user_menu_profile()}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/settings/account">
+            <Shield className="mr-2 size-4" />
+            {m.user_menu_account()}
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         {activeOrg && (
           <>

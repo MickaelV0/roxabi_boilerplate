@@ -18,7 +18,6 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
 import { isErrorWithMessage } from '@/lib/error-utils'
-import { hasPermission } from '@/lib/permissions'
 import { m } from '@/paraglide/messages'
 
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
@@ -375,7 +374,10 @@ function OrgSettingsPage() {
   const { data: session } = useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
 
-  const canDeleteOrg = hasPermission(session, 'organizations:delete')
+  const currentMember = activeOrg?.members?.find(
+    (member: { userId: string }) => member.userId === session?.user?.id
+  )
+  const canDeleteOrg = currentMember?.role === 'owner'
   const [isDirty, setIsDirty] = useState(false)
 
   const { status, proceed, reset } = useBlocker({
