@@ -995,5 +995,28 @@
   "org_reactivation_contact": "Contactez un proprietaire de l'organisation pour la reactiver.",
   "org_deletion_grace_period": "L'organisation sera definitivement supprimee apres 30 jours.",
   "org_unsaved_leave_confirm": "Tapez 'leave' pour annuler les modifications",
-  "org_unsaved_desc": "Vous avez des modifications non enregistrees. Voulez-vous vraiment quitter ?"
+  "org_unsaved_desc": "Vous avez des modifications non enregistrees. Voulez-vous vraiment quitter ?",
+
+  "profile_title": "Informations du profil",
+  "profile_description": "Mettez a jour votre nom et vos preferences d'affichage.",
+  "profile_first_name": "Prenom",
+  "profile_last_name": "Nom",
+  "profile_display_name": "Nom d'affichage",
+  "profile_sync_name": "Synchroniser depuis prenom/nom",
+  "profile_saving": "Enregistrement...",
+  "profile_save": "Enregistrer",
+
+  "avatar_title": "Avatar",
+  "avatar_description": "Choisissez un style d'avatar genere. Personnalisez l'apparence avec les options ci-dessous.",
+  "avatar_preview_alt": "Apercu de l'avatar",
+  "avatar_style_label": "Style",
+  "avatar_seed_label": "Graine",
+  "avatar_seed_hint": "Differentes graines generent differents avatars. Laissez vide pour utiliser votre identifiant.",
+  "avatar_randomize": "Aleatoire",
+  "avatar_advanced_options": "Options avancees",
+  "avatar_option_enabled": "Active",
+  "avatar_option_disabled": "Desactive",
+  "avatar_url_length_warning": "L'URL de l'avatar est trop longue. Simplifiez les options ou changez de style.",
+  "avatar_save_success": "Profil mis a jour avec succes",
+  "avatar_save_error": "Echec de la mise a jour du profil"
 }

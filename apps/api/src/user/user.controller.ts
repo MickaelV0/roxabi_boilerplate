@@ -12,6 +12,8 @@ const updateProfileSchema = z.object({
   fullName: z.string().min(1).max(200).optional(),
   avatarSeed: z.string().max(200).nullable().optional(),
   avatarStyle: z.string().max(50).nullable().optional(),
+  avatarOptions: z.record(z.string(), z.unknown()).optional(),
+  image: z.string().url().max(2000).startsWith('https://api.dicebear.com/').nullable().optional(),
 })
 
 type UpdateProfileDto = z.infer<typeof updateProfileSchema>

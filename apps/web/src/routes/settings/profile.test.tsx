@@ -16,7 +16,9 @@ vi.mock('@tanstack/react-router', () => ({
 vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
 vi.mock('@/lib/auth-client', () => ({
-  authClient: {},
+  authClient: {
+    getSession: vi.fn(() => Promise.resolve({})),
+  },
   useSession: vi.fn(() => ({
     data: {
       user: { id: 'user-1', name: 'Jane Doe', email: 'jane@example.com' },
@@ -34,11 +36,13 @@ vi.mock('@dicebear/core', () => ({
   }),
 }))
 
-vi.mock('@dicebear/lorelei', () => ({ lorelei: {} }))
-vi.mock('@dicebear/bottts', () => ({ bottts: {} }))
-vi.mock('@dicebear/pixel-art', () => ({ pixelArt: {} }))
-vi.mock('@dicebear/thumbs', () => ({ thumbs: {} }))
-vi.mock('@dicebear/avataaars', () => ({ avataaars: {} }))
+vi.mock('@dicebear/lorelei', () => ({ lorelei: {}, schema: { properties: {} } }))
+vi.mock('@dicebear/bottts', () => ({ bottts: {}, schema: { properties: {} } }))
+vi.mock('@dicebear/pixel-art', () => ({ pixelArt: {}, schema: { properties: {} } }))
+vi.mock('@dicebear/thumbs', () => ({ thumbs: {}, schema: { properties: {} } }))
+vi.mock('@dicebear/avataaars', () => ({ avataaars: {}, schema: { properties: {} } }))
+vi.mock('@dicebear/adventurer', () => ({ adventurer: {}, schema: { properties: {} } }))
+vi.mock('@dicebear/toon-head', () => ({ toonHead: {}, schema: { properties: {} } }))
 
 mockParaglideMessages()
 
@@ -60,6 +64,7 @@ function setupFetchProfile(data: Record<string, unknown> = {}) {
         fullNameCustomized: false,
         avatarSeed: 'user-1',
         avatarStyle: 'lorelei',
+        avatarOptions: {},
         ...data,
       }),
   })
@@ -76,11 +81,11 @@ describe('ProfileSettingsPage', () => {
     render(<Profile />)
 
     await waitFor(() => {
-      expect(screen.getByLabelText('First Name')).toBeInTheDocument()
+      expect(screen.getByLabelText('profile_first_name')).toBeInTheDocument()
     })
 
-    expect(screen.getByLabelText('Last Name')).toBeInTheDocument()
-    expect(screen.getByLabelText('Display Name')).toBeInTheDocument()
+    expect(screen.getByLabelText('profile_last_name')).toBeInTheDocument()
+    expect(screen.getByLabelText('profile_display_name')).toBeInTheDocument()
   })
 
   it('should populate fields from API data', async () => {
@@ -89,10 +94,10 @@ describe('ProfileSettingsPage', () => {
     render(<Profile />)
 
     await waitFor(() => {
-      expect(screen.getByLabelText('First Name')).toHaveValue('John')
+      expect(screen.getByLabelText('profile_first_name')).toHaveValue('John')
     })
-    expect(screen.getByLabelText('Last Name')).toHaveValue('Smith')
-    expect(screen.getByLabelText('Display Name')).toHaveValue('John Smith')
+    expect(screen.getByLabelText('profile_last_name')).toHaveValue('Smith')
+    expect(screen.getByLabelText('profile_display_name')).toHaveValue('John Smith')
   })
 
   it('should auto-update fullName when firstName or lastName changes (unless customized)', async () => {
@@ -101,13 +106,15 @@ describe('ProfileSettingsPage', () => {
     render(<Profile />)
 
     await waitFor(() => {
-      expect(screen.getByLabelText('First Name')).toHaveValue('Jane')
+      expect(screen.getByLabelText('profile_first_name')).toHaveValue('Jane')
     })
 
-    fireEvent.change(screen.getByLabelText('First Name'), { target: { value: 'John' } })
+    fireEvent.change(screen.getByLabelText('profile_first_name'), {
+      target: { value: 'John' },
+    })
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Display Name')).toHaveValue('John Doe')
+      expect(screen.getByLabelText('profile_display_name')).toHaveValue('John Doe')
     })
   })
 
@@ -117,9 +124,9 @@ describe('ProfileSettingsPage', () => {
     render(<Profile />)
 
     await waitFor(() => {
-      expect(screen.getByText('Style')).toBeInTheDocument()
+      expect(screen.getByText('avatar_style_label')).toBeInTheDocument()
     })
-    expect(screen.getByLabelText('Seed')).toBeInTheDocument()
+    expect(screen.getByLabelText('avatar_seed_label')).toBeInTheDocument()
     // Verify style options are rendered
     expect(screen.getByText('Lorelei')).toBeInTheDocument()
     expect(screen.getByText('Bottts')).toBeInTheDocument()
@@ -142,6 +149,7 @@ describe('ProfileSettingsPage', () => {
             fullNameCustomized: false,
             avatarSeed: 'user-1',
             avatarStyle: 'lorelei',
+            avatarOptions: {},
           }),
       })
     })
@@ -150,17 +158,19 @@ describe('ProfileSettingsPage', () => {
     render(<Profile />)
 
     await waitFor(() => {
-      expect(screen.getByLabelText('First Name')).toHaveValue('Jane')
+      expect(screen.getByLabelText('profile_first_name')).toHaveValue('Jane')
     })
 
-    fireEvent.change(screen.getByLabelText('First Name'), { target: { value: 'Janet' } })
+    fireEvent.change(screen.getByLabelText('profile_first_name'), {
+      target: { value: 'Janet' },
+    })
 
-    const form = screen.getByLabelText('First Name').closest('form')
+    const form = screen.getByLabelText('profile_first_name').closest('form')
     if (!form) throw new Error('form not found')
     fireEvent.submit(form)
 
     await waitFor(() => {
-      expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Profile updated successfully')
+      expect(vi.mocked(toast.success)).toHaveBeenCalledWith('avatar_save_success')
     })
   })
 })

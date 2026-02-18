@@ -34,7 +34,7 @@ async function bootstrap() {
         defaultSrc: ["'none'"],
         scriptSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
-        imgSrc: ["'self'", 'data:'],
+        imgSrc: ["'self'", 'data:', 'https://api.dicebear.com'],
         fontSrc: ["'self'"],
         connectSrc: ["'self'"],
       },

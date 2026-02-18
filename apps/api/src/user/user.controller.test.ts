@@ -32,6 +32,7 @@ describe('UserController', () => {
     image: null,
     avatarSeed: null,
     avatarStyle: 'lorelei',
+    avatarOptions: {},
     role: 'user',
     deletedAt: null,
     deleteScheduledFor: null,

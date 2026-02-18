@@ -1,5 +1,5 @@
 import { isNotNull } from 'drizzle-orm'
-import { boolean, index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core'
+import { boolean, index, jsonb, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core'
 import { timestamps } from './timestamps.js'
 
 const genId = () => crypto.randomUUID()
@@ -17,6 +17,7 @@ export const users = pgTable(
     image: text('image'),
     avatarSeed: text('avatar_seed'),
     avatarStyle: text('avatar_style').default('lorelei'),
+    avatarOptions: jsonb('avatar_options').default({}).$type<Record<string, unknown>>(),
     role: text('role').default('user'),
     banned: boolean('banned').default(false),
     banReason: text('ban_reason'),

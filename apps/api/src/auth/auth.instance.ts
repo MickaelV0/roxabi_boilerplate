@@ -3,7 +3,9 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { admin } from 'better-auth/plugins/admin'
 import { magicLink } from 'better-auth/plugins/magic-link'
 import { organization } from 'better-auth/plugins/organization'
+import { eq } from 'drizzle-orm'
 import type { DrizzleDB } from '../database/drizzle.provider.js'
+import { users } from '../database/schema/auth.schema.js'
 import type { EmailProvider } from './email/email.provider.js'
 
 export function escapeHtml(str: string): string {
@@ -59,6 +61,35 @@ export function createBetterAuth(
     secret: config.secret,
     baseURL: config.baseURL,
     trustedOrigins,
+    databaseHooks: {
+      user: {
+        create: {
+          after: async (user) => {
+            if (!user.image) {
+              const cdnUrl = `https://api.dicebear.com/9.x/lorelei/svg?seed=${user.id}`
+              await db
+                .update(users)
+                .set({
+                  avatarStyle: 'lorelei',
+                  avatarSeed: user.id,
+                  avatarOptions: {},
+                  image: cdnUrl,
+                })
+                .where(eq(users.id, user.id))
+            } else {
+              await db
+                .update(users)
+                .set({
+                  avatarStyle: 'lorelei',
+                  avatarSeed: user.id,
+                  avatarOptions: {},
+                })
+                .where(eq(users.id, user.id))
+            }
+          },
+        },
+      },
+    },
     database: drizzleAdapter(db, {
       provider: 'pg',
       usePlural: true,

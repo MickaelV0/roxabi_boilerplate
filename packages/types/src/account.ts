@@ -5,7 +5,14 @@
 
 // -- User profile types --
 
-export type AvatarStyle = 'lorelei' | 'bottts' | 'pixel-art' | 'thumbs' | 'avataaars'
+export type AvatarStyle =
+  | 'lorelei'
+  | 'bottts'
+  | 'pixel-art'
+  | 'thumbs'
+  | 'avataaars'
+  | 'adventurer'
+  | 'toon-head'
 
 export type UserProfile = {
   id: string
@@ -22,6 +29,7 @@ export type UserProfile = {
   image: string | null
   avatarSeed: string | null
   avatarStyle: AvatarStyle | null
+  avatarOptions: Record<string, unknown>
   role: string | null
   createdAt: Date
   updatedAt: Date
@@ -33,6 +41,8 @@ export type UpdateProfilePayload = {
   fullName?: string
   avatarSeed?: string
   avatarStyle?: AvatarStyle
+  avatarOptions?: Record<string, unknown>
+  image?: string
 }
 
 // -- Account deletion types --
