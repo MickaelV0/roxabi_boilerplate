@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Patch, Post, Res } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
-import { AVATAR_STYLES, DICEBEAR_CDN_BASE } from '@repo/types'
+import type { AvatarStyle } from '@repo/types'
 import type { FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { Session } from '../auth/decorators/session.decorator.js'
@@ -8,6 +8,17 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
 import { UserService } from './user.service.js'
 
 const avatarOptionValue = z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])
+
+const DICEBEAR_CDN_BASE = 'https://api.dicebear.com/9.x'
+const AVATAR_STYLES = [
+  'lorelei',
+  'bottts',
+  'pixel-art',
+  'thumbs',
+  'avataaars',
+  'adventurer',
+  'toon-head',
+] as const satisfies readonly AvatarStyle[]
 
 const DICEBEAR_URL_PREFIX = `${DICEBEAR_CDN_BASE.split('/9.x')[0]}/`
 
