@@ -39,6 +39,7 @@ jobs:
             code:
               - 'apps/**'
               - 'packages/**'
+              - 'tools/**'
               - 'turbo.jsonc'
               - 'bun.lock'
               - 'biome.json'
@@ -234,7 +235,8 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [lint, typecheck, test]
+    needs: [detect-changes, lint, typecheck, test]
+    if: github.event_name != 'pull_request' || needs.detect-changes.outputs.code == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v6

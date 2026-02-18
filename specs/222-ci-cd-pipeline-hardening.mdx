@@ -114,27 +114,25 @@ code:
 
 #### Happy path
 
-1. CI runs the `docs-links` job using `lycheeverse/lychee-action`
-2. `lychee` scans all `.mdx` and `.md` files for internal links
-3. Links are checked against the filesystem (external URLs excluded via config)
+1. CI runs the `docs-links` job using `bun run tools/docs-link-audit.ts`
+2. The custom script scans all `.mdx` and `.md` files for internal links
+3. Links are resolved Fumadocs-style (extensionless links map to `.mdx`/`.md`, directories map to `index.mdx`) and checked against the filesystem (external URLs excluded via `isInternalLink()` filter)
 4. If all internal links resolve, the job passes
 5. If any link is broken, the job fails with a report listing broken links and their locations
 
 #### Edge cases
 
-- **External URLs:** Excluded initially via `.lychee.toml` (`exclude = ['^https?://']`) to avoid flaky CI
-- **Anchor links (`#section`):** Start with `include_fragments = false` (safer default). If testing during implementation confirms reliable MDX anchor validation, enable it. Otherwise, note as a known limitation
-- **Generated files:** Links to files that only exist after build (e.g., API docs) are added to the exclude list
-- **MDX syntax:** JSX components and imports may confuse some checkers — lychee handles this well
+- **External URLs:** Excluded via `isInternalLink()` filter to avoid flaky CI
+- **Anchor links (`#section`):** Not validated initially. The script strips fragments before filesystem resolution. Enable anchor validation as a follow-up if reliable
+- **Generated files:** Links to files that only exist after build (e.g., API docs) are skipped by the scan patterns
+- **MDX syntax:** The custom script uses regex-based link extraction, avoiding JSX/MDX parser complications
 - **Docs-only CI integration:** This job always runs (it is fast and catches broken links regardless of what changed). It is included in the `ci-success` aggregator's `needs` list
 
-**Configuration (`.lychee.toml`):**
+**Configuration (inline in `tools/docs-link-audit.ts`):**
 
-```toml
-exclude_path = ["node_modules", ".turbo", "coverage"]
-include_fragments = false
-exclude = ['^https?://']
-```
+- `SCAN_PATTERNS`: Glob patterns for files to scan (e.g., `docs/**/*.mdx`, `analyses/*.mdx`, `specs/*.mdx`)
+- `SKIP_DIRS`: Directories excluded from scanning (e.g., `node_modules`, `.turbo`)
+- `isInternalLink()`: Filters out external URLs (`http://`, `https://`), anchors-only (`#...`), and mailto links
 
 ### Task 5: PR Template Audit
 
@@ -181,7 +179,7 @@ exclude = ['^https?://']
 | PR title validation tool | `amannn/action-semantic-pull-request` | Most popular, well-maintained, supports all Conventional Commits features |
 | Path filter approach | Positive code filter (list code paths) | More robust than listing skip paths — new non-code dirs are automatically skipped |
 | Required status check pattern | `ci-success` aggregator job | Standard pattern for conditional CI; only job that branch protection requires |
-| Link checker tool | `lychee` via `lycheeverse/lychee-action` | Fastest option, handles MDX, supports `.lychee.toml` config, transparent install |
+| Link checker tool | Custom Bun script (`tools/docs-link-audit.ts`) | Fumadocs-aware resolution (extensionless links to `.mdx`/`.md`, directory to `index.mdx`), zero external dependency, Bun-native |
 | Link check job placement | Separate lightweight job | Keeps lint gate focused on code quality; docs-link failures are independent |
 | Bot exemption mechanism | `ignoredAuthors` input | Correct mechanism for `amannn/action-semantic-pull-request` (not labels) |
 
@@ -194,7 +192,7 @@ exclude = ['^https?://']
 - [ ] `ci-success` aggregator job is the only required branch protection check
 - [ ] `check-e2e-paths` job is consolidated into `detect-changes`
 - [ ] Internal MDX/MD links are validated in CI — broken links fail the build
-- [ ] `.lychee.toml` config excludes external URLs
+- [ ] Custom link audit script excludes external URLs via `isInternalLink()` filter
 - [ ] PR template includes all 11 commit types as checkboxes
 - [ ] PR template checklist includes "PR title follows Conventional Commits" and "No secrets committed"
 - [ ] ADR for release-please evaluates: (a) monorepo config complexity, (b) squash vs merge auto-merge conflict, (c) `/promote` coexistence/replacement, (d) changelog format impact
@@ -213,5 +211,5 @@ exclude = ['^https?://']
 
 ## Open Questions
 
-- **`lychee` anchor validation in MDX:** Does `include_fragments = true` reliably validate `#section` anchors in MDX files? Start with `false` (safer default). Test during implementation and enable as a follow-up if reliable.
+- **Anchor validation in MDX:** The custom script currently strips `#section` fragments before resolution. Adding heading-aware anchor validation is a future enhancement — test feasibility and enable as a follow-up if reliable.
 - **E2E filter consolidation output naming:** The current `check-e2e-paths` job outputs `should-run` which the `e2e` job checks. When consolidating into `detect-changes`, verify the output name and condition are preserved to avoid breaking the E2E trigger logic.

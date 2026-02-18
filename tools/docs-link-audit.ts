@@ -49,7 +49,7 @@ interface BrokenLink {
 /**
  * Collect all files matching the scan patterns, excluding SKIP_DIRS.
  */
-async function collectFiles(): Promise<string[]> {
+export async function collectFiles(): Promise<string[]> {
   const files: string[] = []
 
   for (const pattern of SCAN_PATTERNS) {
@@ -74,7 +74,7 @@ async function collectFiles(): Promise<string[]> {
  *
  * Matches standard markdown link syntax: [text](target)
  */
-function extractLinks(content: string): Array<{ target: string; line: number }> {
+export function extractLinks(content: string): Array<{ target: string; line: number }> {
   const links: Array<{ target: string; line: number }> = []
   const lines = content.split('\n')
 
@@ -105,7 +105,7 @@ function extractLinks(content: string): Array<{ target: string; line: number }> 
  * Filter out code-fenced regions from link results.
  * Returns only links that are NOT inside fenced code blocks.
  */
-function filterCodeBlocks(
+export function filterCodeBlocks(
   content: string,
   links: Array<{ target: string; line: number }>
 ): Array<{ target: string; line: number }> {
@@ -132,7 +132,7 @@ function filterCodeBlocks(
  * Determine whether a link target is an internal link that we should check.
  * Returns false for external URLs, anchors, mailto, and other special schemes.
  */
-function isInternalLink(target: string): boolean {
+export function isInternalLink(target: string): boolean {
   // External URLs
   if (/^https?:\/\//i.test(target)) return false
   // Mailto links
@@ -159,7 +159,7 @@ function isInternalLink(target: string): boolean {
  *
  * Returns the resolved path if found, or null if broken.
  */
-function resolveLink(target: string, sourceFile: string): string | null {
+export function resolveLink(target: string, sourceFile: string): string | null {
   // Strip anchor fragment and query string for resolution
   const cleanTarget = target.split('#')[0].split('?')[0]
 
@@ -268,7 +268,10 @@ async function main(): Promise<void> {
   process.exit(0)
 }
 
-main().catch((error) => {
-  console.error('Unexpected error:', error)
-  process.exit(1)
-})
+// Guard: skip auto-execution when loaded as a module in tests
+if (!process.env.VITEST) {
+  main().catch((error) => {
+    console.error('Unexpected error:', error)
+    process.exit(1)
+  })
+}
