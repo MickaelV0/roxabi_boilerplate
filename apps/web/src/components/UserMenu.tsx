@@ -30,6 +30,7 @@ function getInitials(name?: string | null, email?: string | null): string {
 
 export function UserMenu() {
   const { data: session } = useSession()
+  const { data: activeOrg } = authClient.useActiveOrganization()
   const navigate = useNavigate()
   const [signingOut, setSigningOut] = useState(false)
 

@@ -57,6 +57,7 @@ vi.mock('@/lib/auth-client', () => ({
   useSession: useSessionFn,
   authClient: {
     signOut: vi.fn(),
+    useActiveOrganization: vi.fn(() => ({ data: null })),
   },
 }))
 
