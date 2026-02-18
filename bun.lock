@@ -16,6 +16,7 @@
         "@huggingface/transformers": "^3.0.0",
         "@playwright/test": "^1.58.2",
         "@repo/playwright-config": "workspace:*",
+        "@repo/vitest-config": "workspace:*",
         "@testing-library/dom": "^10.4.1",
         "@testing-library/jest-dom": "^6.9.1",
         "@testing-library/react": "^16.3.2",
