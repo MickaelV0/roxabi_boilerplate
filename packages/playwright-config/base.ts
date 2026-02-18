@@ -1,6 +1,13 @@
 import type { PlaywrightTestConfig } from '@playwright/test'
 import { devices } from '@playwright/test'
 
+/**
+ * Base Playwright configuration for the monorepo.
+ *
+ * IMPORTANT: This config uses paths relative to the repository root.
+ * It must be consumed from a config file at the repo root (e.g., playwright.config.ts).
+ * Importing from a non-root config file will cause path resolution errors.
+ */
 export const basePlaywrightConfig: PlaywrightTestConfig = {
   testDir: './apps/web/e2e',
   fullyParallel: true,

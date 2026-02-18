@@ -374,10 +374,8 @@ function OrgSettingsPage() {
   const { data: activeOrg } = authClient.useActiveOrganization()
   const { data: orgs } = useOrganizations()
 
-  const currentMember = activeOrg?.members?.find(
-    (member: { userId: string }) => member.userId === session?.user?.id
-  )
-  const canDeleteOrg = currentMember?.role === 'owner'
+  const canDeleteOrg = hasPermission(session, 'organizations:delete')
+  const canEditOrg = hasPermission(session, 'organizations:write')
   const [isDirty, setIsDirty] = useState(false)
 
   const { status, proceed, reset } = useBlocker({
@@ -425,7 +423,7 @@ function OrgSettingsPage() {
       <GeneralSettingsCard
         orgName={activeOrg.name}
         orgSlug={activeOrg.slug ?? ''}
-        canEdit={canDeleteOrg}
+        canEdit={canEditOrg}
         onDirtyChange={setIsDirty}
       />
 

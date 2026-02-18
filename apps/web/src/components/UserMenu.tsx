@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@repo/ui'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { LogOut, Settings, Shield, User, Users } from 'lucide-react'
+import { LogOut, Settings, User, UserCog, Users } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
@@ -80,7 +80,7 @@ export function UserMenu() {
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link to="/settings/account">
-            <Shield className="mr-2 size-4" />
+            <UserCog className="mr-2 size-4" />
             {m.user_menu_account()}
           </Link>
         </DropdownMenuItem>

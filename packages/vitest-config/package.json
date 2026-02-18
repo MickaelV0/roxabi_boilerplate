@@ -12,6 +12,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "echo 'no-op'"
   },
+  "peerDependencies": {
+    "vitest": ">=3.0.0"
+  },
   "devDependencies": {
     "@repo/config": "workspace:*",
     "typescript": "^5.9.3"
