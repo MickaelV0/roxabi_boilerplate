@@ -57,6 +57,7 @@ vi.mock('@/lib/auth-client', () => ({
   useSession: useSessionFn,
   authClient: {
     signOut: vi.fn(),
+    useActiveOrganization: vi.fn(() => ({ data: null })),
   },
 }))
 
@@ -66,8 +67,10 @@ vi.mock('sonner', () => ({
 
 vi.mock('lucide-react', () => ({
   LogOut: ({ className }: { className?: string }) => <span className={className} />,
-  Shield: ({ className }: { className?: string }) => <span className={className} />,
+  Settings: ({ className }: { className?: string }) => <span className={className} />,
   User: ({ className }: { className?: string }) => <span className={className} />,
+  UserCog: ({ className }: { className?: string }) => <span className={className} />,
+  Users: ({ className }: { className?: string }) => <span className={className} />,
 }))
 
 mockParaglideMessages()

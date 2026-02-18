@@ -71,6 +71,7 @@
     "@faker-js/faker": "^10.3.0",
     "@inlang/paraglide-js": "^2.11.0",
     "@repo/config": "workspace:*",
+    "@repo/vitest-config": "workspace:*",
     "@tanstack/devtools-event-client": "^0.4.0",
     "@tanstack/devtools-vite": "^0.5.1",
     "@tanstack/router-cli": "^1.159.9",
