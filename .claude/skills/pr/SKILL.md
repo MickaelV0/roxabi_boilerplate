@@ -1,6 +1,6 @@
 ---
 argument-hint: [--draft | --base <branch>]
-description: This skill should be used when the user wants to create a pull request, open a PR, update an existing PR, or submit changes for review. Triggers include "create a PR", "open pull request", "submit PR", "update PR description", and "/pr --draft". Supports Conventional Commits title, issue linking, and guard rails.
+description: Create/update PRs with Conventional Commits title, issue linking & guard rails. Triggers: "create PR" | "open PR" | "submit PR" | "update PR" | "/pr --draft".
 allowed-tools: Bash, AskUserQuestion, Read, Grep
 ---
 

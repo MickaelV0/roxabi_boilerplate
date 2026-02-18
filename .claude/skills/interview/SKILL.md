@@ -1,6 +1,6 @@
 ---
 argument-hint: [topic | --promote <path>]
-description: This skill should be used when the user wants to conduct a structured interview, create a spec, write an analysis, brainstorm ideas, explore a feature concept, or promote a brainstorm to analysis or analysis to spec. Triggers include "create a spec", "interview for feature", "brainstorm ideas", "write an analysis", and "promote this to a spec".
+description: Structured interview → brainstorm | analysis | spec (with promotion). Triggers: "create a spec" | "interview" | "brainstorm" | "write analysis" | "promote to spec".
 allowed-tools: AskUserQuestion, Write, Read, Edit, Glob
 ---
 

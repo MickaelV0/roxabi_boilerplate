@@ -1,6 +1,6 @@
 ---
 argument-hint: [--branches | --worktrees | --all]
-description: This skill should be used when the user asks to clean up git branches, clean worktrees, remove stale branches, prune old branches, or run git cleanup. Triggers include "cleanup", "git cleanup", "clean branches", "cleanup worktrees", and "remove stale branches". Safely deletes local branches, worktrees, and remote branches after verifying merge status.
+description: Clean git branches/worktrees/remotes after merge-status verification. Triggers: "cleanup" | "clean branches" | "cleanup worktrees" | "remove stale branches".
 allowed-tools: Bash, AskUserQuestion
 ---
 

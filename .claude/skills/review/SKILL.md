@@ -1,6 +1,6 @@
 ---
 argument-hint: [#PR]
-description: This skill should be used when the user asks to review code, review changes, review a PR, do a code review, or check a branch for issues. Triggers include "review my changes", "review PR #42", "code review this", and "check my code". Performs multi-domain review using fresh agents and Conventional Comments, with findings walked through via /1b1.
+description: Multi-domain code review (agents + Conventional Comments → /1b1). Triggers: "review changes" | "review PR #42" | "code review" | "check my code".
 allowed-tools: Bash, AskUserQuestion, Read, Grep, Task
 ---
 

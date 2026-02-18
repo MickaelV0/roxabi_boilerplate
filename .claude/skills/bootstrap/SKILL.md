@@ -1,7 +1,7 @@
 ---
 name: bootstrap
 argument-hint: '["idea" | --issue <N> | --spec <N>]'
-description: This skill should be used when the user wants to bootstrap a feature, plan a feature, start a new feature from an idea, or create an analysis and spec. Triggers include "bootstrap avatar upload", "plan feature", "start feature", "I have an idea for", "create a spec from issue", and "/bootstrap --issue 42". Orchestrates from raw idea to approved spec through two validation gates.
+description: Idea→approved spec pipeline (analysis + spec + 2 approval gates). Triggers: "bootstrap" | "plan feature" | "start feature" | "I have an idea" | "spec from issue".
 allowed-tools: Bash, AskUserQuestion, Read, Write, Edit, Glob, Grep, Task
 ---
 

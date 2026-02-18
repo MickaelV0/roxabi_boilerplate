@@ -1,6 +1,6 @@
 ---
 argument-hint: [--setup | --parse | --analyze [--limit N] | --recap [--period weekly|monthly] | --search "query" [--type blocker] | --reanalyze <session-id|all>]
-description: This skill should be used when the user wants to analyze Claude Code session transcripts, extract findings, search session intelligence, view retro dashboards, or run trend analysis. Triggers include "retro", "session intelligence", "analyze sessions", "search findings", "recap", "session recap", "trend report", "what patterns", "what blockers", and "retro setup".
+description: Analyze session transcripts — extract findings, search, trend, recap. Triggers: "retro" | "analyze sessions" | "search findings" | "recap" | "trend report".
 allowed-tools: Bash, Read, Grep, Glob, AskUserQuestion
 ---
 

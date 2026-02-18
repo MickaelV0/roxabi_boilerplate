@@ -1,6 +1,6 @@
 ---
 argument-hint: [--dry-run | --skip-preview | --finalize]
-description: This skill should be used when the user wants to promote staging to main, release to production, deploy a new version, cut a release, or finalize a release with tagging. Triggers include "promote staging", "release to production", "deploy new version", "cut a release", and "/promote --finalize". Handles pre-flight checks, version computation, changelog, and PR creation.
+description: Promote staging→main — pre-flight, version bump, changelog, PR & tag. Triggers: "promote staging" | "release" | "deploy" | "cut a release" | "--finalize".
 allowed-tools: Bash, AskUserQuestion, Read, Grep, Write, Edit
 ---
 

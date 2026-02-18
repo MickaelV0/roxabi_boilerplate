@@ -1,6 +1,6 @@
 ---
 argument-hint: [--dashboard | --stop | --json | --priority]
-description: This skill should be used when the user wants to list issues, show open issues, view the project board, check the backlog, see issue dependencies, or launch the issue dashboard. Triggers include "list GitHub issues", "show issues", "what's the backlog", "issue dashboard", "what's blocked", and "show dependency chains".
+description: List/dashboard GitHub issues — status, dependencies, backlog. Triggers: "list issues" | "show issues" | "backlog" | "issue dashboard" | "what's blocked".
 allowed-tools: Bash, Read
 ---
 
