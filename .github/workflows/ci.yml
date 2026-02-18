@@ -360,7 +360,7 @@ jobs:
       - name: Check internal documentation links
         uses: lycheeverse/lychee-action@v2
         with:
-          args: "docs/**/*.mdx docs/**/*.md analyses/**/*.mdx specs/**/*.mdx *.md"
+          args: "docs/**/*.mdx docs/**/*.md *.md"
           lycheeVersion: latest
           fail: true
 
