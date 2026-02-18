@@ -28,8 +28,60 @@ For project vision, principles, and roadmap: see [docs/vision.mdx](docs/vision.m
 - **Frontend**: TanStack Start
 - **Backend**: NestJS + Fastify
 - **Deployment**: Vercel (both web + API)
+- **Code Style**: Biome — single quotes, no semicolons, 2-space indent, 100-char line width
+- **DB/ORM**: Drizzle ORM + PostgreSQL 16 (Docker local, Neon on Vercel)
 
-For full architecture, monorepo structure, and commands: MUST read [docs/architecture/](docs/architecture/) and [docs/configuration.mdx](docs/configuration.mdx).
+### Quick Start
+
+```bash
+cp .env.example .env && bun install      # first-time setup
+bun run dev                               # start all apps (web :3000, API :4000)
+```
+
+For full environment and configuration details: see [docs/configuration.mdx](docs/configuration.mdx).
+
+### Monorepo Structure
+
+```
+apps/
+  web/          @repo/web         TanStack Start + Vite + Tailwind v4
+  api/          @repo/api         NestJS + Fastify + Drizzle ORM
+packages/
+  ui/           @repo/ui          Shared React components (Radix + CVA)
+  types/        @repo/types       Shared TypeScript types/interfaces
+  config/       @repo/config      Shared Biome/TS/Tailwind config
+  vitest-config/ @repo/vitest-config  Shared Vitest configuration
+  playwright-config/ @repo/playwright-config  Shared Playwright configuration
+```
+
+---
+
+## Commands
+
+| Task | Command | Notes |
+|------|---------|-------|
+| Dev server | `bun run dev` | Web :3000, API :4000, Nitro :42069 |
+| Build | `bun run build` | TurboRepo-cached |
+| Lint | `bun run lint` | Biome check |
+| Lint + fix | `bun run lint:fix` | Auto-fix safe issues |
+| Format | `bun run format` | Biome format |
+| Typecheck | `bun run typecheck` | All packages via TurboRepo |
+| Test (unit) | `bun run test` | Vitest across all packages |
+| Test (watch) | `bun run test:watch` | Vitest watch mode |
+| Test (coverage) | `bun run test:coverage` | With v8 coverage |
+| Test (e2e) | `bun run test:e2e` | Playwright |
+| Kill orphaned ports | `bun run dev:clean` | After Ctrl+C leaves zombies |
+| DB start | `bun run db:up` | Docker Postgres 16 |
+| DB stop | `bun run db:down` | Stop Docker container |
+| DB generate | `bun run db:generate` | Drizzle schema → migration |
+| DB migrate | `bun run db:migrate` | Apply migrations |
+| DB reset | `bun run db:reset` | Drop + re-migrate + seed |
+| DB seed | `bun run db:seed` | Seed dev data |
+| DB branch (worktree) | `cd apps/api && bun run db:branch:create --force XXX` | Isolated DB per worktree |
+| Clean | `bun run clean` | Remove all build artifacts + node_modules |
+| Clean cache | `bun run clean:cache` | Vite + Turbo caches only |
+| i18n validate | `bun run i18n:validate` | Check translation completeness |
+| Env sync check | `bun run check:env` | Verify .env matches .env.example |
 
 ---
 
@@ -79,7 +131,7 @@ If you find yourself writing "Do you want me to...", "Should I...", "Do you pref
 
 **Exception:** Truly minor changes (typo fix, single-line config tweak) may be done directly by the orchestrator when spawning an agent would be disproportionate overhead. Use judgment — if in doubt, delegate.
 
-**Deployment tasks** (preview deploys, production deploys, Vercel CLI operations, env var management) **MUST be handled by the `devops` agent**, never by the orchestrator directly.
+**Deployment tasks** (preview deploys, production deploys, env var management) **MUST be handled by the `devops` agent**, never by the orchestrator directly.
 
 ---
 
@@ -169,9 +221,6 @@ cd apps/api && bun run db:branch:create --force XXX
 | browser, open website, screenshot | `agent-browser` | "open a website", "take a screenshot", "/agent-browser" |
 | documentation, library docs, lookup | `context7` (plugin) | "look up React docs", "check API reference", "/context7" |
 | promote, release, staging to main, finalize | `promote` | "promote staging", "release to production", "/promote", "/promote --finalize" |
-| deploy, vercel deploy | `vercel:deploy` | "deploy to Vercel", "push to production", "go live" |
-| vercel setup, configure vercel | `vercel:setup` | "set up Vercel", "configure Vercel", "link to Vercel" |
-| vercel logs, check logs | `vercel:logs` | "show Vercel logs", "check deployment logs" |
 | frontend design, build UI, create page | `frontend-design` | "design a landing page", "build this component", "/frontend-design" |
 | retro, session intelligence, analyze sessions | `retro` | "analyze sessions", "search findings", "/retro --recap" |
 
@@ -181,59 +230,31 @@ cd apps/api && bun run db:branch:create --force XXX
 
 ---
 
-## Agent Teams (Experimental)
+## Agent Teams
 
-Specialized agents for multi-agent coordination. Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
+Multi-agent coordination for Tier F-lite/F-full features. Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
 
-### Available Agents
+| Tier | Agents | Role |
+|------|--------|------|
+| **Domain** | `frontend-dev`, `backend-dev`, `devops` | Write code in their packages |
+| **Quality** | `fixer`, `tester`, `security-auditor` | Fix, test, audit |
+| **Strategy** | `architect`, `product-lead`, `doc-writer` | Plan, analyze, document |
 
-| Agent | Tier | Domain | Permission | Tools | Deny |
-|-------|------|--------|------------|-------|------|
-| `frontend-dev` | Domain | `apps/web`, `packages/ui` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage | — |
-| `backend-dev` | Domain | `apps/api`, `packages/types` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage | — |
-| `devops` | Domain | `packages/config`, root configs | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage | — |
-| `fixer` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, SendMessage | — |
-| `tester` | Quality | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage | — |
-| `security-auditor` | Quality | All packages | plan | Read, Glob, Grep, Bash, WebSearch, Task, SendMessage | Write, Edit |
-| `architect` | Strategy | All packages | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage | — |
-| `product-lead` | Strategy | `analyses/`, `specs/`, GitHub issues | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, TeamCreate, TeamDelete, SendMessage | — |
-| `doc-writer` | Strategy | `docs/`, `CLAUDE.md` | bypassPermissions | Read, Write, Edit, Glob, Grep, Bash, WebSearch, Task, SendMessage | — |
+**Routing**: See the [Routing Decision Tree](#critical-rules) in the dev process, or the full [Agent Teams Guide](docs/guides/agent-teams.mdx).
 
-### Routing Decision Tree
+Agent definitions: `.claude/agents/*.md` | Coordination rules: [AGENTS.md](AGENTS.md)
 
-> Source of truth: [docs/guides/agent-teams.mdx](docs/guides/agent-teams.mdx). Update the guide first, then sync here.
+---
 
-```
-Is this a code change?
-├── No (docs only) → doc-writer subagent
-└── Yes
-    ├── Tier S (<=3 files, no arch risk)
-    │   └── Single session + optional tester subagent
-    │
-    ├── Tier F-lite (clear scope, documented requirements)
-    │   ├── /scaffold (spec → PR, skip bootstrap):
-    │   │   ├── Single-domain → subagents (Task tool)
-    │   │   └── Multi-domain  → Agent Teams (TeamCreate)
-    │   │       ├── Frontend? → frontend-dev + tester
-    │   │       ├── Backend?  → backend-dev + tester
-    │   │       ├── Full-stack? → frontend-dev + backend-dev + tester
-    │   │       └── Security-sensitive? → + security-auditor
-    │   └── Then /review (fresh domain reviewers + 1b1 + fixer)
-    │
-    └── Tier F-full (new arch, unclear requirements, >2 domains)
-        ├── /bootstrap (idea → spec): direct orchestration + expert review (architect, doc-writer, devops, product-lead — configurable)
-        ├── /scaffold (spec → PR):
-        │   ├── Single-domain → subagents (Task tool)
-        │   └── Multi-domain  → Agent Teams (TeamCreate)
-        │       ├── Frontend? → frontend-dev + tester
-        │       ├── Backend?  → backend-dev + tester
-        │       ├── Full-stack? → frontend-dev + backend-dev + tester
-        │       ├── Large scope? → + architect + doc-writer
-        │       └── Security-sensitive? → + security-auditor
-        └── Then /review (fresh domain reviewers + 1b1 + fixer)
-```
+## Gotchas
 
-Agent definitions: `.claude/agents/*.md`
+- **`bun test` ≠ `bun run test`**: Bare `bun test` invokes Bun's built-in test runner, causing infinite CPU spin. Always use `bun run test` (which runs Vitest). A PreToolUse hook blocks this, but know why.
+- **`turbo.jsonc`** not `turbo.json`: TurboRepo config uses JSONC (with comments). Tools expecting `.json` will miss it.
+- **`useImportType: off` for `apps/api/`**: NestJS requires runtime imports for dependency injection. Biome override disables this rule for the API package only.
+- **Node >=24 required**: Set in `package.json` engines. Bun 1.3.9 is the package manager.
+- **Orphaned dev ports**: After Ctrl+C, Nitro/Vite may leave zombie processes. Run `bun run dev:clean` to kill ports 42069/4000/3000.
+- **DB branches for worktrees**: Each worktree gets its own Postgres schema via `bun run db:branch:create --force XXX` to avoid cross-contamination.
+- **Paraglide i18n codegen**: `apps/web` uses `@inlang/paraglide-js`. Translations are compiled during the `codegen` TurboRepo task — generated files in `src/paraglide/` are gitignored.
 
 ---
 
@@ -241,55 +262,32 @@ Agent definitions: `.claude/agents/*.md`
 
 ### Documentation
 
-| Topic | Documentation |
-|-------|---------------|
-| Development process | [docs/processes/dev-process.mdx](docs/processes/dev-process.mdx) |
-| Issue management | [docs/processes/issue-management.mdx](docs/processes/issue-management.mdx) |
-| Processes | [docs/processes/](docs/processes/) |
-| Architecture | [docs/architecture/](docs/architecture/) |
-| Analyses (pre-spec) | [analyses/](analyses/) |
-| Feature specifications | [specs/](specs/) |
-| Coding standards | [docs/standards/](docs/standards/) |
-| Frontend patterns | [docs/standards/frontend-patterns.mdx](docs/standards/frontend-patterns.mdx) |
-| Backend patterns | [docs/standards/backend-patterns.mdx](docs/standards/backend-patterns.mdx) |
-| Testing | [docs/standards/testing.mdx](docs/standards/testing.mdx) |
-| Code review | [docs/standards/code-review.mdx](docs/standards/code-review.mdx) |
-| Vision & roadmap | [docs/vision.mdx](docs/vision.mdx) |
-| Configuration & setup | [docs/configuration.mdx](docs/configuration.mdx) |
-| Getting started | [docs/getting-started.mdx](docs/getting-started.mdx) |
-| Contributing & MDX guide | [docs/contributing.mdx](docs/contributing.mdx) |
-| Guides | [docs/guides/](docs/guides/) |
-| Authentication guide | [docs/guides/authentication.mdx](docs/guides/authentication.mdx) |
-| Agent Teams guide | [docs/guides/agent-teams.mdx](docs/guides/agent-teams.mdx) |
-| Agent Teams coordination | [AGENTS.md](AGENTS.md) |
-| Troubleshooting | [docs/guides/troubleshooting.mdx](docs/guides/troubleshooting.mdx) |
-| Hooks | [docs/hooks.mdx](docs/hooks.mdx) |
-| Deployment | [docs/guides/deployment.mdx](docs/guides/deployment.mdx) |
+| Topic | Path |
+|-------|------|
+| **Getting started** | [docs/getting-started.mdx](docs/getting-started.mdx) |
+| **Configuration & setup** | [docs/configuration.mdx](docs/configuration.mdx) |
+| **Development process** | [docs/processes/dev-process.mdx](docs/processes/dev-process.mdx) |
+| **Issue management** | [docs/processes/issue-management.mdx](docs/processes/issue-management.mdx) |
+| **Architecture** | [docs/architecture/](docs/architecture/) |
+| **Frontend patterns** | [docs/standards/frontend-patterns.mdx](docs/standards/frontend-patterns.mdx) |
+| **Backend patterns** | [docs/standards/backend-patterns.mdx](docs/standards/backend-patterns.mdx) |
+| **Testing standards** | [docs/standards/testing.mdx](docs/standards/testing.mdx) |
+| **Code review** | [docs/standards/code-review.mdx](docs/standards/code-review.mdx) |
+| **Contributing & MDX** | [docs/contributing.mdx](docs/contributing.mdx) |
+| **Deployment** | [docs/guides/deployment.mdx](docs/guides/deployment.mdx) |
+| **Authentication** | [docs/guides/authentication.mdx](docs/guides/authentication.mdx) |
+| **Agent Teams** | [docs/guides/agent-teams.mdx](docs/guides/agent-teams.mdx) + [AGENTS.md](AGENTS.md) |
+| **Vision & roadmap** | [docs/vision.mdx](docs/vision.mdx) |
+| **Specs & analyses** | [specs/](specs/) + [analyses/](analyses/) |
 
 ### Deployment
 
-Both apps deploy to **Vercel** automatically on push to `main`. Preview deploys are triggered by pushing to `staging` via the GitHub CD pipeline. **Do NOT use `vercel` CLI to trigger preview or production deploys — always go through CI/CD.** See [docs/guides/deployment.mdx](docs/guides/deployment.mdx) for full setup.
+Both apps deploy to **Vercel** automatically on push to `main`. Preview deploys are triggered by pushing to `staging` via the GitHub CD pipeline. See [docs/guides/deployment.mdx](docs/guides/deployment.mdx) for full setup.
 
 | Project | Root Directory | Framework |
 |---------|---------------|-----------|
 | Web | `apps/web` | TanStack Start / Nitro |
 | API | `apps/api` | NestJS (zero-config) |
-
-#### Vercel CLI
-
-The `vercel` CLI is available for **management tasks only** (listing deployments, env vars, logs, inspect). **All deployment tasks must be delegated to the `devops` agent.** Do NOT use the CLI to trigger deploys — use `git push` to `staging` (preview) or `main` (production) instead.
-
-> **Important:** Always run `vercel` commands from the **repository root**, not from `apps/web` or `apps/api`. The Vercel project linking and TurboRepo build pipeline expect the root as the working directory.
-
-```bash
-vercel ls                        # List deployments
-vercel env ls                    # List environment variables
-vercel env add SECRET_NAME       # Add environment variable
-vercel logs <url>                # View deployment logs
-vercel inspect <url>             # Inspect a deployment
-```
-
-**Deploys must go through CI/CD** (`git push` to `staging` or `main`). Use the Vercel CLI only for management tasks (env vars, logs, inspect). When browser interaction is needed (e.g., initial project creation, visual verification), use the `/agent-browser` skill.
 
 ### Hooks
 
