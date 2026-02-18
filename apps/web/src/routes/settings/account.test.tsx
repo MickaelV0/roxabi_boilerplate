@@ -1,17 +1,19 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
 }))
 
+const mockNavigate = vi.fn()
+
 vi.mock('@tanstack/react-router', () => ({
   createFileRoute: () => (config: { component: React.ComponentType }) => {
     captured.Component = config.component
     return { component: config.component }
   },
-  useNavigate: () => vi.fn(),
+  useNavigate: () => mockNavigate,
 }))
 
 vi.mock('@repo/ui', async () => {
@@ -23,13 +25,19 @@ vi.mock('@repo/ui', async () => {
       title,
       description,
       confirmLabel,
+      confirmText,
       impactSummary,
+      onConfirm,
+      isLoading,
     }: {
       open: boolean
       title: string
       description: string
       confirmLabel?: string
+      confirmText?: string
       impactSummary?: React.ReactNode
+      onConfirm?: () => void
+      isLoading?: boolean
     }) =>
       open ? (
         <div data-testid="destructive-confirm-dialog">
@@ -37,6 +45,15 @@ vi.mock('@repo/ui', async () => {
           <p>{description}</p>
           {confirmLabel && <p>{confirmLabel}</p>}
           {impactSummary}
+          {confirmText && <input data-testid="confirm-input" defaultValue="" />}
+          <button
+            type="button"
+            data-testid="confirm-button"
+            onClick={onConfirm}
+            disabled={isLoading}
+          >
+            Confirm
+          </button>
         </div>
       ) : null,
     PasswordInput: (props: Record<string, unknown>) => <input type="password" {...props} />,
@@ -51,7 +68,6 @@ const mockListAccounts = vi.fn()
 const mockChangeEmail = vi.fn()
 const mockChangePassword = vi.fn()
 const mockSignOut = vi.fn()
-const mockOrgList = vi.fn()
 const mockGetFullOrg = vi.fn()
 
 vi.mock('@/lib/auth-client', () => ({
@@ -61,7 +77,6 @@ vi.mock('@/lib/auth-client', () => ({
     changePassword: (params: unknown) => mockChangePassword(params),
     signOut: () => mockSignOut(),
     organization: {
-      list: () => mockOrgList(),
       getFullOrganization: (params: unknown) => mockGetFullOrg(params),
     },
   },
@@ -82,6 +97,8 @@ mockParaglideMessages()
 import { toast } from 'sonner'
 import './account'
 
+let originalFetch: typeof globalThis.fetch
+
 function setupCredentialAccount() {
   mockListAccounts.mockResolvedValue({
     data: [{ providerId: 'credential' }],
@@ -97,6 +114,11 @@ function setupOAuthOnlyAccount() {
 describe('AccountSettingsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    originalFetch = globalThis.fetch
+  })
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch
   })
 
   describe('Email change', () => {
@@ -192,16 +214,15 @@ describe('AccountSettingsPage', () => {
       render(<Account />)
 
       await waitFor(() => {
-        expect(screen.getByText('Danger Zone')).toBeInTheDocument()
+        expect(screen.getByText('account_danger_zone')).toBeInTheDocument()
       })
 
-      expect(screen.getByRole('button', { name: /Delete My Account/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /account_delete_button/i })).toBeInTheDocument()
     })
 
     it('should show org ownership resolution flow when user owns orgs', async () => {
       setupCredentialAccount()
 
-      // Mock fetch for /api/organizations to return owned orgs
       const mockFetch = vi.fn().mockImplementation((url: string) => {
         if (typeof url === 'string' && url.includes('/api/organizations')) {
           return Promise.resolve({
@@ -226,20 +247,19 @@ describe('AccountSettingsPage', () => {
       render(<Account />)
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Delete My Account/i })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /account_delete_button/i })).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /Delete My Account/i }))
+      fireEvent.click(screen.getByRole('button', { name: /account_delete_button/i }))
 
       await waitFor(() => {
-        expect(screen.getByText('Resolve Organization Ownership')).toBeInTheDocument()
+        expect(screen.getByText('account_delete_resolve_title')).toBeInTheDocument()
       })
     })
 
     it('should require typing email to enable delete button', async () => {
       setupCredentialAccount()
 
-      // Mock fetch for /api/organizations to return empty list (no owned orgs)
       const mockFetch = vi.fn().mockImplementation((url: string) => {
         if (typeof url === 'string' && url.includes('/api/organizations')) {
           return Promise.resolve({
@@ -255,20 +275,19 @@ describe('AccountSettingsPage', () => {
       render(<Account />)
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Delete My Account/i })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /account_delete_button/i })).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /Delete My Account/i }))
+      fireEvent.click(screen.getByRole('button', { name: /account_delete_button/i }))
 
       await waitFor(() => {
-        expect(screen.getByText('Type your email address to confirm')).toBeInTheDocument()
+        expect(screen.getByText('account_delete_confirm_email_label')).toBeInTheDocument()
       })
     })
 
     it('should navigate to account-reactivation on deletion', async () => {
       setupCredentialAccount()
 
-      // Mock fetch: /api/organizations returns empty, DELETE /api/users/me succeeds
       const mockFetch = vi.fn().mockImplementation((url: string, options?: { method?: string }) => {
         if (typeof url === 'string' && url.includes('/api/organizations')) {
           return Promise.resolve({
@@ -293,13 +312,26 @@ describe('AccountSettingsPage', () => {
       const Account = captured.Component
       render(<Account />)
 
-      // The test verifies that after account deletion, the user is navigated
-      // to the account-reactivation page (no signOut call needed)
+      // Wait for the page to render
       await waitFor(() => {
-        expect(screen.getByText('Danger Zone')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /account_delete_button/i })).toBeInTheDocument()
       })
 
-      expect(screen.getByRole('button', { name: /Delete My Account/i })).toBeInTheDocument()
+      // Click delete to open confirm dialog (no owned orgs -> direct confirm)
+      fireEvent.click(screen.getByRole('button', { name: /account_delete_button/i }))
+
+      // Wait for the confirm dialog to appear
+      await waitFor(() => {
+        expect(screen.getByTestId('confirm-button')).toBeInTheDocument()
+      })
+
+      // Click confirm to trigger the deletion
+      fireEvent.click(screen.getByTestId('confirm-button'))
+
+      // Assert navigation to account-reactivation
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith({ to: '/account-reactivation' })
+      })
     })
   })
 })

@@ -5,6 +5,7 @@ import { OrganizationController } from './organization.controller.js'
 import type { OrganizationService } from './organization.service.js'
 
 const mockOrganizationService: OrganizationService = {
+  listForUser: vi.fn(),
   softDelete: vi.fn(),
   reactivate: vi.fn(),
   getDeletionImpact: vi.fn(),
@@ -18,6 +19,35 @@ describe('OrganizationController', () => {
   })
 
   const mockSession = { user: { id: 'user-1' } }
+
+  describe('listOrganizations', () => {
+    it('should delegate to organizationService.listForUser and return the result', async () => {
+      // Arrange
+      const orgs = [
+        { id: 'org-1', name: 'Alpha', slug: 'alpha', logo: null, createdAt: new Date() },
+        { id: 'org-2', name: 'Beta', slug: 'beta', logo: null, createdAt: new Date() },
+      ]
+      vi.mocked(mockOrganizationService.listForUser).mockResolvedValue(orgs)
+
+      // Act
+      const result = await controller.listOrganizations(mockSession)
+
+      // Assert
+      expect(result).toEqual(orgs)
+      expect(mockOrganizationService.listForUser).toHaveBeenCalledWith('user-1')
+    })
+
+    it('should return empty array when user has no memberships', async () => {
+      // Arrange
+      vi.mocked(mockOrganizationService.listForUser).mockResolvedValue([])
+
+      // Act
+      const result = await controller.listOrganizations(mockSession)
+
+      // Assert
+      expect(result).toEqual([])
+    })
+  })
 
   describe('deleteOrganization', () => {
     it('should delegate to organizationService.softDelete with correct arguments', async () => {

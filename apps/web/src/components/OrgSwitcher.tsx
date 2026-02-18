@@ -29,7 +29,7 @@ import { m } from '@/paraglide/messages'
 
 export function OrgSwitcher() {
   const { data: session } = useSession()
-  const { data: orgs, refetch: refetchOrgs } = useOrganizations()
+  const { data: orgs, isLoading: orgsLoading, refetch: refetchOrgs } = useOrganizations()
   const { data: activeOrg } = authClient.useActiveOrganization()
   const [createOpen, setCreateOpen] = useState(false)
 
@@ -37,7 +37,7 @@ export function OrgSwitcher() {
     (member: { userId: string }) => member.userId === session?.user?.id
   )
 
-  if (!orgs || orgs.length === 0) {
+  if (orgsLoading || !orgs || orgs.length === 0) {
     return (
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogTrigger asChild>

@@ -208,6 +208,36 @@ describe('RegisterPage', () => {
     expect(screen.queryByLabelText('auth_password')).not.toBeInTheDocument()
   })
 
+  it('should display email exists message when signUp returns USER_ALREADY_EXISTS', async () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
+    vi.mocked(authClient.signUp.email).mockResolvedValueOnce({
+      error: { code: 'USER_ALREADY_EXISTS', message: 'User already exists' },
+      data: null,
+    } as never)
+
+    const RegisterPage = captured.Component
+    render(<RegisterPage />)
+
+    // Act
+    fireEvent.change(screen.getByLabelText('auth_name'), {
+      target: { value: 'Existing User' },
+    })
+    fireEvent.change(screen.getByLabelText('auth_email'), {
+      target: { value: 'existing@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('auth_password'), {
+      target: { value: 'StrongP@ss1' },
+    })
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('button', { name: 'auth_create_account_button' }))
+
+    // Assert -- should show email exists message, not generic error
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('auth_register_email_exists')
+    })
+  })
+
   it('should sync consent to server via POST /api/consent after successful registration', async () => {
     // Arrange — use a fresh fetch mock to isolate from prior async operations
     const consentFetch = vi.fn().mockResolvedValue({ ok: true })

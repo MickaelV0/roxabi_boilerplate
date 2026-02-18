@@ -15,10 +15,10 @@ import {
 import { createFileRoute, useBlocker } from '@tanstack/react-router'
 import { AlertTriangleIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { flushSync } from 'react-dom'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
 import { isErrorWithMessage } from '@/lib/error-utils'
+import { hasPermission } from '@/lib/permissions'
 import { useOrganizations } from '@/lib/use-organizations'
 import { m } from '@/paraglide/messages'
 
@@ -152,9 +152,7 @@ function DangerZoneCard({ orgId, orgName, onDeleted }: DangerZoneCardProps) {
                     {impact.customRoleCount !== 1 ? 's' : ''} will be removed
                   </p>
                 )}
-                <p className="pt-1 text-muted-foreground">
-                  The organization will be permanently deleted after 30 days.
-                </p>
+                <p className="pt-1 text-muted-foreground">{m.org_deletion_grace_period()}</p>
               </div>
             ) : null
           }
@@ -310,9 +308,9 @@ function UnsavedChangesDialog({ status, proceed, reset }: UnsavedChangesDialogPr
       open
       onOpenChange={() => reset?.()}
       title={m.org_unsaved_changes()}
-      description="You have unsaved changes. Are you sure you want to leave?"
+      description={m.org_unsaved_desc()}
       confirmText="leave"
-      confirmLabel="Type 'leave' to discard changes"
+      confirmLabel={m.org_unsaved_leave_confirm()}
       onConfirm={() => proceed?.()}
     />
   )
@@ -339,15 +337,15 @@ function ReactivationBanner({ orgId, deleteScheduledFor, canReactivate }: Reacti
 
       if (!res.ok) {
         const data: unknown = await res.json().catch(() => null)
-        toast.error(isErrorWithMessage(data) ? data.message : 'Failed to reactivate organization')
+        toast.error(isErrorWithMessage(data) ? data.message : m.org_reactivation_error())
         return
       }
 
-      toast.success('Organization reactivated successfully')
+      toast.success(m.org_reactivation_success())
       // Force session refresh to clear cached state
       window.location.reload()
     } catch {
-      toast.error('Failed to reactivate organization')
+      toast.error(m.org_reactivation_error())
     } finally {
       setReactivating(false)
     }
@@ -356,15 +354,15 @@ function ReactivationBanner({ orgId, deleteScheduledFor, canReactivate }: Reacti
   return (
     <Alert variant="destructive">
       <AlertTriangleIcon className="size-4" />
-      <AlertTitle>Organization Scheduled for Deletion</AlertTitle>
+      <AlertTitle>{m.org_reactivation_title()}</AlertTitle>
       <AlertDescription className="space-y-3">
-        <p>This organization is scheduled for permanent deletion on {formattedDate}.</p>
+        <p>{m.org_reactivation_scheduled({ date: formattedDate })}</p>
         {canReactivate ? (
           <Button variant="outline" size="sm" onClick={handleReactivate} disabled={reactivating}>
-            {reactivating ? 'Reactivating...' : 'Reactivate Organization'}
+            {reactivating ? m.org_reactivation_reactivating() : m.org_reactivation_button()}
           </Button>
         ) : (
-          <p className="text-sm">Contact an organization owner to reactivate this organization.</p>
+          <p className="text-sm">{m.org_reactivation_contact()}</p>
         )}
       </AlertDescription>
     </Alert>
@@ -376,10 +374,7 @@ function OrgSettingsPage() {
   const { data: activeOrg } = authClient.useActiveOrganization()
   const { data: orgs } = useOrganizations()
 
-  const currentMember = activeOrg?.members?.find(
-    (member: { userId: string }) => member.userId === session?.user?.id
-  )
-  const canDeleteOrg = currentMember?.role === 'owner'
+  const canDeleteOrg = hasPermission(session, 'organizations:delete')
   const [isDirty, setIsDirty] = useState(false)
 
   const { status, proceed, reset } = useBlocker({
@@ -436,7 +431,10 @@ function OrgSettingsPage() {
           orgId={activeOrg.id}
           orgName={activeOrg.name}
           onDeleted={() => {
-            flushSync(() => setIsDirty(false))
+            // window.location.href bypasses React Router entirely, so useBlocker
+            // (even with enableBeforeUnload) does not intercept it. No need for
+            // flushSync -- just clear the dirty flag before navigating.
+            setIsDirty(false)
             window.location.href = '/'
           }}
         />

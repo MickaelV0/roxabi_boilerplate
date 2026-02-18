@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import type { OrgOwnershipResolution } from '@repo/types'
 import { and, eq, isNotNull } from 'drizzle-orm'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
@@ -47,6 +47,8 @@ const softDeleteCache = new Map<
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name)
+
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
   async getSoftDeleteStatus(userId: string) {
@@ -287,7 +289,9 @@ export class UserService {
       .limit(1)
     if (!user) throw new UserNotFoundException(userId)
 
-    // Only soft-deleted users can purge
+    // Only soft-deleted users can purge. The grace period is intentionally
+    // bypassed for user-initiated purge -- the user explicitly requested
+    // immediate deletion from the reactivation page.
     if (!user.deletedAt) {
       throw new AccountNotDeletedException()
     }
@@ -297,6 +301,8 @@ export class UserService {
     }
 
     const originalEmail = user.email
+
+    this.logger.warn('Purging account', { userId })
 
     await this.db.transaction(async (tx) => {
       const now = new Date()
@@ -346,6 +352,10 @@ export class UserService {
           )
         )
 
+      // TODO: Optimize with inArray() batch operations instead of sequential loop.
+      // Blocked because each org needs a unique anonymized slug (crypto.randomUUID()),
+      // which requires per-row UPDATE. Consider a SQL-level random slug generation
+      // or a two-pass approach (batch delete members/invitations/roles, then loop for slugs).
       for (const { orgId } of ownedDeletedOrgs) {
         const anonymizedSlug = `deleted-${crypto.randomUUID()}`
 
@@ -370,7 +380,12 @@ export class UserService {
         // Delete tenant-scoped roles (cascade handles role_permissions)
         await tx.delete(roles).where(eq(roles.tenantId, orgId))
       }
+
+      // Remove user's membership from all remaining organizations
+      await tx.delete(members).where(eq(members.userId, userId))
     })
+
+    this.logger.log('Account purged successfully', { userId })
 
     // Invalidate soft-delete cache after purge
     this.invalidateSoftDeleteCache(userId)

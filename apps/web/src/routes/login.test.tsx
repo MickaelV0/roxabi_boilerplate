@@ -210,4 +210,33 @@ describe('LoginPage', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('auth_login_invalid_credentials')
     })
   })
+
+  it('should display email not verified message on 403 error', async () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
+    vi.mocked(authClient.signIn.email).mockResolvedValueOnce({
+      error: { message: 'Email not verified', status: 403 },
+      data: null,
+    } as never)
+
+    const LoginPage = captured.Component
+    render(<LoginPage />)
+
+    // Act
+    const panels = screen.getAllByRole('tabpanel')
+    const passwordPanel = panels[0] as HTMLElement
+    const emailInput = within(passwordPanel).getByLabelText('auth_email')
+    fireEvent.change(emailInput, {
+      target: { value: 'unverified@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('auth_password'), {
+      target: { value: 'password123' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'auth_sign_in_button' }))
+
+    // Assert -- should show the email not verified message, not generic credentials error
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('auth_login_email_not_verified')
+    })
+  })
 })

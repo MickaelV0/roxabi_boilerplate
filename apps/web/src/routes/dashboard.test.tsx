@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
 const captured = vi.hoisted(() => ({
@@ -15,6 +15,8 @@ const mockUseOrganizations = vi.hoisted(() =>
       logo: string | null
       createdAt: string
     }>,
+    isLoading: false,
+    error: null,
     refetch: vi.fn(),
   }))
 )
@@ -39,12 +41,14 @@ vi.mock('@tanstack/react-router', () => ({
 
 vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
+const mockSetActive = vi.fn().mockResolvedValue({})
+
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
     getSession: vi.fn(),
     useActiveOrganization: vi.fn(() => ({ data: null })),
     organization: {
-      setActive: vi.fn().mockResolvedValue({}),
+      setActive: (...args: unknown[]) => mockSetActive(...args),
     },
   },
   useSession: vi.fn(() => ({
@@ -56,6 +60,17 @@ vi.mock('@/lib/use-organizations', () => ({
   useOrganizations: mockUseOrganizations,
 }))
 
+vi.mock('@/lib/api', () => ({
+  fetchUserProfile: vi.fn().mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve({}),
+  }),
+  fetchOrganizations: vi.fn().mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve([]),
+  }),
+}))
+
 mockParaglideMessages()
 
 // Import to trigger createFileRoute and capture the component
@@ -63,12 +78,21 @@ import './dashboard'
 import { authClient, useSession } from '@/lib/auth-client'
 
 describe('DashboardPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('should render welcome message with user name', () => {
     // Arrange
     vi.mocked(useSession).mockReturnValue({
       data: { user: { name: 'Ada Lovelace' } },
     } as ReturnType<typeof useSession>)
-    mockUseOrganizations.mockReturnValue({ data: [], refetch: vi.fn() })
+    mockUseOrganizations.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    })
     const DashboardPage = captured.Component
 
     // Act
@@ -90,6 +114,8 @@ describe('DashboardPage', () => {
       data: [
         { id: 'org-1', name: 'Acme Corp', slug: 'acme-corp', logo: null, createdAt: '2024-01-01' },
       ],
+      isLoading: false,
+      error: null,
       refetch: vi.fn(),
     })
     const DashboardPage = captured.Component
@@ -109,7 +135,12 @@ describe('DashboardPage', () => {
     vi.mocked(authClient.useActiveOrganization).mockReturnValue({
       data: null,
     } as ReturnType<typeof authClient.useActiveOrganization>)
-    mockUseOrganizations.mockReturnValue({ data: [], refetch: vi.fn() })
+    mockUseOrganizations.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    })
     const DashboardPage = captured.Component
 
     // Act
@@ -127,7 +158,12 @@ describe('DashboardPage', () => {
     vi.mocked(authClient.useActiveOrganization).mockReturnValue({
       data: null,
     } as ReturnType<typeof authClient.useActiveOrganization>)
-    mockUseOrganizations.mockReturnValue({ data: [], refetch: vi.fn() })
+    mockUseOrganizations.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    })
     const DashboardPage = captured.Component
 
     // Act
@@ -145,5 +181,55 @@ describe('DashboardPage', () => {
 
     const membersLink = screen.getByText('dashboard_view_members').closest('a')
     expect(membersLink).toHaveAttribute('href', '/org/members')
+  })
+
+  it('should show loading skeleton when orgs are loading', () => {
+    // Arrange
+    vi.mocked(useSession).mockReturnValue({
+      data: { user: { name: 'Ada Lovelace' } },
+    } as ReturnType<typeof useSession>)
+    mockUseOrganizations.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+      refetch: vi.fn(),
+    })
+    const DashboardPage = captured.Component
+
+    // Act
+    render(<DashboardPage />)
+
+    // Assert -- skeleton should be shown, not the welcome message
+    expect(screen.queryByText('dashboard_welcome({"name":"Ada Lovelace"})')).not.toBeInTheDocument()
+    // The loading skeleton has pulse divs
+    const pulseElements = document.querySelectorAll('.animate-pulse')
+    expect(pulseElements.length).toBeGreaterThan(0)
+  })
+
+  it('should auto-select first org when no active org', async () => {
+    // Arrange
+    vi.mocked(useSession).mockReturnValue({
+      data: { user: { name: 'Ada Lovelace' } },
+    } as ReturnType<typeof useSession>)
+    vi.mocked(authClient.useActiveOrganization).mockReturnValue({
+      data: null,
+    } as ReturnType<typeof authClient.useActiveOrganization>)
+    mockUseOrganizations.mockReturnValue({
+      data: [
+        { id: 'org-1', name: 'Acme Corp', slug: 'acme-corp', logo: null, createdAt: '2024-01-01' },
+      ],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    })
+    const DashboardPage = captured.Component
+
+    // Act
+    render(<DashboardPage />)
+
+    // Assert -- setActive should be called with the first org
+    await waitFor(() => {
+      expect(mockSetActive).toHaveBeenCalledWith({ organizationId: 'org-1' })
+    })
   })
 })

@@ -15,6 +15,7 @@ import {
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { fetchOrganizations, fetchUserProfile } from '@/lib/api'
 import { authClient, fetchEnabledProviders } from '@/lib/auth-client'
 import { requireGuest } from '@/lib/route-guards'
 import { m } from '@/paraglide/messages'
@@ -42,28 +43,34 @@ function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
 
-  /** Returns a redirect path if the account is soft-deleted, or null. */
-  async function checkSoftDeletedAccount(): Promise<string | null> {
+  /** Checks if account is soft-deleted and navigates to reactivation if so. Returns true if redirected. */
+  async function checkSoftDeletedAccount(): Promise<boolean> {
     try {
-      const res = await fetch('/api/users/me', { credentials: 'include' })
-      if (!res.ok) return null
+      const res = await fetchUserProfile()
+      if (!res.ok) return false
       const profile = (await res.json()) as Record<string, unknown>
       if (profile.deletedAt) {
-        const qs = profile.deleteScheduledFor
-          ? `?deleteScheduledFor=${encodeURIComponent(profile.deleteScheduledFor as string)}`
-          : ''
-        return `/account-reactivation${qs}`
+        navigate({
+          to: '/account-reactivation',
+          search: { deleteScheduledFor: profile.deleteScheduledFor as string | undefined },
+        })
+        return true
       }
     } catch {
       // Non-blocking
     }
-    return null
+    return false
   }
 
-  /** Auto-select the first active org (best-effort). */
+  /** Auto-select the first active org if no org is currently active (best-effort). */
   async function autoSelectOrg() {
     try {
-      const res = await fetch('/api/organizations', { credentials: 'include' })
+      // Check if there is already an active org before overwriting
+      const { data: currentSession } = await authClient.getSession()
+      const activeOrgId = (currentSession as Record<string, unknown> | null)?.activeOrganizationId
+      if (activeOrgId) return
+
+      const res = await fetchOrganizations()
       const orgs = res.ok ? ((await res.json()) as Array<{ id: string }>) : []
       if (orgs[0]) {
         await authClient.organization.setActive({ organizationId: orgs[0].id })
@@ -91,11 +98,8 @@ function LoginPage() {
         }
       } else {
         toast.success(m.auth_toast_signed_in())
-        const redirect = await checkSoftDeletedAccount()
-        if (redirect) {
-          navigate({ to: redirect })
-          return
-        }
+        const redirected = await checkSoftDeletedAccount()
+        if (redirected) return
         await autoSelectOrg()
         navigate({ to: '/dashboard' })
       }

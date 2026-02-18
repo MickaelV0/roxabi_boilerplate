@@ -18,6 +18,12 @@ vi.mock('@tanstack/react-router', () => ({
 
 vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
+const mockHasPermission = vi.hoisted(() => vi.fn(() => false))
+
+vi.mock('@/lib/permissions', () => ({
+  hasPermission: mockHasPermission,
+}))
+
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
     useActiveOrganization: vi.fn(() => ({ data: null })),
@@ -31,6 +37,8 @@ vi.mock('@/lib/use-organizations', () => ({
     data: [
       { id: 'org-1', name: 'Acme Corp', slug: 'acme-corp', logo: null, createdAt: '2024-01-01' },
     ],
+    isLoading: false,
+    error: null,
     refetch: vi.fn(),
   })),
 }))
@@ -61,14 +69,16 @@ function setupActiveOrg({ withOwnerMembers = false }: { withOwnerMembers?: boole
 
 function setupOwnerMember() {
   vi.mocked(useSession).mockReturnValue({
-    data: { user: { id: 'user-1' } },
+    data: { user: { id: 'user-1' }, permissions: ['organizations:delete'] },
   } as unknown as ReturnType<typeof useSession>)
+  mockHasPermission.mockReturnValue(true)
 }
 
 function setupMemberRole() {
   vi.mocked(useSession).mockReturnValue({
     data: { user: { id: 'user-1' } },
   } as unknown as ReturnType<typeof useSession>)
+  mockHasPermission.mockReturnValue(false)
 }
 
 describe('OrgSettingsPage', () => {

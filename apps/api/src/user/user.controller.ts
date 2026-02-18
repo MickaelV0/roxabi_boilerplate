@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Patch, Post } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Patch, Post, Res } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import type { FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { Session } from '../auth/decorators/session.decorator.js'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
@@ -103,8 +104,14 @@ export class UserController {
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   async purgeMe(
     @Session() session: { user: { id: string } },
-    @Body(new ZodValidationPipe(purgeAccountSchema)) body: PurgeAccountDto
+    @Body(new ZodValidationPipe(purgeAccountSchema)) body: PurgeAccountDto,
+    @Res({ passthrough: true }) response: FastifyReply
   ) {
-    return this.userService.purge(session.user.id, body.confirmEmail)
+    const result = await this.userService.purge(session.user.id, body.confirmEmail)
+
+    // Clear the session cookie to ensure the browser discards any cached session
+    response.clearCookie('better-auth.session_token', { path: '/' })
+
+    return result
   }
 }
