@@ -37,10 +37,10 @@ The tenant ID propagates from the HTTP request through four layers before reachi
 
 ```mermaid
 flowchart TD
-    REQ["HTTP Request"] -- "session.activeOrganizationId" --> TI["TenantInterceptor\n(NestJS global interceptor)"]
-    TI -- "Resolves org to tenant ID (handles parent orgs)\nStores in CLS: cls.set('tenantId', resolvedId)" --> TS["TenantService.query()\n(called by domain services)"]
-    TS -- "Reads from CLS: cls.get('tenantId')\nOpens transaction\nExecutes: SELECT set_config('app.tenant_id', $1, true)" --> RLS["PostgreSQL RLS Policy"]
-    RLS -- "current_setting('app.tenant_id', true)\ncompared to row's tenant_id" --> RESULT["Query results\n(filtered to current tenant only)"]
+    REQ["HTTP Request"] -- "session.activeOrganizationId" --> TI["TenantInterceptor<br/>(NestJS global interceptor)"]
+    TI -- "Resolves org to tenant ID (handles parent orgs)<br/>Stores in CLS: cls.set('tenantId', resolvedId)" --> TS["TenantService.query()<br/>(called by domain services)"]
+    TS -- "Reads from CLS: cls.get('tenantId')<br/>Opens transaction<br/>Executes: SELECT set_config('app.tenant_id', $1, true)" --> RLS["PostgreSQL RLS Policy"]
+    RLS -- "current_setting('app.tenant_id', true)<br/>compared to row's tenant_id" --> RESULT["Query results<br/>(filtered to current tenant only)"]
 ```
 
 ### Step-by-step
@@ -183,10 +183,10 @@ The `TenantModule` is registered globally in `AppModule` and provides three core
 
 ```mermaid
 graph TD
-    TM["TenantModule"] --> TI["TenantInterceptor (APP_INTERCEPTOR)\nextracts tenant from session"]
-    TM --> TS["TenantService\nexecutes tenant-scoped transactions"]
-    TM --> TCF["TenantContextMissingFilter (APP_FILTER)\nhandles missing context"]
-    TM --> DUF["DatabaseUnavailableFilter (APP_FILTER)\nhandles missing DB"]
+    TM["TenantModule"] --> TI["TenantInterceptor (APP_INTERCEPTOR)<br/>extracts tenant from session"]
+    TM --> TS["TenantService<br/>executes tenant-scoped transactions"]
+    TM --> TCF["TenantContextMissingFilter (APP_FILTER)<br/>handles missing context"]
+    TM --> DUF["DatabaseUnavailableFilter (APP_FILTER)<br/>handles missing DB"]
 ```
 
 ### TenantInterceptor

@@ -64,14 +64,14 @@ Authorization is handled by a single `AuthGuard` that runs as a global NestJS gu
 ```mermaid
 flowchart TD
     REQ["Request"] --> GUARD["AuthGuard.canActivate()"]
-    GUARD --> CHECK1{"1. @AllowAnonymous()\n(PUBLIC metadata)?"}
-    CHECK1 -- Yes --> ALLOW1["ALLOW\n(skip all checks)"]
+    GUARD --> CHECK1{"1. @AllowAnonymous()<br/>(PUBLIC metadata)?"}
+    CHECK1 -- Yes --> ALLOW1["ALLOW<br/>(skip all checks)"]
     CHECK1 -- No --> CHECK2{"2. Resolve session"}
     CHECK2 -- "null + @OptionalAuth" --> ALLOW2["ALLOW"]
     CHECK2 -- "null + no decorator" --> DENY1["401 Unauthorized"]
-    CHECK2 -- "session found" --> CHECK3{"3. @Roles check\nuser.role in list?"}
+    CHECK2 -- "session found" --> CHECK3{"3. @Roles check<br/>user.role in list?"}
     CHECK3 -- No --> DENY2["403 Forbidden"]
-    CHECK3 -- Yes --> CHECK4{"4. @RequireOrg check\nactiveOrganizationId?"}
+    CHECK3 -- Yes --> CHECK4{"4. @RequireOrg check<br/>activeOrganizationId?"}
     CHECK4 -- No --> DENY3["403 No active organization"]
     CHECK4 -- Yes --> CHECK5{"5. @Permissions check"}
     CHECK5 -- "no @Permissions decorator" --> ALLOW3["ALLOW"]
@@ -116,13 +116,13 @@ The full request lifecycle from HTTP request to permission evaluation:
 
 ```mermaid
 flowchart TD
-    REQ["Client request\n(with session cookie/token)"] --> GUARD["AuthGuard.canActivate()"]
+    REQ["Client request<br/>(with session cookie/token)"] --> GUARD["AuthGuard.canActivate()"]
     GUARD --> AUTH["AuthService.getSession(request)"]
-    AUTH --> BA["Better Auth:\nvalidate token, return user + session"]
+    AUTH --> BA["Better Auth:<br/>validate token, return user + session"]
     AUTH --> PERM["PermissionService.getPermissions(userId, orgId)"]
-    PERM --> Q1["Query members table:\nfind roleId for (userId, orgId)"]
-    PERM --> Q2["Query role_permissions JOIN permissions:\nget resource:action strings"]
-    Q1 --> RET["Return string[]\ne.g., users:read, members:write"]
+    PERM --> Q1["Query members table:<br/>find roleId for (userId, orgId)"]
+    PERM --> Q2["Query role_permissions JOIN permissions:<br/>get resource:action strings"]
+    Q1 --> RET["Return string[]<br/>e.g., users:read, members:write"]
     Q2 --> RET
     RET --> ATTACH["Attach session + permissions\nto request object"]
     ATTACH --> CHECK["Check @Permissions metadata\nagainst session.permissions"]

@@ -21,11 +21,11 @@ TanStack Start uses **Nitro** as its server runtime. The pipeline:
 ```mermaid
 flowchart TD
     A["Browser Request"] --> B["Nitro (server.ts)"]
-    B --> C["Paraglide middleware\n(locale detection / URL rewriting)"]
+    B --> C["Paraglide middleware<br/>(locale detection / URL rewriting)"]
     C --> D["TanStack Start server entry"]
-    D --> E["Route matching\n(file-based route tree)"]
-    E --> F["beforeLoad guards\n(auth checks, feature flags)"]
-    F --> G["loader() execution\n(data fetching, server functions)"]
+    D --> E["Route matching<br/>(file-based route tree)"]
+    E --> F["beforeLoad guards<br/>(auth checks, feature flags)"]
+    F --> G["loader() execution<br/>(data fetching, server functions)"]
     G --> H["React SSR render"]
     H --> I["HTML Response (streamed)"]
     I --> J["Client Hydration"]
@@ -360,13 +360,13 @@ Documentation is rendered at `/docs/*` using **Fumadocs v16** with TanStack Star
 
 ```mermaid
 flowchart TD
-    A["docs/\n(repo root, MDX files)"] --> B["apps/web/docs\n(symlink to ../../docs)"]
-    B --> C["source.config.ts\n(Fumadocs MDX config, async loading)"]
-    C --> D["fumadocs-mdx/vite\n(Vite plugin, compiles MDX at build)"]
+    A["docs/<br/>(repo root, MDX files)"] --> B["apps/web/docs<br/>(symlink to ../../docs)"]
+    B --> C["source.config.ts<br/>(Fumadocs MDX config, async loading)"]
+    C --> D["fumadocs-mdx/vite<br/>(Vite plugin, compiles MDX at build)"]
     D --> E["Virtual modules"]
-    E --> E1["fumadocs-mdx:collections/server\n(page tree, frontmatter)"]
-    E --> E2["fumadocs-mdx:collections/browser\n(MDX components, TOC)"]
-    E1 --> F["routes/docs/$.tsx\n(catch-all route, renders DocsLayout)"]
+    E --> E1["fumadocs-mdx:collections/server<br/>(page tree, frontmatter)"]
+    E --> E2["fumadocs-mdx:collections/browser<br/>(MDX components, TOC)"]
+    E1 --> F["routes/docs/$.tsx<br/>(catch-all route, renders DocsLayout)"]
     E2 --> F
 ```
 

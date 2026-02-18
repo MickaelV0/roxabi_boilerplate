@@ -122,37 +122,37 @@ bun docs
 flowchart TD
     subgraph BROWSER["Client Browser"]
         direction LR
-        RC["React\nComponents"] <--> TR["TanStack\nRouter"] <--> TQ["TanStack\nQuery"] <--> TF["TanStack\nForm"]
+        RC["React<br/>Components"] <--> TR["TanStack<br/>Router"] <--> TQ["TanStack<br/>Query"] <--> TF["TanStack<br/>Form"]
     end
 
     BROWSER -- "HTTP / SSR" --> WEB
 
     subgraph WEB["Web App (TanStack Start)"]
         direction LR
-        SSR["SSR\nRenderer"] <--> SF["Server\nFunctions"] <--> LA["Loaders\n& Actions"]
-        FD["Fumadocs\n(Docs)"]
+        SSR["SSR<br/>Renderer"] <--> SF["Server<br/>Functions"] <--> LA["Loaders<br/>& Actions"]
+        FD["Fumadocs<br/>(Docs)"]
     end
 
     WEB -- "HTTP (REST)" --> API
 
     subgraph API["API (NestJS + Fastify)"]
         direction LR
-        CTRL["Controllers\n(Routes)"] <--> SVC["Services\n(Logic)"] <--> GP["Guards\n& Pipes"]
-        OA["OpenAPI\nDocs"]
+        CTRL["Controllers<br/>(Routes)"] <--> SVC["Services<br/>(Logic)"] <--> GP["Guards<br/>& Pipes"]
+        OA["OpenAPI<br/>Docs"]
     end
 
     API -- "ORM / Query" --> DB
 
     subgraph DB["Database Layer"]
         direction LR
-        ORM["Drizzle\nORM"] <--> PG["Database\n(Postgres)"]
+        ORM["Drizzle<br/>ORM"] <--> PG["Database<br/>(Postgres)"]
     end
 
     subgraph PKG["Shared Packages (@repo/*)"]
         direction LR
-        UI["@repo/ui\nComponents"]
-        CFG["@repo/config\nSettings"]
-        TYPES["@repo/types\nDTOs"]
+        UI["@repo/ui<br/>Components"]
+        CFG["@repo/config<br/>Settings"]
+        TYPES["@repo/types<br/>DTOs"]
     end
 ```
 
@@ -188,11 +188,11 @@ Production uses **Vercel** for both web and API with automatic deploys from GitH
 
 ```mermaid
 flowchart TD
-    DEV["Developer\nPush/Merge"] --> GH["GitHub\n(main)"]
-    GH --> VW["Vercel (Web)\nTanStack Start SSR"]
-    GH --> VA["Vercel (API)\nNestJS + Fastify"]
+    DEV["Developer<br/>Push/Merge"] --> GH["GitHub<br/>(main)"]
+    GH --> VW["Vercel (Web)<br/>TanStack Start SSR"]
+    GH --> VA["Vercel (API)<br/>NestJS + Fastify"]
     VW --> VA
-    VA --> NEON["Neon\n(PostgreSQL)"]
+    VA --> NEON["Neon<br/>(PostgreSQL)"]
 ```
 
 Key decisions:

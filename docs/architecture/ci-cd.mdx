@@ -11,20 +11,20 @@ Roxabi uses a **three-layer quality pipeline** to catch issues at progressively 
 flowchart LR
     subgraph DEV["Developer Workstation"]
         direction TB
-        PC["pre-commit\n- Biome check"]
-        CM["commit-msg\n- Commitlint"]
-        PP["pre-push\n- Lint\n- Typecheck\n- Test+Coverage"]
+        PC["pre-commit<br/>- Biome check"]
+        CM["commit-msg<br/>- Commitlint"]
+        PP["pre-push<br/>- Lint<br/>- Typecheck<br/>- Test+Coverage"]
     end
 
     subgraph GH["GitHub"]
         direction TB
-        CI["CI Workflow\n- Lint\n- Type Check\n- Test+Coverage\n- Build\n- E2E (cond.)"]
+        CI["CI Workflow<br/>- Lint<br/>- Type Check<br/>- Test+Coverage<br/>- Build<br/>- E2E (cond.)"]
     end
 
     subgraph VC["Vercel"]
         direction TB
-        AD["Auto-deploy (main only)\n- Web (SSR)\n- API (NestJS)"]
-        DP["Deploy Preview\n(manual trigger)"]
+        AD["Auto-deploy (main only)<br/>- Web (SSR)<br/>- API (NestJS)"]
+        DP["Deploy Preview<br/>(manual trigger)"]
     end
 
     DEV --> GH --> VC
@@ -352,14 +352,14 @@ flowchart TD
     M["Merge to main"] --> W["Vercel (Web)"]
     M --> A["Vercel (API)"]
 
-    W --> W1["1. ignoreCommand check\n(is this main? did @repo/web change?)"]
+    W --> W1["1. ignoreCommand check<br/>(is this main? did @repo/web change?)"]
     W1 --> W2["2. bun install"]
     W2 --> W3["3. turbo run build"]
     W3 --> W4["4. Deploy SSR app"]
 
-    A --> A1["1. ignoreCommand check\n(is this main? did @repo/api change?)"]
+    A --> A1["1. ignoreCommand check<br/>(is this main? did @repo/api change?)"]
     A1 --> A2["2. bun install"]
-    A2 --> A3["3. bun run db:migrate\n(Drizzle applies pending migrations)"]
+    A2 --> A3["3. bun run db:migrate<br/>(Drizzle applies pending migrations)"]
     A3 --> A4["4. turbo run build"]
     A4 --> A5["5. Deploy NestJS function"]
 ```

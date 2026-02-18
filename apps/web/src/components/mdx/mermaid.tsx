@@ -43,7 +43,11 @@ async function renderMermaidChart(
 
     const { svg } = await mermaid.render(containerId, chart)
     const DOMPurify = (await import('dompurify')).default
-    const cleanSvg = DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true, svgFilters: true } })
+    const cleanSvg = DOMPurify.sanitize(svg, {
+      USE_PROFILES: { svg: true, svgFilters: true, html: true },
+      ADD_TAGS: ['foreignObject'],
+      HTML_INTEGRATION_POINTS: { foreignobject: true },
+    })
     return { success: true, svg: cleanSvg }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to render Mermaid diagram'

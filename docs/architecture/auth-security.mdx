@@ -14,28 +14,28 @@ The architecture follows two core principles:
 
 ```mermaid
 flowchart TD
-    CLIENT["Client Browser\n(Better Auth SDK)"] -- "Cookie-based sessions" --> APILAYER
+    CLIENT["Client Browser<br/>(Better Auth SDK)"] -- "Cookie-based sessions" --> APILAYER
 
     subgraph APILAYER["NestJS + Fastify API"]
         direction TB
 
         subgraph MIDDLEWARE["Security Middleware"]
             direction LR
-            HELMET["Helmet\n(CSP, HSTS, headers)"]
-            CORS["CORS\n(origin allow)"]
-            RATE["Rate Limiter\n(Upstash)"]
-            GUARD["Auth Guard\n(global, deny-by-default)"]
+            HELMET["Helmet<br/>(CSP, HSTS, headers)"]
+            CORS["CORS<br/>(origin allow)"]
+            RATE["Rate Limiter<br/>(Upstash)"]
+            GUARD["Auth Guard<br/>(global, deny-by-default)"]
         end
 
         GUARD --> AUTHSVC
 
         subgraph AUTHSVC["AuthService"]
             direction LR
-            BA["Better Auth Instance\n(auth.instance)"]
-            PERM["Permission Service\n(RBAC)"]
+            BA["Better Auth Instance<br/>(auth.instance)"]
+            PERM["Permission Service<br/>(RBAC)"]
         end
 
-        BA -- "Drizzle adapter" --> PG["PostgreSQL\n(auth tables)"]
+        BA -- "Drizzle adapter" --> PG["PostgreSQL<br/>(auth tables)"]
     end
 ```
 
@@ -129,18 +129,18 @@ The `AuthGuard` is registered globally via `APP_GUARD` in `AuthModule`. It evalu
 
 ```mermaid
 flowchart TD
-    REQ["Request arrives"] --> C1{"1. @AllowAnonymous()\n(PUBLIC metadata)?"}
+    REQ["Request arrives"] --> C1{"1. @AllowAnonymous()<br/>(PUBLIC metadata)?"}
     C1 -- Yes --> ALLOW1["ALLOW immediately"]
-    C1 -- No --> C2["2. Fetch session via\nAuthService.getSession()"]
-    C2 --> C3{"3. @OptionalAuth()\n(OPTIONAL_AUTH metadata)?"}
+    C1 -- No --> C2["2. Fetch session via<br/>AuthService.getSession()"]
+    C2 --> C3{"3. @OptionalAuth()<br/>(OPTIONAL_AUTH metadata)?"}
     C3 -- "No session + optional" --> ALLOW2["ALLOW (session = null)"]
     C3 -- "Continue" --> C4{"4. No session?"}
     C4 -- Yes --> DENY1["401 Unauthorized"]
-    C4 -- "Session exists" --> C5{"5. @Roles(...)\n(ROLES metadata)?"}
+    C4 -- "Session exists" --> C5{"5. @Roles(...)<br/>(ROLES metadata)?"}
     C5 -- "Role not in list" --> DENY2["403 Forbidden"]
-    C5 -- Pass --> C6{"6. @RequireOrg()\n(REQUIRE_ORG metadata)?"}
+    C5 -- Pass --> C6{"6. @RequireOrg()<br/>(REQUIRE_ORG metadata)?"}
     C6 -- "No activeOrganizationId" --> DENY3["403 No active organization"]
-    C6 -- Pass --> C7{"7. @Permissions(...)\n(PERMISSIONS metadata)?"}
+    C6 -- Pass --> C7{"7. @Permissions(...)<br/>(PERMISSIONS metadata)?"}
     C7 -- "No activeOrganizationId" --> DENY4["403 No active organization"]
     C7 -- "Superadmin" --> ALLOW3["ALLOW (bypass)"]
     C7 -- "Missing permission" --> DENY5["403 Insufficient permissions"]
