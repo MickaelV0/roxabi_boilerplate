@@ -75,6 +75,7 @@ export function createBetterAuth(
       },
     },
     emailVerification: {
+      sendOnSignIn: true,
       async sendVerificationEmail({ user, url }) {
         await emailProvider.send({
           to: user.email,

@@ -84,7 +84,11 @@ function LoginPage() {
         rememberMe,
       })
       if (signInError) {
-        setError(m.auth_login_invalid_credentials())
+        if (signInError.status === 403) {
+          setError(m.auth_login_email_not_verified())
+        } else {
+          setError(m.auth_login_invalid_credentials())
+        }
       } else {
         toast.success(m.auth_toast_signed_in())
         const redirect = await checkSoftDeletedAccount()

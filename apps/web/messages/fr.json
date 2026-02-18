@@ -577,6 +577,7 @@
   "auth_tab_magic_link": "Lien magique",
   "auth_email_invalid": "Veuillez entrer une adresse email valide",
   "auth_login_invalid_credentials": "Email ou mot de passe invalide",
+  "auth_login_email_not_verified": "Veuillez vérifier votre adresse email. Un nouvel email de vérification a été envoyé.",
   "auth_register_unable": "Impossible de créer le compte. Veuillez réessayer.",
   "auth_register_email_exists": "Un compte avec cet email existe déjà. Veuillez vous connecter.",
   "auth_reset_password_sent": "Si un compte existe avec cet email, vous recevrez un lien de réinitialisation.",

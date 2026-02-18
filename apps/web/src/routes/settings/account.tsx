@@ -411,8 +411,7 @@ function DeleteAccountSection() {
       }
 
       setDeleteOpen(false)
-      await authClient.signOut()
-      navigate({ to: '/account-deleted' })
+      navigate({ to: '/account-reactivation' })
     } catch {
       toast.error('Failed to delete account')
     } finally {
