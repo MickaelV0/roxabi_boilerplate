@@ -59,13 +59,7 @@ Use `Glob` and `Grep` to find existing feature modules as reference patterns.
 
 #### 2b. Determine Tier
 
-| Tier | Criteria | Process |
-|------|----------|---------|
-| **S** | <=3 files, no arch, no risk | Single session implements |
-| **F-lite** | Clear scope, documented requirements, single domain | Agents + /review |
-| **F-full** | New arch concepts, unclear requirements, or >2 domain boundaries | Agents + /review |
-
-Tier is judgment-based, not file-count-based. A 50-file mechanical change may be F-lite, while a 3-file rate limiter with design decisions may be F-full.
+Classify as S / F-lite / F-full per [dev-process.mdx](docs/processes/dev-process.mdx). Judgment-based, not file-count-based.
 
 #### 2c. Determine Agents
 

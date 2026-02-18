@@ -231,6 +231,7 @@ interface PR {
   additions: number
   deletions: number
   reviewDecision: string
+  labels: string[]
 }
 
 interface Branch {
@@ -261,7 +262,7 @@ async function fetchPRs(): Promise<PR[]> {
       '--state',
       'open',
       '--json',
-      'number,title,headRefName,state,isDraft,url,author,updatedAt,additions,deletions,reviewDecision',
+      'number,title,headRefName,state,isDraft,url,author,updatedAt,additions,deletions,reviewDecision,labels',
     ])
     if (!out) return []
     return JSON.parse(out).map((pr: Record<string, unknown>) => ({
@@ -276,6 +277,7 @@ async function fetchPRs(): Promise<PR[]> {
       additions: pr.additions ?? 0,
       deletions: pr.deletions ?? 0,
       reviewDecision: pr.reviewDecision ?? '',
+      labels: ((pr.labels as { name: string }[]) ?? []).map((l) => l.name),
     }))
   } catch {
     return []
@@ -642,14 +644,16 @@ function getPRDisplay(pr: PR): { label: string; cssClass: string } {
   if (pr.isDraft) return { label: 'Draft', cssClass: 'status-backlog' }
   if (pr.reviewDecision === 'APPROVED') return { label: 'Approved', cssClass: 'status-done' }
   if (pr.reviewDecision === 'CHANGES_REQUESTED') return { label: 'Changes', cssClass: 'pri-p1' }
-  return { label: 'Open', cssClass: 'status-progress' }
+  if (pr.labels.some((l) => l.toLowerCase() === 'reviewed'))
+    return { label: 'Reviewed', cssClass: 'status-review' }
+  return { label: 'Review', cssClass: 'status-progress' }
 }
 
 function renderPRs(prs: PR[]): string {
   if (prs.length === 0) return '<p class="empty-state">No open pull requests</p>'
 
   let html = `<table class="sub-table"><thead><tr>
-    <th>#</th><th>Title</th><th>Branch</th><th>Status</th><th>Changes</th><th>Updated</th>
+    <th>#</th><th>Title</th><th>Status</th><th>Changes</th><th>Updated</th>
   </tr></thead><tbody>`
 
   for (const pr of prs) {
@@ -657,8 +661,10 @@ function renderPRs(prs: PR[]): string {
     const age = timeAgo(pr.updatedAt)
     html += `<tr>
       <td><a href="${escHtml(pr.url)}" target="_blank" rel="noopener">#${pr.number}</a></td>
-      <td>${escHtml(pr.title)}</td>
-      <td><code>${escHtml(pr.branch)}</code></td>
+      <td class="col-pr-title" title="${escHtml(pr.title)}">
+        ${escHtml(pr.title)}
+        <div class="pr-branch"><span class="tree-prefix">\u2514</span><code>${escHtml(pr.branch)}</code></div>
+      </td>
       <td><span class="badge ${statusClass}">${statusLabel}</span></td>
       <td class="changes"><span class="additions">+${pr.additions}</span> <span class="deletions">-${pr.deletions}</span></td>
       <td class="text-muted">${age}</td>
@@ -942,6 +948,8 @@ function buildHtml(
   .sub-table a { color: var(--accent); text-decoration: none; }
   .sub-table a:hover { text-decoration: underline; }
   .sub-table code { font-size: 12px; color: var(--text-muted); background: var(--surface); padding: 1px 6px; border-radius: 4px; }
+  .pr-branch { margin-top: 2px; font-size: 12px; color: var(--text-muted); }
+  .sub-table .col-pr-title { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   .changes { font-family: monospace; font-size: 12px; }
   .additions { color: var(--green); }

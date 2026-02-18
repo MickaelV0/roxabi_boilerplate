@@ -7,7 +7,7 @@
 - **All code changes** require a worktree — `git worktree add ../roxabi-XXX -b feat/XXX-slug staging`
 - **Always** use `AskUserQuestion` for multiple-choice questions — never ask in plain text
 - **Never** commit without asking, push without explicit request, or use `--force`/`--hard`/`--amend`
-- **Always** use the appropriate skill (see [Available Skills](#available-skills)) even without a slash command
+- **Always** use the appropriate skill (see [Skills & Agents](#skills--agents)) even without a slash command
 - **Before writing code:** Read the relevant standards doc (see [Rule 8](#8-coding-standards-critical))
 - **Orchestrator** delegates all code/docs/deploy changes to agents — only minor fixes directly
 
@@ -17,7 +17,7 @@
 
 Roxabi Boilerplate - SaaS framework with integrated AI team.
 
-For project vision, principles, and roadmap: see [docs/vision.mdx](docs/vision.mdx).
+Vision, principles, roadmap → [docs/vision.mdx](docs/vision.mdx).
 
 ### Tech Stack
 
@@ -38,7 +38,7 @@ cp .env.example .env && bun install      # first-time setup
 bun run dev                               # start all apps (web :3000, API :4000)
 ```
 
-For full environment and configuration details: see [docs/configuration.mdx](docs/configuration.mdx).
+Full config → [docs/configuration.mdx](docs/configuration.mdx).
 
 ### Monorepo Structure
 
@@ -91,67 +91,55 @@ packages/
 
 **BEFORE ANY SPEC, CODE CHANGE, OR PR REVIEW: MUST read [dev-process.mdx](docs/processes/dev-process.mdx) in full.**
 
-This applies to ALL development work: specs, features, bug fixes, refactoring, docs, tests, PR reviews. **NO EXCEPTIONS.**
+Applies to ALL work: specs, features, fixes, refactoring, docs, tests, reviews. **No exceptions.**
 
 **Tier determination (judgment-based):**
 
 | Tier | Name | Criteria | Process |
 |------|------|----------|---------|
 | **S** | Quick Fix | <=3 files, no arch, no risk | Worktree + PR |
-| **F-lite** | Feature (lite) | Clear scope, documented requirements, single domain | Worktree + agents + /review (skip bootstrap) |
-| **F-full** | Feature (full) | New arch concepts, unclear requirements, or >2 domain boundaries | Bootstrap + worktree + agents + /review |
+| **F-lite** | Feature (lite) | Clear scope, documented reqs, single domain | Worktree + agents + /review (skip bootstrap) |
+| **F-full** | Feature (full) | New arch, unclear reqs, or >2 domains | Bootstrap + worktree + agents + /review |
 
 ---
 
 ### 2. AskUserQuestion (CRITICAL)
 
-**ALWAYS use the `AskUserQuestion` tool when:**
+**ALWAYS use `AskUserQuestion` for:** decisions, multiple-choice (≥2 options), approach proposals, preference questions.
 
-1. Asking multiple-choice questions (2+ options)
-2. Requesting a decision or validation
-3. Proposing multiple approaches/solutions
-4. Asking for preferences or priorities
-
-**FORBIDDEN: Asking multiple-choice questions in plain text**
-
-If you find yourself writing "Do you want me to...", "Should I...", "Do you prefer..." or any question with choices, **STOP** and use `AskUserQuestion` immediately.
+**FORBIDDEN: plain-text questions with choices.** Writing "Do you want...", "Should I...", "Do you prefer..." → **STOP** and use `AskUserQuestion`.
 
 ---
 
 ### 3. Orchestrator Delegation (CRITICAL)
 
-**The orchestrator (main Claude session) must NOT directly modify code or documentation files.** Delegate all changes to the appropriate specialized agent:
+**Orchestrator must NOT modify code/docs directly.** Delegate:
 
-- **Frontend code** → `frontend-dev`
-- **Backend code** → `backend-dev`
-- **Configuration / infra / deployment** → `devops`
-- **Documentation** → `doc-writer`
-- **Tests** → `tester`
-- **Review fixes** → `fixer`
+Frontend → `frontend-dev` | Backend → `backend-dev` | Config/infra/deploy → `devops`
+Docs → `doc-writer` | Tests → `tester` | Review fixes → `fixer`
 
-**Exception:** Truly minor changes (typo fix, single-line config tweak) may be done directly by the orchestrator when spawning an agent would be disproportionate overhead. Use judgment — if in doubt, delegate.
-
-**Deployment tasks** (preview deploys, production deploys, env var management) **MUST be handled by the `devops` agent**, never by the orchestrator directly.
+**Exception:** truly minor changes (typo, single-line tweak) — if in doubt, delegate.
+**Deployment** → `devops` only, never orchestrator.
 
 ---
 
 ### 4. Parallel Execution for Large Tasks
 
-When detecting a large workload (3+ complex tasks, migrations, or multi-component implementations), **ALWAYS propose execution mode** using `AskUserQuestion`:
-- **Sequential**: One task at a time, better control
-- **Parallel (Recommended)**: Multiple sub-agents, much faster
+≥3 complex tasks → **propose execution mode** via `AskUserQuestion`:
+- **Sequential**: one at a time, better control
+- **Parallel (Recommended)**: multiple sub-agents, faster
 
 ---
 
 ### 5. Git Commits
 
-- **ALWAYS ask before committing** unless explicitly requested
-- Format: `<type>(<scope>): <description>` with `Co-Authored-By: Claude <model> <noreply@anthropic.com>`
-- Types: `feat:`, `fix:`, `refactor:`, `docs:`, `style:`, `test:`, `chore:`, `ci:`, `perf:`
-- **NEVER push without explicit request**
-- **NEVER use** `--force`, `--hard`, `--amend` (unless explicitly requested)
-- If pre-commit hook fails: fix and create a NEW commit (never amend)
-- For full Conventional Commits spec: MUST read [docs/contributing.mdx](docs/contributing.mdx)
+- Ask before committing unless explicitly requested
+- Format: `<type>(<scope>): <description>` + `Co-Authored-By: Claude <model> <noreply@anthropic.com>`
+- Types: `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`, `ci`, `perf`
+- NEVER push without explicit request
+- NEVER use `--force`, `--hard`, `--amend` (unless explicitly requested)
+- Pre-commit hook fails → fix + NEW commit (never amend)
+- Full spec → [docs/contributing.mdx](docs/contributing.mdx)
 
 ---
 
@@ -168,11 +156,11 @@ cd apps/api && bun run db:branch:create --force XXX
 
 > XXX = GitHub issue number (e.g., 123), slug = short description
 
-**XS exception:** For Size XS changes (single file, &lt;1h, zero risk), use `AskUserQuestion` to confirm with the lead. If approved, a direct branch from staging is acceptable without worktree.
+**XS exception:** single file, <1h, zero risk → confirm via `AskUserQuestion`. If approved, direct branch OK.
 
-**Bootstrap exception:** `/bootstrap` commits analysis and spec documents (`analyses/`, `specs/`) directly to staging. These are documentation artifacts, not code changes, and are produced before scaffold creates a worktree.
+**Bootstrap exception:** `/bootstrap` commits analyses/specs to staging (doc artifacts, not code).
 
-**Promote exception:** `/promote` commits changelog and release notes (`CHANGELOG.md`, `docs/changelog/`) directly to staging before creating the staging→main promotion PR. These are release artifacts, not code changes.
+**Promote exception:** `/promote` commits changelog/release notes to staging (release artifacts, not code).
 
 **FORBIDDEN: Modifying code files on main/staging without a worktree.**
 
@@ -182,79 +170,52 @@ cd apps/api && bun run db:branch:create --force XXX
 
 **When reviewing PRs or code: MUST read [docs/standards/code-review.mdx](docs/standards/code-review.mdx).**
 
-- Use **Conventional Comments** format for all review comments
-- Follow the review checklist
-- Block only for: security issues, correctness bugs, or documented standard violations
+- Use **Conventional Comments** format
+- Block only for: security, correctness bugs, standard violations
 
 ---
 
 ### 8. Coding Standards (CRITICAL)
 
-**When writing or modifying code: MUST read the relevant standards doc.**
+**Writing code → read relevant standards:**
 
 | Context | MUST read |
 |---------|-----------|
 | React / TanStack components | [docs/standards/frontend-patterns.mdx](docs/standards/frontend-patterns.mdx) |
 | NestJS / API code | [docs/standards/backend-patterns.mdx](docs/standards/backend-patterns.mdx) |
-| Writing or modifying tests | [docs/standards/testing.mdx](docs/standards/testing.mdx) |
-| Creating or editing documentation | [docs/contributing.mdx](docs/contributing.mdx) |
-| Managing issues or blockers | [docs/processes/issue-management.mdx](docs/processes/issue-management.mdx) |
+| Tests | [docs/standards/testing.mdx](docs/standards/testing.mdx) |
+| Documentation | [docs/contributing.mdx](docs/contributing.mdx) |
+| Issues / blockers | [docs/processes/issue-management.mdx](docs/processes/issue-management.mdx) |
 
 ---
 
-## Available Skills
+## Skills & Agents
 
-| Trigger | Skill | Examples |
-|---------|-------|----------|
-| issues, list issues | `issues` | "list GitHub issues", "/issues" |
-| issue triage, create issue, parent/child, blocked by | `issue-triage` | "triage issues", "create issue", "set parent", "add child", "blocked by" |
-| interview, spec, brainstorm, analysis | `interview` | "create a spec", "interview for feature", "brainstorm ideas" |
-| cleanup, git cleanup | `cleanup` | "clean branches", "cleanup worktrees", "/cleanup" |
-| commit, stage, git commit | `commit` | "commit changes", "commit staged files", "/commit --all" |
-| pull request, PR, create PR | `pr` | "create a PR", "open pull request", "/pr --draft" |
-| review, code review | `review` | "review my changes", "review PR #42", "/review" |
-| test, generate tests | `test` | "write tests", "test this file", "/test --e2e" |
-| bootstrap, plan feature, start feature | `bootstrap` | "bootstrap avatar upload", "/bootstrap --issue 42" |
-| scaffold, execute feature, implement | `scaffold` | "scaffold from spec", "/scaffold --spec 42", "/scaffold --issue 42" |
-| 1b1, one by one, walk through | `1b1` | "go through these one by one", "/1b1" |
-| adr, architecture decision | `adr` | "create an ADR", "list ADRs", "/adr --list" |
-| browser, open website, screenshot | `agent-browser` | "open a website", "take a screenshot", "/agent-browser" |
-| documentation, library docs, lookup | `context7` (plugin) | "look up React docs", "check API reference", "/context7" |
-| promote, release, staging to main, finalize | `promote` | "promote staging", "release to production", "/promote", "/promote --finalize" |
-| frontend design, build UI, create page | `frontend-design` | "design a landing page", "build this component", "/frontend-design" |
-| retro, session intelligence, analyze sessions | `retro` | "analyze sessions", "search findings", "/retro --recap" |
+- **Skills:** ALWAYS use appropriate skill even without slash command. Details → `.claude/skills/*/SKILL.md`.
+- **Agents:** Rules → [AGENTS.md](AGENTS.md). Definitions → `.claude/agents/*.md`. Guide → [docs/guides/agent-teams.mdx](docs/guides/agent-teams.mdx).
 
-**Important notes:**
-- ALWAYS use the appropriate skill even if user doesn't explicitly mention the slash command
-- Full details: each skill's `SKILL.md` in `.claude/skills/`
+### Shared Agent Rules (all agents)
 
----
-
-## Agent Teams
-
-Multi-agent coordination for Tier F-lite/F-full features. Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
-
-| Tier | Agents | Role |
-|------|--------|------|
-| **Domain** | `frontend-dev`, `backend-dev`, `devops` | Write code in their packages |
-| **Quality** | `fixer`, `tester`, `security-auditor` | Fix, test, audit |
-| **Strategy** | `architect`, `product-lead`, `doc-writer` | Plan, analyze, document |
-
-**Routing**: See the [Routing Decision Tree](#critical-rules) in the dev process, or the full [Agent Teams Guide](docs/guides/agent-teams.mdx).
-
-Agent definitions: `.claude/agents/*.md` | Coordination rules: [AGENTS.md](AGENTS.md)
+- **NEVER commit or push** — the lead handles all git operations
+- **NEVER use** `--force`, `--hard`, or `--amend`
+- **Stage specific files** — never `git add -A` or `git add .`
+- **Escalate blockers** — message the lead with a clear description
+- **Claim tasks** from the shared task list matching your domain, mark complete when done
+- **Create follow-up tasks** for cross-domain needs or next-stage work
+- **Security concerns** — message the lead + security-auditor immediately
+- **Message the lead** when all assigned work is complete
 
 ---
 
 ## Gotchas
 
-- **`bun test` ≠ `bun run test`**: Bare `bun test` invokes Bun's built-in test runner, causing infinite CPU spin. Always use `bun run test` (which runs Vitest). A PreToolUse hook blocks this, but know why.
-- **`turbo.jsonc`** not `turbo.json`: TurboRepo config uses JSONC (with comments). Tools expecting `.json` will miss it.
-- **`useImportType: off` for `apps/api/`**: NestJS requires runtime imports for dependency injection. Biome override disables this rule for the API package only.
-- **Node >=24 required**: Set in `package.json` engines. Bun 1.3.9 is the package manager.
-- **Orphaned dev ports**: After Ctrl+C, Nitro/Vite may leave zombie processes. Run `bun run dev:clean` to kill ports 42069/4000/3000.
-- **DB branches for worktrees**: Each worktree gets its own Postgres schema via `bun run db:branch:create --force XXX` to avoid cross-contamination.
-- **Paraglide i18n codegen**: `apps/web` uses `@inlang/paraglide-js`. Translations are compiled during the `codegen` TurboRepo task — generated files in `src/paraglide/` are gitignored.
+- **`bun test` ≠ `bun run test`**: `bun test` → Bun's built-in runner (infinite CPU spin). Use `bun run test` (Vitest). Hook blocks it, but know why.
+- **`turbo.jsonc`** not `turbo.json`: JSONC with comments. Tools expecting `.json` miss it.
+- **`useImportType: off` for `apps/api/`**: NestJS needs runtime imports for DI. Biome override disables for API only.
+- **Node ≥24**: Set in `package.json` engines. Bun 1.3.9 = package manager.
+- **Orphaned dev ports**: Ctrl+C may leave zombies. `bun run dev:clean` kills ports 42069/4000/3000.
+- **DB branches**: Each worktree → own Postgres schema via `db:branch:create --force XXX`.
+- **Paraglide i18n**: Translations compiled during `codegen` task — `src/paraglide/` is gitignored.
 
 ---
 
@@ -282,7 +243,7 @@ Agent definitions: `.claude/agents/*.md` | Coordination rules: [AGENTS.md](AGENT
 
 ### Deployment
 
-Both apps deploy to **Vercel** automatically on push to `main`. Preview deploys are triggered by pushing to `staging` via the GitHub CD pipeline. See [docs/guides/deployment.mdx](docs/guides/deployment.mdx) for full setup.
+Push `main` → Vercel production. Push `staging` → preview deploy via CD. Details → [docs/guides/deployment.mdx](docs/guides/deployment.mdx).
 
 | Project | Root Directory | Framework |
 |---------|---------------|-----------|
