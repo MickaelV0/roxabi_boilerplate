@@ -138,8 +138,8 @@ function ProfileSettingsPage() {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          firstName,
-          lastName,
+          firstName: firstName || undefined,
+          lastName: lastName || undefined,
           fullName,
           avatarSeed: avatarSeed || undefined,
           avatarStyle,
