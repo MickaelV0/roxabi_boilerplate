@@ -154,13 +154,14 @@ function ProfileSettingsPage() {
         return
       }
 
-      // Always show success first, then attempt session refresh
-      toast.success(m.avatar_save_success())
+      // Update Better Auth session so navbar avatar reflects the change immediately.
+      // updateUser triggers $sessionSignal which makes useSession() refetch.
       try {
-        await authClient.getSession({ fetchOptions: { cache: 'no-cache' } })
+        await authClient.updateUser({ image: cdnUrl })
       } catch {
-        // Session refresh failed silently -- avatar updates on next page load
+        // Session update failed — avatar will update on next page load
       }
+      toast.success(m.avatar_save_success())
     } catch {
       toast.error(m.avatar_save_error())
     } finally {
