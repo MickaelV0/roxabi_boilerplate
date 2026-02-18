@@ -27,13 +27,12 @@ import { toast } from 'sonner'
 import { PrivacyDataSection } from '@/components/settings/PrivacyDataSection'
 import { deleteAccount, fetchOrganizations } from '@/lib/api'
 import { authClient, useSession } from '@/lib/auth-client'
-import { parseErrorMessage } from '@/lib/error-utils'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/settings/account')({
   component: AccountSettingsPage,
   head: () => ({
-    meta: [{ title: m.account_head_title() }],
+    meta: [{ title: m.account_head_title({ appName: 'Roxabi' }) }],
   }),
 })
 
@@ -79,7 +78,8 @@ function EmailChangeSection() {
     try {
       const { error } = await authClient.changeEmail({ newEmail })
       if (error) {
-        toast.error(error.message ?? m.account_email_change_error())
+        console.error('Email change error:', error.message)
+        toast.error(m.account_email_change_error())
       } else {
         toast.success(m.account_email_change_success({ email: newEmail }))
         setNewEmail('')
@@ -139,7 +139,8 @@ function PasswordChangeSection() {
         newPassword,
       })
       if (error) {
-        toast.error(error.message ?? m.account_password_update_error())
+        console.error('Password change error:', error.message)
+        toast.error(m.account_password_update_error())
       } else {
         toast.success(m.account_password_update_success())
         setCurrentPassword('')
@@ -235,7 +236,7 @@ function OrgResolutionStep({
         const action = resolution?.action ?? 'delete'
         const currentTransferUserId =
           resolution?.action === 'transfer' ? resolution.transferToUserId : ''
-        const eligibleMembers = org.members.filter((m) => m.role !== 'owner')
+        const eligibleMembers = org.members.filter((member) => member.role !== 'owner')
 
         return (
           <Card key={org.id}>
@@ -244,6 +245,7 @@ function OrgResolutionStep({
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">{org.name}</p>
+                    {/* Two keys required: @inlang/plugin-message-format flat JSON does not support ICU plural syntax */}
                     <p className="text-sm text-muted-foreground">
                       {org.memberCount === 1
                         ? m.account_org_member_count({ count: org.memberCount })
@@ -335,7 +337,7 @@ function DeleteAccountSection() {
         if (!fullOrg) continue
 
         const userMember = fullOrg.members.find(
-          (m: { userId: string; role: string }) => m.userId === session?.user?.id
+          (member: { userId: string; role: string }) => member.userId === session?.user?.id
         )
         if (userMember && userMember.role === 'owner') {
           owned.push({
@@ -343,11 +345,16 @@ function DeleteAccountSection() {
             name: org.name,
             memberCount: fullOrg.members.length,
             members: fullOrg.members.map(
-              (m: { id: string; userId: string; role: string; user: { name: string | null } }) => ({
-                id: m.id,
-                userId: m.userId,
-                name: m.user.name ?? 'Unknown',
-                role: m.role,
+              (member: {
+                id: string
+                userId: string
+                role: string
+                user: { name: string | null }
+              }) => ({
+                id: member.id,
+                userId: member.userId,
+                name: member.user.name ?? m.account_org_member_unknown(),
+                role: member.role,
               })
             ),
           })
@@ -397,7 +404,8 @@ function DeleteAccountSection() {
 
       if (!res.ok) {
         const data: unknown = await res.json().catch(() => null)
-        toast.error(parseErrorMessage(data, m.account_delete_error()))
+        console.error('Delete account error:', data)
+        toast.error(m.account_delete_error())
         return
       }
 

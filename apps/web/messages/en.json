@@ -1021,6 +1021,7 @@
   "avatar_save_error": "Failed to update profile",
 
   "settings_title": "Settings",
+  "settings_nav_label": "Settings",
   "settings_tab_profile": "Profile",
   "settings_tab_account": "Account",
 
@@ -1054,6 +1055,7 @@
   "account_org_transfer": "Transfer ownership",
   "account_org_delete": "Delete organization",
   "account_org_select_member": "Select a member",
+  "account_org_member_unknown": "Unknown",
 
-  "account_head_title": "Account Settings | Roxabi"
+  "account_head_title": "Account Settings | {appName}"
 }

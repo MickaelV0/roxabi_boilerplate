@@ -1021,6 +1021,7 @@
   "avatar_save_error": "\u00c9chec de la mise \u00e0 jour du profil",
 
   "settings_title": "Param\u00e8tres",
+  "settings_nav_label": "Param\u00e8tres",
   "settings_tab_profile": "Profil",
   "settings_tab_account": "Compte",
 
@@ -1054,6 +1055,7 @@
   "account_org_transfer": "Transf\u00e9rer la propri\u00e9t\u00e9",
   "account_org_delete": "Supprimer l'organisation",
   "account_org_select_member": "S\u00e9lectionner un membre",
+  "account_org_member_unknown": "Inconnu",
 
-  "account_head_title": "Param\u00e8tres du compte | Roxabi"
+  "account_head_title": "Param\u00e8tres du compte | {appName}"
 }
