@@ -94,6 +94,22 @@ export function createBetterAuth(
     },
     plugins: [
       organization({
+        schema: {
+          organization: {
+            additionalFields: {
+              deletedAt: {
+                type: 'date',
+                required: false,
+                input: false,
+              },
+              deleteScheduledFor: {
+                type: 'date',
+                required: false,
+                input: false,
+              },
+            },
+          },
+        },
         organizationHooks: onOrganizationCreated
           ? {
               afterCreateOrganization: async ({ organization: org, member }) => {

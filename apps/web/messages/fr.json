@@ -578,6 +578,7 @@
   "auth_email_invalid": "Veuillez entrer une adresse email valide",
   "auth_login_invalid_credentials": "Email ou mot de passe invalide",
   "auth_register_unable": "Impossible de créer le compte. Veuillez réessayer.",
+  "auth_register_email_exists": "Un compte avec cet email existe déjà. Veuillez vous connecter.",
   "auth_reset_password_sent": "Si un compte existe avec cet email, vous recevrez un lien de réinitialisation.",
   "auth_resend_reset_in": "Renvoyer dans {seconds}s...",
   "auth_open_email_provider": "Ouvrir {provider}",

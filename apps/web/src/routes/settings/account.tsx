@@ -324,8 +324,9 @@ function DeleteAccountSection() {
 
   async function fetchOwnedOrgs(): Promise<OwnedOrg[]> {
     try {
-      const { data: orgsData } = await authClient.organization.list()
-      if (!orgsData) return []
+      const res = await fetch('/api/organizations', { credentials: 'include' })
+      const orgsData: Array<{ id: string; name: string }> = res.ok ? await res.json() : []
+      if (orgsData.length === 0) return []
 
       const owned: OwnedOrg[] = []
       for (const org of orgsData) {
@@ -376,7 +377,7 @@ function DeleteAccountSection() {
     setLoadingOrgs(false)
   }
 
-  function handleOrgStepComplete() {
+  async function handleOrgStepComplete() {
     // Validate all transfer resolutions have a target member
     const allResolved = resolutions.every(
       (r) => r.action === 'delete' || (r.action === 'transfer' && r.transferToUserId)
@@ -386,7 +387,8 @@ function DeleteAccountSection() {
       return
     }
     setShowOrgStep(false)
-    setDeleteOpen(true)
+    // Email was already confirmed in the org step — proceed directly to deletion
+    await handleConfirmDelete()
   }
 
   async function handleConfirmDelete() {

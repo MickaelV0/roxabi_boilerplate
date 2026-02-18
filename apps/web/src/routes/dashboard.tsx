@@ -1,8 +1,10 @@
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@repo/ui'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { BookOpenIcon, SettingsIcon, UsersIcon } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 import { authClient, useSession } from '@/lib/auth-client'
 import { requireAuth } from '@/lib/route-guards'
+import { useOrganizations } from '@/lib/use-organizations'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/dashboard')({
@@ -16,6 +18,63 @@ export const Route = createFileRoute('/dashboard')({
 function DashboardPage() {
   const { data: session } = useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
+  const { data: orgs } = useOrganizations()
+  const autoSelectAttempted = useRef(false)
+  const navigate = useNavigate()
+
+  // Check if user account is scheduled for deletion
+  useEffect(() => {
+    async function checkAccountStatus() {
+      try {
+        const res = await fetch('/api/users/me', { credentials: 'include' })
+        if (!res.ok) return
+        const profile = (await res.json()) as Record<string, unknown>
+        if (profile.deletedAt) {
+          navigate({
+            to: '/account-reactivation',
+            search: {
+              deleteScheduledFor: profile.deleteScheduledFor as string | undefined,
+            },
+          })
+        }
+      } catch {
+        // Non-blocking: profile check is best-effort
+      }
+    }
+    checkAccountStatus()
+  }, [navigate])
+
+  // Auto-select first org if none is active or active org is not in user's list
+  useEffect(() => {
+    if (autoSelectAttempted.current || !orgs) return
+    const activeOrgValid = activeOrg && orgs.some((org) => org.id === activeOrg.id)
+    if (activeOrgValid) return
+    const firstOrg = orgs[0]
+    autoSelectAttempted.current = true
+    if (firstOrg) {
+      authClient.organization.setActive({ organizationId: firstOrg.id }).catch(() => {})
+    } else if (activeOrg) {
+      // User has a stale active org but no valid orgs — clear it
+      authClient.organization.setActive({ organizationId: '' }).catch(() => {})
+    }
+  }, [activeOrg, orgs])
+
+  // Show loading skeleton until session and org list are resolved
+  if (!session || orgs === undefined) {
+    return (
+      <div className="mx-auto max-w-4xl space-y-8 p-6">
+        <div className="h-32 animate-pulse rounded-lg bg-muted" />
+        <div className="space-y-4">
+          <div className="h-6 w-40 animate-pulse rounded bg-muted" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="h-40 animate-pulse rounded-lg bg-muted" />
+            <div className="h-40 animate-pulse rounded-lg bg-muted" />
+            <div className="h-40 animate-pulse rounded-lg bg-muted" />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const userName = session?.user?.name ?? 'User'
 

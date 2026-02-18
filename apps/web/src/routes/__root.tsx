@@ -123,7 +123,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           {!isChromeless && <Footer />}
         </div>
-        <Toaster richColors position="top-right" offset="4rem" />
+        <Toaster richColors position="bottom-right" offset="4rem" />
       </ConsentProvider>
     </RootProvider>
   )

@@ -78,7 +78,11 @@ function RegisterPage() {
         password,
       })
       if (signUpError) {
-        setError(m.auth_register_unable())
+        if (signUpError.code === 'USER_ALREADY_EXISTS') {
+          setError(m.auth_register_email_exists())
+        } else {
+          setError(m.auth_register_unable())
+        }
       } else {
         // Sync GDPR consent to server (non-blocking)
         fetch('/api/consent', {

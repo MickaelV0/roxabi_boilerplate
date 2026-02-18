@@ -12,12 +12,14 @@ import {
   Input,
   Label,
 } from '@repo/ui'
-import { createFileRoute, useBlocker, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, useBlocker } from '@tanstack/react-router'
 import { AlertTriangleIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
 import { isErrorWithMessage } from '@/lib/error-utils'
+import { useOrganizations } from '@/lib/use-organizations'
 import { m } from '@/paraglide/messages'
 
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
@@ -370,9 +372,9 @@ function ReactivationBanner({ orgId, deleteScheduledFor, canReactivate }: Reacti
 }
 
 function OrgSettingsPage() {
-  const navigate = useNavigate()
   const { data: session } = useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
+  const { data: orgs } = useOrganizations()
 
   const currentMember = activeOrg?.members?.find(
     (member: { userId: string }) => member.userId === session?.user?.id
@@ -395,18 +397,23 @@ function OrgSettingsPage() {
     )
   }
 
-  // Check if org is soft-deleted
+  // If the active org is not in the user's active org list, it's deleted or stale.
+  // Our GET /api/organizations endpoint only returns non-deleted orgs the user belongs to.
+  const isOrgValid = orgs?.some((org) => org.id === activeOrg.id)
+
+  // Check if org is soft-deleted (via Better Auth additionalFields or org list validation)
   const softDelete = hasSoftDeleteFields(activeOrg) ? activeOrg : null
   const orgDeletedAt = softDelete?.deletedAt
   const orgDeleteScheduledFor = softDelete?.deleteScheduledFor
+  const isOrgDeleted = orgDeletedAt || (orgs !== undefined && !isOrgValid)
 
-  if (orgDeletedAt) {
+  if (isOrgDeleted) {
     return (
       <>
         <h1 className="text-2xl font-bold">{m.org_settings_title()}</h1>
         <ReactivationBanner
           orgId={activeOrg.id}
-          deleteScheduledFor={orgDeleteScheduledFor ?? orgDeletedAt}
+          deleteScheduledFor={orgDeleteScheduledFor ?? orgDeletedAt ?? new Date().toISOString()}
           canReactivate={canDeleteOrg}
         />
       </>
@@ -428,7 +435,10 @@ function OrgSettingsPage() {
         <DangerZoneCard
           orgId={activeOrg.id}
           orgName={activeOrg.name}
-          onDeleted={() => navigate({ to: '/' })}
+          onDeleted={() => {
+            flushSync(() => setIsDirty(false))
+            window.location.href = '/'
+          }}
         />
       )}
 

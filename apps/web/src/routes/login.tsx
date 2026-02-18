@@ -42,6 +42,37 @@ function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
 
+  /** Returns a redirect path if the account is soft-deleted, or null. */
+  async function checkSoftDeletedAccount(): Promise<string | null> {
+    try {
+      const res = await fetch('/api/users/me', { credentials: 'include' })
+      if (!res.ok) return null
+      const profile = (await res.json()) as Record<string, unknown>
+      if (profile.deletedAt) {
+        const qs = profile.deleteScheduledFor
+          ? `?deleteScheduledFor=${encodeURIComponent(profile.deleteScheduledFor as string)}`
+          : ''
+        return `/account-reactivation${qs}`
+      }
+    } catch {
+      // Non-blocking
+    }
+    return null
+  }
+
+  /** Auto-select the first active org (best-effort). */
+  async function autoSelectOrg() {
+    try {
+      const res = await fetch('/api/organizations', { credentials: 'include' })
+      const orgs = res.ok ? ((await res.json()) as Array<{ id: string }>) : []
+      if (orgs[0]) {
+        await authClient.organization.setActive({ organizationId: orgs[0].id })
+      }
+    } catch {
+      // Non-blocking
+    }
+  }
+
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -56,6 +87,12 @@ function LoginPage() {
         setError(m.auth_login_invalid_credentials())
       } else {
         toast.success(m.auth_toast_signed_in())
+        const redirect = await checkSoftDeletedAccount()
+        if (redirect) {
+          navigate({ to: redirect })
+          return
+        }
+        await autoSelectOrg()
         navigate({ to: '/dashboard' })
       }
     } catch {
