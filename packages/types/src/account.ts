@@ -3,23 +3,16 @@
  * Shared between frontend and backend for #201/#202.
  */
 
-// -- Avatar constants --
-
-export const DICEBEAR_CDN_BASE = 'https://api.dicebear.com/9.x'
-
-export const AVATAR_STYLES = [
-  'lorelei',
-  'bottts',
-  'pixel-art',
-  'thumbs',
-  'avataaars',
-  'adventurer',
-  'toon-head',
-] as const
-
 // -- User profile types --
 
-export type AvatarStyle = (typeof AVATAR_STYLES)[number]
+export type AvatarStyle =
+  | 'lorelei'
+  | 'bottts'
+  | 'pixel-art'
+  | 'thumbs'
+  | 'avataaars'
+  | 'adventurer'
+  | 'toon-head'
 
 export type UserProfile = {
   id: string
@@ -79,10 +72,3 @@ export type DeletionImpact = {
 export type DeleteOrgPayload = {
   confirmName: string
 }
-
-// -- Error codes --
-
-export const ERROR_CODES = {
-  ACCOUNT_SCHEDULED_FOR_DELETION: 'ACCOUNT_SCHEDULED_FOR_DELETION',
-  ORG_SCHEDULED_FOR_DELETION: 'ORG_SCHEDULED_FOR_DELETION',
-} as const
