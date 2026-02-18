@@ -995,5 +995,28 @@
   "org_reactivation_contact": "Contact an organization owner to reactivate this organization.",
   "org_deletion_grace_period": "The organization will be permanently deleted after 30 days.",
   "org_unsaved_leave_confirm": "Type 'leave' to discard changes",
-  "org_unsaved_desc": "You have unsaved changes. Are you sure you want to leave?"
+  "org_unsaved_desc": "You have unsaved changes. Are you sure you want to leave?",
+
+  "profile_title": "Profile Information",
+  "profile_description": "Update your name and display preferences.",
+  "profile_first_name": "First Name",
+  "profile_last_name": "Last Name",
+  "profile_display_name": "Display Name",
+  "profile_sync_name": "Sync from first/last name",
+  "profile_saving": "Saving...",
+  "profile_save": "Save Changes",
+
+  "avatar_title": "Avatar",
+  "avatar_description": "Choose a generated avatar style. Customize the look with options below.",
+  "avatar_preview_alt": "Avatar preview",
+  "avatar_style_label": "Style",
+  "avatar_seed_label": "Seed",
+  "avatar_seed_hint": "Different seeds generate different avatars. Leave empty to use your user ID.",
+  "avatar_randomize": "Randomize",
+  "avatar_advanced_options": "Advanced Options",
+  "avatar_option_enabled": "Enabled",
+  "avatar_option_disabled": "Disabled",
+  "avatar_url_length_warning": "Avatar URL is too long. Simplify options or change style to save.",
+  "avatar_save_success": "Profile updated successfully",
+  "avatar_save_error": "Failed to update profile"
 }

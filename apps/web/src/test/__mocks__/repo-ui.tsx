@@ -100,9 +100,52 @@ export const OAuthButton = ({
   ...props
 }: React.PropsWithChildren<Record<string, unknown>>) => <button {...props}>{children}</button>
 
+export const Switch = ({
+  checked,
+  onCheckedChange,
+  ...props
+}: {
+  checked?: boolean
+  onCheckedChange?: (v: boolean) => void
+  [key: string]: unknown
+}) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    onClick={() => onCheckedChange?.(!checked)}
+    {...props}
+  />
+)
+
 export const PasswordInput = (props: Record<string, unknown>) => (
   <input type="password" {...props} />
 )
+
+// ---------------------------------------------------------------------------
+// Accordion
+// ---------------------------------------------------------------------------
+
+export const Accordion = ({
+  children,
+}: React.PropsWithChildren<{ type?: string; collapsible?: boolean }>) => (
+  <div data-testid="accordion">{children}</div>
+)
+
+export const AccordionItem = ({
+  children,
+}: React.PropsWithChildren<{ value?: string; className?: string }>) => <div>{children}</div>
+
+export const AccordionTrigger = ({
+  children,
+  className,
+}: React.PropsWithChildren<{ className?: string }>) => (
+  <button type="button" className={className}>
+    {children}
+  </button>
+)
+
+export const AccordionContent = ({ children }: React.PropsWithChildren) => <div>{children}</div>
 
 // ---------------------------------------------------------------------------
 // Data display

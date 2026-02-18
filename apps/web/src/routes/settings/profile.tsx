@@ -1,5 +1,7 @@
-import type { UserProfile } from '@repo/types'
+import type { AvatarStyle, UserProfile } from '@repo/types'
+import { AVATAR_STYLES } from '@repo/types'
 import {
+  Badge,
   Button,
   Card,
   CardContent,
@@ -15,24 +17,17 @@ import {
   SelectValue,
 } from '@repo/ui'
 import { createFileRoute } from '@tanstack/react-router'
+import { AlertTriangle, Dices } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { useSession } from '@/lib/auth-client'
+import { OptionsForm } from '@/components/avatar/OptionsForm'
+import { authClient, useSession } from '@/lib/auth-client'
+import { buildDiceBearUrl } from '@/lib/avatar/buildDiceBearUrl'
+import { AVATAR_STYLE_LABELS } from '@/lib/avatar/constants'
+import { isAvatarStyle } from '@/lib/avatar/helpers'
+import { useAvatarPreview, useStyleSchema } from '@/lib/avatar/hooks'
 import { isErrorWithMessage } from '@/lib/error-utils'
-
-const AVATAR_STYLES = [
-  { value: 'lorelei', label: 'Lorelei' },
-  { value: 'bottts', label: 'Bottts' },
-  { value: 'pixel-art', label: 'Pixel Art' },
-  { value: 'thumbs', label: 'Thumbs' },
-  { value: 'avataaars', label: 'Avataaars' },
-] as const
-
-type AvatarStyle = (typeof AVATAR_STYLES)[number]['value']
-
-function isAvatarStyle(v: string): v is AvatarStyle {
-  return AVATAR_STYLES.some((s) => s.value === v)
-}
+import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/settings/profile')({
   component: ProfileSettingsPage,
@@ -41,44 +36,7 @@ export const Route = createFileRoute('/settings/profile')({
   }),
 })
 
-function useAvatarPreview(style: AvatarStyle, seed: string) {
-  const [svgUri, setSvgUri] = useState<string>('')
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function generate() {
-      try {
-        const { createAvatar } = await import('@dicebear/core')
-        const styleModule = await STYLE_IMPORTS[style]()
-        // DiceBear style modules export { create, meta, schema } matching Style<Options>
-        // but TS cannot structurally match namespace imports to the Style interface
-        const avatar = createAvatar(styleModule as never, { seed })
-        const svg = avatar.toString()
-        if (!cancelled) {
-          setSvgUri(`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`)
-        }
-      } catch {
-        if (!cancelled) setSvgUri('')
-      }
-    }
-
-    generate()
-    return () => {
-      cancelled = true
-    }
-  }, [style, seed])
-
-  return svgUri
-}
-
-const STYLE_IMPORTS = {
-  lorelei: () => import('@dicebear/lorelei'),
-  bottts: () => import('@dicebear/bottts'),
-  'pixel-art': () => import('@dicebear/pixel-art'),
-  thumbs: () => import('@dicebear/thumbs'),
-  avataaars: () => import('@dicebear/avataaars'),
-} as const
+// -- Main page component --
 
 function ProfileSettingsPage() {
   const { data: session } = useSession()
@@ -90,8 +48,11 @@ function ProfileSettingsPage() {
   const [fullNameCustomized, setFullNameCustomized] = useState(false)
   const [avatarStyle, setAvatarStyle] = useState<AvatarStyle>('lorelei')
   const [avatarSeed, setAvatarSeed] = useState('')
+  const [avatarOptions, setAvatarOptions] = useState<Record<string, unknown>>({})
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(false)
+
+  const styleSchema = useStyleSchema(avatarStyle)
 
   // Load user profile data
   useEffect(() => {
@@ -116,6 +77,9 @@ function ProfileSettingsPage() {
       setFullNameCustomized(data.fullNameCustomized ?? false)
       setAvatarSeed(data.avatarSeed ?? u.id)
       if (data.avatarStyle && isAvatarStyle(data.avatarStyle)) setAvatarStyle(data.avatarStyle)
+      if (data.avatarOptions && typeof data.avatarOptions === 'object') {
+        setAvatarOptions(data.avatarOptions)
+      }
       setLoaded(true)
     }
 
@@ -139,11 +103,30 @@ function ProfileSettingsPage() {
     }
   }, [firstName, lastName, fullNameCustomized, loaded])
 
-  const avatarPreview = useAvatarPreview(avatarStyle, avatarSeed || user?.id || 'default')
+  const effectiveSeed = avatarSeed || user?.id || 'default'
+  const avatarPreview = useAvatarPreview(avatarStyle, effectiveSeed, avatarOptions)
+  const cdnUrl = buildDiceBearUrl(avatarStyle, effectiveSeed, avatarOptions)
+  const urlTooLong = cdnUrl.length > 2000
 
   function handleFullNameChange(e: React.ChangeEvent<HTMLInputElement>) {
     setFullName(e.target.value)
     setFullNameCustomized(true)
+  }
+
+  function handleOptionChange(name: string, value: unknown) {
+    setAvatarOptions((prev) => ({ ...prev, [name]: value }))
+  }
+
+  function handleRandomize() {
+    setAvatarSeed(crypto.randomUUID())
+    setAvatarOptions({})
+  }
+
+  function handleStyleChange(v: string) {
+    if (isAvatarStyle(v)) {
+      setAvatarStyle(v)
+      setAvatarOptions({})
+    }
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -155,23 +138,32 @@ function ProfileSettingsPage() {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          firstName,
-          lastName,
+          firstName: firstName || undefined,
+          lastName: lastName || undefined,
           fullName,
           avatarSeed: avatarSeed || undefined,
           avatarStyle,
+          avatarOptions,
+          image: cdnUrl,
         }),
       })
 
       if (!res.ok) {
         const data: unknown = await res.json().catch(() => null)
-        toast.error(isErrorWithMessage(data) ? data.message : 'Failed to update profile')
+        toast.error(isErrorWithMessage(data) ? data.message : m.avatar_save_error())
         return
       }
 
-      toast.success('Profile updated successfully')
+      // Update Better Auth session so navbar avatar reflects the change immediately.
+      // updateUser triggers $sessionSignal which makes useSession() refetch.
+      try {
+        await authClient.updateUser({ image: cdnUrl })
+      } catch {
+        // Session update failed — avatar will update on next page load
+      }
+      toast.success(m.avatar_save_success())
     } catch {
-      toast.error('Failed to update profile')
+      toast.error(m.avatar_save_error())
     } finally {
       setSaving(false)
     }
@@ -182,110 +174,98 @@ function ProfileSettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSave} className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Profile Information</CardTitle>
-          <CardDescription>Update your name and display preferences.</CardDescription>
+          <CardTitle>{m.profile_title()}</CardTitle>
+          <CardDescription>{m.profile_description()}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSave} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  value={firstName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setFirstName(e.target.value)
-                  }
-                  placeholder="First name"
-                  disabled={saving}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  value={lastName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)}
-                  placeholder="Last name"
-                  disabled={saving}
-                />
-              </div>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">{m.profile_first_name()}</Label>
+              <Input
+                id="firstName"
+                value={firstName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFirstName(e.target.value)}
+                placeholder={m.profile_first_name()}
+                disabled={saving}
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="fullName">Display Name</Label>
+              <Label htmlFor="lastName">{m.profile_last_name()}</Label>
               <Input
-                id="fullName"
-                value={fullName}
-                onChange={handleFullNameChange}
-                placeholder="Display name"
+                id="lastName"
+                value={lastName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)}
+                placeholder={m.profile_last_name()}
                 disabled={saving}
-                required
               />
-              {fullNameCustomized && (
-                <button
-                  type="button"
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => setFullNameCustomized(false)}
-                >
-                  Sync from first/last name
-                </button>
-              )}
             </div>
-            <Button type="submit" disabled={saving}>
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </form>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="fullName">{m.profile_display_name()}</Label>
+            <Input
+              id="fullName"
+              value={fullName}
+              onChange={handleFullNameChange}
+              placeholder={m.profile_display_name()}
+              disabled={saving}
+              required
+            />
+            {fullNameCustomized && (
+              <button
+                type="button"
+                className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => setFullNameCustomized(false)}
+              >
+                {m.profile_sync_name()}
+              </button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Avatar</CardTitle>
-          <CardDescription>
-            Choose a generated avatar style. The avatar is generated from a style and a seed value.
-          </CardDescription>
+          <CardTitle>{m.avatar_title()}</CardTitle>
+          <CardDescription>{m.avatar_description()}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <div className="flex flex-col gap-6 sm:flex-row">
-            <div className="flex shrink-0 items-center justify-center">
+            <div className="flex shrink-0 flex-col items-center gap-3">
               {avatarPreview ? (
                 <img
                   src={avatarPreview}
-                  alt="Avatar preview"
+                  alt={m.avatar_preview_alt()}
                   className="size-24 rounded-full border"
                 />
               ) : (
                 <div className="size-24 animate-pulse rounded-full bg-muted" />
               )}
+              <Button type="button" variant="outline" size="sm" onClick={handleRandomize}>
+                <Dices className="mr-2 size-4" />
+                {m.avatar_randomize()}
+              </Button>
             </div>
             <div className="flex-1 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="avatarStyle">Style</Label>
-                <Select
-                  value={avatarStyle}
-                  onValueChange={(v: string) => {
-                    if (isAvatarStyle(v)) {
-                      setAvatarStyle(v)
-                    }
-                  }}
-                >
+                <Label htmlFor="avatarStyle">{m.avatar_style_label()}</Label>
+                <Select value={avatarStyle} onValueChange={handleStyleChange}>
                   <SelectTrigger id="avatarStyle">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {AVATAR_STYLES.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
+                    {AVATAR_STYLES.map((style) => (
+                      <SelectItem key={style} value={style}>
+                        {AVATAR_STYLE_LABELS[style]}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="avatarSeed">Seed</Label>
+                <Label htmlFor="avatarSeed">{m.avatar_seed_label()}</Label>
                 <Input
                   id="avatarSeed"
                   value={avatarSeed}
@@ -295,14 +275,34 @@ function ProfileSettingsPage() {
                   placeholder={user.id}
                   disabled={saving}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Different seeds generate different avatars. Leave empty to use your user ID.
-                </p>
+                <p className="text-xs text-muted-foreground">{m.avatar_seed_hint()}</p>
               </div>
             </div>
           </div>
+
+          {styleSchema && (
+            <OptionsForm
+              schema={styleSchema}
+              options={avatarOptions}
+              onChange={handleOptionChange}
+            />
+          )}
+
+          {urlTooLong && (
+            <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertTriangle className="size-4 shrink-0" />
+              <span>{m.avatar_url_length_warning()}</span>
+              <Badge variant="outline" className="ml-auto text-xs">
+                {cdnUrl.length} / 2000
+              </Badge>
+            </div>
+          )}
         </CardContent>
       </Card>
-    </div>
+
+      <Button type="submit" disabled={saving}>
+        {saving ? m.profile_saving() : m.profile_save()}
+      </Button>
+    </form>
   )
 }

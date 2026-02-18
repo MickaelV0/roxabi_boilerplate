@@ -75,12 +75,14 @@
     "apps/web": {
       "name": "@repo/web",
       "dependencies": {
+        "@dicebear/adventurer": "^9.3.1",
         "@dicebear/avataaars": "^9.3.1",
         "@dicebear/bottts": "^9.3.1",
         "@dicebear/core": "^9.3.1",
         "@dicebear/lorelei": "^9.3.1",
         "@dicebear/pixel-art": "^9.3.1",
         "@dicebear/thumbs": "^9.3.1",
+        "@dicebear/toon-head": "^9.3.1",
         "@fontsource-variable/plus-jakarta-sans": "^5.2.8",
         "@fumadocs/mdx-remote": "^1.4.5",
         "@radix-ui/react-checkbox": "^1.2.2",
@@ -372,6 +374,8 @@
 
     "@csstools/css-tokenizer": ["@csstools/css-tokenizer@4.0.0", "", {}, "sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA=="],
 
+    "@dicebear/adventurer": ["@dicebear/adventurer@9.3.1", "", { "peerDependencies": { "@dicebear/core": "^9.0.0" } }, "sha512-MBCA8QtRC4mWbYncFDxI67LxxXMccsORqJS8osD4F/MgOPMJsdoN9QrRfsY/MjO+4NbTSxsVzOhn2nf1WzoLbA=="],
+
     "@dicebear/avataaars": ["@dicebear/avataaars@9.3.1", "", { "peerDependencies": { "@dicebear/core": "^9.0.0" } }, "sha512-gQwtaTfPVwNAvVktdTjyhGnQtt5ifeE/6XyMX/fUJTTo/uI2NLy4LedzjsibA/DW8xi+TbgUyXlyTaJs0H6MGA=="],
 
     "@dicebear/bottts": ["@dicebear/bottts@9.3.1", "", { "peerDependencies": { "@dicebear/core": "^9.0.0" } }, "sha512-qIPokserYLIwpScbsvFADwspBfa1Mg8JFEtYcXYcbPLnNek8bZiAhpQSc1bHSqHjm10bFEjvTr0opSNr72CBzw=="],
@@ -383,6 +387,8 @@
     "@dicebear/pixel-art": ["@dicebear/pixel-art@9.3.1", "", { "peerDependencies": { "@dicebear/core": "^9.0.0" } }, "sha512-yUufylvVqkb9wpG/sYRzNTeSk1YbzVgSq/ZSMyxy1kx/R4BhOkiZBSs6Ra3VjeKWVNDBzUWERaVdylLbFvAQaw=="],
 
     "@dicebear/thumbs": ["@dicebear/thumbs@9.3.1", "", { "peerDependencies": { "@dicebear/core": "^9.0.0" } }, "sha512-HS14oyT9HXLT8OPqEz8n0Bdob3oRWoNZ5PSZrxT4nyYXxh0rDSxCCOFwPKanXznk1qCAngtAvuzzID3vo7UG3A=="],
+
+    "@dicebear/toon-head": ["@dicebear/toon-head@9.3.1", "", { "peerDependencies": { "@dicebear/core": "^9.0.0" } }, "sha512-9a9ydhbrVG57NuscH92yzIMQ0yxEPgJtzOMG1QR6jWctgbeEuzQvJDPvJQTxtfFjx71VlQNsSL40/5rnMtCaTw=="],
 
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.10.2", "", {}, "sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w=="],
 

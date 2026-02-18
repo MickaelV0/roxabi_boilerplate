@@ -31,6 +31,7 @@ const profileColumns = {
   image: users.image,
   avatarSeed: users.avatarSeed,
   avatarStyle: users.avatarStyle,
+  avatarOptions: users.avatarOptions,
   role: users.role,
   deletedAt: users.deletedAt,
   deleteScheduledFor: users.deleteScheduledFor,
@@ -86,6 +87,7 @@ export class UserService {
     return user
   }
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: inherent to multi-field optional profile update logic
   async updateProfile(
     userId: string,
     data: {
@@ -94,12 +96,16 @@ export class UserService {
       fullName?: string
       avatarSeed?: string | null
       avatarStyle?: string | null
+      avatarOptions?: Record<string, unknown>
+      image?: string | null
     }
   ) {
     const updateData: Record<string, unknown> = { updatedAt: new Date() }
 
     if (data.avatarSeed !== undefined) updateData.avatarSeed = data.avatarSeed
     if (data.avatarStyle !== undefined) updateData.avatarStyle = data.avatarStyle
+    if (data.avatarOptions !== undefined) updateData.avatarOptions = data.avatarOptions
+    if (data.image !== undefined) updateData.image = data.image
 
     // If fullName is directly edited, set fullNameCustomized = true
     if (data.fullName !== undefined) {
@@ -320,6 +326,7 @@ export class UserService {
           emailVerified: false,
           avatarSeed: null,
           avatarStyle: null,
+          avatarOptions: {},
           updatedAt: now,
         })
         .where(eq(users.id, userId))
