@@ -20,10 +20,46 @@ env:
   NODE_VERSION: "24"
 
 jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+      e2e: ${{ steps.filter.outputs.e2e }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Check changed paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - 'apps/**'
+              - 'packages/**'
+              - 'tools/**'
+              - 'turbo.jsonc'
+              - 'bun.lock'
+              - 'biome.json'
+              - 'tsconfig*.json'
+              - 'lefthook.yml'
+              - '.github/workflows/**'
+            e2e:
+              - 'apps/web/src/**'
+              - 'apps/web/e2e/**'
+              - 'packages/ui/src/**'
+              - 'playwright.config.ts'
+              - '.github/workflows/ci.yml'
+              - 'turbo.jsonc'
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    needs: [detect-changes]
+    if: github.event_name != 'pull_request' || needs.detect-changes.outputs.code == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -60,6 +96,8 @@ jobs:
     name: Type Check
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: [detect-changes]
+    if: github.event_name != 'pull_request' || needs.detect-changes.outputs.code == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -121,6 +159,8 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: [detect-changes]
+    if: github.event_name != 'pull_request' || needs.detect-changes.outputs.code == 'true'
     services:
       postgres:
         image: postgres:16
@@ -195,7 +235,8 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [lint, typecheck, test]
+    needs: [detect-changes, lint, typecheck, test]
+    if: github.event_name != 'pull_request' || needs.detect-changes.outputs.code == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -235,43 +276,18 @@ jobs:
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
-  check-e2e-paths:
-    name: Check E2E paths
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    outputs:
-      should-run: ${{ steps.filter.outputs.e2e }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Check changed paths
-        uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            e2e:
-              - 'apps/web/src/**'
-              - 'apps/web/e2e/**'
-              - 'packages/ui/src/**'
-              - 'packages/playwright-config/**'
-              - 'packages/vitest-config/**'
-              - 'playwright.config.ts'
-              - '.github/workflows/ci.yml'
-              - 'turbo.jsonc'
-
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [build, check-e2e-paths]
+    needs: [detect-changes, build]
     if: |
       !cancelled() &&
       needs.build.result == 'success' &&
       github.event_name == 'pull_request' &&
       (
         contains(github.event.pull_request.labels.*.name, 'e2e') ||
-        needs.check-e2e-paths.outputs.should-run == 'true'
+        needs.detect-changes.outputs.e2e == 'true'
       )
     steps:
       - name: Checkout
@@ -334,6 +350,22 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  docs-links:
+    name: Docs Link Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Check internal documentation links
+        run: bun run tools/docs-link-audit.ts
 
   # Intentionally runs on every push to main/staging regardless of changed paths.
   # Full browser coverage is required on protected branches before release.
@@ -449,3 +481,38 @@ jobs:
           name: playwright-report-merged
           path: playwright-report/
           retention-days: 7
+
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [lint, typecheck, test, build, e2e, e2e-matrix, merge-reports, docs-links]
+    steps:
+      - name: Check job outcomes
+        env:
+          LINT_RESULT: ${{ needs.lint.result }}
+          TYPECHECK_RESULT: ${{ needs.typecheck.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          E2E_RESULT: ${{ needs.e2e.result }}
+          E2E_MATRIX_RESULT: ${{ needs.e2e-matrix.result }}
+          MERGE_REPORTS_RESULT: ${{ needs.merge-reports.result }}
+          DOCS_LINKS_RESULT: ${{ needs.docs-links.result }}
+        run: |
+          results=( \
+            "$LINT_RESULT" \
+            "$TYPECHECK_RESULT" \
+            "$TEST_RESULT" \
+            "$BUILD_RESULT" \
+            "$E2E_RESULT" \
+            "$E2E_MATRIX_RESULT" \
+            "$MERGE_REPORTS_RESULT" \
+            "$DOCS_LINKS_RESULT" \
+          )
+          for result in "${results[@]}"; do
+            if [ "$result" = "failure" ] || [ "$result" = "cancelled" ]; then
+              echo "::error::One or more CI jobs failed or were cancelled."
+              exit 1
+            fi
+          done
+          echo "All CI jobs passed or were skipped."
