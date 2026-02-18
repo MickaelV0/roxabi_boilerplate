@@ -130,14 +130,14 @@ describe('AccountSettingsPage', () => {
       render(<Account />)
 
       await waitFor(() => {
-        expect(screen.getByLabelText('New Email')).toBeInTheDocument()
+        expect(screen.getByLabelText('account_email_new_label')).toBeInTheDocument()
       })
 
-      fireEvent.change(screen.getByLabelText('New Email'), {
+      fireEvent.change(screen.getByLabelText('account_email_new_label'), {
         target: { value: 'new@example.com' },
       })
 
-      const form = screen.getByLabelText('New Email').closest('form')
+      const form = screen.getByLabelText('account_email_new_label').closest('form')
       if (!form) throw new Error('form not found')
       fireEvent.submit(form)
 
@@ -147,8 +147,56 @@ describe('AccountSettingsPage', () => {
 
       await waitFor(() => {
         expect(vi.mocked(toast.success)).toHaveBeenCalledWith(
-          'Verification email sent to new@example.com'
+          'account_email_change_success({"email":"new@example.com"})'
         )
+      })
+    })
+
+    it('should show i18n error toast when email change returns an error', async () => {
+      setupCredentialAccount()
+      mockChangeEmail.mockResolvedValue({ error: { message: 'Server error details' } })
+
+      const Account = captured.Component
+      render(<Account />)
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('account_email_new_label')).toBeInTheDocument()
+      })
+
+      fireEvent.change(screen.getByLabelText('account_email_new_label'), {
+        target: { value: 'new@example.com' },
+      })
+
+      const form = screen.getByLabelText('account_email_new_label').closest('form')
+      if (!form) throw new Error('form not found')
+      fireEvent.submit(form)
+
+      await waitFor(() => {
+        expect(vi.mocked(toast.error)).toHaveBeenCalledWith('account_email_change_error')
+      })
+    })
+
+    it('should show i18n error toast when email change throws', async () => {
+      setupCredentialAccount()
+      mockChangeEmail.mockRejectedValue(new Error('Network failure'))
+
+      const Account = captured.Component
+      render(<Account />)
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('account_email_new_label')).toBeInTheDocument()
+      })
+
+      fireEvent.change(screen.getByLabelText('account_email_new_label'), {
+        target: { value: 'new@example.com' },
+      })
+
+      const form = screen.getByLabelText('account_email_new_label').closest('form')
+      if (!form) throw new Error('form not found')
+      fireEvent.submit(form)
+
+      await waitFor(() => {
+        expect(vi.mocked(toast.error)).toHaveBeenCalledWith('account_email_change_error')
       })
     })
   })
@@ -162,20 +210,20 @@ describe('AccountSettingsPage', () => {
       render(<Account />)
 
       await waitFor(() => {
-        expect(screen.getByLabelText('Current Password')).toBeInTheDocument()
+        expect(screen.getByLabelText('account_password_current')).toBeInTheDocument()
       })
 
-      fireEvent.change(screen.getByLabelText('Current Password'), {
+      fireEvent.change(screen.getByLabelText('account_password_current'), {
         target: { value: 'oldpass123' },
       })
-      fireEvent.change(screen.getByLabelText('New Password'), {
+      fireEvent.change(screen.getByLabelText('account_password_new'), {
         target: { value: 'newpass456' },
       })
-      fireEvent.change(screen.getByLabelText('Confirm New Password'), {
+      fireEvent.change(screen.getByLabelText('account_password_confirm'), {
         target: { value: 'newpass456' },
       })
 
-      const form = screen.getByLabelText('Current Password').closest('form')
+      const form = screen.getByLabelText('account_password_current').closest('form')
       if (!form) throw new Error('form not found')
       fireEvent.submit(form)
 
@@ -187,8 +235,57 @@ describe('AccountSettingsPage', () => {
       })
 
       await waitFor(() => {
-        expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Password updated successfully')
+        expect(vi.mocked(toast.success)).toHaveBeenCalledWith('account_password_update_success')
       })
+    })
+
+    it('should show i18n error toast when password change returns an error', async () => {
+      setupCredentialAccount()
+      mockChangePassword.mockResolvedValue({ error: { message: 'Invalid current password' } })
+
+      const Account = captured.Component
+      render(<Account />)
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('account_password_current')).toBeInTheDocument()
+      })
+
+      fireEvent.change(screen.getByLabelText('account_password_current'), {
+        target: { value: 'wrongpass' },
+      })
+      fireEvent.change(screen.getByLabelText('account_password_new'), {
+        target: { value: 'newpass456' },
+      })
+      fireEvent.change(screen.getByLabelText('account_password_confirm'), {
+        target: { value: 'newpass456' },
+      })
+
+      const form = screen.getByLabelText('account_password_current').closest('form')
+      if (!form) throw new Error('form not found')
+      fireEvent.submit(form)
+
+      await waitFor(() => {
+        expect(vi.mocked(toast.error)).toHaveBeenCalledWith('account_password_update_error')
+      })
+    })
+
+    it('should show mismatch message when passwords do not match', async () => {
+      setupCredentialAccount()
+      const Account = captured.Component
+      render(<Account />)
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('account_password_current')).toBeInTheDocument()
+      })
+
+      fireEvent.change(screen.getByLabelText('account_password_new'), {
+        target: { value: 'abc123' },
+      })
+      fireEvent.change(screen.getByLabelText('account_password_confirm'), {
+        target: { value: 'xyz789' },
+      })
+
+      expect(screen.getByText('account_password_mismatch')).toBeInTheDocument()
     })
 
     it('should hide email/password sections for OAuth-only accounts', async () => {
@@ -198,11 +295,11 @@ describe('AccountSettingsPage', () => {
       render(<Account />)
 
       await waitFor(() => {
-        expect(screen.getByText('Account Type')).toBeInTheDocument()
+        expect(screen.getByText('account_type_title')).toBeInTheDocument()
       })
 
-      expect(screen.queryByLabelText('New Email')).not.toBeInTheDocument()
-      expect(screen.queryByLabelText('Current Password')).not.toBeInTheDocument()
+      expect(screen.queryByLabelText('account_email_new_label')).not.toBeInTheDocument()
+      expect(screen.queryByLabelText('account_password_current')).not.toBeInTheDocument()
     })
   })
 
