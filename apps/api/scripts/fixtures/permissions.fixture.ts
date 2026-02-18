@@ -1,7 +1,7 @@
 import * as schema from '../../src/database/schema/index.js'
-import type { FixtureContext, Preset, Tx } from './types.js'
+import type { FixtureContext, Preset, SeedResult, Tx } from './types.js'
 
-const DEFAULT_PERMISSIONS = [
+export const DEFAULT_PERMISSIONS = [
   { resource: 'users', action: 'read', description: 'View user profiles' },
   { resource: 'users', action: 'write', description: 'Edit user profiles' },
   { resource: 'users', action: 'delete', description: 'Delete users' },
@@ -20,10 +20,10 @@ const DEFAULT_PERMISSIONS = [
 ] as const
 
 /** Insert the 15 global permissions (idempotent — uses ON CONFLICT DO NOTHING). */
-export async function seed(tx: Tx, _preset: Preset, _ctx: FixtureContext): Promise<number> {
+export async function seed(tx: Tx, _preset: Preset, _ctx: FixtureContext): Promise<SeedResult> {
   const result = await tx
     .insert(schema.permissions)
     .values(DEFAULT_PERMISSIONS.map((p) => ({ ...p })))
     .onConflictDoNothing({ target: [schema.permissions.resource, schema.permissions.action] })
-  return result.length
+  return { permissionCount: result.length }
 }

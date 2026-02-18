@@ -1,10 +1,11 @@
 import { hashPassword } from 'better-auth/crypto'
 import * as schema from '../../src/database/schema/index.js'
-import type { FixtureContext, Preset, Tx } from './types.js'
+import type { FixtureContext, Preset, SeedResult, Tx } from './types.js'
 
 export type UserDef = {
   email: string
   name: string
+  emailVerified?: boolean
 }
 
 export const MINIMAL_USERS: UserDef[] = [
@@ -22,31 +23,35 @@ export const FULL_EXTRA_USERS: UserDef[] = [
   { email: 'devops@roxabi.local', name: 'DevOps User' },
   { email: 'marketing@roxabi.local', name: 'Marketing User' },
   { email: 'sales@roxabi.local', name: 'Sales User' },
-  { email: 'intern@roxabi.local', name: 'Intern User' },
+  { email: 'intern@roxabi.local', name: 'Intern User', emailVerified: false },
 ]
 
-/** Create users and credential accounts. All users get password "password123". */
-export async function seed(tx: Tx, preset: Preset, ctx: FixtureContext): Promise<number> {
+/** Create users and credential accounts. All users get password "password123". Intern is unverified. */
+export async function seed(tx: Tx, preset: Preset, ctx: FixtureContext): Promise<SeedResult> {
   const users = preset === 'full' ? [...MINIMAL_USERS, ...FULL_EXTRA_USERS] : MINIMAL_USERS
   const hashedPassword = await hashPassword('password123')
 
-  for (const userDef of users) {
-    const userId = crypto.randomUUID()
-    await tx.insert(schema.users).values({
-      id: userId,
+  const userIds = users.map(() => crypto.randomUUID())
+
+  await tx.insert(schema.users).values(
+    users.map((userDef, i) => ({
+      id: userIds[i],
       name: userDef.name,
       email: userDef.email,
-      emailVerified: true,
-    })
-    await tx.insert(schema.accounts).values({
+      emailVerified: userDef.emailVerified !== false,
+    }))
+  )
+
+  await tx.insert(schema.accounts).values(
+    users.map((_, i) => ({
       id: crypto.randomUUID(),
-      userId,
-      accountId: userId,
+      userId: userIds[i],
+      accountId: userIds[i],
       providerId: 'credential',
       password: hashedPassword,
-    })
-    ctx.userIds.push(userId)
-  }
+    }))
+  )
 
-  return users.length
+  ctx.userIds.push(...userIds)
+  return { userCount: users.length }
 }

@@ -1,5 +1,5 @@
 import * as schema from '../../src/database/schema/index.js'
-import type { FixtureContext, Preset, Tx } from './types.js'
+import type { FixtureContext, Preset, SeedResult, Tx } from './types.js'
 
 export type OrgDef = {
   name: string
@@ -93,11 +93,7 @@ export const FULL_INVITATIONS: InvitationDef[] = [
 ]
 
 /** Create organizations, members, and (for full preset) invitations. */
-export async function seed(
-  tx: Tx,
-  preset: Preset,
-  ctx: FixtureContext
-): Promise<{ orgCount: number; memberCount: number; invitationCount: number }> {
+export async function seed(tx: Tx, preset: Preset, ctx: FixtureContext): Promise<SeedResult> {
   const orgs = preset === 'full' ? [...MINIMAL_ORGS, ...FULL_EXTRA_ORGS] : MINIMAL_ORGS
   const memberDefs =
     preset === 'full' ? [...MINIMAL_MEMBERS, ...FULL_EXTRA_MEMBERS] : MINIMAL_MEMBERS
@@ -116,14 +112,18 @@ export async function seed(
   // Create members (roleId null — patched later by rbac fixture)
   for (const memberDef of memberDefs) {
     const memberId = crypto.randomUUID()
+    const orgId = ctx.orgIds[memberDef.orgIndex]
     await tx.insert(schema.members).values({
       id: memberId,
       userId: ctx.userIds[memberDef.userIndex],
-      organizationId: ctx.orgIds[memberDef.orgIndex],
+      organizationId: orgId,
       role: memberDef.role,
       roleId: null,
     })
     ctx.memberIds.push(memberId)
+    const orgMembers = ctx.membersByOrg.get(orgId) ?? []
+    orgMembers.push({ id: memberId, roleSlug: memberDef.role })
+    ctx.membersByOrg.set(orgId, orgMembers)
   }
 
   // Create invitations (full preset only)

@@ -31,4 +31,5 @@ if [ -f "$ROOT_DIR/.env" ]; then
 fi
 
 cd "$ROOT_DIR/apps/api"
-bun run "db:$COMMAND"
+shift
+bun run "db:$COMMAND" "$@"

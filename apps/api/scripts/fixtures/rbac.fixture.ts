@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import * as schema from '../../src/database/schema/index.js'
 import type { DefaultRoleDefinition } from '../../src/rbac/rbac.constants.js'
 import { DEFAULT_ROLES } from '../../src/rbac/rbac.constants.js'
-import type { FixtureContext, Tx } from './types.js'
+import type { FixtureContext, Preset, SeedResult, Tx } from './types.js'
 
 /** Build a map of "resource:action" -> permission ID from pre-seeded permissions. */
 async function buildPermissionMap(tx: Tx): Promise<Map<string, string>> {
@@ -11,21 +11,20 @@ async function buildPermissionMap(tx: Tx): Promise<Map<string, string>> {
 }
 
 /** Resolve permission keys to IDs, logging warnings for missing entries. */
-function resolvePermissions(
+function resolvePermissionIds(
   roleDef: DefaultRoleDefinition,
   permMap: Map<string, string>
-): { roleId: string; permissionId: string }[] {
-  const roleId = '' // placeholder — caller sets actual roleId
-  const values: { roleId: string; permissionId: string }[] = []
+): string[] {
+  const ids: string[] = []
   for (const permKey of roleDef.permissions) {
     const permissionId = permMap.get(permKey)
     if (!permissionId) {
       console.warn(`rbac.fixture: permission "${permKey}" not found — skipping`)
       continue
     }
-    values.push({ roleId, permissionId })
+    ids.push(permissionId)
   }
-  return values
+  return ids
 }
 
 /** Create default roles for a single org and return the slug-to-roleId map. */
@@ -51,9 +50,9 @@ async function seedRolesForOrg(
     slugToRoleId.set(roleDef.slug, roleId)
     roleCount++
 
-    const rolePermValues = resolvePermissions(roleDef, permMap).map((v) => ({
-      ...v,
+    const rolePermValues = resolvePermissionIds(roleDef, permMap).map((permissionId) => ({
       roleId,
+      permissionId,
     }))
 
     if (rolePermValues.length > 0) {
@@ -65,19 +64,17 @@ async function seedRolesForOrg(
   return { slugToRoleId, roleCount, rolePermissionCount }
 }
 
-/** Back-patch member.roleId for all members in a single org. */
+/** Back-patch member.roleId using in-memory context (no DB re-query). */
 async function patchMemberRoles(
   tx: Tx,
   orgId: string,
-  slugToRoleId: Map<string, string>
+  slugToRoleId: Map<string, string>,
+  ctx: FixtureContext
 ): Promise<void> {
-  const orgMembers = await tx
-    .select({ id: schema.members.id, role: schema.members.role })
-    .from(schema.members)
-    .where(eq(schema.members.organizationId, orgId))
+  const orgMembers = ctx.membersByOrg.get(orgId) ?? []
 
   for (const member of orgMembers) {
-    const roleId = slugToRoleId.get(member.role)
+    const roleId = slugToRoleId.get(member.roleSlug)
     if (roleId) {
       await tx
         .update(schema.members)
@@ -91,11 +88,7 @@ async function patchMemberRoles(
  * Seed RBAC roles and role-permissions for each org, then back-patch
  * member.roleId based on matching role slugs.
  */
-export async function seed(
-  tx: Tx,
-  _preset: unknown,
-  ctx: FixtureContext
-): Promise<{ roleCount: number; rolePermissionCount: number }> {
+export async function seed(tx: Tx, _preset: Preset, ctx: FixtureContext): Promise<SeedResult> {
   const permMap = await buildPermissionMap(tx)
   if (permMap.size === 0) {
     console.warn('rbac.fixture: no permissions found — role-permission assignments will be skipped')
@@ -116,7 +109,7 @@ export async function seed(
   for (const orgId of ctx.orgIds) {
     const slugToRoleId = ctx.roleIdsByOrg.get(orgId)
     if (slugToRoleId) {
-      await patchMemberRoles(tx, orgId, slugToRoleId)
+      await patchMemberRoles(tx, orgId, slugToRoleId, ctx)
     }
   }
 
