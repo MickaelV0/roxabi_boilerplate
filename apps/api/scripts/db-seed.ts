@@ -19,9 +19,9 @@ import postgres from 'postgres'
 import * as schema from '../src/database/schema/index.js'
 import { type Preset, runFixtures } from './fixtures/index.js'
 
-const VALID_PRESETS: Preset[] = ['minimal', 'full']
+export const VALID_PRESETS: Preset[] = ['minimal', 'full']
 
-function parsePreset(): Preset {
+export function parsePreset(): Preset {
   const presetArg = process.argv.find((a) => a.startsWith('--preset='))
   const preset = presetArg ? presetArg.split('=')[1] : 'minimal'
   if (!VALID_PRESETS.includes(preset as Preset)) {

@@ -2,18 +2,18 @@ import { hashPassword } from 'better-auth/crypto'
 import * as schema from '../../src/database/schema/index.js'
 import type { FixtureContext, Preset, Tx } from './types.js'
 
-type UserDef = {
+export type UserDef = {
   email: string
   name: string
 }
 
-const MINIMAL_USERS: UserDef[] = [
+export const MINIMAL_USERS: UserDef[] = [
   { email: 'dev@roxabi.local', name: 'Dev User' },
   { email: 'admin@roxabi.local', name: 'Admin User' },
   { email: 'viewer@roxabi.local', name: 'Viewer User' },
 ]
 
-const FULL_EXTRA_USERS: UserDef[] = [
+export const FULL_EXTRA_USERS: UserDef[] = [
   { email: 'manager@roxabi.local', name: 'Manager User' },
   { email: 'editor@roxabi.local', name: 'Editor User' },
   { email: 'analyst@roxabi.local', name: 'Analyst User' },

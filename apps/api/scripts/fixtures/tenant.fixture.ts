@@ -1,30 +1,30 @@
 import * as schema from '../../src/database/schema/index.js'
 import type { FixtureContext, Preset, Tx } from './types.js'
 
-type OrgDef = {
+export type OrgDef = {
   name: string
   slug: string
 }
 
-type MemberDef = {
+export type MemberDef = {
   userIndex: number // index into ctx.userIds
   orgIndex: number // index into ctx.orgIds
   role: string
 }
 
-type InvitationDef = {
+export type InvitationDef = {
   orgIndex: number
   inviterUserIndex: number
   email: string
   role: string
 }
 
-const MINIMAL_ORGS: OrgDef[] = [
+export const MINIMAL_ORGS: OrgDef[] = [
   { name: 'Roxabi Dev', slug: 'roxabi-dev' },
   { name: 'Acme Corp', slug: 'acme-corp' },
 ]
 
-const FULL_EXTRA_ORGS: OrgDef[] = [
+export const FULL_EXTRA_ORGS: OrgDef[] = [
   { name: 'Startup Inc', slug: 'startup-inc' },
   { name: 'Agency Pro', slug: 'agency-pro' },
 ]
@@ -36,7 +36,7 @@ const FULL_EXTRA_ORGS: OrgDef[] = [
  *   user 2 (viewer) -> org 0 (Roxabi Dev) as viewer
  *   user 2 (viewer) -> org 1 (Acme Corp)  as member
  */
-const MINIMAL_MEMBERS: MemberDef[] = [
+export const MINIMAL_MEMBERS: MemberDef[] = [
   { userIndex: 0, orgIndex: 0, role: 'owner' },
   { userIndex: 1, orgIndex: 0, role: 'admin' },
   { userIndex: 2, orgIndex: 0, role: 'viewer' },
@@ -48,7 +48,7 @@ const MINIMAL_MEMBERS: MemberDef[] = [
  * Spread across all 4 orgs with realistic role assignments.
  * Some users appear in multiple orgs (cross-org members).
  */
-const FULL_EXTRA_MEMBERS: MemberDef[] = [
+export const FULL_EXTRA_MEMBERS: MemberDef[] = [
   // Acme Corp — populate with several users
   { userIndex: 3, orgIndex: 1, role: 'owner' }, // manager -> Acme owner
   { userIndex: 4, orgIndex: 1, role: 'admin' }, // editor -> Acme admin
@@ -72,7 +72,7 @@ const FULL_EXTRA_MEMBERS: MemberDef[] = [
 ]
 
 /** Full preset pending invitations. */
-const FULL_INVITATIONS: InvitationDef[] = [
+export const FULL_INVITATIONS: InvitationDef[] = [
   // Roxabi Dev (2 pending)
   { orgIndex: 0, inviterUserIndex: 0, email: 'invite1@roxabi.local', role: 'member' },
   { orgIndex: 0, inviterUserIndex: 0, email: 'invite2@roxabi.local', role: 'viewer' },
