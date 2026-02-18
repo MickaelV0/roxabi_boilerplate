@@ -5,8 +5,8 @@
  * Refuses to run when NODE_ENV=production.
  *
  * Truncated tables (in dependency order via CASCADE):
- *   role_permissions, roles, permissions, invitations, members,
- *   sessions, accounts, verifications, organizations, users
+ *   consent_records, role_permissions, roles, permissions, invitations,
+ *   members, sessions, accounts, verifications, organizations, users
  *
  * Usage:
  *   DATABASE_URL=postgresql://... tsx scripts/db-reset.ts
@@ -16,6 +16,7 @@
 import postgres from 'postgres'
 
 const TABLES = [
+  'consent_records',
   'role_permissions',
   'roles',
   'permissions',
