@@ -130,14 +130,14 @@ describe('AccountSettingsPage', () => {
       render(<Account />)
 
       await waitFor(() => {
-        expect(screen.getByLabelText('New Email')).toBeInTheDocument()
+        expect(screen.getByLabelText('account_email_new_label')).toBeInTheDocument()
       })
 
-      fireEvent.change(screen.getByLabelText('New Email'), {
+      fireEvent.change(screen.getByLabelText('account_email_new_label'), {
         target: { value: 'new@example.com' },
       })
 
-      const form = screen.getByLabelText('New Email').closest('form')
+      const form = screen.getByLabelText('account_email_new_label').closest('form')
       if (!form) throw new Error('form not found')
       fireEvent.submit(form)
 
@@ -147,7 +147,7 @@ describe('AccountSettingsPage', () => {
 
       await waitFor(() => {
         expect(vi.mocked(toast.success)).toHaveBeenCalledWith(
-          'Verification email sent to new@example.com'
+          'account_email_change_success({"email":"new@example.com"})'
         )
       })
     })
@@ -162,20 +162,20 @@ describe('AccountSettingsPage', () => {
       render(<Account />)
 
       await waitFor(() => {
-        expect(screen.getByLabelText('Current Password')).toBeInTheDocument()
+        expect(screen.getByLabelText('account_password_current')).toBeInTheDocument()
       })
 
-      fireEvent.change(screen.getByLabelText('Current Password'), {
+      fireEvent.change(screen.getByLabelText('account_password_current'), {
         target: { value: 'oldpass123' },
       })
-      fireEvent.change(screen.getByLabelText('New Password'), {
+      fireEvent.change(screen.getByLabelText('account_password_new'), {
         target: { value: 'newpass456' },
       })
-      fireEvent.change(screen.getByLabelText('Confirm New Password'), {
+      fireEvent.change(screen.getByLabelText('account_password_confirm'), {
         target: { value: 'newpass456' },
       })
 
-      const form = screen.getByLabelText('Current Password').closest('form')
+      const form = screen.getByLabelText('account_password_current').closest('form')
       if (!form) throw new Error('form not found')
       fireEvent.submit(form)
 
@@ -187,7 +187,7 @@ describe('AccountSettingsPage', () => {
       })
 
       await waitFor(() => {
-        expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Password updated successfully')
+        expect(vi.mocked(toast.success)).toHaveBeenCalledWith('account_password_update_success')
       })
     })
 
@@ -198,11 +198,11 @@ describe('AccountSettingsPage', () => {
       render(<Account />)
 
       await waitFor(() => {
-        expect(screen.getByText('Account Type')).toBeInTheDocument()
+        expect(screen.getByText('account_type_title')).toBeInTheDocument()
       })
 
-      expect(screen.queryByLabelText('New Email')).not.toBeInTheDocument()
-      expect(screen.queryByLabelText('Current Password')).not.toBeInTheDocument()
+      expect(screen.queryByLabelText('account_email_new_label')).not.toBeInTheDocument()
+      expect(screen.queryByLabelText('account_password_current')).not.toBeInTheDocument()
     })
   })
 
