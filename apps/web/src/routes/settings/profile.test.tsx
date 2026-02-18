@@ -15,11 +15,11 @@ vi.mock('@tanstack/react-router', () => ({
 
 vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
-const mockGetSession = vi.fn((_opts?: Record<string, unknown>) => Promise.resolve({}))
+const mockUpdateUser = vi.fn((_data?: Record<string, unknown>) => Promise.resolve({}))
 
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
-    getSession: (opts?: Record<string, unknown>) => mockGetSession(opts),
+    updateUser: (data?: Record<string, unknown>) => mockUpdateUser(data),
   },
   useSession: vi.fn(() => ({
     data: {
@@ -431,7 +431,7 @@ describe('ProfileSettingsPage', () => {
   })
 
   describe('session refresh after save', () => {
-    it('should call authClient.getSession after successful save', async () => {
+    it('should call authClient.updateUser after successful save', async () => {
       // Arrange
       mockFetch.mockImplementation((_url: string, opts?: { method?: string }) => {
         if (opts?.method === 'PATCH') {
@@ -463,11 +463,11 @@ describe('ProfileSettingsPage', () => {
       if (!form) throw new Error('form not found')
       fireEvent.submit(form)
 
-      // Assert - authClient.getSession should be called with no-cache to refresh session
+      // Assert - authClient.updateUser should be called with image to trigger $sessionSignal
       await waitFor(() => {
-        expect(mockGetSession).toHaveBeenCalledWith({
-          fetchOptions: { cache: 'no-cache' },
-        })
+        expect(mockUpdateUser).toHaveBeenCalledWith(
+          expect.objectContaining({ image: expect.any(String) })
+        )
       })
     })
 
@@ -550,7 +550,7 @@ describe('ProfileSettingsPage', () => {
       })
     })
 
-    it('should not call authClient.getSession when save returns an error response', async () => {
+    it('should not call authClient.updateUser when save returns an error response', async () => {
       // Arrange
       mockFetch.mockImplementation((_url: string, opts?: { method?: string }) => {
         if (opts?.method === 'PATCH') {
@@ -585,11 +585,11 @@ describe('ProfileSettingsPage', () => {
       if (!form) throw new Error('form not found')
       fireEvent.submit(form)
 
-      // Assert - getSession should NOT be called on error
+      // Assert - updateUser should NOT be called on error
       await waitFor(() => {
         expect(vi.mocked(toast.error)).toHaveBeenCalled()
       })
-      expect(mockGetSession).not.toHaveBeenCalled()
+      expect(mockUpdateUser).not.toHaveBeenCalled()
     })
   })
 
