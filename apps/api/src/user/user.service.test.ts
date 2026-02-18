@@ -683,6 +683,55 @@ describe('UserService', () => {
       expect(deleteWhereCalls.length).toBe(6)
     })
 
+    it('should include avatarOptions in anonymization payload', async () => {
+      // Arrange
+      const { db, chains } = createMockDb()
+      chains.select.limit.mockResolvedValue([
+        { id: 'user-purge-avatar', email: 'john@example.com', deletedAt: new Date() },
+      ])
+
+      let setPayload: Record<string, unknown> | null = null
+      db.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          update: vi.fn().mockImplementation(() => {
+            return {
+              set: vi.fn().mockImplementation((data: Record<string, unknown>) => {
+                // Capture the first set call (user anonymization)
+                if (!setPayload) {
+                  setPayload = data
+                }
+                return {
+                  where: vi.fn().mockResolvedValue([]),
+                }
+              }),
+            }
+          }),
+          delete: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([]),
+          }),
+          select: vi.fn().mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              innerJoin: vi.fn().mockReturnValue({
+                where: vi.fn().mockResolvedValue([]),
+              }),
+            }),
+          }),
+        }
+        return cb(tx)
+      })
+      const service = new UserService(db as never)
+
+      // Act
+      await service.purge('user-purge-avatar', 'john@example.com')
+
+      // Assert
+      expect(setPayload).toMatchObject({
+        avatarSeed: null,
+        avatarStyle: null,
+        avatarOptions: {},
+      })
+    })
+
     it('should invalidate soft-delete cache after purge', async () => {
       // Arrange
       const { db, chains } = createMockDb()

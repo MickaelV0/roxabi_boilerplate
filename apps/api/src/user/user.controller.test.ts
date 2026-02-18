@@ -1,8 +1,30 @@
+import { DICEBEAR_CDN_BASE } from '@repo/types'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { z } from 'zod'
 import { AccountNotDeletedException } from './exceptions/account-not-deleted.exception.js'
 import { UserNotFoundException } from './exceptions/user-not-found.exception.js'
 import { UserController } from './user.controller.js'
 import type { UserService } from './user.service.js'
+
+// Reconstruct the schema from user.controller.ts for validation testing.
+// The source schema is module-private and cannot be imported.
+const DICEBEAR_URL_PREFIX = `${DICEBEAR_CDN_BASE.split('/9.x')[0]}/`
+const avatarOptionValue = z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])
+const updateProfileSchema = z.object({
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().max(100).optional(),
+  fullName: z.string().min(1).max(200).optional(),
+  avatarSeed: z.string().max(200).nullable().optional(),
+  avatarStyle: z
+    .enum(['lorelei', 'bottts', 'pixel-art', 'thumbs', 'avataaars', 'adventurer', 'toon-head'])
+    .nullable()
+    .optional(),
+  avatarOptions: z
+    .record(z.string(), avatarOptionValue)
+    .refine((val) => JSON.stringify(val).length <= 4096, 'avatarOptions too large')
+    .optional(),
+  image: z.string().url().max(2000).startsWith(DICEBEAR_URL_PREFIX).nullable().optional(),
+})
 
 const mockUserService: UserService = {
   getSoftDeleteStatus: vi.fn(),
@@ -192,6 +214,52 @@ describe('UserController', () => {
       await expect(controller.purgeMe(session, body, mockResponse)).rejects.toThrow(
         AccountNotDeletedException
       )
+    })
+  })
+
+  describe('updateProfileSchema validation', () => {
+    it('should reject image URLs not starting with DiceBear prefix', () => {
+      // Arrange
+      const input = { image: 'https://evil.com/avatar.svg' }
+
+      // Act
+      const result = updateProfileSchema.safeParse(input)
+
+      // Assert
+      expect(result.success).toBe(false)
+    })
+
+    it('should reject image URLs exceeding 2000 characters', () => {
+      // Arrange
+      const longUrl = `${DICEBEAR_URL_PREFIX}${'a'.repeat(2000)}`
+
+      // Act
+      const result = updateProfileSchema.safeParse({ image: longUrl })
+
+      // Assert
+      expect(result.success).toBe(false)
+    })
+
+    it('should accept valid DiceBear URLs', () => {
+      // Arrange
+      const input = { image: 'https://api.dicebear.com/9.x/lorelei/svg?seed=abc' }
+
+      // Act
+      const result = updateProfileSchema.safeParse(input)
+
+      // Assert
+      expect(result.success).toBe(true)
+    })
+
+    it('should accept null image', () => {
+      // Arrange
+      const input = { image: null }
+
+      // Act
+      const result = updateProfileSchema.safeParse(input)
+
+      // Assert
+      expect(result.success).toBe(true)
     })
   })
 })

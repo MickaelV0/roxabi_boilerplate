@@ -32,7 +32,7 @@ export type {
   UpdateProfilePayload,
   UserProfile,
 } from './account.js'
-export { ERROR_CODES } from './account.js'
+export { AVATAR_STYLES, DICEBEAR_CDN_BASE, ERROR_CODES } from './account.js'
 export * from './consent.js'
 export type {
   DefaultRoleSlug,

@@ -2,7 +2,7 @@
  * Branch database lifecycle management.
  *
  * Subcommands:
- *   create [issue_number] [--force]  — Create branch DB, migrate, seed, update .env
+ *   create [issue_number] [--force]  — Create branch DB, push schema, seed, update .env
  *   drop   [issue_number]            — Drop branch DB (refuses default DB)
  *   list                             — List branch DBs with worktree cross-reference
  *

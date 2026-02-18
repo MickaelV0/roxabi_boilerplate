@@ -1,3 +1,4 @@
+import { DICEBEAR_CDN_BASE } from '@repo/types'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { admin } from 'better-auth/plugins/admin'
@@ -65,26 +66,18 @@ export function createBetterAuth(
       user: {
         create: {
           after: async (user) => {
-            if (!user.image) {
-              const cdnUrl = `https://api.dicebear.com/9.x/lorelei/svg?seed=${user.id}`
-              await db
-                .update(users)
-                .set({
-                  avatarStyle: 'lorelei',
-                  avatarSeed: user.id,
-                  avatarOptions: {},
-                  image: cdnUrl,
-                })
-                .where(eq(users.id, user.id))
-            } else {
-              await db
-                .update(users)
-                .set({
-                  avatarStyle: 'lorelei',
-                  avatarSeed: user.id,
-                  avatarOptions: {},
-                })
-                .where(eq(users.id, user.id))
+            try {
+              const updateFields: Record<string, unknown> = {
+                avatarStyle: 'lorelei',
+                avatarSeed: user.id,
+                avatarOptions: {},
+              }
+              if (!user.image) {
+                updateFields.image = `${DICEBEAR_CDN_BASE}/lorelei/svg?seed=${user.id}`
+              }
+              await db.update(users).set(updateFields).where(eq(users.id, user.id))
+            } catch (error) {
+              console.warn('Failed to set default avatar for user', user.id, error)
             }
           },
         },

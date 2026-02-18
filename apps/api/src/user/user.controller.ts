@@ -1,19 +1,27 @@
 import { Body, Controller, Delete, Get, Patch, Post, Res } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { AVATAR_STYLES, DICEBEAR_CDN_BASE } from '@repo/types'
 import type { FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { Session } from '../auth/decorators/session.decorator.js'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
 import { UserService } from './user.service.js'
 
+const avatarOptionValue = z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])
+
+const DICEBEAR_URL_PREFIX = `${DICEBEAR_CDN_BASE.split('/9.x')[0]}/`
+
 const updateProfileSchema = z.object({
   firstName: z.string().min(1).max(100).optional(),
   lastName: z.string().max(100).optional(),
   fullName: z.string().min(1).max(200).optional(),
   avatarSeed: z.string().max(200).nullable().optional(),
-  avatarStyle: z.string().max(50).nullable().optional(),
-  avatarOptions: z.record(z.string(), z.unknown()).optional(),
-  image: z.string().url().max(2000).startsWith('https://api.dicebear.com/').nullable().optional(),
+  avatarStyle: z.enum(AVATAR_STYLES).nullable().optional(),
+  avatarOptions: z
+    .record(z.string(), avatarOptionValue)
+    .refine((val) => JSON.stringify(val).length <= 4096, 'avatarOptions too large')
+    .optional(),
+  image: z.string().url().max(2000).startsWith(DICEBEAR_URL_PREFIX).nullable().optional(),
 })
 
 type UpdateProfileDto = z.infer<typeof updateProfileSchema>

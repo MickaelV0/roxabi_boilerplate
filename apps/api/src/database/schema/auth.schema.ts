@@ -17,7 +17,7 @@ export const users = pgTable(
     image: text('image'),
     avatarSeed: text('avatar_seed'),
     avatarStyle: text('avatar_style').default('lorelei'),
-    avatarOptions: jsonb('avatar_options').default({}).$type<Record<string, unknown>>(),
+    avatarOptions: jsonb('avatar_options').notNull().default({}).$type<Record<string, unknown>>(),
     role: text('role').default('user'),
     banned: boolean('banned').default(false),
     banReason: text('ban_reason'),
