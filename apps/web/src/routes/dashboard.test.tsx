@@ -8,13 +8,15 @@ const captured = vi.hoisted(() => ({
 
 const mockUseOrganizations = vi.hoisted(() =>
   vi.fn(() => ({
-    data: [] as Array<{
-      id: string
-      name: string
-      slug: string
-      logo: string | null
-      createdAt: string
-    }>,
+    data: [] as
+      | Array<{
+          id: string
+          name: string
+          slug: string
+          logo: string | null
+          createdAt: string
+        }>
+      | undefined,
     isLoading: false,
     error: null,
     refetch: vi.fn(),
