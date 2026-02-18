@@ -28,7 +28,7 @@ vi.mock('@repo/ui', () => ({
     children,
     onClick,
     disabled,
-    asChild,
+    asChild: _asChild,
   }: React.PropsWithChildren<{ onClick?: () => void; disabled?: boolean; asChild?: boolean }>) => (
     <button type="button" role="menuitem" onClick={onClick} disabled={disabled}>
       {children}

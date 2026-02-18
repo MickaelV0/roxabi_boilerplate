@@ -250,7 +250,7 @@ describe('RegisterPage', () => {
       })
       expect(registrationCall).toBeDefined()
 
-      const [url, options] = registrationCall!
+      const [url, options] = registrationCall as [string, RequestInit & { body: string }]
       expect(url).toBe('/api/consent')
       expect(options.method).toBe('POST')
       expect(options.credentials).toBe('include')
