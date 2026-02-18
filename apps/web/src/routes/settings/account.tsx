@@ -33,7 +33,7 @@ import { m } from '@/paraglide/messages'
 export const Route = createFileRoute('/settings/account')({
   component: AccountSettingsPage,
   head: () => ({
-    meta: [{ title: 'Account Settings | Roxabi' }],
+    meta: [{ title: m.account_head_title() }],
   }),
 })
 
@@ -79,13 +79,13 @@ function EmailChangeSection() {
     try {
       const { error } = await authClient.changeEmail({ newEmail })
       if (error) {
-        toast.error(error.message ?? 'Failed to change email')
+        toast.error(error.message ?? m.account_email_change_error())
       } else {
-        toast.success(`Verification email sent to ${newEmail}`)
+        toast.success(m.account_email_change_success({ email: newEmail }))
         setNewEmail('')
       }
     } catch {
-      toast.error('Failed to change email')
+      toast.error(m.account_email_change_error())
     } finally {
       setSubmitting(false)
     }
@@ -94,27 +94,25 @@ function EmailChangeSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Email Address</CardTitle>
-        <CardDescription>
-          Change your email address. A verification link will be sent to the new address.
-        </CardDescription>
+        <CardTitle>{m.account_email_title()}</CardTitle>
+        <CardDescription>{m.account_email_description()}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="newEmail">New Email</Label>
+            <Label htmlFor="newEmail">{m.account_email_new_label()}</Label>
             <Input
               id="newEmail"
               type="email"
               value={newEmail}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewEmail(e.target.value)}
-              placeholder="new@example.com"
+              placeholder={m.account_email_placeholder()}
               required
               disabled={submitting}
             />
           </div>
           <Button type="submit" disabled={submitting || !newEmail.trim()}>
-            {submitting ? 'Sending...' : 'Change Email'}
+            {submitting ? m.account_email_sending() : m.account_email_change()}
           </Button>
         </form>
       </CardContent>
@@ -141,15 +139,15 @@ function PasswordChangeSection() {
         newPassword,
       })
       if (error) {
-        toast.error(error.message ?? 'Failed to update password')
+        toast.error(error.message ?? m.account_password_update_error())
       } else {
-        toast.success('Password updated successfully')
+        toast.success(m.account_password_update_success())
         setCurrentPassword('')
         setNewPassword('')
         setConfirmPassword('')
       }
     } catch {
-      toast.error('Failed to update password')
+      toast.error(m.account_password_update_error())
     } finally {
       setSubmitting(false)
     }
@@ -158,13 +156,13 @@ function PasswordChangeSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Password</CardTitle>
-        <CardDescription>Update your password.</CardDescription>
+        <CardTitle>{m.account_password_title()}</CardTitle>
+        <CardDescription>{m.account_password_description()}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="currentPassword">Current Password</Label>
+            <Label htmlFor="currentPassword">{m.account_password_current()}</Label>
             <PasswordInput
               id="currentPassword"
               value={currentPassword}
@@ -175,7 +173,7 @@ function PasswordChangeSection() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="newPassword">New Password</Label>
+            <Label htmlFor="newPassword">{m.account_password_new()}</Label>
             <PasswordInput
               id="newPassword"
               value={newPassword}
@@ -184,7 +182,7 @@ function PasswordChangeSection() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm New Password</Label>
+            <Label htmlFor="confirmPassword">{m.account_password_confirm()}</Label>
             <PasswordInput
               id="confirmPassword"
               value={confirmPassword}
@@ -194,11 +192,11 @@ function PasswordChangeSection() {
               disabled={submitting}
             />
             {confirmPassword && !passwordsMatch && (
-              <p className="text-sm text-destructive">Passwords do not match</p>
+              <p className="text-sm text-destructive">{m.account_password_mismatch()}</p>
             )}
           </div>
           <Button type="submit" disabled={submitting || !canSubmit}>
-            {submitting ? 'Updating...' : 'Update Password'}
+            {submitting ? m.account_password_updating() : m.account_password_update()}
           </Button>
         </form>
       </CardContent>
@@ -228,11 +226,8 @@ function OrgResolutionStep({
     <div className="space-y-4">
       <Alert>
         <AlertTriangleIcon className="size-4" />
-        <AlertTitle>Organization Ownership</AlertTitle>
-        <AlertDescription>
-          You own the following organizations. Choose what happens to each one before deleting your
-          account.
-        </AlertDescription>
+        <AlertTitle>{m.account_org_ownership_title()}</AlertTitle>
+        <AlertDescription>{m.account_org_ownership_description()}</AlertDescription>
       </Alert>
 
       {orgs.map((org) => {
@@ -250,7 +245,9 @@ function OrgResolutionStep({
                   <div>
                     <p className="font-medium">{org.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {org.memberCount} member{org.memberCount !== 1 ? 's' : ''}
+                      {org.memberCount === 1
+                        ? m.account_org_member_count({ count: org.memberCount })
+                        : m.account_org_members_count({ count: org.memberCount })}
                     </p>
                   </div>
                 </div>
@@ -274,9 +271,9 @@ function OrgResolutionStep({
                   </SelectTrigger>
                   <SelectContent>
                     {eligibleMembers.length > 0 && (
-                      <SelectItem value="transfer">Transfer ownership</SelectItem>
+                      <SelectItem value="transfer">{m.account_org_transfer()}</SelectItem>
                     )}
-                    <SelectItem value="delete">Delete organization</SelectItem>
+                    <SelectItem value="delete">{m.account_org_delete()}</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -292,7 +289,7 @@ function OrgResolutionStep({
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a member" />
+                      <SelectValue placeholder={m.account_org_select_member()} />
                     </SelectTrigger>
                     <SelectContent>
                       {eligibleMembers.map((member) => (
@@ -492,11 +489,8 @@ function AccountSettingsPage() {
       {isOAuthOnly && (
         <Card>
           <CardHeader>
-            <CardTitle>Account Type</CardTitle>
-            <CardDescription>
-              Your account is linked via a social provider. Email and password settings are managed
-              through your provider.
-            </CardDescription>
+            <CardTitle>{m.account_type_title()}</CardTitle>
+            <CardDescription>{m.account_type_oauth_description()}</CardDescription>
           </CardHeader>
         </Card>
       )}

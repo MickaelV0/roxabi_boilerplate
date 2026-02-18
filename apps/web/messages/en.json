@@ -1018,5 +1018,42 @@
   "avatar_option_disabled": "Disabled",
   "avatar_url_length_warning": "Avatar URL is too long. Simplify options or change style to save.",
   "avatar_save_success": "Profile updated successfully",
-  "avatar_save_error": "Failed to update profile"
+  "avatar_save_error": "Failed to update profile",
+
+  "settings_title": "Settings",
+  "settings_tab_profile": "Profile",
+  "settings_tab_account": "Account",
+
+  "account_email_title": "Email Address",
+  "account_email_description": "Change your email address. A verification link will be sent to the new address.",
+  "account_email_new_label": "New Email",
+  "account_email_placeholder": "new@example.com",
+  "account_email_sending": "Sending...",
+  "account_email_change": "Change Email",
+  "account_email_change_error": "Failed to change email",
+  "account_email_change_success": "Verification email sent to {email}",
+
+  "account_password_title": "Password",
+  "account_password_description": "Update your password.",
+  "account_password_current": "Current Password",
+  "account_password_new": "New Password",
+  "account_password_confirm": "Confirm New Password",
+  "account_password_mismatch": "Passwords do not match",
+  "account_password_updating": "Updating...",
+  "account_password_update": "Update Password",
+  "account_password_update_error": "Failed to update password",
+  "account_password_update_success": "Password updated successfully",
+
+  "account_type_title": "Account Type",
+  "account_type_oauth_description": "Your account is linked via a social provider. Email and password settings are managed through your provider.",
+
+  "account_org_ownership_title": "Organization Ownership",
+  "account_org_ownership_description": "You own the following organizations. Choose what happens to each one before deleting your account.",
+  "account_org_member_count": "{count} member",
+  "account_org_members_count": "{count} members",
+  "account_org_transfer": "Transfer ownership",
+  "account_org_delete": "Delete organization",
+  "account_org_select_member": "Select a member",
+
+  "account_head_title": "Account Settings | Roxabi"
 }

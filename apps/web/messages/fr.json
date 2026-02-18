@@ -1018,5 +1018,42 @@
   "avatar_option_disabled": "D\u00e9sactiv\u00e9",
   "avatar_url_length_warning": "L'URL de l'avatar est trop longue. Simplifiez les options ou changez de style.",
   "avatar_save_success": "Profil mis \u00e0 jour avec succ\u00e8s",
-  "avatar_save_error": "\u00c9chec de la mise \u00e0 jour du profil"
+  "avatar_save_error": "\u00c9chec de la mise \u00e0 jour du profil",
+
+  "settings_title": "Param\u00e8tres",
+  "settings_tab_profile": "Profil",
+  "settings_tab_account": "Compte",
+
+  "account_email_title": "Adresse e-mail",
+  "account_email_description": "Modifiez votre adresse e-mail. Un lien de v\u00e9rification sera envoy\u00e9 \u00e0 la nouvelle adresse.",
+  "account_email_new_label": "Nouvel e-mail",
+  "account_email_placeholder": "nouveau@example.com",
+  "account_email_sending": "Envoi...",
+  "account_email_change": "Changer l'e-mail",
+  "account_email_change_error": "\u00c9chec du changement d'e-mail",
+  "account_email_change_success": "E-mail de v\u00e9rification envoy\u00e9 \u00e0 {email}",
+
+  "account_password_title": "Mot de passe",
+  "account_password_description": "Mettez \u00e0 jour votre mot de passe.",
+  "account_password_current": "Mot de passe actuel",
+  "account_password_new": "Nouveau mot de passe",
+  "account_password_confirm": "Confirmer le nouveau mot de passe",
+  "account_password_mismatch": "Les mots de passe ne correspondent pas",
+  "account_password_updating": "Mise \u00e0 jour...",
+  "account_password_update": "Mettre \u00e0 jour le mot de passe",
+  "account_password_update_error": "\u00c9chec de la mise \u00e0 jour du mot de passe",
+  "account_password_update_success": "Mot de passe mis \u00e0 jour avec succ\u00e8s",
+
+  "account_type_title": "Type de compte",
+  "account_type_oauth_description": "Votre compte est li\u00e9 via un fournisseur social. Les param\u00e8tres e-mail et mot de passe sont g\u00e9r\u00e9s par votre fournisseur.",
+
+  "account_org_ownership_title": "Propri\u00e9t\u00e9 des organisations",
+  "account_org_ownership_description": "Vous poss\u00e9dez les organisations suivantes. Choisissez ce qu'il advient de chacune avant de supprimer votre compte.",
+  "account_org_member_count": "{count} membre",
+  "account_org_members_count": "{count} membres",
+  "account_org_transfer": "Transf\u00e9rer la propri\u00e9t\u00e9",
+  "account_org_delete": "Supprimer l'organisation",
+  "account_org_select_member": "S\u00e9lectionner un membre",
+
+  "account_head_title": "Param\u00e8tres du compte | Roxabi"
 }
