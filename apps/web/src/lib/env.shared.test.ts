@@ -3,17 +3,6 @@ import { clientEnvSchema } from './env.shared'
 
 describe('clientEnvSchema', () => {
   describe('default values', () => {
-    it('should default VITE_ENABLE_DEMO to "true" when parsing empty object', () => {
-      // Arrange
-      const input = {}
-
-      // Act
-      const result = clientEnvSchema.parse(input)
-
-      // Assert
-      expect(result.VITE_ENABLE_DEMO).toBe('true')
-    })
-
     it('should leave VITE_GITHUB_REPO_URL undefined when not provided', () => {
       // Arrange
       const input = {}
@@ -23,41 +12,6 @@ describe('clientEnvSchema', () => {
 
       // Assert
       expect(result.VITE_GITHUB_REPO_URL).toBeUndefined()
-    })
-  })
-
-  describe('VITE_ENABLE_DEMO', () => {
-    it('should accept any string value', () => {
-      // Arrange
-      const input = { VITE_ENABLE_DEMO: 'false' }
-
-      // Act
-      const result = clientEnvSchema.parse(input)
-
-      // Assert
-      expect(result.VITE_ENABLE_DEMO).toBe('false')
-    })
-
-    it('should accept an empty string', () => {
-      // Arrange
-      const input = { VITE_ENABLE_DEMO: '' }
-
-      // Act
-      const result = clientEnvSchema.parse(input)
-
-      // Assert
-      expect(result.VITE_ENABLE_DEMO).toBe('')
-    })
-
-    it('should default to "true" when explicitly undefined', () => {
-      // Arrange
-      const input = { VITE_ENABLE_DEMO: undefined }
-
-      // Act
-      const result = clientEnvSchema.parse(input)
-
-      // Assert
-      expect(result.VITE_ENABLE_DEMO).toBe('true')
     })
   })
 
@@ -113,10 +67,9 @@ describe('clientEnvSchema', () => {
   })
 
   describe('full valid parse', () => {
-    it('should parse a complete valid input with both fields', () => {
+    it('should parse a complete valid input with all fields', () => {
       // Arrange
       const input = {
-        VITE_ENABLE_DEMO: 'false',
         VITE_GITHUB_REPO_URL: 'https://github.com/roxabi/boilerplate',
       }
 
@@ -125,7 +78,6 @@ describe('clientEnvSchema', () => {
 
       // Assert
       expect(result).toEqual({
-        VITE_ENABLE_DEMO: 'false',
         VITE_GITHUB_REPO_URL: 'https://github.com/roxabi/boilerplate',
       })
     })
@@ -133,7 +85,6 @@ describe('clientEnvSchema', () => {
     it('should strip unknown keys from input', () => {
       // Arrange
       const input = {
-        VITE_ENABLE_DEMO: 'true',
         UNKNOWN_KEY: 'should be stripped',
       }
 
@@ -142,7 +93,6 @@ describe('clientEnvSchema', () => {
 
       // Assert
       expect(result).not.toHaveProperty('UNKNOWN_KEY')
-      expect(result.VITE_ENABLE_DEMO).toBe('true')
     })
   })
 })

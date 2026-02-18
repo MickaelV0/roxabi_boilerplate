@@ -145,23 +145,7 @@ Key hooks in the route lifecycle:
 
 ### Layout Routes
 
-A route file without child routes in a matching directory acts as a layout when it renders `<Outlet />`:
-
-```ts
-// routes/demo.tsx -- layout wrapping /demo/* children
-export const Route = createFileRoute('/demo')({
-  beforeLoad: () => {
-    if (import.meta.env.VITE_ENABLE_DEMO !== 'true') {
-      throw notFound()
-    }
-  },
-  component: DemoLayout,
-})
-
-function DemoLayout() {
-  return <Outlet />
-}
-```
+A route file without child routes in a matching directory acts as a layout when it renders `<Outlet />`.
 
 ### Root Route
 

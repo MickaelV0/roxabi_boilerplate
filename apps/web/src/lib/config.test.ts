@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest'
 async function importConfig(envValue?: string) {
   vi.doMock('./env.shared.js', () => ({
     clientEnv: {
-      VITE_ENABLE_DEMO: 'true',
       VITE_GITHUB_REPO_URL: envValue || undefined,
     },
   }))

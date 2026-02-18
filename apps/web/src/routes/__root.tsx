@@ -19,7 +19,6 @@ import { Header } from '../components/Header'
 import { TanStackQueryDevtools } from '../integrations/tanstack-query/devtools'
 import { ConsentProvider } from '../lib/consent/ConsentProvider'
 import { getServerConsent } from '../lib/consent/server'
-import { demoStoreDevtools } from '../lib/demo-store-devtools'
 import appCss from '../styles.css?url'
 
 export type MyRouterContext = {
@@ -147,7 +146,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 name: 'Tanstack Router',
                 render: <TanStackRouterDevtoolsPanel />,
               },
-              demoStoreDevtools,
               TanStackQueryDevtools,
             ]}
           />

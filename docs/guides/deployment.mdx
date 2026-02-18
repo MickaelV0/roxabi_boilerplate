@@ -684,7 +684,7 @@ curl -H "x-vercel-protection-bypass: <your-bypass-secret>" https://<preview-url>
 - NestJS middlewares with the Fastify adapter receive raw Node.js `ServerResponse` objects — use `res.setHeader()`, not `res.header()`
 - Free tier: 10s execution limit per request. Pro tier: 60s
 - 250MB max application size (Vercel Functions limitation)
-- `API_URL`, `APP_URL`, and `VITE_ENABLE_DEMO` are declared in `turbo.jsonc` build env to ensure Turbo invalidates cache when they change
+- `API_URL`, `APP_URL`, and `VITE_*` variables are declared in `turbo.jsonc` build env to ensure Turbo invalidates cache when they change
 - `apps/api/turbo.json` declares runtime secrets (database, auth) as `passThroughEnv` — these are available at runtime but don't affect build cache
 
 ---

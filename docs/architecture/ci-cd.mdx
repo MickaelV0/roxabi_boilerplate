@@ -278,7 +278,7 @@ TurboRepo uses two mechanisms for environment variables, and the distinction is 
 
 **`env`** (declared in root `turbo.jsonc`) -- Variables whose values affect build output. Changing any of these invalidates the Turbo cache for the affected task:
 
-- `API_URL`, `APP_URL`, `VITE_ENABLE_DEMO` (build task and codegen)
+- `API_URL`, `APP_URL`, `VITE_*` (build task and codegen)
 - `CI`, `VITEST` (test task)
 
 **`passThroughEnv`** (declared in `apps/api/turbo.json`) -- Runtime-only secrets that must be available during the build process but whose values should **not** affect the cache key. This prevents unnecessary cache invalidation when secrets rotate:

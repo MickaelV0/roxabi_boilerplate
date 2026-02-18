@@ -35,7 +35,6 @@ const config = defineConfig(async () => ({
           // and cannot import app source. Keep in sync manually; check-env-sync.ts
           // will detect drift between this schema and env.shared.ts.
           const schema = z.object({
-            VITE_ENABLE_DEMO: z.string().optional(),
             VITE_GITHUB_REPO_URL: z.string().url().optional(),
           })
           const result = schema.safeParse(envVars)
