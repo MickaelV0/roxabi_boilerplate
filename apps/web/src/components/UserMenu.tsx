@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@repo/ui'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { LogOut, Settings, Users } from 'lucide-react'
+import { LogOut, User, UserCog } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
@@ -30,7 +30,6 @@ function getInitials(name?: string | null, email?: string | null): string {
 
 export function UserMenu() {
   const { data: session } = useSession()
-  const { data: activeOrg } = authClient.useActiveOrganization()
   const navigate = useNavigate()
   const [signingOut, setSigningOut] = useState(false)
 
@@ -73,23 +72,19 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {activeOrg && (
-          <>
-            <DropdownMenuItem asChild>
-              <Link to="/org/settings">
-                <Settings className="mr-2 size-4" />
-                {m.user_menu_org_settings()}
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/org/members">
-                <Users className="mr-2 size-4" />
-                {m.user_menu_org_members()}
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-          </>
-        )}
+        <DropdownMenuItem asChild>
+          <Link to="/settings/profile">
+            <User className="mr-2 size-4" />
+            {m.user_menu_profile()}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/settings/account">
+            <UserCog className="mr-2 size-4" />
+            {m.user_menu_account()}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} disabled={signingOut}>
           <LogOut className="mr-2 size-4" />
           {signingOut ? m.user_menu_signing_out() : m.user_menu_sign_out()}

@@ -1,3 +1,4 @@
 export * from './auth.schema.js'
 export * from './base.js'
+export * from './consent.schema.js'
 export * from './rbac.schema.js'

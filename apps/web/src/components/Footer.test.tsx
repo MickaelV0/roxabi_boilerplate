@@ -7,11 +7,28 @@ vi.mock('@/paraglide/messages', () => ({
     footer_changelog: () => 'Changelog',
     footer_copyright: ({ year }: { year: string }) => `Copyright ${year} Roxabi`,
     github_label: () => 'GitHub',
+    footer_legal_notice: () => 'Legal Notice',
+    footer_terms: () => 'Terms',
+    footer_privacy: () => 'Privacy',
+    footer_cookies: () => 'Cookies',
+    footer_cookie_settings: () => 'Cookie Settings',
   },
+}))
+
+vi.mock('@repo/ui', () => ({
+  Separator: ({ orientation, className }: { orientation?: string; className?: string }) => (
+    <div data-testid="separator" data-orientation={orientation} className={className} />
+  ),
 }))
 
 vi.mock('@/lib/config', () => ({
   GITHUB_REPO_URL: 'https://github.com/test/repo',
+}))
+
+vi.mock('@/lib/consent/useConsent', () => ({
+  useConsent: () => ({
+    openSettings: vi.fn(),
+  }),
 }))
 
 vi.mock('@tanstack/react-router', () => ({
@@ -89,5 +106,40 @@ describe('Footer', () => {
     const link = screen.getByRole('link', { name: 'GitHub' })
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+  })
+
+  it('should render legal navigation links', () => {
+    // Arrange & Act
+    render(<Footer />)
+
+    // Assert
+    expect(screen.getByRole('link', { name: 'Legal Notice' })).toHaveAttribute(
+      'href',
+      '/legal/mentions-legales'
+    )
+    expect(screen.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', '/legal/cgu')
+    expect(screen.getByRole('link', { name: 'Privacy' })).toHaveAttribute(
+      'href',
+      '/legal/confidentialite'
+    )
+    expect(screen.getByRole('link', { name: 'Cookies' })).toHaveAttribute('href', '/legal/cookies')
+  })
+
+  it('should render the cookie settings button', () => {
+    // Arrange & Act
+    render(<Footer />)
+
+    // Assert
+    const button = screen.getByRole('button', { name: 'Cookie Settings' })
+    expect(button).toBeInTheDocument()
+  })
+
+  it('should render a legal navigation landmark', () => {
+    // Arrange & Act
+    render(<Footer />)
+
+    // Assert
+    const nav = screen.getByRole('navigation', { name: 'Legal' })
+    expect(nav).toBeInTheDocument()
   })
 })

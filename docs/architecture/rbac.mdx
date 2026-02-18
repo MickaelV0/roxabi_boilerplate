@@ -61,26 +61,24 @@ The system enforces single-owner integrity:
 
 Authorization is handled by a single `AuthGuard` that runs as a global NestJS guard. It performs checks in a defined order, short-circuiting on failure:
 
-```txt
-Request
-  │
-  ▼
-AuthGuard.canActivate()
-  │
-  ├── 1. @AllowAnonymous() (PUBLIC metadata)? ── yes ──▶ ALLOW (skip all checks)
-  │
-  ├── 2. Resolve session ────── null + @OptionalAuth? ──▶ ALLOW
-  │                              null + no decorator? ──▶ 401 Unauthorized
-  │
-  ├── 3. @Roles check ──────── user.role not in list? ──▶ 403 Forbidden
-  │
-  ├── 4. @RequireOrg check ─── no activeOrganizationId? ──▶ 403 "No active organization"
-  │
-  └── 5. @Permissions check
-        ├── no @Permissions decorator? ──▶ ALLOW
-        ├── no activeOrganizationId? ──▶ 403 "No active organization"
-        ├── user.role === 'superadmin'? ──▶ ALLOW (bypass)
-        └── session.permissions includes all required? ──▶ ALLOW / 403
+```mermaid
+flowchart TD
+    REQ["Request"] --> GUARD["AuthGuard.canActivate()"]
+    GUARD --> CHECK1{"1. @AllowAnonymous()<br/>(PUBLIC metadata)?"}
+    CHECK1 -- Yes --> ALLOW1["ALLOW<br/>(skip all checks)"]
+    CHECK1 -- No --> CHECK2{"2. Resolve session"}
+    CHECK2 -- "null + @OptionalAuth" --> ALLOW2["ALLOW"]
+    CHECK2 -- "null + no decorator" --> DENY1["401 Unauthorized"]
+    CHECK2 -- "session found" --> CHECK3{"3. @Roles check<br/>user.role in list?"}
+    CHECK3 -- No --> DENY2["403 Forbidden"]
+    CHECK3 -- Yes --> CHECK4{"4. @RequireOrg check<br/>activeOrganizationId?"}
+    CHECK4 -- No --> DENY3["403 No active organization"]
+    CHECK4 -- Yes --> CHECK5{"5. @Permissions check"}
+    CHECK5 -- "no @Permissions decorator" --> ALLOW3["ALLOW"]
+    CHECK5 -- "no activeOrganizationId" --> DENY4["403 No active organization"]
+    CHECK5 -- "superadmin" --> ALLOW4["ALLOW (bypass)"]
+    CHECK5 -- "has all permissions" --> ALLOW5["ALLOW"]
+    CHECK5 -- "missing permissions" --> DENY5["403 Insufficient permissions"]
 ```
 
 ### How permissions reach the guard
@@ -116,23 +114,19 @@ Important caveats:
 
 The full request lifecycle from HTTP request to permission evaluation:
 
-```txt
-Client request (with session cookie/token)
-  │
-  ▼
-AuthGuard.canActivate()
-  │
-  ├── AuthService.getSession(request)
-  │     ├── Better Auth: validate token, return { user, session }
-  │     └── PermissionService.getPermissions(userId, orgId)
-  │           ├── Query members table: find roleId for (userId, orgId)
-  │           ├── Query role_permissions JOIN permissions: get resource:action strings
-  │           └── Return string[] (e.g., ['users:read', 'members:write'])
-  │
-  ├── Attach session + permissions to request object
-  │
-  └── Check @Permissions metadata against session.permissions
-        └── requiredPermissions.every(p => session.permissions.includes(p))
+```mermaid
+flowchart TD
+    REQ["Client request<br/>(with session cookie/token)"] --> GUARD["AuthGuard.canActivate()"]
+    GUARD --> AUTH["AuthService.getSession(request)"]
+    AUTH --> BA["Better Auth:<br/>validate token, return user + session"]
+    AUTH --> PERM["PermissionService.getPermissions(userId, orgId)"]
+    PERM --> Q1["Query members table:<br/>find roleId for (userId, orgId)"]
+    PERM --> Q2["Query role_permissions JOIN permissions:<br/>get resource:action strings"]
+    Q1 --> RET["Return string[]<br/>e.g., users:read, members:write"]
+    Q2 --> RET
+    RET --> ATTACH["Attach session + permissions\nto request object"]
+    ATTACH --> CHECK["Check @Permissions metadata\nagainst session.permissions"]
+    CHECK --> EVAL["requiredPermissions.every\n(p => session.permissions.includes(p))"]
 ```
 
 The `PermissionService` intentionally uses the raw `DRIZZLE` connection (not `TenantService`) because it runs during authentication, before tenant context is established. The `WHERE` clauses on `userId` and `organizationId` provide equivalent row-level isolation.
@@ -145,58 +139,44 @@ Three tables implement the RBAC model, defined in `apps/api/src/database/schema/
 
 ### Entity-Relationship Diagram
 
-```txt
-┌─────────────────┐
-│   permissions   │  (global, seeded via migration)
-│─────────────────│
-│ id          PK  │
-│ resource        │
-│ action          │
-│ description     │
-│ created_at      │
-│ updated_at      │
-│ UNIQUE(resource,│
-│        action)  │
-└────────┬────────┘
-         │
-         │ permission_id (FK, CASCADE)
-         │
-┌────────┴────────┐
-│role_permissions │  (join table, composite PK)
-│─────────────────│
-│ role_id     PK  │──┐
-│ permission_id PK│  │
-└─────────────────┘  │
-                     │ role_id (FK, CASCADE)
-                     │
-         ┌───────────┘
-         │
-┌────────┴────────┐
-│     roles       │  (tenant-scoped, RLS)
-│─────────────────│
-│ id          PK  │
-│ tenant_id       │──▶ organizations.id
-│ name            │
-│ slug            │
-│ description     │
-│ is_default      │
-│ created_at      │
-│ updated_at      │
-│ UNIQUE(tenant_id│
-│        , slug)  │
-└────────┬────────┘
-         │
-         │ role_id (FK, SET NULL)
-         │
-┌────────┴────────┐
-│    members      │  (auth schema)
-│─────────────────│
-│ id          PK  │
-│ user_id     FK  │──▶ users.id
-│ organization_id │──▶ organizations.id
-│ role        text│  (Better Auth compat)
-│ role_id     FK  │  (RBAC source of truth)
-└─────────────────┘
+```mermaid
+erDiagram
+    permissions {
+        text id PK
+        text resource
+        text action
+        text description
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    role_permissions {
+        text role_id PK,FK
+        text permission_id PK,FK
+    }
+
+    roles {
+        text id PK
+        text tenant_id FK "organizations.id"
+        text name
+        text slug
+        text description
+        boolean is_default
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    members {
+        text id PK
+        text user_id FK "users.id"
+        text organization_id FK "organizations.id"
+        text role "Better Auth compat"
+        text role_id FK "RBAC source of truth"
+    }
+
+    permissions ||--o{ role_permissions : "permission_id (CASCADE)"
+    roles ||--o{ role_permissions : "role_id (CASCADE)"
+    roles ||--o{ members : "role_id (SET NULL)"
 ```
 
 ### Table Details

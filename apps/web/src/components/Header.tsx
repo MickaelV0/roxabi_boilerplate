@@ -4,7 +4,6 @@ import { BookOpenIcon, Menu, X } from 'lucide-react'
 import { Collapsible } from 'radix-ui'
 import { useEffect, useRef, useState } from 'react'
 import { useSession } from '@/lib/auth-client'
-import { clientEnv } from '@/lib/env.client.js'
 import { m } from '@/paraglide/messages'
 import { GithubIcon } from './GithubIcon'
 import { LocaleSwitcher } from './LocaleSwitcher'
@@ -12,8 +11,6 @@ import { Logo } from './Logo'
 import { OrgSwitcher } from './OrgSwitcher'
 import { ThemeToggle } from './ThemeToggle'
 import { UserMenu } from './UserMenu'
-
-const isDemoEnabled = clientEnv.VITE_ENABLE_DEMO === 'true'
 
 export function Header() {
   const { data: session } = useSession()
@@ -63,13 +60,6 @@ export function Header() {
                 {m.nav_home()}
               </Link>
             </Button>
-            {isDemoEnabled && (
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/demo" activeProps={{ className: 'bg-accent font-medium' }}>
-                  {m.nav_demos()}
-                </Link>
-              </Button>
-            )}
             <Button variant="ghost" size="sm" asChild>
               <Link to="/design-system" activeProps={{ className: 'bg-accent font-medium' }}>
                 {m.nav_design_system()}
@@ -140,17 +130,6 @@ export function Header() {
                 {m.nav_home()}
               </Link>
             </Button>
-            {isDemoEnabled && (
-              <Button variant="ghost" size="sm" className="justify-start" asChild>
-                <Link
-                  to="/demo"
-                  activeProps={{ className: 'bg-accent font-medium' }}
-                  onClick={() => setMobileOpen(false)}
-                >
-                  {m.nav_demos()}
-                </Link>
-              </Button>
-            )}
             <Button variant="ghost" size="sm" className="justify-start" asChild>
               <Link
                 to="/design-system"

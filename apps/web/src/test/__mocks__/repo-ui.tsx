@@ -67,12 +67,21 @@ export const Button = ({
 export const Checkbox = ({
   id,
   checked,
+  onCheckedChange,
   ...props
 }: {
   id?: string
   checked?: boolean
   onCheckedChange?: (v: boolean) => void
-}) => <input type="checkbox" id={id} checked={checked} onChange={() => {}} {...props} />
+}) => (
+  <input
+    type="checkbox"
+    id={id}
+    checked={checked}
+    onChange={(e) => onCheckedChange?.(e.target.checked)}
+    {...props}
+  />
+)
 
 export const Input = (props: Record<string, unknown>) => <input {...props} />
 
@@ -91,9 +100,52 @@ export const OAuthButton = ({
   ...props
 }: React.PropsWithChildren<Record<string, unknown>>) => <button {...props}>{children}</button>
 
+export const Switch = ({
+  checked,
+  onCheckedChange,
+  ...props
+}: {
+  checked?: boolean
+  onCheckedChange?: (v: boolean) => void
+  [key: string]: unknown
+}) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    onClick={() => onCheckedChange?.(!checked)}
+    {...props}
+  />
+)
+
 export const PasswordInput = (props: Record<string, unknown>) => (
   <input type="password" {...props} />
 )
+
+// ---------------------------------------------------------------------------
+// Accordion
+// ---------------------------------------------------------------------------
+
+export const Accordion = ({
+  children,
+}: React.PropsWithChildren<{ type?: string; collapsible?: boolean }>) => (
+  <div data-testid="accordion">{children}</div>
+)
+
+export const AccordionItem = ({
+  children,
+}: React.PropsWithChildren<{ value?: string; className?: string }>) => <div>{children}</div>
+
+export const AccordionTrigger = ({
+  children,
+  className,
+}: React.PropsWithChildren<{ className?: string }>) => (
+  <button type="button" className={className}>
+    {children}
+  </button>
+)
+
+export const AccordionContent = ({ children }: React.PropsWithChildren) => <div>{children}</div>
 
 // ---------------------------------------------------------------------------
 // Data display
@@ -324,3 +376,64 @@ export const TableCell = ({
   children,
   ...props
 }: React.PropsWithChildren<Record<string, unknown>>) => <td {...props}>{children}</td>
+
+// ---------------------------------------------------------------------------
+// Separator
+// ---------------------------------------------------------------------------
+
+export const Separator = () => <hr data-slot="separator" />
+
+// ---------------------------------------------------------------------------
+// Alert
+// ---------------------------------------------------------------------------
+
+export const Alert = ({
+  children,
+  variant,
+  ...props
+}: React.PropsWithChildren<{ variant?: string }>) => (
+  <div role="alert" data-variant={variant} {...props}>
+    {children}
+  </div>
+)
+
+export const AlertTitle = ({ children }: React.PropsWithChildren) => <h5>{children}</h5>
+
+export const AlertDescription = ({ children }: React.PropsWithChildren) => <div>{children}</div>
+
+// ---------------------------------------------------------------------------
+// DestructiveConfirmDialog
+// ---------------------------------------------------------------------------
+
+export const DestructiveConfirmDialog = ({
+  open,
+  title,
+  description,
+  impactSummary,
+  confirmText,
+  confirmLabel,
+  onConfirm,
+  isLoading,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: string
+  description: string
+  impactSummary?: React.ReactNode
+  confirmText: string
+  confirmLabel?: string
+  onConfirm: () => void
+  isLoading?: boolean
+}) =>
+  open ? (
+    <div data-testid="destructive-confirm-dialog">
+      <h2>{title}</h2>
+      <p>{description}</p>
+      {confirmLabel && <p>{confirmLabel}</p>}
+      {impactSummary}
+      <input placeholder={confirmText} autoComplete="off" />
+      <button type="button" onClick={onConfirm} disabled={isLoading}>
+        {isLoading ? 'Deleting...' : 'Delete'}
+      </button>
+    </div>
+  ) : null

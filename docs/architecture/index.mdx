@@ -34,8 +34,9 @@ roxabi_boilerplate/
 │   ├── meta.json             # Navigation order
 │   ├── architecture/         # Architecture documentation
 │   ├── processes/            # Development processes
-│   ├── standards/            # Coding standards
-│   └── specs/                # Feature specifications
+│   └── standards/            # Coding standards
+├── analyses/                 # Pre-spec analyses & research (not served by Fumadocs)
+├── specs/                    # Feature specifications (not served by Fumadocs)
 └── .claude/                  # Claude Code configuration
     ├── settings.json         # Project settings and hooks
     ├── agents/               # Agent team definitions
@@ -63,7 +64,7 @@ Backend API built with NestJS and Fastify.
 - Modular architecture
 - OpenAPI documentation
 
-See [Auth & Security Architecture](./auth-security) for authentication, guards, CORS, and security headers. See [Multi-Tenant Architecture](./multi-tenant) for RLS and tenant isolation. See [RBAC Architecture](./rbac) for the permission model and role hierarchy. See [Database Architecture](./database) for Drizzle ORM setup, schema conventions, and migration workflow.
+See [Auth & Security Architecture](./auth-security) for authentication, guards, CORS, and security headers. See [Multi-Tenant Architecture](./multi-tenant) for RLS and tenant isolation. See [RBAC Architecture](./rbac) for the permission model and role hierarchy. See [Database Architecture](./database) for Drizzle ORM setup, schema conventions, and migration workflow. See [Ubiquitous Language](./ubiquitous-language) for a glossary of domain terms, common confusions, and entity lifecycle diagrams.
 
 ### CLI (`apps/cli`) - Planned
 
@@ -117,47 +118,42 @@ bun docs
 
 ## Data Flow
 
-```txt
-┌──────────────────────────────────────────────────────────────────────────┐
-│                              Client Browser                              │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐          │
-│  │   React    │  │  TanStack  │  │  TanStack  │  │  TanStack  │          │
-│  │ Components │❮❯│   Router   │❮❯│   Query    │❮❯│   Form     │          │
-│  └────────────┘  └────────────┘  └─────┬──────┘  └────────────┘          │
-└────────────────────────────────────────┼─────────────────────────────────┘
-                                         │ HTTP/SSR
-                                         ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                         Web App (TanStack Start)                         │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐          │
-│  │   SSR      │  │  Server    │  │  Loaders   │  │  Fumadocs  │          │
-│  │  Renderer  │❮❯│  Functions │❮❯│  & Actions │  │   (Docs)   │          │
-│  └────────────┘  └─────┬──────┘  └────────────┘  └────────────┘          │
-└────────────────────────┼─────────────────────────────────────────────────┘
-                         │ HTTP (REST)
-                         ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                          API (NestJS + Fastify)                          │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐          │
-│  │ Controllers│─❯│  Services  │─❯│   Guards   │  │  OpenAPI   │          │
-│  │  (Routes)  │❮─│  (Logic)   │❮─│ & Pipes    │  │   Docs     │          │
-│  └────────────┘  └─────┬──────┘  └────────────┘  └────────────┘          │
-└────────────────────────┼─────────────────────────────────────────────────┘
-                         │ ORM/Query
-                         ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                              Database Layer                              │
-│  ┌────────────┐  ┌────────────┐                                          │
-│  │  Drizzle   │─❯│  Database  │                                          │
-│  │    ORM     │❮─│ (Postgres) │                                          │
-│  └────────────┘  └────────────┘                                          │
-└──────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph BROWSER["Client Browser"]
+        direction LR
+        RC["React<br/>Components"] <--> TR["TanStack<br/>Router"] <--> TQ["TanStack<br/>Query"] <--> TF["TanStack<br/>Form"]
+    end
 
-Shared Packages (@repo/*)
-┌────────────┐  ┌────────────┐  ┌────────────┐
-│  @repo/ui  │  │@repo/config│  │@repo/types │
-│ Components │  │  Settings  │  │   DTOs     │
-└────────────┘  └────────────┘  └────────────┘
+    BROWSER -- "HTTP / SSR" --> WEB
+
+    subgraph WEB["Web App (TanStack Start)"]
+        direction LR
+        SSR["SSR<br/>Renderer"] <--> SF["Server<br/>Functions"] <--> LA["Loaders<br/>& Actions"]
+        FD["Fumadocs<br/>(Docs)"]
+    end
+
+    WEB -- "HTTP (REST)" --> API
+
+    subgraph API["API (NestJS + Fastify)"]
+        direction LR
+        CTRL["Controllers<br/>(Routes)"] <--> SVC["Services<br/>(Logic)"] <--> GP["Guards<br/>& Pipes"]
+        OA["OpenAPI<br/>Docs"]
+    end
+
+    API -- "ORM / Query" --> DB
+
+    subgraph DB["Database Layer"]
+        direction LR
+        ORM["Drizzle<br/>ORM"] <--> PG["Database<br/>(Postgres)"]
+    end
+
+    subgraph PKG["Shared Packages (@repo/*)"]
+        direction LR
+        UI["@repo/ui<br/>Components"]
+        CFG["@repo/config<br/>Settings"]
+        TYPES["@repo/types<br/>DTOs"]
+    end
 ```
 
 ## Build System
@@ -181,7 +177,7 @@ Workspaces configuration:
 
 TurboRepo distinguishes between two types of environment variables:
 
-- **`env`** (root `turbo.jsonc`) — Variables that affect build output (`API_URL`, `APP_URL`, `VITE_ENABLE_DEMO`). Changing these invalidates the Turbo cache.
+- **`env`** (root `turbo.jsonc`) — Variables that affect build output (`API_URL`, `APP_URL`, `VITE_*`). Changing these invalidates the Turbo cache.
 - **`passThroughEnv`** (`apps/api/turbo.json`) — Runtime-only secrets (database, auth). Available at runtime but excluded from cache keys, preventing unnecessary rebuilds when only secrets rotate.
 
 App-specific `turbo.json` files extend the root config with `"extends": ["//"]`.
@@ -190,26 +186,13 @@ App-specific `turbo.json` files extend the root config with `"extends": ["//"]`.
 
 Production uses **Vercel** for both web and API with automatic deploys from GitHub.
 
-```txt
-┌──────────────┐     ┌──────────────┐
-│   Developer  │────❯│   GitHub     │
-│  Push/Merge  │     │   (main)     │
-└──────────────┘     └──────┬───────┘
-                            │
-                  ┌─────────┴─────────┐
-                  ▼                   ▼
-         ┌──────────────┐    ┌──────────────┐
-         │   Vercel     │    │   Vercel     │
-         │   (Web)      │    │   (API)      │
-         │  TanStack    │    │  NestJS +    │
-         │  Start SSR   │───❯│  Fastify     │
-         └──────────────┘    └──────┬───────┘
-                                    │
-                                    ▼
-                          ┌──────────────────┐
-                          │      Neon        │
-                          │  (PostgreSQL)    │
-                          └──────────────────┘
+```mermaid
+flowchart TD
+    DEV["Developer<br/>Push/Merge"] --> GH["GitHub<br/>(main)"]
+    GH --> VW["Vercel (Web)<br/>TanStack Start SSR"]
+    GH --> VA["Vercel (API)<br/>NestJS + Fastify"]
+    VW --> VA
+    VA --> NEON["Neon<br/>(PostgreSQL)"]
 ```
 
 Key decisions:

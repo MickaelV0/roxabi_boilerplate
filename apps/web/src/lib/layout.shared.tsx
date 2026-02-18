@@ -1,5 +1,5 @@
 import type { BaseLayoutProps, LinkItemType } from 'fumadocs-ui/layouts/shared'
-import { clientEnv } from './env.client.js'
+import { clientEnv } from './env.shared.js'
 
 export function baseOptions(): BaseLayoutProps {
   const links: LinkItemType[] = [

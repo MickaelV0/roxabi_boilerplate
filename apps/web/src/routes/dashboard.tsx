@@ -1,8 +1,11 @@
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@repo/ui'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { BookOpenIcon, SettingsIcon, UsersIcon } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { fetchUserProfile } from '@/lib/api'
 import { authClient, useSession } from '@/lib/auth-client'
 import { requireAuth } from '@/lib/route-guards'
+import { useOrganizations } from '@/lib/use-organizations'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/dashboard')({
@@ -16,6 +19,88 @@ export const Route = createFileRoute('/dashboard')({
 function DashboardPage() {
   const { data: session } = useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
+  const { data: orgs, isLoading: orgsLoading } = useOrganizations()
+  const autoSelectAttempted = useRef(false)
+  const accountCheckDone = useRef(false)
+  const [accountChecked, setAccountChecked] = useState(false)
+  const navigate = useNavigate()
+
+  // Track previous orgs length to reset autoSelectAttempted when list changes
+  const prevOrgsLength = useRef<number | undefined>(undefined)
+
+  // Check if user account is scheduled for deletion
+  useEffect(() => {
+    if (accountCheckDone.current) {
+      setAccountChecked(true)
+      return
+    }
+
+    const controller = new AbortController()
+    async function checkAccountStatus() {
+      try {
+        const res = await fetchUserProfile(controller.signal)
+        if (!res.ok) return
+        const profile = (await res.json()) as Record<string, unknown>
+        if (profile.deletedAt) {
+          navigate({
+            to: '/account-reactivation',
+            search: {
+              deleteScheduledFor: profile.deleteScheduledFor as string | undefined,
+            },
+          })
+        }
+      } catch {
+        // Non-blocking: profile check is best-effort
+      } finally {
+        if (!controller.signal.aborted) {
+          accountCheckDone.current = true
+          setAccountChecked(true)
+        }
+      }
+    }
+    checkAccountStatus()
+    return () => controller.abort()
+  }, [navigate])
+
+  // Auto-select first org if none is active or active org is not in user's list
+  useEffect(() => {
+    if (!accountChecked || !orgs) return
+
+    // Reset autoSelectAttempted when orgs list length changes
+    if (prevOrgsLength.current !== undefined && prevOrgsLength.current !== orgs.length) {
+      autoSelectAttempted.current = false
+    }
+    prevOrgsLength.current = orgs.length
+
+    if (autoSelectAttempted.current) return
+    const activeOrgValid = activeOrg && orgs.some((org) => org.id === activeOrg.id)
+    if (activeOrgValid) return
+    const firstOrg = orgs[0]
+    autoSelectAttempted.current = true
+    if (firstOrg) {
+      authClient.organization.setActive({ organizationId: firstOrg.id }).catch(() => {})
+    } else if (activeOrg) {
+      // User has a stale active org but no valid orgs -- clear it
+      authClient.organization.setActive({ organizationId: '' }).catch(() => {})
+    }
+  }, [accountChecked, activeOrg, orgs])
+
+  // Show loading skeleton until session and org list are resolved
+  if (!session || orgsLoading) {
+    return (
+      <div className="mx-auto max-w-4xl space-y-8 p-6">
+        <div className="h-32 animate-pulse rounded-lg bg-muted" />
+        <div className="space-y-4">
+          <div className="h-6 w-40 animate-pulse rounded bg-muted" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="h-40 animate-pulse rounded-lg bg-muted" />
+            <div className="h-40 animate-pulse rounded-lg bg-muted" />
+            <div className="h-40 animate-pulse rounded-lg bg-muted" />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const userName = session?.user?.name ?? 'User'
 

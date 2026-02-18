@@ -1,3 +1,4 @@
+import fastifyCookie from '@fastify/cookie'
 import helmet from '@fastify/helmet'
 import { Logger, ValidationPipe } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
@@ -33,7 +34,7 @@ async function bootstrap() {
         defaultSrc: ["'none'"],
         scriptSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
-        imgSrc: ["'self'", 'data:'],
+        imgSrc: ["'self'", 'data:', 'https://api.dicebear.com'],
         fontSrc: ["'self'"],
         connectSrc: ["'self'"],
       },
@@ -43,6 +44,9 @@ async function bootstrap() {
     referrerPolicy: { policy: 'no-referrer' },
     crossOriginEmbedderPolicy: false, // disabled to allow cross-origin resources (fonts, images)
   })
+
+  // Cookie parsing and serialization (required for reply.setCookie())
+  await app.register(fastifyCookie)
 
   // Permissions-Policy (not included in helmet v8)
   app

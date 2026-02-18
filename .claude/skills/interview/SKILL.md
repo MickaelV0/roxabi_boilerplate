@@ -1,6 +1,6 @@
 ---
 argument-hint: [topic | --promote <path>]
-description: This skill should be used when the user wants to conduct a structured interview, create a spec, write an analysis, brainstorm ideas, explore a feature concept, or promote a brainstorm to analysis or analysis to spec. Triggers include "create a spec", "interview for feature", "brainstorm ideas", "write an analysis", and "promote this to a spec".
+description: Structured interview → brainstorm | analysis | spec (with promotion). Triggers: "create a spec" | "interview" | "brainstorm" | "write analysis" | "promote to spec".
 allowed-tools: AskUserQuestion, Write, Read, Edit, Glob
 ---
 
@@ -17,8 +17,8 @@ If the user passes `--promote <path>`:
 1. Read the document at the given path.
 2. Determine its current type from frontmatter first, then content structure as fallback:
    - **Primary check:** If it has `type: brainstorm` in frontmatter, treat it as a **Brainstorm** and promote to **Analysis**.
-   - **Fallback:** If no `type` frontmatter but lives in `docs/analyses/` with a "Trigger" / "Ideas" structure, treat it as a **Brainstorm**.
-   - If it lives in `docs/analyses/` with "Questions Explored" / "Analysis" / "Conclusions" structure, treat it as an **Analysis** and promote to **Spec**.
+   - **Fallback:** If no `type` frontmatter but lives in `analyses/` with a "Trigger" / "Ideas" structure, treat it as a **Brainstorm**.
+   - If it lives in `analyses/` with "Questions Explored" / "Analysis" / "Conclusions" structure, treat it as an **Analysis** and promote to **Spec**.
    - If it is already a Spec, inform the user: "This document is already a spec. Nothing to promote."
 3. Skip to **Step 2** (interview), but limit questions to the gaps between the current document and the next level's template. Pre-fill what you already know from the source document.
 4. When generating the promoted document, add a link back to the source:
@@ -31,8 +31,8 @@ If no `--promote` flag, continue to Step 1.
 Before asking the document type, scan for related documents:
 
 ```
-docs/analyses/   — existing analyses
-docs/specs/      — existing specs
+analyses/   — existing analyses
+specs/      — existing specs
 ```
 
 Use **Glob** to search for files matching the topic (by issue number, keywords, or slug). Also check if the user's arguments mention a GitHub issue number.
@@ -57,9 +57,9 @@ Use **AskUserQuestion** to ask the user which document type to create:
 
 | Type | Purpose | Output Path |
 |------|---------|-------------|
-| **Brainstorm** | Explore ideas, divergent thinking, early-stage exploration | `docs/analyses/{slug}.mdx` |
-| **Analysis** | Structured investigation of a topic or problem | `docs/analyses/{slug}.mdx` |
-| **Spec** | Technical specification for implementation | `docs/specs/{issue}-{slug}.mdx` |
+| **Brainstorm** | Explore ideas, divergent thinking, early-stage exploration | `analyses/{slug}.mdx` |
+| **Analysis** | Structured investigation of a topic or problem | `analyses/{slug}.mdx` |
+| **Spec** | Technical specification for implementation | `specs/{issue}-{slug}.mdx` |
 
 If promoting, this step is already determined — skip it.
 
@@ -108,14 +108,10 @@ Write the document using the appropriate template below. Follow these rules:
 
 - Use `.mdx` extension with YAML frontmatter (`title`, `description`).
 - Use kebab-case slugs.
-- For **Spec** documents, prefix the filename with the GitHub issue number: `docs/specs/{issue}-{slug}.mdx`
-- For **Analysis** and **Brainstorm** documents: `docs/analyses/{slug}.mdx` (prefix with issue number if one exists, e.g., `docs/analyses/{issue}-{slug}.mdx`).
+- For **Spec** documents, prefix the filename with the GitHub issue number: `specs/{issue}-{slug}.mdx`
+- For **Analysis** and **Brainstorm** documents: `analyses/{slug}.mdx` (prefix with issue number if one exists, e.g., `analyses/{issue}-{slug}.mdx`).
 - Brainstorm documents add `type: brainstorm` to their frontmatter.
 - Escape `<` as `&lt;` in MDX content to avoid JSX parsing errors.
-- After writing the document, **automatically update the corresponding `meta.json`**:
-  - For analyses/brainstorms: Read `docs/analyses/meta.json`, add the filename (without extension) to the `pages` array, and write it back using `Edit`.
-  - For specs: Read `docs/specs/meta.json`, add the filename (without extension) to the `pages` array, and write it back using `Edit`.
-  - If the filename already exists in the array, skip the update.
 
 ---
 
@@ -123,7 +119,7 @@ Write the document using the appropriate template below. Follow these rules:
 
 ### Brainstorm
 
-Output path: `docs/analyses/{slug}.mdx`
+Output path: `analyses/{slug}.mdx`
 
 ```mdx
 ---
@@ -157,7 +153,7 @@ type: brainstorm
 
 ### Analysis
 
-Output path: `docs/analyses/{slug}.mdx`
+Output path: `analyses/{slug}.mdx`
 
 ```mdx
 ---
@@ -190,7 +186,7 @@ description: {One-line description of the analysis}
 
 ### Spec
 
-Output path: `docs/specs/{issue}-{slug}.mdx`
+Output path: `specs/{issue}-{slug}.mdx`
 
 ```mdx
 ---

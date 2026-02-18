@@ -2,6 +2,8 @@
 
 SaaS boilerplate with AI team integration.
 
+<!-- TODO: Add demo GIF once seed data is ready — see scripts/record-demo.ts -->
+
 ## Stack
 
 | Layer | Technology |
@@ -49,8 +51,8 @@ Git hooks are configured using [Lefthook](https://github.com/evilmartians/leftho
 
 | Hook | Purpose | Speed |
 |------|---------|-------|
-| **Pre-commit** | Auto-format staged files with Biome | &lt;1s |
-| **Pre-push** | Full validation (lint, typecheck, tests) | &lt;30s (cached) |
+| **Pre-commit** | Auto-format staged files with Biome | <1s |
+| **Pre-push** | Full validation (lint, typecheck, tests) | <30s (cached) |
 
 **Bypass for emergencies:** Use `--no-verify` flag (CI is the ultimate enforcement).
 

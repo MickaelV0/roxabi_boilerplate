@@ -28,7 +28,8 @@ vi.mock('@repo/ui', () => ({
     children,
     onClick,
     disabled,
-  }: React.PropsWithChildren<{ onClick?: () => void; disabled?: boolean }>) => (
+    asChild: _asChild,
+  }: React.PropsWithChildren<{ onClick?: () => void; disabled?: boolean; asChild?: boolean }>) => (
     <button type="button" role="menuitem" onClick={onClick} disabled={disabled}>
       {children}
     </button>
@@ -55,7 +56,6 @@ vi.mock('@tanstack/react-router', () => ({
 vi.mock('@/lib/auth-client', () => ({
   useSession: useSessionFn,
   authClient: {
-    useActiveOrganization: vi.fn(() => ({ data: null })),
     signOut: vi.fn(),
   },
 }))
@@ -66,8 +66,8 @@ vi.mock('sonner', () => ({
 
 vi.mock('lucide-react', () => ({
   LogOut: ({ className }: { className?: string }) => <span className={className} />,
-  Settings: ({ className }: { className?: string }) => <span className={className} />,
-  Users: ({ className }: { className?: string }) => <span className={className} />,
+  User: ({ className }: { className?: string }) => <span className={className} />,
+  UserCog: ({ className }: { className?: string }) => <span className={className} />,
 }))
 
 mockParaglideMessages()
@@ -127,21 +127,18 @@ describe('UserMenu', () => {
     expect(screen.getByText('user_menu_sign_out')).toBeInTheDocument()
   })
 
-  it('should show org links when active org exists', () => {
+  it('should show profile and account settings links', () => {
     // Arrange
     useSessionFn.mockReturnValue({
       data: { user: { name: 'Jane', email: 'jane@example.com', image: null } },
     })
-    vi.mocked(authClient.useActiveOrganization).mockReturnValue({
-      data: { id: 'org-1', name: 'Acme' },
-    } as ReturnType<typeof authClient.useActiveOrganization>)
 
     // Act
     render(<UserMenu />)
 
     // Assert
-    expect(screen.getByText('user_menu_org_settings')).toBeInTheDocument()
-    expect(screen.getByText('user_menu_org_members')).toBeInTheDocument()
+    expect(screen.getByText('user_menu_profile')).toBeInTheDocument()
+    expect(screen.getByText('user_menu_account')).toBeInTheDocument()
   })
 
   it('should display user email', () => {

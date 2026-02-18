@@ -29,17 +29,6 @@ describe('envSchema', () => {
       // Assert
       expect(result.NODE_ENV).toBe('development')
     })
-
-    it('should default VITE_ENABLE_DEMO to "true" when not provided', () => {
-      // Arrange
-      const input = {}
-
-      // Act
-      const result = envSchema.parse(input)
-
-      // Assert
-      expect(result.VITE_ENABLE_DEMO).toBe('true')
-    })
   })
 
   describe('API_URL', () => {

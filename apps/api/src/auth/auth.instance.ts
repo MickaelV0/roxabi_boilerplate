@@ -1,9 +1,12 @@
+import { DICEBEAR_CDN_BASE } from '@repo/types'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { admin } from 'better-auth/plugins/admin'
 import { magicLink } from 'better-auth/plugins/magic-link'
 import { organization } from 'better-auth/plugins/organization'
+import { eq } from 'drizzle-orm'
 import type { DrizzleDB } from '../database/drizzle.provider.js'
+import { users } from '../database/schema/auth.schema.js'
 import type { EmailProvider } from './email/email.provider.js'
 
 export function escapeHtml(str: string): string {
@@ -59,6 +62,27 @@ export function createBetterAuth(
     secret: config.secret,
     baseURL: config.baseURL,
     trustedOrigins,
+    databaseHooks: {
+      user: {
+        create: {
+          after: async (user) => {
+            try {
+              const updateFields: Record<string, unknown> = {
+                avatarStyle: 'lorelei',
+                avatarSeed: user.id,
+                avatarOptions: {},
+              }
+              if (!user.image) {
+                updateFields.image = `${DICEBEAR_CDN_BASE}/lorelei/svg?seed=${user.id}`
+              }
+              await db.update(users).set(updateFields).where(eq(users.id, user.id))
+            } catch (error) {
+              console.warn('Failed to set default avatar for user', user.id, error)
+            }
+          },
+        },
+      },
+    },
     database: drizzleAdapter(db, {
       provider: 'pg',
       usePlural: true,
@@ -75,6 +99,7 @@ export function createBetterAuth(
       },
     },
     emailVerification: {
+      sendOnSignIn: true,
       async sendVerificationEmail({ user, url }) {
         await emailProvider.send({
           to: user.email,
@@ -94,6 +119,22 @@ export function createBetterAuth(
     },
     plugins: [
       organization({
+        schema: {
+          organization: {
+            additionalFields: {
+              deletedAt: {
+                type: 'date',
+                required: false,
+                input: false,
+              },
+              deleteScheduledFor: {
+                type: 'date',
+                required: false,
+                input: false,
+              },
+            },
+          },
+        },
         organizationHooks: onOrganizationCreated
           ? {
               afterCreateOrganization: async ({ organization: org, member }) => {

@@ -18,16 +18,18 @@ import {
   Input,
   Label,
 } from '@repo/ui'
-import { Check, ChevronDown, Plus } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { Check, ChevronDown, Plus, Settings, Users } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
 import { roleBadgeVariant, roleLabel } from '@/lib/org-utils'
+import { useOrganizations } from '@/lib/use-organizations'
 import { m } from '@/paraglide/messages'
 
 export function OrgSwitcher() {
   const { data: session } = useSession()
-  const { data: orgs } = authClient.useListOrganizations()
+  const { data: orgs, isLoading: orgsLoading, refetch: refetchOrgs } = useOrganizations()
   const { data: activeOrg } = authClient.useActiveOrganization()
   const [createOpen, setCreateOpen] = useState(false)
 
@@ -35,7 +37,7 @@ export function OrgSwitcher() {
     (member: { userId: string }) => member.userId === session?.user?.id
   )
 
-  if (!orgs || orgs.length === 0) {
+  if (orgsLoading || !orgs || orgs.length === 0) {
     return (
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogTrigger asChild>
@@ -44,7 +46,7 @@ export function OrgSwitcher() {
             {m.org_create()}
           </Button>
         </DialogTrigger>
-        <CreateOrgDialogContent onClose={() => setCreateOpen(false)} />
+        <CreateOrgDialogContent onClose={() => setCreateOpen(false)} onCreated={refetchOrgs} />
       </Dialog>
     )
   }
@@ -54,6 +56,7 @@ export function OrgSwitcher() {
     try {
       await authClient.organization.setActive({ organizationId: orgId })
       toast.success(m.org_toast_switched({ name: orgName }))
+      refetchOrgs()
     } catch {
       toast.error(m.auth_toast_error())
     }
@@ -93,6 +96,23 @@ export function OrgSwitcher() {
               </span>
             </DropdownMenuItem>
           ))}
+          {activeOrg && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/org/settings">
+                  <Settings className="mr-2 size-4" />
+                  {m.user_menu_org_settings()}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/org/members">
+                  <Users className="mr-2 size-4" />
+                  {m.user_menu_org_members()}
+                </Link>
+              </DropdownMenuItem>
+            </>
+          )}
           <DropdownMenuSeparator />
           <DialogTrigger asChild>
             <DropdownMenuItem>
@@ -102,16 +122,17 @@ export function OrgSwitcher() {
           </DialogTrigger>
         </DropdownMenuContent>
       </DropdownMenu>
-      <CreateOrgDialogContent onClose={() => setCreateOpen(false)} />
+      <CreateOrgDialogContent onClose={() => setCreateOpen(false)} onCreated={refetchOrgs} />
     </Dialog>
   )
 }
 
 type CreateOrgDialogContentProps = {
   onClose: () => void
+  onCreated?: () => void
 }
 
-function CreateOrgDialogContent({ onClose }: CreateOrgDialogContentProps) {
+function CreateOrgDialogContent({ onClose, onCreated }: CreateOrgDialogContentProps) {
   const [newName, setNewName] = useState('')
   const [newSlug, setNewSlug] = useState('')
   const [creating, setCreating] = useState(false)
@@ -130,6 +151,7 @@ function CreateOrgDialogContent({ onClose }: CreateOrgDialogContentProps) {
         toast.success(m.org_toast_created())
         setNewName('')
         setNewSlug('')
+        onCreated?.()
         onClose()
       }
     } catch {

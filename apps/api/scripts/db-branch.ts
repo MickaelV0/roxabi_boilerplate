@@ -2,7 +2,7 @@
  * Branch database lifecycle management.
  *
  * Subcommands:
- *   create [issue_number] [--force]  — Create branch DB, migrate, seed, update .env
+ *   create [issue_number] [--force]  — Create branch DB, push schema, seed, update .env
  *   drop   [issue_number]            — Drop branch DB (refuses default DB)
  *   list                             — List branch DBs with worktree cross-reference
  *
@@ -15,6 +15,7 @@
  */
 
 import { execSync, spawnSync } from 'node:child_process'
+import * as crypto from 'node:crypto'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as readline from 'node:readline'
@@ -250,19 +251,119 @@ function resolveApiDir(): string {
   process.exit(1)
 }
 
-/** Run migrations against the branch database. */
-function runMigrations(databaseUrl: string): void {
-  const apiDir = resolveApiDir()
-  log('Running migrations...')
-  const result = spawnSync('bun', ['run', 'db:migrate'], {
-    cwd: apiDir,
-    env: { ...process.env, DATABASE_URL: databaseUrl },
-    stdio: 'inherit',
-  })
-  if (result.status !== 0) {
-    throw new Error(`Migration failed with exit code ${result.status}`)
+/** Run SQL against a database in the container via piped stdin. */
+function runSql(dbName: string, sql: string): { status: number; stdout: string; stderr: string } {
+  const result = spawnSync(
+    'docker',
+    ['exec', '-i', CONTAINER_NAME, 'psql', '-U', POSTGRES_USER, '-d', dbName],
+    {
+      input: sql,
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }
+  )
+  return {
+    status: result.status ?? 1,
+    stdout: (result.stdout ?? '').trim(),
+    stderr: (result.stderr ?? '').trim(),
   }
-  log('Migrations completed.')
+}
+
+/**
+ * Stamp all journal entries into drizzle.__drizzle_migrations.
+ *
+ * After `drizzle-kit push` creates the schema, the migration tracker is empty.
+ * This reads the journal, computes SHA-256 hashes (matching Drizzle's own format),
+ * and inserts records so `checkPendingMigrations()` sees all migrations as applied.
+ */
+function stampMigrations(dbName: string, apiDir: string): void {
+  const journalPath = path.join(apiDir, 'drizzle', 'migrations', 'meta', '_journal.json')
+  if (!fs.existsSync(journalPath)) {
+    log('No migration journal found — skipping stamp.')
+    return
+  }
+
+  const journal = JSON.parse(fs.readFileSync(journalPath, 'utf-8')) as {
+    entries?: { tag: string; when: number }[]
+  }
+  const entries = journal.entries ?? []
+  if (entries.length === 0) {
+    log('No migrations to stamp.')
+    return
+  }
+
+  const values: string[] = []
+  for (const entry of entries) {
+    const sqlPath = path.join(apiDir, 'drizzle', 'migrations', `${entry.tag}.sql`)
+    const content = fs.readFileSync(sqlPath, 'utf-8')
+    const hash = crypto.createHash('sha256').update(content).digest('hex')
+    values.push(`('${hash}', ${entry.when})`)
+  }
+
+  const stampSql = `
+    CREATE SCHEMA IF NOT EXISTS drizzle;
+    CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
+      id serial PRIMARY KEY,
+      hash text NOT NULL,
+      created_at bigint
+    );
+    INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES
+      ${values.join(',\n      ')};
+  `
+
+  log(`Stamping ${entries.length} migration(s)...`)
+  const result = runSql(dbName, stampSql)
+  if (result.status !== 0) {
+    throw new Error(`Failed to stamp migrations: ${result.stderr}`)
+  }
+  log(`Stamped ${entries.length} migration(s).`)
+}
+
+/**
+ * Set up the branch database schema.
+ *
+ * Branch DBs use `drizzle-kit push` (not `db:migrate`) because there is no
+ * initial migration that creates the base tables — migrations are incremental
+ * ALTERs on top of a schema that was originally created via push.
+ *
+ * After push:
+ * 1. Apply RLS infrastructure (roles/functions/grants not part of the Drizzle schema)
+ * 2. Stamp all migrations as applied so `checkPendingMigrations()` is satisfied
+ */
+function runMigrations(databaseUrl: string, dbName: string): void {
+  const apiDir = resolveApiDir()
+
+  // Step 1: Push schema to create/sync tables
+  log('Pushing schema...')
+  const pushResult = spawnSync(
+    'bunx',
+    ['tsx', 'node_modules/drizzle-kit/bin.cjs', 'push', '--force'],
+    {
+      cwd: apiDir,
+      env: { ...process.env, DATABASE_URL: databaseUrl },
+      stdio: 'inherit',
+    }
+  )
+  if (pushResult.status !== 0) {
+    throw new Error(`Schema push failed with exit code ${pushResult.status}`)
+  }
+  log('Schema pushed.')
+
+  // Step 2: Apply RLS infrastructure (roles, functions, grants — not handled by push)
+  const rlsPath = path.join(apiDir, 'drizzle', 'migrations', '0000_rls_infrastructure.sql')
+  if (fs.existsSync(rlsPath)) {
+    log('Applying RLS infrastructure...')
+    const rlsSql = fs.readFileSync(rlsPath, 'utf-8')
+    const rlsResult = runSql(dbName, rlsSql)
+    if (rlsResult.status !== 0) {
+      log(`Warning: RLS infrastructure returned non-zero: ${rlsResult.stderr}`)
+    }
+  }
+
+  // Step 3: Stamp all migrations as applied
+  stampMigrations(dbName, apiDir)
+
+  log('Database setup completed.')
 }
 
 /** Run seed against the branch database. */
@@ -340,9 +441,9 @@ async function handleCreate(): Promise<void> {
 
   const databaseUrl = buildDatabaseUrl(dbName)
 
-  // Steps 4-5: Run migrations and seed, with cleanup on failure
+  // Steps 4-5: Push schema, stamp migrations, and seed, with cleanup on failure
   try {
-    runMigrations(databaseUrl)
+    runMigrations(databaseUrl, dbName)
     runSeed(databaseUrl)
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)

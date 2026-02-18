@@ -1,6 +1,6 @@
 ---
 argument-hint: [--spec <number> | --issue <number>]
-description: This skill should be used when the user wants to scaffold a feature, execute a spec, implement from a spec, or build a feature end-to-end. Triggers include "scaffold from spec", "implement this feature", "execute the spec", "build from spec", and "/scaffold --issue 42". Takes an approved spec and drives it to a PR — plans, scaffolds, spawns agents, and opens the pull request.
+description: Spec→PR execution engine — plan, scaffold, spawn agents, open PR. Triggers: "scaffold from spec" | "implement feature" | "execute spec" | "build from spec".
 allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Edit, Task, Skill, TeamCreate, TeamDelete, SendMessage
 ---
 
@@ -11,7 +11,7 @@ Full execution engine: takes an approved spec (or issue with spec) and drives it
 ## Usage
 
 ```
-/scaffold --spec 42            Execute from spec (docs/specs/42-*.mdx)
+/scaffold --spec 42            Execute from spec (specs/42-*.mdx)
 /scaffold --issue 42           Execute from issue (fetches issue, finds linked spec)
 ```
 
@@ -22,7 +22,7 @@ Full execution engine: takes an approved spec (or issue with spec) and drives it
 **If `--spec <number>` was passed:**
 
 ```bash
-ls docs/specs/<number>-*.mdx
+ls specs/<number>-*.mdx
 ```
 
 - Read the spec file in full
@@ -34,7 +34,7 @@ ls docs/specs/<number>-*.mdx
 gh issue view <number> --json title,body,labels
 ```
 
-- Read the issue, then search for a matching spec: `docs/specs/<number>-*.mdx`
+- Read the issue, then search for a matching spec: `specs/<number>-*.mdx`
 - If no spec found: inform the user and suggest `/bootstrap --issue <number>` to create one. **Stop.**
 
 **If no spec or issue is found:** inform the user and suggest:
@@ -59,13 +59,7 @@ Use `Glob` and `Grep` to find existing feature modules as reference patterns.
 
 #### 2b. Determine Tier
 
-| Tier | Criteria | Process |
-|------|----------|---------|
-| **S** | <=3 files, no arch, no risk | Single session implements |
-| **F-lite** | Clear scope, documented requirements, single domain | Agents + /review |
-| **F-full** | New arch concepts, unclear requirements, or >2 domain boundaries | Agents + /review |
-
-Tier is judgment-based, not file-count-based. A 50-file mechanical change may be F-lite, while a 3-file rate limiter with design decisions may be F-full.
+Classify as S / F-lite / F-full per [dev-process.mdx](docs/processes/dev-process.mdx). Judgment-based, not file-count-based.
 
 #### 2c. Determine Agents
 
@@ -103,7 +97,7 @@ Present via `AskUserQuestion`:
 
 ```
 Implementation Plan: {Spec Title}
-Spec: docs/specs/{N}-{slug}.mdx
+Spec: specs/{N}-{slug}.mdx
 Tier: {S|F-lite|F-full}
 Files: {N} files to create/modify
 Agents: {agent list}

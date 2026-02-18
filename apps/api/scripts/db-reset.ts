@@ -5,8 +5,8 @@
  * Refuses to run when NODE_ENV=production.
  *
  * Truncated tables (in dependency order via CASCADE):
- *   role_permissions, roles, permissions, invitations, members,
- *   sessions, accounts, verifications, organizations, users
+ *   consent_records, role_permissions, roles, permissions, invitations,
+ *   members, sessions, accounts, verifications, organizations, users
  *
  * Usage:
  *   DATABASE_URL=postgresql://... tsx scripts/db-reset.ts
@@ -14,8 +14,10 @@
  */
 
 import postgres from 'postgres'
+import { assertNotProduction, requireDatabaseUrl } from './guards.js'
 
 const TABLES = [
+  'consent_records',
   'role_permissions',
   'roles',
   'permissions',
@@ -29,16 +31,8 @@ const TABLES = [
 ] as const
 
 async function reset() {
-  if (process.env.NODE_ENV === 'production') {
-    console.error('db-reset: refusing to run in production (NODE_ENV=production)')
-    process.exit(1)
-  }
-
-  const databaseUrl = process.env.DATABASE_URL
-  if (!databaseUrl) {
-    console.error('db-reset: DATABASE_URL environment variable is required')
-    process.exit(1)
-  }
+  assertNotProduction('db-reset')
+  const databaseUrl = requireDatabaseUrl('db-reset')
 
   const client = postgres(databaseUrl, { max: 1 })
 

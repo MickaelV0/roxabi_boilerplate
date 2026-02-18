@@ -72,8 +72,8 @@ Single domain, clear scope?                          -> F-lite
 
 | Artifact | When | Files |
 |----------|------|-------|
-| Feature spec | New feature | `docs/specs/*.mdx` |
-| Analysis (pre-spec) | Before writing a spec | `docs/analyses/*.mdx` |
+| Feature spec | New feature | `specs/*.mdx` |
+| Analysis (pre-spec) | Before writing a spec | `analyses/*.mdx` |
 | Architecture | Structure change | `docs/architecture/*.mdx` |
 | CLAUDE.md | Critical change | `CLAUDE.md` |
 
@@ -309,8 +309,8 @@ Human: "develop #XXX"
 
 1. Human says "develop issue #XXX"
 2. Main Claude fetches the GitHub issue, scans for existing documents:
-   - `docs/analyses/*` — matching analysis
-   - `docs/specs/*` — matching spec
+   - `analyses/*` — matching analysis
+   - `specs/*` — matching spec
 3. **If a sufficient spec exists** — skip to Phase 2
 4. **If gaps exist** (no issue detail, no analysis, no spec):
    - Main Claude spawns **product-lead** agent
@@ -320,6 +320,8 @@ Human: "develop #XXX"
      - Write the spec (human approves)
    - If deeper technical analysis is needed, product-lead requests **architect** agent
    - Once spec is approved, product-lead returns control to Main Claude
+
+> **Investigation (optional):** If the analysis reveals technical uncertainty, the orchestrator may suggest spiking a solution before writing the spec. See the bootstrap skill (Gate 1.5) for details.
 
 > **F-lite shortcut:** If the task is classified as F-lite (clear scope, documented requirements), the assessment phase is brief — Main Claude confirms the spec exists and proceeds to `/scaffold`.
 
@@ -428,7 +430,8 @@ After features have been validated on staging:
 | Branch | `fix/XXX-slug` | `fix/456-login-bug` |
 | Branch | `hotfix/XXX-slug` | `hotfix/99-security-patch` |
 | Branch | `docs/slug` | `docs/api-reference` |
-| Spec | `docs/specs/XXX-slug.mdx` | `docs/specs/123-user-auth.mdx` |
+| Branch | `spike/[XXX-]slug` | `spike/123-sqlite-vec` or `spike/sqlite-vec` |
+| Spec | `specs/XXX-slug.mdx` | `specs/123-user-auth.mdx` |
 | Worktree | `../roxabi-XXX` | `../roxabi-123` |
 
 > XXX = GitHub issue number

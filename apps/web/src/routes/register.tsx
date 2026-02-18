@@ -4,6 +4,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  Checkbox,
   cn,
   FormMessage,
   Input,
@@ -15,6 +16,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { CheckCircle } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { legalConfig } from '@/config/legal.config'
 import { authClient, fetchEnabledProviders } from '@/lib/auth-client'
 import { requireGuest } from '@/lib/route-guards'
 import { m } from '@/paraglide/messages'
@@ -43,6 +45,7 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
   const [emailError, setEmailError] = useState('')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   function handleEmailBlur() {
     if (email && !EMAIL_REGEX.test(email)) {
@@ -75,8 +78,28 @@ function RegisterPage() {
         password,
       })
       if (signUpError) {
-        setError(m.auth_register_unable())
+        // Conscious UX trade-off: revealing that an email is already registered
+        // enables account enumeration, but provides a significantly better user
+        // experience than a generic error. Mitigated by rate limiting on sign-up.
+        if (signUpError.code === 'USER_ALREADY_EXISTS') {
+          setError(m.auth_register_email_exists())
+        } else {
+          setError(m.auth_register_unable())
+        }
       } else {
+        // Sync GDPR consent to server (non-blocking)
+        fetch('/api/consent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            categories: { necessary: true, analytics: false, marketing: false },
+            policyVersion: legalConfig.consentPolicyVersion,
+            action: 'customized',
+          }),
+        }).catch(() => {
+          // Consent sync failure is non-critical
+        })
         toast.success(m.auth_toast_account_created())
         setMessage(m.auth_check_email_verify())
       }
@@ -185,7 +208,29 @@ function RegisterPage() {
             }}
           />
         </div>
-        <Button type="submit" className="w-full" disabled={loading}>
+        <div className="flex items-start gap-2">
+          <Checkbox
+            id="accept-terms"
+            checked={acceptedTerms}
+            onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+            disabled={loading}
+          />
+          <Label htmlFor="accept-terms" className="text-sm font-normal leading-snug cursor-pointer">
+            {m.auth_accept_privacy_prefix()}{' '}
+            <Link
+              to="/legal/confidentialite"
+              className="underline hover:text-foreground"
+              target="_blank"
+            >
+              {m.auth_accept_privacy_policy()}
+            </Link>{' '}
+            {m.auth_accept_terms_and()}{' '}
+            <Link to="/legal/cgu" className="underline hover:text-foreground" target="_blank">
+              {m.auth_accept_terms_of_service()}
+            </Link>
+          </Label>
+        </div>
+        <Button type="submit" className="w-full" disabled={loading || !acceptedTerms}>
           {loading ? m.auth_creating_account() : m.auth_create_account_button()}
         </Button>
       </form>

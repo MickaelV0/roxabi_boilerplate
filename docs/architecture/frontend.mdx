@@ -18,29 +18,19 @@ Key architectural decisions:
 
 TanStack Start uses **Nitro** as its server runtime. The pipeline:
 
-```txt
-Browser Request
-     |
-     v
-  Nitro (server.ts)
-     |
-     |--> Paraglide middleware (locale detection / URL rewriting)
-     |
-     v
-  TanStack Start server entry
-     |
-     |--> Route matching (file-based route tree)
-     |--> beforeLoad guards (auth checks, feature flags)
-     |--> loader() execution (data fetching, server functions)
-     |--> React SSR render
-     |
-     v
-  HTML Response (streamed)
-     |
-     v
-  Client Hydration
-     |--> TanStack Router takes over navigation
-     |--> TanStack Query rehydrates server-fetched data
+```mermaid
+flowchart TD
+    A["Browser Request"] --> B["Nitro (server.ts)"]
+    B --> C["Paraglide middleware<br/>(locale detection / URL rewriting)"]
+    C --> D["TanStack Start server entry"]
+    D --> E["Route matching<br/>(file-based route tree)"]
+    E --> F["beforeLoad guards<br/>(auth checks, feature flags)"]
+    F --> G["loader() execution<br/>(data fetching, server functions)"]
+    G --> H["React SSR render"]
+    H --> I["HTML Response (streamed)"]
+    I --> J["Client Hydration"]
+    J --> K["TanStack Router takes over navigation"]
+    J --> L["TanStack Query rehydrates server-fetched data"]
 ```
 
 The server entry point (`src/server.ts`) wraps the default TanStack Start handler with Paraglide middleware for locale-aware URL handling:
@@ -155,23 +145,7 @@ Key hooks in the route lifecycle:
 
 ### Layout Routes
 
-A route file without child routes in a matching directory acts as a layout when it renders `<Outlet />`:
-
-```ts
-// routes/demo.tsx -- layout wrapping /demo/* children
-export const Route = createFileRoute('/demo')({
-  beforeLoad: () => {
-    if (import.meta.env.VITE_ENABLE_DEMO !== 'true') {
-      throw notFound()
-    }
-  },
-  component: DemoLayout,
-})
-
-function DemoLayout() {
-  return <Outlet />
-}
-```
+A route file without child routes in a matching directory acts as a layout when it renders `<Outlet />`.
 
 ### Root Route
 
@@ -368,25 +342,16 @@ Documentation is rendered at `/docs/*` using **Fumadocs v16** with TanStack Star
 
 ### Content Pipeline
 
-```txt
-docs/              (repo root, MDX files)
-  |
-  v
-apps/web/docs      (symlink to ../../docs)
-  |
-  v
-source.config.ts   (Fumadocs MDX config, async loading)
-  |
-  v
-fumadocs-mdx/vite  (Vite plugin, compiles MDX at build)
-  |
-  v
-Virtual modules:
-  fumadocs-mdx:collections/server  (page tree, frontmatter)
-  fumadocs-mdx:collections/browser (MDX components, TOC)
-  |
-  v
-routes/docs/$.tsx   (catch-all route, renders DocsLayout)
+```mermaid
+flowchart TD
+    A["docs/<br/>(repo root, MDX files)"] --> B["apps/web/docs<br/>(symlink to ../../docs)"]
+    B --> C["source.config.ts<br/>(Fumadocs MDX config, async loading)"]
+    C --> D["fumadocs-mdx/vite<br/>(Vite plugin, compiles MDX at build)"]
+    D --> E["Virtual modules"]
+    E --> E1["fumadocs-mdx:collections/server<br/>(page tree, frontmatter)"]
+    E --> E2["fumadocs-mdx:collections/browser<br/>(MDX components, TOC)"]
+    E1 --> F["routes/docs/$.tsx<br/>(catch-all route, renders DocsLayout)"]
+    E2 --> F
 ```
 
 ### Configuration
@@ -601,26 +566,30 @@ The architecture maintains a clear separation between server-side and client-sid
 
 **SSR with loader** -- Data is fetched server-side and available immediately on hydration:
 
-```txt
-Route loader (server) --> serialized into HTML --> Route.useLoaderData() (client)
+```mermaid
+flowchart LR
+    A["Route loader (server)"] --> B["Serialized into HTML"] --> C["Route.useLoaderData() (client)"]
 ```
 
 **SSR with TanStack Query** -- Server-fetched queries are dehydrated and rehydrated:
 
-```txt
-Query prefetch (server) --> dehydrated state --> QueryClient rehydrate (client)
+```mermaid
+flowchart LR
+    A["Query prefetch (server)"] --> B["Dehydrated state"] --> C["QueryClient rehydrate (client)"]
 ```
 
 **Client-side API call** -- Post-hydration data fetching through the Nitro proxy:
 
-```txt
-Component --> fetch('/api/...') --> Nitro proxy --> NestJS API --> Response
+```mermaid
+flowchart LR
+    A["Component"] --> B["fetch('/api/...')"] --> C["Nitro proxy"] --> D["NestJS API"] --> E["Response"]
 ```
 
 **Server function RPC** -- Type-safe server calls from client components:
 
-```txt
-Component --> createServerFn call --> Nitro RPC --> handler (server) --> Response
+```mermaid
+flowchart LR
+    A["Component"] --> B["createServerFn call"] --> C["Nitro RPC"] --> D["handler (server)"] --> E["Response"]
 ```
 
 ## Internationalization

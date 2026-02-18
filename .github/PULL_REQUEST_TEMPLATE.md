@@ -14,9 +14,13 @@ Closes #<!-- issue number -->
 - [ ] `fix` - Bug fix
 - [ ] `docs` - Documentation
 - [ ] `refactor` - Code refactoring
+- [ ] `style` - Code style
 - [ ] `test` - Tests
 - [ ] `chore` - Maintenance
 - [ ] `ci` - CI/CD changes
+- [ ] `perf` - Performance
+- [ ] `build` - Build system
+- [ ] `revert` - Revert change
 
 ## Changes Made
 
@@ -38,10 +42,12 @@ Closes #<!-- issue number -->
 
 ## Checklist
 
+- [ ] PR title follows Conventional Commits
 - [ ] My code follows the project's code style
 - [ ] I have performed a self-review
 - [ ] I have added tests that prove my fix/feature works
 - [ ] New and existing tests pass locally (`bun test`)
 - [ ] Linting passes (`bun lint`)
 - [ ] Types check (`bun typecheck`)
+- [ ] No secrets committed
 - [ ] I have updated documentation if needed

@@ -48,18 +48,22 @@ export default defineConfig({
         // Component files need integration tests
         '**/components/LanguageSwitcher.tsx',
         '**/vite-env.d.ts',
-        // Type declaration files
+        // Type declaration files (including pure-type .ts files)
         '**/*.d.ts',
+        '**/lib/avatar/types.ts',
         // Server entry point (infrastructure)
         '**/server.ts',
         // Generated i18n runtime (paraglide)
         '**/paraglide/**',
       ],
+      // Floor values — autoUpdate will ratchet these up to actual coverage on the next non-cached run.
+      // See specs/17-testing-gold-standard.mdx for rationale.
       thresholds: {
-        lines: 90,
-        functions: 86,
-        branches: 76,
-        statements: 90,
+        lines: 93.02,
+        functions: 90.66,
+        branches: 84.28,
+        statements: 92.11,
+        autoUpdate: true,
       },
     },
   },

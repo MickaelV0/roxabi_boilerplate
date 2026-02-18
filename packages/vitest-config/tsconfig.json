@@ -1,0 +1,9 @@
+{
+  "extends": "@repo/config/tsconfig.base",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "allowImportingTsExtensions": true
+  },
+  "include": ["*.ts"],
+  "exclude": ["node_modules"]
+}

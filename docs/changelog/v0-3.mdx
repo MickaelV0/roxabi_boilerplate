@@ -1,0 +1,42 @@
+---
+title: v0.3.x
+description: All v0.3 releases
+---
+
+## v0.3.0 — February 18, 2026
+
+### Features
+- feat(avatar): user avatar system — DiceBear customization & navbar integration (#243)
+- feat: auto-select default org, reorganize menus, and improve account lifecycle (#240)
+- feat(testing): upgrade testing infrastructure to Gold Standard (#239)
+- feat(api): modular seed data system with configurable presets (#238)
+- feat(legal): legal compliance, GDPR & cookies (#233)
+- feat(account,org): account & organization management (#230)
+- feat(bootstrap): add optional investigation step (Gate 1.5) (#231)
+- feat(retro): session intelligence pipeline (#232)
+
+### Fixes
+- fix(i18n): replace hardcoded strings in settings pages (#244)
+- fix(db): use push + stamp instead of broken push + migrate for branch DBs
+- fix(ci): run lint/typecheck/test/build on push events
+- fix(web): rename env.client to env.shared for TanStack Start 1.161 compat
+- fix(docs): fix mermaid diagram text rendering
+
+### Changed
+- perf(web): fix CI OOM — move analyses/specs out of Fumadocs, restrict Shiki (#235)
+- refactor(web): remove all demo routes, files, and VITE_ENABLE_DEMO env var
+- ci(pipeline): harden CI/CD — PR titles, scope-aware skip, docs links, template (#241)
+- ci(workflow): close linked issues after auto-merge
+- ci(workflow): add auto-merge workflow and review label gate
+
+### Documentation
+- docs(onboarding): add mermaid, env enrichment, glossary, demo script (#236)
+- docs(analyses): add 16 repo comparison analyses and consolidated summary (#163)
+- docs(admin): add analysis and spec for admin panel
+- docs(avatar): add analysis and spec for user avatar system
+- docs(claude): overhaul CLAUDE.md — add commands, gotchas, structure
+- docs(skills): condense skill descriptions (-57% tokens)
+
+### Chores
+- chore: upgrade dependencies across monorepo
+- chore: migrate biome config schema to 2.4.0

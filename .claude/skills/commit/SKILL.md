@@ -1,6 +1,6 @@
 ---
 argument-hint: [--all | -m "message"]
-description: This skill should be used when the user wants to commit changes, stage and commit, run git commit, or says "commit staged files", "commit my changes", or "commit --all". Enforces Conventional Commits format, runs guard rails (secret detection, debug artifact scanning), and handles pre-commit hook failures.
+description: Stage & commit with Conventional Commits + guard rails (secrets, debug artifacts). Triggers: "commit" | "commit --all" | "commit my changes".
 allowed-tools: Bash, AskUserQuestion, Read, Grep
 ---
 

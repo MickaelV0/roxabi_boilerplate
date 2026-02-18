@@ -1,20 +1,38 @@
-import { boolean, index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core'
+import { isNotNull } from 'drizzle-orm'
+import { boolean, index, jsonb, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core'
 import { timestamps } from './timestamps.js'
 
 const genId = () => crypto.randomUUID()
 
-export const users = pgTable('users', {
-  id: text('id').primaryKey().$defaultFn(genId),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  emailVerified: boolean('email_verified').notNull().default(false),
-  image: text('image'),
-  role: text('role').default('user'),
-  banned: boolean('banned').default(false),
-  banReason: text('ban_reason'),
-  banExpires: timestamp('ban_expires'),
-  ...timestamps,
-})
+export const users = pgTable(
+  'users',
+  {
+    id: text('id').primaryKey().$defaultFn(genId),
+    name: text('name').notNull(),
+    firstName: text('first_name').notNull().default(''),
+    lastName: text('last_name').notNull().default(''),
+    fullNameCustomized: boolean('full_name_customized').notNull().default(false),
+    email: text('email').notNull().unique(),
+    emailVerified: boolean('email_verified').notNull().default(false),
+    image: text('image'),
+    avatarSeed: text('avatar_seed'),
+    avatarStyle: text('avatar_style').default('lorelei'),
+    avatarOptions: jsonb('avatar_options').notNull().default({}).$type<Record<string, unknown>>(),
+    role: text('role').default('user'),
+    banned: boolean('banned').default(false),
+    banReason: text('ban_reason'),
+    banExpires: timestamp('ban_expires'),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    deleteScheduledFor: timestamp('delete_scheduled_for', { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    index('users_deleted_at_idx').on(table.deletedAt).where(isNotNull(table.deletedAt)),
+    index('users_delete_scheduled_for_idx')
+      .on(table.deleteScheduledFor)
+      .where(isNotNull(table.deleteScheduledFor)),
+  ]
+)
 
 export const sessions = pgTable(
   'sessions',
@@ -62,14 +80,25 @@ export const verifications = pgTable('verifications', {
   ...timestamps,
 })
 
-export const organizations = pgTable('organizations', {
-  id: text('id').primaryKey().$defaultFn(genId),
-  name: text('name').notNull(),
-  slug: text('slug').unique(),
-  logo: text('logo'),
-  metadata: text('metadata'),
-  ...timestamps,
-})
+export const organizations = pgTable(
+  'organizations',
+  {
+    id: text('id').primaryKey().$defaultFn(genId),
+    name: text('name').notNull(),
+    slug: text('slug').unique(),
+    logo: text('logo'),
+    metadata: text('metadata'),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    deleteScheduledFor: timestamp('delete_scheduled_for', { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    index('organizations_deleted_at_idx').on(table.deletedAt).where(isNotNull(table.deletedAt)),
+    index('organizations_delete_scheduled_for_idx')
+      .on(table.deleteScheduledFor)
+      .where(isNotNull(table.deleteScheduledFor)),
+  ]
+)
 
 export const members = pgTable(
   'members',

@@ -1,12 +1,13 @@
 ---
-argument-hint: ["idea" | --issue <N> | --spec <N>]
-description: This skill should be used when the user wants to bootstrap a feature, plan a feature, start a new feature from an idea, or create an analysis and spec. Triggers include "bootstrap avatar upload", "plan feature", "start feature", "I have an idea for", "create a spec from issue", and "/bootstrap --issue 42". Orchestrates from raw idea to approved spec through two validation gates.
+name: bootstrap
+argument-hint: '["idea" | --issue <N> | --spec <N>]'
+description: Idea→approved spec pipeline (analysis + spec + 2 approval gates). Triggers: "bootstrap" | "plan feature" | "start feature" | "I have an idea" | "spec from issue".
 allowed-tools: Bash, AskUserQuestion, Read, Write, Edit, Glob, Grep, Task
 ---
 
 # Bootstrap
 
-Orchestrate the planning pipeline from a raw idea (or existing issue/spec) to an approved spec. You drive the interviews and write documents directly — no team spawn needed. You may spawn expert reviewers (via `Task`) to review analyses and specs before user approval. Enforces two user-approval gates. Stops at the approved spec — execution is handled by `/scaffold`.
+Orchestrate the planning pipeline from a raw idea (or existing issue/spec) to an approved spec. Drive interviews and write documents directly — no team spawn needed. Spawn expert reviewers (via `Task`) to review analyses and specs before user approval. Enforce two user-approval gates. Stop at the approved spec — execution is handled by `/scaffold`.
 
 ## Entry Points
 
@@ -20,7 +21,7 @@ Orchestrate the planning pipeline from a raw idea (or existing issue/spec) to an
 |------|-----------|----------|
 | `"idea text"` | Gate 1 (Analysis) | Full pipeline from scratch |
 | `--issue N` | Gate 1 (Analysis) | Reads GitHub issue body as starting context |
-| `--spec N` | Gate 2 (Spec) | Assumes spec exists at `docs/specs/N-*.mdx`, validates and approves |
+| `--spec N` | Gate 2 (Spec) | Assumes spec exists at `specs/N-*.mdx`, validates and approves |
 
 ## Instructions
 
@@ -30,7 +31,7 @@ Parse the arguments to determine the entry point:
 
 1. **If bare text** (e.g., `"avatar upload"`): Start at **Gate 1**. The text is the idea seed.
 2. **If `--issue N`**: Start at **Gate 1**. Fetch the issue body with `gh issue view N` for starting context.
-3. **If `--spec N`**: Start at **Gate 2**. Look for `docs/specs/N-*.mdx` using Glob. If not found, inform the user and suggest starting from scratch with `/bootstrap "idea"` or `/bootstrap --issue N`.
+3. **If `--spec N`**: Start at **Gate 2**. Look for `specs/N-*.mdx` using Glob. If not found, inform the user and suggest starting from scratch with `/bootstrap "idea"` or `/bootstrap --issue N`.
 
 ### Step 0b -- Check for Existing Branch / PR
 
@@ -64,11 +65,11 @@ Options:
 Before starting any gate, check what already exists:
 
 ```
-docs/analyses/*   -- existing analyses (match by issue number or slug keywords)
-docs/specs/*      -- existing specs (match by issue number or slug keywords)
+analyses/*   -- existing analyses (match by issue number or slug keywords)
+specs/*      -- existing specs (match by issue number or slug keywords)
 ```
 
-Use **Glob** to search for files matching the topic. For `--issue N`, also match by issue number prefix (e.g., `docs/analyses/N-*.mdx`, `docs/specs/N-*.mdx`).
+Use **Glob** to search for files matching the topic. For `--issue N`, also match by issue number prefix (e.g., `analyses/N-*.mdx`, `specs/N-*.mdx`).
 
 **If a spec already exists** and the entry point is Gate 1: present the existing spec to the user via **AskUserQuestion** and ask whether to reuse it (skip to Gate 2) or start fresh. Do not silently skip.
 
@@ -78,12 +79,12 @@ Use **Glob** to search for files matching the topic. For `--issue N`, also match
 
 ## How It Works (No Team — Direct Orchestration)
 
-You (the bootstrap orchestrator) drive the entire pipeline yourself:
+The bootstrap orchestrator drives the entire pipeline directly:
 
-- **You** conduct interviews with the user via `/interview` skill (which uses `AskUserQuestion`)
-- **You** write analysis and spec documents
-- **You** spawn **expert reviewers** via `Task` before each user-approval gate (configurable per document)
-- **You** present gates to the user via `AskUserQuestion`
+- Conduct interviews with the user via `/interview` skill (which uses `AskUserQuestion`)
+- Write analysis and spec documents
+- Spawn **expert reviewers** via `Task` before each user-approval gate (configurable per document)
+- Present gates to the user via `AskUserQuestion`
 
 **Do NOT use `TeamCreate`.**
 
@@ -96,12 +97,12 @@ You (the bootstrap orchestrator) drive the entire pipeline yourself:
 ### 1a. Generate or Locate Analysis
 
 - **If an analysis already exists** (found in Step 1): read it and present it to the user.
-- **If no analysis exists**: conduct a structured interview with the user (using `/interview` in Analysis mode) to produce `docs/analyses/{slug}.mdx`.
-  - If you need domain expertise during writing, spawn the relevant expert subagent via `Task` (see [Expert Consultation](#expert-consultation-on-demand)).
+- **If no analysis exists**: conduct a structured interview with the user (using `/interview` in Analysis mode) to produce `analyses/{slug}.mdx`.
+  - If domain expertise is needed during writing, spawn the relevant expert subagent via `Task` (see [Expert Consultation](#expert-consultation)).
 
 ### 1b. Expert Review
 
-After generating the analysis, **you decide** which expert reviewers to spawn based on the document content. Do NOT ask the user — apply these rules automatically:
+After generating the analysis, decide which expert reviewers to spawn based on the document content. Do NOT ask the user — apply these rules automatically:
 
 | Reviewer | Auto-select when | Focus area |
 |----------|-----------------|------------|
@@ -118,7 +119,7 @@ After generating the analysis, **you decide** which expert reviewers to spawn ba
 Task(
   description: "Review analysis - <reviewer>",
   subagent_type: "<reviewer>",  // e.g., "architect", "doc-writer", "product-lead"
-  prompt: "Review this analysis document for <focus area>. Return feedback as bullet points: what's good, what needs improvement, and any concerns. Document path: docs/analyses/{slug}.mdx"
+  prompt: "Review this analysis document for <focus area>. Return feedback as bullet points: what's good, what needs improvement, and any concerns. Document path: analyses/{slug}.mdx"
 )
 ```
 
@@ -135,6 +136,20 @@ Options:
 - **Reject** -- Provide feedback and re-enter Gate 1
 
 **If rejected:** Collect user feedback, revise the analysis (re-run expert review if the changes are substantial). Re-present for approval. Do not proceed until approved.
+
+---
+
+## Gate 1.5: Investigation (Optional)
+
+> Runs only after Gate 1 approval. Skipped when using `--spec`.
+
+When the approved analysis contains technical uncertainty (explicit markers like "needs testing", competing approaches without a clear winner, or untested external dependencies), offer the user an optional investigation spike before writing the spec.
+
+**Steps:** Detect signals → User confirms → Define scope → Execute spike on throwaway branch → Review findings → Append to analysis and cleanup.
+
+For the full procedure (steps 1.5a–1.5f), see [references/investigation.md](references/investigation.md).
+
+If no signals are detected, skip directly to "Ensure GitHub Issue."
 
 ---
 
@@ -162,7 +177,7 @@ If the bootstrap was started from bare text and no matching issue was found:
 4. **Inform the user**: "Created GitHub issue #N: `<title>`"
 
 The issue number is then used for:
-- Spec filename: `docs/specs/{issue}-{slug}.mdx`
+- Spec filename: `specs/{issue}-{slug}.mdx`
 - Issue status transitions (Gate 1 → Analysis, Gate 2 → Specs)
 - Downstream `/scaffold` linking
 
@@ -173,12 +188,12 @@ The issue number is then used for:
 ### 2a. Generate or Locate Spec
 
 - **If a spec already exists** (found in Step 1, or entry point is `--spec N`): read it and present it to the user.
-- **If no spec exists**: promote the approved analysis to a spec (using `/interview` with `--promote <path-to-analysis>`) to produce `docs/specs/{issue}-{slug}.mdx`.
-  - If you need domain expertise during writing, spawn the relevant expert subagent via `Task` (see [Expert Consultation](#expert-consultation-on-demand)).
+- **If no spec exists**: promote the approved analysis to a spec (using `/interview` with `--promote <path-to-analysis>`) to produce `specs/{issue}-{slug}.mdx`.
+  - If domain expertise is needed during writing, spawn the relevant expert subagent via `Task` (see [Expert Consultation](#expert-consultation)).
 
 ### 2b. Expert Review
 
-After generating the spec, **you decide** which expert reviewers to spawn — same auto-selection rules as Gate 1b. Do NOT ask the user.
+After generating the spec, decide which expert reviewers to spawn — same auto-selection rules as Gate 1b. Do NOT ask the user.
 
 Apply the same reviewer table (always **doc-writer** + **product-lead**, add **architect** / **devops** when their domain is present in the spec). Specs with implementation details should always include **architect**.
 
@@ -225,22 +240,10 @@ Use the triage helper to update status. Replace `<ISSUE_NUMBER>` with the actual
 
 Once both gates are passed:
 
-1. **Update `meta.json` and `index.mdx`** for each new document:
-
-   For each new analysis (`docs/analyses/<slug>.mdx`):
-   - Add `"<slug>"` to `docs/analyses/meta.json` → `pages` array
-   - Add a link entry to `docs/analyses/index.mdx` under the appropriate category section
-
-   For each new spec (`docs/specs/<issue>-<slug>.mdx`):
-   - Add `"<issue>-<slug>"` to `docs/specs/meta.json` → `pages` array
-   - Add a link entry to `docs/specs/index.mdx` under the appropriate category section
-
-   Follow the existing format in each file. Place new entries in a logical position within their category.
-
-2. **Commit** all documents together:
+1. **Commit** all documents together:
    ```bash
-   git add docs/analyses/<slug>.mdx docs/analyses/meta.json docs/analyses/index.mdx \
-           docs/specs/<issue>-<slug>.mdx docs/specs/meta.json docs/specs/index.mdx
+   git add analyses/<slug>.mdx \
+           specs/<issue>-<slug>.mdx
    git commit -m "$(cat <<'EOF'
    docs(<scope>): add analysis and spec for <feature>
 
@@ -252,7 +255,7 @@ Once both gates are passed:
    ```
    Only include the files that were actually created or modified (e.g., if only an analysis was produced, omit the spec files).
 
-3. **Inform the user:**
+2. **Inform the user (plain text):**
 
 > "Bootstrap complete. You have an approved analysis and spec (committed). Run `/scaffold --spec <N>` to execute."
 
@@ -260,51 +263,19 @@ Once both gates are passed:
 
 ## Edge Cases
 
-| Scenario | Behavior |
-|----------|----------|
-| Issue already has a spec | Skip Gate 1, present existing spec at Gate 2 for validation |
-| Issue already has an analysis | Skip analysis generation, present existing analysis at Gate 1 for validation |
-| User rejects at any gate | Stop, collect feedback, re-enter the same gate |
-| `--spec N` but no spec found | Inform user: "No spec found matching issue #N. Try `/bootstrap --issue N` or `/bootstrap 'your idea'` to start from scratch." |
-| Analysis exists but is a brainstorm | Treat as "no analysis" -- promote brainstorm to analysis |
-| Expert reviewer subagent fails | Report the error to the user and continue without that expert's review |
-| Bare text entry, no existing issue | Create a GitHub issue from the approved analysis before entering Gate 2 |
-| Issue already has a branch or open PR | Stop and propose `/review` or `/scaffold` instead (Step 0b) |
+For the full edge case table, see [references/edge-cases.md](references/edge-cases.md).
 
 ## Skill Invocation Reference
 
-You use the `/interview` skill directly:
+Use the `/interview` skill directly:
 
 | Sub-skill | Invocation | When |
 |-----------|------------|------|
 | `/interview` (Analysis) | `skill: "interview", args: "topic text"` | Gate 1, no existing analysis |
-| `/interview` (Spec promotion) | `skill: "interview", args: "--promote docs/analyses/{slug}.mdx"` | Gate 2, no existing spec |
+| `/interview` (Spec promotion) | `skill: "interview", args: "--promote analyses/{slug}.mdx"` | Gate 2, no existing spec |
 
-## Expert Consultation (On-Demand)
+## Expert Consultation
 
-### During Document Writing
-
-When you need domain expertise while writing the analysis or spec, spawn the relevant expert subagent:
-
-```
-Task(
-  description: "Expert consultation - <topic>",
-  subagent_type: "architect" | "doc-writer" | "devops" | "product-lead",
-  prompt: "Research and answer: <specific question>. Return findings as bullet points."
-)
-```
-
-| Expert | Use for |
-|--------|---------|
-| **architect** | Trade-off analysis, feasibility checks, architecture decisions, integration concerns |
-| **doc-writer** | Document structure advice, MDX conventions, clarity feedback |
-| **devops** | CI/CD feasibility, deployment strategy, infrastructure requirements |
-| **product-lead** | Product fit, acceptance criteria, user story validation |
-
-Do NOT spawn experts upfront — only when a specific question arises during writing.
-
-### At Review Gates (1b, 2b)
-
-Expert review at gates is auto-selected by you based on document content (see Gate 1b and Gate 2b above). Spawn all selected reviewers in parallel for maximum speed.
+For expert consultation patterns during document writing and at review gates, see [references/expert-consultation.md](references/expert-consultation.md).
 
 $ARGUMENTS

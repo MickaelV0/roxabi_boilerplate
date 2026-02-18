@@ -1,16 +1,16 @@
 # Agent Teams — Roxabi Boilerplate
 
-Team-wide coordination rules for all agents. Every agent reads this file.
+Team-wide coordination rules. Loaded by orchestrator, not auto-loaded by agents (shared rules are in CLAUDE.md).
 
 ## Orchestration Model
 
-**Main Claude is the orchestrator.** It assesses issues, spawns agents, runs skills, and coordinates the 4-phase workflow (Assess, Implement, Review, Fix/Merge). The human is the decision-maker at every gate. Agents are specialists that execute within their domain.
+**Main Claude = orchestrator.** Assesses issues, spawns agents, runs skills, coordinates 4-phase workflow. Human decides at every gate.
 
 | Actor | Role |
 |-------|------|
-| **Human** | Decision-maker — approves specs, validates review comments, merges |
-| **Main Claude** | Orchestrator — fetches issues, spawns agents, runs skills, coordinates flow |
-| **Agents** | Specialists — each executes within its domain boundaries |
+| **Human** | Approves specs, validates reviews, merges |
+| **Main Claude** | Fetches issues, spawns agents, coordinates flow |
+| **Agents** | Execute within domain boundaries |
 
 ## Team Structure
 
@@ -24,31 +24,31 @@ Team-wide coordination rules for all agents. Every agent reads this file.
 
 ### 4-Phase Workflow
 
-1. **Phase 1 — Assessment**: Main Claude fetches issue, checks for analysis/spec. If gaps exist, spawns product-lead (and architect if needed). Human approves spec.
-2. **Phase 2 — Implementation**: Main Claude spawns domain agents + tester. Test-first: tester writes failing tests (RED), domain agents implement (GREEN), refactor (REFACTOR). All tests pass, PR created.
-3. **Phase 3 — Review**: Main Claude spawns fresh review agents (security-auditor, architect, product-lead, tester, plus domain agents matching changed files). Each produces Conventional Comments. Main Claude walks human through findings via `/1b1`.
-4. **Phase 4 — Fix and Merge**: Fixer agent applies accepted review comments. CI runs. Human approves merge.
+1. **Assessment**: Fetch issue → check analysis/spec → spawn product-lead (+architect if needed) → human approves spec
+2. **Implementation**: Spawn domain agents + tester. RED → GREEN → REFACTOR → all tests pass → PR
+3. **Review**: Fresh review agents (security, architect, product, tester + domain). Conventional Comments → `/1b1` walkthrough
+4. **Fix & Merge**: Fixer applies accepted comments → CI → human merges
 
 ### Task Lifecycle
 
-1. **Main Claude creates tasks** with descriptions, assignments, and dependencies
-2. **Agents claim** tasks matching their domain
-3. **Agent executes** within its boundaries (see agent-specific `.claude/agents/*.md`)
-4. **Agent marks complete** and creates follow-up tasks for the next stage
-5. **Human reviews** deliverables at each gate
+1. Lead creates tasks with descriptions, assignments, deps
+2. Agents claim tasks matching their domain
+3. Agent executes within boundaries (see `.claude/agents/*.md`)
+4. Agent marks complete + creates follow-up tasks
+5. Human reviews at each gate
 
 ### Communication
 
-> **"Message the lead"** means using the `SendMessage` tool to send a clear status update to the lead. Keep messages concise with the key information upfront.
+> "Message the lead" = `SendMessage` with concise status update, key info upfront.
 
-- **Task handoff**: Use `blockedBy` dependencies — when your task completes, the next agent's task unblocks
-- **Blocker**: Message the lead with a clear description of what's blocking you
-- **Cross-domain need**: Create a task for the other domain agent and message the lead
-- **Security finding**: Message both the lead and security-auditor immediately
+- **Task handoff**: `blockedBy` deps — your completion unblocks next agent
+- **Blocker**: Message lead with description
+- **Cross-domain**: Create task for other agent + message lead
+- **Security finding**: Message lead + security-auditor immediately
 
 ### Domain Boundaries
 
-Each agent operates within specific packages. **Never modify files outside your domain.**
+**Never modify files outside your domain.**
 
 | Agent | Owns | Does NOT touch |
 |-------|------|----------------|
@@ -59,30 +59,26 @@ Each agent operates within specific packages. **Never modify files outside your 
 | tester | Test files in all packages | Never modifies source files |
 | security-auditor | Read-only + `Bash` for auditing | Never modifies source files |
 | architect | `docs/architecture/`, ADR files | Never writes application code |
-| product-lead | `docs/analyses/`, `docs/specs/`, GitHub issues via `gh` | Never writes application code |
+| product-lead | `analyses/`, `specs/`, GitHub issues via `gh` | Never writes application code |
 | doc-writer | `docs/`, `CLAUDE.md` | Never writes application code |
 
 ### Standards
 
-Every agent must follow:
+All agents must follow:
 
 - **Conventional Commits**: `<type>(<scope>): <description>` — see [Contributing](docs/contributing.mdx)
-- **Domain standards**: Read the relevant standards doc before writing code (see each agent's `.md` file)
-- **No `git add -A`**: Always stage specific files
-- **No force push**: Never use `--force` or `--hard`
+- **Domain standards**: Read relevant standards before coding (see agent `.md`)
+- **No `git add -A`** — stage specific files only
+- **No force push** — never `--force` or `--hard`
 
 ## Configuration
 
-Each agent's `.md` file in `.claude/agents/` defines its behavior through YAML frontmatter:
+Agent behavior defined via YAML frontmatter in `.claude/agents/*.md`:
 
-- **`permissionMode`** — `bypassPermissions` (agent can execute tools freely) or `plan` (agent proposes changes but cannot execute them)
-- **`maxTurns`** — Maximum API round-trips before stopping (20-50 depending on role)
-- **`memory: project`** — Enables persistent learnings across sessions in `.claude/agent-memory/`. Agents automatically read their memory at start and may write back discovered knowledge (workarounds, project-specific patterns, gotchas). This is for *emergent* knowledge — things agents discover during work. *Prescribed* knowledge (rules, standards, conventions) belongs in docs, CLAUDE.md, AGENTS.md, or agent definitions.
-- **`skills`** — Core skill preloaded per agent (e.g., `commit`, `test`, `context7`)
-- **`disallowedTools`** — Explicit deny list for tools an agent should never use (defense-in-depth)
+- **`permissionMode`** — `bypassPermissions` (free execution) | `plan` (propose only)
+- **`maxTurns`** — Max API round-trips (20–50 by role)
+- **`memory: project`** — Persistent learnings in `.claude/agent-memory/`. For *emergent* knowledge (workarounds, gotchas) — not prescribed rules.
+- **`skills`** — Preloaded skill per agent (e.g., `commit`, `test`, `context7`)
+- **`disallowedTools`** — Tool deny list (defense-in-depth)
 
-See the [Agent Teams Guide](docs/guides/agent-teams.mdx) for full details on each configuration field.
-
-## Getting Started
-
-See the [Agent Teams Guide](docs/guides/agent-teams.mdx) for setup, playbooks, and troubleshooting.
+Full details → [Agent Teams Guide](docs/guides/agent-teams.mdx).

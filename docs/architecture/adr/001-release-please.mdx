@@ -1,0 +1,238 @@
+---
+title: "ADR-001: Release-Please Evaluation"
+description: Architecture decision record evaluating release-please for automated releases
+---
+
+## Status
+
+Deferred
+
+## Context
+
+The Roxabi Boilerplate project currently manages releases through a custom `/promote` skill that handles the full staging-to-main promotion lifecycle: pre-flight checks, version computation, changelog generation, deploy preview verification, PR creation, and post-merge tagging via `--finalize`. This workflow is well-established, human-reviewed at every step, and produces a `CHANGELOG.md` in Keep a Changelog format plus Fumadocs changelog pages grouped by minor version.
+
+As the project scales, the manual release process could become a bottleneck. Conventional Commits are already enforced locally via lefthook/commitlint, and Task 1 of this PR adds CI-level enforcement via PR title validation. With deterministic commit history in place, the project has the foundation required for automated release tooling.
+
+This ADR evaluates whether [release-please](https://github.com/googleapis/release-please) (maintained by Google, 10k+ GitHub stars) should be adopted to automate changelog generation, version bumping, and GitHub Releases.
+
+## Decision Drivers
+
+1. **Automation value** -- Does release-please reduce meaningful manual effort compared to the existing `/promote` skill?
+2. **Workflow compatibility** -- Can it integrate with the staging-based branching strategy and auto-merge workflow without introducing fragility?
+3. **Monorepo fit** -- Is the manifest configuration reasonable for this project's package structure?
+4. **Migration cost** -- What is the cost of transitioning from the current changelog format and release process?
+5. **Reversibility** -- Can the decision be undone without significant rework?
+
+## Options Considered
+
+### Option A: Adopt release-please now
+
+Add a `release-please.yml` GitHub Actions workflow that triggers on push to `main`, creating and maintaining a Release PR with auto-generated changelog entries and version bumps. Replace or retire the `/promote` skill.
+
+### Option B: Keep /promote skill (status quo)
+
+Continue using the existing `/promote` skill for all release management. No new tooling or configuration.
+
+### Option C: Defer adoption (adopt later when the need is clear)
+
+Document the evaluation findings, keep `/promote` as the release mechanism, and revisit when release frequency or team size makes automation clearly beneficial.
+
+## Evaluation
+
+### 1. Monorepo Configuration Complexity
+
+Release-please supports monorepos via manifest mode, requiring two configuration files:
+
+**`release-please-config.json`** (release configuration):
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "node",
+  "packages": {
+    ".": {
+      "component": "roxabi-boilerplate",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "apps/web": {
+      "component": "web",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "apps/api": {
+      "component": "api",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "packages/types": {
+      "component": "types",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "packages/ui": {
+      "component": "ui",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "packages/config": {
+      "component": "config",
+      "changelog-path": "CHANGELOG.md"
+    }
+  }
+}
+```
+
+**`.release-please-manifest.json`** (version tracking):
+
+```json
+{
+  ".": "0.2.2",
+  "apps/web": "0.2.2",
+  "apps/api": "0.2.2",
+  "packages/types": "0.2.2",
+  "packages/ui": "0.2.2",
+  "packages/config": "0.2.2"
+}
+```
+
+**Assessment:** The configuration is straightforward but introduces per-package versioning that this project does not currently need. The project uses a single version across all packages (currently v0.2.2). Release-please's monorepo mode is designed for independent package versioning -- using it for unified versioning requires either (a) configuring only the root package (losing per-package changelog granularity) or (b) configuring all packages and keeping their versions manually synchronized. Neither is a natural fit.
+
+The spec explicitly states: "keep single-version until per-package releases are needed." This means the monorepo manifest adds configuration overhead with no immediate benefit.
+
+### 2. Squash vs Merge -- Auto-Merge Interaction
+
+The current auto-merge workflow (`.github/workflows/auto-merge.yml`) unconditionally applies `--squash` to all PRs that receive the `reviewed` label:
+
+```yaml
+- name: Enable auto-merge (squash)
+  run: gh pr merge "$PR_NUMBER" --auto --squash
+```
+
+The original analysis flagged a concern that release-please Release PRs "must not be squash-merged" because squashing would collapse commit history. After research, this concern is **partially mischaracterized**. Release-please actually *recommends* squash-merging for regular PRs and supports squash-merging of Release PRs as well. The Release PR contains direct file changes (CHANGELOG.md, package.json version bumps), not a chain of commits that would be lost by squashing.
+
+However, there is a real (though different) interaction concern:
+
+- **Release-please creates its Release PR targeting `main`** (triggered by pushes to `main`)
+- **The Roxabi workflow uses staging as the integration branch**, with `/promote` creating the staging-to-main PR
+- Release-please expects a direct trunk-based workflow: feature branches merge to `main`, and release-please reads those commits to generate the Release PR
+
+**The fundamental mismatch is branching strategy, not merge strategy.** Release-please is designed for trunk-based development where commits land directly on `main`. In this project, commits land on `staging` first, then are promoted to `main` via a promotion PR. This means:
+
+1. If release-please targets `main`, it only sees the single squashed promotion commit (e.g., "chore: promote staging to main (v0.2.2)"), not the individual `feat:` and `fix:` commits -- resulting in a useless changelog
+2. If release-please targets `staging`, it would create Release PRs on the integration branch, which conflicts with the staging-to-main promotion model
+3. Configuring release-please with `target-branch: staging` and then promoting that to `main` creates a circular dependency: release-please bumps versions on `staging`, but the promotion PR squashes those commits when merging to `main`
+
+**Assessment:** The staging-based branching strategy is a structural mismatch with release-please's assumptions. Solving this would require either abandoning the staging branch (significant workflow change) or implementing workarounds that add complexity without reducing manual effort.
+
+### 3. /promote Skill Coexistence or Replacement
+
+The `/promote` skill handles a broader scope than release-please:
+
+| Capability | `/promote` | release-please |
+|------------|-----------|----------------|
+| Pre-flight checks (CI status, open PRs) | Yes | No |
+| Version computation | Yes | Yes |
+| Changelog generation | Yes (AI-assisted, human-reviewed) | Yes (deterministic from commits) |
+| Deploy preview verification | Yes | No |
+| Staging-to-main PR creation | Yes | No (creates Release PR on target branch) |
+| GitHub Release + git tag | Yes (`--finalize`) | Yes (on Release PR merge) |
+| Fumadocs changelog pages | Yes | No |
+| Promotion summary | Yes | No |
+
+**Coexistence scenario:** A hybrid where `/promote` handles staging-to-main promotion and release-please handles tagging + GitHub Releases on `main` is theoretically possible but fragile:
+
+- `/promote` would still generate the changelog and create the promotion PR
+- Release-please would then need to parse the promotion commit on `main` to create a Release -- but a single squashed commit does not contain the granular conventional commits it needs
+- The two tools would fight over CHANGELOG.md ownership, producing conflicting formats
+
+**Replacement scenario:** Fully replacing `/promote` with release-please would require:
+
+- Switching from staging-based flow to trunk-based development
+- Losing deploy preview verification as a release gate
+- Losing AI-assisted changelog generation (replaced with purely mechanical commit parsing)
+- Losing Fumadocs changelog page generation
+- Rewriting or removing the `/promote` and `/promote --finalize` skill
+
+**Assessment:** Coexistence is impractical due to overlapping responsibilities and conflicting CHANGELOG.md ownership. Full replacement requires a branching strategy change that is out of scope and would sacrifice capabilities the team relies on.
+
+### 4. Changelog Format Impact
+
+**Current format (`CHANGELOG.md`):**
+
+```markdown
+## [v0.2.2] - 2026-02-16
+
+### Fixed
+- fix(web): resolve relative links in Fumadocs documentation
+- fix(devops): add turbo-ignore devDep and missing passThroughEnv vars
+
+### Documentation
+- docs(docs): fix ASCII diagram alignment in architecture pages
+```
+
+This follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format with human-curated grouping (Added, Fixed, Changed, Documentation, Chores). The `/promote` skill also generates separate Fumadocs-compatible changelog pages in `docs/changelog/` grouped by minor version.
+
+**Release-please format:**
+
+```markdown
+## [0.2.2](https://github.com/owner/repo/compare/v0.2.1...v0.2.2) (2026-02-16)
+
+### Bug Fixes
+
+* **web:** resolve relative links in Fumadocs documentation ([abc1234](https://github.com/...))
+* **devops:** add turbo-ignore devDep ([def5678](https://github.com/...))
+
+### Documentation
+
+* **docs:** fix ASCII diagram alignment ([ghi9012](https://github.com/...))
+```
+
+**Key differences:**
+
+- Release-please uses GitHub comparison links in headers and commit links in entries
+- Release-please uses `*` bullets with `**scope:**` bold formatting (not `- type(scope):` prefixed entries)
+- Release-please does not generate Fumadocs changelog pages
+- Release-please groups by Conventional Commit type with fixed section names (Bug Fixes, Features, etc.) that differ from the current grouping (Fixed, Added, Changed, etc.)
+- Migrating would produce a visible format break in the existing CHANGELOG.md history
+
+**Assessment:** Adopting release-please would require accepting a format change in CHANGELOG.md and building a separate mechanism to generate Fumadocs changelog pages. The current AI-assisted generation produces more human-friendly entries and supports custom grouping that better matches the project's documentation style.
+
+## Decision
+
+**Defer adoption of release-please (Option C).**
+
+The evaluation reveals three structural obstacles that make adoption premature:
+
+1. **Branching strategy mismatch.** Release-please assumes trunk-based development. This project uses a staging-based flow where commits are squash-promoted to `main`. Release-please would see only promotion commits on `main`, not the granular conventional commits it needs for changelog generation.
+
+2. **Low marginal value over `/promote`.** The existing `/promote` skill already automates version computation, changelog generation, PR creation, and post-merge tagging. It additionally provides pre-flight checks, deploy preview verification, and Fumadocs changelog pages that release-please does not offer. The automation gap release-please would fill is narrow.
+
+3. **No per-package versioning need.** The monorepo manifest configuration adds overhead for a capability the project does not yet require. The spec explicitly defers per-package releases.
+
+### When to Revisit
+
+This decision should be reconsidered if:
+
+- The project adopts trunk-based development (feature branches merge directly to `main`)
+- Release frequency increases to the point where `/promote` becomes a meaningful bottleneck (e.g., multiple releases per week)
+- Per-package versioning becomes necessary (e.g., `packages/ui` is published to npm independently)
+- The team grows and deterministic, non-AI-dependent changelog generation becomes preferable for consistency
+
+If any of these conditions are met, create a follow-up issue to re-evaluate with the updated context.
+
+## Consequences
+
+### Positive
+
+- No new configuration files or workflow complexity introduced
+- The existing `/promote` skill continues to provide a well-tested, human-reviewed release process
+- CHANGELOG.md format remains consistent with existing entries
+- Fumadocs changelog pages continue to be generated automatically
+- No risk of conflicting changelog ownership between tools
+
+### Negative
+
+- Release management remains semi-manual (requires running `/promote` and `/promote --finalize`)
+- No automated GitHub Releases on merge (requires explicit `--finalize` step)
+- If the team forgets to run `/promote`, releases accumulate on staging without formal versioning
+
+### Risks
+
+- If release frequency increases significantly, the manual overhead of `/promote` could become a bottleneck -- but the deferral criteria above provide clear triggers for re-evaluation
+- If Conventional Commits enforcement (Task 1) is later removed or weakened, the foundation for any future release-please adoption would be compromised -- Task 1 should be treated as a permanent infrastructure investment regardless of this decision

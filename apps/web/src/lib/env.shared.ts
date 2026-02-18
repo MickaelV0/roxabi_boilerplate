@@ -1,0 +1,11 @@
+import { z } from 'zod'
+
+export const clientEnvSchema = z.object({
+  VITE_GITHUB_REPO_URL: z.string().url().optional(),
+})
+
+export type ClientEnv = z.infer<typeof clientEnvSchema>
+
+export const clientEnv: ClientEnv = clientEnvSchema.parse({
+  VITE_GITHUB_REPO_URL: import.meta.env.VITE_GITHUB_REPO_URL,
+})

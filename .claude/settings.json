@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "case \"$CLAUDE_FILE_PATHS\" in *.ts|*.tsx|*.js|*.jsx|*.json) bunx biome check --write \"$CLAUDE_FILE_PATHS\" 2>/dev/null || true ;; esac"
+            "command": "case \"$CLAUDE_FILE_PATHS\" in *.ts|*.tsx|*.js|*.jsx|*.json) timeout 10s bunx biome check --write \"$CLAUDE_FILE_PATHS\" 2>/dev/null || true ;; esac"
           }
         ]
       }
@@ -20,16 +20,25 @@
             "command": ".claude/hooks/security-check.js"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'CMD=$(echo \"$CLAUDE_TOOL_INPUT\" | jq -r .command 2>/dev/null); if echo \"$CMD\" | grep -qP \"\\bbun\\s+test\\b\" && ! echo \"$CMD\" | grep -qP \"\\bbun\\s+run\\s+test\\b\"; then echo \"BLOCKED: Use '\\''bun run test'\\'' (vitest) instead of '\\''bun test'\\'' (Bun'\\''s built-in runner). Bare '\\''bun test'\\'' causes infinite CPU spin.\"; exit 1; fi'"
+          }
+        ]
       }
     ]
   },
   "enabledPlugins": {
-    "vercel@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
     "ui-ux-pro-max@ui-ux-pro-max-skill": true,
     "context7-plugin@context7-marketplace": true,
     "plugin-dev@claude-plugins-official": true,
-    "security-guidance@claude-plugins-official": true
+    "security-guidance@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {

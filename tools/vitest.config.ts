@@ -1,5 +1,5 @@
+import { nodeConfig } from '@repo/vitest-config/node'
 import { defineConfig } from 'vitest/config'
-import { nodeConfig } from '../packages/config/src/vitest'
 
 export default defineConfig({
   test: {

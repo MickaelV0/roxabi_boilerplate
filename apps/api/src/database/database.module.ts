@@ -101,7 +101,7 @@ export class DatabaseModule implements OnModuleInit, OnModuleDestroy {
 
     let applied = 0
     try {
-      const rows = await client`SELECT count(*)::int AS count FROM __drizzle_migrations`
+      const rows = await client`SELECT count(*)::int AS count FROM drizzle.__drizzle_migrations`
       applied = rows[0]?.count ?? 0
     } catch {
       // Table doesn't exist — no migrations have been applied

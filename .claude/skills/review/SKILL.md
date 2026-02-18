@@ -1,6 +1,6 @@
 ---
 argument-hint: [#PR]
-description: This skill should be used when the user asks to review code, review changes, review a PR, do a code review, or check a branch for issues. Triggers include "review my changes", "review PR #42", "code review this", and "check my code". Performs multi-domain review using fresh agents and Conventional Comments, with findings walked through via /1b1.
+description: Multi-domain code review (agents + Conventional Comments → /1b1). Triggers: "review changes" | "review PR #42" | "code review" | "check my code".
 allowed-tools: Bash, AskUserQuestion, Read, Grep, Task
 ---
 
@@ -50,7 +50,7 @@ Check if a spec exists for the linked issue and verify acceptance criteria are m
 
 2. **Look for a matching spec:**
    ```bash
-   ls docs/specs/<issue_number>-*.mdx 2>/dev/null
+   ls specs/<issue_number>-*.mdx 2>/dev/null
    ```
 
 3. **If a spec exists:**
@@ -252,7 +252,33 @@ After the walkthrough:
   gh pr comment <number> --body-file /tmp/review-fixes.md
   ```
 
-- Human approves the merge
+### Phase 5 — Auto-Merge Gate
+
+After all fixes are committed, pushed, and the follow-up PR comment is posted:
+
+1. **Ask the human** via `AskUserQuestion` whether to add the `reviewed` label:
+
+   ```
+   AskUserQuestion:
+     question: "All review findings are fixed and pushed. Add the 'reviewed' label to enable auto-merge?"
+     options:
+       - label: "Yes, add label"
+         description: "Adds the 'reviewed' label. The auto-merge workflow will merge the PR once CI is green."
+       - label: "No, I'll review first"
+         description: "Skip labeling. You can add the label manually later with: gh pr edit <number> --add-label reviewed"
+   ```
+
+2. **If approved**, add the label:
+   ```bash
+   gh pr edit <number> --add-label "reviewed"
+   ```
+
+3. The `auto-merge.yml` workflow picks up the label and enables `gh pr merge --auto --squash`. GitHub merges once all required checks pass.
+
+4. **If declined**, inform the human they can add the label manually later:
+   ```bash
+   gh pr edit <number> --add-label "reviewed"
+   ```
 
 > **Note:** The `/review` skill no longer includes a `--fix` flag. Fixing is handled separately by the fixer agent(s) after the human validates findings via `/1b1`.
 

@@ -1,6 +1,6 @@
 ---
 argument-hint: [file | --e2e | --run]
-description: This skill should be used when the user wants to generate unit or integration tests, write tests, add test coverage, run existing tests, or generate Playwright e2e tests. Triggers include "test this file", "write tests", "generate tests", "add test coverage", "run tests", "run my test suite", and "e2e tests".
+description: Generate/run unit, integration & Playwright e2e tests. Triggers: "test this file" | "write tests" | "add coverage" | "run tests" | "e2e tests".
 allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep
 ---
 

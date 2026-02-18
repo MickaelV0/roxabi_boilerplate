@@ -1,3 +1,4 @@
+import type { ConsentCookiePayload } from '@repo/types'
 import { Toaster } from '@repo/ui'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import type { QueryClient } from '@tanstack/react-query'
@@ -16,11 +17,13 @@ import { getLocale } from '@/paraglide/runtime'
 import { Footer } from '../components/Footer'
 import { Header } from '../components/Header'
 import { TanStackQueryDevtools } from '../integrations/tanstack-query/devtools'
-import { demoStoreDevtools } from '../lib/demo-store-devtools'
+import { ConsentProvider } from '../lib/consent/ConsentProvider'
+import { getServerConsent } from '../lib/consent/server'
 import appCss from '../styles.css?url'
 
 export type MyRouterContext = {
   queryClient: QueryClient
+  serverConsent?: ConsentCookiePayload | null
 }
 
 function ErrorFallback({
@@ -52,11 +55,14 @@ function ErrorFallback({
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   beforeLoad: async () => {
-    // Other redirect strategies are possible; see
-    // https://github.com/TanStack/router/tree/main/examples/react/i18n-paraglide#offline-redirect
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('lang', getLocale())
     }
+  },
+
+  loader: async () => {
+    const serverConsent = await getServerConsent()
+    return { serverConsent }
   },
 
   head: () => ({
@@ -101,17 +107,23 @@ const CHROMELESS_PREFIXES = ['/docs', '/talks'] as const
 function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const isChromeless = CHROMELESS_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  const loaderData = Route.useLoaderData() as
+    | { serverConsent: ConsentCookiePayload | null }
+    | undefined
+  const serverConsent = loaderData?.serverConsent ?? null
 
   return (
     <RootProvider>
-      <div className="flex min-h-screen flex-col">
-        {!isChromeless && <Header />}
-        <div className="flex-1">
-          <ErrorBoundary FallbackComponent={ErrorFallback}>{children}</ErrorBoundary>
+      <ConsentProvider initialConsent={serverConsent}>
+        <div className="flex min-h-screen flex-col">
+          {!isChromeless && <Header />}
+          <div className="flex-1">
+            <ErrorBoundary FallbackComponent={ErrorFallback}>{children}</ErrorBoundary>
+          </div>
+          {!isChromeless && <Footer />}
         </div>
-        {!isChromeless && <Footer />}
-      </div>
-      <Toaster richColors position="top-right" offset="4rem" />
+        <Toaster richColors position="bottom-right" offset="4rem" />
+      </ConsentProvider>
     </RootProvider>
   )
 }
@@ -134,7 +146,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 name: 'Tanstack Router',
                 render: <TanStackRouterDevtoolsPanel />,
               },
-              demoStoreDevtools,
               TanStackQueryDevtools,
             ]}
           />

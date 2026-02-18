@@ -1,6 +1,6 @@
 ---
 argument-hint: [--dashboard | --stop | --json | --priority]
-description: This skill should be used when the user wants to list issues, show open issues, view the project board, check the backlog, see issue dependencies, or launch the issue dashboard. Triggers include "list GitHub issues", "show issues", "what's the backlog", "issue dashboard", "what's blocked", and "show dependency chains".
+description: List/dashboard GitHub issues — status, dependencies, backlog. Triggers: "list issues" | "show issues" | "backlog" | "issue dashboard" | "what's blocked".
 allowed-tools: Bash, Read
 ---
 
@@ -91,14 +91,17 @@ List open GitHub issues from the project board with their Status, Size, Priority
    # Feature branches (exclude main/master)
    git branch --list | grep -v -E '^\*?\s*(main|master)$'
 
-   # Open PRs
-   gh pr list --state open
+   # Open PRs (with labels for status detection)
+   gh pr list --state open --json number,title,headRefName,isDraft,labels
    ```
 
    Present this as a "Work in Progress" section after recommendations:
    - Show worktrees if any exist beyond the main one
    - Show feature branches that may relate to issues (look for issue numbers in branch names)
-   - Show open PRs with their status (draft, review, etc.)
+   - Show open PRs formatted as:
+     - Title on the first line with PR number and status
+     - Branch name on the next line indented with `└`
+     - **PR status logic**: `DRAFT` if draft, `REVIEWED` if the PR has a label named "reviewed", otherwise `REVIEW` (open for review)
 
 ## Options
 
@@ -176,7 +179,12 @@ Branches:
   feat/19-auth
 
 PRs:
-  #42  feat/33-i18n  Add i18n support  DRAFT
+  #42  Add i18n support                    DRAFT
+       └ feat/33-i18n
+  #45  Fix auth token refresh              REVIEWED
+       └ feat/19-auth
+  #48  Add notification service            REVIEW
+       └ feat/23-notifications
 ```
 
 ## Output Sections

@@ -4,12 +4,12 @@ import { createServerFn } from '@tanstack/react-start'
 import { useFumadocsLoader } from 'fumadocs-core/source/client'
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page'
-import defaultMdxComponents from 'fumadocs-ui/mdx'
 import type { ComponentProps } from 'react'
 import { createContext, Suspense, useContext } from 'react'
 import { DocsErrorBoundary } from '@/components/docs-error-boundary'
 import { baseOptions } from '@/lib/layout.shared'
 import { source } from '@/lib/source'
+import { getMDXComponents } from '@/mdx-components'
 
 /** Directory URL for the current page, used to resolve relative MDX links. */
 const LinkBaseContext = createContext('')
@@ -41,13 +41,11 @@ const serverLoader = createServerFn({
     if (!page) throw notFound()
 
     // Compute the directory URL for relative link resolution.
-    // page.path is the virtual file path (e.g., "index", "getting-started",
-    // "architecture/auth-security"). We extract its directory and prepend
-    // the docs base URL to get a trailing-slash base for new URL() resolution.
-    const pageDir = page.path.includes('/')
-      ? page.path.substring(0, page.path.lastIndexOf('/'))
-      : ''
-    const linkBase = `/docs${pageDir ? `/${pageDir}` : ''}/`
+    // Use the page URL directly: appending '/' makes relative links
+    // resolve within the page's own directory. This is correct for both
+    // folder index pages (e.g., /docs/architecture → /docs/architecture/) and
+    // leaf pages, matching how MDX authors expect ./foo to resolve.
+    const linkBase = `${page.url}/`
 
     return {
       path: page.path,
@@ -57,6 +55,9 @@ const serverLoader = createServerFn({
       description: page.data.description,
     }
   })
+
+/** Base MDX components including Mermaid and Fumadocs defaults. */
+const mdxComponents = getMDXComponents()
 
 /**
  * Resolve relative MDX links (./foo, ../bar) against the current page URL.
@@ -68,7 +69,7 @@ const serverLoader = createServerFn({
  */
 function DocsLink(props: ComponentProps<'a'>) {
   const linkBase = useContext(LinkBaseContext)
-  const DefaultLink = defaultMdxComponents.a ?? 'a'
+  const DefaultLink = mdxComponents.a ?? 'a'
 
   if (props.href && (props.href.startsWith('./') || props.href.startsWith('../'))) {
     // linkBase is a trailing-slash directory URL (e.g., "/docs/" or "/docs/architecture/").
@@ -95,7 +96,7 @@ const clientLoader = browserCollections.docs.createClientLoader({
         <DocsBody>
           <MDX
             components={{
-              ...defaultMdxComponents,
+              ...mdxComponents,
               a: DocsLink,
             }}
           />

@@ -7,18 +7,27 @@ description: Pipeline stages, quality gates, caching strategy, git hooks, and de
 
 Roxabi uses a **three-layer quality pipeline** to catch issues at progressively broader scopes: local git hooks enforce standards on every commit and push, GitHub Actions CI validates every pull request and branch push, and Vercel handles production deployment automatically on merge to `main`.
 
-```txt
-Developer workstation          GitHub                    Vercel
-┌───────────────────┐    ┌───────────────────┐    ┌──────────────────┐
-│  pre-commit       │    │  CI Workflow      │    │  Auto-deploy     │
-│  ├─ Biome check   │    │  ├─ Lint          │    │  (main only)     │
-│  commit-msg       │──❯ │  ├─ Type Check    │──❯ │  ├─ Web (SSR)    │
-│  ├─ Commitlint    │    │  ├─ Test+Coverage │    │  └─ API (NestJS) │
-│  pre-push         │    │  ├─ Build         │    │                  │
-│  ├─ Lint          │    │  └─ E2E (cond.)   │    │  Deploy Preview  │
-│  ├─ Typecheck     │    └───────────────────┘    │  (manual trigger)│
-│  └─ Test+Coverage │                             └──────────────────┘
-└───────────────────┘
+```mermaid
+flowchart LR
+    subgraph DEV["Developer Workstation"]
+        direction TB
+        PC["pre-commit<br/>- Biome check"]
+        CM["commit-msg<br/>- Commitlint"]
+        PP["pre-push<br/>- Lint<br/>- Typecheck<br/>- Test+Coverage"]
+    end
+
+    subgraph GH["GitHub"]
+        direction TB
+        CI["CI Workflow<br/>- Lint<br/>- Type Check<br/>- Test+Coverage<br/>- Build<br/>- E2E (cond.)"]
+    end
+
+    subgraph VC["Vercel"]
+        direction TB
+        AD["Auto-deploy (main only)<br/>- Web (SSR)<br/>- API (NestJS)"]
+        DP["Deploy Preview<br/>(manual trigger)"]
+    end
+
+    DEV --> GH --> VC
 ```
 
 This design follows a "fail fast, fail local" philosophy: most issues are caught before code leaves the developer's machine, reducing CI costs and feedback time.
@@ -107,10 +116,12 @@ concurrency:
 
 #### Job Dependency Graph
 
-```txt
-lint ──────┐
-typecheck ─┤──▶ build ──▶ e2e (conditional)
-test ──────┘
+```mermaid
+flowchart LR
+    lint --> build
+    typecheck --> build
+    test --> build
+    build --> e2e["e2e (conditional)"]
 ```
 
 The first three jobs (`lint`, `typecheck`, `test`) run in parallel. `build` runs only after all three succeed. `e2e` runs after `build` succeeds, but only when relevant paths changed.
@@ -240,14 +251,13 @@ TurboRepo accelerates the monorepo by caching task outputs and skipping unchange
 
 ### Task Graph
 
-```txt
-codegen ──▶ build ──▶ (deploy)
-  │           ▲
-  ▼           │
-typecheck ────┘  (depends on codegen + ^build)
-
-lint ──▶ (independent)
-test ──▶ (independent)
+```mermaid
+flowchart LR
+    codegen --> build --> deploy["(deploy)"]
+    codegen --> typecheck
+    typecheck --> build
+    lint["lint (independent)"]
+    test["test (independent)"]
 ```
 
 Key task configurations:
@@ -268,7 +278,7 @@ TurboRepo uses two mechanisms for environment variables, and the distinction is 
 
 **`env`** (declared in root `turbo.jsonc`) -- Variables whose values affect build output. Changing any of these invalidates the Turbo cache for the affected task:
 
-- `API_URL`, `APP_URL`, `VITE_ENABLE_DEMO` (build task and codegen)
+- `API_URL`, `APP_URL`, `VITE_*` (build task and codegen)
 - `CI`, `VITEST` (test task)
 
 **`passThroughEnv`** (declared in `apps/api/turbo.json`) -- Runtime-only secrets that must be available during the build process but whose values should **not** affect the cache key. This prevents unnecessary cache invalidation when secrets rotate:
@@ -337,21 +347,21 @@ Vercel is the single deployment platform for both applications. Production deplo
 
 Only merges to `main` trigger production deployments. Both `apps/web` and `apps/api` are separate Vercel projects pointing to the same GitHub repository.
 
-```txt
-merge to main
-  │
-  ├──▶ Vercel (Web)
-  │     1. ignoreCommand check (is this main? did @repo/web change?)
-  │     2. bun install
-  │     3. turbo run build
-  │     4. Deploy SSR app
-  │
-  └──▶ Vercel (API)
-        1. ignoreCommand check (is this main? did @repo/api change?)
-        2. bun install
-        3. bun run db:migrate (Drizzle applies pending migrations)
-        4. turbo run build
-        5. Deploy NestJS function
+```mermaid
+flowchart TD
+    M["Merge to main"] --> W["Vercel (Web)"]
+    M --> A["Vercel (API)"]
+
+    W --> W1["1. ignoreCommand check<br/>(is this main? did @repo/web change?)"]
+    W1 --> W2["2. bun install"]
+    W2 --> W3["3. turbo run build"]
+    W3 --> W4["4. Deploy SSR app"]
+
+    A --> A1["1. ignoreCommand check<br/>(is this main? did @repo/api change?)"]
+    A1 --> A2["2. bun install"]
+    A2 --> A3["3. bun run db:migrate<br/>(Drizzle applies pending migrations)"]
+    A3 --> A4["4. turbo run build"]
+    A4 --> A5["5. Deploy NestJS function"]
 ```
 
 ### Duplicate Deploy Prevention

@@ -15,6 +15,7 @@ import {
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { fetchOrganizations, fetchUserProfile } from '@/lib/api'
 import { authClient, fetchEnabledProviders } from '@/lib/auth-client'
 import { requireGuest } from '@/lib/route-guards'
 import { m } from '@/paraglide/messages'
@@ -42,6 +43,43 @@ function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
 
+  /** Checks if account is soft-deleted and navigates to reactivation if so. Returns true if redirected. */
+  async function checkSoftDeletedAccount(): Promise<boolean> {
+    try {
+      const res = await fetchUserProfile()
+      if (!res.ok) return false
+      const profile = (await res.json()) as Record<string, unknown>
+      if (profile.deletedAt) {
+        navigate({
+          to: '/account-reactivation',
+          search: { deleteScheduledFor: profile.deleteScheduledFor as string | undefined },
+        })
+        return true
+      }
+    } catch {
+      // Non-blocking
+    }
+    return false
+  }
+
+  /** Auto-select the first active org if no org is currently active (best-effort). */
+  async function autoSelectOrg() {
+    try {
+      // Check if there is already an active org before overwriting
+      const { data: currentSession } = await authClient.getSession()
+      const activeOrgId = (currentSession as Record<string, unknown> | null)?.activeOrganizationId
+      if (activeOrgId) return
+
+      const res = await fetchOrganizations()
+      const orgs = res.ok ? ((await res.json()) as Array<{ id: string }>) : []
+      if (orgs[0]) {
+        await authClient.organization.setActive({ organizationId: orgs[0].id })
+      }
+    } catch {
+      // Non-blocking
+    }
+  }
+
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -53,9 +91,16 @@ function LoginPage() {
         rememberMe,
       })
       if (signInError) {
-        setError(m.auth_login_invalid_credentials())
+        if (signInError.status === 403) {
+          setError(m.auth_login_email_not_verified())
+        } else {
+          setError(m.auth_login_invalid_credentials())
+        }
       } else {
         toast.success(m.auth_toast_signed_in())
+        const redirected = await checkSoftDeletedAccount()
+        if (redirected) return
+        await autoSelectOrg()
         navigate({ to: '/dashboard' })
       }
     } catch {
