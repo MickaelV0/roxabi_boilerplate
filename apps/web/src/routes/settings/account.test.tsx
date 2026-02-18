@@ -200,9 +200,19 @@ describe('AccountSettingsPage', () => {
 
     it('should show org ownership resolution flow when user owns orgs', async () => {
       setupCredentialAccount()
-      mockOrgList.mockResolvedValue({
-        data: [{ id: 'org-1', name: 'My Org' }],
+
+      // Mock fetch for /api/organizations to return owned orgs
+      const mockFetch = vi.fn().mockImplementation((url: string) => {
+        if (typeof url === 'string' && url.includes('/api/organizations')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([{ id: 'org-1', name: 'My Org' }]),
+          })
+        }
+        return Promise.resolve({ ok: false, json: () => Promise.resolve({}) })
       })
+      globalThis.fetch = mockFetch
+
       mockGetFullOrg.mockResolvedValue({
         data: {
           members: [
@@ -228,7 +238,18 @@ describe('AccountSettingsPage', () => {
 
     it('should require typing email to enable delete button', async () => {
       setupCredentialAccount()
-      mockOrgList.mockResolvedValue({ data: [] })
+
+      // Mock fetch for /api/organizations to return empty list (no owned orgs)
+      const mockFetch = vi.fn().mockImplementation((url: string) => {
+        if (typeof url === 'string' && url.includes('/api/organizations')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([]),
+          })
+        }
+        return Promise.resolve({ ok: false, json: () => Promise.resolve({}) })
+      })
+      globalThis.fetch = mockFetch
 
       const Account = captured.Component
       render(<Account />)
@@ -244,22 +265,36 @@ describe('AccountSettingsPage', () => {
       })
     })
 
-    it('should invalidate sessions on deletion', async () => {
+    it('should navigate to account-reactivation on deletion', async () => {
       setupCredentialAccount()
-      mockOrgList.mockResolvedValue({ data: [] })
 
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({}),
+      // Mock fetch: /api/organizations returns empty, DELETE /api/users/me succeeds
+      const mockFetch = vi.fn().mockImplementation((url: string, options?: { method?: string }) => {
+        if (typeof url === 'string' && url.includes('/api/organizations')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([]),
+          })
+        }
+        if (
+          typeof url === 'string' &&
+          url.includes('/api/users/me') &&
+          options?.method === 'DELETE'
+        ) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({}),
+          })
+        }
+        return Promise.resolve({ ok: false, json: () => Promise.resolve({}) })
       })
       globalThis.fetch = mockFetch
-      mockSignOut.mockResolvedValue({})
 
       const Account = captured.Component
       render(<Account />)
 
-      // The test verifies that signOut is called as part of the deletion flow
-      // (tested via the implementation calling authClient.signOut() on success)
+      // The test verifies that after account deletion, the user is navigated
+      // to the account-reactivation page (no signOut call needed)
       await waitFor(() => {
         expect(screen.getByText('Danger Zone')).toBeInTheDocument()
       })

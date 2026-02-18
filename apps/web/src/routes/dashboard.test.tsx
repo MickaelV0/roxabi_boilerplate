@@ -6,6 +6,19 @@ const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
 }))
 
+const mockUseOrganizations = vi.hoisted(() =>
+  vi.fn(() => ({
+    data: [] as Array<{
+      id: string
+      name: string
+      slug: string
+      logo: string | null
+      createdAt: string
+    }>,
+    refetch: vi.fn(),
+  }))
+)
+
 vi.mock('@tanstack/react-router', () => ({
   createFileRoute: () => (config: { component: React.ComponentType }) => {
     captured.Component = config.component
@@ -21,6 +34,7 @@ vi.mock('@tanstack/react-router', () => ({
     </a>
   ),
   redirect: vi.fn(),
+  useNavigate: () => vi.fn(),
 }))
 
 vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
@@ -29,10 +43,17 @@ vi.mock('@/lib/auth-client', () => ({
   authClient: {
     getSession: vi.fn(),
     useActiveOrganization: vi.fn(() => ({ data: null })),
+    organization: {
+      setActive: vi.fn().mockResolvedValue({}),
+    },
   },
   useSession: vi.fn(() => ({
     data: { user: { name: 'Ada Lovelace' } },
   })),
+}))
+
+vi.mock('@/lib/use-organizations', () => ({
+  useOrganizations: mockUseOrganizations,
 }))
 
 mockParaglideMessages()
@@ -47,6 +68,7 @@ describe('DashboardPage', () => {
     vi.mocked(useSession).mockReturnValue({
       data: { user: { name: 'Ada Lovelace' } },
     } as ReturnType<typeof useSession>)
+    mockUseOrganizations.mockReturnValue({ data: [], refetch: vi.fn() })
     const DashboardPage = captured.Component
 
     // Act
@@ -58,9 +80,18 @@ describe('DashboardPage', () => {
 
   it('should render org context when active org exists', () => {
     // Arrange
+    vi.mocked(useSession).mockReturnValue({
+      data: { user: { name: 'Ada Lovelace' } },
+    } as ReturnType<typeof useSession>)
     vi.mocked(authClient.useActiveOrganization).mockReturnValue({
       data: { id: 'org-1', name: 'Acme Corp', slug: 'acme-corp' },
     } as ReturnType<typeof authClient.useActiveOrganization>)
+    mockUseOrganizations.mockReturnValue({
+      data: [
+        { id: 'org-1', name: 'Acme Corp', slug: 'acme-corp', logo: null, createdAt: '2024-01-01' },
+      ],
+      refetch: vi.fn(),
+    })
     const DashboardPage = captured.Component
 
     // Act
@@ -72,9 +103,13 @@ describe('DashboardPage', () => {
 
   it('should render fallback when no active org', () => {
     // Arrange
+    vi.mocked(useSession).mockReturnValue({
+      data: { user: { name: 'Ada Lovelace' } },
+    } as ReturnType<typeof useSession>)
     vi.mocked(authClient.useActiveOrganization).mockReturnValue({
       data: null,
     } as ReturnType<typeof authClient.useActiveOrganization>)
+    mockUseOrganizations.mockReturnValue({ data: [], refetch: vi.fn() })
     const DashboardPage = captured.Component
 
     // Act
@@ -86,9 +121,13 @@ describe('DashboardPage', () => {
 
   it('should render quick action links', () => {
     // Arrange
+    vi.mocked(useSession).mockReturnValue({
+      data: { user: { name: 'Ada Lovelace' } },
+    } as ReturnType<typeof useSession>)
     vi.mocked(authClient.useActiveOrganization).mockReturnValue({
       data: null,
     } as ReturnType<typeof authClient.useActiveOrganization>)
+    mockUseOrganizations.mockReturnValue({ data: [], refetch: vi.fn() })
     const DashboardPage = captured.Component
 
     // Act

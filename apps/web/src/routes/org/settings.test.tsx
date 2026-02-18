@@ -26,6 +26,15 @@ vi.mock('@/lib/auth-client', () => ({
   useSession: vi.fn(() => ({ data: null })),
 }))
 
+vi.mock('@/lib/use-organizations', () => ({
+  useOrganizations: vi.fn(() => ({
+    data: [
+      { id: 'org-1', name: 'Acme Corp', slug: 'acme-corp', logo: null, createdAt: '2024-01-01' },
+    ],
+    refetch: vi.fn(),
+  })),
+}))
+
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
@@ -37,21 +46,28 @@ import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
 import { slugify } from './settings'
 
-function setupActiveOrg() {
+function setupActiveOrg({ withOwnerMembers = false }: { withOwnerMembers?: boolean } = {}) {
   vi.mocked(authClient.useActiveOrganization).mockReturnValue({
-    data: { id: 'org-1', name: 'Acme Corp', slug: 'acme-corp' },
+    data: {
+      id: 'org-1',
+      name: 'Acme Corp',
+      slug: 'acme-corp',
+      ...(withOwnerMembers
+        ? { members: [{ userId: 'user-1', role: 'owner', id: 'member-1' }] }
+        : { members: [{ userId: 'user-1', role: 'member', id: 'member-1' }] }),
+    },
   } as ReturnType<typeof authClient.useActiveOrganization>)
 }
 
 function setupOwnerMember() {
   vi.mocked(useSession).mockReturnValue({
-    data: { permissions: ['organizations:read', 'organizations:write', 'organizations:delete'] },
+    data: { user: { id: 'user-1' } },
   } as unknown as ReturnType<typeof useSession>)
 }
 
 function setupMemberRole() {
   vi.mocked(useSession).mockReturnValue({
-    data: { permissions: ['organizations:read'] },
+    data: { user: { id: 'user-1' } },
   } as unknown as ReturnType<typeof useSession>)
 }
 
@@ -70,7 +86,7 @@ describe('OrgSettingsPage', () => {
 
   it('should render org name and slug inputs when org is active', () => {
     // Arrange
-    setupActiveOrg()
+    setupActiveOrg({ withOwnerMembers: true })
     setupOwnerMember()
     const OrgSettings = captured.Component
 
@@ -113,7 +129,7 @@ describe('OrgSettingsPage', () => {
 
   it('should show save button only for owners', () => {
     // Arrange
-    setupActiveOrg()
+    setupActiveOrg({ withOwnerMembers: true })
     setupOwnerMember()
     const OrgSettings = captured.Component
 
@@ -139,7 +155,7 @@ describe('OrgSettingsPage', () => {
 
   it('should show danger zone only for owners', () => {
     // Arrange
-    setupActiveOrg()
+    setupActiveOrg({ withOwnerMembers: true })
     setupOwnerMember()
     const OrgSettings = captured.Component
 
@@ -168,7 +184,7 @@ describe('OrgSettingsPage', () => {
 
   it('should call organization.update on form submit', async () => {
     // Arrange
-    setupActiveOrg()
+    setupActiveOrg({ withOwnerMembers: true })
     setupOwnerMember()
     vi.mocked(authClient.organization.update).mockResolvedValue({ error: null } as never)
     const OrgSettings = captured.Component
@@ -195,7 +211,7 @@ describe('OrgSettingsPage', () => {
 
   it('should show success toast after successful update', async () => {
     // Arrange
-    setupActiveOrg()
+    setupActiveOrg({ withOwnerMembers: true })
     setupOwnerMember()
     vi.mocked(authClient.organization.update).mockResolvedValue({ error: null } as never)
     const OrgSettings = captured.Component
@@ -219,7 +235,7 @@ describe('OrgSettingsPage', () => {
 
   it('should show error toast when update returns an error', async () => {
     // Arrange
-    setupActiveOrg()
+    setupActiveOrg({ withOwnerMembers: true })
     setupOwnerMember()
     vi.mocked(authClient.organization.update).mockResolvedValue({
       error: { message: 'Slug already taken' },
@@ -245,7 +261,7 @@ describe('OrgSettingsPage', () => {
 
   it('should show generic error toast when update throws', async () => {
     // Arrange
-    setupActiveOrg()
+    setupActiveOrg({ withOwnerMembers: true })
     setupOwnerMember()
     vi.mocked(authClient.organization.update).mockRejectedValue(new Error('network'))
     const OrgSettings = captured.Component
@@ -269,7 +285,7 @@ describe('OrgSettingsPage', () => {
 
   it('should disable save button when form is not dirty (I8)', () => {
     // Arrange
-    setupActiveOrg()
+    setupActiveOrg({ withOwnerMembers: true })
     setupOwnerMember()
     const OrgSettings = captured.Component
 
@@ -283,7 +299,7 @@ describe('OrgSettingsPage', () => {
 
   it('should enable save button when form is dirty (I8)', () => {
     // Arrange
-    setupActiveOrg()
+    setupActiveOrg({ withOwnerMembers: true })
     setupOwnerMember()
     const OrgSettings = captured.Component
 
@@ -299,7 +315,7 @@ describe('OrgSettingsPage', () => {
 
   it('should show type-to-confirm input in delete dialog (P2)', async () => {
     // Arrange
-    setupActiveOrg()
+    setupActiveOrg({ withOwnerMembers: true })
     setupOwnerMember()
 
     const mockFetch = vi.fn().mockResolvedValue({
@@ -327,7 +343,7 @@ describe('OrgSettingsPage', () => {
 
   it('should show generate slug button for owners (P11)', () => {
     // Arrange
-    setupActiveOrg()
+    setupActiveOrg({ withOwnerMembers: true })
     setupOwnerMember()
     const OrgSettings = captured.Component
 
@@ -353,7 +369,7 @@ describe('OrgSettingsPage', () => {
 
   it('should generate slug from name when button is clicked (P11)', () => {
     // Arrange
-    setupActiveOrg()
+    setupActiveOrg({ withOwnerMembers: true })
     setupOwnerMember()
     const OrgSettings = captured.Component
 
