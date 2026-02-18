@@ -1,0 +1,19 @@
+{
+  "name": "@repo/playwright-config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./base": "./base.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'no-op'"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@repo/config": "workspace:*",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.9.3"
+  }
+}

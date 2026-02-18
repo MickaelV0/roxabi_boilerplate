@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { reactConfig } from '@repo/config/vitest'
+import { reactConfig } from '@repo/vitest-config/react'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 

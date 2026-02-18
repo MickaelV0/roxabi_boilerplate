@@ -15,6 +15,7 @@
         "@commitlint/config-conventional": "^20.4.1",
         "@huggingface/transformers": "^3.0.0",
         "@playwright/test": "^1.58.2",
+        "@repo/playwright-config": "workspace:*",
         "@testing-library/dom": "^10.4.1",
         "@testing-library/jest-dom": "^6.9.1",
         "@testing-library/react": "^16.3.2",
@@ -63,6 +64,7 @@
         "@nestjs/cli": "^11.0.16",
         "@nestjs/testing": "^11.1.13",
         "@repo/config": "workspace:*",
+        "@repo/vitest-config": "workspace:*",
         "@types/node": "^25.2.3",
         "drizzle-kit": "^0.31.9",
         "tsx": "^4.19.4",
@@ -129,6 +131,7 @@
         "@faker-js/faker": "^10.3.0",
         "@inlang/paraglide-js": "^2.11.0",
         "@repo/config": "workspace:*",
+        "@repo/vitest-config": "workspace:*",
         "@tanstack/devtools-event-client": "^0.4.0",
         "@tanstack/devtools-vite": "^0.5.1",
         "@tanstack/router-cli": "^1.159.9",
@@ -149,6 +152,16 @@
       "name": "@repo/config",
       "version": "0.1.0",
       "devDependencies": {
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/playwright-config": {
+      "name": "@repo/playwright-config",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@playwright/test": "^1.58.2",
+        "@repo/config": "workspace:*",
+        "@types/node": "^22.10.2",
         "typescript": "^5.9.3",
       },
     },
@@ -175,6 +188,7 @@
       },
       "devDependencies": {
         "@repo/config": "workspace:*",
+        "@repo/vitest-config": "workspace:*",
         "@types/react": "^19.2.0",
         "@types/react-dom": "^19.2.0",
         "@vitejs/plugin-react": "^5.0.4",
@@ -188,6 +202,14 @@
       "peerDependencies": {
         "react": "^18.0.0 || ^19.0.0",
         "react-dom": "^18.0.0 || ^19.0.0",
+      },
+    },
+    "packages/vitest-config": {
+      "name": "@repo/vitest-config",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@repo/config": "workspace:*",
+        "typescript": "^5.9.3",
       },
     },
   },
@@ -790,9 +812,13 @@
 
     "@repo/config": ["@repo/config@workspace:packages/config"],
 
+    "@repo/playwright-config": ["@repo/playwright-config@workspace:packages/playwright-config"],
+
     "@repo/types": ["@repo/types@workspace:packages/types"],
 
     "@repo/ui": ["@repo/ui@workspace:packages/ui"],
+
+    "@repo/vitest-config": ["@repo/vitest-config@workspace:packages/vitest-config"],
 
     "@repo/web": ["@repo/web@workspace:apps/web"],
 
@@ -2756,6 +2782,8 @@
 
     "@radix-ui/react-tooltip/@radix-ui/react-slot": ["@radix-ui/react-slot@1.2.3", "", { "dependencies": { "@radix-ui/react-compose-refs": "1.1.2" }, "peerDependencies": { "@types/react": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react"] }, "sha512-aeNmHnBxbi2St0au6VBVC7JXFlhLlOnvIIlePNniyUNAClzmtAUEY8/pBiK3iHjufOlwA+c20/8jngo7xcrg8A=="],
 
+    "@repo/playwright-config/@types/node": ["@types/node@22.19.8", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-ebO/Yl+EAvVe8DnMfi+iaAyIqYdK0q/q0y0rw82INWEKJOBe6b/P3YWE8NW7oOlF/nXFNrHwhARrN/hdgDkraA=="],
+
     "@repo/web/@types/node": ["@types/node@22.19.8", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-ebO/Yl+EAvVe8DnMfi+iaAyIqYdK0q/q0y0rw82INWEKJOBe6b/P3YWE8NW7oOlF/nXFNrHwhARrN/hdgDkraA=="],
 
     "@tailwindcss/oxide-wasm32-wasi/@emnapi/core": ["@emnapi/core@1.8.1", "", { "dependencies": { "@emnapi/wasi-threads": "1.1.0", "tslib": "^2.4.0" }, "bundled": true }, "sha512-AvT9QFpxK0Zd8J0jopedNm+w/2fIzvtPKPjqyw9jwvBaReTTqPBk9Hixaz7KbjimP+QNz605/XnjFcDAL2pqBg=="],
@@ -2975,6 +3003,8 @@
     "@nestjs/schematics/@angular-devkit/schematics/magic-string": ["magic-string@0.30.17", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0" } }, "sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA=="],
 
     "@nestjs/schematics/@angular-devkit/schematics/rxjs": ["rxjs@7.8.1", "", { "dependencies": { "tslib": "^2.1.0" } }, "sha512-AA3TVj+0A2iuIoQkWEK/tqFjBq2j+6PO6Y0zJcvzLAFhEFIO3HL0vls9hWLncZbAAbK0mar7oZ4V079I/qPMxg=="],
+
+    "@repo/playwright-config/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
     "@repo/web/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
