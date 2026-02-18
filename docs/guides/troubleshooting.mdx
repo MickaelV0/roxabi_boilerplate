@@ -107,7 +107,7 @@ If the API fails to start with a secret-related error, see [BETTER_AUTH_SECRET E
 
 3. Check that the dev proxy is forwarding `/api/**` requests. Open DevTools Network tab, sign in, and confirm requests go to `localhost:3000/api/auth/*` (not `localhost:4000`).
 
-For a full explanation of the cookie-based auth architecture, see the [Authentication guide](../authentication).
+For a full explanation of the cookie-based auth architecture, see the [Authentication guide](./authentication).
 
 ## CORS Errors
 
@@ -167,7 +167,7 @@ BETTER_AUTH_SECRET=<paste-your-generated-secret-here>
 
 For Vercel deployments, set it in the API project's environment variables dashboard. A value of at least 32 characters is recommended.
 
-For the full list of auth-related environment variables, see the [Authentication guide](../authentication#environment-variables).
+For the full list of auth-related environment variables, see the [Authentication guide](./authentication#environment-variables).
 
 ## Worktree Database Not Found
 

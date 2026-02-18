@@ -352,17 +352,18 @@ jobs:
   docs-links:
     name: Docs Link Audit
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Check internal documentation links
-        uses: lycheeverse/lychee-action@v2
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          args: "docs/**/*.mdx docs/**/*.md *.md"
-          lycheeVersion: latest
-          fail: true
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Check internal documentation links
+        run: bun run tools/docs-link-audit.ts
 
   # Intentionally runs on every push to main/staging regardless of changed paths.
   # Full browser coverage is required on protected branches before release.
