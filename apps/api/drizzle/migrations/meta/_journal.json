@@ -43,6 +43,13 @@
       "when": 1771434690897,
       "tag": "0005_minor_sandman",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1771444283942,
+      "tag": "0006_tearful_arclight",
+      "breakpoints": true
     }
   ]
 }
