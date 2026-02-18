@@ -95,6 +95,7 @@
 
   "user_menu_label": "Menu utilisateur",
   "user_menu_profile": "Profil",
+  "user_menu_account": "Paramètres du compte",
   "user_menu_org_settings": "Paramètres de l'organisation",
   "user_menu_org_members": "Membres",
   "user_menu_sign_out": "Déconnexion",

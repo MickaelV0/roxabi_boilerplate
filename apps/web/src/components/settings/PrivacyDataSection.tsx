@@ -52,11 +52,6 @@ export function PrivacyDataSection() {
           <Download />
           {m.privacy_download_data()}
         </Button>
-        <p className="text-sm text-muted-foreground">
-          <a href="#danger-zone" className="text-destructive hover:underline">
-            {m.privacy_delete_account()}
-          </a>
-        </p>
       </CardContent>
     </Card>
   )

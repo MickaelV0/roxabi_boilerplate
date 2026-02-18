@@ -95,6 +95,7 @@
 
   "user_menu_label": "User menu",
   "user_menu_profile": "Profile",
+  "user_menu_account": "Account Settings",
   "user_menu_org_settings": "Organization Settings",
   "user_menu_org_members": "Members",
   "user_menu_sign_out": "Sign Out",
