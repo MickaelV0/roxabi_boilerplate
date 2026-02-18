@@ -128,7 +128,7 @@ describe('createBetterAuth databaseHooks', () => {
     await afterCreateHook(user)
 
     // Assert - seed in URL and avatarSeed should match user.id
-    const setCall = mockDb._mocks.setFn.mock.calls[0][0]
+    const setCall = mockDb._mocks.setFn.mock.calls[0]?.[0] as Record<string, unknown>
     expect(setCall.avatarSeed).toBe('unique-id-789')
     expect(setCall.image).toContain('seed=unique-id-789')
   })

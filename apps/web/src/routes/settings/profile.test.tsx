@@ -15,11 +15,11 @@ vi.mock('@tanstack/react-router', () => ({
 
 vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
 
-const mockGetSession = vi.fn(() => Promise.resolve({}))
+const mockGetSession = vi.fn((_opts?: Record<string, unknown>) => Promise.resolve({}))
 
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
-    getSession: (...args: unknown[]) => mockGetSession(...args),
+    getSession: (opts?: Record<string, unknown>) => mockGetSession(opts),
   },
   useSession: vi.fn(() => ({
     data: {
