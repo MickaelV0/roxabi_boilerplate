@@ -31,9 +31,9 @@ const config = defineConfig(async () => ({
       configResolved(config: ResolvedConfig) {
         if (config.command === 'build') {
           const envVars = loadEnv(config.mode, config.envDir ?? process.cwd(), 'VITE_')
-          // Duplicated from env.client.ts — Vite config runs outside the app bundle
+          // Duplicated from env.shared.ts — Vite config runs outside the app bundle
           // and cannot import app source. Keep in sync manually; check-env-sync.ts
-          // will detect drift between this schema and env.client.ts.
+          // will detect drift between this schema and env.shared.ts.
           const schema = z.object({
             VITE_ENABLE_DEMO: z.string().optional(),
             VITE_GITHUB_REPO_URL: z.string().url().optional(),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clientEnvSchema } from './env.client'
+import { clientEnvSchema } from './env.shared'
 
 describe('clientEnvSchema', () => {
   describe('default values', () => {

@@ -6,7 +6,7 @@ const mockClientEnv = vi.hoisted(() => ({
   VITE_GITHUB_REPO_URL: undefined as string | undefined,
 }))
 
-vi.mock('@/lib/env.client.js', () => ({
+vi.mock('@/lib/env.shared.js', () => ({
   clientEnv: mockClientEnv,
 }))
 
