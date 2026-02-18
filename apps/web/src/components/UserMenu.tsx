@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@repo/ui'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { LogOut, Shield, User } from 'lucide-react'
+import { LogOut, Settings, Shield, User, Users } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
@@ -85,6 +85,23 @@ export function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        {activeOrg && (
+          <>
+            <DropdownMenuItem asChild>
+              <Link to="/org/settings">
+                <Settings className="mr-2 size-4" />
+                {m.user_menu_org_settings()}
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/org/members">
+                <Users className="mr-2 size-4" />
+                {m.user_menu_org_members()}
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem onClick={handleSignOut} disabled={signingOut}>
           <LogOut className="mr-2 size-4" />
           {signingOut ? m.user_menu_signing_out() : m.user_menu_sign_out()}

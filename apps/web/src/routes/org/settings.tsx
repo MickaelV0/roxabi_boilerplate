@@ -374,7 +374,10 @@ function OrgSettingsPage() {
   const { data: activeOrg } = authClient.useActiveOrganization()
   const { data: orgs } = useOrganizations()
 
-  const canDeleteOrg = hasPermission(session, 'organizations:delete')
+  const currentMember = activeOrg?.members?.find(
+    (member: { userId: string }) => member.userId === session?.user?.id
+  )
+  const canDeleteOrg = currentMember?.role === 'owner'
   const [isDirty, setIsDirty] = useState(false)
 
   const { status, proceed, reset } = useBlocker({
