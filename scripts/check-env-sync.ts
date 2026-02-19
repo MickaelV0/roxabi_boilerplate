@@ -188,6 +188,30 @@ export function matchesWildcard(key: string, patterns: Set<string>): boolean {
   return false
 }
 
+/** Collect turbo env vars from all turbo.json files in a workspace directory. */
+async function collectVarsFromWorkspaceDir(dir: string, target: Set<string>): Promise<void> {
+  const entries = await readdir(dir, { withFileTypes: true })
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue
+    const turboPath = join(dir, entry.name, 'turbo.json')
+    try {
+      const config = await parseTurboConfig(turboPath)
+      for (const v of collectTurboEnvVars(config)) {
+        target.add(v)
+      }
+    } catch (err: unknown) {
+      if (
+        err instanceof Error &&
+        'code' in err &&
+        (err as NodeJS.ErrnoException).code === 'ENOENT'
+      ) {
+        continue
+      }
+      console.warn(`WARN: Failed to parse ${turboPath}: ${err}`)
+    }
+  }
+}
+
 /** Gather all turbo env vars from root and app-level turbo configs. */
 async function gatherAllTurboVars(): Promise<Set<string>> {
   const allTurboVars = new Set<string>()
@@ -198,51 +222,9 @@ async function gatherAllTurboVars(): Promise<Set<string>> {
     allTurboVars.add(v)
   }
 
-  // Parse app-level turbo.json files (apps/*/turbo.json)
-  const appsDir = join(ROOT, 'apps')
-  const appDirs = await readdir(appsDir, { withFileTypes: true })
-  for (const entry of appDirs) {
-    if (!entry.isDirectory()) continue
-    const appTurboPath = join(appsDir, entry.name, 'turbo.json')
-    try {
-      const appConfig = await parseTurboConfig(appTurboPath)
-      for (const v of collectTurboEnvVars(appConfig)) {
-        allTurboVars.add(v)
-      }
-    } catch (err: unknown) {
-      if (
-        err instanceof Error &&
-        'code' in err &&
-        (err as NodeJS.ErrnoException).code === 'ENOENT'
-      ) {
-        continue // No turbo.json for this app — that is fine
-      }
-      console.warn(`WARN: Failed to parse ${appTurboPath}: ${err}`)
-    }
-  }
-
-  // Parse package-level turbo.json files (packages/*/turbo.json)
-  const packagesDir = join(ROOT, 'packages')
-  const packageDirs = await readdir(packagesDir, { withFileTypes: true })
-  for (const entry of packageDirs) {
-    if (!entry.isDirectory()) continue
-    const pkgTurboPath = join(packagesDir, entry.name, 'turbo.json')
-    try {
-      const pkgConfig = await parseTurboConfig(pkgTurboPath)
-      for (const v of collectTurboEnvVars(pkgConfig)) {
-        allTurboVars.add(v)
-      }
-    } catch (err: unknown) {
-      if (
-        err instanceof Error &&
-        'code' in err &&
-        (err as NodeJS.ErrnoException).code === 'ENOENT'
-      ) {
-        continue
-      }
-      console.warn(`WARN: Failed to parse ${pkgTurboPath}: ${err}`)
-    }
-  }
+  // Parse workspace-level turbo.json files (apps/*, packages/*)
+  await collectVarsFromWorkspaceDir(join(ROOT, 'apps'), allTurboVars)
+  await collectVarsFromWorkspaceDir(join(ROOT, 'packages'), allTurboVars)
 
   return allTurboVars
 }
