@@ -1,7 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
-  "globalPassThroughEnv": ["SWAGGER_ENABLED"],
   "tasks": {
     // If orphaned processes hold dev ports after Ctrl+C, run `bun run dev:clean`.
     // See https://github.com/vercel/turborepo/issues/444
