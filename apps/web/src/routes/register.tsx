@@ -216,18 +216,20 @@ function RegisterPage() {
             disabled={loading}
           />
           <Label htmlFor="accept-terms" className="text-sm font-normal leading-snug cursor-pointer">
-            {m.auth_accept_privacy_prefix()}{' '}
-            <Link
-              to="/legal/confidentialite"
-              className="underline hover:text-foreground"
-              target="_blank"
-            >
-              {m.auth_accept_privacy_policy()}
-            </Link>{' '}
-            {m.auth_accept_terms_and()}{' '}
-            <Link to="/legal/cgu" className="underline hover:text-foreground" target="_blank">
-              {m.auth_accept_terms_of_service()}
-            </Link>
+            <span>
+              {m.auth_accept_privacy_prefix()}{' '}
+              <Link
+                to="/legal/confidentialite"
+                className="underline hover:text-foreground"
+                target="_blank"
+              >
+                {m.auth_accept_privacy_policy()}
+              </Link>{' '}
+              {m.auth_accept_terms_and()}{' '}
+              <Link to="/legal/cgu" className="underline hover:text-foreground" target="_blank">
+                {m.auth_accept_terms_of_service()}
+              </Link>
+            </span>
           </Label>
         </div>
         <Button type="submit" className="w-full" disabled={loading || !acceptedTerms}>
