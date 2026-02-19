@@ -12,7 +12,7 @@
  * - 1: Missing or undocumented env vars found
  */
 
-import { readFile } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 const ROOT = join(import.meta.dirname, '..')
@@ -30,6 +30,9 @@ const TOOLING_ALLOWLIST = new Set([
   'OPENAI_API_KEY',
   'ANTHROPIC_API_KEY',
   'VERCEL_ENV',
+  'NODE_ENV',
+  'PORT',
+  'LOG_LEVEL',
 ])
 
 /** Prefix for client-side environment variables exposed by Vite. */
@@ -93,6 +96,150 @@ async function checkViteConfigDrift(clientSchemaKeys: string[]): Promise<{ error
   return { errors }
 }
 
+/** Find the index of the first `//` outside a JSON string, or -1 if none. */
+function findLineCommentStart(line: string): number {
+  let inString = false
+  let isEscaped = false
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+
+    if (isEscaped) {
+      isEscaped = false
+      continue
+    }
+
+    if (ch === '\\' && inString) {
+      isEscaped = true
+      continue
+    }
+
+    if (ch === '"') {
+      inString = !inString
+      continue
+    }
+
+    if (!inString && ch === '/' && i + 1 < line.length && line[i + 1] === '/') {
+      return i
+    }
+  }
+
+  return -1
+}
+
+/** Strip single-line // comments from JSONC, avoiding // inside strings. */
+function stripJsoncComments(text: string): string {
+  return text
+    .split('\n')
+    .map((line) => {
+      const idx = findLineCommentStart(line)
+      return idx === -1 ? line : line.slice(0, idx)
+    })
+    .join('\n')
+}
+
+/** Read and parse a JSONC or JSON turbo config file. */
+async function parseTurboConfig(filePath: string): Promise<Record<string, unknown>> {
+  const content = await readFile(filePath, 'utf-8')
+  const stripped = filePath.endsWith('.jsonc') ? stripJsoncComments(content) : content
+  return JSON.parse(stripped)
+}
+
+/** Add string values from named array properties of an object into a target set. */
+function addEnvVarsFromArrays(
+  obj: Record<string, unknown>,
+  keys: readonly string[],
+  target: Set<string>
+): void {
+  for (const key of keys) {
+    const arr = obj[key]
+    if (Array.isArray(arr)) {
+      for (const v of arr) {
+        if (typeof v === 'string') target.add(v)
+      }
+    }
+  }
+}
+
+/** Collect all env var names from a turbo config object. */
+function collectTurboEnvVars(config: Record<string, unknown>): Set<string> {
+  const vars = new Set<string>()
+  addEnvVarsFromArrays(config, ['globalEnv', 'globalPassThroughEnv'], vars)
+
+  const tasks = config.tasks
+  if (tasks && typeof tasks === 'object') {
+    for (const task of Object.values(tasks as Record<string, Record<string, unknown>>)) {
+      if (!task || typeof task !== 'object') continue
+      addEnvVarsFromArrays(task, ['env', 'passThroughEnv'], vars)
+    }
+  }
+
+  return vars
+}
+
+/** Check if a key matches any wildcard pattern (e.g. VITE_FOO matches VITE_*). */
+function matchesWildcard(key: string, patterns: Set<string>): boolean {
+  for (const pattern of patterns) {
+    if (!pattern.endsWith('*')) continue
+    const prefix = pattern.slice(0, -1)
+    if (key.startsWith(prefix)) return true
+  }
+  return false
+}
+
+/** Gather all turbo env vars from root and app-level turbo configs. */
+async function gatherAllTurboVars(): Promise<Set<string>> {
+  const allTurboVars = new Set<string>()
+
+  // Parse root turbo.jsonc
+  const rootConfig = await parseTurboConfig(join(ROOT, 'turbo.jsonc'))
+  for (const v of collectTurboEnvVars(rootConfig)) {
+    allTurboVars.add(v)
+  }
+
+  // Parse app-level turbo.json files (apps/*/turbo.json)
+  const appsDir = join(ROOT, 'apps')
+  const appDirs = await readdir(appsDir, { withFileTypes: true })
+  for (const entry of appDirs) {
+    if (!entry.isDirectory()) continue
+    const appTurboPath = join(appsDir, entry.name, 'turbo.json')
+    try {
+      const appConfig = await parseTurboConfig(appTurboPath)
+      for (const v of collectTurboEnvVars(appConfig)) {
+        allTurboVars.add(v)
+      }
+    } catch {
+      // No turbo.json for this app — that is fine
+    }
+  }
+
+  return allTurboVars
+}
+
+/** Cross-validate schema keys against turbo config declarations. */
+async function checkTurboDeclarations(allSchemaKeys: Set<string>): Promise<{ warnings: string[] }> {
+  const warnings: string[] = []
+  const allTurboVars = await gatherAllTurboVars()
+
+  // Separate concrete names from wildcard patterns
+  const wildcardPatterns = new Set<string>()
+  const concreteVars = new Set<string>()
+  for (const v of allTurboVars) {
+    if (v.endsWith('*')) wildcardPatterns.add(v)
+    else concreteVars.add(v)
+  }
+
+  // Check each schema key
+  for (const key of allSchemaKeys) {
+    if (TOOLING_ALLOWLIST.has(key)) continue
+    if (concreteVars.has(key)) continue
+    if (matchesWildcard(key, wildcardPatterns)) continue
+    warnings.push(`${key} is in a schema but not declared in any turbo config (env/passThroughEnv)`)
+  }
+
+  return { warnings }
+}
+
 async function main() {
   console.log('Checking env schema sync with .env.example...\n')
 
@@ -132,6 +279,13 @@ async function main() {
   for (const error of viteDrift.errors) {
     console.error(`ERROR: ${error}`)
     hasErrors = true
+  }
+
+  // Check turbo config declarations
+  console.log('\nChecking turbo config declarations...\n')
+  const turboResult = await checkTurboDeclarations(allSchemaKeys)
+  for (const warning of turboResult.warnings) {
+    console.warn(`WARN:  ${warning}`)
   }
 
   console.log()
