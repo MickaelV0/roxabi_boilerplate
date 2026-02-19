@@ -5,6 +5,7 @@ export const envSchema = z.object({
   APP_URL: z.string().url().optional(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   VERCEL_ENV: z.enum(['production', 'preview', 'development']).optional(),
+  VERCEL_AUTOMATION_BYPASS_SECRET: z.string().optional(),
 })
 
 export type ServerEnv = z.infer<typeof envSchema>

@@ -17,9 +17,11 @@ export function createApiClient(baseURL: string) {
     retryDelay: 500,
     retryStatusCodes: [408, 429, 500, 502, 503, 504],
     onRequest({ options }) {
-      const correlationId = randomUUID()
       const headers = new Headers(options.headers as HeadersInit | undefined)
-      headers.set('x-correlation-id', correlationId)
+      headers.set('x-correlation-id', randomUUID())
+      if (env.VERCEL_AUTOMATION_BYPASS_SECRET) {
+        headers.set('x-vercel-protection-bypass', env.VERCEL_AUTOMATION_BYPASS_SECRET)
+      }
       options.headers = headers
     },
   })

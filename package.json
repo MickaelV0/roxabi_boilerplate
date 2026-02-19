@@ -38,8 +38,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.2",
-    "@commitlint/cli": "^20.4.1",
-    "@commitlint/config-conventional": "^20.4.1",
+    "@commitlint/cli": "^20.4.2",
+    "@commitlint/config-conventional": "^20.4.2",
     "@playwright/test": "^1.58.2",
     "@repo/playwright-config": "workspace:*",
     "@repo/vitest-config": "workspace:*",
@@ -58,7 +58,7 @@
     "turbo-ignore": "^2.8.10",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18",
-    "@huggingface/transformers": "^3.0.0",
+    "@huggingface/transformers": "^3.8.1",
     "sqlite-vec": "0.1.7-alpha.2"
   },
   "packageManager": "bun@1.3.9",
