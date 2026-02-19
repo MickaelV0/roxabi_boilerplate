@@ -1,3 +1,4 @@
+import { DICEBEAR_CDN_BASE } from '@repo/types'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { admin } from 'better-auth/plugins/admin'
@@ -7,8 +8,6 @@ import { eq } from 'drizzle-orm'
 import type { DrizzleDB } from '../database/drizzle.provider.js'
 import { users } from '../database/schema/auth.schema.js'
 import type { EmailProvider } from './email/email.provider.js'
-
-const DICEBEAR_CDN_BASE = 'https://api.dicebear.com/9.x'
 
 export function escapeHtml(str: string): string {
   return str
