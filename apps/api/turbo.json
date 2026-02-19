@@ -35,7 +35,9 @@
         "RATE_LIMIT_API_TTL",
         "RATE_LIMIT_API_LIMIT",
         "RESEND_API_KEY",
-        "SWAGGER_ENABLED"
+        "SWAGGER_ENABLED",
+        "PORT",
+        "LOG_LEVEL"
       ]
     }
   }
