@@ -18,6 +18,7 @@ Create GitHub issues, assign Size/Priority/Status, manage blockedBy dependencies
 2. **Review each issue** and determine appropriate values:
    - **Size**: Estimate effort (XS, S, M, L, XL)
    - **Priority**: Determine urgency (Urgent, High, Medium, Low)
+   - **Complexity**: Score 1-10 using the rubric (see [Complexity Scoring](#complexity-scoring))
 
 3. **Set values** for each issue:
    ```bash
@@ -94,6 +95,28 @@ Create GitHub issues, assign Size/Priority/Status, manage blockedBy dependencies
 | `--add-child <N>[,<N>...]` | Add existing issues as children |
 | `--blocked-by <N>[,<N>...]` | Set blocked-by on creation |
 | `--blocks <N>[,<N>...]` | Set blocking on creation |
+
+## Complexity Scoring
+
+When triaging issues, assess complexity on a 1-10 scale to inform tier determination (S / F-lite / F-full). Record the score as a comment on the issue or in the issue body.
+
+**Factors (each scored 1-10, then weighted):**
+
+| Factor | Weight | 1 (Low) | 5 (Medium) | 10 (High) |
+|--------|--------|---------|------------|-----------|
+| **Files touched** | 20% | 1-3 files | 5-10 files | 15+ files |
+| **Technical risk** | 25% | Known patterns | New library/pattern | New architecture |
+| **Architectural impact** | 25% | Single module | Shared types, 2 modules | Cross-domain, new abstractions |
+| **Unknowns count** | 15% | 0 unknowns | 1-2 open questions | 3+ unknowns |
+| **Domain breadth** | 15% | 1 domain | 2 domains | 3+ domains |
+
+**Formula:** `round(files × 0.20 + risk × 0.25 + arch × 0.25 + unknowns × 0.15 + domains × 0.15)`
+
+**Tier mapping:** 1-3 = S, 4-6 = F-lite, 7-10 = F-full
+
+The score is advisory. Human judgment overrides. Use `AskUserQuestion` if the score and your intuition disagree.
+
+Reference: [analyses/280-token-consumption.mdx](../../analyses/280-token-consumption.mdx) for scoring examples.
 
 ## Status Values
 
