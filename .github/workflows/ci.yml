@@ -218,7 +218,7 @@ jobs:
         run: cd apps/web && bun run codegen
 
       - name: Build shared packages
-        run: bun run build --filter=@repo/types --filter=@repo/config
+        run: bun run build --filter=@repo/types --filter=@repo/config --filter=@repo/email --filter=@repo/ui
 
       - name: Apply RLS migration for integration tests
         run: psql "$DATABASE_URL" -f apps/api/drizzle/migrations/0000_rls_infrastructure.sql
