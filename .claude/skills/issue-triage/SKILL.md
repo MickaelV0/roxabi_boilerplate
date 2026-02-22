@@ -12,7 +12,7 @@ Create GitHub issues, assign Size/Priority/Status, manage blockedBy dependencies
 
 1. **List untriaged issues**:
    ```bash
-   .claude/skills/issue-triage/triage.sh list
+   bun .claude/skills/issue-triage/triage.ts list
    ```
 
 2. **Review each issue** and determine appropriate values:
@@ -22,17 +22,17 @@ Create GitHub issues, assign Size/Priority/Status, manage blockedBy dependencies
 
 3. **Set values** for each issue:
    ```bash
-   .claude/skills/issue-triage/triage.sh set <number> --size <S> --priority <P>
+   bun .claude/skills/issue-triage/triage.ts set <number> --size <S> --priority <P>
    ```
 
 4. **Update status** when needed:
    ```bash
-   .claude/skills/issue-triage/triage.sh set <number> --status "In Progress"
+   bun .claude/skills/issue-triage/triage.ts set <number> --status "In Progress"
    ```
 
 5. **Create new issues** with optional fields:
    ```bash
-   .claude/skills/issue-triage/triage.sh create --title "Title" [--body "Body"] [--label "bug,frontend"] [--size M] [--priority High] [--parent 163]
+   bun .claude/skills/issue-triage/triage.ts create --title "Title" [--body "Body"] [--label "bug,frontend"] [--size M] [--priority High] [--parent 163]
    ```
 
 6. **Use AskUserQuestion** if unsure about Size or Priority for an issue.
@@ -151,35 +151,35 @@ Reference: [analyses/280-token-consumption.mdx](../../../analyses/280-token-cons
 
 ```bash
 # 1. List issues to triage
-.claude/skills/issue-triage/triage.sh list
+bun .claude/skills/issue-triage/triage.ts list
 
 # 2. Set size and priority
-.claude/skills/issue-triage/triage.sh set 42 --size M --priority High
+bun .claude/skills/issue-triage/triage.ts set 42 --size M --priority High
 
 # 3. Update status
-.claude/skills/issue-triage/triage.sh set 42 --status "In Progress"
+bun .claude/skills/issue-triage/triage.ts set 42 --status "In Progress"
 
 # 4. Set dependencies
-.claude/skills/issue-triage/triage.sh set 91 --blocked-by 117
-.claude/skills/issue-triage/triage.sh set 117 --blocks 91,118
+bun .claude/skills/issue-triage/triage.ts set 91 --blocked-by 117
+bun .claude/skills/issue-triage/triage.ts set 117 --blocks 91,118
 
 # 5. Remove dependencies
-.claude/skills/issue-triage/triage.sh set 91 --rm-blocked-by 117
+bun .claude/skills/issue-triage/triage.ts set 91 --rm-blocked-by 117
 
 # 6. Set parent (make #164 a child of #163)
-.claude/skills/issue-triage/triage.sh set 164 --parent 163
+bun .claude/skills/issue-triage/triage.ts set 164 --parent 163
 
 # 7. Add children to an epic
-.claude/skills/issue-triage/triage.sh set 163 --add-child 164,165,166
+bun .claude/skills/issue-triage/triage.ts set 163 --add-child 164,165,166
 
 # 8. Remove parent relationship
-.claude/skills/issue-triage/triage.sh set 164 --rm-parent
+bun .claude/skills/issue-triage/triage.ts set 164 --rm-parent
 
 # 9. Remove specific children
-.claude/skills/issue-triage/triage.sh set 163 --rm-child 166
+bun .claude/skills/issue-triage/triage.ts set 163 --rm-child 166
 
 # 10. Create a new issue with full setup
-.claude/skills/issue-triage/triage.sh create \
+bun .claude/skills/issue-triage/triage.ts create \
   --title "research: compare against example/repo" \
   --body "Deep analysis of example/repo" \
   --label "research" \
@@ -187,7 +187,7 @@ Reference: [analyses/280-token-consumption.mdx](../../../analyses/280-token-cons
   --parent 163
 
 # 11. Create an epic with existing children
-.claude/skills/issue-triage/triage.sh create \
+bun .claude/skills/issue-triage/triage.ts create \
   --title "epic: improve CI pipeline" \
   --size L --priority High \
   --add-child 150,151,152

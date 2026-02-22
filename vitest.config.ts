@@ -8,6 +8,7 @@ export default defineConfig({
       'packages/ui/vitest.config.ts',
       'packages/email/vitest.config.ts',
       'tools/vitest.config.ts',
+      '.claude/skills/vitest.config.ts',
     ],
     coverage: {
       provider: 'v8',

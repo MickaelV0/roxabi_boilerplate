@@ -1,29 +1,8 @@
-export interface RawFieldValue {
-  name?: string
-  field?: { name?: string }
-}
+/**
+ * Re-export raw types from shared, keep dashboard-specific types local.
+ */
 
-export interface RawSubIssue {
-  number: number
-  state: string
-  title: string
-}
-
-export interface RawContent {
-  number: number
-  title: string
-  state: string
-  url: string
-  subIssues?: { nodes: RawSubIssue[] }
-  parent?: { number: number; state: string } | null
-  blockedBy?: { nodes: { number: number; state: string }[] }
-  blocking?: { nodes: { number: number; state: string }[] }
-}
-
-export interface RawItem {
-  content: RawContent
-  fieldValues: { nodes: RawFieldValue[] }
-}
+export type { RawContent, RawFieldValue, RawItem, RawSubIssue } from '../../shared/types'
 
 export interface Issue {
   number: number

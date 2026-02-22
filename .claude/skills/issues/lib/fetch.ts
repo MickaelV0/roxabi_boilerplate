@@ -1,31 +1,28 @@
-import { PROJECT_ID, QUERY } from './config'
-import type { Branch, Issue, PR, RawItem, Worktree } from './types'
+import { PROJECT_ID } from '../../shared/config'
+import { ghGraphQL, run } from '../../shared/github'
+import { ISSUES_QUERY } from '../../shared/queries'
+import type { RawItem } from '../../shared/types'
+import type { Branch, Issue, PR, Worktree } from './types'
 
 async function fetchPage(
   cursor?: string
 ): Promise<{ items: RawItem[]; hasNextPage: boolean; endCursor: string | null }> {
-  const args = ['gh', 'api', 'graphql', '-f', `query=${QUERY}`, '-f', `projectId=${PROJECT_ID}`]
-  if (cursor) args.push('-f', `cursor=${cursor}`)
+  const variables: Record<string, string> = { projectId: PROJECT_ID }
+  if (cursor) variables.cursor = cursor
 
-  const proc = Bun.spawn(args, { stdout: 'pipe', stderr: 'pipe' })
-  const stdout = await new Response(proc.stdout).text()
-  const stderr = await new Response(proc.stderr).text()
-  const code = await proc.exited
-
-  if (code !== 0) {
-    throw new Error(`gh api graphql failed (${code}): ${stderr}`)
+  const data = (await ghGraphQL(ISSUES_QUERY, variables)) as {
+    data: { node: { items: { pageInfo: { hasNextPage: boolean; endCursor: string }; nodes: RawItem[] } } }
   }
-
-  const data = JSON.parse(stdout)
   const pageInfo = data.data.node.items.pageInfo
   return {
-    items: data.data.node.items.nodes as RawItem[],
+    items: data.data.node.items.nodes,
     hasNextPage: pageInfo.hasNextPage,
     endCursor: pageInfo.endCursor,
   }
 }
 
-export async function fetchIssues(): Promise<Issue[]> {
+/** Fetch all raw project items with pagination. */
+export async function fetchAllItems(): Promise<RawItem[]> {
   const allItems: RawItem[] = []
   let cursor: string | undefined
   do {
@@ -33,9 +30,11 @@ export async function fetchIssues(): Promise<Issue[]> {
     allItems.push(...page.items)
     cursor = page.hasNextPage ? (page.endCursor ?? undefined) : undefined
   } while (cursor)
+  return allItems
+}
 
-  const items: RawItem[] = allItems
-
+export async function fetchIssues(): Promise<Issue[]> {
+  const items = await fetchAllItems()
   const openItems = items.filter((i) => i.content?.state === 'OPEN')
 
   const field = (item: RawItem, name: string): string => {
@@ -108,12 +107,7 @@ export async function fetchIssues(): Promise<Issue[]> {
   return roots
 }
 
-export async function run(cmd: string[]): Promise<string> {
-  const proc = Bun.spawn(cmd, { stdout: 'pipe', stderr: 'pipe' })
-  const stdout = await new Response(proc.stdout).text()
-  await proc.exited
-  return stdout.trim()
-}
+export { run }
 
 export async function fetchPRs(): Promise<PR[]> {
   try {
