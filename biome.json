@@ -6,7 +6,11 @@
     "rules": {
       "recommended": true,
       "complexity": {
-        "noExcessiveCognitiveComplexity": "warn"
+        "noExcessiveCognitiveComplexity": "warn",
+        "noExcessiveLinesPerFunction": "warn",
+        "useSimplifiedLogicExpression": "warn",
+        "noImplicitCoercions": "warn",
+        "noUselessUndefined": "warn"
       },
       "correctness": {
         "noUnusedImports": "error",
@@ -60,6 +64,17 @@
         "rules": {
           "style": {
             "useImportType": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx", "**/e2e/**"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveLinesPerFunction": "info",
+            "noExcessiveCognitiveComplexity": "info"
           }
         }
       }
