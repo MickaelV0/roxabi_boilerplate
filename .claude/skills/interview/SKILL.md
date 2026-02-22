@@ -85,6 +85,8 @@ Conduct the interview using **AskUserQuestion**. Follow the four-phase framework
 - How does this integrate with existing systems?
 - What does success look like?
 
+> **Shape Up terminology:** A *shape* is a mutually exclusive architecture approach — each has a name, trade-offs, and rough scope. A *breadboard* maps a shape into connected affordance tables (UI elements → code handlers → data stores). *Slices* break a shape into demo-able vertical increments. These concepts are explored during the interview and formalized in the output templates below.
+
 **Analysis-specific depth (multi-shape exploration):**
 
 When the interview is for an **Analysis** document, Phase 3 should also explore:
@@ -108,7 +110,9 @@ When the interview is for a **Spec** document (or promoting to spec), Phase 3 sh
 | Terminology | "Are there terms that could mean different things to different people?" |
 | Completion Signals | "How do we know this is done? What does success look like?" |
 
-For each ambiguity detected, rank by **Impact x Uncertainty** (High/Medium/Low for each). High-Impact + High-Uncertainty items become interview follow-up questions. Low-impact items can be noted as `[NEEDS CLARIFICATION: description]` markers in the output document.
+For each ambiguity detected, rank by **Impact x Uncertainty** (High/Medium/Low for each). High-Impact + High-Uncertainty items become interview follow-up questions. Ambiguity that impacts implementation can be marked inline as `[NEEDS CLARIFICATION: description]` (max 3-5 per spec). These must be resolved before scaffold execution.
+
+> **Example:** During a Spec interview about user notifications, the probe "What external systems does this touch?" (Integrations) reveals uncertainty about whether to use SendGrid or Resend for email. Scored as High-Impact (core feature) x High-Uncertainty (no prior evaluation) → becomes a follow-up question: "Which email provider should we evaluate?" If unresolved after interview, mark as `[NEEDS CLARIFICATION: email provider selection — SendGrid vs Resend]` in the spec.
 
 **Adapt depth by document type:**
 
@@ -200,7 +204,7 @@ description: {One-line description of the analysis}
 
 ## Shapes
 
-{2-3 mutually exclusive architecture approaches. Skip for simple/mechanical changes.}
+{2-3 mutually exclusive architecture approaches. Skip for Tier S.}
 
 ### Shape 1: {Name}
 
@@ -216,7 +220,7 @@ description: {One-line description of the analysis}
 
 ## Fit Check
 
-{Binary validation matrix — ✅ meets requirement, ❌ does not. No ⚠️.}
+{Binary validation matrix — ✅ meets requirement, ❌ does not. No partial marks — ambiguity belongs in `[NEEDS CLARIFICATION]` markers or Breadboard unknowns, not here.}
 
 | Requirement | Shape 1 | Shape 2 | Shape 3 |
 |-------------|---------|---------|---------|
@@ -320,7 +324,7 @@ description: {One-line description of the feature or project}
 - [ ] {Measurable criterion}
 - [ ] {Measurable criterion}
 
-> **Inline ambiguity markers:** Use `[NEEDS CLARIFICATION: description]` inline where ambiguity exists (max 3-5 per spec). These are machine-scannable and must be resolved before scaffold. Unresolved markers block `/scaffold` execution.
+> **Inline ambiguity markers:** `[NEEDS CLARIFICATION: description]` markers indicate unresolved ambiguity (max 3-5 per spec). These must be resolved before `/scaffold` execution.
 
 ## Open Questions
 

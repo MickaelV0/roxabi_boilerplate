@@ -138,7 +138,7 @@ The bootstrap orchestrator drives the entire pipeline directly:
 - **If no analysis exists**: conduct a structured interview with the user (using `/interview` in Analysis mode) to produce `analyses/{slug}.mdx`.
   - If domain expertise is needed during writing, spawn the relevant expert subagent via `Task` (see [Expert Consultation](#expert-consultation)).
 
-> **Shaping patterns (Phase 2 enrichment):** The interview skill now explores multi-shape architecture approaches (2-3 mutually exclusive shapes) during Phase 3 depth questions. The resulting analysis should include `## Shapes` and `## Fit Check` sections. These are populated from the interview — no separate step is needed. For simple/mechanical changes (Tier S), shapes and fit check may be skipped.
+> **Shaping patterns:** The interview skill now explores multi-shape architecture approaches (2-3 mutually exclusive shapes) during Phase 3 depth questions. The resulting analysis should include `## Shapes` and `## Fit Check` sections. These are populated from the interview — no separate step is needed. For Tier S, shapes and fit check may be skipped.
 
 ### 1b. Expert Review
 
@@ -231,7 +231,7 @@ The issue number is then used for:
 - **If no spec exists**: promote the approved analysis to a spec (using `/interview` with `--promote <path-to-analysis>`) to produce `specs/{issue}-{slug}.mdx`.
   - If domain expertise is needed during writing, spawn the relevant expert subagent via `Task` (see [Expert Consultation](#expert-consultation)).
 
-> **Shaping patterns (Phase 2 enrichment):** The spec template now includes `## Breadboard` (UI->Code->Data affordance tables with wiring) and `## Slices` (demo-able vertical increments). These are populated during spec writing from the selected shape in the analysis. The spec may also contain inline `[NEEDS CLARIFICATION: description]` markers for unresolved ambiguity (max 3-5 per spec).
+> **Shaping patterns:** The spec template now includes `## Breadboard` (UI->Code->Data affordance tables with wiring) and `## Slices` (demo-able vertical increments). These are populated during spec writing from the selected shape in the analysis. The spec may also contain inline `[NEEDS CLARIFICATION: description]` markers for unresolved ambiguity (max 3-5 per spec). For Tier S, Breadboard and Slices may be skipped.
 
 ### 2b. Expert Review
 
@@ -250,6 +250,8 @@ Before spawning expert reviewers, validate the spec against this checklist:
 | **Ambiguity budget** | Max 3-5 `[NEEDS CLARIFICATION]` markers; if more, return to interview |
 | **Slice coverage** | Every breadboard affordance appears in at least one slice |
 | **Edge case completeness** | Each edge case has a defined handling strategy |
+
+> **Note:** If the spec lacks `## Breadboard` or `## Slices` sections (e.g., Tier S or pre-enrichment specs), skip the "No dangling references" and "Slice coverage" checks.
 
 If 2+ checks fail, inform the user before proceeding with expert review. The user can choose to fix the spec or continue with review as-is.
 

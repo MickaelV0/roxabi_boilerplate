@@ -59,11 +59,11 @@ Use `Glob` and `Grep` to find existing feature modules as reference patterns.
 
 #### 2a.1. Pre-flight: Check for unresolved ambiguity markers
 
-Scan the spec for unresolved `[NEEDS CLARIFICATION` markers:
+Scan the spec for unresolved markers. Use the **Grep** tool to count matches:
 
-```bash
-grep -c '\[NEEDS CLARIFICATION' specs/<number>-*.mdx
-```
+- **Pattern:** `\[NEEDS CLARIFICATION`
+- **Path:** `specs/<number>-*.mdx`
+- **Output mode:** `count`
 
 **If markers are found (count > 0):**
 
