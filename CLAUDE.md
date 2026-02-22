@@ -28,13 +28,14 @@ Vision, principles, roadmap → [docs/vision.mdx](docs/vision.mdx).
 - **Frontend**: TanStack Start
 - **Backend**: NestJS + Fastify
 - **Deployment**: Vercel (both web + API)
-- **Code Style**: Biome — single quotes, no semicolons, 2-space indent, 100-char line width
+- **Code Style**: Biome — single quotes, no semicolons (`asNeeded`), trailing commas (`es5`), 2-space indent, 100-char line width
 - **DB/ORM**: Drizzle ORM + PostgreSQL 16 (Docker local, Neon on Vercel)
 
 ### Quick Start
 
 ```bash
 cp .env.example .env && bun install      # first-time setup
+bun run db:up                             # start Docker Postgres (requires Docker)
 bun run dev                               # start all apps (web :3000, API :4000)
 ```
 
@@ -82,6 +83,10 @@ packages/
 | Clean cache | `bun run clean:cache` | Vite + Turbo caches only |
 | i18n validate | `bun run i18n:validate` | Check translation completeness |
 | Env sync check | `bun run check:env` | Verify .env matches .env.example |
+| Typecheck (affected) | `bun run typecheck:affected` | Only packages changed vs main |
+| Test (affected) | `bun run test:affected` | Only packages changed vs main |
+| License check | `bun run license:check` | Verify dependency licenses |
+| Docs server | `bun run docs` | Runs web app for docs preview |
 
 ---
 
@@ -216,6 +221,9 @@ cd apps/api && bun run db:branch:create --force XXX
 - **Orphaned dev ports**: Ctrl+C may leave zombies. `bun run dev:clean` kills ports 42069/4000/3000.
 - **DB branches**: Each worktree → own Postgres schema via `db:branch:create --force XXX`.
 - **Paraglide i18n**: Translations compiled during `codegen` task — `src/paraglide/` is gitignored.
+- **Biome schema sync**: Upgrading `@biomejs/biome` in `package.json` requires updating `$schema` version in `biome.json` to match.
+- **GitHub sub-issues**: Parent/child issue relationships use the `addSubIssue` GraphQL mutation — markdown checklists in the body are not real links. Use `/issue-triage` skill with `--parent` or `--add-child` flags.
+- **Post-rebase installs**: After rebasing onto commits that add new package build steps, run `bun install` before pushing or builds may fail with "command not found".
 
 ---
 
@@ -256,6 +264,7 @@ Push `main` → Vercel production. Push `staging` → preview deploy via CD. Det
 
 - **Biome** (PostToolUse): Auto-format + lint on every file Edit/Write (`.ts/.tsx/.js/.jsx/.json`)
 - **Security** (PreToolUse): Warn about dangerous patterns before file changes
+- **`bun test` blocker** (PreToolUse): Blocks bare `bun test` commands — enforces `bun run test` (Vitest)
 
 #### Git Hooks (Lefthook — `lefthook.yml`)
 
