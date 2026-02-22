@@ -118,9 +118,12 @@ export function createBetterAuth(
       enabled: true,
       requireEmailVerification: true,
       async sendResetPassword({ user, url }) {
+        const emailUrl = config.appURL
+          ? url.replace(/callbackURL=[^&]*/, `callbackURL=${encodeURIComponent(config.appURL)}`)
+          : url
         try {
           const locale = (user as UserWithLocale).locale ?? 'en'
-          const { html, text, subject } = await renderResetEmail(url, locale, config.appURL)
+          const { html, text, subject } = await renderResetEmail(emailUrl, locale, config.appURL)
           await emailProvider.send({
             to: user.email,
             subject,
@@ -132,8 +135,8 @@ export function createBetterAuth(
           await emailProvider.send({
             to: user.email,
             subject: 'Reset your password',
-            html: `<p>Click <a href="${escapeHtml(url)}">here</a> to reset your password.</p>`,
-            text: `Reset your password: ${url}`,
+            html: `<p>Click <a href="${escapeHtml(emailUrl)}">here</a> to reset your password.</p>`,
+            text: `Reset your password: ${emailUrl}`,
           })
         }
       },
@@ -145,9 +148,17 @@ export function createBetterAuth(
     emailVerification: {
       sendOnSignIn: true,
       async sendVerificationEmail({ user, url }) {
+        // Rewrite callbackURL to point to the frontend app instead of the API root
+        const emailUrl = config.appURL
+          ? url.replace(/callbackURL=[^&]*/, `callbackURL=${encodeURIComponent(config.appURL)}`)
+          : url
         try {
           const locale = (user as UserWithLocale).locale ?? 'en'
-          const { html, text, subject } = await renderVerificationEmail(url, locale, config.appURL)
+          const { html, text, subject } = await renderVerificationEmail(
+            emailUrl,
+            locale,
+            config.appURL
+          )
           await emailProvider.send({
             to: user.email,
             subject,
@@ -206,13 +217,20 @@ export function createBetterAuth(
       admin(),
       magicLink({
         async sendMagicLink({ email, url }) {
+          const emailUrl = config.appURL
+            ? url.replace(/callbackURL=[^&]*/, `callbackURL=${encodeURIComponent(config.appURL)}`)
+            : url
           try {
             const [userData] = await db
               .select({ locale: users.locale })
               .from(users)
               .where(eq(users.email, email))
             const locale = userData?.locale ?? 'en'
-            const { html, text, subject } = await renderMagicLinkEmail(url, locale, config.appURL)
+            const { html, text, subject } = await renderMagicLinkEmail(
+              emailUrl,
+              locale,
+              config.appURL
+            )
             await emailProvider.send({
               to: email,
               subject,
@@ -224,8 +242,8 @@ export function createBetterAuth(
             await emailProvider.send({
               to: email,
               subject: 'Sign in to Roxabi',
-              html: `<p>Click <a href="${escapeHtml(url)}">here</a> to sign in.</p>`,
-              text: `Sign in to Roxabi: ${url}`,
+              html: `<p>Click <a href="${escapeHtml(emailUrl)}">here</a> to sign in.</p>`,
+              text: `Sign in to Roxabi: ${emailUrl}`,
             })
           }
         },

@@ -617,6 +617,182 @@ describe('createBetterAuth sendMagicLink', () => {
 })
 
 // ---------------------------------------------------------------------------
+// callbackURL rewrite (appURL → frontend redirect)
+// ---------------------------------------------------------------------------
+
+describe('createBetterAuth callbackURL rewrite', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    capturedConfig.config = null
+    capturedMagicLinkConfig.config = null
+  })
+
+  it('should rewrite callbackURL in verification email URL to appURL', async () => {
+    // Arrange
+    const mockDb = createMockDb()
+    const mockEmail = createMockEmailProvider()
+    createBetterAuth(mockDb as never, mockEmail as never, defaultConfig)
+
+    const emailVerification = capturedConfig.config?.emailVerification as {
+      sendVerificationEmail: (params: {
+        user: { email: string; locale?: string }
+        url: string
+      }) => Promise<void>
+    }
+
+    mockRenderVerificationEmail.mockResolvedValueOnce({
+      html: '<p>Verify</p>',
+      text: 'Verify',
+      subject: 'Verify',
+    })
+
+    // Act — simulate Better Auth URL with callbackURL pointing to API root
+    await emailVerification.sendVerificationEmail({
+      user: { email: 'user@example.com', locale: 'en' },
+      url: 'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=%2F',
+    })
+
+    // Assert — callbackURL should be rewritten to appURL
+    expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
+      'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=http%3A%2F%2Flocalhost%3A3000',
+      'en',
+      'http://localhost:3000'
+    )
+  })
+
+  it('should rewrite callbackURL in reset password email URL to appURL', async () => {
+    // Arrange
+    const mockDb = createMockDb()
+    const mockEmail = createMockEmailProvider()
+    createBetterAuth(mockDb as never, mockEmail as never, defaultConfig)
+
+    const emailAndPassword = capturedConfig.config?.emailAndPassword as {
+      sendResetPassword: (params: {
+        user: { email: string; locale?: string }
+        url: string
+      }) => Promise<void>
+    }
+
+    mockRenderResetEmail.mockResolvedValueOnce({
+      html: '<p>Reset</p>',
+      text: 'Reset',
+      subject: 'Reset',
+    })
+
+    // Act
+    await emailAndPassword.sendResetPassword({
+      user: { email: 'user@example.com', locale: 'en' },
+      url: 'http://localhost:4000/api/auth/reset-password?token=xyz&callbackURL=%2F',
+    })
+
+    // Assert
+    expect(mockRenderResetEmail).toHaveBeenCalledWith(
+      'http://localhost:4000/api/auth/reset-password?token=xyz&callbackURL=http%3A%2F%2Flocalhost%3A3000',
+      'en',
+      'http://localhost:3000'
+    )
+  })
+
+  it('should rewrite callbackURL in magic link email URL to appURL', async () => {
+    // Arrange
+    const mockDb = createMockDb()
+    const mockEmail = createMockEmailProvider()
+    mockDb._mocks.selectWhereFn.mockResolvedValueOnce([{ locale: 'en' }])
+    createBetterAuth(mockDb as never, mockEmail as never, defaultConfig)
+
+    const handler = capturedMagicLinkConfig.config?.sendMagicLink as (params: {
+      email: string
+      url: string
+    }) => Promise<void>
+
+    mockRenderMagicLinkEmail.mockResolvedValueOnce({
+      html: '<p>Magic</p>',
+      text: 'Sign in',
+      subject: 'Sign in',
+    })
+
+    // Act
+    await handler({
+      email: 'user@example.com',
+      url: 'http://localhost:4000/api/auth/magic-link?token=m1&callbackURL=%2F',
+    })
+
+    // Assert
+    expect(mockRenderMagicLinkEmail).toHaveBeenCalledWith(
+      'http://localhost:4000/api/auth/magic-link?token=m1&callbackURL=http%3A%2F%2Flocalhost%3A3000',
+      'en',
+      'http://localhost:3000'
+    )
+  })
+
+  it('should not rewrite callbackURL when appURL is not configured', async () => {
+    // Arrange
+    const mockDb = createMockDb()
+    const mockEmail = createMockEmailProvider()
+    const configNoApp = { secret: 'test-secret', baseURL: 'http://localhost:4000' }
+    createBetterAuth(mockDb as never, mockEmail as never, configNoApp)
+
+    const emailVerification = capturedConfig.config?.emailVerification as {
+      sendVerificationEmail: (params: {
+        user: { email: string; locale?: string }
+        url: string
+      }) => Promise<void>
+    }
+
+    mockRenderVerificationEmail.mockResolvedValueOnce({
+      html: '<p>Verify</p>',
+      text: 'Verify',
+      subject: 'Verify',
+    })
+
+    // Act
+    await emailVerification.sendVerificationEmail({
+      user: { email: 'user@example.com' },
+      url: 'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=%2F',
+    })
+
+    // Assert — URL should remain unchanged
+    expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
+      'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=%2F',
+      'en',
+      undefined
+    )
+  })
+
+  it('should use rewritten URL in fallback email when render throws', async () => {
+    // Arrange
+    const mockDb = createMockDb()
+    const mockEmail = createMockEmailProvider()
+    createBetterAuth(mockDb as never, mockEmail as never, defaultConfig)
+
+    const emailAndPassword = capturedConfig.config?.emailAndPassword as {
+      sendResetPassword: (params: {
+        user: { email: string; locale?: string }
+        url: string
+      }) => Promise<void>
+    }
+
+    mockRenderResetEmail.mockRejectedValueOnce(new Error('Render failed'))
+
+    // Act
+    await emailAndPassword.sendResetPassword({
+      user: { email: 'user@example.com' },
+      url: 'http://localhost:4000/api/auth/reset-password?token=xyz&callbackURL=%2F',
+    })
+
+    // Assert — fallback should also use rewritten URL
+    const rewrittenUrl =
+      'http://localhost:4000/api/auth/reset-password?token=xyz&callbackURL=http%3A%2F%2Flocalhost%3A3000'
+    expect(mockEmail.send).toHaveBeenCalledWith({
+      to: 'user@example.com',
+      subject: 'Reset your password',
+      html: `<p>Click <a href="${escapeHtml(rewrittenUrl)}">here</a> to reset your password.</p>`,
+      text: `Reset your password: ${rewrittenUrl}`,
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
 // createBetterAuth configuration
 // ---------------------------------------------------------------------------
 
