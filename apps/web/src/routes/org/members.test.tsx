@@ -20,7 +20,7 @@ describe('OrgMembersRedirect', () => {
   it('should redirect to /admin/members in beforeLoad', () => {
     expect(captured.beforeLoad).toBeDefined()
     try {
-      captured.beforeLoad!()
+      captured.beforeLoad?.()
     } catch {
       // beforeLoad throws the redirect result
     }

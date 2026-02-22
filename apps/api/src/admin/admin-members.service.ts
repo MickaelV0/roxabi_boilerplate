@@ -145,7 +145,7 @@ export class AdminMembersService {
       organizationId: orgId,
       action: 'member.invited',
       resource: 'invitation',
-      resourceId: invitation!.id,
+      resourceId: invitation?.id ?? '',
       after: {
         email: data.email,
         roleId: data.roleId,
