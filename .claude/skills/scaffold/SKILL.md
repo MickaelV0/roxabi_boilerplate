@@ -57,6 +57,27 @@ Identify all files that need to be created or modified:
 
 Use `Glob` and `Grep` to find existing feature modules as reference patterns.
 
+#### 2a.1. Pre-flight: Check for unresolved ambiguity markers
+
+Scan the spec for unresolved `[NEEDS CLARIFICATION` markers:
+
+```bash
+grep -c '\[NEEDS CLARIFICATION' specs/<number>-*.mdx
+```
+
+**If markers are found (count > 0):**
+
+Present via `AskUserQuestion`:
+
+> "The spec contains {N} unresolved `[NEEDS CLARIFICATION]` marker(s). These indicate ambiguity that should be resolved before implementation."
+
+Options:
+- **Resolve now** — List each marker for inline resolution (user provides the answer, scaffold updates the spec)
+- **Return to bootstrap** — Go back to `/bootstrap --spec <N>` to resolve via interview
+- **Proceed anyway** — Continue scaffolding with known ambiguity (adds risk)
+
+**If no markers found:** proceed normally.
+
 #### 2b. Determine Tier
 
 Classify as S / F-lite / F-full per [dev-process.mdx](docs/processes/dev-process.mdx). Judgment-based, not file-count-based.
@@ -326,6 +347,7 @@ git branch -D feat/<number>-<slug>
 | **Tests fail during implementation** | Agents fix and re-test, loop until green |
 | **Pre-commit hook failure** | Fix, re-stage, create NEW commit (never amend) |
 | **Agent blocked** | Report blocker, ask user for guidance |
+| **Spec has unresolved `[NEEDS CLARIFICATION]` markers** | Pre-flight warns, user chooses: resolve inline, return to bootstrap, or proceed with risk |
 
 ## Safety Rules
 

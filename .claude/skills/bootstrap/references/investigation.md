@@ -9,6 +9,7 @@ Read the approved analysis and check for uncertainty signals:
 - **Explicit uncertainty markers:** "needs testing", "unclear if", "to be validated", "unknown performance", "requires investigation", trade-off sections without a concluded decision
 - **Multiple competing approaches:** 2+ approaches listed without a clear winner, or a recommendation "pending validation"
 - **External dependency risk:** Reliance on a third-party API, library, or service not yet tested in this project
+- **Breadboard unknowns:** Any affordance in the spec's `## Breadboard` section marked with a warning indicator (uncertain wiring, unvalidated integration points, or unknown data store behavior)
 
 If no signals detected → skip to "Ensure GitHub Issue."
 
@@ -16,7 +17,7 @@ If no signals detected → skip to "Ensure GitHub Issue."
 
 If signals are detected, present via `AskUserQuestion`:
 
-> "The analysis contains technical uncertainty: {detected signals summary}. Would you like to investigate before writing the spec?"
+> "The analysis contains technical uncertainty: {detected signals summary}. {If breadboard unknowns detected: 'The spec breadboard contains N unknown(s) marked as uncertain that need investigation.'} Would you like to investigate before writing the spec?"
 
 Options:
 - **Investigate** — Spike the uncertain areas before speccing
