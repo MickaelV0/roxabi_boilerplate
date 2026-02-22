@@ -170,61 +170,43 @@ function setupFetchWithMutations({
   inviteResult?: { ok: boolean; body: unknown }
   updateRoleResult?: { ok: boolean; body: unknown }
 } = {}) {
+  const membersBody = createMembersResponse(members, {
+    page: 1,
+    limit: 20,
+    total: members.length,
+    totalPages: 1,
+  })
+
   const mockFetch = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET'
+    const respond = (ok: boolean, body: unknown) =>
+      Promise.resolve({ ok, json: () => Promise.resolve(body) })
 
-    // POST /api/admin/members/invite
-    if (typeof url === 'string' && url.includes('/api/admin/members/invite') && method === 'POST') {
-      return Promise.resolve({
-        ok: inviteResult.ok,
-        json: () => Promise.resolve(inviteResult.body),
-      })
-    }
-
-    // PATCH /api/admin/members/:id (role change)
-    if (typeof url === 'string' && url.includes('/api/admin/members/') && method === 'PATCH') {
-      return Promise.resolve({
-        ok: updateRoleResult.ok,
-        json: () => Promise.resolve(updateRoleResult.body),
-      })
-    }
-
-    // GET /api/admin/members
-    if (typeof url === 'string' && url.includes('/api/admin/members')) {
-      return Promise.resolve({
-        ok: true,
-        json: () =>
-          Promise.resolve(
-            createMembersResponse(members, {
-              page: 1,
-              limit: 20,
-              total: members.length,
-              totalPages: 1,
-            })
-          ),
-      })
-    }
-
-    // GET /api/roles
-    if (typeof url === 'string' && url.includes('/api/roles')) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(roles),
-      })
-    }
-
-    // GET /api/admin/invitations
-    if (typeof url === 'string' && url.includes('/api/admin/invitations')) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ data: [] }),
-      })
-    }
-
-    return Promise.resolve({ ok: false, json: () => Promise.resolve(null) })
+    if (url.includes('/api/admin/members/invite') && method === 'POST')
+      return respond(inviteResult.ok, inviteResult.body)
+    if (url.includes('/api/admin/members/') && method === 'PATCH')
+      return respond(updateRoleResult.ok, updateRoleResult.body)
+    if (url.includes('/api/admin/members')) return respond(true, membersBody)
+    if (url.includes('/api/roles')) return respond(true, roles)
+    if (url.includes('/api/admin/invitations')) return respond(true, { data: [] })
+    return respond(false, null)
   })
   globalThis.fetch = mockFetch
   return mockFetch
+}
+
+/**
+ * Click a role option scoped to a specific member's table row.
+ * Avoids matching InviteDialog's Select which renders the same role options.
+ */
+function clickRoleOptionInRow(memberName: string, roleText: string) {
+  const row = screen.getByText(memberName).closest('tr')
+  if (!row) throw new Error(`No table row found for member "${memberName}"`)
+  const option = within(row)
+    .getAllByRole('option')
+    .find((el) => el.textContent === roleText)
+  if (!option) throw new Error(`No option "${roleText}" found in row for "${memberName}"`)
+  fireEvent.click(option)
 }
 
 // ---------------------------------------------------------------------------
@@ -949,13 +931,7 @@ describe('RoleSelect', () => {
     })
 
     // Act — click the admin option in the RoleSelect for the non-owner member
-    // Scope to the member's table row to avoid hitting InviteDialog's Select
-    const devRow = screen.getByText('Dev').closest('tr')!
-    const adminOption = within(devRow)
-      .getAllByRole('option')
-      .find((el) => el.textContent === 'org_role_admin')
-    expect(adminOption).toBeTruthy()
-    fireEvent.click(adminOption!)
+    clickRoleOptionInRow('Dev', 'org_role_admin')
 
     // Assert — PATCH request sent with correct member ID and role ID
     await waitFor(() => {
@@ -992,11 +968,7 @@ describe('RoleSelect', () => {
     })
 
     // Act — scope to member row to avoid InviteDialog's Select
-    const devRow = screen.getByText('Dev').closest('tr')!
-    const adminOption = within(devRow)
-      .getAllByRole('option')
-      .find((el) => el.textContent === 'org_role_admin')
-    fireEvent.click(adminOption!)
+    clickRoleOptionInRow('Dev', 'org_role_admin')
 
     // Assert
     await waitFor(() => {
@@ -1029,11 +1001,7 @@ describe('RoleSelect', () => {
     })
 
     // Act — scope to member row to avoid InviteDialog's Select
-    const devRow = screen.getByText('Dev').closest('tr')!
-    const adminOption = within(devRow)
-      .getAllByRole('option')
-      .find((el) => el.textContent === 'org_role_admin')
-    fireEvent.click(adminOption!)
+    clickRoleOptionInRow('Dev', 'org_role_admin')
 
     // Assert
     await waitFor(() => {
@@ -1071,11 +1039,7 @@ describe('RoleSelect', () => {
     ).length
 
     // Act — scope to member row to avoid InviteDialog's Select
-    const devRow = screen.getByText('Dev').closest('tr')!
-    const adminOption = within(devRow)
-      .getAllByRole('option')
-      .find((el) => el.textContent === 'org_role_admin')
-    fireEvent.click(adminOption!)
+    clickRoleOptionInRow('Dev', 'org_role_admin')
 
     // Assert — should trigger a refetch (additional GET call)
     await waitFor(() => {

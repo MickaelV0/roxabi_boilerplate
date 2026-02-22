@@ -282,6 +282,7 @@ export class AdminMembersService {
       const [ownerCount] = await this.db
         .select({ count: count() })
         .from(members)
+        // biome-ignore lint/style/noNonNullAssertion: roleId is guaranteed by the owner role check above
         .where(and(eq(members.organizationId, orgId), eq(members.roleId, member.roleId!)))
 
       if ((ownerCount?.count ?? 0) <= 1) {
