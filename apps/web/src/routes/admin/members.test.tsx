@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
@@ -41,10 +41,15 @@ vi.mock('@/lib/org-utils', () => ({
   },
 }))
 
+vi.mock('@/paraglide/runtime', () => ({
+  getLocale: () => 'en',
+}))
+
 mockParaglideMessages()
 
 // Import after mocks to trigger createFileRoute and capture the component
 import './members'
+import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
 
 // ---------------------------------------------------------------------------
@@ -112,6 +117,12 @@ function setupFetch(
         json: () => Promise.resolve(rolesResponse),
       })
     }
+    if (typeof url === 'string' && url.includes('/api/admin/invitations')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ data: [] }),
+      })
+    }
     return Promise.resolve({ ok: false, json: () => Promise.resolve(null) })
   })
   globalThis.fetch = mockFetch
@@ -120,6 +131,12 @@ function setupFetch(
 
 function setupFetchError(errorMessage = 'Server error') {
   const mockFetch = vi.fn().mockImplementation((url: string) => {
+    if (typeof url === 'string' && url.includes('/api/admin/invitations')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ data: [] }),
+      })
+    }
     if (typeof url === 'string' && url.includes('/api/admin/members')) {
       return Promise.resolve({
         ok: false,
@@ -132,6 +149,78 @@ function setupFetchError(errorMessage = 'Server error') {
         json: () => Promise.resolve(createRolesResponse()),
       })
     }
+    return Promise.resolve({ ok: false, json: () => Promise.resolve(null) })
+  })
+  globalThis.fetch = mockFetch
+  return mockFetch
+}
+
+/**
+ * Extended fetch mock that handles POST (invite) and PATCH (role change) requests
+ * in addition to the standard GET endpoints.
+ */
+function setupFetchWithMutations({
+  members = [createMember()],
+  roles = createRolesResponse(),
+  inviteResult = { ok: true, body: { success: true } },
+  updateRoleResult = { ok: true, body: { success: true } },
+}: {
+  members?: ReturnType<typeof createMember>[]
+  roles?: ReturnType<typeof createRolesResponse>
+  inviteResult?: { ok: boolean; body: unknown }
+  updateRoleResult?: { ok: boolean; body: unknown }
+} = {}) {
+  const mockFetch = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+    const method = init?.method ?? 'GET'
+
+    // POST /api/admin/members/invite
+    if (typeof url === 'string' && url.includes('/api/admin/members/invite') && method === 'POST') {
+      return Promise.resolve({
+        ok: inviteResult.ok,
+        json: () => Promise.resolve(inviteResult.body),
+      })
+    }
+
+    // PATCH /api/admin/members/:id (role change)
+    if (typeof url === 'string' && url.includes('/api/admin/members/') && method === 'PATCH') {
+      return Promise.resolve({
+        ok: updateRoleResult.ok,
+        json: () => Promise.resolve(updateRoleResult.body),
+      })
+    }
+
+    // GET /api/admin/members
+    if (typeof url === 'string' && url.includes('/api/admin/members')) {
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve(
+            createMembersResponse(members, {
+              page: 1,
+              limit: 20,
+              total: members.length,
+              totalPages: 1,
+            })
+          ),
+      })
+    }
+
+    // GET /api/roles
+    if (typeof url === 'string' && url.includes('/api/roles')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(roles),
+      })
+    }
+
+    // GET /api/admin/invitations
+    if (typeof url === 'string' && url.includes('/api/admin/invitations')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ data: [] }),
+      })
+    }
+
     return Promise.resolve({ ok: false, json: () => Promise.resolve(null) })
   })
   globalThis.fetch = mockFetch
@@ -372,7 +461,7 @@ describe('AdminMembersPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Failed to load members')).toBeInTheDocument()
     })
-    expect(screen.getByText('Retry')).toBeInTheDocument()
+    expect(screen.getByText('admin_error_retry')).toBeInTheDocument()
   })
 
   it('should show search input', async () => {
@@ -524,9 +613,9 @@ describe('AdminMembersPage', () => {
     const Page = captured.Component
     render(<Page />)
 
-    // Assert
+    // Assert — uses i18n key: admin_members_count({"count":2})
     await waitFor(() => {
-      expect(screen.getByText(/2 members/)).toBeInTheDocument()
+      expect(screen.getByText(/admin_members_count/)).toBeInTheDocument()
     })
   })
 
@@ -547,5 +636,457 @@ describe('AdminMembersPage', () => {
     expect(screen.getByText('org_members_role')).toBeInTheDocument()
     expect(screen.getByText('org_members_joined')).toBeInTheDocument()
     expect(screen.getByText('org_members_actions')).toBeInTheDocument()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// InviteDialog — form submission flow (Warning 18)
+// ---------------------------------------------------------------------------
+
+describe('InviteDialog', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: () => Promise.resolve(null),
+    })
+  })
+
+  it('should disable submit button when email is empty', async () => {
+    // Arrange
+    setupActiveOrg()
+    setupFetchWithMutations()
+
+    // Act
+    const Page = captured.Component
+    render(<Page />)
+
+    // Assert — the submit button text is org_invite_send, disabled when no email
+    await waitFor(() => {
+      expect(screen.getByText('org_invite_send')).toBeInTheDocument()
+    })
+    const submitButton = screen.getByText('org_invite_send')
+    expect(submitButton).toBeDisabled()
+  })
+
+  it('should enable submit button when email is provided', async () => {
+    // Arrange
+    setupActiveOrg()
+    setupFetchWithMutations()
+
+    const Page = captured.Component
+    render(<Page />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('org_invite_email_placeholder')).toBeInTheDocument()
+    })
+
+    // Act
+    const emailInput = screen.getByPlaceholderText('org_invite_email_placeholder')
+    fireEvent.change(emailInput, { target: { value: 'new@acme.com' } })
+
+    // Assert
+    const submitButton = screen.getByText('org_invite_send')
+    expect(submitButton).not.toBeDisabled()
+  })
+
+  it('should call invite API with email and roleId on form submit', async () => {
+    // Arrange
+    setupActiveOrg()
+    const mockFetch = setupFetchWithMutations()
+
+    const Page = captured.Component
+    render(<Page />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('org_invite_email_placeholder')).toBeInTheDocument()
+    })
+
+    // Act
+    const emailInput = screen.getByPlaceholderText('org_invite_email_placeholder')
+    fireEvent.change(emailInput, { target: { value: 'newuser@acme.com' } })
+
+    const submitButton = screen.getByText('org_invite_send')
+    fireEvent.click(submitButton)
+
+    // Assert
+    await waitFor(() => {
+      const inviteCalls = mockFetch.mock.calls.filter(
+        ([url, init]: [string, RequestInit | undefined]) =>
+          typeof url === 'string' &&
+          url.includes('/api/admin/members/invite') &&
+          init?.method === 'POST'
+      )
+      expect(inviteCalls).toHaveLength(1)
+      const body = JSON.parse(inviteCalls[0][1].body as string)
+      expect(body.email).toBe('newuser@acme.com')
+      expect(body.roleId).toBeTruthy()
+    })
+  })
+
+  it('should show success toast after successful invite', async () => {
+    // Arrange
+    setupActiveOrg()
+    setupFetchWithMutations()
+
+    const Page = captured.Component
+    render(<Page />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('org_invite_email_placeholder')).toBeInTheDocument()
+    })
+
+    // Act
+    const emailInput = screen.getByPlaceholderText('org_invite_email_placeholder')
+    fireEvent.change(emailInput, { target: { value: 'new@acme.com' } })
+
+    const submitButton = screen.getByText('org_invite_send')
+    fireEvent.click(submitButton)
+
+    // Assert
+    await waitFor(() => {
+      expect(vi.mocked(toast.success)).toHaveBeenCalledWith(
+        expect.stringContaining('org_toast_invited')
+      )
+    })
+  })
+
+  it('should clear email field after successful invite', async () => {
+    // Arrange
+    setupActiveOrg()
+    setupFetchWithMutations()
+
+    const Page = captured.Component
+    render(<Page />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('org_invite_email_placeholder')).toBeInTheDocument()
+    })
+
+    // Act
+    const emailInput = screen.getByPlaceholderText('org_invite_email_placeholder')
+    fireEvent.change(emailInput, { target: { value: 'new@acme.com' } })
+
+    const submitButton = screen.getByText('org_invite_send')
+    fireEvent.click(submitButton)
+
+    // Assert
+    await waitFor(() => {
+      expect(emailInput).toHaveValue('')
+    })
+  })
+
+  it('should show error toast when invite API returns duplicate email error', async () => {
+    // Arrange
+    setupActiveOrg()
+    setupFetchWithMutations({
+      inviteResult: {
+        ok: false,
+        body: { message: 'Email already exists in this organization' },
+      },
+    })
+
+    const Page = captured.Component
+    render(<Page />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('org_invite_email_placeholder')).toBeInTheDocument()
+    })
+
+    // Act
+    const emailInput = screen.getByPlaceholderText('org_invite_email_placeholder')
+    fireEvent.change(emailInput, { target: { value: 'existing@acme.com' } })
+
+    const submitButton = screen.getByText('org_invite_send')
+    fireEvent.click(submitButton)
+
+    // Assert
+    await waitFor(() => {
+      expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+        'Email already exists in this organization'
+      )
+    })
+  })
+
+  it('should show error toast when invite API returns pending invitation error', async () => {
+    // Arrange
+    setupActiveOrg()
+    setupFetchWithMutations({
+      inviteResult: {
+        ok: false,
+        body: { message: 'An invitation is already pending for this email' },
+      },
+    })
+
+    const Page = captured.Component
+    render(<Page />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('org_invite_email_placeholder')).toBeInTheDocument()
+    })
+
+    // Act
+    const emailInput = screen.getByPlaceholderText('org_invite_email_placeholder')
+    fireEvent.change(emailInput, { target: { value: 'pending@acme.com' } })
+
+    const submitButton = screen.getByText('org_invite_send')
+    fireEvent.click(submitButton)
+
+    // Assert
+    await waitFor(() => {
+      expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+        'An invitation is already pending for this email'
+      )
+    })
+  })
+
+  it('should not call invite API when email is empty', async () => {
+    // Arrange
+    setupActiveOrg()
+    const mockFetch = setupFetchWithMutations()
+
+    const Page = captured.Component
+    render(<Page />)
+
+    await waitFor(() => {
+      expect(screen.getByText('org_invite_send')).toBeInTheDocument()
+    })
+
+    // Assert — button is disabled, no POST request should be made
+    const submitButton = screen.getByText('org_invite_send')
+    expect(submitButton).toBeDisabled()
+
+    const inviteCalls = mockFetch.mock.calls.filter(
+      ([url, init]: [string, RequestInit | undefined]) =>
+        typeof url === 'string' &&
+        url.includes('/api/admin/members/invite') &&
+        init?.method === 'POST'
+    )
+    expect(inviteCalls).toHaveLength(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// RoleSelect — role change flow (Warning 19)
+// ---------------------------------------------------------------------------
+
+describe('RoleSelect', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: () => Promise.resolve(null),
+    })
+  })
+
+  it('should render role select with options for non-owner members', async () => {
+    // Arrange
+    setupActiveOrg()
+    setupFetchWithMutations({
+      members: [
+        createMember({
+          id: 'm-dev',
+          role: 'member',
+          user: { id: 'u-2', name: 'Dev', email: 'dev@acme.com', image: null },
+        }),
+      ],
+    })
+
+    // Act
+    const Page = captured.Component
+    render(<Page />)
+
+    // Assert — role select should show option elements for each role
+    await waitFor(() => {
+      const adminOptions = screen.getAllByText('org_role_admin')
+      expect(adminOptions.length).toBeGreaterThanOrEqual(1)
+    })
+  })
+
+  it('should render badge instead of select for owner members', async () => {
+    // Arrange
+    setupActiveOrg()
+    setupFetchWithMutations({
+      members: [
+        createMember({
+          id: 'm-owner',
+          role: 'owner',
+          user: { id: 'u-1', name: 'Owner', email: 'owner@acme.com', image: null },
+        }),
+      ],
+    })
+
+    // Act
+    const Page = captured.Component
+    render(<Page />)
+
+    // Assert — owner role renders as Badge (span with data-variant)
+    await waitFor(() => {
+      const ownerTexts = screen.getAllByText('org_role_owner')
+      const badge = ownerTexts.find((el) => el.getAttribute('data-variant') === 'default')
+      expect(badge).toBeDefined()
+    })
+  })
+
+  it('should call update role API when a new role is selected', async () => {
+    // Arrange
+    setupActiveOrg()
+    const mockFetch = setupFetchWithMutations({
+      members: [
+        createMember({
+          id: 'm-dev',
+          role: 'member',
+          user: { id: 'u-2', name: 'Dev', email: 'dev@acme.com', image: null },
+        }),
+      ],
+    })
+
+    const Page = captured.Component
+    render(<Page />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Dev')).toBeInTheDocument()
+    })
+
+    // Act — click the admin option in the RoleSelect for the non-owner member
+    // Scope to the member's table row to avoid hitting InviteDialog's Select
+    const devRow = screen.getByText('Dev').closest('tr')!
+    const adminOption = within(devRow)
+      .getAllByRole('option')
+      .find((el) => el.textContent === 'org_role_admin')
+    expect(adminOption).toBeTruthy()
+    fireEvent.click(adminOption!)
+
+    // Assert — PATCH request sent with correct member ID and role ID
+    await waitFor(() => {
+      const patchCalls = mockFetch.mock.calls.filter(
+        ([url, init]: [string, RequestInit | undefined]) =>
+          typeof url === 'string' &&
+          url.includes('/api/admin/members/m-dev') &&
+          init?.method === 'PATCH'
+      )
+      expect(patchCalls).toHaveLength(1)
+      const body = JSON.parse(patchCalls[0][1].body as string)
+      expect(body.roleId).toBe('r-admin')
+    })
+  })
+
+  it('should show success toast after successful role update', async () => {
+    // Arrange
+    setupActiveOrg()
+    setupFetchWithMutations({
+      members: [
+        createMember({
+          id: 'm-dev',
+          role: 'member',
+          user: { id: 'u-2', name: 'Dev', email: 'dev@acme.com', image: null },
+        }),
+      ],
+    })
+
+    const Page = captured.Component
+    render(<Page />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Dev')).toBeInTheDocument()
+    })
+
+    // Act — scope to member row to avoid InviteDialog's Select
+    const devRow = screen.getByText('Dev').closest('tr')!
+    const adminOption = within(devRow)
+      .getAllByRole('option')
+      .find((el) => el.textContent === 'org_role_admin')
+    fireEvent.click(adminOption!)
+
+    // Assert
+    await waitFor(() => {
+      expect(vi.mocked(toast.success)).toHaveBeenCalledWith('org_toast_role_updated')
+    })
+  })
+
+  it('should show error toast when role update fails', async () => {
+    // Arrange
+    setupActiveOrg()
+    setupFetchWithMutations({
+      members: [
+        createMember({
+          id: 'm-dev',
+          role: 'member',
+          user: { id: 'u-2', name: 'Dev', email: 'dev@acme.com', image: null },
+        }),
+      ],
+      updateRoleResult: {
+        ok: false,
+        body: { message: 'Cannot change role of this member' },
+      },
+    })
+
+    const Page = captured.Component
+    render(<Page />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Dev')).toBeInTheDocument()
+    })
+
+    // Act — scope to member row to avoid InviteDialog's Select
+    const devRow = screen.getByText('Dev').closest('tr')!
+    const adminOption = within(devRow)
+      .getAllByRole('option')
+      .find((el) => el.textContent === 'org_role_admin')
+    fireEvent.click(adminOption!)
+
+    // Assert
+    await waitFor(() => {
+      expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Cannot change role of this member')
+    })
+  })
+
+  it('should refetch members after successful role update', async () => {
+    // Arrange
+    setupActiveOrg()
+    const mockFetch = setupFetchWithMutations({
+      members: [
+        createMember({
+          id: 'm-dev',
+          role: 'member',
+          user: { id: 'u-2', name: 'Dev', email: 'dev@acme.com', image: null },
+        }),
+      ],
+    })
+
+    const Page = captured.Component
+    render(<Page />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Dev')).toBeInTheDocument()
+    })
+
+    // Count initial GET /api/admin/members calls
+    const initialMemberFetches = mockFetch.mock.calls.filter(
+      ([url, init]: [string, RequestInit | undefined]) =>
+        typeof url === 'string' &&
+        url.includes('/api/admin/members') &&
+        !url.includes('/invite') &&
+        (!init?.method || init.method === 'GET')
+    ).length
+
+    // Act — scope to member row to avoid InviteDialog's Select
+    const devRow = screen.getByText('Dev').closest('tr')!
+    const adminOption = within(devRow)
+      .getAllByRole('option')
+      .find((el) => el.textContent === 'org_role_admin')
+    fireEvent.click(adminOption!)
+
+    // Assert — should trigger a refetch (additional GET call)
+    await waitFor(() => {
+      const totalMemberFetches = mockFetch.mock.calls.filter(
+        ([url, init]: [string, RequestInit | undefined]) =>
+          typeof url === 'string' &&
+          url.includes('/api/admin/members') &&
+          !url.includes('/invite') &&
+          (!init?.method || init.method === 'GET')
+      ).length
+      expect(totalMemberFetches).toBeGreaterThan(initialMemberFetches)
+    })
   })
 })

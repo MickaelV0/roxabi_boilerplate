@@ -66,7 +66,7 @@ describe('AdminExceptionFilter', () => {
   it('should return 400 for MemberAlreadyExistsException', () => {
     // Arrange
     const { host, statusFn } = createMockHost()
-    const exception = new MemberAlreadyExistsException('user@example.com')
+    const exception = new MemberAlreadyExistsException()
 
     // Act
     filter.catch(exception, host as never)
@@ -78,7 +78,7 @@ describe('AdminExceptionFilter', () => {
   it('should return 400 for InvitationAlreadyPendingException', () => {
     // Arrange
     const { host, statusFn } = createMockHost()
-    const exception = new InvitationAlreadyPendingException('user@example.com')
+    const exception = new InvitationAlreadyPendingException()
 
     // Act
     filter.catch(exception, host as never)
@@ -123,11 +123,11 @@ describe('AdminExceptionFilter', () => {
       { exception: new MemberNotFoundException('m-1'), expectedCode: 'MEMBER_NOT_FOUND' },
       { exception: new RoleNotFoundException('r-1'), expectedCode: 'ROLE_NOT_FOUND' },
       {
-        exception: new MemberAlreadyExistsException('a@b.com'),
+        exception: new MemberAlreadyExistsException(),
         expectedCode: 'MEMBER_ALREADY_EXISTS',
       },
       {
-        exception: new InvitationAlreadyPendingException('a@b.com'),
+        exception: new InvitationAlreadyPendingException(),
         expectedCode: 'INVITATION_ALREADY_PENDING',
       },
       { exception: new LastOwnerConstraintException(), expectedCode: 'LAST_OWNER_CONSTRAINT' },

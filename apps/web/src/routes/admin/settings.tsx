@@ -21,6 +21,7 @@ import { isErrorWithMessage } from '@/lib/error-utils'
 import { hasPermission } from '@/lib/permissions'
 import { useOrganizations } from '@/lib/use-organizations'
 import { m } from '@/paraglide/messages'
+import { getLocale } from '@/paraglide/runtime'
 
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
 
@@ -136,21 +137,12 @@ function DangerZoneCard({ orgId, orgName, onDeleted }: DangerZoneCardProps) {
           impactSummary={
             impact ? (
               <div className="space-y-1 text-sm">
-                <p>
-                  <span className="font-medium">{impact.memberCount}</span> member
-                  {impact.memberCount !== 1 ? 's' : ''} will lose access
-                </p>
+                <p>{m.admin_settings_impact_members({ count: impact.memberCount })}</p>
                 {impact.invitationCount > 0 && (
-                  <p>
-                    <span className="font-medium">{impact.invitationCount}</span> pending invitation
-                    {impact.invitationCount !== 1 ? 's' : ''} will be cancelled
-                  </p>
+                  <p>{m.admin_settings_impact_invitations({ count: impact.invitationCount })}</p>
                 )}
                 {impact.customRoleCount > 0 && (
-                  <p>
-                    <span className="font-medium">{impact.customRoleCount}</span> custom role
-                    {impact.customRoleCount !== 1 ? 's' : ''} will be removed
-                  </p>
+                  <p>{m.admin_settings_impact_roles({ count: impact.customRoleCount })}</p>
                 )}
                 <p className="pt-1 text-muted-foreground">{m.org_deletion_grace_period()}</p>
               </div>
@@ -325,7 +317,7 @@ type ReactivationBannerProps = {
 function ReactivationBanner({ orgId, deleteScheduledFor, canReactivate }: ReactivationBannerProps) {
   const [reactivating, setReactivating] = useState(false)
 
-  const formattedDate = new Date(deleteScheduledFor).toLocaleDateString()
+  const formattedDate = new Date(deleteScheduledFor).toLocaleDateString(getLocale())
 
   async function handleReactivate() {
     setReactivating(true)

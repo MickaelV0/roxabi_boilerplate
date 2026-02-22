@@ -100,13 +100,13 @@ export function OrgSwitcher() {
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link to="/org/settings">
+                <Link to="/admin/settings">
                   <Settings className="mr-2 size-4" />
                   {m.user_menu_org_settings()}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/org/members">
+                <Link to="/admin/members">
                   <Users className="mr-2 size-4" />
                   {m.user_menu_org_members()}
                 </Link>

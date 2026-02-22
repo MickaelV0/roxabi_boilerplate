@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { and, count, eq } from 'drizzle-orm'
 import { AuditService } from '../audit/audit.service.js'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
@@ -9,9 +9,12 @@ import { RoleNotFoundException } from '../rbac/exceptions/role-not-found.excepti
 import { InvitationAlreadyPendingException } from './exceptions/invitation-already-pending.exception.js'
 import { LastOwnerConstraintException } from './exceptions/last-owner-constraint.exception.js'
 import { MemberAlreadyExistsException } from './exceptions/member-already-exists.exception.js'
+import { SelfRemovalException } from './exceptions/self-removal.exception.js'
 
 @Injectable()
 export class AdminMembersService {
+  private readonly logger = new Logger(AdminMembersService.name)
+
   constructor(
     @Inject(DRIZZLE) private readonly db: DrizzleDB,
     private readonly auditService: AuditService
@@ -103,7 +106,7 @@ export class AdminMembersService {
       .limit(1)
 
     if (existingMember) {
-      throw new MemberAlreadyExistsException(data.email)
+      throw new MemberAlreadyExistsException()
     }
 
     // Check for existing pending invitation
@@ -120,38 +123,52 @@ export class AdminMembersService {
       .limit(1)
 
     if (existingInvitation) {
-      throw new InvitationAlreadyPendingException(data.email)
+      throw new InvitationAlreadyPendingException()
     }
 
     // Create the invitation with both roleId-derived slug and legacy role field
+    // TODO: Add roleId column to invitations schema and store data.roleId here
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
 
-    const [invitation] = await this.db
-      .insert(invitations)
-      .values({
-        organizationId: orgId,
-        email: data.email,
-        role: role.slug,
-        status: 'pending',
-        inviterId: actorId,
-        expiresAt,
-      })
-      .returning()
+    let invitation: typeof invitations.$inferSelect | undefined
+    try {
+      ;[invitation] = await this.db
+        .insert(invitations)
+        .values({
+          organizationId: orgId,
+          email: data.email,
+          role: role.slug,
+          status: 'pending',
+          inviterId: actorId,
+          expiresAt,
+        })
+        .returning()
+    } catch (err) {
+      // Handle unique constraint violation (invitations_org_email_unique)
+      if (err instanceof Error && err.message.includes('invitations_org_email_unique')) {
+        throw new InvitationAlreadyPendingException()
+      }
+      throw err
+    }
 
-    // Audit log
-    await this.auditService.log({
-      actorId,
-      actorType: 'user',
-      organizationId: orgId,
-      action: 'member.invited',
-      resource: 'invitation',
-      resourceId: invitation?.id ?? '',
-      after: {
-        email: data.email,
-        roleId: data.roleId,
-        roleSlug: role.slug,
-      },
-    })
+    // Audit log (fire-and-forget)
+    this.auditService
+      .log({
+        actorId,
+        actorType: 'user',
+        organizationId: orgId,
+        action: 'member.invited',
+        resource: 'invitation',
+        resourceId: invitation?.id ?? '',
+        after: {
+          email: data.email,
+          roleId: data.roleId,
+          roleSlug: role.slug,
+        },
+      })
+      .catch((err) => {
+        this.logger.error('[audit] Failed to log member.invited', err)
+      })
 
     return invitation
   }
@@ -177,34 +194,27 @@ export class AdminMembersService {
       throw new RoleNotFoundException(data.roleId)
     }
 
-    // Get the member with their current role info (before snapshot)
-    const [member] = await this.db
+    // Get the member with their current role info in a single joined query
+    const [memberWithRole] = await this.db
       .select({
         id: members.id,
         userId: members.userId,
         role: members.role,
         roleId: members.roleId,
+        currentRoleSlug: roles.slug,
+        currentRoleName: roles.name,
       })
       .from(members)
+      .leftJoin(roles, eq(members.roleId, roles.id))
       .where(and(eq(members.id, memberId), eq(members.organizationId, orgId)))
       .limit(1)
 
-    if (!member) {
+    if (!memberWithRole) {
       throw new MemberNotFoundException(memberId)
     }
 
-    // Capture before state for audit
-    let beforeRoleSlug: string | null = null
-    let beforeRoleName: string | null = null
-    if (member.roleId) {
-      const [currentRole] = await this.db
-        .select({ slug: roles.slug, name: roles.name })
-        .from(roles)
-        .where(eq(roles.id, member.roleId))
-        .limit(1)
-      beforeRoleSlug = currentRole?.slug ?? null
-      beforeRoleName = currentRole?.name ?? null
-    }
+    const beforeRoleSlug = memberWithRole.currentRoleSlug ?? null
+    const beforeRoleName = memberWithRole.currentRoleName ?? null
 
     // Update both roleId and legacy role field
     await this.db
@@ -212,25 +222,29 @@ export class AdminMembersService {
       .set({ roleId: data.roleId, role: newRole.slug })
       .where(eq(members.id, memberId))
 
-    // Audit log with before/after snapshots
-    await this.auditService.log({
-      actorId,
-      actorType: 'user',
-      organizationId: orgId,
-      action: 'member.role_changed',
-      resource: 'member',
-      resourceId: memberId,
-      before: {
-        roleId: member.roleId,
-        roleSlug: beforeRoleSlug,
-        roleName: beforeRoleName,
-      },
-      after: {
-        roleId: newRole.id,
-        roleSlug: newRole.slug,
-        roleName: newRole.name,
-      },
-    })
+    // Audit log with before/after snapshots (fire-and-forget)
+    this.auditService
+      .log({
+        actorId,
+        actorType: 'user',
+        organizationId: orgId,
+        action: 'member.role_changed',
+        resource: 'member',
+        resourceId: memberId,
+        before: {
+          roleId: memberWithRole.roleId,
+          roleSlug: beforeRoleSlug,
+          roleName: beforeRoleName,
+        },
+        after: {
+          roleId: newRole.id,
+          roleSlug: newRole.slug,
+          roleName: newRole.name,
+        },
+      })
+      .catch((err) => {
+        this.logger.error('[audit] Failed to log member.role_changed', err)
+      })
 
     return { updated: true }
   }
@@ -240,15 +254,17 @@ export class AdminMembersService {
    * Prevents removing the last owner.
    */
   async removeMember(memberId: string, orgId: string, actorId: string) {
-    // Get the member
+    // Get the member with role info in a single joined query
     const [member] = await this.db
       .select({
         id: members.id,
         userId: members.userId,
         role: members.role,
         roleId: members.roleId,
+        roleSlug: roles.slug,
       })
       .from(members)
+      .leftJoin(roles, eq(members.roleId, roles.id))
       .where(and(eq(members.id, memberId), eq(members.organizationId, orgId)))
       .limit(1)
 
@@ -256,44 +272,44 @@ export class AdminMembersService {
       throw new MemberNotFoundException(memberId)
     }
 
+    // Prevent self-removal
+    if (member.userId === actorId) {
+      throw new SelfRemovalException()
+    }
+
     // Check if this is the last owner
-    if (member.roleId) {
-      const [currentRole] = await this.db
-        .select({ slug: roles.slug })
-        .from(roles)
-        .where(eq(roles.id, member.roleId))
-        .limit(1)
+    if (member.roleSlug === 'owner') {
+      const [ownerCount] = await this.db
+        .select({ count: count() })
+        .from(members)
+        .where(and(eq(members.organizationId, orgId), eq(members.roleId, member.roleId!)))
 
-      if (currentRole?.slug === 'owner') {
-        // Count members with owner role in this org
-        const [ownerCount] = await this.db
-          .select({ count: count() })
-          .from(members)
-          .where(and(eq(members.organizationId, orgId), eq(members.roleId, member.roleId)))
-
-        if ((ownerCount?.count ?? 0) <= 1) {
-          throw new LastOwnerConstraintException()
-        }
+      if ((ownerCount?.count ?? 0) <= 1) {
+        throw new LastOwnerConstraintException()
       }
     }
 
     // Delete the member
     await this.db.delete(members).where(eq(members.id, memberId))
 
-    // Audit log
-    await this.auditService.log({
-      actorId,
-      actorType: 'user',
-      organizationId: orgId,
-      action: 'member.removed',
-      resource: 'member',
-      resourceId: memberId,
-      before: {
-        userId: member.userId,
-        role: member.role,
-        roleId: member.roleId,
-      },
-    })
+    // Audit log (fire-and-forget)
+    this.auditService
+      .log({
+        actorId,
+        actorType: 'user',
+        organizationId: orgId,
+        action: 'member.removed',
+        resource: 'member',
+        resourceId: memberId,
+        before: {
+          userId: member.userId,
+          role: member.role,
+          roleId: member.roleId,
+        },
+      })
+      .catch((err) => {
+        this.logger.error('[audit] Failed to log member.removed', err)
+      })
 
     return { removed: true }
   }

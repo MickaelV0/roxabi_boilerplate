@@ -9,7 +9,9 @@ export const auditLogs = pgTable(
   'audit_logs',
   {
     id: text('id').primaryKey().$defaultFn(genId),
+    // TODO: Consider removing `timestamp` in favor of `createdAt` from timestamps helper to avoid redundancy (requires migration)
     timestamp: timestamp('timestamp', { withTimezone: true }).defaultNow().notNull(),
+    // ON DELETE no action is intentional -- audit trail must be preserved even if the user is deleted
     actorId: text('actor_id')
       .notNull()
       .references(() => users.id),
@@ -29,6 +31,11 @@ export const auditLogs = pgTable(
     index('idx_audit_logs_org').on(table.organizationId),
     index('idx_audit_logs_timestamp').on(table.timestamp.desc()),
     index('idx_audit_logs_action').on(table.action),
+    index('idx_audit_logs_org_action_ts').on(
+      table.organizationId,
+      table.action,
+      table.timestamp.desc()
+    ),
   ]
 )
 

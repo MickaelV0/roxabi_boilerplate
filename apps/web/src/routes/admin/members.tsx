@@ -7,49 +7,25 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  Badge,
-  Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
   Input,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
 } from '@repo/ui'
 import { createFileRoute } from '@tanstack/react-router'
-import {
-  AlertCircleIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  SearchIcon,
-  UserPlusIcon,
-  UsersIcon,
-} from 'lucide-react'
+import { SearchIcon, UsersIcon } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { ErrorCard } from '@/components/admin/ErrorCard'
+import { InviteDialog } from '@/components/admin/InviteDialog'
+import { MembersTable } from '@/components/admin/MembersTable'
+import { PaginationControls } from '@/components/admin/PaginationControls'
+import { PendingInvitations } from '@/components/admin/PendingInvitations'
 import { authClient } from '@/lib/auth-client'
 import { parseErrorMessage } from '@/lib/error-utils'
-import { roleBadgeVariant, roleLabel } from '@/lib/org-utils'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/admin/members')({
@@ -73,7 +49,6 @@ type Member = {
     name: string | null
     email: string
     image: string | null
-    lastActive?: string | null
   }
 }
 
@@ -116,19 +91,6 @@ async function fetchRoles(signal?: AbortSignal): Promise<OrgRole[]> {
   const res = await fetch('/api/roles', { credentials: 'include', signal })
   if (!res.ok) return []
   return (await res.json()) as OrgRole[]
-}
-
-async function inviteMember(email: string, roleId: string): Promise<void> {
-  const res = await fetch('/api/admin/members/invite', {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, roleId }),
-  })
-  if (!res.ok) {
-    const data: unknown = await res.json().catch(() => null)
-    throw new Error(parseErrorMessage(data, m.auth_toast_error()))
-  }
 }
 
 async function updateMemberRole(memberId: string, roleId: string): Promise<void> {
@@ -242,150 +204,12 @@ function MembersTableSkeleton() {
   )
 }
 
-type ErrorCardProps = {
-  message: string
-  onRetry: () => void
-}
-
-function ErrorCard({ message, onRetry }: ErrorCardProps) {
-  return (
-    <Card>
-      <CardContent className="flex flex-col items-center gap-4 py-12">
-        <AlertCircleIcon className="size-10 text-destructive" />
-        <p className="text-sm text-muted-foreground">{message}</p>
-        <Button variant="outline" onClick={onRetry}>
-          Retry
-        </Button>
-      </CardContent>
-    </Card>
-  )
-}
-
 function EmptyState() {
   return (
     <div className="flex flex-col items-center gap-3 py-12 text-center">
       <UsersIcon className="size-10 text-muted-foreground/50" />
       <p className="text-sm text-muted-foreground">{m.org_members_empty()}</p>
     </div>
-  )
-}
-
-type InviteDialogProps = {
-  roles: OrgRole[]
-  onSuccess: () => void
-}
-
-function InviteDialog({ roles, onSuccess }: InviteDialogProps) {
-  const [open, setOpen] = useState(false)
-  const [email, setEmail] = useState('')
-  const [roleId, setRoleId] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-
-  // Default to first role when roles load
-  useEffect(() => {
-    if (roles.length > 0 && !roleId) {
-      const memberRole = roles.find((r) => r.name === 'member')
-      setRoleId(memberRole?.id ?? roles[0]?.id ?? '')
-    }
-  }, [roles, roleId])
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!email || !roleId) return
-    setSubmitting(true)
-    try {
-      await inviteMember(email, roleId)
-      toast.success(m.org_toast_invited({ email }))
-      setEmail('')
-      setOpen(false)
-      onSuccess()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : m.auth_toast_error())
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <UserPlusIcon className="mr-2 size-4" />
-          {m.org_invite_title()}
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{m.org_invite_title()}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="invite-email">{m.org_invite_email()}</Label>
-            <Input
-              id="invite-email"
-              type="email"
-              value={email}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-              placeholder={m.org_invite_email_placeholder()}
-              required
-              disabled={submitting}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="invite-role">{m.org_invite_role()}</Label>
-            <Select value={roleId} onValueChange={setRoleId}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {roles.map((role) => (
-                  <SelectItem key={role.id} value={role.id}>
-                    {roleLabel(role.name)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                {m.common_cancel()}
-              </Button>
-            </DialogClose>
-            <Button type="submit" disabled={submitting || !email}>
-              {submitting ? m.org_invite_sending() : m.org_invite_send()}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-type RoleSelectProps = {
-  currentRole: string
-  roles: OrgRole[]
-  onRoleChange: (roleId: string) => void
-  disabled?: boolean
-}
-
-function RoleSelect({ currentRole, roles, onRoleChange, disabled }: RoleSelectProps) {
-  const currentRoleObj = roles.find((r) => r.name === currentRole)
-  const currentRoleId = currentRoleObj?.id ?? ''
-
-  return (
-    <Select value={currentRoleId} onValueChange={onRoleChange} disabled={disabled}>
-      <SelectTrigger className="h-7 w-28">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {roles.map((role) => (
-          <SelectItem key={role.id} value={role.id}>
-            {roleLabel(role.name)}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
   )
 }
 
@@ -422,43 +246,6 @@ function RemoveMemberDialog({ memberId, onConfirm, onCancel }: RemoveMemberDialo
   )
 }
 
-type PaginationControlsProps = {
-  pagination: PaginationMeta
-  onPageChange: (page: number) => void
-}
-
-function PaginationControls({ pagination, onPageChange }: PaginationControlsProps) {
-  if (pagination.totalPages <= 1) return null
-
-  return (
-    <div className="flex items-center justify-between border-t px-2 pt-4">
-      <p className="text-sm text-muted-foreground">
-        Page {pagination.page} of {pagination.totalPages} ({pagination.total} members)
-      </p>
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={pagination.page <= 1}
-          onClick={() => onPageChange(pagination.page - 1)}
-        >
-          <ChevronLeftIcon className="mr-1 size-4" />
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={pagination.page >= pagination.totalPages}
-          onClick={() => onPageChange(pagination.page + 1)}
-        >
-          Next
-          <ChevronRightIcon className="ml-1 size-4" />
-        </Button>
-      </div>
-    </div>
-  )
-}
-
 // ---------------------------------------------------------------------------
 // Main page component
 // ---------------------------------------------------------------------------
@@ -470,6 +257,7 @@ function AdminMembersPage() {
 
   const [searchQuery, setSearchQuery] = useState('')
   const [removeMemberId, setRemoveMemberId] = useState<string | null>(null)
+  const [inviteRefreshKey, setInviteRefreshKey] = useState(0)
 
   // Client-side search within the current page
   const filteredMembers = members.filter((member) => {
@@ -503,6 +291,11 @@ function AdminMembersPage() {
     }
   }
 
+  function handleInviteSuccess() {
+    refetch()
+    setInviteRefreshKey((k) => k + 1)
+  }
+
   if (!activeOrg) {
     return (
       <div className="space-y-6">
@@ -517,7 +310,7 @@ function AdminMembersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{m.org_members_title()}</h1>
-        <InviteDialog roles={roles} onSuccess={refetch} />
+        <InviteDialog roles={roles} onSuccess={handleInviteSuccess} />
       </div>
 
       {/* Search */}
@@ -551,10 +344,7 @@ function AdminMembersPage() {
         <Card>
           <CardHeader>
             <CardTitle>{m.org_members_active()}</CardTitle>
-            <CardDescription>
-              {pagination.total} {pagination.total === 1 ? 'member' : 'members'} in this
-              organization
-            </CardDescription>
+            <CardDescription>{m.admin_members_count({ count: pagination.total })}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {filteredMembers.length === 0 ? (
@@ -566,81 +356,21 @@ function AdminMembersPage() {
                 <EmptyState />
               )
             ) : (
-              <div className="overflow-x-auto">
-                <Table className="w-full text-sm">
-                  <TableHeader>
-                    <TableRow className="border-b text-left text-muted-foreground">
-                      <TableHead className="pb-2 pr-4 font-medium">
-                        {m.org_members_name()}
-                      </TableHead>
-                      <TableHead className="pb-2 pr-4 font-medium">
-                        {m.org_members_email()}
-                      </TableHead>
-                      <TableHead className="pb-2 pr-4 font-medium">
-                        {m.org_members_role()}
-                      </TableHead>
-                      <TableHead className="pb-2 pr-4 font-medium">
-                        {m.org_members_joined()}
-                      </TableHead>
-                      <TableHead className="pb-2 pr-4 font-medium">Last Active</TableHead>
-                      <TableHead className="pb-2 font-medium">{m.org_members_actions()}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredMembers.map((member) => (
-                      <TableRow key={member.id} className="border-b last:border-0">
-                        <TableCell className="py-3 pr-4">
-                          {member.user.name ?? (
-                            <span className="italic text-muted-foreground">No name</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-3 pr-4 text-muted-foreground">
-                          {member.user.email}
-                        </TableCell>
-                        <TableCell className="py-3 pr-4">
-                          {member.role !== 'owner' && roles.length > 0 ? (
-                            <RoleSelect
-                              currentRole={member.role}
-                              roles={roles}
-                              onRoleChange={(roleId) => handleRoleChange(member.id, roleId)}
-                            />
-                          ) : (
-                            <Badge variant={roleBadgeVariant(member.role)}>
-                              {roleLabel(member.role)}
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-3 pr-4 text-muted-foreground">
-                          {new Date(member.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="py-3 pr-4 text-muted-foreground">
-                          {member.user.lastActive
-                            ? new Date(member.user.lastActive).toLocaleDateString()
-                            : '--'}
-                        </TableCell>
-                        <TableCell className="py-3">
-                          {member.role !== 'owner' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => setRemoveMemberId(member.id)}
-                            >
-                              {m.org_members_remove()}
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <MembersTable
+                members={filteredMembers}
+                roles={roles}
+                onRoleChange={handleRoleChange}
+                onRemove={setRemoveMemberId}
+              />
             )}
 
             <PaginationControls pagination={pagination} onPageChange={goToPage} />
           </CardContent>
         </Card>
       )}
+
+      {/* Pending invitations */}
+      <PendingInvitations refreshKey={inviteRefreshKey} />
 
       {/* Remove member confirmation dialog */}
       <RemoveMemberDialog

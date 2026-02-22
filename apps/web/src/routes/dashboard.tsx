@@ -134,7 +134,7 @@ function DashboardPage() {
                 {m.dashboard_org_settings_desc()}
               </p>
               <Button variant="outline" size="sm" asChild>
-                <Link to="/org/settings">{m.dashboard_open_settings()}</Link>
+                <Link to="/admin/settings">{m.dashboard_open_settings()}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -151,7 +151,7 @@ function DashboardPage() {
                 {m.dashboard_team_members_desc()}
               </p>
               <Button variant="outline" size="sm" asChild>
-                <Link to="/org/members">{m.dashboard_view_members()}</Link>
+                <Link to="/admin/members">{m.dashboard_view_members()}</Link>
               </Button>
             </CardContent>
           </Card>

@@ -1060,5 +1060,28 @@
   "account_org_select_member": "Select a member",
   "account_org_member_unknown": "Unknown",
 
-  "account_head_title": "Account Settings | {appName}"
+  "account_head_title": "Account Settings | {appName}",
+
+  "admin_sidebar_title": "Admin",
+  "admin_sidebar_organization": "Organization",
+  "admin_sidebar_system": "System",
+  "admin_sidebar_soon": "Soon",
+  "admin_members_no_name": "No name",
+  "admin_members_count": "{count} {count, plural, one {member} other {members}} in this organization",
+  "admin_pagination_page_of": "Page {page} of {totalPages} ({total} members)",
+  "admin_pagination_previous": "Previous",
+  "admin_pagination_next": "Next",
+  "admin_error_retry": "Retry",
+  "admin_settings_impact_members": "{count} {count, plural, one {member} other {members}} will lose access",
+  "admin_settings_impact_invitations": "{count} pending {count, plural, one {invitation} other {invitations}} will be cancelled",
+  "admin_settings_impact_roles": "{count} custom {count, plural, one {role} other {roles}} will be removed",
+  "admin_invitations_title": "Pending Invitations",
+  "admin_invitations_empty": "No pending invitations.",
+  "admin_invitations_loading": "Loading invitations...",
+  "admin_invitations_error": "Failed to load invitations.",
+  "admin_invitations_invited_date": "Invited",
+  "admin_invitations_expires": "Expires",
+  "admin_invitations_revoke": "Revoke",
+  "admin_owner_role_tooltip": "Owner role cannot be changed",
+  "admin_owner_remove_tooltip": "Owner cannot be removed"
 }

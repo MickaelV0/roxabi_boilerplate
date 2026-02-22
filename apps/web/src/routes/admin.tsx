@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { requireAdmin } from '@/lib/admin-guards'
 import { useSession } from '@/lib/auth-client'
+import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/admin')({
   beforeLoad: requireAdmin,
@@ -66,7 +67,7 @@ function SidebarGroup({
               <Icon className="size-4" />
               <span>{link.label}</span>
               <span className="ml-auto text-[10px] font-medium uppercase tracking-wide opacity-60">
-                Soon
+                {m.admin_sidebar_soon()}
               </span>
             </span>
           )
@@ -93,11 +94,15 @@ function SidebarGroup({
   )
 }
 
+function isSuperAdmin(session: { user?: Record<string, unknown> } | null | undefined): boolean {
+  if (!session?.user) return false
+  return session.user.role === 'superadmin'
+}
+
 function AdminLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const { data: session } = useSession()
-  const user = session?.user as unknown as { role?: string } | undefined
-  const isSuperAdmin = user?.role === 'superadmin'
+  const superAdmin = isSuperAdmin(session as { user?: Record<string, unknown> } | null)
 
   return (
     <div className="mx-auto flex max-w-7xl gap-0 p-0 md:gap-6 md:p-6">
@@ -106,14 +111,22 @@ function AdminLayout() {
         <nav className="sticky top-20 space-y-6" aria-label="Admin navigation">
           <div className="flex items-center gap-2 px-3">
             <ActivityIcon className="size-5 text-foreground" />
-            <h2 className="text-lg font-semibold">Admin</h2>
+            <h2 className="text-lg font-semibold">{m.admin_sidebar_title()}</h2>
           </div>
           <Separator />
-          <SidebarGroup title="Organization" links={ORG_LINKS} pathname={pathname} />
-          {isSuperAdmin && (
+          <SidebarGroup
+            title={m.admin_sidebar_organization()}
+            links={ORG_LINKS}
+            pathname={pathname}
+          />
+          {superAdmin && (
             <>
               <Separator />
-              <SidebarGroup title="System" links={SYSTEM_LINKS} pathname={pathname} />
+              <SidebarGroup
+                title={m.admin_sidebar_system()}
+                links={SYSTEM_LINKS}
+                pathname={pathname}
+              />
             </>
           )}
         </nav>
@@ -144,6 +157,40 @@ function AdminLayout() {
             </Link>
           )
         })}
+        {superAdmin &&
+          SYSTEM_LINKS.map((link) => {
+            const Icon = link.icon
+            const isActive = pathname.startsWith(link.to)
+
+            if (link.disabled) {
+              return (
+                <span
+                  key={link.to}
+                  className="flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-muted-foreground/50 cursor-not-allowed"
+                >
+                  <Icon className="size-4" />
+                  {link.label}
+                </span>
+              )
+            }
+
+            return (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={cn(
+                  'flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                <Icon className="size-4" />
+                {link.label}
+              </Link>
+            )
+          })}
       </nav>
 
       {/* Main content */}

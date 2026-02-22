@@ -6,11 +6,13 @@ import { RoleNotFoundException } from '../../rbac/exceptions/role-not-found.exce
 import { InvitationAlreadyPendingException } from '../exceptions/invitation-already-pending.exception.js'
 import { LastOwnerConstraintException } from '../exceptions/last-owner-constraint.exception.js'
 import { MemberAlreadyExistsException } from '../exceptions/member-already-exists.exception.js'
+import { SelfRemovalException } from '../exceptions/self-removal.exception.js'
 
 type AdminException =
   | MemberAlreadyExistsException
   | InvitationAlreadyPendingException
   | LastOwnerConstraintException
+  | SelfRemovalException
   | MemberNotFoundException
   | RoleNotFoundException
 
@@ -18,6 +20,7 @@ type AdminException =
   MemberAlreadyExistsException,
   InvitationAlreadyPendingException,
   LastOwnerConstraintException,
+  SelfRemovalException,
   MemberNotFoundException,
   RoleNotFoundException
 )

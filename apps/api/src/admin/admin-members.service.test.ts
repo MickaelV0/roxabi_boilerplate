@@ -6,6 +6,7 @@ import { AdminMembersService } from './admin-members.service.js'
 import { InvitationAlreadyPendingException } from './exceptions/invitation-already-pending.exception.js'
 import { LastOwnerConstraintException } from './exceptions/last-owner-constraint.exception.js'
 import { MemberAlreadyExistsException } from './exceptions/member-already-exists.exception.js'
+import { SelfRemovalException } from './exceptions/self-removal.exception.js'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -335,15 +336,20 @@ describe('AdminMembersService', () => {
   // -----------------------------------------------------------------------
   describe('changeMemberRole', () => {
     it('should update role and legacy role field successfully', async () => {
-      // Arrange
+      // Arrange — single joined query returns member with current role info
       const newRole = { id: 'r-admin', slug: 'admin', name: 'Admin' }
-      const member = { id: 'm-1', userId: 'u-1', role: 'member', roleId: 'r-member' }
-      const currentRole = { slug: 'member', name: 'Member' }
+      const memberWithRole = {
+        id: 'm-1',
+        userId: 'u-1',
+        role: 'member',
+        roleId: 'r-member',
+        currentRoleSlug: 'member',
+        currentRoleName: 'Member',
+      }
 
       db.select
         .mockReturnValueOnce(createChainMock([newRole])) // target role
-        .mockReturnValueOnce(createChainMock([member])) // member lookup
-        .mockReturnValueOnce(createChainMock([currentRole])) // current role for audit
+        .mockReturnValueOnce(createChainMock([memberWithRole])) // member + current role (joined)
       db.update.mockReturnValueOnce(createChainMock(undefined))
 
       // Act
@@ -384,13 +390,18 @@ describe('AdminMembersService', () => {
     it('should call auditService.log with before and after snapshots', async () => {
       // Arrange
       const newRole = { id: 'r-admin', slug: 'admin', name: 'Admin' }
-      const member = { id: 'm-1', userId: 'u-1', role: 'member', roleId: 'r-member' }
-      const currentRole = { slug: 'member', name: 'Member' }
+      const memberWithRole = {
+        id: 'm-1',
+        userId: 'u-1',
+        role: 'member',
+        roleId: 'r-member',
+        currentRoleSlug: 'member',
+        currentRoleName: 'Member',
+      }
 
       db.select
         .mockReturnValueOnce(createChainMock([newRole]))
-        .mockReturnValueOnce(createChainMock([member]))
-        .mockReturnValueOnce(createChainMock([currentRole]))
+        .mockReturnValueOnce(createChainMock([memberWithRole]))
       db.update.mockReturnValueOnce(createChainMock(undefined))
 
       // Act
@@ -417,21 +428,27 @@ describe('AdminMembersService', () => {
       })
     })
 
-    it('should set null before role info when current role lookup returns empty', async () => {
-      // Arrange — member has roleId but the role row is missing from DB
+    it('should set null before role info when left join returns no role', async () => {
+      // Arrange — member has roleId but role row is missing from DB (left join returns null)
       const newRole = { id: 'r-admin', slug: 'admin', name: 'Admin' }
-      const member = { id: 'm-1', userId: 'u-1', role: 'member', roleId: 'r-deleted' }
+      const memberWithRole = {
+        id: 'm-1',
+        userId: 'u-1',
+        role: 'member',
+        roleId: 'r-deleted',
+        currentRoleSlug: null,
+        currentRoleName: null,
+      }
 
       db.select
         .mockReturnValueOnce(createChainMock([newRole]))
-        .mockReturnValueOnce(createChainMock([member]))
-        .mockReturnValueOnce(createChainMock([])) // role lookup returns nothing
+        .mockReturnValueOnce(createChainMock([memberWithRole]))
       db.update.mockReturnValueOnce(createChainMock(undefined))
 
       // Act
       await service.changeMemberRole('m-1', 'org-1', { roleId: 'r-admin' }, 'actor-1')
 
-      // Assert — before role slug/name fall back to null via ?? operator
+      // Assert — before role slug/name are null from the left join
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({
           before: {
@@ -446,12 +463,18 @@ describe('AdminMembersService', () => {
     it('should set null before role info when member has no current roleId', async () => {
       // Arrange
       const newRole = { id: 'r-admin', slug: 'admin', name: 'Admin' }
-      const member = { id: 'm-1', userId: 'u-1', role: 'member', roleId: null }
+      const memberWithRole = {
+        id: 'm-1',
+        userId: 'u-1',
+        role: 'member',
+        roleId: null,
+        currentRoleSlug: null,
+        currentRoleName: null,
+      }
 
       db.select
         .mockReturnValueOnce(createChainMock([newRole]))
-        .mockReturnValueOnce(createChainMock([member]))
-      // no current role query since roleId is null
+        .mockReturnValueOnce(createChainMock([memberWithRole]))
       db.update.mockReturnValueOnce(createChainMock(undefined))
 
       // Act
@@ -475,13 +498,16 @@ describe('AdminMembersService', () => {
   // -----------------------------------------------------------------------
   describe('removeMember', () => {
     it('should remove member successfully when not last owner', async () => {
-      // Arrange
-      const member = { id: 'm-1', userId: 'u-1', role: 'admin', roleId: 'r-admin' }
-      const currentRole = { slug: 'admin' } // not owner
+      // Arrange — joined query returns member with role slug
+      const member = {
+        id: 'm-1',
+        userId: 'u-1',
+        role: 'admin',
+        roleId: 'r-admin',
+        roleSlug: 'admin',
+      }
 
-      db.select
-        .mockReturnValueOnce(createChainMock([member])) // member lookup
-        .mockReturnValueOnce(createChainMock([currentRole])) // role lookup
+      db.select.mockReturnValueOnce(createChainMock([member])) // member + role (joined)
       db.delete.mockReturnValueOnce(createChainMock(undefined))
 
       // Act
@@ -494,7 +520,13 @@ describe('AdminMembersService', () => {
 
     it('should remove member successfully when member has no roleId', async () => {
       // Arrange
-      const member = { id: 'm-1', userId: 'u-1', role: 'member', roleId: null }
+      const member = {
+        id: 'm-1',
+        userId: 'u-1',
+        role: 'member',
+        roleId: null,
+        roleSlug: null,
+      }
 
       db.select.mockReturnValueOnce(createChainMock([member]))
       db.delete.mockReturnValueOnce(createChainMock(undefined))
@@ -516,15 +548,37 @@ describe('AdminMembersService', () => {
       )
     })
 
+    it('should throw SelfRemovalException when actor removes themselves', async () => {
+      // Arrange — member.userId matches actorId
+      const member = {
+        id: 'm-1',
+        userId: 'actor-1',
+        role: 'admin',
+        roleId: 'r-admin',
+        roleSlug: 'admin',
+      }
+
+      db.select.mockReturnValueOnce(createChainMock([member]))
+
+      // Act & Assert
+      await expect(service.removeMember('m-1', 'org-1', 'actor-1')).rejects.toThrow(
+        SelfRemovalException
+      )
+    })
+
     it('should throw LastOwnerConstraintException when removing last owner', async () => {
       // Arrange
-      const member = { id: 'm-1', userId: 'u-1', role: 'owner', roleId: 'r-owner' }
-      const currentRole = { slug: 'owner' }
+      const member = {
+        id: 'm-1',
+        userId: 'u-1',
+        role: 'owner',
+        roleId: 'r-owner',
+        roleSlug: 'owner',
+      }
       const ownerCount = { count: 1 }
 
       db.select
-        .mockReturnValueOnce(createChainMock([member])) // member lookup
-        .mockReturnValueOnce(createChainMock([currentRole])) // role is owner
+        .mockReturnValueOnce(createChainMock([member])) // member + role (joined)
         .mockReturnValueOnce(createChainMock([ownerCount])) // only 1 owner
 
       // Act & Assert
@@ -534,13 +588,17 @@ describe('AdminMembersService', () => {
     })
 
     it('should throw LastOwnerConstraintException when owner count query returns empty', async () => {
-      // Arrange — count query returns [] so ownerCount is undefined → fallback 0 <= 1
-      const member = { id: 'm-1', userId: 'u-1', role: 'owner', roleId: 'r-owner' }
-      const currentRole = { slug: 'owner' }
+      // Arrange — count query returns [] so ownerCount is undefined -> fallback 0 <= 1
+      const member = {
+        id: 'm-1',
+        userId: 'u-1',
+        role: 'owner',
+        roleId: 'r-owner',
+        roleSlug: 'owner',
+      }
 
       db.select
         .mockReturnValueOnce(createChainMock([member]))
-        .mockReturnValueOnce(createChainMock([currentRole]))
         .mockReturnValueOnce(createChainMock([])) // empty count result
 
       // Act & Assert
@@ -551,13 +609,17 @@ describe('AdminMembersService', () => {
 
     it('should allow removing owner when other owners exist', async () => {
       // Arrange
-      const member = { id: 'm-1', userId: 'u-1', role: 'owner', roleId: 'r-owner' }
-      const currentRole = { slug: 'owner' }
+      const member = {
+        id: 'm-1',
+        userId: 'u-1',
+        role: 'owner',
+        roleId: 'r-owner',
+        roleSlug: 'owner',
+      }
       const ownerCount = { count: 3 }
 
       db.select
         .mockReturnValueOnce(createChainMock([member]))
-        .mockReturnValueOnce(createChainMock([currentRole]))
         .mockReturnValueOnce(createChainMock([ownerCount]))
       db.delete.mockReturnValueOnce(createChainMock(undefined))
 
@@ -570,12 +632,15 @@ describe('AdminMembersService', () => {
 
     it('should call auditService.log after removal', async () => {
       // Arrange
-      const member = { id: 'm-1', userId: 'u-1', role: 'admin', roleId: 'r-admin' }
-      const currentRole = { slug: 'admin' }
+      const member = {
+        id: 'm-1',
+        userId: 'u-1',
+        role: 'admin',
+        roleId: 'r-admin',
+        roleSlug: 'admin',
+      }
 
-      db.select
-        .mockReturnValueOnce(createChainMock([member]))
-        .mockReturnValueOnce(createChainMock([currentRole]))
+      db.select.mockReturnValueOnce(createChainMock([member]))
       db.delete.mockReturnValueOnce(createChainMock(undefined))
 
       // Act
@@ -593,6 +658,38 @@ describe('AdminMembersService', () => {
           userId: 'u-1',
           role: 'admin',
           roleId: 'r-admin',
+        },
+      })
+    })
+
+    it('should call auditService.log with roleId: null in metadata when member has no role', async () => {
+      // Arrange
+      const member = {
+        id: 'm-1',
+        userId: 'u-1',
+        role: 'member',
+        roleId: null,
+        roleSlug: null,
+      }
+
+      db.select.mockReturnValueOnce(createChainMock([member]))
+      db.delete.mockReturnValueOnce(createChainMock(undefined))
+
+      // Act
+      await service.removeMember('m-1', 'org-1', 'actor-1')
+
+      // Assert
+      expect(auditService.log).toHaveBeenCalledWith({
+        actorId: 'actor-1',
+        actorType: 'user',
+        organizationId: 'org-1',
+        action: 'member.removed',
+        resource: 'member',
+        resourceId: 'm-1',
+        before: {
+          userId: 'u-1',
+          role: 'member',
+          roleId: null,
         },
       })
     })

@@ -2,9 +2,16 @@ import { redirect } from '@tanstack/react-router'
 import { authClient } from '@/lib/auth-client'
 import type { BeforeLoadContext } from '@/lib/route-guards'
 
-type SessionWithRole = {
+type SessionData = {
   user: { role?: string }
   permissions?: string[]
+}
+
+function isSessionWithRole(data: unknown): data is SessionData {
+  if (data == null || typeof data !== 'object') return false
+  const obj = data as Record<string, unknown>
+  if (obj.user == null || typeof obj.user !== 'object') return false
+  return true
 }
 
 /** Redirect non-admin users to /dashboard.
@@ -18,15 +25,15 @@ export async function requireAdmin(_ctx?: BeforeLoadContext) {
   const { data } = await authClient.getSession()
   if (!data) throw redirect({ to: '/login' })
 
-  const session = data as unknown as SessionWithRole
+  if (!isSessionWithRole(data)) throw redirect({ to: '/dashboard' })
 
   // Super admins always have admin access
-  if (session.user.role === 'superadmin') return
+  if (data.user.role === 'superadmin') return
 
   // Otherwise check for admin-level org permissions
-  if (session.permissions?.includes('members:write')) return
+  if (data.permissions?.includes('members:write')) return
 
-  // Not an admin — redirect to dashboard
+  // Not an admin -- redirect to dashboard
   throw redirect({ to: '/dashboard' })
 }
 
@@ -38,6 +45,6 @@ export async function requireSuperAdmin(_ctx?: BeforeLoadContext) {
   }
   const { data } = await authClient.getSession()
   if (!data) throw redirect({ to: '/login' })
-  const session = data as unknown as SessionWithRole
-  if (session.user.role !== 'superadmin') throw redirect({ to: '/admin' })
+  if (!isSessionWithRole(data)) throw redirect({ to: '/admin' })
+  if (data.user.role !== 'superadmin') throw redirect({ to: '/admin' })
 }

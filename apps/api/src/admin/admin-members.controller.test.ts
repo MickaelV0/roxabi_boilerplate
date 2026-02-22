@@ -96,7 +96,7 @@ describe('AdminMembersController', () => {
         './exceptions/member-already-exists.exception.js'
       )
       vi.mocked(mockAdminMembersService.inviteMember).mockRejectedValue(
-        new MemberAlreadyExistsException('existing@acme.com')
+        new MemberAlreadyExistsException()
       )
 
       // Act & Assert
@@ -111,7 +111,7 @@ describe('AdminMembersController', () => {
         './exceptions/invitation-already-pending.exception.js'
       )
       vi.mocked(mockAdminMembersService.inviteMember).mockRejectedValue(
-        new InvitationAlreadyPendingException('pending@acme.com')
+        new InvitationAlreadyPendingException()
       )
 
       // Act & Assert
@@ -179,8 +179,8 @@ describe('AdminMembersController', () => {
       // Act
       const result = await controller.removeMember('member-1', mockSession)
 
-      // Assert
-      expect(result).toEqual({ removed: true })
+      // Assert — controller returns void (204 No Content)
+      expect(result).toBeUndefined()
       expect(mockAdminMembersService.removeMember).toHaveBeenCalledWith(
         'member-1',
         'org-1',

@@ -1,3 +1,5 @@
+import React from 'react'
+
 /**
  * Shared mock implementations for @repo/ui components.
  *
@@ -219,15 +221,47 @@ export const TabsContent = ({
 // Select
 // ---------------------------------------------------------------------------
 
-export const Select = ({ children }: React.PropsWithChildren) => <div>{children}</div>
+const SelectContext = React.createContext<{
+  onValueChange?: (value: string) => void
+  value?: string
+  disabled?: boolean
+}>({})
+
+export const Select = ({
+  children,
+  onValueChange,
+  value,
+  disabled,
+}: React.PropsWithChildren<{
+  onValueChange?: (value: string) => void
+  value?: string
+  disabled?: boolean
+}>) => (
+  <SelectContext.Provider value={{ onValueChange, value, disabled }}>
+    <div>{children}</div>
+  </SelectContext.Provider>
+)
 
 export const SelectContent = ({ children }: React.PropsWithChildren) => <div>{children}</div>
 
-export const SelectItem = ({ children }: React.PropsWithChildren<{ value: string }>) => (
-  <option>{children}</option>
-)
+export const SelectItem = ({ children, value }: React.PropsWithChildren<{ value: string }>) => {
+  const ctx = React.useContext(SelectContext)
+  return (
+    <button
+      type="button"
+      role="option"
+      onClick={() => ctx.onValueChange?.(value)}
+      aria-selected={ctx.value === value}
+      aria-disabled={ctx.disabled}
+    >
+      {children}
+    </button>
+  )
+}
 
-export const SelectTrigger = ({ children }: React.PropsWithChildren) => <div>{children}</div>
+export const SelectTrigger = ({ children }: React.PropsWithChildren<{ className?: string }>) => (
+  <div>{children}</div>
+)
 
 export const SelectValue = () => <span />
 
@@ -380,6 +414,21 @@ export const TableCell = ({
   children,
   ...props
 }: React.PropsWithChildren<Record<string, unknown>>) => <td {...props}>{children}</td>
+
+// ---------------------------------------------------------------------------
+// Tooltip
+// ---------------------------------------------------------------------------
+
+export const TooltipProvider = ({ children }: React.PropsWithChildren) => <div>{children}</div>
+
+export const Tooltip = ({ children }: React.PropsWithChildren) => <div>{children}</div>
+
+export const TooltipTrigger = ({
+  children,
+  ...props
+}: React.PropsWithChildren<Record<string, unknown>>) => <div {...props}>{children}</div>
+
+export const TooltipContent = ({ children }: React.PropsWithChildren) => <div>{children}</div>
 
 // ---------------------------------------------------------------------------
 // Separator
