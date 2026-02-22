@@ -87,6 +87,7 @@ packages/
 | Test (affected) | `bun run test:affected` | Only packages changed vs main |
 | License check | `bun run license:check` | Verify dependency licenses |
 | Docs server | `bun run docs` | Runs web app for docs preview |
+| Issue dashboard | `bun run dashboard` | Live HTML dashboard at :3333 |
 
 ---
 

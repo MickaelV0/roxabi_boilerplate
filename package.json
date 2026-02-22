@@ -34,7 +34,8 @@
     "db:generate": "bash scripts/db.sh generate",
     "db:migrate": "bash scripts/db.sh migrate",
     "db:reset": "bash scripts/db.sh reset",
-    "db:seed": "bash scripts/db.sh seed"
+    "db:seed": "bash scripts/db.sh seed",
+    "dashboard": "bun .claude/skills/issues/dashboard.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.4",
