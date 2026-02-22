@@ -160,7 +160,7 @@ async function recordDemo(
     await browser.close()
   }
 
-  if (!videoPath || !existsSync(videoPath)) {
+  if (!(videoPath && existsSync(videoPath))) {
     console.error('ERROR: Video file was not created by Playwright.')
     process.exit(1)
   }

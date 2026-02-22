@@ -37,7 +37,7 @@ export function formatDeps(issue: Issue): string {
 }
 
 function shortTitle(title: string, maxLen: number): string {
-  if (title.length > maxLen) return title.slice(0, maxLen - 3) + '...'
+  if (title.length > maxLen) return `${title.slice(0, maxLen - 3)}...`
   return title
 }
 
@@ -57,7 +57,9 @@ function formatChildRow(
     const cPri = fieldValue(childItem, 'Priority')
     const cBlock = computeBlockStatus(childItem)
     const cDeps = formatDepsFromRaw(childItem)
-    const cTitle = shortTitle(childItem.content.title, cTitleWidth - 4) + (childItem.content.title.length > cTitleWidth - 4 ? '' : '')
+    const cTitle =
+      shortTitle(childItem.content.title, cTitleWidth - 4) +
+      (childItem.content.title.length > cTitleWidth - 4 ? '' : '')
     const cTitlePadded = pad(cTitle, cTitleWidth)
 
     return `       \u2502   ${prefix}${numStr} ${cTitlePadded}\u2502 ${pad(STATUS_SHORT[cStatus] ?? cStatus, 9)}\u2502 ${pad(cSize, 5)}\u2502 ${pad(PRIORITY_SHORT[cPri] ?? cPri, 4)}\u2502 ${blockIcon(cBlock)} \u2502 ${cDeps}`
@@ -131,9 +133,7 @@ export function formatTable(allItems: RawItem[], opts: FormatOptions): string {
   for (const item of openItems) byNum.set(item.content.number, item)
 
   // Root issues: no open parent
-  const roots = openItems.filter(
-    (i) => !i.content.parent || i.content.parent.state === 'CLOSED'
-  )
+  const roots = openItems.filter((i) => !i.content.parent || i.content.parent.state === 'CLOSED')
 
   const sorted = sortIssues(roots)
   const tl = opts.titleLength
@@ -175,7 +175,7 @@ export function formatTable(allItems: RawItem[], opts: FormatOptions): string {
   lines.push('')
 
   // Dependency chains
-  const chains = buildChains(openItems, byNum)
+  const chains = buildChains(openItems)
   if (chains.length > 0) {
     lines.push('  Chains:')
     lines.push(...chains)
@@ -190,11 +190,11 @@ function shortName(title: string): string {
     .replace(/^Feature:\s*/i, '')
     .replace(/^LATER:\s*/i, '')
     .replace(/\s*\(.*?\)$/, '')
-  if (s.length > 20) s = s.slice(0, 17) + '...'
+  if (s.length > 20) s = `${s.slice(0, 17)}...`
   return s
 }
 
-function buildChains(allItems: RawItem[], byNum: Map<number, RawItem>): string[] {
+function buildChains(allItems: RawItem[]): string[] {
   // Build graph: number → { title, blocks[] }
   const graph = new Map<number, { num: number; title: string; blocks: number[] }>()
   for (const item of allItems) {
@@ -210,15 +210,17 @@ function buildChains(allItems: RawItem[], byNum: Map<number, RawItem>): string[]
   }
 
   // Issues that block others
-  const blockers = [...graph.values()].filter((n) => n.blocks.length > 0).map((n) => n.num).sort()
+  const blockers = [...graph.values()]
+    .filter((n) => n.blocks.length > 0)
+    .map((n) => n.num)
+    .sort()
   if (blockers.length === 0) return []
 
   // Build in-set dependency map for topological sort
-  const blockerSet = new Set(blockers)
   const inDeps = new Map<number, number[]>()
   for (const num of blockers) {
     const upstream = blockers.filter(
-      (other) => other !== num && graph.get(other)!.blocks.includes(num)
+      (other) => other !== num && (graph.get(other)?.blocks.includes(num) ?? false)
     )
     inDeps.set(num, upstream)
   }
@@ -244,7 +246,8 @@ function buildChains(allItems: RawItem[], byNum: Map<number, RawItem>): string[]
   // Format chains
   const lines: string[] = []
   for (const num of emitted) {
-    const node = graph.get(num)!
+    const node = graph.get(num)
+    if (!node) continue
     if (node.blocks.length === 1) {
       const t = node.blocks[0]
       const targetNode = graph.get(t)

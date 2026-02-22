@@ -50,7 +50,7 @@ export function parseWorktreeBlock(block: string): WorktreeInfo | null {
     }
   }
 
-  if (!wtPath || !branch) return null
+  if (!(wtPath && branch)) return null
 
   const match = branch.match(/(?:feat|fix|hotfix)\/(\d+)/)
   return {

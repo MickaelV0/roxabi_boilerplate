@@ -36,11 +36,11 @@ export function ColorPicker({ label, value, onChange, contrastAgainst }: ColorPi
   }, [value])
 
   const passesContrast = useMemo(() => {
-    if (!contrastAgainst) return undefined
+    if (!contrastAgainst) return
     try {
       return meetsWcagAA(value, contrastAgainst)
     } catch {
-      return undefined
+      return
     }
   }, [value, contrastAgainst])
 

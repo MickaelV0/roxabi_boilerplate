@@ -237,7 +237,7 @@ export class RbacService {
       const ownerRole = defaultRoles.find((r) => r.slug === 'owner')
       const adminRole = defaultRoles.find((r) => r.slug === 'admin')
 
-      if (!ownerRole || !adminRole) {
+      if (!(ownerRole && adminRole)) {
         throw new OwnershipConstraintException('Default roles not found')
       }
 

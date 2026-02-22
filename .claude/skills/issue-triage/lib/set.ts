@@ -4,15 +4,15 @@
  */
 
 import {
+  PRIORITY_FIELD_ID,
   PRIORITY_OPTIONS,
+  resolvePriority,
+  resolveSize,
+  resolveStatus,
   SIZE_FIELD_ID,
   SIZE_OPTIONS,
   STATUS_FIELD_ID,
   STATUS_OPTIONS,
-  PRIORITY_FIELD_ID,
-  resolvePriority,
-  resolveSize,
-  resolveStatus,
 } from '../../shared/config'
 import {
   addBlockedBy,
@@ -142,7 +142,7 @@ export async function setIssue(args: string[]): Promise<void> {
     if (itemId) {
       if (opts.status) {
         const canonical = resolveStatus(opts.status)
-        if (!canonical || !STATUS_OPTIONS[canonical]) {
+        if (!(canonical && STATUS_OPTIONS[canonical])) {
           console.error(
             'Error: Invalid status. Valid: Backlog, Analysis, Specs, "In Progress", Review, Done'
           )
@@ -154,7 +154,7 @@ export async function setIssue(args: string[]): Promise<void> {
 
       if (opts.size) {
         const canonical = resolveSize(opts.size)
-        if (!canonical || !SIZE_OPTIONS[canonical]) {
+        if (!(canonical && SIZE_OPTIONS[canonical])) {
           console.error(`Error: Invalid size. Valid: ${Object.keys(SIZE_OPTIONS).join(', ')}`)
           process.exit(1)
         }
@@ -164,7 +164,7 @@ export async function setIssue(args: string[]): Promise<void> {
 
       if (opts.priority) {
         const canonical = resolvePriority(opts.priority)
-        if (!canonical || !PRIORITY_OPTIONS[canonical]) {
+        if (!(canonical && PRIORITY_OPTIONS[canonical])) {
           console.error('Error: Invalid priority. Valid: Urgent, High, Medium, Low')
           process.exit(1)
         }

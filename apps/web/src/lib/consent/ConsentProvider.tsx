@@ -31,7 +31,7 @@ function readCookieClient(): ConsentCookiePayload | null {
 }
 
 function computeShowBanner(consent: ConsentCookiePayload | null): boolean {
-  if (!consent || !consent.consentedAt || !consent.action) return true
+  if (!(consent?.consentedAt && consent.action)) return true
 
   const consentAge = Date.now() - new Date(consent.consentedAt).getTime()
   if (consentAge > SIX_MONTHS_MS) return true

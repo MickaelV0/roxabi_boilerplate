@@ -5,12 +5,9 @@
 
 export const PROJECT_ID = process.env.PROJECT_ID ?? 'PVT_kwHODEqYK84BOId3'
 export const GITHUB_REPO = process.env.GITHUB_REPO ?? 'MickaelV0/roxabi_boilerplate'
-export const STATUS_FIELD_ID =
-  process.env.STATUS_FIELD_ID ?? 'PVTSSF_lAHODEqYK84BOId3zg87HNM'
-export const SIZE_FIELD_ID =
-  process.env.SIZE_FIELD_ID ?? 'PVTSSF_lAHODEqYK84BOId3zg87HYo'
-export const PRIORITY_FIELD_ID =
-  process.env.PRIORITY_FIELD_ID ?? 'PVTSSF_lAHODEqYK84BOId3zg87HYs'
+export const STATUS_FIELD_ID = process.env.STATUS_FIELD_ID ?? 'PVTSSF_lAHODEqYK84BOId3zg87HNM'
+export const SIZE_FIELD_ID = process.env.SIZE_FIELD_ID ?? 'PVTSSF_lAHODEqYK84BOId3zg87HYo'
+export const PRIORITY_FIELD_ID = process.env.PRIORITY_FIELD_ID ?? 'PVTSSF_lAHODEqYK84BOId3zg87HYs'
 
 // Canonical option maps: display name → GitHub option ID
 export const STATUS_OPTIONS: Record<string, string> = {
@@ -131,5 +128,5 @@ export function resolvePriority(input: string): string | undefined {
 export function resolveSize(input: string): string | undefined {
   const upper = input.toUpperCase()
   if (SIZE_OPTIONS[upper]) return upper
-  return undefined
+  return
 }

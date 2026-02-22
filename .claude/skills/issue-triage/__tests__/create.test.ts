@@ -50,20 +50,12 @@ describe('issue-triage/create', () => {
 
   it('sets size on creation', async () => {
     await createIssue(['--title', 'Test', '--size', 'M'])
-    expect(mockUpdateField).toHaveBeenCalledWith(
-      'item-99',
-      expect.any(String),
-      'e2c52fb1'
-    )
+    expect(mockUpdateField).toHaveBeenCalledWith('item-99', expect.any(String), 'e2c52fb1')
   })
 
   it('sets priority on creation', async () => {
     await createIssue(['--title', 'Test', '--priority', 'High'])
-    expect(mockUpdateField).toHaveBeenCalledWith(
-      'item-99',
-      expect.any(String),
-      '742ac87b'
-    )
+    expect(mockUpdateField).toHaveBeenCalledWith('item-99', expect.any(String), '742ac87b')
   })
 
   it('sets parent relationship', async () => {
