@@ -1,6 +1,3 @@
-// TODO: implement — English translations for all email templates
-// Includes subject lines and body text for verification, reset, and magic link emails
-
 import type { Translations } from './types'
 
 export const en: Translations = {

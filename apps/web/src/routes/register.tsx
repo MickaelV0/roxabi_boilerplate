@@ -80,9 +80,10 @@ function RegisterPage() {
 
     setLoading(true)
     try {
-      // locale is passed as an additional field for Better Auth's user schema.
-      // The backend must declare `locale` in the user schema for this to persist.
-      // Until then, Better Auth silently ignores unknown fields.
+      // locale is declared in Better Auth's user.additionalFields
+      // but the client SDK types don't reflect additional fields in signUp params.
+      // Using `as` cast because @ts-expect-error only suppresses errors on the
+      // next line and cannot reach `locale` inside a multi-line object literal.
       const { error: signUpError } = await authClient.signUp.email({
         name,
         email,

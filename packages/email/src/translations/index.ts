@@ -1,6 +1,3 @@
-// TODO: implement — locale resolver
-// Resolves locale string to translation object, falls back to 'en'
-
 import { en } from './en'
 import { fr } from './fr'
 

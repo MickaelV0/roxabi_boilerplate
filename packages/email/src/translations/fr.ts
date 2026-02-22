@@ -1,6 +1,3 @@
-// TODO: implement — French translations for all email templates
-// Mirrors en.ts structure with French text
-
 import type { Translations } from './types'
 
 export const fr: Translations = {

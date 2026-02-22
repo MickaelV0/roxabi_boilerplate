@@ -179,6 +179,28 @@ describe('safeRedirect', () => {
     // Assert
     expect(result).toBe('/dashboard')
   })
+
+  it('should block URL-encoded double-slash (/%2F/evil.com)', () => {
+    // Arrange
+    const path = '/%2F/evil.com'
+
+    // Act
+    const result = safeRedirect(path)
+
+    // Assert
+    expect(result).toBe('/dashboard')
+  })
+
+  it('should block URL-encoded backslash (/%5C/evil.com)', () => {
+    // Arrange
+    const path = '/%5C/evil.com'
+
+    // Act
+    const result = safeRedirect(path)
+
+    // Assert
+    expect(result).toBe('/dashboard')
+  })
 })
 
 // ---------------------------------------------------------------------------

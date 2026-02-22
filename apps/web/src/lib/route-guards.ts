@@ -15,9 +15,12 @@ export type BeforeLoadContext = {
 export function safeRedirect(value: string | undefined): string {
   if (!value) return '/dashboard'
   if (!value.startsWith('/') || value.startsWith('//')) return '/dashboard'
+  // Block URL-encoded path traversal (e.g., /%2F/evil.com, /%5C/evil.com)
+  const decoded = decodeURIComponent(value)
+  if (decoded.startsWith('//') || decoded.includes('\\')) return '/dashboard'
   try {
     const url = new URL(value, 'http://localhost')
-    if (url.hostname !== 'localhost') return '/dashboard'
+    if (url.origin !== 'http://localhost') return '/dashboard'
   } catch {
     return '/dashboard'
   }

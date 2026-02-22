@@ -33,7 +33,7 @@ export function EmailLayout({ children, preview, locale }: EmailLayoutProps) {
           <Hr style={hrStyle} />
           <Section style={footerStyle}>
             <Text style={footerTextStyle}>
-              &copy; 2026{' '}
+              &copy; {new Date().getFullYear()}{' '}
               <Link href="https://roxabi.com" style={footerLinkStyle}>
                 Roxabi
               </Link>

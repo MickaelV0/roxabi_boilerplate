@@ -1,5 +1,5 @@
+import { escapeHtml } from '@repo/email'
 import { describe, expect, it } from 'vitest'
-import { escapeHtml } from './auth.instance.js'
 
 describe('escapeHtml', () => {
   it('should escape ampersands', () => {

@@ -1,4 +1,10 @@
-import { renderMagicLinkEmail, renderResetEmail, renderVerificationEmail } from '@repo/email'
+import { Logger } from '@nestjs/common'
+import {
+  escapeHtml,
+  renderMagicLinkEmail,
+  renderResetEmail,
+  renderVerificationEmail,
+} from '@repo/email'
 import { DICEBEAR_CDN_BASE } from '@repo/types'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
@@ -10,16 +16,15 @@ import type { DrizzleDB } from '../database/drizzle.provider.js'
 import { users } from '../database/schema/auth.schema.js'
 import type { EmailProvider } from './email/email.provider.js'
 
-type UserWithLocale = { locale?: string }
+const logger = new Logger('AuthInstance')
 
-export function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
+const SUPPORTED_LOCALES = ['en', 'fr']
+
+// Better Auth does not infer additionalFields on callback user parameters.
+// The locale field is declared in user.additionalFields above but the callback
+// type only includes core fields. This assertion is necessary until Better Auth
+// improves its type inference.
+type UserWithLocale = { locale?: string }
 
 export type AuthInstanceConfig = {
   secret: string
@@ -88,9 +93,18 @@ export function createBetterAuth(
               if (!user.image) {
                 updateFields.image = `${DICEBEAR_CDN_BASE}/lorelei/svg?seed=${user.id}`
               }
+
+              // Sanitize locale: only allow supported locales, default to 'en'.
+              // The `input: true` on additionalFields allows arbitrary strings from
+              // the client, so we enforce valid values server-side.
+              const userLocale = (user as UserWithLocale).locale
+              if (userLocale && !SUPPORTED_LOCALES.includes(userLocale)) {
+                updateFields.locale = 'en'
+              }
+
               await db.update(users).set(updateFields).where(eq(users.id, user.id))
             } catch (error) {
-              console.warn('Failed to set default avatar for user', user.id, error)
+              logger.warn('Failed to set default avatar for user', { userId: user.id, error })
             }
           },
         },
@@ -114,15 +128,20 @@ export function createBetterAuth(
             text,
           })
         } catch (error) {
-          console.error('Failed to render reset password email, using fallback:', error)
+          logger.error('Failed to render reset password email, using fallback', error)
           await emailProvider.send({
             to: user.email,
             subject: 'Reset your password',
             html: `<p>Click <a href="${escapeHtml(url)}">here</a> to reset your password.</p>`,
+            text: `Reset your password: ${url}`,
           })
         }
       },
     },
+    // Better Auth applies server-side rate limiting on verification email sends
+    // (rateLimit plugin). Client-side cooldown (60s) is UX guidance only.
+    // Server-side rate limiting is the hard limit. See issue #53 for additional
+    // rate limiting.
     emailVerification: {
       sendOnSignIn: true,
       async sendVerificationEmail({ user, url }) {
@@ -136,11 +155,12 @@ export function createBetterAuth(
             text,
           })
         } catch (error) {
-          console.error('Failed to render verification email, using fallback:', error)
+          logger.error('Failed to render verification email, using fallback', error)
           await emailProvider.send({
             to: user.email,
             subject: 'Verify your email',
             html: `<p>Click <a href="${escapeHtml(url)}">here</a> to verify your email.</p>`,
+            text: `Verify your email: ${url}`,
           })
         }
       },
@@ -200,11 +220,12 @@ export function createBetterAuth(
               text,
             })
           } catch (error) {
-            console.error('Failed to render magic link email, using fallback:', error)
+            logger.error('Failed to render magic link email, using fallback', error)
             await emailProvider.send({
               to: email,
               subject: 'Sign in to Roxabi',
               html: `<p>Click <a href="${escapeHtml(url)}">here</a> to sign in.</p>`,
+              text: `Sign in to Roxabi: ${url}`,
             })
           }
         },

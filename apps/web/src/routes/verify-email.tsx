@@ -146,18 +146,13 @@ function VerifyEmailPage() {
             {resending
               ? m.auth_resending()
               : cooldown > 0
-                ? m.auth_resend_verification_in({ seconds: String(cooldown) })
+                ? m.auth_resend_in({ seconds: String(cooldown) })
                 : m.auth_resend_verification()}
           </Button>
         )}
         {!sessionEmail && (
           <div className="space-y-3">
-            {sessionlessMessage && (
-              <p aria-live="polite" className="text-sm text-muted-foreground">
-                {sessionlessMessage}
-              </p>
-            )}
-            <form onSubmit={handleSessionlessResend} className="space-y-3">
+            <form onSubmit={handleSessionlessResend} aria-busy={resending} className="space-y-3">
               <div className="space-y-2">
                 <Label htmlFor="resend-email">{m.auth_verify_email_enter_email()}</Label>
                 <Input
@@ -168,6 +163,7 @@ function VerifyEmailPage() {
                     setResendEmail(e.target.value)
                   }
                   required
+                  disabled={resending}
                 />
               </div>
               <Button
@@ -179,10 +175,15 @@ function VerifyEmailPage() {
                 {resending
                   ? m.auth_resending()
                   : cooldown > 0
-                    ? m.auth_resend_verification_in({ seconds: String(cooldown) })
+                    ? m.auth_resend_in({ seconds: String(cooldown) })
                     : m.auth_resend_verification()}
               </Button>
             </form>
+            {sessionlessMessage && (
+              <p aria-live="polite" className="text-sm text-muted-foreground">
+                {sessionlessMessage}
+              </p>
+            )}
           </div>
         )}
         <p className="text-sm text-muted-foreground">

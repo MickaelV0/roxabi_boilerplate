@@ -1,4 +1,6 @@
 import {
+  Alert,
+  AlertDescription,
   Button,
   Checkbox,
   cn,
@@ -55,6 +57,7 @@ function LoginPage() {
   const [emailNotVerified, setEmailNotVerified] = useState(false)
   const [notVerifiedEmail, setNotVerifiedEmail] = useState('')
   const [resendCooldown, setResendCooldown] = useState(0)
+  const [resendLoading, setResendLoading] = useState(false)
 
   useEffect(() => {
     if (resendCooldown <= 0) return
@@ -64,13 +67,17 @@ function LoginPage() {
 
   // Read redirect from sessionStorage after OAuth callback
   useEffect(() => {
-    const storedRedirect = sessionStorage.getItem('auth_redirect')
-    if (storedRedirect) {
-      sessionStorage.removeItem('auth_redirect')
-      const target = safeRedirect(storedRedirect)
-      if (target !== '/dashboard') {
-        navigate({ to: target })
+    try {
+      const storedRedirect = sessionStorage.getItem('auth_redirect')
+      if (storedRedirect) {
+        sessionStorage.removeItem('auth_redirect')
+        const target = safeRedirect(storedRedirect)
+        if (target !== '/dashboard') {
+          navigate({ to: target })
+        }
       }
+    } catch {
+      // sessionStorage may be unavailable (private browsing, storage quota)
     }
   }, [navigate])
 
@@ -123,6 +130,9 @@ function LoginPage() {
         rememberMe,
       })
       if (signInError) {
+        // Better Auth returns 403 specifically for unverified email when
+        // emailAndPassword.requireEmailVerification is enabled. Other 403
+        // conditions (banned, etc.) use different error codes.
         if (signInError.status === 403) {
           setEmailNotVerified(true)
           setNotVerifiedEmail(email)
@@ -167,6 +177,7 @@ function LoginPage() {
 
   async function handleResendVerification() {
     if (!notVerifiedEmail) return
+    setResendLoading(true)
     try {
       await authClient.sendVerificationEmail({
         email: notVerifiedEmail,
@@ -176,16 +187,27 @@ function LoginPage() {
       setResendCooldown(COOLDOWN_SECONDS)
     } catch {
       toast.error(m.auth_toast_error())
+    } finally {
+      setResendLoading(false)
     }
   }
 
   async function handleOAuth(provider: 'google' | 'github') {
     if (redirectParam) {
-      sessionStorage.setItem('auth_redirect', redirectParam)
+      try {
+        sessionStorage.setItem('auth_redirect', redirectParam)
+      } catch {
+        // sessionStorage may be unavailable
+      }
     }
     setOauthLoading(provider)
     try {
-      await authClient.signIn.social({ provider })
+      await authClient.signIn.social({
+        provider,
+        callbackURL: redirectParam
+          ? `/login?redirect=${encodeURIComponent(redirectParam)}`
+          : undefined,
+      })
     } catch {
       toast.error(m.auth_toast_error())
       setOauthLoading(null)
@@ -195,24 +217,19 @@ function LoginPage() {
   return (
     <AuthLayout title={m.auth_sign_in_title()} description={m.auth_sign_in_desc()}>
       {emailNotVerified && (
-        <div
-          role="alert"
-          className="rounded-md border border-warning/50 bg-warning/10 p-4 space-y-2"
-        >
-          <p className="text-sm text-warning-foreground">
-            {m.auth_login_email_not_verified_sent()}
-          </p>
+        <Alert variant="warning" className="space-y-2">
+          <AlertDescription>{m.auth_login_email_not_verified_sent()}</AlertDescription>
           <Button
             variant="outline"
             size="sm"
             onClick={handleResendVerification}
-            disabled={resendCooldown > 0}
+            disabled={resendCooldown > 0 || resendLoading}
           >
             {resendCooldown > 0
-              ? m.auth_resend_verification_in({ seconds: String(resendCooldown) })
+              ? m.auth_resend_in({ seconds: String(resendCooldown) })
               : m.auth_resend_verification()}
           </Button>
-        </div>
+        </Alert>
       )}
 
       {error && (

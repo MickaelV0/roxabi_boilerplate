@@ -44,13 +44,32 @@ const mockRenderVerificationEmail = vi.fn()
 const mockRenderResetEmail = vi.fn()
 const mockRenderMagicLinkEmail = vi.fn()
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 vi.mock('@repo/email', () => ({
+  escapeHtml: (str: string) => escapeHtml(str),
   renderVerificationEmail: (...args: unknown[]) => mockRenderVerificationEmail(...args),
   renderResetEmail: (...args: unknown[]) => mockRenderResetEmail(...args),
   renderMagicLinkEmail: (...args: unknown[]) => mockRenderMagicLinkEmail(...args),
 }))
 
-import { createBetterAuth, escapeHtml } from './auth.instance.js'
+vi.mock('@nestjs/common', () => {
+  class MockLogger {
+    error = vi.fn()
+    warn = vi.fn()
+    log = vi.fn()
+  }
+  return { Logger: MockLogger }
+})
+
+import { createBetterAuth } from './auth.instance.js'
 
 function createMockDb() {
   const whereFn = vi.fn().mockResolvedValue(undefined)
@@ -353,6 +372,7 @@ describe('createBetterAuth sendVerificationEmail', () => {
       to: 'user@example.com',
       subject: 'Verify your email',
       html: '<p>Click <a href="https://app.roxabi.com/verify?token=abc">here</a> to verify your email.</p>',
+      text: 'Verify your email: https://app.roxabi.com/verify?token=abc',
     })
   })
 })
@@ -456,6 +476,7 @@ describe('createBetterAuth sendResetPassword', () => {
       to: 'user@example.com',
       subject: 'Reset your password',
       html: '<p>Click <a href="https://app.roxabi.com/reset?token=xyz">here</a> to reset your password.</p>',
+      text: 'Reset your password: https://app.roxabi.com/reset?token=xyz',
     })
   })
 })
@@ -561,6 +582,7 @@ describe('createBetterAuth sendMagicLink', () => {
       to: 'user@example.com',
       subject: 'Sign in to Roxabi',
       html: '<p>Click <a href="https://app.roxabi.com/magic?token=m3">here</a> to sign in.</p>',
+      text: 'Sign in to Roxabi: https://app.roxabi.com/magic?token=m3',
     })
   })
 
@@ -583,6 +605,7 @@ describe('createBetterAuth sendMagicLink', () => {
       to: 'user@example.com',
       subject: 'Sign in to Roxabi',
       html: '<p>Click <a href="https://app.roxabi.com/magic?token=m4">here</a> to sign in.</p>',
+      text: 'Sign in to Roxabi: https://app.roxabi.com/magic?token=m4',
     })
   })
 })
