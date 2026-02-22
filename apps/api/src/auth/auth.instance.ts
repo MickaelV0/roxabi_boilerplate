@@ -120,7 +120,7 @@ export function createBetterAuth(
       async sendResetPassword({ user, url }) {
         try {
           const locale = (user as UserWithLocale).locale ?? 'en'
-          const { html, text, subject } = await renderResetEmail(url, locale)
+          const { html, text, subject } = await renderResetEmail(url, locale, config.appURL)
           await emailProvider.send({
             to: user.email,
             subject,
@@ -147,7 +147,7 @@ export function createBetterAuth(
       async sendVerificationEmail({ user, url }) {
         try {
           const locale = (user as UserWithLocale).locale ?? 'en'
-          const { html, text, subject } = await renderVerificationEmail(url, locale)
+          const { html, text, subject } = await renderVerificationEmail(url, locale, config.appURL)
           await emailProvider.send({
             to: user.email,
             subject,
@@ -212,7 +212,7 @@ export function createBetterAuth(
               .from(users)
               .where(eq(users.email, email))
             const locale = userData?.locale ?? 'en'
-            const { html, text, subject } = await renderMagicLinkEmail(url, locale)
+            const { html, text, subject } = await renderMagicLinkEmail(url, locale, config.appURL)
             await emailProvider.send({
               to: email,
               subject,

@@ -5,6 +5,7 @@ type ResetPasswordEmailProps = {
   url: string
   translations: Translations['reset']
   locale: string
+  appUrl?: string
 }
 
 export function ResetPasswordEmail(props: ResetPasswordEmailProps) {

@@ -17,9 +17,15 @@ type EmailLayoutProps = {
   children: ReactNode
   preview: string
   locale: string
+  appUrl?: string
 }
 
-export function EmailLayout({ children, preview, locale }: EmailLayoutProps) {
+export function EmailLayout({
+  children,
+  preview,
+  locale,
+  appUrl = 'https://roxabi.fr',
+}: EmailLayoutProps) {
   return (
     <Html lang={locale}>
       <Head />
@@ -34,7 +40,7 @@ export function EmailLayout({ children, preview, locale }: EmailLayoutProps) {
           <Section style={footerStyle}>
             <Text style={footerTextStyle}>
               &copy; {new Date().getFullYear()}{' '}
-              <Link href="https://roxabi.com" style={footerLinkStyle}>
+              <Link href={appUrl} style={footerLinkStyle}>
                 Roxabi
               </Link>
             </Text>

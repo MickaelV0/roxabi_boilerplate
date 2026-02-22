@@ -316,7 +316,8 @@ describe('createBetterAuth sendVerificationEmail', () => {
     // Assert
     expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
       'https://app.roxabi.com/verify?token=abc',
-      'fr'
+      'fr',
+      'http://localhost:3000'
     )
     expect(mockEmail.send).toHaveBeenCalledWith({
       to: 'user@example.com',
@@ -348,7 +349,8 @@ describe('createBetterAuth sendVerificationEmail', () => {
     // Assert
     expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
       'https://app.roxabi.com/verify?token=abc',
-      'en'
+      'en',
+      'http://localhost:3000'
     )
   })
 
@@ -420,7 +422,8 @@ describe('createBetterAuth sendResetPassword', () => {
     // Assert
     expect(mockRenderResetEmail).toHaveBeenCalledWith(
       'https://app.roxabi.com/reset?token=xyz',
-      'fr'
+      'fr',
+      'http://localhost:3000'
     )
     expect(mockEmail.send).toHaveBeenCalledWith({
       to: 'user@example.com',
@@ -452,7 +455,8 @@ describe('createBetterAuth sendResetPassword', () => {
     // Assert
     expect(mockRenderResetEmail).toHaveBeenCalledWith(
       'https://app.roxabi.com/reset?token=xyz',
-      'en'
+      'en',
+      'http://localhost:3000'
     )
   })
 
@@ -524,7 +528,8 @@ describe('createBetterAuth sendMagicLink', () => {
     expect(mockDb._mocks.selectFn).toHaveBeenCalled()
     expect(mockRenderMagicLinkEmail).toHaveBeenCalledWith(
       'https://app.roxabi.com/magic?token=m1',
-      'fr'
+      'fr',
+      'http://localhost:3000'
     )
     expect(mockEmail.send).toHaveBeenCalledWith({
       to: 'user@example.com',
@@ -557,7 +562,8 @@ describe('createBetterAuth sendMagicLink', () => {
     // Assert
     expect(mockRenderMagicLinkEmail).toHaveBeenCalledWith(
       'https://app.roxabi.com/magic?token=m2',
-      'en'
+      'en',
+      'http://localhost:3000'
     )
   })
 

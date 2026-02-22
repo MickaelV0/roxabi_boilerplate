@@ -22,7 +22,8 @@ export function escapeHtml(str: string): string {
 
 export async function renderVerificationEmail(
   url: string,
-  locale: string
+  locale: string,
+  appUrl?: string
 ): Promise<EmailRenderResult> {
   const translations = getTranslations(locale)
 
@@ -30,6 +31,7 @@ export async function renderVerificationEmail(
     url,
     translations: translations.verification,
     locale,
+    appUrl,
   })
   const html = await render(element)
   const text = await render(element, { plainText: true })
@@ -37,13 +39,18 @@ export async function renderVerificationEmail(
   return { html, text, subject: translations.verification.subject }
 }
 
-export async function renderResetEmail(url: string, locale: string): Promise<EmailRenderResult> {
+export async function renderResetEmail(
+  url: string,
+  locale: string,
+  appUrl?: string
+): Promise<EmailRenderResult> {
   const translations = getTranslations(locale)
 
   const element = createElement(ResetPasswordEmail, {
     url,
     translations: translations.reset,
     locale,
+    appUrl,
   })
   const html = await render(element)
   const text = await render(element, { plainText: true })
@@ -53,7 +60,8 @@ export async function renderResetEmail(url: string, locale: string): Promise<Ema
 
 export async function renderMagicLinkEmail(
   url: string,
-  locale: string
+  locale: string,
+  appUrl?: string
 ): Promise<EmailRenderResult> {
   const translations = getTranslations(locale)
 
@@ -61,6 +69,7 @@ export async function renderMagicLinkEmail(
     url,
     translations: translations.magicLink,
     locale,
+    appUrl,
   })
   const html = await render(element)
   const text = await render(element, { plainText: true })

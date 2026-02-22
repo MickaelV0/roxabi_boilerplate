@@ -217,18 +217,21 @@ function LoginPage() {
   return (
     <AuthLayout title={m.auth_sign_in_title()} description={m.auth_sign_in_desc()}>
       {emailNotVerified && (
-        <Alert variant="warning" className="space-y-2">
-          <AlertDescription>{m.auth_login_email_not_verified_sent()}</AlertDescription>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleResendVerification}
-            disabled={resendCooldown > 0 || resendLoading}
-          >
-            {resendCooldown > 0
-              ? m.auth_resend_in({ seconds: String(resendCooldown) })
-              : m.auth_resend_verification()}
-          </Button>
+        <Alert variant="warning">
+          <AlertDescription className="space-y-2 text-center">
+            <p>{m.auth_login_email_not_verified_sent()}</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto px-2 py-1 underline"
+              onClick={handleResendVerification}
+              disabled={resendCooldown > 0 || resendLoading}
+            >
+              {resendCooldown > 0
+                ? m.auth_resend_in({ seconds: String(resendCooldown) })
+                : m.auth_resend_verification()}
+            </Button>
+          </AlertDescription>
         </Alert>
       )}
 
