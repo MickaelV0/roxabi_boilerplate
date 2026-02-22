@@ -25,6 +25,7 @@ import { m } from '@/paraglide/messages'
 type OrgRole = {
   id: string
   name: string
+  slug: string
 }
 
 async function inviteMember(email: string, roleId: string): Promise<void> {
@@ -110,7 +111,7 @@ export function InviteDialog({ roles, onSuccess }: InviteDialogProps) {
               <SelectContent>
                 {roles.map((role) => (
                   <SelectItem key={role.id} value={role.id}>
-                    {roleLabel(role.name)}
+                    {roleLabel(role.slug)}
                   </SelectItem>
                 ))}
               </SelectContent>

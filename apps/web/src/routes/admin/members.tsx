@@ -67,6 +67,7 @@ type MembersResponse = {
 type OrgRole = {
   id: string
   name: string
+  slug: string
 }
 
 // ---------------------------------------------------------------------------
@@ -121,7 +122,7 @@ async function removeMember(memberId: string): Promise<void> {
 // Hook: useAdminMembers
 // ---------------------------------------------------------------------------
 
-function useAdminMembers() {
+function useAdminMembers(orgId: string | undefined) {
   const [members, setMembers] = useState<Member[]>([])
   const [pagination, setPagination] = useState<PaginationMeta>({
     page: 1,
@@ -160,7 +161,7 @@ function useAdminMembers() {
         }
       })
     return () => controller.abort()
-  }, [version, pagination.page])
+  }, [version, pagination.page, orgId])
 
   return { members, pagination, isLoading, error, refetch, goToPage }
 }
@@ -169,7 +170,7 @@ function useAdminMembers() {
 // Hook: useOrgRoles
 // ---------------------------------------------------------------------------
 
-function useOrgRoles() {
+function useOrgRoles(orgId: string | undefined) {
   const [roles, setRoles] = useState<OrgRole[]>([])
 
   useEffect(() => {
@@ -178,7 +179,7 @@ function useOrgRoles() {
       if (!controller.signal.aborted) setRoles(data)
     })
     return () => controller.abort()
-  }, [])
+  }, [orgId])
 
   return roles
 }
@@ -252,8 +253,8 @@ function RemoveMemberDialog({ memberId, onConfirm, onCancel }: RemoveMemberDialo
 
 function AdminMembersPage() {
   const { data: activeOrg } = authClient.useActiveOrganization()
-  const { members, pagination, isLoading, error, refetch, goToPage } = useAdminMembers()
-  const roles = useOrgRoles()
+  const { members, pagination, isLoading, error, refetch, goToPage } = useAdminMembers(activeOrg?.id)
+  const roles = useOrgRoles(activeOrg?.id)
 
   const [searchQuery, setSearchQuery] = useState('')
   const [removeMemberId, setRemoveMemberId] = useState<string | null>(null)

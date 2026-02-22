@@ -46,6 +46,46 @@ function createMockReply() {
 }
 
 describe('AuthController', () => {
+  describe('getSession', () => {
+    it('should return the session object from the @Session() decorator', () => {
+      // Arrange
+      const authService = createMockAuthService()
+      const controller = new AuthController(authService as never)
+      const session = {
+        user: { id: 'user-1', role: 'user' },
+        session: { id: 'sess-1', activeOrganizationId: 'org-1' },
+        permissions: ['members:read', 'roles:read'],
+      }
+
+      // Act
+      const result = controller.getSession(session)
+
+      // Assert
+      expect(result).toBe(session)
+    })
+
+    it('should return session with empty permissions when no org is active', () => {
+      // Arrange
+      const authService = createMockAuthService()
+      const controller = new AuthController(authService as never)
+      const session = {
+        user: { id: 'user-1', role: 'user' },
+        session: { id: 'sess-1', activeOrganizationId: null },
+        permissions: [],
+      }
+
+      // Act
+      const result = controller.getSession(session)
+
+      // Assert
+      expect(result).toEqual({
+        user: { id: 'user-1', role: 'user' },
+        session: { id: 'sess-1', activeOrganizationId: null },
+        permissions: [],
+      })
+    })
+  })
+
   describe('getEnabledProviders', () => {
     it('should return the enabled providers from the auth service', () => {
       // Arrange

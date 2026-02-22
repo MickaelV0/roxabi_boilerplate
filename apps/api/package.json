@@ -16,6 +16,7 @@
     "db:branch:drop": "tsx scripts/db-branch.ts drop",
     "db:branch:list": "tsx scripts/db-branch.ts list",
     "db:seed": "tsx scripts/db-seed.ts",
+    "db:setup-app-user": "tsx scripts/setup-app-user.ts",
     "db:reset": "tsx scripts/db-reset.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"

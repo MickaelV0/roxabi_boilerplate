@@ -33,6 +33,7 @@ type Member = {
 type OrgRole = {
   id: string
   name: string
+  slug: string
 }
 
 type MembersTableProps = {

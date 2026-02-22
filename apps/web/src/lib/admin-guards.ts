@@ -1,17 +1,31 @@
 import { redirect } from '@tanstack/react-router'
-import { authClient } from '@/lib/auth-client'
 import type { BeforeLoadContext } from '@/lib/route-guards'
 
-type SessionData = {
-  user: { role?: string }
-  permissions?: string[]
+type EnrichedSession = {
+  user: { id: string; name?: string; email: string; role?: string }
+  session: Record<string, unknown>
+  permissions: string[]
 }
 
-function isSessionWithRole(data: unknown): data is SessionData {
+function isEnrichedSession(data: unknown): data is EnrichedSession {
   if (data == null || typeof data !== 'object') return false
   const obj = data as Record<string, unknown>
   if (obj.user == null || typeof obj.user !== 'object') return false
   return true
+}
+
+/** Fetch the enriched session (with RBAC permissions) from the NestJS backend.
+ *  Returns `null` when the user is not authenticated. */
+async function fetchEnrichedSession(): Promise<EnrichedSession | null> {
+  try {
+    const res = await fetch('/api/session', { credentials: 'include' })
+    if (!res.ok) return null
+    const data: unknown = await res.json()
+    if (!isEnrichedSession(data)) return null
+    return data
+  } catch {
+    return null
+  }
 }
 
 /** Redirect non-admin users to /dashboard.
@@ -22,16 +36,14 @@ export async function requireAdmin(_ctx?: BeforeLoadContext) {
     // SSR renders the shell only; auth is enforced client-side on hydration.
     return
   }
-  const { data } = await authClient.getSession()
-  if (!data) throw redirect({ to: '/login' })
-
-  if (!isSessionWithRole(data)) throw redirect({ to: '/dashboard' })
+  const session = await fetchEnrichedSession()
+  if (!session) throw redirect({ to: '/login' })
 
   // Super admins always have admin access
-  if (data.user.role === 'superadmin') return
+  if (session.user.role === 'superadmin') return
 
   // Otherwise check for admin-level org permissions
-  if (data.permissions?.includes('members:write')) return
+  if (session.permissions.includes('members:write')) return
 
   // Not an admin -- redirect to dashboard
   throw redirect({ to: '/dashboard' })
@@ -43,8 +55,7 @@ export async function requireSuperAdmin(_ctx?: BeforeLoadContext) {
   if (typeof window === 'undefined') {
     return
   }
-  const { data } = await authClient.getSession()
-  if (!data) throw redirect({ to: '/login' })
-  if (!isSessionWithRole(data)) throw redirect({ to: '/admin' })
-  if (data.user.role !== 'superadmin') throw redirect({ to: '/admin' })
+  const session = await fetchEnrichedSession()
+  if (!session) throw redirect({ to: '/login' })
+  if (session.user.role !== 'superadmin') throw redirect({ to: '/admin' })
 }

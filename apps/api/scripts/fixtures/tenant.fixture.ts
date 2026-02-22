@@ -31,44 +31,51 @@ export const FULL_EXTRA_ORGS: OrgDef[] = [
 
 /**
  * Minimal members mapping:
- *   user 0 (dev)    -> org 0 (Roxabi Dev) as owner
- *   user 1 (admin)  -> org 0 (Roxabi Dev) as admin
- *   user 2 (viewer) -> org 0 (Roxabi Dev) as viewer
- *   user 2 (viewer) -> org 1 (Acme Corp)  as member
+ *   user 0 (dev)        -> org 0 (Roxabi Dev) as owner
+ *   user 0 (dev)        -> org 1 (Acme Corp)  as admin   (cross-org)
+ *   user 1 (admin)      -> org 0 (Roxabi Dev) as admin
+ *   user 2 (viewer)     -> org 0 (Roxabi Dev) as viewer
+ *   user 2 (viewer)     -> org 1 (Acme Corp)  as member
+ *   user 3 (superadmin) -> org 0 (Roxabi Dev) as owner
  */
 export const MINIMAL_MEMBERS: MemberDef[] = [
   { userIndex: 0, orgIndex: 0, role: 'owner' },
+  { userIndex: 0, orgIndex: 1, role: 'admin' },
   { userIndex: 1, orgIndex: 0, role: 'admin' },
   { userIndex: 2, orgIndex: 0, role: 'viewer' },
   { userIndex: 2, orgIndex: 1, role: 'member' },
+  { userIndex: 3, orgIndex: 0, role: 'owner' },
 ]
 
 /**
- * Full preset extra members (indexes 3-11 are the extra users).
+ * Full preset extra members (indexes 4-12 are the extra users).
  * Spread across all 4 orgs with realistic role assignments.
  * Some users appear in multiple orgs (cross-org members).
+ *
+ * Note: indexes shifted by +1 vs original because superadmin was added
+ * at index 3 in MINIMAL_USERS.
  */
 export const FULL_EXTRA_MEMBERS: MemberDef[] = [
   // Acme Corp — populate with several users
-  { userIndex: 3, orgIndex: 1, role: 'owner' }, // manager -> Acme owner
-  { userIndex: 4, orgIndex: 1, role: 'admin' }, // editor -> Acme admin
-  { userIndex: 5, orgIndex: 1, role: 'member' }, // analyst -> Acme member
-  { userIndex: 6, orgIndex: 1, role: 'viewer' }, // support -> Acme viewer
+  { userIndex: 4, orgIndex: 1, role: 'owner' }, // manager -> Acme owner
+  { userIndex: 5, orgIndex: 1, role: 'admin' }, // editor -> Acme admin
+  { userIndex: 6, orgIndex: 1, role: 'member' }, // analyst -> Acme member
+  { userIndex: 7, orgIndex: 1, role: 'viewer' }, // support -> Acme viewer
 
   // Startup Inc
-  { userIndex: 7, orgIndex: 2, role: 'owner' }, // designer -> Startup owner
-  { userIndex: 8, orgIndex: 2, role: 'admin' }, // devops -> Startup admin
-  { userIndex: 9, orgIndex: 2, role: 'member' }, // marketing -> Startup member
+  { userIndex: 8, orgIndex: 2, role: 'owner' }, // designer -> Startup owner
+  { userIndex: 9, orgIndex: 2, role: 'admin' }, // devops -> Startup admin
+  { userIndex: 10, orgIndex: 2, role: 'member' }, // marketing -> Startup member
   { userIndex: 0, orgIndex: 2, role: 'member' }, // dev -> Startup member (cross-org)
 
   // Agency Pro
-  { userIndex: 10, orgIndex: 3, role: 'owner' }, // sales -> Agency owner
-  { userIndex: 11, orgIndex: 3, role: 'admin' }, // intern -> Agency admin
-  { userIndex: 3, orgIndex: 3, role: 'member' }, // manager -> Agency member (cross-org)
-  { userIndex: 5, orgIndex: 3, role: 'viewer' }, // analyst -> Agency viewer (cross-org)
+  { userIndex: 11, orgIndex: 3, role: 'owner' }, // sales -> Agency owner
+  { userIndex: 12, orgIndex: 3, role: 'admin' }, // intern -> Agency admin
+  { userIndex: 4, orgIndex: 3, role: 'member' }, // manager -> Agency member (cross-org)
+  { userIndex: 6, orgIndex: 3, role: 'viewer' }, // analyst -> Agency viewer (cross-org)
 
   // Additional cross-org for Roxabi Dev
-  { userIndex: 6, orgIndex: 0, role: 'member' }, // support -> Roxabi member (cross-org)
+  { userIndex: 7, orgIndex: 0, role: 'member' }, // support -> Roxabi member (cross-org)
 ]
 
 /** Full preset pending invitations. */
@@ -78,18 +85,18 @@ export const FULL_INVITATIONS: InvitationDef[] = [
   { orgIndex: 0, inviterUserIndex: 0, email: 'invite2@roxabi.local', role: 'viewer' },
 
   // Acme Corp (3 pending)
-  { orgIndex: 1, inviterUserIndex: 3, email: 'invite3@acme.local', role: 'member' },
-  { orgIndex: 1, inviterUserIndex: 3, email: 'invite4@acme.local', role: 'admin' },
-  { orgIndex: 1, inviterUserIndex: 4, email: 'invite5@acme.local', role: 'viewer' },
+  { orgIndex: 1, inviterUserIndex: 4, email: 'invite3@acme.local', role: 'member' },
+  { orgIndex: 1, inviterUserIndex: 4, email: 'invite4@acme.local', role: 'admin' },
+  { orgIndex: 1, inviterUserIndex: 5, email: 'invite5@acme.local', role: 'viewer' },
 
   // Startup Inc (2 pending)
-  { orgIndex: 2, inviterUserIndex: 7, email: 'invite6@startup.local', role: 'member' },
-  { orgIndex: 2, inviterUserIndex: 7, email: 'invite7@startup.local', role: 'member' },
+  { orgIndex: 2, inviterUserIndex: 8, email: 'invite6@startup.local', role: 'member' },
+  { orgIndex: 2, inviterUserIndex: 8, email: 'invite7@startup.local', role: 'member' },
 
   // Agency Pro (3 pending)
-  { orgIndex: 3, inviterUserIndex: 10, email: 'invite8@agency.local', role: 'member' },
-  { orgIndex: 3, inviterUserIndex: 10, email: 'invite9@agency.local', role: 'admin' },
-  { orgIndex: 3, inviterUserIndex: 11, email: 'invite10@agency.local', role: 'viewer' },
+  { orgIndex: 3, inviterUserIndex: 11, email: 'invite8@agency.local', role: 'member' },
+  { orgIndex: 3, inviterUserIndex: 11, email: 'invite9@agency.local', role: 'admin' },
+  { orgIndex: 3, inviterUserIndex: 12, email: 'invite10@agency.local', role: 'viewer' },
 ]
 
 /** Create organizations, members, and (for full preset) invitations. */

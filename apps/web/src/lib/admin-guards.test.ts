@@ -4,13 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockGetSession = vi.fn()
-
-vi.mock('@/lib/auth-client', () => ({
-  authClient: {
-    getSession: (...args: unknown[]) => mockGetSession(...args),
-  },
-}))
+const mockFetch = vi.fn()
+globalThis.fetch = mockFetch
 
 vi.mock('@tanstack/react-router', () => ({
   redirect: (opts: { to: string }) => new Error(`REDIRECT:${opts.to}`),
@@ -19,8 +14,17 @@ vi.mock('@tanstack/react-router', () => ({
 // Import after mocks are set up
 import { requireAdmin, requireSuperAdmin } from './admin-guards'
 
+/** Helper: create a mock Response returning JSON for the enriched session endpoint. */
+function jsonResponse(body: unknown, status = 200) {
+  return Promise.resolve({
+    ok: status >= 200 && status < 300,
+    status,
+    json: () => Promise.resolve(body),
+  })
+}
+
 beforeEach(() => {
-  mockGetSession.mockReset()
+  mockFetch.mockReset()
 })
 
 // ---------------------------------------------------------------------------
@@ -38,15 +42,23 @@ describe('requireAdmin', () => {
 
     // Assert
     expect(result).toBeUndefined()
-    expect(mockGetSession).not.toHaveBeenCalled()
+    expect(mockFetch).not.toHaveBeenCalled()
 
     // Cleanup
     globalThis.window = originalWindow
   })
 
-  it('should throw redirect to /login when getSession returns no data', async () => {
+  it('should throw redirect to /login when session endpoint returns 401', async () => {
     // Arrange
-    mockGetSession.mockResolvedValueOnce({ data: null })
+    mockFetch.mockReturnValueOnce(jsonResponse(null, 401))
+
+    // Act & Assert
+    await expect(requireAdmin()).rejects.toThrow('REDIRECT:/login')
+  })
+
+  it('should throw redirect to /login when fetch throws a network error', async () => {
+    // Arrange
+    mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'))
 
     // Act & Assert
     await expect(requireAdmin()).rejects.toThrow('REDIRECT:/login')
@@ -54,19 +66,28 @@ describe('requireAdmin', () => {
 
   it('should not throw when user has superadmin role', async () => {
     // Arrange
-    mockGetSession.mockResolvedValueOnce({
-      data: { user: { role: 'superadmin' }, permissions: [] },
-    })
+    mockFetch.mockReturnValueOnce(
+      jsonResponse({
+        user: { id: '1', email: 'a@b.com', role: 'superadmin' },
+        session: {},
+        permissions: [],
+      })
+    )
 
     // Act & Assert
     await expect(requireAdmin()).resolves.toBeUndefined()
+    expect(mockFetch).toHaveBeenCalledWith('/api/session', { credentials: 'include' })
   })
 
   it('should not throw when user has members:write permission', async () => {
     // Arrange
-    mockGetSession.mockResolvedValueOnce({
-      data: { user: { role: 'member' }, permissions: ['members:write'] },
-    })
+    mockFetch.mockReturnValueOnce(
+      jsonResponse({
+        user: { id: '1', email: 'a@b.com', role: 'member' },
+        session: {},
+        permissions: ['members:write'],
+      })
+    )
 
     // Act & Assert
     await expect(requireAdmin()).resolves.toBeUndefined()
@@ -74,9 +95,13 @@ describe('requireAdmin', () => {
 
   it('should throw redirect to /dashboard when user is neither superadmin nor has members:write', async () => {
     // Arrange
-    mockGetSession.mockResolvedValueOnce({
-      data: { user: { role: 'member' }, permissions: ['members:read'] },
-    })
+    mockFetch.mockReturnValueOnce(
+      jsonResponse({
+        user: { id: '1', email: 'a@b.com', role: 'member' },
+        session: {},
+        permissions: ['members:read'],
+      })
+    )
 
     // Act & Assert
     await expect(requireAdmin()).rejects.toThrow('REDIRECT:/dashboard')
@@ -98,15 +123,15 @@ describe('requireSuperAdmin', () => {
 
     // Assert
     expect(result).toBeUndefined()
-    expect(mockGetSession).not.toHaveBeenCalled()
+    expect(mockFetch).not.toHaveBeenCalled()
 
     // Cleanup
     globalThis.window = originalWindow
   })
 
-  it('should throw redirect to /login when getSession returns no data', async () => {
+  it('should throw redirect to /login when session endpoint returns 401', async () => {
     // Arrange
-    mockGetSession.mockResolvedValueOnce({ data: null })
+    mockFetch.mockReturnValueOnce(jsonResponse(null, 401))
 
     // Act & Assert
     await expect(requireSuperAdmin()).rejects.toThrow('REDIRECT:/login')
@@ -114,9 +139,13 @@ describe('requireSuperAdmin', () => {
 
   it('should not throw when user has superadmin role', async () => {
     // Arrange
-    mockGetSession.mockResolvedValueOnce({
-      data: { user: { role: 'superadmin' } },
-    })
+    mockFetch.mockReturnValueOnce(
+      jsonResponse({
+        user: { id: '1', email: 'a@b.com', role: 'superadmin' },
+        session: {},
+        permissions: [],
+      })
+    )
 
     // Act & Assert
     await expect(requireSuperAdmin()).resolves.toBeUndefined()
@@ -124,9 +153,13 @@ describe('requireSuperAdmin', () => {
 
   it('should throw redirect to /admin when user is not superadmin', async () => {
     // Arrange
-    mockGetSession.mockResolvedValueOnce({
-      data: { user: { role: 'member' } },
-    })
+    mockFetch.mockReturnValueOnce(
+      jsonResponse({
+        user: { id: '1', email: 'a@b.com', role: 'member' },
+        session: {},
+        permissions: ['members:write'],
+      })
+    )
 
     // Act & Assert
     await expect(requireSuperAdmin()).rejects.toThrow('REDIRECT:/admin')

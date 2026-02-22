@@ -23,9 +23,9 @@ const VALID_ROLES = DEFAULT_ROLES.map((r) => r.slug)
 // ---------------------------------------------------------------------------
 
 describe('auth fixture data', () => {
-  it('should have exactly 3 minimal users', () => {
+  it('should have exactly 4 minimal users', () => {
     // Arrange / Act / Assert
-    expect(MINIMAL_USERS).toHaveLength(3)
+    expect(MINIMAL_USERS).toHaveLength(4)
   })
 
   it('should have exactly 9 full extra users', () => {

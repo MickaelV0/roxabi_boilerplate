@@ -16,7 +16,10 @@ export const postgresClientProvider = {
   inject: [ConfigService],
   useFactory: (config: ConfigService): PostgresClient | null => {
     const logger = new Logger('DrizzleProvider')
-    const connectionString = config.get<string>('DATABASE_URL')
+    // Prefer DATABASE_APP_URL (connects as roxabi_app, RLS enforced)
+    // Fall back to DATABASE_URL for backwards compatibility
+    const connectionString =
+      config.get<string>('DATABASE_APP_URL') ?? config.get<string>('DATABASE_URL')
     const nodeEnv = config.get<string>('NODE_ENV', 'development')
 
     if (!connectionString) {
@@ -25,6 +28,13 @@ export const postgresClientProvider = {
       }
       logger.warn('DATABASE_URL not set, database features will be unavailable')
       return null
+    }
+
+    if (!config.get<string>('DATABASE_APP_URL')) {
+      logger.warn(
+        'DATABASE_APP_URL not set — connecting as table owner. ' +
+          'RLS policies will be BYPASSED. Set DATABASE_APP_URL to use the roxabi_app user.'
+      )
     }
 
     return postgres(connectionString, {

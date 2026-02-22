@@ -4,6 +4,7 @@ import { roleLabel } from '@/lib/org-utils'
 type OrgRole = {
   id: string
   name: string
+  slug: string
 }
 
 type RoleSelectProps = {
@@ -14,7 +15,7 @@ type RoleSelectProps = {
 }
 
 export function RoleSelect({ currentRole, roles, onRoleChange, disabled }: RoleSelectProps) {
-  const currentRoleObj = roles.find((r) => r.name === currentRole)
+  const currentRoleObj = roles.find((r) => r.slug === currentRole)
   const currentRoleId = currentRoleObj?.id ?? ''
 
   return (
@@ -25,7 +26,7 @@ export function RoleSelect({ currentRole, roles, onRoleChange, disabled }: RoleS
       <SelectContent>
         {roles.map((role) => (
           <SelectItem key={role.id} value={role.id}>
-            {roleLabel(role.name)}
+            {roleLabel(role.slug)}
           </SelectItem>
         ))}
       </SelectContent>
