@@ -37,7 +37,7 @@ query($projectId: ID!, $cursor: String) {
               number
               title
               state
-              subIssues(first: 20) { nodes { number state title } }
+              subIssues(first: 50) { nodes { number state title } }
               parent { number state }
               blockedBy(first: 20) { nodes { number state } }
               blocking(first: 20) { nodes { number state } }
