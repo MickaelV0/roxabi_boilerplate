@@ -18,6 +18,7 @@ Create GitHub issues, assign Size/Priority/Status, manage blockedBy dependencies
 2. **Review each issue** and determine appropriate values:
    - **Size**: Estimate effort (XS, S, M, L, XL)
    - **Priority**: Determine urgency (Urgent, High, Medium, Low)
+   - **Complexity**: Score 1-10 using the rubric (see [Complexity Scoring](#complexity-scoring))
 
 3. **Set values** for each issue:
    ```bash
@@ -94,6 +95,46 @@ Create GitHub issues, assign Size/Priority/Status, manage blockedBy dependencies
 | `--add-child <N>[,<N>...]` | Add existing issues as children |
 | `--blocked-by <N>[,<N>...]` | Set blocked-by on creation |
 | `--blocks <N>[,<N>...]` | Set blocking on creation |
+
+## Complexity Scoring
+
+When triaging issues, assess complexity on a 1-10 scale to inform tier determination (S / F-lite / F-full).
+
+Record the score by appending a complexity marker to the issue body:
+
+```bash
+# Append complexity score to issue body
+BODY=$(gh issue view <number> --json body --jq .body)
+gh issue edit <number> --body "$BODY
+
+<!-- complexity: <score> -->"
+```
+
+This machine-parseable marker (`<!-- complexity: N -->`) can be retrieved by downstream tools (e.g., `/scaffold` reads it during planning).
+
+**Factors (each scored 1-10, then weighted):**
+
+| Factor | Weight | 1 (Low) | 5 (Medium) | 10 (High) |
+|--------|--------|---------|------------|-----------|
+| **Files touched** | 20% | 1-3 files | 5-10 files | 15+ files |
+| **Technical risk** | 25% | Known patterns | New library or pattern in 1 domain | New architecture |
+| **Architectural impact** | 25% | Single module | Shared types, 2 modules | Cross-domain, new abstractions |
+| **Unknowns count** | 15% | 0 unknowns | 1-2 open questions | 3+ unknowns |
+| **Domain breadth** | 15% | 1 domain | 2 domains | 3+ domains |
+
+**Formula:** `round(files × 0.20 + risk × 0.25 + arch × 0.25 + unknowns × 0.15 + domains × 0.15)`
+
+**Tier mapping:**
+
+| Score | Tier | Process | Agent Mode |
+|-------|------|---------|-----------|
+| 1-3 | **S** | Worktree + direct implementation + PR | Single session, no agents |
+| 4-6 | **F-lite** | Worktree + subagents + /review | Task subagents (1-2 domain + tester) |
+| 7-10 | **F-full** | Bootstrap + worktree + agent team + /review | TeamCreate (3+ agents, test-first) |
+
+The score is advisory. Human judgment overrides. Use `AskUserQuestion` if the score and your intuition disagree.
+
+Reference: [analyses/280-token-consumption.mdx](../../../analyses/280-token-consumption.mdx) for scoring examples.
 
 ## Status Values
 
