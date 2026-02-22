@@ -15,7 +15,7 @@ vi.mock('@/lib/auth-client', () => ({
 vi.mock('@tanstack/react-router', () => ({
   redirect: (opts: { to: string; search?: Record<string, string> }) => {
     const error = new Error(`REDIRECT:${opts.to}`)
-    ;(error as Record<string, unknown>).redirectOpts = opts
+    ;(error as unknown as Record<string, unknown>).redirectOpts = opts
     return error
   },
 }))
@@ -222,7 +222,18 @@ describe('requireAuth', () => {
     // Arrange
     mockGetSession.mockResolvedValueOnce({ data: null })
     const ctx = {
-      location: { pathname: '/settings', searchStr: '?tab=billing' },
+      location: {
+        pathname: '/settings',
+        searchStr: '?tab=billing',
+        href: '/settings?tab=billing',
+        publicHref: '/settings?tab=billing',
+        external: false,
+        search: {},
+        state: { __TSR_index: 0 },
+        hash: '',
+        maskedLocation: undefined,
+        unmaskOnReload: false,
+      },
       preload: false,
       cause: 'enter' as const,
     }
