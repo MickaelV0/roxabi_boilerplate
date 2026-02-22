@@ -694,13 +694,13 @@ describe('InviteDialog', () => {
     // Assert
     await waitFor(() => {
       const inviteCalls = mockFetch.mock.calls.filter(
-        ([url, init]: [string, RequestInit | undefined]) =>
+        ([url, init]) =>
           typeof url === 'string' &&
           url.includes('/api/admin/members/invite') &&
           init?.method === 'POST'
       )
       expect(inviteCalls).toHaveLength(1)
-      const body = JSON.parse(inviteCalls[0][1].body as string)
+      const body = JSON.parse(inviteCalls[0]?.[1]?.body as string)
       expect(body.email).toBe('newuser@acme.com')
       expect(body.roleId).toBeTruthy()
     })
@@ -839,7 +839,7 @@ describe('InviteDialog', () => {
     expect(submitButton).toBeDisabled()
 
     const inviteCalls = mockFetch.mock.calls.filter(
-      ([url, init]: [string, RequestInit | undefined]) =>
+      ([url, init]) =>
         typeof url === 'string' &&
         url.includes('/api/admin/members/invite') &&
         init?.method === 'POST'
@@ -936,13 +936,13 @@ describe('RoleSelect', () => {
     // Assert — PATCH request sent with correct member ID and role ID
     await waitFor(() => {
       const patchCalls = mockFetch.mock.calls.filter(
-        ([url, init]: [string, RequestInit | undefined]) =>
+        ([url, init]) =>
           typeof url === 'string' &&
           url.includes('/api/admin/members/m-dev') &&
           init?.method === 'PATCH'
       )
       expect(patchCalls).toHaveLength(1)
-      const body = JSON.parse(patchCalls[0][1].body as string)
+      const body = JSON.parse(patchCalls[0]?.[1]?.body as string)
       expect(body.roleId).toBe('r-admin')
     })
   })
@@ -1031,7 +1031,7 @@ describe('RoleSelect', () => {
 
     // Count initial GET /api/admin/members calls
     const initialMemberFetches = mockFetch.mock.calls.filter(
-      ([url, init]: [string, RequestInit | undefined]) =>
+      ([url, init]) =>
         typeof url === 'string' &&
         url.includes('/api/admin/members') &&
         !url.includes('/invite') &&
@@ -1044,7 +1044,7 @@ describe('RoleSelect', () => {
     // Assert — should trigger a refetch (additional GET call)
     await waitFor(() => {
       const totalMemberFetches = mockFetch.mock.calls.filter(
-        ([url, init]: [string, RequestInit | undefined]) =>
+        ([url, init]) =>
           typeof url === 'string' &&
           url.includes('/api/admin/members') &&
           !url.includes('/invite') &&
