@@ -6,7 +6,9 @@ import { APP_FILTER } from '@nestjs/core'
 import { EventEmitterModule } from '@nestjs/event-emitter'
 import type { FastifyRequest } from 'fastify'
 import { ClsModule } from 'nestjs-cls'
+import { AdminModule } from './admin/admin.module.js'
 import { AppController } from './app.controller.js'
+import { AuditModule } from './audit/audit.module.js'
 import { AuthModule } from './auth/auth.module.js'
 import { extractCorrelationId } from './common/correlation-id.util.js'
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js'
@@ -44,6 +46,7 @@ import { UserModule } from './user/user.module.js'
     }),
     EventEmitterModule.forRoot(),
     DatabaseModule,
+    AuditModule,
     AuthModule,
     TenantModule,
     UserModule,
@@ -52,6 +55,7 @@ import { UserModule } from './user/user.module.js'
     RbacModule,
     ConsentModule,
     GdprModule,
+    AdminModule,
     ThrottlerConfigModule,
   ],
   controllers: [AppController],

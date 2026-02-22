@@ -8,7 +8,6 @@ import {
 import { DICEBEAR_CDN_BASE } from '@repo/types'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { admin } from 'better-auth/plugins/admin'
 import { magicLink } from 'better-auth/plugins/magic-link'
 import { organization } from 'better-auth/plugins/organization'
 import { eq } from 'drizzle-orm'
@@ -233,7 +232,9 @@ export function createBetterAuth(
     },
     plugins: [
       buildOrganizationPlugin(onOrganizationCreated),
-      admin(),
+      // Better Auth admin plugin disabled in Phase 1 (#268)
+      // All admin actions go through NestJS AdminModule with guards + audit logging.
+      // The plugin exposed /api/auth/admin/* endpoints that bypassed NestJS guards entirely.
       buildMagicLinkPlugin(db, emailProvider, config),
     ],
   })

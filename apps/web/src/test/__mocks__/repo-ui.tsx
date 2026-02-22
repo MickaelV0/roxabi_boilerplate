@@ -161,6 +161,10 @@ export const Badge = ({
   </span>
 )
 
+export const Skeleton = ({ className }: { className?: string }) => (
+  <div data-testid="skeleton" className={className} />
+)
+
 // ---------------------------------------------------------------------------
 // Feedback
 // ---------------------------------------------------------------------------

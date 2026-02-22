@@ -21,10 +21,6 @@ vi.mock('better-auth/adapters/drizzle', () => ({
   drizzleAdapter: vi.fn(() => ({})),
 }))
 
-vi.mock('better-auth/plugins/admin', () => ({
-  admin: vi.fn(() => ({})),
-}))
-
 vi.mock('better-auth/plugins/magic-link', () => ({
   magicLink: vi.fn((config: Record<string, unknown>) => {
     capturedMagicLinkConfig.config = config
