@@ -6,6 +6,7 @@ export default defineConfig({
       'apps/web/vitest.config.ts',
       'apps/api/vitest.config.ts',
       'packages/ui/vitest.config.ts',
+      'packages/email/vitest.config.ts',
       'tools/vitest.config.ts',
     ],
     coverage: {
@@ -59,10 +60,10 @@ export default defineConfig({
       // Floor values — autoUpdate will ratchet these up to actual coverage on the next non-cached run.
       // See specs/17-testing-gold-standard.mdx for rationale.
       thresholds: {
-        lines: 93.9,
-        functions: 91.66,
-        branches: 84.41,
-        statements: 92.93,
+        lines: 94.23,
+        functions: 92.23,
+        branches: 84.9,
+        statements: 93.22,
         autoUpdate: true,
       },
     },

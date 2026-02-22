@@ -1,4 +1,6 @@
 import {
+  Alert,
+  AlertDescription,
   Button,
   Checkbox,
   cn,
@@ -13,17 +15,26 @@ import {
   TabsTrigger,
 } from '@repo/ui'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { fetchOrganizations, fetchUserProfile } from '@/lib/api'
 import { authClient, fetchEnabledProviders } from '@/lib/auth-client'
-import { requireGuest } from '@/lib/route-guards'
+import { requireGuest, safeRedirect } from '@/lib/route-guards'
 import { m } from '@/paraglide/messages'
 import { AuthLayout } from '../components/AuthLayout'
 import { OrDivider } from '../components/OrDivider'
 
+type LoginSearch = {
+  redirect?: string
+}
+
+const COOLDOWN_SECONDS = 60
+
 export const Route = createFileRoute('/login')({
   beforeLoad: requireGuest,
+  validateSearch: (search: Record<string, unknown>): LoginSearch => ({
+    redirect: typeof search.redirect === 'string' ? search.redirect : undefined,
+  }),
   loader: fetchEnabledProviders,
   component: LoginPage,
   head: () => ({
@@ -33,6 +44,7 @@ export const Route = createFileRoute('/login')({
 
 function LoginPage() {
   const navigate = useNavigate()
+  const { redirect: redirectParam } = Route.useSearch()
   const providers = Route.useLoaderData()
   const hasOAuth = providers.google || providers.github
   const [email, setEmail] = useState('')
@@ -42,6 +54,32 @@ function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
+  const [emailNotVerified, setEmailNotVerified] = useState(false)
+  const [notVerifiedEmail, setNotVerifiedEmail] = useState('')
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [resendLoading, setResendLoading] = useState(false)
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [resendCooldown])
+
+  // Read redirect from sessionStorage after OAuth callback
+  useEffect(() => {
+    try {
+      const storedRedirect = sessionStorage.getItem('auth_redirect')
+      if (storedRedirect) {
+        sessionStorage.removeItem('auth_redirect')
+        const target = safeRedirect(storedRedirect)
+        if (target !== '/dashboard') {
+          navigate({ to: target })
+        }
+      }
+    } catch {
+      // sessionStorage may be unavailable (private browsing, storage quota)
+    }
+  }, [navigate])
 
   /** Checks if account is soft-deleted and navigates to reactivation if so. Returns true if redirected. */
   async function checkSoftDeletedAccount(): Promise<boolean> {
@@ -83,6 +121,7 @@ function LoginPage() {
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    setEmailNotVerified(false)
     setLoading(true)
     try {
       const { error: signInError } = await authClient.signIn.email({
@@ -91,8 +130,12 @@ function LoginPage() {
         rememberMe,
       })
       if (signInError) {
+        // Better Auth returns 403 specifically for unverified email when
+        // emailAndPassword.requireEmailVerification is enabled. Other 403
+        // conditions (banned, etc.) use different error codes.
         if (signInError.status === 403) {
-          setError(m.auth_login_email_not_verified())
+          setEmailNotVerified(true)
+          setNotVerifiedEmail(email)
         } else {
           setError(m.auth_login_invalid_credentials())
         }
@@ -101,7 +144,7 @@ function LoginPage() {
         const redirected = await checkSoftDeletedAccount()
         if (redirected) return
         await autoSelectOrg()
-        navigate({ to: '/dashboard' })
+        navigate({ to: safeRedirect(redirectParam) })
       }
     } catch {
       toast.error(m.auth_toast_error())
@@ -122,7 +165,7 @@ function LoginPage() {
         toast.success(m.auth_toast_magic_link_sent())
         navigate({
           to: '/magic-link-sent',
-          search: { email: magicLinkEmail },
+          search: { email: magicLinkEmail, redirect: redirectParam },
         })
       }
     } catch {
@@ -132,10 +175,39 @@ function LoginPage() {
     }
   }
 
+  async function handleResendVerification() {
+    if (!notVerifiedEmail) return
+    setResendLoading(true)
+    try {
+      await authClient.sendVerificationEmail({
+        email: notVerifiedEmail,
+        callbackURL: `${window.location.origin}/verify-email`,
+      })
+      toast.success(m.auth_toast_verification_resent())
+      setResendCooldown(COOLDOWN_SECONDS)
+    } catch {
+      toast.error(m.auth_toast_error())
+    } finally {
+      setResendLoading(false)
+    }
+  }
+
   async function handleOAuth(provider: 'google' | 'github') {
+    if (redirectParam) {
+      try {
+        sessionStorage.setItem('auth_redirect', redirectParam)
+      } catch {
+        // sessionStorage may be unavailable
+      }
+    }
     setOauthLoading(provider)
     try {
-      await authClient.signIn.social({ provider })
+      await authClient.signIn.social({
+        provider,
+        callbackURL: redirectParam
+          ? `/login?redirect=${encodeURIComponent(redirectParam)}`
+          : undefined,
+      })
     } catch {
       toast.error(m.auth_toast_error())
       setOauthLoading(null)
@@ -144,6 +216,25 @@ function LoginPage() {
 
   return (
     <AuthLayout title={m.auth_sign_in_title()} description={m.auth_sign_in_desc()}>
+      {emailNotVerified && (
+        <Alert variant="warning">
+          <AlertDescription className="space-y-2 text-center">
+            <p>{m.auth_login_email_not_verified_sent()}</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto px-2 py-1 underline"
+              onClick={handleResendVerification}
+              disabled={resendCooldown > 0 || resendLoading}
+            >
+              {resendCooldown > 0
+                ? m.auth_resend_in({ seconds: String(resendCooldown) })
+                : m.auth_resend_verification()}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {error && (
         <FormMessage variant="error" className="justify-center">
           {error}
@@ -262,7 +353,11 @@ function LoginPage() {
 
       <p className="text-center text-sm text-muted-foreground">
         {m.auth_no_account()}{' '}
-        <Link to="/register" className="underline hover:text-foreground">
+        <Link
+          to="/register"
+          search={redirectParam ? { redirect: redirectParam } : undefined}
+          className="underline hover:text-foreground"
+        >
           {m.auth_register_link()}
         </Link>
       </p>

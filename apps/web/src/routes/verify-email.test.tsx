@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { authClient } from '@/lib/auth-client'
 import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
 const { captured, useSearchFn, useSessionFn } = vi.hoisted(() => ({
@@ -114,5 +115,101 @@ describe('VerifyEmailPage', () => {
     // Assert
     const link = screen.getByRole('link', { name: /auth_back_to_sign_in/ })
     expect(link).toHaveAttribute('href', '/login')
+  })
+
+  it('should render email input and submit button when no session exists', () => {
+    // Arrange
+    useSearchFn.mockReturnValue({ token: undefined })
+    useSessionFn.mockReturnValue({ data: null })
+    const VerifyEmailPage = captured.Component
+
+    // Act
+    render(<VerifyEmailPage />)
+
+    // Assert
+    expect(screen.getByLabelText('auth_verify_email_enter_email')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'auth_resend_verification' })).toBeInTheDocument()
+  })
+
+  it('should call sendVerificationEmail when sessionless form is submitted', async () => {
+    // Arrange
+    useSearchFn.mockReturnValue({ token: undefined })
+    useSessionFn.mockReturnValue({ data: null })
+    vi.mocked(authClient.sendVerificationEmail).mockResolvedValueOnce({} as never)
+    const VerifyEmailPage = captured.Component
+    render(<VerifyEmailPage />)
+
+    // Act
+    fireEvent.change(screen.getByLabelText('auth_verify_email_enter_email'), {
+      target: { value: 'test@example.com' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'auth_resend_verification' }))
+
+    // Assert
+    await waitFor(() => {
+      expect(authClient.sendVerificationEmail).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'test@example.com' })
+      )
+    })
+  })
+
+  it('should show neutral message after sessionless form submission', async () => {
+    // Arrange
+    useSearchFn.mockReturnValue({ token: undefined })
+    useSessionFn.mockReturnValue({ data: null })
+    vi.mocked(authClient.sendVerificationEmail).mockResolvedValueOnce({} as never)
+    const VerifyEmailPage = captured.Component
+    render(<VerifyEmailPage />)
+
+    // Act
+    fireEvent.change(screen.getByLabelText('auth_verify_email_enter_email'), {
+      target: { value: 'test@example.com' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'auth_resend_verification' }))
+
+    // Assert -- neutral message appears (no account existence leak)
+    await waitFor(() => {
+      expect(screen.getByText('auth_verify_email_resend_neutral')).toBeInTheDocument()
+    })
+  })
+
+  it('should activate cooldown timer after sessionless form submission', async () => {
+    // Arrange
+    useSearchFn.mockReturnValue({ token: undefined })
+    useSessionFn.mockReturnValue({ data: null })
+    vi.mocked(authClient.sendVerificationEmail).mockResolvedValueOnce({} as never)
+    const VerifyEmailPage = captured.Component
+    render(<VerifyEmailPage />)
+
+    // Act
+    fireEvent.change(screen.getByLabelText('auth_verify_email_enter_email'), {
+      target: { value: 'test@example.com' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'auth_resend_verification' }))
+
+    // Assert -- button should show cooldown text
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /auth_resend_in/ })).toBeInTheDocument()
+    })
+  })
+
+  it('should show neutral message even when sendVerificationEmail throws (security: no info leak)', async () => {
+    // Arrange
+    useSearchFn.mockReturnValue({ token: undefined })
+    useSessionFn.mockReturnValue({ data: null })
+    vi.mocked(authClient.sendVerificationEmail).mockRejectedValueOnce(new Error('Network error'))
+    const VerifyEmailPage = captured.Component
+    render(<VerifyEmailPage />)
+
+    // Act
+    fireEvent.change(screen.getByLabelText('auth_verify_email_enter_email'), {
+      target: { value: 'nonexistent@example.com' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'auth_resend_verification' }))
+
+    // Assert -- still shows neutral message, not an error (no info leak)
+    await waitFor(() => {
+      expect(screen.getByText('auth_verify_email_resend_neutral')).toBeInTheDocument()
+    })
   })
 })

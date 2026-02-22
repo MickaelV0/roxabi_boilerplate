@@ -50,6 +50,13 @@
       "when": 1771444283942,
       "tag": "0006_tearful_arclight",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1771761834273,
+      "tag": "0007_cheerful_sunspot",
+      "breakpoints": true
     }
   ]
 }

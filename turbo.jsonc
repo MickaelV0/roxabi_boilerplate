@@ -32,7 +32,7 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**/*.ts", "src/**/*.tsx", "vitest.config.ts"],
+      "inputs": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "vitest.config.ts"],
       "outputs": ["coverage/**"],
       "env": ["CI", "VITEST"]
     },

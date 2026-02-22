@@ -14,6 +14,7 @@ vi.mock('@tanstack/react-router', () => ({
     return {
       component: config.component,
       useLoaderData: () => captured.loaderData,
+      useSearch: () => ({}),
     }
   },
   Link: ({

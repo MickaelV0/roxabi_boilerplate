@@ -1,3 +1,10 @@
+import { Logger } from '@nestjs/common'
+import {
+  escapeHtml,
+  renderMagicLinkEmail,
+  renderResetEmail,
+  renderVerificationEmail,
+} from '@repo/email'
 import { DICEBEAR_CDN_BASE } from '@repo/types'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
@@ -9,14 +16,15 @@ import type { DrizzleDB } from '../database/drizzle.provider.js'
 import { users } from '../database/schema/auth.schema.js'
 import type { EmailProvider } from './email/email.provider.js'
 
-export function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
+const logger = new Logger('AuthInstance')
+
+const SUPPORTED_LOCALES = ['en', 'fr']
+
+// Better Auth does not infer additionalFields on callback user parameters.
+// The locale field is declared in user.additionalFields above but the callback
+// type only includes core fields. This assertion is necessary until Better Auth
+// improves its type inference.
+type UserWithLocale = { locale?: string }
 
 export type AuthInstanceConfig = {
   secret: string
@@ -62,6 +70,16 @@ export function createBetterAuth(
     secret: config.secret,
     baseURL: config.baseURL,
     trustedOrigins,
+    user: {
+      additionalFields: {
+        locale: {
+          type: 'string',
+          required: false,
+          defaultValue: 'en',
+          input: true,
+        },
+      },
+    },
     databaseHooks: {
       user: {
         create: {
@@ -75,9 +93,18 @@ export function createBetterAuth(
               if (!user.image) {
                 updateFields.image = `${DICEBEAR_CDN_BASE}/lorelei/svg?seed=${user.id}`
               }
+
+              // Sanitize locale: only allow supported locales, default to 'en'.
+              // The `input: true` on additionalFields allows arbitrary strings from
+              // the client, so we enforce valid values server-side.
+              const userLocale = (user as UserWithLocale).locale
+              if (userLocale && !SUPPORTED_LOCALES.includes(userLocale)) {
+                updateFields.locale = 'en'
+              }
+
               await db.update(users).set(updateFields).where(eq(users.id, user.id))
             } catch (error) {
-              console.warn('Failed to set default avatar for user', user.id, error)
+              logger.warn('Failed to set default avatar for user', { userId: user.id, error })
             }
           },
         },
@@ -91,21 +118,62 @@ export function createBetterAuth(
       enabled: true,
       requireEmailVerification: true,
       async sendResetPassword({ user, url }) {
-        await emailProvider.send({
-          to: user.email,
-          subject: 'Reset your password',
-          html: `<p>Click <a href="${escapeHtml(url)}">here</a> to reset your password.</p>`,
-        })
+        const emailUrl = config.appURL
+          ? url.replace(/callbackURL=[^&]*/, `callbackURL=${encodeURIComponent(config.appURL)}`)
+          : url
+        try {
+          const locale = (user as UserWithLocale).locale ?? 'en'
+          const { html, text, subject } = await renderResetEmail(emailUrl, locale, config.appURL)
+          await emailProvider.send({
+            to: user.email,
+            subject,
+            html,
+            text,
+          })
+        } catch (error) {
+          logger.error('Failed to render reset password email, using fallback', error)
+          await emailProvider.send({
+            to: user.email,
+            subject: 'Reset your password',
+            html: `<p>Click <a href="${escapeHtml(emailUrl)}">here</a> to reset your password.</p>`,
+            text: `Reset your password: ${emailUrl}`,
+          })
+        }
       },
     },
+    // Better Auth applies server-side rate limiting on verification email sends
+    // (rateLimit plugin). Client-side cooldown (60s) is UX guidance only.
+    // Server-side rate limiting is the hard limit. See issue #53 for additional
+    // rate limiting.
     emailVerification: {
       sendOnSignIn: true,
       async sendVerificationEmail({ user, url }) {
-        await emailProvider.send({
-          to: user.email,
-          subject: 'Verify your email',
-          html: `<p>Click <a href="${escapeHtml(url)}">here</a> to verify your email.</p>`,
-        })
+        // Rewrite callbackURL to point to the frontend app instead of the API root
+        const emailUrl = config.appURL
+          ? url.replace(/callbackURL=[^&]*/, `callbackURL=${encodeURIComponent(config.appURL)}`)
+          : url
+        try {
+          const locale = (user as UserWithLocale).locale ?? 'en'
+          const { html, text, subject } = await renderVerificationEmail(
+            emailUrl,
+            locale,
+            config.appURL
+          )
+          await emailProvider.send({
+            to: user.email,
+            subject,
+            html,
+            text,
+          })
+        } catch (error) {
+          logger.error('Failed to render verification email, using fallback', error)
+          await emailProvider.send({
+            to: user.email,
+            subject: 'Verify your email',
+            html: `<p>Click <a href="${escapeHtml(url)}">here</a> to verify your email.</p>`,
+            text: `Verify your email: ${url}`,
+          })
+        }
       },
     },
     socialProviders,
@@ -149,11 +217,35 @@ export function createBetterAuth(
       admin(),
       magicLink({
         async sendMagicLink({ email, url }) {
-          await emailProvider.send({
-            to: email,
-            subject: 'Sign in to Roxabi',
-            html: `<p>Click <a href="${escapeHtml(url)}">here</a> to sign in.</p>`,
-          })
+          const emailUrl = config.appURL
+            ? url.replace(/callbackURL=[^&]*/, `callbackURL=${encodeURIComponent(config.appURL)}`)
+            : url
+          try {
+            const [userData] = await db
+              .select({ locale: users.locale })
+              .from(users)
+              .where(eq(users.email, email))
+            const locale = userData?.locale ?? 'en'
+            const { html, text, subject } = await renderMagicLinkEmail(
+              emailUrl,
+              locale,
+              config.appURL
+            )
+            await emailProvider.send({
+              to: email,
+              subject,
+              html,
+              text,
+            })
+          } catch (error) {
+            logger.error('Failed to render magic link email, using fallback', error)
+            await emailProvider.send({
+              to: email,
+              subject: 'Sign in to Roxabi',
+              html: `<p>Click <a href="${escapeHtml(emailUrl)}">here</a> to sign in.</p>`,
+              text: `Sign in to Roxabi: ${emailUrl}`,
+            })
+          }
         },
       }),
     ],
