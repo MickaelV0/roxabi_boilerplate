@@ -45,13 +45,14 @@ If the project pins a specific version, check `package.json` for the `packageMan
 
 **Symptom:** `EADDRINUSE` error when starting the dev server or API.
 
-**Cause:** Another process is already listening on port 3000 (web) or 4000 (API).
+**Cause:** Another process is already listening on port 3000 (web), 4000 (API), or 3001 (email preview).
 
 **Fix:** Kill the process occupying the port, or start on a different port:
 
 ```bash
 lsof -ti:3000 | xargs -r kill
 lsof -ti:4000 | xargs -r kill
+lsof -ti:3001 | xargs -r kill
 ```
 
 Alternatively, set the `PORT` environment variable to use a different port.

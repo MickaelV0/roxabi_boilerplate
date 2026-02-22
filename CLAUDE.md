@@ -36,7 +36,7 @@ Vision, principles, roadmap → [docs/vision.mdx](docs/vision.mdx).
 ```bash
 cp .env.example .env && bun install      # first-time setup
 bun run db:up                             # start Docker Postgres (requires Docker)
-bun run dev                               # start all apps (web :3000, API :4000)
+bun run dev                               # start all apps (web :3000, API :4000, email preview :3001)
 ```
 
 Full config → [docs/configuration.mdx](docs/configuration.mdx).
@@ -61,7 +61,7 @@ packages/
 
 | Task | Command | Notes |
 |------|---------|-------|
-| Dev server | `bun run dev` | Web :3000, API :4000, Nitro :42069 |
+| Dev server | `bun run dev` | Web :3000, API :4000, Email preview :3001, Nitro :42069 |
 | Build | `bun run build` | TurboRepo-cached |
 | Lint | `bun run lint` | Biome check |
 | Lint + fix | `bun run lint:fix` | Auto-fix safe issues |
@@ -221,7 +221,7 @@ cd apps/api && bun run db:branch:create --force XXX
 - **`turbo.jsonc`** not `turbo.json`: JSONC with comments. Tools expecting `.json` miss it.
 - **`useImportType: off` for `apps/api/`**: NestJS needs runtime imports for DI. Biome override disables for API only.
 - **Node ≥24**: Set in `package.json` engines. Bun 1.3.9 = package manager.
-- **Orphaned dev ports**: Ctrl+C may leave zombies. `bun run dev:clean` kills ports 42069/4000/3000.
+- **Orphaned dev ports**: Ctrl+C may leave zombies. `bun run dev:clean` kills ports 42069/4000/3000/3001.
 - **DB branches**: Each worktree → own Postgres schema via `db:branch:create --force XXX`.
 - **Paraglide i18n**: Translations compiled during `codegen` task — `src/paraglide/` is gitignored.
 - **Biome schema sync**: Upgrading `@biomejs/biome` in `package.json` requires updating `$schema` version in `biome.json` to match.
