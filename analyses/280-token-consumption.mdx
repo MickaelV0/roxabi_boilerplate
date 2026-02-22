@@ -3,13 +3,15 @@ title: "Token Consumption Investigation + Complexity Scoring Rubric"
 description: Phase 1 investigation — token hotspots, baseline metrics, and 1-10 complexity scoring rubric for tier determination.
 ---
 
-**Status:** Complete — Feb 2026
+**Status:** Complete — 2026-02-22
 **Issue:** #280 (Phase 1 of #251 AI Workflow Improvement Strategy)
 **Tier:** S
 
 ## Context
 
 The Roxabi boilerplate operates 9 agents, 15 skills, and a 4-stage pipeline (bootstrap, scaffold, review, promote). Over a 16-day period (2026-01-23 to 2026-02-07), the system ran **808 Claude Code sessions** with **680 hours of compute time**, producing **624 commits** across **6,572 messages**. Token costs are the primary operating expense. This investigation identifies where tokens are spent and establishes baselines for measuring future improvements.
+
+Note: This analysis corresponds to what #251 originally tracked as #255 (token investigation). The issue was restructured and renumbered to #280 during the v3 reorganization.
 
 **Data source:** Billing dashboard lacks per-session/per-agent granularity. All estimates use the estimation method: tool call counts x tokens per tool type, cross-referenced with session transcript analysis from the retro system (758 parsed sessions).
 
@@ -45,10 +47,11 @@ Estimates represent a single agent spawn (one invocation). Multiply by spawns-pe
 |----------|-------------|-------------|---------------|-------|
 | **Review** (full) | 7 reviewers + 1-3 fixers | 155,000-190,000 | 20,000-35,000 | **175,000-225,000** |
 | **Scaffold** (F-full) | 4-6 domain agents | 90,000-130,000 | 12,000-24,000 | **102,000-154,000** |
+| **Scaffold** (F-lite) | 2-3 subagents | 30,000-50,000 | 5,000-10,000 | **35,000-60,000** |
 | **Bootstrap** | 2-4 expert reviewers | 25,000-50,000 | 5,000-10,000 | **30,000-60,000** |
 | **Promote** | 0 (direct orchestration) | 5,000-10,000 | 2,000-4,000 | **7,000-14,000** |
 
-**Full pipeline (bootstrap + scaffold + review):** 307,000-439,000 tokens per F-full feature.
+**Full pipeline (bootstrap + scaffold + review):** 307,000-439,000 tokens per F-full feature (F-lite: ~95,000-180,000).
 
 ## Top 5 Token Hotspots
 
@@ -104,6 +107,8 @@ Estimates represent a single agent spawn (one invocation). Multiply by spawns-pe
 
 **Average:** 2.5-3.3 sessions per feature.
 
+*Ranges reflect estimation uncertainty -- exact per-feature session counts are not tracked by the retro system. Future entries should use exact counts (see Measurement Protocol).*
+
 ### Lead Intervention Count Per Scaffold (Last 3 Scaffolds)
 
 | Scaffold | Issue | Lead Interventions | Type |
@@ -131,6 +136,22 @@ Estimates represent a single agent spawn (one invocation). Multiply by spawns-pe
 | Wrong approach → wasted cycles | 27 instances | claude-code-usage-insights.mdx |
 | Multi-agent parallel execution (largest) | 19 fixes / 4 agents / 30 files | claude-code-usage-insights.mdx |
 
+### Measurement Protocol
+
+Going forward, metrics are recorded in this analysis document by appending new rows to the baseline tables above.
+
+**Session count per feature:**
+- **Trigger:** After each feature PR is merged
+- **What to record:** Feature name, issue number, total sessions from first scaffold to merged PR, agents spawned, tier
+- **Who:** Orchestrator (main Claude) appends the row during `/promote` or post-merge cleanup
+
+**Lead interventions per scaffold:**
+- **Trigger:** After each scaffold completes (PR created)
+- **What to record:** Feature name, issue number, count of lead interventions, intervention types
+- **Who:** Orchestrator records at scaffold completion
+
+**Definition -- one intervention:** A single instance where the lead sends a message mid-scaffold to redirect scope, resolve a conflict, or make a strategy decision on an agent's behalf. Planned approval gates (AskUserQuestion responses at scheduled checkpoints) are **not** counted. Multiple messages about the same issue count as one intervention.
+
 ## Complexity Scoring Rubric (1-10)
 
 Inspired by TaskMaster.dev's complexity analysis. Maps to existing S / F-lite / F-full tiers.
@@ -144,6 +165,8 @@ Inspired by TaskMaster.dev's complexity analysis. Maps to existing S / F-lite / 
 | **Architectural impact** | 25% | Single module, no exports | Shared types or 2 modules | Cross-domain, new abstractions, API contracts |
 | **Unknowns count** | 15% | 0 unknowns, fully documented | 1-2 open questions | 3+ unknowns, needs investigation |
 | **Domain breadth** | 15% | 1 domain (FE or BE only) | 2 domains (FE + BE) | 3+ domains (FE + BE + infra + docs) |
+
+Domain breadth uses a discrete mapping: 1 domain=1, 2 domains=4, 3 domains=7, 4+ domains=10. This avoids the cliff at the 2-to-3 boundary.
 
 ### Calculation
 
@@ -167,22 +190,27 @@ Each factor scored 1-10. Weighted sum produces the final score (1-10).
 | 4-6 | **F-lite** (Feature lite) | Worktree + subagents + /review | Task tool subagents (1-2 domain + tester) |
 | 7-10 | **F-full** (Feature full) | Bootstrap + worktree + agent team + /review | TeamCreate (3+ agents, test-first) |
 
+*Boundary scores (3 and 6) are judgment calls -- present both tier options to the user.*
+
 ### Scoring Examples
 
 | Feature | Files | Risk | Arch | Unknowns | Domains | Score | Tier |
 |---------|-------|------|------|----------|---------|-------|------|
 | Fix typo in README | 1 | 1 | 1 | 1 | 1 | **1** | S |
 | Add env var validation | 3 | 2 | 1 | 1 | 1 | **2** | S |
-| New API endpoint (CRUD) | 6 | 3 | 3 | 1 | 2 | **3** | S |
-| DiceBear avatar integration | 8 | 4 | 5 | 2 | 3 | **4** | F-lite |
-| Rate limiting middleware | 5 | 5 | 5 | 2 | 2 | **4** | F-lite |
-| Multi-tenant RLS | 10 | 7 | 8 | 3 | 3 | **7** | F-full |
-| Auth system overhaul | 15 | 8 | 9 | 4 | 4 | **8** | F-full |
-| Bootstrap enrichment (#281) | 12 | 6 | 7 | 3 | 3 | **6** | F-full* |
+| New API endpoint (CRUD) | 3 | 3 | 3 | 1 | 1 | **2** | S |
+| Token consumption + scoring (#280) | 2 | 2 | 1 | 3 | 1 | **2** | S |
+| DiceBear avatar integration | 5 | 4 | 5 | 2 | 5 | **4** | F-lite |
+| Rate limiting middleware | 3 | 5 | 5 | 3 | 3 | **4** | F-lite |
+| Multi-tenant RLS | 7 | 7 | 8 | 5 | 5 | **7** | F-full |
+| Auth system overhaul | 10 | 8 | 9 | 6 | 7 | **8** | F-full |
+| Bootstrap enrichment (#281) | 8 | 6 | 7 | 5 | 5 | **6** | F-full* |
 
 *#281 scores 6 but is classified F-full due to unclear requirements and architectural decisions.
 
 **Important:** The rubric is a guide, not a gate. Human judgment overrides the score. A score of 6 may be F-lite (clear mechanical changes) or F-full (design decisions needed). The score informs the conversation, not the decision.
+
+**Floor rule:** If the files-touched factor scores >=8 (15+ files), the minimum tier is F-lite regardless of other factor scores. Large-scale changes carry coordination overhead even when mechanically simple.
 
 ## Recommendations
 
@@ -192,12 +220,6 @@ Each factor scored 1-10. Weighted sum produces the final score (1-10).
 2. **Add scoring to issue-triage** — Record complexity score alongside size/priority on the project board
 3. **Establish measurement protocol** — Track sessions per feature and interventions per scaffold going forward
 
-### Future Phases (informed by this investigation)
-
-1. **Phase 7 (#286):** Use hotspot data to prioritize Sonnet candidates — doc-writer, fixer, tester, devops are lowest-cost agents and best candidates for Sonnet
-2. **Phase 3 (#282):** Micro-task generation should factor in complexity score to determine task granularity
-3. **Phase 4 (#283):** Shared task lists should reduce redundant file reads (Hotspot 5)
-
 ### Gaps Not Covered by Current Phases
 
 Two hotspot mitigations are **not** addressed by any existing phase:
@@ -205,6 +227,12 @@ Two hotspot mitigations are **not** addressed by any existing phase:
 1. **Pre-computed shared context (Hotspot 5):** No phase explicitly tackles injecting standards excerpts or reference patterns into agent prompts to avoid redundant file reads. Phase 4 (#283) adds shared task lists for coordination but not shared context for file I/O reduction. **Recommendation:** Add a sub-task to Phase 4 or create a follow-up issue for "shared context injection" — pre-compute key file excerpts and include them in agent task prompts during scaffold Step 5.
 
 2. **Architect context caching (Hotspot 4):** No phase addresses passing bootstrap architect findings to scaffold architect. The architect is spawned independently in both phases, re-reading 30-50 files each time. **Recommendation:** Add to Phase 3 (#282) — when generating the committed plan artifact, include architect findings from bootstrap so the scaffold architect receives them as context rather than re-discovering them.
+
+### Future Phases (informed by this investigation)
+
+1. **Phase 7 (#286):** Use hotspot data to prioritize Sonnet candidates — doc-writer, fixer, tester, devops are lowest-cost agents and best candidates for Sonnet
+2. **Phase 3 (#282):** Micro-task generation should factor in complexity score to determine task granularity
+3. **Phase 4 (#283):** Shared task lists should reduce redundant file reads (Hotspot 5)
 
 ## Open Questions
 

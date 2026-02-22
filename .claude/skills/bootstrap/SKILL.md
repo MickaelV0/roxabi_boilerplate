@@ -33,34 +33,6 @@ Parse the arguments to determine the entry point:
 2. **If `--issue N`**: Start at **Gate 1**. Fetch the issue body with `gh issue view N` for starting context.
 3. **If `--spec N`**: Start at **Gate 2**. Look for `specs/N-*.mdx` using Glob. If not found, inform the user and suggest starting from scratch with `/bootstrap "idea"` or `/bootstrap --issue N`.
 
-### Step 0a -- Complexity Scoring
-
-Before choosing a tier, score the issue/idea on a 1-10 complexity scale. This informs (but does not dictate) the tier decision.
-
-**Factors (each scored 1-10):**
-
-| Factor | Weight | 1 (Low) | 5 (Medium) | 10 (High) |
-|--------|--------|---------|------------|-----------|
-| **Files touched** | 20% | 1-3 files | 5-10 files | 15+ files |
-| **Technical risk** | 25% | Known patterns, no new tech | New library/pattern in 1 domain | New architecture, untested approach |
-| **Architectural impact** | 25% | Single module, no exports | Shared types or 2 modules | Cross-domain, new abstractions |
-| **Unknowns count** | 15% | 0 unknowns, fully documented | 1-2 open questions | 3+ unknowns, needs investigation |
-| **Domain breadth** | 15% | 1 domain (FE or BE only) | 2 domains (FE + BE) | 3+ domains (FE + BE + infra) |
-
-**Calculate:** `complexity = round(files × 0.20 + risk × 0.25 + arch × 0.25 + unknowns × 0.15 + domains × 0.15)`
-
-**Tier mapping:**
-
-| Score | Tier | Process |
-|-------|------|---------|
-| 1-3 | **S** | Worktree + direct implementation + PR |
-| 4-6 | **F-lite** | Worktree + subagents + /review |
-| 7-10 | **F-full** | Bootstrap + worktree + agent team + /review |
-
-**Important:** The score is a guide, not a gate. Human judgment overrides. A score of 6 may be F-lite (clear mechanical changes) or F-full (design decisions needed). Present the score and recommended tier to the user via `AskUserQuestion` for validation.
-
-Reference: [analyses/280-token-consumption.mdx](../../analyses/280-token-consumption.mdx) for scoring examples and full rubric details.
-
 ### Step 0b -- Check for Existing Branch / PR
 
 When using `--issue N`, check if the issue already has a branch or open PR **before** proceeding:
@@ -102,6 +74,44 @@ Use **Glob** to search for files matching the topic. For `--issue N`, also match
 **If a spec already exists** and the entry point is Gate 1: present the existing spec to the user via **AskUserQuestion** and ask whether to reuse it (skip to Gate 2) or start fresh. Do not silently skip.
 
 **If an analysis already exists** and the entry point is Gate 1: present the existing analysis to the user via **AskUserQuestion** and ask whether to reuse it or start fresh. Do not silently skip.
+
+---
+
+### Step 1a -- Complexity Scoring
+
+Skip this step when using `--spec N` (tier was already determined when the spec was created).
+
+Before choosing a tier, score the issue/idea on a 1-10 complexity scale. This informs (but does not dictate) the tier decision.
+
+**Factors (each scored 1-10):**
+
+| Factor | Weight | 1 (Low) | 5 (Medium) | 10 (High) |
+|--------|--------|---------|------------|-----------|
+| **Files touched** | 20% | 1-3 files | 5-10 files | 15+ files |
+| **Technical risk** | 25% | Known patterns, no new tech | New library/pattern in 1 domain | New architecture, untested approach |
+| **Architectural impact** | 25% | Single module, no exports | Shared types or 2 modules | Cross-domain, new abstractions |
+| **Unknowns count** | 15% | 0 unknowns, fully documented | 1-2 open questions | 3+ unknowns, needs investigation |
+| **Domain breadth** | 15% | 1 domain (FE or BE only) | 2 domains (FE + BE) | 3+ domains (FE + BE + infra) |
+
+**Calculate:** `complexity = round(files × 0.20 + risk × 0.25 + arch × 0.25 + unknowns × 0.15 + domains × 0.15)`
+
+**Tier mapping:**
+
+| Score | Tier | Process | Agent Mode |
+|-------|------|---------|-----------|
+| 1-3 | **S** | Worktree + direct implementation + PR | Single session, no agents |
+| 4-6 | **F-lite** | Worktree + subagents + /review | Task subagents (1-2 domain + tester) |
+| 7-10 | **F-full** | Bootstrap + worktree + agent team + /review | TeamCreate (3+ agents, test-first) |
+
+**Important:** The score is a guide, not a gate. Human judgment overrides. A score of 6 may be F-lite (clear mechanical changes) or F-full (design decisions needed). Present the score and recommended tier to the user via `AskUserQuestion` for validation.
+
+**AskUserQuestion options:**
+- **Confirm {tier}** -- "Proceed with {tier} (score: {N}/10)"
+- **Override to S** -- "Downgrade to Tier S (quick fix)"
+- **Override to F-lite** -- "Use Tier F-lite (feature lite)"
+- **Override to F-full** -- "Upgrade to Tier F-full (full bootstrap)"
+
+Reference: [analyses/280-token-consumption.mdx](../../../analyses/280-token-consumption.mdx) for scoring examples and full rubric details.
 
 ---
 
