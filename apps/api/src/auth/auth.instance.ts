@@ -1,3 +1,4 @@
+import { renderMagicLinkEmail, renderResetEmail, renderVerificationEmail } from '@repo/email'
 import { DICEBEAR_CDN_BASE } from '@repo/types'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
@@ -8,6 +9,8 @@ import { eq } from 'drizzle-orm'
 import type { DrizzleDB } from '../database/drizzle.provider.js'
 import { users } from '../database/schema/auth.schema.js'
 import type { EmailProvider } from './email/email.provider.js'
+
+type UserWithLocale = { locale?: string }
 
 export function escapeHtml(str: string): string {
   return str
@@ -62,6 +65,16 @@ export function createBetterAuth(
     secret: config.secret,
     baseURL: config.baseURL,
     trustedOrigins,
+    user: {
+      additionalFields: {
+        locale: {
+          type: 'string',
+          required: false,
+          defaultValue: 'en',
+          input: true,
+        },
+      },
+    },
     databaseHooks: {
       user: {
         create: {
@@ -91,21 +104,45 @@ export function createBetterAuth(
       enabled: true,
       requireEmailVerification: true,
       async sendResetPassword({ user, url }) {
-        await emailProvider.send({
-          to: user.email,
-          subject: 'Reset your password',
-          html: `<p>Click <a href="${escapeHtml(url)}">here</a> to reset your password.</p>`,
-        })
+        try {
+          const locale = (user as UserWithLocale).locale ?? 'en'
+          const { html, text, subject } = await renderResetEmail(url, locale)
+          await emailProvider.send({
+            to: user.email,
+            subject,
+            html,
+            text,
+          })
+        } catch (error) {
+          console.error('Failed to render reset password email, using fallback:', error)
+          await emailProvider.send({
+            to: user.email,
+            subject: 'Reset your password',
+            html: `<p>Click <a href="${escapeHtml(url)}">here</a> to reset your password.</p>`,
+          })
+        }
       },
     },
     emailVerification: {
       sendOnSignIn: true,
       async sendVerificationEmail({ user, url }) {
-        await emailProvider.send({
-          to: user.email,
-          subject: 'Verify your email',
-          html: `<p>Click <a href="${escapeHtml(url)}">here</a> to verify your email.</p>`,
-        })
+        try {
+          const locale = (user as UserWithLocale).locale ?? 'en'
+          const { html, text, subject } = await renderVerificationEmail(url, locale)
+          await emailProvider.send({
+            to: user.email,
+            subject,
+            html,
+            text,
+          })
+        } catch (error) {
+          console.error('Failed to render verification email, using fallback:', error)
+          await emailProvider.send({
+            to: user.email,
+            subject: 'Verify your email',
+            html: `<p>Click <a href="${escapeHtml(url)}">here</a> to verify your email.</p>`,
+          })
+        }
       },
     },
     socialProviders,
@@ -149,11 +186,27 @@ export function createBetterAuth(
       admin(),
       magicLink({
         async sendMagicLink({ email, url }) {
-          await emailProvider.send({
-            to: email,
-            subject: 'Sign in to Roxabi',
-            html: `<p>Click <a href="${escapeHtml(url)}">here</a> to sign in.</p>`,
-          })
+          try {
+            const [userData] = await db
+              .select({ locale: users.locale })
+              .from(users)
+              .where(eq(users.email, email))
+            const locale = userData?.locale ?? 'en'
+            const { html, text, subject } = await renderMagicLinkEmail(url, locale)
+            await emailProvider.send({
+              to: email,
+              subject,
+              html,
+              text,
+            })
+          } catch (error) {
+            console.error('Failed to render magic link email, using fallback:', error)
+            await emailProvider.send({
+              to: email,
+              subject: 'Sign in to Roxabi',
+              html: `<p>Click <a href="${escapeHtml(url)}">here</a> to sign in.</p>`,
+            })
+          }
         },
       }),
     ],

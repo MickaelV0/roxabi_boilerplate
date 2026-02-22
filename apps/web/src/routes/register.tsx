@@ -23,10 +23,17 @@ import { m } from '@/paraglide/messages'
 import { AuthLayout } from '../components/AuthLayout'
 import { OrDivider } from '../components/OrDivider'
 
+type RegisterSearch = {
+  redirect?: string
+}
+
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export const Route = createFileRoute('/register')({
   beforeLoad: requireGuest,
+  validateSearch: (search: Record<string, unknown>): RegisterSearch => ({
+    redirect: typeof search.redirect === 'string' ? search.redirect : undefined,
+  }),
   loader: fetchEnabledProviders,
   component: RegisterPage,
   head: () => ({
@@ -35,6 +42,7 @@ export const Route = createFileRoute('/register')({
 })
 
 function RegisterPage() {
+  const { redirect: redirectParam } = Route.useSearch()
   const providers = Route.useLoaderData()
   const hasOAuth = providers.google || providers.github
   const [name, setName] = useState('')
@@ -72,11 +80,15 @@ function RegisterPage() {
 
     setLoading(true)
     try {
+      // locale is passed as an additional field for Better Auth's user schema.
+      // The backend must declare `locale` in the user schema for this to persist.
+      // Until then, Better Auth silently ignores unknown fields.
       const { error: signUpError } = await authClient.signUp.email({
         name,
         email,
         password,
-      })
+        locale: navigator.language?.split('-')[0] ?? 'en',
+      } as Parameters<typeof authClient.signUp.email>[0])
       if (signUpError) {
         // Conscious UX trade-off: revealing that an email is already registered
         // enables account enumeration, but provides a significantly better user
@@ -132,6 +144,7 @@ function RegisterPage() {
             <p className="text-sm text-muted-foreground">{message}</p>
             <Link
               to="/login"
+              search={redirectParam ? { redirect: redirectParam } : undefined}
               className="inline-block text-sm underline hover:text-foreground text-muted-foreground"
             >
               {m.auth_back_to_sign_in()}
@@ -273,7 +286,11 @@ function RegisterPage() {
 
       <p className="text-center text-sm text-muted-foreground">
         {m.auth_have_account()}{' '}
-        <Link to="/login" className="underline hover:text-foreground">
+        <Link
+          to="/login"
+          search={redirectParam ? { redirect: redirectParam } : undefined}
+          className="underline hover:text-foreground"
+        >
           {m.auth_sign_in_link()}
         </Link>
       </p>

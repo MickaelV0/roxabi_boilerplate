@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
+import { requireGuest } from '@/lib/route-guards'
 import { m } from '@/paraglide/messages'
 import { AuthLayout } from '../../components/AuthLayout'
 
@@ -11,6 +12,7 @@ type ConfirmSearch = {
 }
 
 export const Route = createFileRoute('/reset-password/confirm')({
+  beforeLoad: requireGuest,
   validateSearch: (search: Record<string, unknown>): ConfirmSearch => ({
     token: typeof search.token === 'string' ? search.token : undefined,
   }),

@@ -597,7 +597,12 @@
   "stats_components": "Composants UI",
   "stats_integrations": "Intégrations",
 
-  "auth_magic_link_error": "Impossible d'envoyer le lien magique. Veuillez réessayer.",
+  "auth_verify_email_enter_email": "Entrez votre adresse e-mail",
+  "auth_verify_email_resend_neutral": "Si un compte avec cet e-mail existe et n'est pas encore v\u00e9rifi\u00e9, un e-mail de v\u00e9rification a \u00e9t\u00e9 envoy\u00e9.",
+  "auth_login_email_not_verified_sent": "Votre e-mail n'est pas v\u00e9rifi\u00e9. Un nouvel e-mail de v\u00e9rification a \u00e9t\u00e9 envoy\u00e9. V\u00e9rifiez votre bo\u00eete de r\u00e9ception.",
+  "auth_resend_verification_in": "Renvoyer dans {seconds}s",
+
+  "auth_magic_link_error": "Impossible d'envoyer le lien magique. Veuillez r\u00e9essayer.",
 
   "dashboard_welcome": "Bon retour, {name}",
   "dashboard_org_context": "Vous travaillez dans l'organisation {name}.",

@@ -1,4 +1,4 @@
-import { Button } from '@repo/ui'
+import { Button, Input, Label } from '@repo/ui'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -6,6 +6,8 @@ import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
 import { m } from '@/paraglide/messages'
 import { AuthLayout } from '../components/AuthLayout'
+
+const COOLDOWN_SECONDS = 60
 
 type VerifySearch = {
   token?: string
@@ -26,7 +28,16 @@ function VerifyEmailPage() {
   const { data: session } = useSession()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [resending, setResending] = useState(false)
+  const [resendEmail, setResendEmail] = useState('')
+  const [cooldown, setCooldown] = useState(0)
+  const [sessionlessMessage, setSessionlessMessage] = useState('')
   const sessionEmail = session?.user?.email
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setTimeout(() => setCooldown((c) => c - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [cooldown])
 
   useEffect(() => {
     if (!token) {
@@ -64,9 +75,32 @@ function VerifyEmailPage() {
         toast.error(error.message ?? m.auth_toast_error())
       } else {
         toast.success(m.auth_toast_verification_resent())
+        setCooldown(COOLDOWN_SECONDS)
       }
     } catch {
       toast.error(m.auth_toast_error())
+    } finally {
+      setResending(false)
+    }
+  }
+
+  async function handleSessionlessResend(e: React.FormEvent) {
+    e.preventDefault()
+    if (!resendEmail) return
+    setResending(true)
+    setSessionlessMessage('')
+    try {
+      await authClient.sendVerificationEmail({
+        email: resendEmail,
+        callbackURL: `${window.location.origin}/verify-email`,
+      })
+      // Always show neutral message regardless of result (no account existence leak)
+      setSessionlessMessage(m.auth_verify_email_resend_neutral())
+      setCooldown(COOLDOWN_SECONDS)
+    } catch {
+      // Still show neutral message even on errors to avoid information leakage
+      setSessionlessMessage(m.auth_verify_email_resend_neutral())
+      setCooldown(COOLDOWN_SECONDS)
     } finally {
       setResending(false)
     }
@@ -103,9 +137,53 @@ function VerifyEmailPage() {
           {!token ? m.auth_missing_token() : m.auth_verification_failed()}
         </p>
         {sessionEmail && (
-          <Button variant="outline" onClick={handleResend} disabled={resending} className="w-full">
-            {resending ? m.auth_resending() : m.auth_resend_verification()}
+          <Button
+            variant="outline"
+            onClick={handleResend}
+            disabled={resending || cooldown > 0}
+            className="w-full"
+          >
+            {resending
+              ? m.auth_resending()
+              : cooldown > 0
+                ? m.auth_resend_verification_in({ seconds: String(cooldown) })
+                : m.auth_resend_verification()}
           </Button>
+        )}
+        {!sessionEmail && (
+          <div className="space-y-3">
+            {sessionlessMessage && (
+              <p aria-live="polite" className="text-sm text-muted-foreground">
+                {sessionlessMessage}
+              </p>
+            )}
+            <form onSubmit={handleSessionlessResend} className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="resend-email">{m.auth_verify_email_enter_email()}</Label>
+                <Input
+                  id="resend-email"
+                  type="email"
+                  value={resendEmail}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setResendEmail(e.target.value)
+                  }
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
+                variant="outline"
+                className="w-full"
+                disabled={resending || cooldown > 0}
+              >
+                {resending
+                  ? m.auth_resending()
+                  : cooldown > 0
+                    ? m.auth_resend_verification_in({ seconds: String(cooldown) })
+                    : m.auth_resend_verification()}
+              </Button>
+            </form>
+          </div>
         )}
         <p className="text-sm text-muted-foreground">
           <Link to="/login" className="underline hover:text-foreground">
