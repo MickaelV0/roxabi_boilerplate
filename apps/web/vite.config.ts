@@ -6,7 +6,7 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import mdx from 'fumadocs-mdx/vite'
 import { nitro } from 'nitro/vite'
-import { defineConfig, loadEnv, type ResolvedConfig } from 'vite'
+import { defineConfig, loadEnv, type PluginOption, type ResolvedConfig } from 'vite'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
 import { z } from 'zod'
 
@@ -71,7 +71,7 @@ const config = defineConfig(async () => ({
     tailwindcss(),
     tanstackStart(),
     viteReact(),
-  ],
+  ] as PluginOption[],
 }))
 
 export default config
