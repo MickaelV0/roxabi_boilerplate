@@ -19,21 +19,6 @@ import { m } from '@/paraglide/messages'
 
 import { ColorPicker } from './ColorPicker'
 
-type PresetState = {
-  activeBase: string
-  activeColor: string | null
-  onBaseClick: (preset: ShadcnPreset) => void
-  onColorClick: (preset: ShadcnPreset) => void
-}
-
-type ThemeActions = {
-  onColorChange: (key: (typeof SEED_COLOR_KEYS)[number], v: string) => void
-  onFontFamilyChange: (v: string) => void
-  onFontSizeChange: (v: number[]) => void
-  onRadiusChange: (v: number[]) => void
-  onReset: () => void
-}
-
 type ThemeEditorProps = {
   config: ThemeConfig
   onConfigChange: (config: ThemeConfig) => void
@@ -368,8 +353,15 @@ function ShadowsSection({
 function ThemeEditorSidebar({
   config,
   onConfigChange,
-  presetState,
-  themeActions,
+  activeBase,
+  activeColor,
+  onBaseClick,
+  onColorClick,
+  onColorChange,
+  onFontFamilyChange,
+  onFontSizeChange,
+  onRadiusChange,
+  onReset,
   onToggle,
   sidebarRef,
   announcementRef,
@@ -377,8 +369,15 @@ function ThemeEditorSidebar({
 }: {
   config: ThemeConfig
   onConfigChange: (config: ThemeConfig) => void
-  presetState: PresetState
-  themeActions: ThemeActions
+  activeBase: string
+  activeColor: string | null
+  onBaseClick: (preset: ShadcnPreset) => void
+  onColorClick: (preset: ShadcnPreset) => void
+  onColorChange: (key: (typeof SEED_COLOR_KEYS)[number], v: string) => void
+  onFontFamilyChange: (v: string) => void
+  onFontSizeChange: (v: number[]) => void
+  onRadiusChange: (v: number[]) => void
+  onReset: () => void
   onToggle: () => void
   sidebarRef: React.RefObject<HTMLElement | null>
   announcementRef: React.RefObject<HTMLOutputElement | null>
@@ -407,31 +406,25 @@ function ThemeEditorSidebar({
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4">
-          <BasePresetsSection
-            activeBase={presetState.activeBase}
-            onBaseClick={presetState.onBaseClick}
-          />
-          <ColorPresetsSection
-            activeColor={presetState.activeColor}
-            onColorClick={presetState.onColorClick}
-          />
+          <BasePresetsSection activeBase={activeBase} onBaseClick={onBaseClick} />
+          <ColorPresetsSection activeColor={activeColor} onColorClick={onColorClick} />
           <Separator className="my-4" />
-          <SeedColorsSection config={config} onColorChange={themeActions.onColorChange} />
+          <SeedColorsSection config={config} onColorChange={onColorChange} />
           <Separator className="my-4" />
           <ThemeFontControls
             config={config}
-            onFontFamilyChange={themeActions.onFontFamilyChange}
-            onFontSizeChange={themeActions.onFontSizeChange}
+            onFontFamilyChange={onFontFamilyChange}
+            onFontSizeChange={onFontSizeChange}
           />
           <Separator className="my-4" />
-          <RadiusSection config={config} onRadiusChange={themeActions.onRadiusChange} />
+          <RadiusSection config={config} onRadiusChange={onRadiusChange} />
           <Separator className="my-4" />
           <ShadowsSection
             config={config}
             onShadowChange={(shadow) => onConfigChange({ ...config, shadows: shadow })}
           />
           <Separator className="my-4" />
-          <Button variant="outline" size="sm" className="w-full" onClick={themeActions.onReset}>
+          <Button variant="outline" size="sm" className="w-full" onClick={onReset}>
             <RotateCcwIcon className="size-3.5" />
             {m.ds_theme_reset()}
           </Button>
@@ -443,7 +436,7 @@ function ThemeEditorSidebar({
   )
 }
 
-function useThemeEditorRefs(isOpen: boolean, onToggle: () => void) {
+function useThemeEditorBehavior(isOpen: boolean, onToggle: () => void) {
   const sidebarRef = useRef<HTMLElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const announcementRef = useRef<HTMLOutputElement>(null)
@@ -519,7 +512,10 @@ export function ThemeEditor({
   isOpen,
   onToggle,
 }: ThemeEditorProps) {
-  const { sidebarRef, triggerRef, announcementRef, announce } = useThemeEditorRefs(isOpen, onToggle)
+  const { sidebarRef, triggerRef, announcementRef, announce } = useThemeEditorBehavior(
+    isOpen,
+    onToggle
+  )
 
   function handleColorChange(key: (typeof SEED_COLOR_KEYS)[number], oklchValue: string) {
     onConfigChange({ ...config, colors: { ...config.colors, [key]: oklchValue } })
@@ -546,32 +542,29 @@ export function ThemeEditor({
       <ThemeEditorSidebar
         config={config}
         onConfigChange={onConfigChange}
-        presetState={{
-          activeBase,
-          activeColor,
-          onBaseClick: handleBaseClick,
-          onColorClick: handleColorClick,
+        activeBase={activeBase}
+        activeColor={activeColor}
+        onBaseClick={handleBaseClick}
+        onColorClick={handleColorClick}
+        onColorChange={handleColorChange}
+        onFontFamilyChange={(v) =>
+          onConfigChange({ ...config, typography: { ...config.typography, fontFamily: v } })
+        }
+        onFontSizeChange={(values) => {
+          const px = values[0]
+          if (px !== undefined)
+            onConfigChange({
+              ...config,
+              typography: { ...config.typography, baseFontSize: `${px}px` },
+            })
         }}
-        themeActions={{
-          onColorChange: handleColorChange,
-          onFontFamilyChange: (v) =>
-            onConfigChange({ ...config, typography: { ...config.typography, fontFamily: v } }),
-          onFontSizeChange: (values) => {
-            const px = values[0]
-            if (px !== undefined)
-              onConfigChange({
-                ...config,
-                typography: { ...config.typography, baseFontSize: `${px}px` },
-              })
-          },
-          onRadiusChange: (values) => {
-            const rem = values[0]
-            if (rem !== undefined) onConfigChange({ ...config, radius: `${rem}rem` })
-          },
-          onReset: () => {
-            onReset()
-            announce(m.ds_theme_announce_reset())
-          },
+        onRadiusChange={(values) => {
+          const rem = values[0]
+          if (rem !== undefined) onConfigChange({ ...config, radius: `${rem}rem` })
+        }}
+        onReset={() => {
+          onReset()
+          announce(m.ds_theme_announce_reset())
         }}
         onToggle={onToggle}
         sidebarRef={sidebarRef}

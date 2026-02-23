@@ -15,7 +15,7 @@ import {
   TabsTrigger,
 } from '@repo/ui'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { useEffect, useReducer } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { fetchOrganizations, fetchUserProfile } from '@/lib/api'
 import { authClient, fetchEnabledProviders } from '@/lib/auth-client'
@@ -30,90 +30,6 @@ type LoginSearch = {
 
 const COOLDOWN_SECONDS = 60
 
-// ---------------------------------------------------------------------------
-// State types & reducer
-// ---------------------------------------------------------------------------
-
-type LoginState = {
-  email: string
-  password: string
-  magicLinkEmail: string
-  rememberMe: boolean
-  error: string
-  loading: boolean
-  oauthLoading: string | null
-  emailNotVerified: boolean
-  notVerifiedEmail: string
-  resendCooldown: number
-  resendLoading: boolean
-}
-
-type LoginAction =
-  | { type: 'SET_EMAIL'; payload: string }
-  | { type: 'SET_PASSWORD'; payload: string }
-  | { type: 'SET_MAGIC_LINK_EMAIL'; payload: string }
-  | { type: 'SET_REMEMBER_ME'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_OAUTH_LOADING'; payload: string | null }
-  | { type: 'SET_EMAIL_NOT_VERIFIED'; payload: { verified: boolean; email?: string } }
-  | { type: 'SET_RESEND_COOLDOWN'; payload: number }
-  | { type: 'DECREMENT_RESEND_COOLDOWN' }
-  | { type: 'SET_RESEND_LOADING'; payload: boolean }
-  | { type: 'SUBMIT_START' }
-  | { type: 'SUBMIT_ERROR'; payload: string }
-
-const initialLoginState: LoginState = {
-  email: '',
-  password: '',
-  magicLinkEmail: '',
-  rememberMe: false,
-  error: '',
-  loading: false,
-  oauthLoading: null,
-  emailNotVerified: false,
-  notVerifiedEmail: '',
-  resendCooldown: 0,
-  resendLoading: false,
-}
-
-function loginReducer(state: LoginState, action: LoginAction): LoginState {
-  switch (action.type) {
-    case 'SET_EMAIL':
-      return { ...state, email: action.payload }
-    case 'SET_PASSWORD':
-      return { ...state, password: action.payload }
-    case 'SET_MAGIC_LINK_EMAIL':
-      return { ...state, magicLinkEmail: action.payload }
-    case 'SET_REMEMBER_ME':
-      return { ...state, rememberMe: action.payload }
-    case 'SET_ERROR':
-      return { ...state, error: action.payload }
-    case 'SET_LOADING':
-      return { ...state, loading: action.payload }
-    case 'SET_OAUTH_LOADING':
-      return { ...state, oauthLoading: action.payload }
-    case 'SET_EMAIL_NOT_VERIFIED':
-      return {
-        ...state,
-        emailNotVerified: action.payload.verified,
-        notVerifiedEmail: action.payload.email ?? state.notVerifiedEmail,
-      }
-    case 'SET_RESEND_COOLDOWN':
-      return { ...state, resendCooldown: action.payload }
-    case 'DECREMENT_RESEND_COOLDOWN':
-      return { ...state, resendCooldown: state.resendCooldown - 1 }
-    case 'SET_RESEND_LOADING':
-      return { ...state, resendLoading: action.payload }
-    case 'SUBMIT_START':
-      return { ...state, error: '', emailNotVerified: false, loading: true }
-    case 'SUBMIT_ERROR':
-      return { ...state, error: action.payload, loading: false }
-    default:
-      return state
-  }
-}
-
 export const Route = createFileRoute('/login')({
   beforeLoad: requireGuest,
   validateSearch: (search: Record<string, unknown>): LoginSearch => ({
@@ -125,6 +41,77 @@ export const Route = createFileRoute('/login')({
     meta: [{ title: `${m.auth_sign_in_title()} | Roxabi` }],
   }),
 })
+
+// ---------------------------------------------------------------------------
+// Custom hook: useLoginFormState
+// ---------------------------------------------------------------------------
+
+function useLoginFormFields() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [magicLinkEmail, setMagicLinkEmail] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [oauthLoading, setOauthLoading] = useState<string | null>(null)
+  const [emailNotVerified, setEmailNotVerified] = useState(false)
+  const [notVerifiedEmail, setNotVerifiedEmail] = useState('')
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [resendLoading, setResendLoading] = useState(false)
+
+  return {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    magicLinkEmail,
+    setMagicLinkEmail,
+    rememberMe,
+    setRememberMe,
+    error,
+    setError,
+    loading,
+    setLoading,
+    oauthLoading,
+    setOauthLoading,
+    emailNotVerified,
+    setEmailNotVerified,
+    notVerifiedEmail,
+    setNotVerifiedEmail,
+    resendCooldown,
+    setResendCooldown,
+    resendLoading,
+    setResendLoading,
+  }
+}
+
+function useLoginFormState() {
+  const fields = useLoginFormFields()
+
+  function submitStart() {
+    fields.setError('')
+    fields.setEmailNotVerified(false)
+    fields.setLoading(true)
+  }
+
+  function submitError(msg: string) {
+    fields.setError(msg)
+    fields.setLoading(false)
+  }
+
+  function decrementResendCooldown() {
+    fields.setResendCooldown((c) => c - 1)
+  }
+
+  function markEmailNotVerified(emailAddr: string) {
+    fields.setEmailNotVerified(true)
+    fields.setNotVerifiedEmail(emailAddr)
+  }
+
+  return { ...fields, submitStart, submitError, decrementResendCooldown, markEmailNotVerified }
+}
+
+type LoginFormState = ReturnType<typeof useLoginFormState>
 
 function UnverifiedEmailAlert({
   resendCooldown,
@@ -161,14 +148,18 @@ function PasswordLoginForm({
   rememberMe,
   loading,
   onSubmit,
-  dispatch,
+  onEmailChange,
+  onPasswordChange,
+  onRememberMeChange,
 }: {
   email: string
   password: string
   rememberMe: boolean
   loading: boolean
   onSubmit: (e: React.FormEvent) => void
-  dispatch: React.Dispatch<LoginAction>
+  onEmailChange: (v: string) => void
+  onPasswordChange: (v: string) => void
+  onRememberMeChange: (v: boolean) => void
 }) {
   return (
     <form onSubmit={onSubmit} aria-busy={loading} className="space-y-4">
@@ -178,9 +169,7 @@ function PasswordLoginForm({
           id="email"
           type="email"
           value={email}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            dispatch({ type: 'SET_EMAIL', payload: e.target.value })
-          }
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onEmailChange(e.target.value)}
           required
           disabled={loading}
         />
@@ -198,9 +187,7 @@ function PasswordLoginForm({
         <PasswordInput
           id="password"
           value={password}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            dispatch({ type: 'SET_PASSWORD', payload: e.target.value })
-          }
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onPasswordChange(e.target.value)}
           required
           disabled={loading}
         />
@@ -209,9 +196,7 @@ function PasswordLoginForm({
         <Checkbox
           id="remember"
           checked={rememberMe}
-          onCheckedChange={(checked) =>
-            dispatch({ type: 'SET_REMEMBER_ME', payload: checked === true })
-          }
+          onCheckedChange={(checked) => onRememberMeChange(checked === true)}
         />
         <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
           {m.auth_remember_me()}
@@ -270,44 +255,38 @@ function OAuthSection({
 }
 
 function PasswordLoginTab({
-  email,
-  password,
-  rememberMe,
+  form,
   loading,
   onSubmit,
   hasOAuth,
   providers,
-  oauthLoading,
-  dispatch,
   onOAuth,
 }: {
-  email: string
-  password: string
-  rememberMe: boolean
+  form: LoginFormState
   loading: boolean
   onSubmit: (e: React.FormEvent) => void
   hasOAuth: boolean
   providers: { google?: boolean; github?: boolean }
-  oauthLoading: string | null
-  dispatch: React.Dispatch<LoginAction>
   onOAuth: (provider: 'google' | 'github') => void
 }) {
   return (
     <TabsContent value="password" className="space-y-6 pt-4">
       <PasswordLoginForm
-        email={email}
-        password={password}
-        rememberMe={rememberMe}
+        email={form.email}
+        password={form.password}
+        rememberMe={form.rememberMe}
         loading={loading}
         onSubmit={onSubmit}
-        dispatch={dispatch}
+        onEmailChange={form.setEmail}
+        onPasswordChange={form.setPassword}
+        onRememberMeChange={form.setRememberMe}
       />
 
       {hasOAuth && (
         <OAuthSection
           providers={providers}
           loading={loading}
-          oauthLoading={oauthLoading}
+          oauthLoading={form.oauthLoading}
           onOAuth={onOAuth}
         />
       )}
@@ -319,12 +298,12 @@ function MagicLinkTab({
   magicLinkEmail,
   loading,
   onSubmit,
-  dispatch,
+  onMagicLinkEmailChange,
 }: {
   magicLinkEmail: string
   loading: boolean
   onSubmit: (e: React.FormEvent) => void
-  dispatch: React.Dispatch<LoginAction>
+  onMagicLinkEmailChange: (v: string) => void
 }) {
   return (
     <TabsContent value="magic-link" className="space-y-6 pt-4">
@@ -337,7 +316,7 @@ function MagicLinkTab({
             placeholder={m.auth_magic_link_placeholder()}
             value={magicLinkEmail}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              dispatch({ type: 'SET_MAGIC_LINK_EMAIL', payload: e.target.value })
+              onMagicLinkEmailChange(e.target.value)
             }
             required
             disabled={loading}
@@ -387,12 +366,12 @@ async function autoSelectOrg() {
   }
 }
 
-function useResendCooldownEffect(resendCooldown: number, dispatch: React.Dispatch<LoginAction>) {
+function useResendCooldownEffect(resendCooldown: number, decrementResendCooldown: () => void) {
   useEffect(() => {
     if (resendCooldown <= 0) return
-    const timer = setTimeout(() => dispatch({ type: 'DECREMENT_RESEND_COOLDOWN' }), 1000)
+    const timer = setTimeout(() => decrementResendCooldown(), 1000)
     return () => clearTimeout(timer)
-  }, [resendCooldown, dispatch])
+  }, [resendCooldown, decrementResendCooldown])
 }
 
 function useStoredRedirect(navigate: ReturnType<typeof useNavigate>) {
@@ -411,63 +390,59 @@ function useStoredRedirect(navigate: ReturnType<typeof useNavigate>) {
 }
 
 // ---------------------------------------------------------------------------
-// Handler hooks (accept dispatch + only the state slices they need)
+// Handler hooks (accept form state + only the slices they need)
 // ---------------------------------------------------------------------------
 
 type AuthHandlerDeps = {
-  dispatch: React.Dispatch<LoginAction>
-  email: string
-  password: string
-  rememberMe: boolean
-  magicLinkEmail: string
+  form: LoginFormState
   navigate: ReturnType<typeof useNavigate>
   redirectParam: string | undefined
 }
 
 function useLoginAuthHandlers(deps: AuthHandlerDeps) {
-  const { dispatch, email, password, rememberMe, navigate, redirectParam } = deps
+  const { form, navigate, redirectParam } = deps
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault()
-    dispatch({ type: 'SUBMIT_START' })
+    form.submitStart()
     try {
       const { error: signInError } = await authClient.signIn.email({
-        email,
-        password,
-        rememberMe,
+        email: form.email,
+        password: form.password,
+        rememberMe: form.rememberMe,
       })
       if (signInError) {
-        handleSignInError(signInError, email, dispatch)
+        handleSignInError(signInError, form.email, form)
       } else {
         await handleSignInSuccess(navigate, redirectParam)
       }
     } catch {
       toast.error(m.auth_toast_error())
     } finally {
-      dispatch({ type: 'SET_LOADING', payload: false })
+      form.setLoading(false)
     }
   }
 
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault()
-    dispatch({ type: 'SUBMIT_START' })
+    form.submitStart()
     try {
       const { error: mlError } = await authClient.signIn.magicLink({
-        email: deps.magicLinkEmail,
+        email: form.magicLinkEmail,
       })
       if (mlError) {
-        dispatch({ type: 'SUBMIT_ERROR', payload: m.auth_magic_link_error() })
+        form.submitError(m.auth_magic_link_error())
       } else {
         toast.success(m.auth_toast_magic_link_sent())
         navigate({
           to: '/magic-link-sent',
-          search: { email: deps.magicLinkEmail, redirect: redirectParam },
+          search: { email: form.magicLinkEmail, redirect: redirectParam },
         })
       }
     } catch {
       toast.error(m.auth_toast_error())
     } finally {
-      dispatch({ type: 'SET_LOADING', payload: false })
+      form.setLoading(false)
     }
   }
 
@@ -479,15 +454,11 @@ function useLoginAuthHandlers(deps: AuthHandlerDeps) {
  * Better Auth returns 403 specifically for unverified email when
  * emailAndPassword.requireEmailVerification is enabled.
  */
-function handleSignInError(
-  signInError: { status: number },
-  email: string,
-  dispatch: React.Dispatch<LoginAction>
-) {
+function handleSignInError(signInError: { status: number }, email: string, form: LoginFormState) {
   if (signInError.status === 403) {
-    dispatch({ type: 'SET_EMAIL_NOT_VERIFIED', payload: { verified: true, email } })
+    form.markEmailNotVerified(email)
   } else {
-    dispatch({ type: 'SUBMIT_ERROR', payload: m.auth_login_invalid_credentials() })
+    form.submitError(m.auth_login_invalid_credentials())
   }
 }
 
@@ -504,28 +475,27 @@ async function handleSignInSuccess(
 }
 
 type SecondaryHandlerDeps = {
-  dispatch: React.Dispatch<LoginAction>
-  notVerifiedEmail: string
+  form: LoginFormState
   redirectParam: string | undefined
 }
 
 function useLoginSecondaryHandlers(deps: SecondaryHandlerDeps) {
-  const { dispatch, notVerifiedEmail, redirectParam } = deps
+  const { form, redirectParam } = deps
 
   async function handleResendVerification() {
-    if (!notVerifiedEmail) return
-    dispatch({ type: 'SET_RESEND_LOADING', payload: true })
+    if (!form.notVerifiedEmail) return
+    form.setResendLoading(true)
     try {
       await authClient.sendVerificationEmail({
-        email: notVerifiedEmail,
+        email: form.notVerifiedEmail,
         callbackURL: `${window.location.origin}/verify-email`,
       })
       toast.success(m.auth_toast_verification_resent())
-      dispatch({ type: 'SET_RESEND_COOLDOWN', payload: COOLDOWN_SECONDS })
+      form.setResendCooldown(COOLDOWN_SECONDS)
     } catch {
       toast.error(m.auth_toast_error())
     } finally {
-      dispatch({ type: 'SET_RESEND_LOADING', payload: false })
+      form.setResendLoading(false)
     }
   }
 
@@ -537,7 +507,7 @@ function useLoginSecondaryHandlers(deps: SecondaryHandlerDeps) {
         // sessionStorage may be unavailable
       }
     }
-    dispatch({ type: 'SET_OAUTH_LOADING', payload: provider })
+    form.setOauthLoading(provider)
     try {
       await authClient.signIn.social({
         provider,
@@ -547,7 +517,7 @@ function useLoginSecondaryHandlers(deps: SecondaryHandlerDeps) {
       })
     } catch {
       toast.error(m.auth_toast_error())
-      dispatch({ type: 'SET_OAUTH_LOADING', payload: null })
+      form.setOauthLoading(null)
     }
   }
 
@@ -563,28 +533,23 @@ function useLoginPage() {
   const { redirect: redirectParam } = Route.useSearch()
   const providers = Route.useLoaderData()
   const hasOAuth = providers.google || providers.github
-  const [state, dispatch] = useReducer(loginReducer, initialLoginState)
+  const form = useLoginFormState()
 
-  useResendCooldownEffect(state.resendCooldown, dispatch)
+  useResendCooldownEffect(form.resendCooldown, form.decrementResendCooldown)
   useStoredRedirect(navigate)
 
   const authHandlers = useLoginAuthHandlers({
-    dispatch,
-    email: state.email,
-    password: state.password,
-    rememberMe: state.rememberMe,
-    magicLinkEmail: state.magicLinkEmail,
+    form,
     navigate,
     redirectParam,
   })
 
   const secondaryHandlers = useLoginSecondaryHandlers({
-    dispatch,
-    notVerifiedEmail: state.notVerifiedEmail,
+    form,
     redirectParam,
   })
 
-  return { state, dispatch, providers, hasOAuth, redirectParam, authHandlers, secondaryHandlers }
+  return { form, providers, hasOAuth, redirectParam, authHandlers, secondaryHandlers }
 }
 
 function LoginPageAlerts({
@@ -620,16 +585,16 @@ function LoginPageAlerts({
 }
 
 function LoginPage() {
-  const { state, dispatch, providers, hasOAuth, redirectParam, authHandlers, secondaryHandlers } =
+  const { form, providers, hasOAuth, redirectParam, authHandlers, secondaryHandlers } =
     useLoginPage()
 
   return (
     <AuthLayout title={m.auth_sign_in_title()} description={m.auth_sign_in_desc()}>
       <LoginPageAlerts
-        emailNotVerified={state.emailNotVerified}
-        resendCooldown={state.resendCooldown}
-        resendLoading={state.resendLoading}
-        error={state.error}
+        emailNotVerified={form.emailNotVerified}
+        resendCooldown={form.resendCooldown}
+        resendLoading={form.resendLoading}
+        error={form.error}
         onResend={secondaryHandlers.handleResendVerification}
       />
 
@@ -640,23 +605,19 @@ function LoginPage() {
         </TabsList>
 
         <PasswordLoginTab
-          email={state.email}
-          password={state.password}
-          rememberMe={state.rememberMe}
-          loading={state.loading}
+          form={form}
+          loading={form.loading}
           onSubmit={authHandlers.handleEmailLogin}
           hasOAuth={hasOAuth}
           providers={providers}
-          oauthLoading={state.oauthLoading}
-          dispatch={dispatch}
           onOAuth={secondaryHandlers.handleOAuth}
         />
 
         <MagicLinkTab
-          magicLinkEmail={state.magicLinkEmail}
-          loading={state.loading}
+          magicLinkEmail={form.magicLinkEmail}
+          loading={form.loading}
           onSubmit={authHandlers.handleMagicLink}
-          dispatch={dispatch}
+          onMagicLinkEmailChange={form.setMagicLinkEmail}
         />
       </Tabs>
 

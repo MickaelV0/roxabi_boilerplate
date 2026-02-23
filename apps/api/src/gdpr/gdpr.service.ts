@@ -72,7 +72,7 @@ export class GdprService {
 
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
-  private fetchUserRecord(userId: string) {
+  private fetchUserRecord(userId: string): Promise<GdprUserData[]> {
     return this.db
       .select({
         name: users.name,
@@ -87,7 +87,17 @@ export class GdprService {
       .limit(1)
   }
 
-  private async fetchCoreUserData(userId: string) {
+  private async fetchCoreUserData(
+    userId: string
+  ): Promise<
+    [
+      GdprUserData[],
+      GdprSessionData[],
+      GdprAccountData[],
+      GdprOrganizationData[],
+      GdprConsentData[],
+    ]
+  > {
     return await Promise.all([
       this.fetchUserRecord(userId),
       this.db

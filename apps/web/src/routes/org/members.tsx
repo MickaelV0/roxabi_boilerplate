@@ -35,7 +35,7 @@ import {
   TableRow,
 } from '@repo/ui'
 import { createFileRoute } from '@tanstack/react-router'
-import { useReducer } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
 import { roleBadgeVariant, roleLabel } from '@/lib/org-utils'
@@ -49,66 +49,52 @@ export const Route = createFileRoute('/org/members')({
   }),
 })
 
-type MembersState = {
-  inviteOpen: boolean
-  inviteEmail: string
-  inviteRole: 'admin' | 'member'
-  inviting: boolean
-  removeMemberId: string | null
-  searchQuery: string
-}
+// ---------------------------------------------------------------------------
+// Custom hook: useMembersFormState
+// ---------------------------------------------------------------------------
 
-type MembersAction =
-  | { type: 'SET_INVITE_OPEN'; payload: boolean }
-  | { type: 'SET_INVITE_EMAIL'; payload: string }
-  | { type: 'SET_INVITE_ROLE'; payload: 'admin' | 'member' }
-  | { type: 'SET_INVITING'; payload: boolean }
-  | { type: 'SET_REMOVE_MEMBER_ID'; payload: string | null }
-  | { type: 'SET_SEARCH_QUERY'; payload: string }
-  | { type: 'RESET_INVITE_FORM' }
+function useMembersFormState() {
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteRole, setInviteRole] = useState<'admin' | 'member'>('member')
+  const [inviting, setInviting] = useState(false)
+  const [removeMemberId, setRemoveMemberId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
-const membersInitialState: MembersState = {
-  inviteOpen: false,
-  inviteEmail: '',
-  inviteRole: 'member',
-  inviting: false,
-  removeMemberId: null,
-  searchQuery: '',
-}
+  function resetInviteForm() {
+    setInviteEmail('')
+    setInviteRole('member')
+    setInviteOpen(false)
+  }
 
-function membersReducer(state: MembersState, action: MembersAction): MembersState {
-  switch (action.type) {
-    case 'SET_INVITE_OPEN':
-      return { ...state, inviteOpen: action.payload }
-    case 'SET_INVITE_EMAIL':
-      return { ...state, inviteEmail: action.payload }
-    case 'SET_INVITE_ROLE':
-      return { ...state, inviteRole: action.payload }
-    case 'SET_INVITING':
-      return { ...state, inviting: action.payload }
-    case 'SET_REMOVE_MEMBER_ID':
-      return { ...state, removeMemberId: action.payload }
-    case 'SET_SEARCH_QUERY':
-      return { ...state, searchQuery: action.payload }
-    case 'RESET_INVITE_FORM':
-      return { ...state, inviteEmail: '', inviteRole: 'member', inviteOpen: false }
+  return {
+    inviteOpen,
+    setInviteOpen,
+    inviteEmail,
+    setInviteEmail,
+    inviteRole,
+    setInviteRole,
+    inviting,
+    setInviting,
+    removeMemberId,
+    setRemoveMemberId,
+    searchQuery,
+    setSearchQuery,
+    resetInviteForm,
   }
 }
 
+type MembersFormState = ReturnType<typeof useMembersFormState>
+
 function InviteDialog({
-  state,
-  dispatch,
+  form,
   onInvite,
 }: {
-  state: MembersState
-  dispatch: React.Dispatch<MembersAction>
+  form: MembersFormState
   onInvite: (e: React.FormEvent) => void
 }) {
   return (
-    <Dialog
-      open={state.inviteOpen}
-      onOpenChange={(v) => dispatch({ type: 'SET_INVITE_OPEN', payload: v })}
-    >
+    <Dialog open={form.inviteOpen} onOpenChange={form.setInviteOpen}>
       <DialogTrigger asChild>
         <Button>{m.org_invite_title()}</Button>
       </DialogTrigger>
@@ -122,22 +108,21 @@ function InviteDialog({
             <Input
               id="invite-email"
               type="email"
-              value={state.inviteEmail}
+              value={form.inviteEmail}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                dispatch({ type: 'SET_INVITE_EMAIL', payload: e.target.value })
+                form.setInviteEmail(e.target.value)
               }
               placeholder={m.org_invite_email_placeholder()}
               required
-              disabled={state.inviting}
+              disabled={form.inviting}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="invite-role">{m.org_invite_role()}</Label>
             <Select
-              value={state.inviteRole}
+              value={form.inviteRole}
               onValueChange={(v: string) => {
-                if (v === 'admin' || v === 'member')
-                  dispatch({ type: 'SET_INVITE_ROLE', payload: v })
+                if (v === 'admin' || v === 'member') form.setInviteRole(v)
               }}
             >
               <SelectTrigger>
@@ -155,8 +140,8 @@ function InviteDialog({
                 {m.common_cancel()}
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={state.inviting}>
-              {state.inviting ? m.org_invite_sending() : m.org_invite_send()}
+            <Button type="submit" disabled={form.inviting}>
+              {form.inviting ? m.org_invite_sending() : m.org_invite_send()}
             </Button>
           </DialogFooter>
         </form>
@@ -326,33 +311,33 @@ function PendingInvitationsTable({
   )
 }
 
-function useMembersHandlers(state: MembersState, dispatch: React.Dispatch<MembersAction>) {
+function useMembersHandlers(form: MembersFormState) {
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault()
-    dispatch({ type: 'SET_INVITING', payload: true })
+    form.setInviting(true)
     try {
       const { error } = await authClient.organization.inviteMember({
-        email: state.inviteEmail,
-        role: state.inviteRole,
+        email: form.inviteEmail,
+        role: form.inviteRole,
       })
       if (error) {
         toast.error(error.message ?? m.auth_toast_error())
       } else {
-        toast.success(m.org_toast_invited({ email: state.inviteEmail }))
-        dispatch({ type: 'RESET_INVITE_FORM' })
+        toast.success(m.org_toast_invited({ email: form.inviteEmail }))
+        form.resetInviteForm()
       }
     } catch {
       toast.error(m.auth_toast_error())
     } finally {
-      dispatch({ type: 'SET_INVITING', payload: false })
+      form.setInviting(false)
     }
   }
 
   async function handleRemoveMember() {
-    if (!state.removeMemberId) return
+    if (!form.removeMemberId) return
     try {
       const { error } = await authClient.organization.removeMember({
-        memberIdOrEmail: state.removeMemberId,
+        memberIdOrEmail: form.removeMemberId,
       })
       if (error) {
         toast.error(error.message ?? m.auth_toast_error())
@@ -362,7 +347,7 @@ function useMembersHandlers(state: MembersState, dispatch: React.Dispatch<Member
     } catch {
       toast.error(m.auth_toast_error())
     } finally {
-      dispatch({ type: 'SET_REMOVE_MEMBER_ID', payload: null })
+      form.setRemoveMemberId(null)
     }
   }
 
@@ -397,18 +382,18 @@ function useMembersHandlers(state: MembersState, dispatch: React.Dispatch<Member
 
 function RemoveMemberDialog({
   removeMemberId,
-  dispatch,
+  onDismiss,
   onConfirm,
 }: {
   removeMemberId: string | null
-  dispatch: React.Dispatch<MembersAction>
+  onDismiss: () => void
   onConfirm: () => void
 }) {
   return (
     <AlertDialog
       open={removeMemberId !== null}
       onOpenChange={(open: boolean) => {
-        if (!open) dispatch({ type: 'SET_REMOVE_MEMBER_ID', payload: null })
+        if (!open) onDismiss()
       }}
     >
       <AlertDialogContent>
@@ -436,47 +421,41 @@ function OrgMembersContent({
   canManage,
   members,
   invitations,
-  state,
-  dispatch,
+  form,
   handlers,
 }: {
   canManage: boolean
   members: NonNullable<ActiveOrgData['members']>
   invitations: Array<{ id: string; email: string; role: string; status: string }>
-  state: MembersState
-  dispatch: React.Dispatch<MembersAction>
+  form: MembersFormState
   handlers: ReturnType<typeof useMembersHandlers>
 }) {
   const filteredMembers = members.filter(
     (member) =>
-      member.user.name?.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-      member.user.email.toLowerCase().includes(state.searchQuery.toLowerCase())
+      member.user.name?.toLowerCase().includes(form.searchQuery.toLowerCase()) ||
+      member.user.email.toLowerCase().includes(form.searchQuery.toLowerCase())
   )
 
   return (
     <>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{m.org_members_title()}</h1>
-        {canManage && (
-          <InviteDialog state={state} dispatch={dispatch} onInvite={handlers.handleInvite} />
-        )}
+        {canManage && <InviteDialog form={form} onInvite={handlers.handleInvite} />}
       </div>
 
       <Input
         placeholder={m.org_members_search_placeholder()}
-        value={state.searchQuery}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          dispatch({ type: 'SET_SEARCH_QUERY', payload: e.target.value })
-        }
+        value={form.searchQuery}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => form.setSearchQuery(e.target.value)}
         className="max-w-sm"
       />
 
       <MembersTable
         members={filteredMembers}
         canManage={canManage}
-        searchQuery={state.searchQuery}
+        searchQuery={form.searchQuery}
         onRoleChange={handlers.handleRoleChange}
-        onRemoveClick={(id) => dispatch({ type: 'SET_REMOVE_MEMBER_ID', payload: id })}
+        onRemoveClick={(id) => form.setRemoveMemberId(id)}
       />
 
       <PendingInvitationsTable
@@ -486,8 +465,8 @@ function OrgMembersContent({
       />
 
       <RemoveMemberDialog
-        removeMemberId={state.removeMemberId}
-        dispatch={dispatch}
+        removeMemberId={form.removeMemberId}
+        onDismiss={() => form.setRemoveMemberId(null)}
         onConfirm={handlers.handleRemoveMember}
       />
     </>
@@ -498,8 +477,8 @@ function OrgMembersPage() {
   const { data: session } = useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
   const canManage = hasPermission(session, 'members:write')
-  const [state, dispatch] = useReducer(membersReducer, membersInitialState)
-  const handlers = useMembersHandlers(state, dispatch)
+  const form = useMembersFormState()
+  const handlers = useMembersHandlers(form)
 
   if (!activeOrg) {
     return (
@@ -515,8 +494,7 @@ function OrgMembersPage() {
       canManage={canManage}
       members={activeOrg.members ?? []}
       invitations={activeOrg.invitations?.filter((inv) => inv.status === 'pending') ?? []}
-      state={state}
-      dispatch={dispatch}
+      form={form}
       handlers={handlers}
     />
   )

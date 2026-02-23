@@ -267,35 +267,6 @@ function applyThemeComposition(
   return config
 }
 
-function handleThemeConfigChange(
-  newConfig: ThemeConfig,
-  themeConfig: ThemeConfig,
-  activeBase: string,
-  activeColor: string | null,
-  setThemeConfig: (c: ThemeConfig) => void,
-  setActiveBase: (b: string) => void,
-  setActiveColor: (c: string | null) => void
-) {
-  const colorsChanged = SEED_COLOR_KEYS.some(
-    (key) => newConfig.colors[key] !== themeConfig.colors[key]
-  )
-  setThemeConfig(newConfig)
-
-  if (colorsChanged) {
-    setActiveBase('zinc')
-    setActiveColor(null)
-    applyTheme(deriveFullTheme(newConfig))
-    persistTheme({ config: newConfig })
-  } else {
-    const base = findBase(activeBase)
-    const color = findColor(activeColor)
-    const derived = getComposedDerivedTheme(base, color)
-    applyNonColorOverrides(derived, newConfig)
-    applyTheme(derived)
-    persistTheme({ base: activeBase, color: activeColor, config: newConfig })
-  }
-}
-
 function getTabs(): { id: TabId; label: string }[] {
   return [
     { id: 'colors', label: m.ds_tab_colors() },
@@ -408,15 +379,24 @@ function useDesignSystemTheme() {
 
   const onConfigChange = useCallback(
     (newConfig: ThemeConfig) => {
-      handleThemeConfigChange(
-        newConfig,
-        themeConfig,
-        activeBase,
-        activeColor,
-        setThemeConfig,
-        setActiveBase,
-        setActiveColor
+      const colorsChanged = SEED_COLOR_KEYS.some(
+        (key) => newConfig.colors[key] !== themeConfig.colors[key]
       )
+      setThemeConfig(newConfig)
+
+      if (colorsChanged) {
+        setActiveBase('zinc')
+        setActiveColor(null)
+        applyTheme(deriveFullTheme(newConfig))
+        persistTheme({ config: newConfig })
+      } else {
+        const base = findBase(activeBase)
+        const color = findColor(activeColor)
+        const derived = getComposedDerivedTheme(base, color)
+        applyNonColorOverrides(derived, newConfig)
+        applyTheme(derived)
+        persistTheme({ base: activeBase, color: activeColor, config: newConfig })
+      }
     },
     [themeConfig, activeBase, activeColor]
   )
@@ -699,7 +679,7 @@ function SpacingSection({ config }: { config: ThemeConfig }) {
 // Tab Section: Components
 // ---------------------------------------------------------------------------
 
-function TextInputDemos() {
+function InteractiveControlDemos() {
   return (
     <>
       <ComponentShowcase
@@ -833,15 +813,6 @@ function ToggleInputDemos() {
   )
 }
 
-function InputDemos() {
-  return (
-    <>
-      <TextInputDemos />
-      <ToggleInputDemos />
-    </>
-  )
-}
-
 function DataDisplayDemos() {
   return (
     <>
@@ -964,7 +935,8 @@ function ComponentsSection() {
       <p className="mb-8 text-muted-foreground">{m.ds_components_desc()}</p>
 
       <div className="space-y-10">
-        <InputDemos />
+        <InteractiveControlDemos />
+        <ToggleInputDemos />
         <DataDisplayDemos />
         <LayoutDemos />
         <FeedbackDemos />

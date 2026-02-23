@@ -50,7 +50,7 @@ type ProfileFormState = {
   loaded: boolean
 }
 
-type ProfileState = ProfileFormState & {
+type ProfileActions = {
   setFirstName: (v: string) => void
   setLastName: (v: string) => void
   setFullName: (v: string) => void
@@ -61,6 +61,11 @@ type ProfileState = ProfileFormState & {
     v: Record<string, unknown> | ((prev: Record<string, unknown>) => Record<string, unknown>)
   ) => void
   setSaving: (v: boolean) => void
+}
+
+type ProfileData = {
+  state: ProfileFormState
+  actions: ProfileActions
 }
 
 const initialProfileForm: ProfileFormState = {
@@ -103,7 +108,7 @@ async function fetchProfile(fallbackName: string, fallbackId: string) {
 
 // -- Custom hook --
 
-function useProfileData(user: { id: string; name: string | null } | undefined): ProfileState {
+function useProfileData(user: { id: string; name: string | null } | undefined): ProfileData {
   const [s, setS] = useState(initialProfileForm)
   const set = useCallback(
     (patch: Partial<ProfileFormState>) => setS((prev) => ({ ...prev, ...patch })),
@@ -140,21 +145,29 @@ function useProfileData(user: { id: string; name: string | null } | undefined): 
   const setSaving = useCallback((v: boolean) => set({ saving: v }), [set])
 
   return {
-    ...s,
-    setFirstName,
-    setLastName,
-    setFullName,
-    setFullNameCustomized,
-    setAvatarStyle,
-    setAvatarSeed,
-    setAvatarOptions,
-    setSaving,
+    state: s,
+    actions: {
+      setFirstName,
+      setLastName,
+      setFullName,
+      setFullNameCustomized,
+      setAvatarStyle,
+      setAvatarSeed,
+      setAvatarOptions,
+      setSaving,
+    },
   }
 }
 
 // -- Sub-components --
 
-function ProfileInfoSection({ profile }: { profile: ProfileState }) {
+function ProfileInfoSection({
+  state,
+  actions,
+}: {
+  state: ProfileFormState
+  actions: ProfileActions
+}) {
   return (
     <Card>
       <CardHeader>
@@ -167,24 +180,24 @@ function ProfileInfoSection({ profile }: { profile: ProfileState }) {
             <Label htmlFor="firstName">{m.profile_first_name()}</Label>
             <Input
               id="firstName"
-              value={profile.firstName}
+              value={state.firstName}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                profile.setFirstName(e.target.value)
+                actions.setFirstName(e.target.value)
               }
               placeholder={m.profile_first_name()}
-              disabled={profile.saving}
+              disabled={state.saving}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="lastName">{m.profile_last_name()}</Label>
             <Input
               id="lastName"
-              value={profile.lastName}
+              value={state.lastName}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                profile.setLastName(e.target.value)
+                actions.setLastName(e.target.value)
               }
               placeholder={m.profile_last_name()}
-              disabled={profile.saving}
+              disabled={state.saving}
             />
           </div>
         </div>
@@ -192,20 +205,20 @@ function ProfileInfoSection({ profile }: { profile: ProfileState }) {
           <Label htmlFor="fullName">{m.profile_display_name()}</Label>
           <Input
             id="fullName"
-            value={profile.fullName}
+            value={state.fullName}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              profile.setFullName(e.target.value)
-              profile.setFullNameCustomized(true)
+              actions.setFullName(e.target.value)
+              actions.setFullNameCustomized(true)
             }}
             placeholder={m.profile_display_name()}
-            disabled={profile.saving}
+            disabled={state.saving}
             required
           />
-          {profile.fullNameCustomized && (
+          {state.fullNameCustomized && (
             <button
               type="button"
               className="text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => profile.setFullNameCustomized(false)}
+              onClick={() => actions.setFullNameCustomized(false)}
             >
               {m.profile_sync_name()}
             </button>
@@ -217,27 +230,29 @@ function ProfileInfoSection({ profile }: { profile: ProfileState }) {
 }
 
 function AvatarCustomizationSection({
-  profile,
+  state,
+  actions,
   userId,
 }: {
-  profile: ProfileState
+  state: ProfileFormState
+  actions: ProfileActions
   userId: string
 }) {
-  const effectiveSeed = profile.avatarSeed || userId || 'default'
-  const avatarPreview = useAvatarPreview(profile.avatarStyle, effectiveSeed, profile.avatarOptions)
-  const styleSchema = useStyleSchema(profile.avatarStyle)
-  const cdnUrl = buildDiceBearUrl(profile.avatarStyle, effectiveSeed, profile.avatarOptions)
+  const effectiveSeed = state.avatarSeed || userId || 'default'
+  const avatarPreview = useAvatarPreview(state.avatarStyle, effectiveSeed, state.avatarOptions)
+  const styleSchema = useStyleSchema(state.avatarStyle)
+  const cdnUrl = buildDiceBearUrl(state.avatarStyle, effectiveSeed, state.avatarOptions)
   const urlTooLong = cdnUrl.length > 2000
 
   function handleRandomize() {
-    profile.setAvatarSeed(crypto.randomUUID())
-    profile.setAvatarOptions({})
+    actions.setAvatarSeed(crypto.randomUUID())
+    actions.setAvatarOptions({})
   }
 
   function handleStyleChange(v: string) {
     if (isAvatarStyle(v)) {
-      profile.setAvatarStyle(v)
-      profile.setAvatarOptions({})
+      actions.setAvatarStyle(v)
+      actions.setAvatarOptions({})
     }
   }
 
@@ -267,7 +282,7 @@ function AvatarCustomizationSection({
           <div className="flex-1 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="avatarStyle">{m.avatar_style_label()}</Label>
-              <Select value={profile.avatarStyle} onValueChange={handleStyleChange}>
+              <Select value={state.avatarStyle} onValueChange={handleStyleChange}>
                 <SelectTrigger id="avatarStyle">
                   <SelectValue />
                 </SelectTrigger>
@@ -284,12 +299,12 @@ function AvatarCustomizationSection({
               <Label htmlFor="avatarSeed">{m.avatar_seed_label()}</Label>
               <Input
                 id="avatarSeed"
-                value={profile.avatarSeed}
+                value={state.avatarSeed}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  profile.setAvatarSeed(e.target.value)
+                  actions.setAvatarSeed(e.target.value)
                 }
                 placeholder={userId}
-                disabled={profile.saving}
+                disabled={state.saving}
               />
               <p className="text-xs text-muted-foreground">{m.avatar_seed_hint()}</p>
             </div>
@@ -299,9 +314,9 @@ function AvatarCustomizationSection({
         {styleSchema && (
           <OptionsForm
             schema={styleSchema}
-            options={profile.avatarOptions}
+            options={state.avatarOptions}
             onChange={(name: string, value: unknown) =>
-              profile.setAvatarOptions((prev) => ({ ...prev, [name]: value }))
+              actions.setAvatarOptions((prev) => ({ ...prev, [name]: value }))
             }
           />
         )}
@@ -325,26 +340,26 @@ function AvatarCustomizationSection({
 function ProfileSettingsPage() {
   const { data: session } = useSession()
   const user = session?.user
-  const profile = useProfileData(user)
+  const { state, actions } = useProfileData(user)
 
-  const effectiveSeed = profile.avatarSeed || user?.id || 'default'
-  const cdnUrl = buildDiceBearUrl(profile.avatarStyle, effectiveSeed, profile.avatarOptions)
+  const effectiveSeed = state.avatarSeed || user?.id || 'default'
+  const cdnUrl = buildDiceBearUrl(state.avatarStyle, effectiveSeed, state.avatarOptions)
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
-    profile.setSaving(true)
+    actions.setSaving(true)
     try {
       const res = await fetch('/api/users/me', {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          firstName: profile.firstName || undefined,
-          lastName: profile.lastName || undefined,
-          fullName: profile.fullName,
-          avatarSeed: profile.avatarSeed || undefined,
-          avatarStyle: profile.avatarStyle,
-          avatarOptions: profile.avatarOptions,
+          firstName: state.firstName || undefined,
+          lastName: state.lastName || undefined,
+          fullName: state.fullName,
+          avatarSeed: state.avatarSeed || undefined,
+          avatarStyle: state.avatarStyle,
+          avatarOptions: state.avatarOptions,
           image: cdnUrl,
         }),
       })
@@ -364,7 +379,7 @@ function ProfileSettingsPage() {
     } catch {
       toast.error(m.avatar_save_error())
     } finally {
-      profile.setSaving(false)
+      actions.setSaving(false)
     }
   }
 
@@ -372,10 +387,10 @@ function ProfileSettingsPage() {
 
   return (
     <form onSubmit={handleSave} className="space-y-6">
-      <ProfileInfoSection profile={profile} />
-      <AvatarCustomizationSection profile={profile} userId={user.id} />
-      <Button type="submit" disabled={profile.saving}>
-        {profile.saving ? m.profile_saving() : m.profile_save()}
+      <ProfileInfoSection state={state} actions={actions} />
+      <AvatarCustomizationSection state={state} actions={actions} userId={user.id} />
+      <Button type="submit" disabled={state.saving}>
+        {state.saving ? m.profile_saving() : m.profile_save()}
       </Button>
     </form>
   )

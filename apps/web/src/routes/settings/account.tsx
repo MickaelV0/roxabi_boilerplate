@@ -362,7 +362,8 @@ function useDeleteAccountFlow(userId: string | undefined) {
   const [showOrgStep, setShowOrgStep] = useState(false)
   const [loadingOrgs, setLoadingOrgs] = useState(false)
 
-  async function handleDeleteClick() {
+  /** Opens the delete flow: fetches orgs, shows org step or confirm dialog. */
+  async function startDelete() {
     setLoadingOrgs(true)
     const orgs = await fetchOwnedOrgsForUser(userId)
     setOwnedOrgs(orgs)
@@ -376,18 +377,40 @@ function useDeleteAccountFlow(userId: string | undefined) {
     setLoadingOrgs(false)
   }
 
+  /** Opens the final confirmation dialog. */
+  function confirmDelete() {
+    setDeleteOpen(true)
+  }
+
+  /** Closes the confirm dialog. */
+  function cancelDelete() {
+    setDeleteOpen(false)
+  }
+
+  /** Dismisses the org resolution step. */
+  function dismissOrgStep() {
+    setShowOrgStep(false)
+    setResolutions([])
+  }
+
+  /** Marks deletion as in-progress. */
+  function setDeletingState(v: boolean) {
+    setDeleting(v)
+  }
+
   return {
     deleteOpen,
-    setDeleteOpen,
     deleting,
-    setDeleting,
     ownedOrgs,
     resolutions,
     setResolutions,
     showOrgStep,
-    setShowOrgStep,
     loadingOrgs,
-    handleDeleteClick,
+    startDelete,
+    confirmDelete,
+    cancelDelete,
+    dismissOrgStep,
+    setDeletingState,
   }
 }
 
@@ -424,10 +447,7 @@ function DeleteAccountDialogs({
         <DestructiveConfirmDialog
           open={flow.showOrgStep}
           onOpenChange={(open: boolean) => {
-            if (!open) {
-              flow.setShowOrgStep(false)
-              flow.setResolutions([])
-            }
+            if (!open) flow.dismissOrgStep()
           }}
           title={m.account_delete_resolve_title()}
           description={m.account_delete_resolve_desc()}
@@ -448,7 +468,7 @@ function DeleteAccountDialogs({
       <DestructiveConfirmDialog
         open={flow.deleteOpen}
         onOpenChange={(open: boolean) => {
-          if (!open) flow.setDeleteOpen(false)
+          if (!open) flow.cancelDelete()
         }}
         title={m.account_delete_confirm_title()}
         description={m.account_delete_confirm_desc()}
@@ -468,7 +488,7 @@ function DeleteAccountSection() {
   const flow = useDeleteAccountFlow(session?.user?.id)
 
   async function handleConfirmDelete() {
-    flow.setDeleting(true)
+    flow.setDeletingState(true)
     try {
       const res = await deleteAccount(userEmail, flow.resolutions)
       if (!res.ok) {
@@ -477,13 +497,13 @@ function DeleteAccountSection() {
         toast.error(m.account_delete_error())
         return
       }
-      flow.setDeleteOpen(false)
+      flow.cancelDelete()
       toast.success(m.account_delete_success())
       navigate({ to: '/account-reactivation' })
     } catch {
       toast.error(m.account_delete_error())
     } finally {
-      flow.setDeleting(false)
+      flow.setDeletingState(false)
     }
   }
 
@@ -495,13 +515,13 @@ function DeleteAccountSection() {
       toast.error(m.account_delete_select_member())
       return
     }
-    flow.setShowOrgStep(false)
+    flow.dismissOrgStep()
     await handleConfirmDelete()
   }
 
   return (
     <>
-      <DangerZoneCard loading={flow.loadingOrgs} onClick={flow.handleDeleteClick} />
+      <DangerZoneCard loading={flow.loadingOrgs} onClick={flow.startDelete} />
       <DeleteAccountDialogs
         flow={flow}
         userEmail={userEmail}

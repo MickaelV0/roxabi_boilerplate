@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import type { OrgOwnershipResolution } from '@repo/types'
 import { and, eq, isNotNull } from 'drizzle-orm'
-import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
+import { DRIZZLE, type DrizzleDB, type DrizzleTx } from '../database/drizzle.provider.js'
 import { whereActive } from '../database/helpers/where-active.js'
 import {
   accounts,
@@ -19,8 +19,6 @@ import { AccountNotDeletedException } from './exceptions/account-not-deleted.exc
 import { EmailConfirmationMismatchException } from './exceptions/email-confirmation-mismatch.exception.js'
 import { TransferTargetNotMemberException } from './exceptions/transfer-target-not-member.exception.js'
 import { UserNotFoundException } from './exceptions/user-not-found.exception.js'
-
-type DrizzleTx = Parameters<Parameters<DrizzleDB['transaction']>[0]>[0]
 
 const profileColumns = {
   id: users.id,
@@ -235,8 +233,7 @@ export class UserService {
     tx: DrizzleTx,
     resolution: OrgOwnershipResolution,
     userId: string,
-    now: Date,
-    deleteScheduledFor: Date
+    context: { now: Date; deleteScheduledFor: Date }
   ) {
     // Verify the deleting user is an owner of this organization
     const [membership] = await tx
@@ -249,9 +246,14 @@ export class UserService {
     }
 
     if (resolution.action === 'transfer') {
-      await this.processOrgTransfer(tx, resolution, now)
+      await this.processOrgTransfer(tx, resolution, context.now)
     } else if (resolution.action === 'delete') {
-      await this.processOrgDeletion(tx, resolution.organizationId, now, deleteScheduledFor)
+      await this.processOrgDeletion(
+        tx,
+        resolution.organizationId,
+        context.now,
+        context.deleteScheduledFor
+      )
     }
   }
 
@@ -263,7 +265,7 @@ export class UserService {
 
     return await this.db.transaction(async (tx) => {
       for (const resolution of orgResolutions) {
-        await this.processOrgResolution(tx, resolution, userId, now, deleteScheduledFor)
+        await this.processOrgResolution(tx, resolution, userId, { now, deleteScheduledFor })
       }
 
       // Soft-delete the user

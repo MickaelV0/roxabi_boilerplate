@@ -69,8 +69,8 @@ function configureCors(
 function configureSwagger(
   app: NestFastifyApplication,
   configService: ConfigService,
-  nodeEnv: string,
-  logger: Logger
+  logger: Logger,
+  nodeEnv: string
 ) {
   const swaggerEnabled = configService.get<boolean>('SWAGGER_ENABLED', nodeEnv !== 'production')
   if (swaggerEnabled) {
@@ -125,7 +125,7 @@ async function bootstrap() {
 
   const nodeEnv = configService.get<string>('NODE_ENV', 'development')
   configureCors(app, configService, logger, nodeEnv)
-  configureSwagger(app, configService, nodeEnv, logger)
+  configureSwagger(app, configService, logger, nodeEnv)
 
   const port = configService.get<number>('PORT', 4000)
   await app.listen(port, '0.0.0.0')

@@ -169,10 +169,10 @@ export function ConsentProvider({ children, initialConsent: serverConsent }: Con
 
   useDbReconciliation(session.data?.user?.id, setConsent, setShowBanner)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: useState setters are stable — listed explicitly to make the contract clear per code review
   const { acceptAll, rejectAll, saveCustom, openSettings } = useMemo(
     () => createConsentActions(setConsent, setShowBanner, setModalOpen),
-    // setConsent, setShowBanner, setModalOpen are useState setters (stable identity)
-    []
+    [setConsent, setShowBanner, setModalOpen]
   )
 
   const value: ConsentContextValue = {

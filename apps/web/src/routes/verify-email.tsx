@@ -89,27 +89,27 @@ function SuccessState() {
   )
 }
 
+type ResendHandlers = ReturnType<typeof useVerifyResendHandlers>
+
 function ErrorState({
   token,
   sessionEmail,
-  resending,
   cooldown,
-  onResend,
-  onSessionlessResend,
-  resendEmail,
-  setResendEmail,
-  sessionlessMessage,
+  resendHandlers,
 }: {
   token: string | undefined
   sessionEmail: string | undefined
-  resending: boolean
   cooldown: number
-  onResend: () => void
-  onSessionlessResend: (e: React.FormEvent) => void
-  resendEmail: string
-  setResendEmail: (v: string) => void
-  sessionlessMessage: string
+  resendHandlers: ResendHandlers
 }) {
+  const {
+    resending,
+    resendEmail,
+    setResendEmail,
+    sessionlessMessage,
+    handleResend: onResend,
+    handleSessionlessResend: onSessionlessResend,
+  } = resendHandlers
   return (
     <AuthLayout title={m.auth_verify_email_title()}>
       <div className="text-center space-y-4">
@@ -250,13 +250,8 @@ function VerifyEmailPage() {
     <ErrorState
       token={token}
       sessionEmail={sessionEmail}
-      resending={resendHandlers.resending}
       cooldown={cooldown}
-      onResend={resendHandlers.handleResend}
-      onSessionlessResend={resendHandlers.handleSessionlessResend}
-      resendEmail={resendHandlers.resendEmail}
-      setResendEmail={resendHandlers.setResendEmail}
-      sessionlessMessage={resendHandlers.sessionlessMessage}
+      resendHandlers={resendHandlers}
     />
   )
 }

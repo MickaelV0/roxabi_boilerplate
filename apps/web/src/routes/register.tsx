@@ -14,7 +14,7 @@ import {
 } from '@repo/ui'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { CheckCircle } from 'lucide-react'
-import { useReducer } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { legalConfig } from '@/config/legal.config'
 import { authClient, fetchEnabledProviders } from '@/lib/auth-client'
@@ -42,69 +42,49 @@ export const Route = createFileRoute('/register')({
 })
 
 // ---------------------------------------------------------------------------
-// State & Actions
+// Custom hook: useRegisterFormState
 // ---------------------------------------------------------------------------
 
-type RegisterState = {
-  name: string
-  email: string
-  password: string
-  error: string
-  message: string
-  loading: boolean
-  oauthLoading: string | null
-  emailError: string
-  acceptedTerms: boolean
-}
+function useRegisterFormState() {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [oauthLoading, setOauthLoading] = useState<string | null>(null)
+  const [emailError, setEmailError] = useState('')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
-const initialState: RegisterState = {
-  name: '',
-  email: '',
-  password: '',
-  error: '',
-  message: '',
-  loading: false,
-  oauthLoading: null,
-  emailError: '',
-  acceptedTerms: false,
-}
+  function clearErrors() {
+    setError('')
+    setMessage('')
+  }
 
-type RegisterAction =
-  | { type: 'SET_NAME'; payload: string }
-  | { type: 'SET_EMAIL'; payload: string }
-  | { type: 'SET_PASSWORD'; payload: string }
-  | { type: 'SET_ERROR'; payload: string }
-  | { type: 'SET_MESSAGE'; payload: string }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_OAUTH_LOADING'; payload: string | null }
-  | { type: 'SET_EMAIL_ERROR'; payload: string }
-  | { type: 'SET_ACCEPTED_TERMS'; payload: boolean }
-  | { type: 'CLEAR_ERRORS' }
-
-function registerReducer(state: RegisterState, action: RegisterAction): RegisterState {
-  switch (action.type) {
-    case 'SET_NAME':
-      return { ...state, name: action.payload }
-    case 'SET_EMAIL':
-      return { ...state, email: action.payload }
-    case 'SET_PASSWORD':
-      return { ...state, password: action.payload }
-    case 'SET_ERROR':
-      return { ...state, error: action.payload }
-    case 'SET_MESSAGE':
-      return { ...state, message: action.payload }
-    case 'SET_LOADING':
-      return { ...state, loading: action.payload }
-    case 'SET_OAUTH_LOADING':
-      return { ...state, oauthLoading: action.payload }
-    case 'SET_EMAIL_ERROR':
-      return { ...state, emailError: action.payload }
-    case 'SET_ACCEPTED_TERMS':
-      return { ...state, acceptedTerms: action.payload }
-    case 'CLEAR_ERRORS':
-      return { ...state, error: '', message: '' }
+  return {
+    name,
+    setName,
+    email,
+    setEmail,
+    password,
+    setPassword,
+    error,
+    setError,
+    message,
+    setMessage,
+    loading,
+    setLoading,
+    oauthLoading,
+    setOauthLoading,
+    emailError,
+    setEmailError,
+    acceptedTerms,
+    setAcceptedTerms,
+    clearErrors,
   }
 }
+
+type RegisterFormState = ReturnType<typeof useRegisterFormState>
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -140,8 +120,7 @@ function RegistrationSuccess({
 }
 
 type RegistrationFormProps = {
-  state: RegisterState
-  dispatch: React.Dispatch<RegisterAction>
+  form: RegisterFormState
   onSubmit: (e: React.FormEvent) => void
   hasOAuth: boolean
   providers: { google?: boolean; github?: boolean }
@@ -151,11 +130,11 @@ type RegistrationFormProps = {
 
 function RegistrationPasswordField({
   password,
-  dispatch,
+  onPasswordChange,
   loading,
 }: {
   password: string
-  dispatch: React.Dispatch<RegisterAction>
+  onPasswordChange: (v: string) => void
   loading: boolean
 }) {
   return (
@@ -164,9 +143,7 @@ function RegistrationPasswordField({
       <PasswordInput
         id="password"
         value={password}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          dispatch({ type: 'SET_PASSWORD', payload: e.target.value })
-        }
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onPasswordChange(e.target.value)}
         required
         disabled={loading}
         showStrength
@@ -192,38 +169,34 @@ function RegistrationPasswordField({
 }
 
 function RegistrationFields({
-  state,
-  dispatch,
+  form,
   onSubmit,
 }: {
-  state: RegisterState
-  dispatch: React.Dispatch<RegisterAction>
+  form: RegisterFormState
   onSubmit: (e: React.FormEvent) => void
 }) {
   function handleEmailChange(e: React.ChangeEvent<HTMLInputElement>) {
-    dispatch({ type: 'SET_EMAIL', payload: e.target.value })
-    if (state.emailError) dispatch({ type: 'SET_EMAIL_ERROR', payload: '' })
+    form.setEmail(e.target.value)
+    if (form.emailError) form.setEmailError('')
   }
 
   function handleEmailBlur() {
-    if (state.email && !EMAIL_REGEX.test(state.email)) {
-      dispatch({ type: 'SET_EMAIL_ERROR', payload: m.auth_email_invalid() })
+    if (form.email && !EMAIL_REGEX.test(form.email)) {
+      form.setEmailError(m.auth_email_invalid())
     }
   }
 
   return (
-    <form onSubmit={onSubmit} aria-busy={state.loading} className="space-y-4">
+    <form onSubmit={onSubmit} aria-busy={form.loading} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="name">{m.auth_name()}</Label>
         <Input
           id="name"
           type="text"
-          value={state.name}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            dispatch({ type: 'SET_NAME', payload: e.target.value })
-          }
+          value={form.name}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => form.setName(e.target.value)}
           required
-          disabled={state.loading}
+          disabled={form.loading}
         />
       </div>
       <div className="space-y-2">
@@ -231,33 +204,31 @@ function RegistrationFields({
         <Input
           id="email"
           type="email"
-          value={state.email}
+          value={form.email}
           onChange={handleEmailChange}
           onBlur={handleEmailBlur}
           required
-          disabled={state.loading}
-          aria-invalid={state.emailError ? true : undefined}
-          aria-describedby={state.emailError ? 'email-error' : undefined}
+          disabled={form.loading}
+          aria-invalid={form.emailError ? true : undefined}
+          aria-describedby={form.emailError ? 'email-error' : undefined}
         />
-        {state.emailError && (
+        {form.emailError && (
           <p id="email-error" className="text-sm text-destructive">
-            {state.emailError}
+            {form.emailError}
           </p>
         )}
       </div>
       <RegistrationPasswordField
-        password={state.password}
-        dispatch={dispatch}
-        loading={state.loading}
+        password={form.password}
+        onPasswordChange={form.setPassword}
+        loading={form.loading}
       />
       <div className="flex items-start gap-2">
         <Checkbox
           id="accept-terms"
-          checked={state.acceptedTerms}
-          onCheckedChange={(checked) =>
-            dispatch({ type: 'SET_ACCEPTED_TERMS', payload: checked === true })
-          }
-          disabled={state.loading}
+          checked={form.acceptedTerms}
+          onCheckedChange={(checked) => form.setAcceptedTerms(checked === true)}
+          disabled={form.loading}
         />
         <Label htmlFor="accept-terms" className="text-sm font-normal leading-snug cursor-pointer">
           <span>
@@ -276,8 +247,8 @@ function RegistrationFields({
           </span>
         </Label>
       </div>
-      <Button type="submit" className="w-full" disabled={state.loading || !state.acceptedTerms}>
-        {state.loading ? m.auth_creating_account() : m.auth_create_account_button()}
+      <Button type="submit" className="w-full" disabled={form.loading || !form.acceptedTerms}>
+        {form.loading ? m.auth_creating_account() : m.auth_create_account_button()}
       </Button>
     </form>
   )
@@ -286,13 +257,13 @@ function RegistrationFields({
 function RegistrationForm(props: RegistrationFormProps) {
   return (
     <AuthLayout title={m.auth_register_title()} description={m.auth_register_desc()}>
-      {props.state.error && (
+      {props.form.error && (
         <FormMessage variant="error" className="justify-center">
-          {props.state.error}
+          {props.form.error}
         </FormMessage>
       )}
 
-      <RegistrationFields state={props.state} dispatch={props.dispatch} onSubmit={props.onSubmit} />
+      <RegistrationFields form={props.form} onSubmit={props.onSubmit} />
 
       {props.hasOAuth && (
         <>
@@ -306,8 +277,8 @@ function RegistrationForm(props: RegistrationFormProps) {
             {props.providers.google && (
               <OAuthButton
                 provider="google"
-                loading={props.state.oauthLoading === 'google'}
-                disabled={props.state.loading || props.state.oauthLoading !== null}
+                loading={props.form.oauthLoading === 'google'}
+                disabled={props.form.loading || props.form.oauthLoading !== null}
                 onClick={() => props.onOAuth('google')}
               >
                 {m.auth_sign_up_with_google()}
@@ -316,8 +287,8 @@ function RegistrationForm(props: RegistrationFormProps) {
             {props.providers.github && (
               <OAuthButton
                 provider="github"
-                loading={props.state.oauthLoading === 'github'}
-                disabled={props.state.loading || props.state.oauthLoading !== null}
+                loading={props.form.oauthLoading === 'github'}
+                disabled={props.form.loading || props.form.oauthLoading !== null}
                 onClick={() => props.onOAuth('github')}
               >
                 {m.auth_sign_up_with_github()}
@@ -345,18 +316,18 @@ function RegistrationForm(props: RegistrationFormProps) {
 // Handlers (module-level async functions — keeps the page component small)
 // ---------------------------------------------------------------------------
 
-async function handleRegister(state: RegisterState, dispatch: React.Dispatch<RegisterAction>) {
-  dispatch({ type: 'CLEAR_ERRORS' })
-  if (state.email && !EMAIL_REGEX.test(state.email)) {
-    dispatch({ type: 'SET_EMAIL_ERROR', payload: m.auth_email_invalid() })
+async function handleRegister(form: RegisterFormState) {
+  form.clearErrors()
+  if (form.email && !EMAIL_REGEX.test(form.email)) {
+    form.setEmailError(m.auth_email_invalid())
     return
   }
-  dispatch({ type: 'SET_LOADING', payload: true })
+  form.setLoading(true)
   try {
     const { error: signUpError } = await authClient.signUp.email({
-      name: state.name,
-      email: state.email,
-      password: state.password,
+      name: form.name,
+      email: form.email,
+      password: form.password,
       // locale is declared in Better Auth's user.additionalFields but the client SDK types
       // don't reflect additional fields in signUp params — the `as` cast is required.
       locale: navigator.language?.split('-')[0] ?? 'en',
@@ -366,9 +337,9 @@ async function handleRegister(state: RegisterState, dispatch: React.Dispatch<Reg
       // enumeration, but provides a significantly better user experience than a generic error.
       // Mitigated by rate limiting on sign-up.
       if (signUpError.code === 'USER_ALREADY_EXISTS') {
-        dispatch({ type: 'SET_ERROR', payload: m.auth_register_email_exists() })
+        form.setError(m.auth_register_email_exists())
       } else {
-        dispatch({ type: 'SET_ERROR', payload: m.auth_register_unable() })
+        form.setError(m.auth_register_unable())
       }
     } else {
       fetch('/api/consent', {
@@ -384,25 +355,22 @@ async function handleRegister(state: RegisterState, dispatch: React.Dispatch<Reg
         /* Consent sync failure is non-critical */
       })
       toast.success(m.auth_toast_account_created())
-      dispatch({ type: 'SET_MESSAGE', payload: m.auth_check_email_verify() })
+      form.setMessage(m.auth_check_email_verify())
     }
   } catch {
     toast.error(m.auth_toast_error())
   } finally {
-    dispatch({ type: 'SET_LOADING', payload: false })
+    form.setLoading(false)
   }
 }
 
-async function handleOAuth(
-  provider: 'google' | 'github',
-  dispatch: React.Dispatch<RegisterAction>
-) {
-  dispatch({ type: 'SET_OAUTH_LOADING', payload: provider })
+async function handleOAuth(provider: 'google' | 'github', form: RegisterFormState) {
+  form.setOauthLoading(provider)
   try {
     await authClient.signIn.social({ provider })
   } catch {
     toast.error(m.auth_toast_error())
-    dispatch({ type: 'SET_OAUTH_LOADING', payload: null })
+    form.setOauthLoading(null)
   }
 }
 
@@ -414,23 +382,22 @@ function RegisterPage() {
   const { redirect: redirectParam } = Route.useSearch()
   const providers = Route.useLoaderData()
   const hasOAuth = providers.google || providers.github
-  const [state, dispatch] = useReducer(registerReducer, initialState)
+  const form = useRegisterFormState()
 
-  if (state.message) {
-    return <RegistrationSuccess message={state.message} redirectParam={redirectParam} />
+  if (form.message) {
+    return <RegistrationSuccess message={form.message} redirectParam={redirectParam} />
   }
 
   return (
     <RegistrationForm
-      state={state}
-      dispatch={dispatch}
+      form={form}
       onSubmit={(e: React.FormEvent) => {
         e.preventDefault()
-        handleRegister(state, dispatch)
+        handleRegister(form)
       }}
       hasOAuth={hasOAuth}
       providers={providers}
-      onOAuth={(provider) => handleOAuth(provider, dispatch)}
+      onOAuth={(provider) => handleOAuth(provider, form)}
       redirectParam={redirectParam}
     />
   )
