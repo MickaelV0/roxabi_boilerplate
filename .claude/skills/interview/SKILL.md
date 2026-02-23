@@ -242,6 +242,8 @@ description: {One-line description of the analysis}
 
 ### Spec
 
+> **Inline ambiguity markers:** `[NEEDS CLARIFICATION: description]` markers indicate unresolved ambiguity (max 3-5 per spec). These must be resolved before `/scaffold` execution.
+
 Output path: `specs/{issue}-{slug}.mdx`
 
 ```mdx
@@ -294,7 +296,7 @@ description: {One-line description of the feature or project}
 |----|-------|------|-------------|
 | S1 | {Table, cache, API...} | {Persistent/transient/external} | N1, N2 |
 
-{Unknowns: Mark any uncertain wiring with ⚠️ — these trigger investigation spikes at Gate 1.5.}
+{Unknowns: Mark any uncertain wiring — these trigger investigation spikes during bootstrap (Gate 1.5) before spec execution.}
 
 ## Slices
 
@@ -323,8 +325,6 @@ description: {One-line description of the feature or project}
 
 - [ ] {Measurable criterion}
 - [ ] {Measurable criterion}
-
-> **Inline ambiguity markers:** `[NEEDS CLARIFICATION: description]` markers indicate unresolved ambiguity (max 3-5 per spec). These must be resolved before `/scaffold` execution.
 
 ## Open Questions
 

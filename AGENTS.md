@@ -46,6 +46,10 @@ Team-wide coordination rules. Loaded by orchestrator, not auto-loaded by agents 
 - **Cross-domain**: Create task for other agent + message lead
 - **Security finding**: Message lead + security-auditor immediately
 
+### Intra-Domain Parallelization
+
+Multiple agents of the same type may run concurrently on non-overlapping file groups. Agents in the same domain must NOT modify shared files — if file conflicts exist, merge those tasks into a single agent.
+
 ### Domain Boundaries
 
 **Never modify files outside your domain.**
@@ -61,8 +65,6 @@ Team-wide coordination rules. Loaded by orchestrator, not auto-loaded by agents 
 | architect | `docs/architecture/`, ADR files | Never writes application code |
 | product-lead | `analyses/`, `specs/`, GitHub issues via `gh` | Never writes application code |
 | doc-writer | `docs/`, `CLAUDE.md` | Never writes application code |
-
-> **Intra-domain parallelization:** Multiple agents of the same type may run concurrently on non-overlapping file groups. Agents in the same domain must NOT modify shared files — if file conflicts exist, merge those tasks into a single agent.
 
 ### Standards
 

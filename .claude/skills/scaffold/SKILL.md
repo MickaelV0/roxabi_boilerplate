@@ -110,6 +110,10 @@ Example: A large frontend feature might spawn:
 
 Only recommend this for Tier F-full with clearly separable file groups. Default to 1 agent per domain otherwise.
 
+> **Shared barrel files:** If parallel agents would both need to update a shared barrel/index export file, merge those tasks into a single agent.
+
+> **Note:** Review (Phase 2) uses an 8+ changed-files threshold and fixer (Phase 4) uses a 6+ findings threshold — units differ per context.
+
 #### 2d. Break into Tasks
 
 For each task:
@@ -133,8 +137,8 @@ Files: {N} files to create/modify
 Agents: {agent list}
 
 Tasks:
-  1. {description} → {agent} ({files})
-  2. {description} → {agent} ({files})
+  1. {description} → {agent} ({files}) [parallel-safe: {Yes/No}]
+  2. {description} → {agent} ({files}) [parallel-safe: {Yes/No}]
   ...
 ```
 
@@ -277,7 +281,7 @@ Spawn agents based on the plan from Step 2.
 **Single-domain:** use `Task` tool (subagents within the session).
 **Multi-domain:** use `TeamCreate` (independent agent sessions).
 
-**Intra-domain parallel:** When the plan from Step 2 recommends multiple agents in the same domain, spawn them as separate `Task` calls (subagents) or as separate team members (TeamCreate). Each agent receives only its assigned task subset. Agents in the same domain must NOT share files — if file conflicts are detected during planning, merge those tasks into a single agent.
+**Intra-domain parallelization:** When the plan from Step 2 recommends multiple agents in the same domain, spawn them as separate `Task` calls (subagents) or as separate team members (TeamCreate). Each agent receives only its assigned task subset. Agents in the same domain must NOT share files — if file conflicts are detected during planning, merge those tasks into a single agent.
 
 **Implementation order (RED → GREEN → REFACTOR):**
 
