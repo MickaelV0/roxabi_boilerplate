@@ -117,6 +117,15 @@ Spawn **fresh review agents** via the `Task` tool. Each agent is a new instance 
 
    **Confidence scoring criteria:** The confidence score reflects both **diagnostic certainty** (is the finding correct?) and **fix certainty** (is the recommended fix correct?). Both must be high for a high overall score. A finding where the diagnosis is clear but the fix is uncertain should score lower than one where both are well-understood.
 
+   **Calibration anchors** (review agents should use these bands consistently):
+
+   | Band | Score | When to use |
+   |------|-------|-------------|
+   | **Certain** | 90-100% | Both diagnosis and fix are unambiguous. Single obvious cause, single obvious fix. Examples: unused import, missing null check with clear guard, typo in variable name. |
+   | **High** | 70-89% | Diagnosis is clear, fix has 1-2 viable approaches requiring minor judgment. Examples: missing error handling with standard pattern, naming convention violation. |
+   | **Moderate** | 40-69% | Diagnosis is probable but context-dependent. Fix requires understanding broader system behavior. Examples: potential performance issue, possible race condition. |
+   | **Low** | 0-39% | Speculative or uncertain diagnosis. Root cause unclear or multiple competing explanations. Examples: architectural concern, design trade-off. |
+
    **Example:**
 
    ```
@@ -133,6 +142,8 @@ Spawn **fresh review agents** via the `Task` tool. Each agent is a new instance 
    ```
 
    **Missing enrichment fields:** If any enrichment field (root cause, solutions, confidence) is missing from an agent's output, default the finding's confidence to 0% and route it to 1b1. Do not attempt to infer missing fields.
+
+   **Malformed confidence values:** If the confidence value is not a valid integer between 0 and 100 (e.g., "high", "120%", "0.85", negative numbers), treat it as 0% and route the finding to 1b1.
 
 5. **Categorize each finding:**
 
@@ -201,9 +212,56 @@ Verdict: Request changes (blockers must be resolved)
 | Suggestions/praise only | Approve |
 | No findings | Approve (clean) |
 
-### Phase 3.5 — Post Findings to PR
+### Phase 3.5 — Confidence-Gated Auto-Apply
 
-After presenting findings locally, **post the full review as a PR comment** so there is a trace on GitHub.
+After presenting findings locally, split findings based on confidence and category for automated fixing. This phase runs **before** posting to the PR so that the PR comment can accurately reflect auto-apply outcomes.
+
+1. **Split findings into two queues:**
+   - **Auto-apply queue:** Findings that meet **all** of the following criteria:
+     - Confidence **>= 80%**
+     - Category in [`issue`, `suggestion`, `todo`] (actionable categories)
+     - **At least two independent review agents** flagged it with confidence >= 80%. Single-agent findings at any confidence level go to 1b1.
+     - **Not a security finding.** Findings originating from `security-auditor` or categorized as security issues are **excluded from auto-apply** regardless of confidence score — they always route to 1b1. Security fixes require human judgment due to their risk profile.
+   - **1b1 queue:** All other findings — those with confidence **< 80%**, non-actionable categories (`praise`, `thought`, `question`), single-agent findings, or security findings. Praise findings are exempt from auto-apply entirely. `thought` and `question` findings always go to 1b1 regardless of confidence.
+   - Confidence exactly 80% is inclusive (treated as >= 80%) for the threshold check.
+
+2. **Confirmation prompt for large auto-apply queues:** If the auto-apply queue contains **more than 5 findings**, present the user with an `AskUserQuestion` before proceeding: "N findings qualify for auto-apply (confidence >= 80%, consensus from 2+ agents). Proceed with auto-apply, or review all individually via 1b1?" Options: "Auto-apply all N" / "Review individually via 1b1". If the user chooses to review individually, move all auto-apply queue findings to the 1b1 queue and skip the rest of Phase 3.5.
+
+3. **If the auto-apply queue is empty**, skip this phase entirely and proceed to Phase 3.6.
+
+4. **Serial application:** Pass auto-apply queue findings to fixer agents **one at a time** (serial, not batched). Each finding is applied and validated before moving to the next.
+
+5. **On success:** Mark the finding as `[applied]` in the post-apply summary.
+
+6. **On failure** (test failure, lint error, or any validation issue):
+   - The fixer restores the pre-fix snapshot via `git stash pop` (see fixer agent Auto-Apply Failure Protocol for stash details).
+   - The finding is demoted to the 1b1 queue with a note: "Auto-apply attempted but failed: {reason}."
+   - **All remaining unapplied findings in the auto-apply queue are also demoted to 1b1.** Do not continue applying after a failure.
+
+7. **On fixer timeout or crash:** The finding is demoted to the 1b1 queue with a note: "Auto-apply failed: fixer agent did not respond." No partial changes should remain — the fixer must restore the stash before erroring.
+
+8. **On fixer "cannot auto-fix" report:** The finding is demoted to the 1b1 queue with the fixer's explanation attached.
+
+9. **Note:** Previously successful auto-applies are NOT rolled back when the queue halts. The changes from applied findings remain in the working tree.
+
+10. **Post-apply summary:** After all auto-apply attempts complete (or halt on failure), display a summary before posting to the PR:
+
+   ```
+   -- Auto-Applied Fixes (confidence >= 80%, 2+ agent consensus) --
+
+   Applied N finding(s) automatically:
+     1. [applied] issue(blocking): SQL injection in users.service.ts:42 (92%)
+     2. [applied] suggestion(blocking): Missing null check in auth.guard.ts:18 (88%)
+     3. [failed -> 1b1] nitpick: Unused import in dashboard.tsx:3 (85%) -- test failure after fix
+
+   Remaining M finding(s) (confidence <80%, single-agent, security, or non-actionable) will be presented one-by-one.
+   ```
+
+---
+
+### Phase 3.6 — Post Findings to PR
+
+After auto-apply completes (or is skipped), **post the full review as a PR comment** so there is a trace on GitHub. Because this phase runs after Phase 3.5, the `[auto-applied]` markers reflect actual outcomes.
 
 1. **Resolve the PR number:**
    - If a PR number was provided (`/review #42`), use it directly.
@@ -236,45 +294,7 @@ After presenting findings locally, **post the full review as a PR comment** so t
    - Include the summary line and verdict
    - Wrap finding labels in backticks for readability (e.g., `` `issue(blocking):` ``)
    - Use a `## Code Review` header so comments are easy to find
-   - **All findings are included in the PR comment regardless of confidence level.** Auto-applied findings (those processed in Phase 3.6) are marked with an `[auto-applied]` prefix in the PR comment so reviewers can see what was fixed automatically. The grouped format and verdict logic remain unchanged.
-
----
-
-### Phase 3.6 — Confidence-Gated Auto-Apply
-
-After posting the review to the PR, split findings based on confidence and category for automated fixing.
-
-1. **Split findings into two queues:**
-   - **Auto-apply queue:** Findings with confidence **>= 80%** AND category in [`issue`, `suggestion`, `todo`] (actionable categories). Confidence exactly 80% is inclusive (treated as >= 80%).
-   - **1b1 queue:** Findings with confidence **< 80%** OR non-actionable categories (`praise`, `thought`, `question`). Praise findings are exempt from auto-apply entirely. `thought` and `question` findings always go to 1b1 regardless of confidence.
-
-2. **If the auto-apply queue is empty**, skip this phase entirely and proceed to Phase 4.
-
-3. **Serial application:** Pass auto-apply queue findings to fixer agents **one at a time** (serial, not batched). Each finding is applied and validated before moving to the next.
-
-4. **On success:** Mark the finding as `[applied]` in the post-apply summary.
-
-5. **On failure** (test failure, lint error, or any validation issue):
-   - The fixer reverts its changes via `git checkout -- <affected files>`.
-   - The finding is demoted to the 1b1 queue with a note: "Auto-apply attempted but failed: {reason}."
-   - **All remaining unapplied findings in the auto-apply queue are also demoted to 1b1.** Do not continue applying after a failure.
-
-6. **On fixer timeout or crash:** The finding is demoted to the 1b1 queue with a note: "Auto-apply failed: fixer agent did not respond." No partial changes should remain — the fixer must revert before erroring.
-
-7. **On fixer "cannot auto-fix" report:** The finding is demoted to the 1b1 queue with the fixer's explanation attached.
-
-8. **Post-apply summary:** After all auto-apply attempts complete (or halt on failure), display a summary before starting 1b1:
-
-   ```
-   -- Auto-Applied Fixes (confidence >= 80%) --
-
-   Applied N finding(s) automatically:
-     1. [applied] issue(blocking): SQL injection in users.service.ts:42 (92%)
-     2. [applied] suggestion(blocking): Missing null check in auth.guard.ts:18 (88%)
-     3. [failed -> 1b1] nitpick: Unused import in dashboard.tsx:3 (85%) -- test failure after fix
-
-   Remaining M finding(s) (confidence <80% or non-actionable) will be presented one-by-one.
-   ```
+   - **All findings are included in the PR comment regardless of confidence level.** Auto-applied findings (those processed in Phase 3.5) are marked with an `[auto-applied]` prefix in the PR comment so reviewers can see what was fixed automatically. The grouped format and verdict logic remain unchanged.
 
 ---
 
@@ -376,23 +396,23 @@ After all fixes are committed, pushed, and the follow-up PR comment is posted:
 | All findings are non-blocking | Human can batch-accept without full 1b1 walkthrough |
 | Critical security finding | Escalate immediately to human, do not wait for 1b1 |
 | Review agents disagree | Present both perspectives in 1b1, human decides |
-| No PR for current branch | Skip PR comment (Phase 3.5), findings stay local only |
-| All findings >= 80% | All auto-applied. Post-apply summary shown. 1b1 is skipped (no items). |
-| All findings < 80% | Phase 3.6 is skipped. All go through enriched 1b1. |
-| Auto-apply breaks tests | Fixer reverts via `git checkout -- <files>`. Finding demoted to 1b1 with failure note. |
-| Auto-apply causes lint error | Same as test failure — revert, demote to 1b1. |
+| No PR for current branch | Skip PR comment (Phase 3.6), findings stay local only |
+| All findings >= 80% with consensus | All auto-applied. Post-apply summary shown. 1b1 is skipped (no items). |
+| All findings < 80% or single-agent | Phase 3.5 is skipped. All go through enriched 1b1. |
+| Auto-apply breaks tests | Fixer restores via `git stash pop`. Finding demoted to 1b1 with failure note. |
+| Auto-apply causes lint error | Same as test failure — stash restore, demote to 1b1. |
 | Fixer agent times out | Finding demoted to 1b1 with note: "Auto-apply failed: fixer agent did not respond." |
 | Fixer reports "cannot auto-fix" | Finding demoted to 1b1 with fixer's explanation. |
 | Praise/thought/question finding | Exempt from auto-apply. Praise in summary, thought/question always to 1b1. |
 | Confidence exactly 80% | Treated as >= 80% (inclusive threshold). |
 | Review agent outputs confidence without root cause | Invalid — default confidence to 0%, force to 1b1. |
-| Phase 3.6 modifies files that 1b1 findings also target | Phase 4 fixer re-reads files before applying. Stale findings reported, not silently applied. |
+| Phase 3.5 modifies files that 1b1 findings also target | Phase 4 fixer re-reads files before applying. Stale findings reported, not silently applied. |
 
 ## Safety Rules
 
 1. **Fresh agents only** — review agents must be new instances with no implementation context
 2. **Never auto-merge** or approve PRs on GitHub
-3. **Human decides on every finding with estimated confidence <80%.** Findings with confidence >= 80% and actionable categories (`issue`, `suggestion`, `todo`) are auto-applied by fixer agents, with results shown in a post-apply summary. The human can review auto-applied changes via git diff at any time.
+3. **Human decides on every finding except high-confidence consensus findings.** The human gate is only bypassed when **at least two independent review agents** flagged the same finding with confidence >= 80% AND it is an actionable category (`issue`, `suggestion`, `todo`) AND it is not a security finding. All other findings go through the 1b1 walkthrough. The human can review auto-applied changes via `git diff` at any time.
 4. **Always post review to PR** — if a PR exists, findings must be posted as a comment for traceability. After fixes are applied, post a follow-up comment confirming which findings were addressed.
 5. **Fixer handles fixes** — the review skill does not fix code; that is the fixer agent's responsibility after 1b1
 

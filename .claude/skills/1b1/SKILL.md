@@ -26,6 +26,17 @@ If the user passed an argument (e.g., `/1b1 review findings`), use that to narro
 
 **If multiple lists exist:** Ask the user via `AskUserQuestion` which list to process.
 
+### 1b. Auto-Apply Context Note
+
+When 1b1 starts after a `/review` Phase 3.5 (auto-apply), if any findings were auto-applied, include a header note before the first item:
+
+```
+Note: N finding(s) were auto-applied before this walkthrough.
+Run `git diff` to review the auto-applied changes.
+```
+
+This gives the human awareness of what has already changed in the working tree before they begin making decisions on the remaining findings.
+
 ### 2. Walk Through Each Item
 
 For each item in the list, **sequentially**:
