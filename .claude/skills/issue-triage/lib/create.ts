@@ -181,15 +181,15 @@ export async function createIssue(args: string[]): Promise<void> {
     }
   }
 
-  // Create the issue
-  let issueUrl: string
-  try {
-    issueUrl = await run([...createArgs, '--json', 'url', '--jq', '.url'])
-  } catch {
-    issueUrl = await run(createArgs)
-  }
+  // Create the issue — gh issue create returns a URL like
+  // https://github.com/owner/repo/issues/123
+  const issueUrl = await run(createArgs)
 
-  const issueNumber = Number(issueUrl.match(/\d+$/)?.[0])
+  const match = issueUrl.match(/\/(\d+)\s*$/)
+  if (!match) {
+    throw new Error(`Failed to parse issue number from gh output: ${issueUrl}`)
+  }
+  const issueNumber = Number(match[1])
   console.log(`Created #${issueNumber}: ${opts.title}`)
 
   // Add to project board (non-fatal)

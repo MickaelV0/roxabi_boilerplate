@@ -52,6 +52,11 @@ describe('shared/github', () => {
         expect.objectContaining({ stdout: 'pipe', stderr: 'pipe' })
       )
     })
+
+    it('throws on non-zero exit code', async () => {
+      mockSpawn.mockReturnValue(mockProcess('', 'not found', 1))
+      await expect(run(['gh', 'issue', 'create'])).rejects.toThrow('Command failed (1)')
+    })
   })
 
   describe('ghGraphQL', () => {

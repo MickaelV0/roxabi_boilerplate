@@ -15,11 +15,16 @@ import {
   UPDATE_FIELD_MUTATION,
 } from './queries'
 
-/** Run a shell command and return trimmed stdout. */
+/** Run a shell command and return trimmed stdout. Throws on non-zero exit. */
 export async function run(cmd: string[]): Promise<string> {
   const proc = Bun.spawn(cmd, { stdout: 'pipe', stderr: 'pipe' })
   const stdout = await new Response(proc.stdout).text()
-  await proc.exited
+  const stderr = await new Response(proc.stderr).text()
+  const code = await proc.exited
+
+  if (code !== 0) {
+    throw new Error(`Command failed (${code}): ${cmd.join(' ')}\n${stderr}`)
+  }
   return stdout.trim()
 }
 
