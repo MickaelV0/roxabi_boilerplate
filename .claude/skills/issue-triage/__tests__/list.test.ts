@@ -74,9 +74,7 @@ describe('issue-triage/list', () => {
   })
 
   it('outputs JSON when --json flag is provided', async () => {
-    mockGhGraphQL.mockResolvedValueOnce(
-      makeProjectResponse([makeItem(5, 'Untriaged', null, null)])
-    )
+    mockGhGraphQL.mockResolvedValueOnce(makeProjectResponse([makeItem(5, 'Untriaged', null, null)]))
 
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     const { listIssues } = await import('../lib/list')

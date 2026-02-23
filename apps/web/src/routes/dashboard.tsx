@@ -64,7 +64,7 @@ function DashboardPage() {
 
   // Auto-select first org if none is active or active org is not in user's list
   useEffect(() => {
-    if (!accountChecked || !orgs) return
+    if (!(accountChecked && orgs)) return
 
     // Reset autoSelectAttempted when orgs list length changes
     if (prevOrgsLength.current !== undefined && prevOrgsLength.current !== orgs.length) {

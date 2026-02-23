@@ -48,7 +48,7 @@ export function CodeBlock({
 
   // Start typing animation timer when visible
   useEffect(() => {
-    if (!inView || !typing || typingComplete) return
+    if (!(inView && typing) || typingComplete) return
     const lines = children.split('\n').length
     const duration = Math.min(lines * 300, 3000)
     const timer = setTimeout(() => setTypingComplete(true), duration)

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { and, eq } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
-import type { DrizzleDB } from '../database/drizzle.provider.js'
+import type { DrizzleTx } from '../database/drizzle.provider.js'
 import { members } from '../database/schema/auth.schema.js'
 import { permissions, rolePermissions, roles } from '../database/schema/rbac.schema.js'
 import { TenantService } from '../tenant/tenant.service.js'
@@ -32,11 +32,7 @@ export class RbacService {
    * Resolve permission strings to IDs and insert into role_permissions.
    * Shared by createRole, updateRole, and seedDefaultRoles.
    */
-  private async syncPermissions(
-    tx: { select: DrizzleDB['select']; insert: DrizzleDB['insert'] },
-    roleId: string,
-    permissionStrings: string[]
-  ) {
+  private async syncPermissions(tx: DrizzleTx, roleId: string, permissionStrings: string[]) {
     if (permissionStrings.length === 0) return
 
     const allPerms = await tx.select().from(permissions)
@@ -101,7 +97,7 @@ export class RbacService {
    * Ensure the new slug doesn't collide with an existing role in the tenant.
    */
   private async ensureUniqueSlug(
-    tx: { select: DrizzleDB['select'] },
+    tx: DrizzleTx,
     tenantId: string,
     newSlug: string,
     currentSlug: string | undefined
@@ -237,7 +233,7 @@ export class RbacService {
       const ownerRole = defaultRoles.find((r) => r.slug === 'owner')
       const adminRole = defaultRoles.find((r) => r.slug === 'admin')
 
-      if (!ownerRole || !adminRole) {
+      if (!(ownerRole && adminRole)) {
         throw new OwnershipConstraintException('Default roles not found')
       }
 

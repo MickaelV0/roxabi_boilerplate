@@ -90,7 +90,7 @@ function collectBunPackages(nodeModulesDir: string): RawPackageInfo[] {
 }
 
 function collectScopedPackages(scopeDir: string): RawPackageInfo[] {
-  if (!existsSync(scopeDir) || !lstatSync(scopeDir).isDirectory()) return []
+  if (!(existsSync(scopeDir) && lstatSync(scopeDir).isDirectory())) return []
   const results: RawPackageInfo[] = []
   for (const scoped of readdirSync(scopeDir)) {
     const info = readPackageInfo(join(scopeDir, scoped))
@@ -155,7 +155,7 @@ function readPackageInfo(pkgDir: string): RawPackageInfo | null {
   try {
     const raw = readFileSync(pkgJsonPath, 'utf-8')
     const pkg = JSON.parse(raw)
-    if (!pkg.name || !pkg.version) return null
+    if (!(pkg.name && pkg.version)) return null
     return { name: pkg.name, version: pkg.version, dir: realDir }
   } catch {
     return null

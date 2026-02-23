@@ -56,7 +56,7 @@ if (!SAFE_CREDENTIAL_PATTERN.test(POSTGRES_PASSWORD)) {
 const args = process.argv.slice(2)
 const subcommand = args[0]
 
-if (!subcommand || !['create', 'drop', 'list'].includes(subcommand)) {
+if (!(subcommand && ['create', 'drop', 'list'].includes(subcommand))) {
   console.error('Usage: tsx scripts/db-branch.ts <create|drop|list> [issue_number] [--force]')
   process.exit(1)
 }
@@ -69,7 +69,7 @@ function parseExplicitIssueNumber(): string | undefined {
     if (arg.startsWith('--')) continue
     if (/^\d+$/.test(arg)) return arg
   }
-  return undefined
+  return
 }
 
 // ---------------------------------------------------------------------------

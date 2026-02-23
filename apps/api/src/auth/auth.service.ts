@@ -31,8 +31,8 @@ export class AuthService {
     const githubClientSecret = config.get<string>('GITHUB_CLIENT_SECRET')
 
     this.enabledProviders = {
-      google: !!(googleClientId && googleClientSecret),
-      github: !!(githubClientId && githubClientSecret),
+      google: Boolean(googleClientId && googleClientSecret),
+      github: Boolean(githubClientId && githubClientSecret),
     }
 
     this.auth = createBetterAuth(

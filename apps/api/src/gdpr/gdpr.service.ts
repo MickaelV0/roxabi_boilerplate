@@ -72,23 +72,34 @@ export class GdprService {
 
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
-  async exportUserData(userId: string): Promise<GdprExportData> {
-    this.logger.log(`GDPR export requested for userId=${userId}`)
+  private fetchUserRecord(userId: string): Promise<GdprUserData[]> {
+    return this.db
+      .select({
+        name: users.name,
+        email: users.email,
+        image: users.image,
+        role: users.role,
+        emailVerified: users.emailVerified,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
+  }
 
-    const [userData, sessionData, accountData, orgData, consentData] = await Promise.all([
-      this.db
-        .select({
-          name: users.name,
-          email: users.email,
-          image: users.image,
-          role: users.role,
-          emailVerified: users.emailVerified,
-          createdAt: users.createdAt,
-        })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1),
-
+  private async fetchCoreUserData(
+    userId: string
+  ): Promise<
+    [
+      GdprUserData[],
+      GdprSessionData[],
+      GdprAccountData[],
+      GdprOrganizationData[],
+      GdprConsentData[],
+    ]
+  > {
+    return await Promise.all([
+      this.fetchUserRecord(userId),
       this.db
         .select({
           ipAddress: sessions.ipAddress,
@@ -99,7 +110,6 @@ export class GdprService {
         .from(sessions)
         .where(eq(sessions.userId, userId))
         .limit(EXPORT_QUERY_LIMIT),
-
       this.db
         .select({
           providerId: accounts.providerId,
@@ -109,7 +119,6 @@ export class GdprService {
         .from(accounts)
         .where(eq(accounts.userId, userId))
         .limit(EXPORT_QUERY_LIMIT),
-
       this.db
         .select({
           name: organizations.name,
@@ -119,7 +128,6 @@ export class GdprService {
         .from(members)
         .innerJoin(organizations, eq(members.organizationId, organizations.id))
         .where(eq(members.userId, userId)),
-
       this.db
         .select({
           categories: consentRecords.categories,
@@ -131,45 +139,56 @@ export class GdprService {
         .where(eq(consentRecords.userId, userId))
         .limit(EXPORT_QUERY_LIMIT),
     ])
+  }
+
+  private async fetchAndDeduplicateInvitations(
+    userId: string,
+    userEmail: string
+  ): Promise<GdprInvitationData[]> {
+    const [sentInvitations, receivedInvitations] = await Promise.all([
+      this.db
+        .select({
+          email: invitations.email,
+          organizationName: organizations.name,
+          role: invitations.role,
+          status: invitations.status,
+        })
+        .from(invitations)
+        .innerJoin(organizations, eq(invitations.organizationId, organizations.id))
+        .where(eq(invitations.inviterId, userId)),
+
+      this.db
+        .select({
+          email: invitations.email,
+          organizationName: organizations.name,
+          role: invitations.role,
+          status: invitations.status,
+        })
+        .from(invitations)
+        .innerJoin(organizations, eq(invitations.organizationId, organizations.id))
+        .where(eq(invitations.email, userEmail)),
+    ])
+
+    const sentKeys = new Set(sentInvitations.map((i) => `${i.organizationName}-${i.email}`))
+
+    return [
+      ...sentInvitations.map((i) => ({ ...i, direction: 'sent' as const })),
+      ...receivedInvitations
+        .filter((i) => !sentKeys.has(`${i.organizationName}-${i.email}`))
+        .map((i) => ({ ...i, direction: 'received' as const })),
+    ]
+  }
+
+  async exportUserData(userId: string): Promise<GdprExportData> {
+    this.logger.log(`GDPR export requested for userId=${userId}`)
+
+    const [userData, sessionData, accountData, orgData, consentData] =
+      await this.fetchCoreUserData(userId)
 
     const user = userData[0]
-    const userEmail = user?.email
-
-    let invitationData: GdprInvitationData[] = []
-    if (userEmail) {
-      const [sentInvitations, receivedInvitations] = await Promise.all([
-        this.db
-          .select({
-            email: invitations.email,
-            organizationName: organizations.name,
-            role: invitations.role,
-            status: invitations.status,
-          })
-          .from(invitations)
-          .innerJoin(organizations, eq(invitations.organizationId, organizations.id))
-          .where(eq(invitations.inviterId, userId)),
-
-        this.db
-          .select({
-            email: invitations.email,
-            organizationName: organizations.name,
-            role: invitations.role,
-            status: invitations.status,
-          })
-          .from(invitations)
-          .innerJoin(organizations, eq(invitations.organizationId, organizations.id))
-          .where(eq(invitations.email, userEmail)),
-      ])
-
-      const sentKeys = new Set(sentInvitations.map((i) => `${i.organizationName}-${i.email}`))
-
-      invitationData = [
-        ...sentInvitations.map((i) => ({ ...i, direction: 'sent' as const })),
-        ...receivedInvitations
-          .filter((i) => !sentKeys.has(`${i.organizationName}-${i.email}`))
-          .map((i) => ({ ...i, direction: 'received' as const })),
-      ]
-    }
+    const invitationData = user?.email
+      ? await this.fetchAndDeduplicateInvitations(userId, user.email)
+      : []
 
     this.logger.log(
       `GDPR export completed for userId=${userId}: ${sessionData.length} sessions, ${accountData.length} accounts, ${orgData.length} orgs, ${invitationData.length} invitations, ${consentData.length} consent records`

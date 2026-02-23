@@ -5,7 +5,7 @@ import type {
   ConsentCookiePayload,
   ConsentState,
 } from '@repo/types'
-import { createContext, type ReactNode, useEffect, useState } from 'react'
+import { createContext, type ReactNode, useEffect, useMemo, useState } from 'react'
 import { ConsentBanner } from '@/components/consent/ConsentBanner'
 import { ConsentModal } from '@/components/consent/ConsentModal'
 import { legalConfig } from '@/config/legal.config'
@@ -31,7 +31,7 @@ function readCookieClient(): ConsentCookiePayload | null {
 }
 
 function computeShowBanner(consent: ConsentCookiePayload | null): boolean {
-  if (!consent || !consent.consentedAt || !consent.action) return true
+  if (!(consent?.consentedAt && consent.action)) return true
 
   const consentAge = Date.now() - new Date(consent.consentedAt).getTime()
   if (consentAge > SIX_MONTHS_MS) return true
@@ -86,37 +86,18 @@ function getInitialConsent(
   return readCookieClient()
 }
 
-export function ConsentProvider({ children, initialConsent: serverConsent }: ConsentProviderProps) {
-  const resolved = getInitialConsent(serverConsent)
-  const showBannerInitial = computeShowBanner(resolved)
-
-  const [consent, setConsent] = useState<ConsentCookiePayload | null>(resolved)
-  const [showBanner, setShowBanner] = useState(showBannerInitial)
-  const [modalOpen, setModalOpen] = useState(false)
-  const session = useSession()
-
-  // Client-side: read cookie on mount if no server consent was provided
-  useEffect(() => {
-    if (serverConsent) return // Already initialized from server
-    const clientConsent = readCookieClient()
-    if (clientConsent) {
-      setConsent(clientConsent)
-      setShowBanner(computeShowBanner(clientConsent))
-    }
-  }, [serverConsent])
-
-  // Client-side reconciliation: if authenticated, fetch DB consent and let DB win
-  const userId = session.data?.user?.id
+function useDbReconciliation(
+  userId: string | undefined,
+  setConsent: (c: ConsentCookiePayload) => void,
+  setShowBanner: (s: boolean) => void
+) {
   useEffect(() => {
     if (!userId) return
 
     async function reconcile() {
       try {
-        const res = await fetch('/api/consent', {
-          credentials: 'include',
-        })
-        if (res.status === 404) return
-        if (!res.ok) return
+        const res = await fetch('/api/consent', { credentials: 'include' })
+        if (res.status === 404 || !res.ok) return
 
         const dbRecord = (await res.json()) as {
           categories: ConsentCategories
@@ -141,8 +122,14 @@ export function ConsentProvider({ children, initialConsent: serverConsent }: Con
     }
 
     reconcile()
-  }, [userId])
+  }, [userId, setConsent, setShowBanner])
+}
 
+function createConsentActions(
+  setConsent: (c: ConsentCookiePayload | null) => void,
+  setShowBanner: (s: boolean) => void,
+  setModalOpen: (o: boolean) => void
+) {
   function saveConsent(categories: ConsentCategories, action: ConsentAction) {
     const payload = buildPayload(categories, action)
     writeCookie(payload)
@@ -152,21 +139,41 @@ export function ConsentProvider({ children, initialConsent: serverConsent }: Con
     syncToServer(payload)
   }
 
-  const acceptAll = () => {
-    saveConsent({ necessary: true, analytics: true, marketing: true }, 'accepted')
+  return {
+    acceptAll: () => saveConsent({ necessary: true, analytics: true, marketing: true }, 'accepted'),
+    rejectAll: () =>
+      saveConsent({ necessary: true, analytics: false, marketing: false }, 'rejected'),
+    saveCustom: (categories: ConsentCategories) => saveConsent(categories, 'customized'),
+    openSettings: () => setModalOpen(true),
   }
+}
 
-  const rejectAll = () => {
-    saveConsent({ necessary: true, analytics: false, marketing: false }, 'rejected')
-  }
+export function ConsentProvider({ children, initialConsent: serverConsent }: ConsentProviderProps) {
+  const resolved = getInitialConsent(serverConsent)
+  const showBannerInitial = computeShowBanner(resolved)
 
-  const saveCustom = (categories: ConsentCategories) => {
-    saveConsent(categories, 'customized')
-  }
+  const [consent, setConsent] = useState<ConsentCookiePayload | null>(resolved)
+  const [showBanner, setShowBanner] = useState(showBannerInitial)
+  const [modalOpen, setModalOpen] = useState(false)
+  const session = useSession()
 
-  const openSettings = () => {
-    setModalOpen(true)
-  }
+  // Client-side: read cookie on mount if no server consent was provided
+  useEffect(() => {
+    if (serverConsent) return
+    const clientConsent = readCookieClient()
+    if (clientConsent) {
+      setConsent(clientConsent)
+      setShowBanner(computeShowBanner(clientConsent))
+    }
+  }, [serverConsent])
+
+  useDbReconciliation(session.data?.user?.id, setConsent, setShowBanner)
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: useState setters are stable — listed explicitly to make the contract clear per code review
+  const { acceptAll, rejectAll, saveCustom, openSettings } = useMemo(
+    () => createConsentActions(setConsent, setShowBanner, setModalOpen),
+    [setConsent, setShowBanner, setModalOpen]
+  )
 
   const value: ConsentContextValue = {
     categories: consent?.categories ?? { necessary: true, analytics: false, marketing: false },

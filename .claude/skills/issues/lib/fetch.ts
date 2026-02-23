@@ -11,7 +11,9 @@ async function fetchPage(
   if (cursor) variables.cursor = cursor
 
   const data = (await ghGraphQL(ISSUES_QUERY, variables)) as {
-    data: { node: { items: { pageInfo: { hasNextPage: boolean; endCursor: string }; nodes: RawItem[] } } }
+    data: {
+      node: { items: { pageInfo: { hasNextPage: boolean; endCursor: string }; nodes: RawItem[] } }
+    }
   }
   const pageInfo = data.data.node.items.pageInfo
   return {

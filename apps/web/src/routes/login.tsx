@@ -42,11 +42,11 @@ export const Route = createFileRoute('/login')({
   }),
 })
 
-function LoginPage() {
-  const navigate = useNavigate()
-  const { redirect: redirectParam } = Route.useSearch()
-  const providers = Route.useLoaderData()
-  const hasOAuth = providers.google || providers.github
+// ---------------------------------------------------------------------------
+// Custom hook: useLoginFormState
+// ---------------------------------------------------------------------------
+
+function useLoginFormFields() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [magicLinkEmail, setMagicLinkEmail] = useState('')
@@ -59,136 +59,455 @@ function LoginPage() {
   const [resendCooldown, setResendCooldown] = useState(0)
   const [resendLoading, setResendLoading] = useState(false)
 
+  return {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    magicLinkEmail,
+    setMagicLinkEmail,
+    rememberMe,
+    setRememberMe,
+    error,
+    setError,
+    loading,
+    setLoading,
+    oauthLoading,
+    setOauthLoading,
+    emailNotVerified,
+    setEmailNotVerified,
+    notVerifiedEmail,
+    setNotVerifiedEmail,
+    resendCooldown,
+    setResendCooldown,
+    resendLoading,
+    setResendLoading,
+  }
+}
+
+function useLoginFormState() {
+  const fields = useLoginFormFields()
+
+  function submitStart() {
+    fields.setError('')
+    fields.setEmailNotVerified(false)
+    fields.setLoading(true)
+  }
+
+  function submitError(msg: string) {
+    fields.setError(msg)
+    fields.setLoading(false)
+  }
+
+  function decrementResendCooldown() {
+    fields.setResendCooldown((c) => c - 1)
+  }
+
+  function markEmailNotVerified(emailAddr: string) {
+    fields.setEmailNotVerified(true)
+    fields.setNotVerifiedEmail(emailAddr)
+  }
+
+  return { ...fields, submitStart, submitError, decrementResendCooldown, markEmailNotVerified }
+}
+
+type LoginFormState = ReturnType<typeof useLoginFormState>
+
+function UnverifiedEmailAlert({
+  resendCooldown,
+  resendLoading,
+  onResend,
+}: {
+  resendCooldown: number
+  resendLoading: boolean
+  onResend: () => void
+}) {
+  return (
+    <Alert variant="warning">
+      <AlertDescription className="space-y-2 text-center">
+        <p>{m.auth_login_email_not_verified_sent()}</p>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-auto px-2 py-1 underline"
+          onClick={onResend}
+          disabled={resendCooldown > 0 || resendLoading}
+        >
+          {resendCooldown > 0
+            ? m.auth_resend_in({ seconds: String(resendCooldown) })
+            : m.auth_resend_verification()}
+        </Button>
+      </AlertDescription>
+    </Alert>
+  )
+}
+
+function PasswordLoginForm({
+  email,
+  password,
+  rememberMe,
+  loading,
+  onSubmit,
+  onEmailChange,
+  onPasswordChange,
+  onRememberMeChange,
+}: {
+  email: string
+  password: string
+  rememberMe: boolean
+  loading: boolean
+  onSubmit: (e: React.FormEvent) => void
+  onEmailChange: (v: string) => void
+  onPasswordChange: (v: string) => void
+  onRememberMeChange: (v: boolean) => void
+}) {
+  return (
+    <form onSubmit={onSubmit} aria-busy={loading} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="email">{m.auth_email()}</Label>
+        <Input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onEmailChange(e.target.value)}
+          required
+          disabled={loading}
+        />
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="password">{m.auth_password()}</Label>
+          <Link
+            to="/reset-password"
+            className="text-sm text-muted-foreground underline hover:text-foreground"
+          >
+            {m.auth_forgot_password()}
+          </Link>
+        </div>
+        <PasswordInput
+          id="password"
+          value={password}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onPasswordChange(e.target.value)}
+          required
+          disabled={loading}
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id="remember"
+          checked={rememberMe}
+          onCheckedChange={(checked) => onRememberMeChange(checked === true)}
+        />
+        <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
+          {m.auth_remember_me()}
+        </Label>
+      </div>
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? m.auth_signing_in() : m.auth_sign_in_button()}
+      </Button>
+    </form>
+  )
+}
+
+function OAuthSection({
+  providers,
+  loading,
+  oauthLoading,
+  onOAuth,
+}: {
+  providers: { google?: boolean; github?: boolean }
+  loading: boolean
+  oauthLoading: string | null
+  onOAuth: (provider: 'google' | 'github') => void
+}) {
+  return (
+    <>
+      <OrDivider />
+      <div
+        className={cn(
+          'grid gap-2',
+          providers.google && providers.github ? 'grid-cols-2' : 'grid-cols-1'
+        )}
+      >
+        {providers.google && (
+          <OAuthButton
+            provider="google"
+            loading={oauthLoading === 'google'}
+            disabled={loading || oauthLoading !== null}
+            onClick={() => onOAuth('google')}
+          >
+            {m.auth_sign_in_with_google()}
+          </OAuthButton>
+        )}
+        {providers.github && (
+          <OAuthButton
+            provider="github"
+            loading={oauthLoading === 'github'}
+            disabled={loading || oauthLoading !== null}
+            onClick={() => onOAuth('github')}
+          >
+            {m.auth_sign_in_with_github()}
+          </OAuthButton>
+        )}
+      </div>
+    </>
+  )
+}
+
+function PasswordLoginTab({
+  email,
+  password,
+  rememberMe,
+  loading,
+  oauthLoading,
+  onSubmit,
+  onEmailChange,
+  onPasswordChange,
+  onRememberMeChange,
+  hasOAuth,
+  providers,
+  onOAuth,
+}: {
+  email: string
+  password: string
+  rememberMe: boolean
+  loading: boolean
+  oauthLoading: string | null
+  onSubmit: (e: React.FormEvent) => void
+  onEmailChange: (v: string) => void
+  onPasswordChange: (v: string) => void
+  onRememberMeChange: (v: boolean) => void
+  hasOAuth: boolean
+  providers: { google?: boolean; github?: boolean }
+  onOAuth: (provider: 'google' | 'github') => void
+}) {
+  return (
+    <TabsContent value="password" className="space-y-6 pt-4">
+      <PasswordLoginForm
+        email={email}
+        password={password}
+        rememberMe={rememberMe}
+        loading={loading}
+        onSubmit={onSubmit}
+        onEmailChange={onEmailChange}
+        onPasswordChange={onPasswordChange}
+        onRememberMeChange={onRememberMeChange}
+      />
+
+      {hasOAuth && (
+        <OAuthSection
+          providers={providers}
+          loading={loading}
+          oauthLoading={oauthLoading}
+          onOAuth={onOAuth}
+        />
+      )}
+    </TabsContent>
+  )
+}
+
+function MagicLinkTab({
+  magicLinkEmail,
+  loading,
+  onSubmit,
+  onMagicLinkEmailChange,
+}: {
+  magicLinkEmail: string
+  loading: boolean
+  onSubmit: (e: React.FormEvent) => void
+  onMagicLinkEmailChange: (v: string) => void
+}) {
+  return (
+    <TabsContent value="magic-link" className="space-y-6 pt-4">
+      <form onSubmit={onSubmit} aria-busy={loading} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="magic-email">{m.auth_email()}</Label>
+          <Input
+            id="magic-email"
+            type="email"
+            placeholder={m.auth_magic_link_placeholder()}
+            value={magicLinkEmail}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onMagicLinkEmailChange(e.target.value)
+            }
+            required
+            disabled={loading}
+          />
+        </div>
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? m.auth_sending() : m.auth_send_magic_link()}
+        </Button>
+      </form>
+    </TabsContent>
+  )
+}
+
+/** Checks if account is soft-deleted and navigates to reactivation if so. */
+async function checkSoftDeletedAccount(navigate: ReturnType<typeof useNavigate>): Promise<boolean> {
+  try {
+    const res = await fetchUserProfile()
+    if (!res.ok) return false
+    const profile = (await res.json()) as Record<string, unknown>
+    if (profile.deletedAt) {
+      navigate({
+        to: '/account-reactivation',
+        search: { deleteScheduledFor: profile.deleteScheduledFor as string | undefined },
+      })
+      return true
+    }
+  } catch {
+    // Non-blocking
+  }
+  return false
+}
+
+/** Auto-select the first active org if no org is currently active (best-effort). */
+async function autoSelectOrg() {
+  try {
+    const { data: currentSession } = await authClient.getSession()
+    const activeOrgId = (currentSession as Record<string, unknown> | null)?.activeOrganizationId
+    if (activeOrgId) return
+
+    const res = await fetchOrganizations()
+    const orgs = res.ok ? ((await res.json()) as Array<{ id: string }>) : []
+    if (orgs[0]) {
+      await authClient.organization.setActive({ organizationId: orgs[0].id })
+    }
+  } catch {
+    // Non-blocking
+  }
+}
+
+function useResendCooldownEffect(resendCooldown: number, decrementResendCooldown: () => void) {
   useEffect(() => {
     if (resendCooldown <= 0) return
-    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000)
+    const timer = setTimeout(() => decrementResendCooldown(), 1000)
     return () => clearTimeout(timer)
-  }, [resendCooldown])
+  }, [resendCooldown, decrementResendCooldown])
+}
 
-  // Read redirect from sessionStorage after OAuth callback
+function useStoredRedirect(navigate: ReturnType<typeof useNavigate>) {
   useEffect(() => {
     try {
       const storedRedirect = sessionStorage.getItem('auth_redirect')
       if (storedRedirect) {
         sessionStorage.removeItem('auth_redirect')
         const target = safeRedirect(storedRedirect)
-        if (target !== '/dashboard') {
-          navigate({ to: target })
-        }
+        if (target !== '/dashboard') navigate({ to: target })
       }
     } catch {
-      // sessionStorage may be unavailable (private browsing, storage quota)
+      // sessionStorage may be unavailable
     }
   }, [navigate])
+}
 
-  /** Checks if account is soft-deleted and navigates to reactivation if so. Returns true if redirected. */
-  async function checkSoftDeletedAccount(): Promise<boolean> {
-    try {
-      const res = await fetchUserProfile()
-      if (!res.ok) return false
-      const profile = (await res.json()) as Record<string, unknown>
-      if (profile.deletedAt) {
-        navigate({
-          to: '/account-reactivation',
-          search: { deleteScheduledFor: profile.deleteScheduledFor as string | undefined },
-        })
-        return true
-      }
-    } catch {
-      // Non-blocking
-    }
-    return false
-  }
+// ---------------------------------------------------------------------------
+// Handler factories (accept form state + only the slices they need)
+// ---------------------------------------------------------------------------
 
-  /** Auto-select the first active org if no org is currently active (best-effort). */
-  async function autoSelectOrg() {
-    try {
-      // Check if there is already an active org before overwriting
-      const { data: currentSession } = await authClient.getSession()
-      const activeOrgId = (currentSession as Record<string, unknown> | null)?.activeOrganizationId
-      if (activeOrgId) return
+type AuthHandlerDeps = {
+  form: LoginFormState
+  navigate: ReturnType<typeof useNavigate>
+  redirectParam: string | undefined
+}
 
-      const res = await fetchOrganizations()
-      const orgs = res.ok ? ((await res.json()) as Array<{ id: string }>) : []
-      if (orgs[0]) {
-        await authClient.organization.setActive({ organizationId: orgs[0].id })
-      }
-    } catch {
-      // Non-blocking
-    }
-  }
+function createLoginAuthHandlers(deps: AuthHandlerDeps) {
+  const { form, navigate, redirectParam } = deps
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
-    setEmailNotVerified(false)
-    setLoading(true)
+    form.submitStart()
     try {
       const { error: signInError } = await authClient.signIn.email({
-        email,
-        password,
-        rememberMe,
+        email: form.email,
+        password: form.password,
+        rememberMe: form.rememberMe,
       })
       if (signInError) {
-        // Better Auth returns 403 specifically for unverified email when
-        // emailAndPassword.requireEmailVerification is enabled. Other 403
-        // conditions (banned, etc.) use different error codes.
-        if (signInError.status === 403) {
-          setEmailNotVerified(true)
-          setNotVerifiedEmail(email)
-        } else {
-          setError(m.auth_login_invalid_credentials())
-        }
+        handleSignInError(signInError, form.email, form)
       } else {
-        toast.success(m.auth_toast_signed_in())
-        const redirected = await checkSoftDeletedAccount()
-        if (redirected) return
-        await autoSelectOrg()
-        navigate({ to: safeRedirect(redirectParam) })
+        await handleSignInSuccess(navigate, redirectParam)
       }
     } catch {
       toast.error(m.auth_toast_error())
     } finally {
-      setLoading(false)
+      form.setLoading(false)
     }
   }
 
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
-    setLoading(true)
+    form.submitStart()
     try {
-      const { error: mlError } = await authClient.signIn.magicLink({ email: magicLinkEmail })
+      const { error: mlError } = await authClient.signIn.magicLink({
+        email: form.magicLinkEmail,
+      })
       if (mlError) {
-        setError(m.auth_magic_link_error())
+        form.submitError(m.auth_magic_link_error())
       } else {
         toast.success(m.auth_toast_magic_link_sent())
         navigate({
           to: '/magic-link-sent',
-          search: { email: magicLinkEmail, redirect: redirectParam },
+          search: { email: form.magicLinkEmail, redirect: redirectParam },
         })
       }
     } catch {
       toast.error(m.auth_toast_error())
     } finally {
-      setLoading(false)
+      form.setLoading(false)
     }
   }
 
+  return { handleEmailLogin, handleMagicLink }
+}
+
+/**
+ * Handle sign-in API error.
+ * Better Auth returns 403 specifically for unverified email when
+ * emailAndPassword.requireEmailVerification is enabled.
+ */
+function handleSignInError(signInError: { status: number }, email: string, form: LoginFormState) {
+  if (signInError.status === 403) {
+    form.markEmailNotVerified(email)
+  } else {
+    form.submitError(m.auth_login_invalid_credentials())
+  }
+}
+
+/** Handle successful sign-in: check soft-delete, auto-select org, navigate. */
+async function handleSignInSuccess(
+  navigate: ReturnType<typeof useNavigate>,
+  redirectParam: string | undefined
+) {
+  toast.success(m.auth_toast_signed_in())
+  const redirected = await checkSoftDeletedAccount(navigate)
+  if (redirected) return
+  await autoSelectOrg()
+  navigate({ to: safeRedirect(redirectParam) })
+}
+
+type SecondaryHandlerDeps = {
+  form: LoginFormState
+  redirectParam: string | undefined
+}
+
+function createLoginSecondaryHandlers(deps: SecondaryHandlerDeps) {
+  const { form, redirectParam } = deps
+
   async function handleResendVerification() {
-    if (!notVerifiedEmail) return
-    setResendLoading(true)
+    if (!form.notVerifiedEmail) return
+    form.setResendLoading(true)
     try {
       await authClient.sendVerificationEmail({
-        email: notVerifiedEmail,
+        email: form.notVerifiedEmail,
         callbackURL: `${window.location.origin}/verify-email`,
       })
       toast.success(m.auth_toast_verification_resent())
-      setResendCooldown(COOLDOWN_SECONDS)
+      form.setResendCooldown(COOLDOWN_SECONDS)
     } catch {
       toast.error(m.auth_toast_error())
     } finally {
-      setResendLoading(false)
+      form.setResendLoading(false)
     }
   }
 
@@ -200,7 +519,7 @@ function LoginPage() {
         // sessionStorage may be unavailable
       }
     }
-    setOauthLoading(provider)
+    form.setOauthLoading(provider)
     try {
       await authClient.signIn.social({
         provider,
@@ -210,29 +529,62 @@ function LoginPage() {
       })
     } catch {
       toast.error(m.auth_toast_error())
-      setOauthLoading(null)
+      form.setOauthLoading(null)
     }
   }
 
+  return { handleResendVerification, handleOAuth }
+}
+
+// ---------------------------------------------------------------------------
+// Page component
+// ---------------------------------------------------------------------------
+
+function useLoginPage() {
+  const navigate = useNavigate()
+  const { redirect: redirectParam } = Route.useSearch()
+  const providers = Route.useLoaderData()
+  const hasOAuth = providers.google || providers.github
+  const form = useLoginFormState()
+
+  useResendCooldownEffect(form.resendCooldown, form.decrementResendCooldown)
+  useStoredRedirect(navigate)
+
+  const authHandlers = createLoginAuthHandlers({
+    form,
+    navigate,
+    redirectParam,
+  })
+
+  const secondaryHandlers = createLoginSecondaryHandlers({
+    form,
+    redirectParam,
+  })
+
+  return { form, providers, hasOAuth, redirectParam, authHandlers, secondaryHandlers }
+}
+
+function LoginPageAlerts({
+  emailNotVerified,
+  resendCooldown,
+  resendLoading,
+  error,
+  onResend,
+}: {
+  emailNotVerified: boolean
+  resendCooldown: number
+  resendLoading: boolean
+  error: string
+  onResend: () => void
+}) {
   return (
-    <AuthLayout title={m.auth_sign_in_title()} description={m.auth_sign_in_desc()}>
+    <>
       {emailNotVerified && (
-        <Alert variant="warning">
-          <AlertDescription className="space-y-2 text-center">
-            <p>{m.auth_login_email_not_verified_sent()}</p>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-auto px-2 py-1 underline"
-              onClick={handleResendVerification}
-              disabled={resendCooldown > 0 || resendLoading}
-            >
-              {resendCooldown > 0
-                ? m.auth_resend_in({ seconds: String(resendCooldown) })
-                : m.auth_resend_verification()}
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <UnverifiedEmailAlert
+          resendCooldown={resendCooldown}
+          resendLoading={resendLoading}
+          onResend={onResend}
+        />
       )}
 
       {error && (
@@ -240,6 +592,23 @@ function LoginPage() {
           {error}
         </FormMessage>
       )}
+    </>
+  )
+}
+
+function LoginPage() {
+  const { form, providers, hasOAuth, redirectParam, authHandlers, secondaryHandlers } =
+    useLoginPage()
+
+  return (
+    <AuthLayout title={m.auth_sign_in_title()} description={m.auth_sign_in_desc()}>
+      <LoginPageAlerts
+        emailNotVerified={form.emailNotVerified}
+        resendCooldown={form.resendCooldown}
+        resendLoading={form.resendLoading}
+        error={form.error}
+        onResend={secondaryHandlers.handleResendVerification}
+      />
 
       <Tabs defaultValue="password" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
@@ -247,108 +616,27 @@ function LoginPage() {
           <TabsTrigger value="magic-link">{m.auth_tab_magic_link()}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="password" className="space-y-6 pt-4">
-          <form onSubmit={handleEmailLogin} aria-busy={loading} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">{m.auth_email()}</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">{m.auth_password()}</Label>
-                <Link
-                  to="/reset-password"
-                  className="text-sm text-muted-foreground underline hover:text-foreground"
-                >
-                  {m.auth_forgot_password()}
-                </Link>
-              </div>
-              <PasswordInput
-                id="password"
-                value={password}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="remember"
-                checked={rememberMe}
-                onCheckedChange={(checked) => setRememberMe(checked === true)}
-              />
-              <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
-                {m.auth_remember_me()}
-              </Label>
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? m.auth_signing_in() : m.auth_sign_in_button()}
-            </Button>
-          </form>
+        <PasswordLoginTab
+          email={form.email}
+          password={form.password}
+          rememberMe={form.rememberMe}
+          loading={form.loading}
+          oauthLoading={form.oauthLoading}
+          onSubmit={authHandlers.handleEmailLogin}
+          onEmailChange={form.setEmail}
+          onPasswordChange={form.setPassword}
+          onRememberMeChange={form.setRememberMe}
+          hasOAuth={hasOAuth}
+          providers={providers}
+          onOAuth={secondaryHandlers.handleOAuth}
+        />
 
-          {hasOAuth && (
-            <>
-              <OrDivider />
-
-              <div
-                className={cn(
-                  'grid gap-2',
-                  providers.google && providers.github ? 'grid-cols-2' : 'grid-cols-1'
-                )}
-              >
-                {providers.google && (
-                  <OAuthButton
-                    provider="google"
-                    loading={oauthLoading === 'google'}
-                    disabled={loading || oauthLoading !== null}
-                    onClick={() => handleOAuth('google')}
-                  >
-                    {m.auth_sign_in_with_google()}
-                  </OAuthButton>
-                )}
-                {providers.github && (
-                  <OAuthButton
-                    provider="github"
-                    loading={oauthLoading === 'github'}
-                    disabled={loading || oauthLoading !== null}
-                    onClick={() => handleOAuth('github')}
-                  >
-                    {m.auth_sign_in_with_github()}
-                  </OAuthButton>
-                )}
-              </div>
-            </>
-          )}
-        </TabsContent>
-
-        <TabsContent value="magic-link" className="space-y-6 pt-4">
-          <form onSubmit={handleMagicLink} aria-busy={loading} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="magic-email">{m.auth_email()}</Label>
-              <Input
-                id="magic-email"
-                type="email"
-                placeholder={m.auth_magic_link_placeholder()}
-                value={magicLinkEmail}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setMagicLinkEmail(e.target.value)
-                }
-                required
-                disabled={loading}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? m.auth_sending() : m.auth_send_magic_link()}
-            </Button>
-          </form>
-        </TabsContent>
+        <MagicLinkTab
+          magicLinkEmail={form.magicLinkEmail}
+          loading={form.loading}
+          onSubmit={authHandlers.handleMagicLink}
+          onMagicLinkEmailChange={form.setMagicLinkEmail}
+        />
       </Tabs>
 
       <p className="text-center text-sm text-muted-foreground">

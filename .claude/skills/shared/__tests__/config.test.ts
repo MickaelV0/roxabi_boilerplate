@@ -5,12 +5,12 @@ import {
   PRIORITY_ALIASES,
   PRIORITY_OPTIONS,
   PRIORITY_ORDER,
-  SIZE_OPTIONS,
-  STATUS_ALIASES,
-  STATUS_OPTIONS,
   resolvePriority,
   resolveSize,
   resolveStatus,
+  SIZE_OPTIONS,
+  STATUS_ALIASES,
+  STATUS_OPTIONS,
 } from '../config'
 
 describe('shared/config', () => {
