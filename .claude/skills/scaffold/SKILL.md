@@ -262,6 +262,236 @@ EOF
 )"
 ```
 
+### Step 4f — Generate Micro-Tasks (Tier F only)
+
+**Tier S:** Skip this step entirely. Proceed directly to Step 5.
+
+**Tier F-lite / F-full:** Generate fine-grained micro-tasks from the spec for agent consumption.
+
+#### 4f.1. Detect Spec Format
+
+Read the spec and determine the generation mode:
+
+1. **Primary mode** — Spec contains `## Breadboard` and `## Slices` sections (post-#281 specs). Parse Breadboard affordances (U*, N*, S*) and Slices (V1, V2, ...).
+2. **Fallback mode** — Spec contains `## Success Criteria` but no Breadboard/Slices. Parse criteria as SC-1, SC-2, etc.
+3. **Skip** — Spec has neither Breadboard/Slices nor Success Criteria. Warn the user that micro-task generation requires structured spec content. Proceed to Step 5 using the text-based task list from Step 2d.
+
+> **Format detection v1:** Look for `## Breadboard` (heading level 2) with sub-tables containing ID columns (U*, N*, S*), and `## Slices` with a table containing Slice/Description/Affordances columns. If both are present → primary mode. If only `## Success Criteria` with checkbox items → fallback mode.
+
+#### 4f.2. Generate Micro-Tasks
+
+**Primary mode (Breadboard + Slices):**
+
+For each slice (V1, V2, ...):
+1. Identify the affordances referenced by the slice (e.g., N1, N2, U1, S1)
+2. Expand each affordance into 1-3 micro-tasks based on its complexity
+3. Order within slice: data stores (S*) first → code handlers (N*) → CLI/UI (U*) → tests
+4. Assign agents per Step 2c file-path rules
+5. Generate a verification command for each task
+
+**Fallback mode (Success Criteria):**
+
+For each criterion (SC-1, SC-2, ...):
+1. Analyze the criterion to identify affected files and logic
+2. Expand into 1-5 micro-tasks based on complexity
+3. Each micro-task gets a verification command (or explicit `[manual]` marker if no automated check is possible)
+4. Assign agents per Step 2c file-path rules
+
+**Each micro-task includes:**
+
+| Field | Description |
+|-------|-------------|
+| Description | What to implement (imperative, specific) |
+| File path | Target file to create or modify |
+| Code snippet | Lightweight skeleton showing the expected shape |
+| Verification command | Bash command to confirm completion |
+| Expected output | What success looks like |
+| Time estimate | 2-5 minutes target (may reach 8-10 for atomic operations) |
+| `[P]` marker | Present if parallel-safe (no file-path overlap or import dependency with sibling tasks in same slice) |
+| Agent | Which agent owns this task |
+| Spec trace | Source criterion (SC-N) or affordance wiring (U1→N1→S1) |
+| Slice | Which vertical slice (V1, V2, ...) |
+| Phase | RED, GREEN, REFACTOR, or RED-GATE |
+| Difficulty | 1-5 per-task scale (1=trivial, 2=single-file, 3=multi-concern one file, 4=cross-file, 5=complex multi-concern) |
+
+#### 4f.3. Detect Parallelization
+
+For each pair of micro-tasks within the same slice:
+
+1. **File-path check:** Do they touch the same file? → not parallel-safe
+2. **Import inference:** For existing files, read current imports. For new files, infer from Breadboard wiring (e.g., N1→S1 implies handler imports store). If unknown → default to non-parallel-safe (conservative)
+3. Mark parallel-safe tasks with `[P]`
+
+#### 4f.4. Scale Task Count
+
+Calculate the feature-level complexity score (from #280 rubric) and derive the target task count:
+
+| Tier | Target range | Minimum floor |
+|------|-------------|---------------|
+| F-lite | 5-15 tasks | 3 (one setup, one core, one test) |
+| F-full | 15-30 tasks | 3 (one setup, one core, one test) |
+
+**If task count exceeds 30:** Warn the user via `AskUserQuestion` and suggest splitting via `/bootstrap` Gate 2.5 or manual decomposition. Show the full task list — no truncation. User can proceed or return to spec.
+
+#### 4f.5. Run Consistency Check
+
+Bidirectional spec-to-task validation:
+
+1. **Coverage check (spec → tasks):** Every spec criterion or Breadboard affordance must have ≥1 matching task (via `specTrace`). Report uncovered criteria.
+2. **Gold plating check (tasks → spec):** Every task must trace to a spec criterion. Tasks without spec backing require justification — except for exempt categories:
+
+| Exempt category | Examples |
+|-----------------|---------|
+| Infrastructure | DB migrations, schema changes, config file updates |
+| Quality | Linting fixes, formatting, barrel/index export updates |
+| Build | Package.json changes, build configuration, environment setup |
+| Documentation | Inline code comments, JSDoc, README updates |
+
+3. **Generate consistency report:**
+   - Criteria covered: N/total
+   - Uncovered criteria: list or "none"
+   - Tasks without spec backing: list or "none"
+   - Gold plating exemptions applied: count
+
+**If 0 coverage (no tasks match any criterion):** Block agent spawning. Return to spec or regenerate.
+
+#### 4f.6. Write Plan Artifact
+
+Generate the plan artifact at `plans/{issue}-{slug}.mdx`:
+
+```markdown
+---
+title: "Plan: {Feature Title}"
+issue: {issue_number}
+spec: specs/{issue}-{slug}.mdx
+complexity: {score}/10
+tier: {S|F-lite|F-full}
+generated: {ISO timestamp}
+---
+
+## Summary
+
+{1-2 sentence overview of the feature and implementation approach}
+
+## Bootstrap Context
+
+{Conclusions and selected shape from analyses/{issue}-*.mdx, if exists}
+
+## Agents
+
+| Agent | Task count | Files |
+|-------|-----------|-------|
+| {agent} | {N} | {comma-separated file list} |
+
+## Consistency Report
+
+- Criteria covered: {N}/{total}
+- Uncovered criteria: {list or "none"}
+- Tasks without spec backing: {list or "none"}
+- Gold plating exemptions applied: {count}
+
+## Micro-Tasks
+
+### Slice V1: {Description}
+
+#### Task 1: {Description} [P] → {agent}
+- **File:** {path}
+- **Snippet:** {code skeleton}
+- **Verify:** `{command}` ({ready|deferred})
+- **Expected:** {output}
+- **Time:** {N} min
+- **Difficulty:** {1-5}
+- **Traces:** {SC-N, U1→N1→S1}
+
+#### Task 2: {Description} → {agent}
+...
+
+#### RED-GATE: RED complete V1 → tester
+- **Verify:** All test tasks for V1 marked complete
+- **Phase:** RED-GATE
+```
+
+**Bootstrap context:** If an analysis exists at `analyses/{issue}-*.mdx`, include its Conclusions and selected Shape sections under `## Bootstrap Context`. This gives domain agents architectural rationale without re-reading the analysis.
+
+Create `plans/` directory if it doesn't exist. The directory is tracked in git (not gitignored), lives at project root alongside `analyses/` and `specs/`.
+
+#### 4f.7. Commit Plan Artifact
+
+Commit the plan as a **standalone commit** (separate from the Step 4e stub commit, never amending):
+
+```bash
+mkdir -p plans
+git add plans/{issue}-{slug}.mdx
+git commit -m "$(cat <<'EOF'
+docs(<scope>): add scaffold plan for <feature>
+
+Micro-task plan with consistency report. Generated from spec.
+
+Refs #<issue_number>
+
+Co-Authored-By: Claude <model> <noreply@anthropic.com>
+EOF
+)"
+```
+
+#### 4f.8. Present for Approval
+
+Present the micro-task queue and consistency report to the user via `AskUserQuestion`:
+
+```
+Micro-Task Plan: {Feature Title}
+Spec: specs/{N}-{slug}.mdx
+Complexity: {score}/10 → {tier}
+Tasks: {N} micro-tasks across {M} slices
+Agents: {agent list with task counts}
+
+Consistency:
+  Criteria covered: {N}/{total}
+  Gold plating flags: {N} ({M} exempted)
+
+Slices:
+  V1: {description} ({N} tasks, {M} parallel-safe)
+  V2: {description} ({N} tasks, {M} parallel-safe)
+  ...
+```
+
+Options:
+- **Approve** — create TaskCreate entries and proceed to Step 5
+- **Modify** — regenerate with adjusted parameters or manual task edits (new plan commit, never amend)
+- **Return to spec** — go back to refine the spec
+
+#### 4f.9. Dispatch TaskCreate Entries
+
+On approval, create `TaskCreate` entries for each micro-task with metadata:
+
+```json
+{
+  "taskDifficulty": 3,
+  "verificationCommand": "bun run test apps/api/test/auth.test.ts",
+  "verificationStatus": "deferred",
+  "expectedOutput": "1 passing test: validate email format",
+  "estimatedMinutes": 3,
+  "parallel": true,
+  "specTrace": "SC-3, N1→S1",
+  "slice": "V1",
+  "phase": "GREEN"
+}
+```
+
+| Field | Type | Values | Description |
+|-------|------|--------|-------------|
+| `taskDifficulty` | number | 1-5 | Per-task difficulty (not feature complexity) |
+| `verificationCommand` | string | bash command | Executable check that confirms completion |
+| `verificationStatus` | string | `"ready"` or `"deferred"` | `"ready"` = run immediately. `"deferred"` = wait for RED-GATE sentinel |
+| `expectedOutput` | string | text | What success looks like |
+| `estimatedMinutes` | number | 2-10 | Target: 2-5 min |
+| `parallel` | boolean | true/false | `true` if `[P]` marked |
+| `specTrace` | string | IDs | Spec criterion or affordance wiring |
+| `slice` | string | V1, V2, ... | Vertical slice |
+| `phase` | string | RED, GREEN, REFACTOR, RED-GATE | Implementation phase |
+
+**RED-GATE sentinels:** Auto-generate one sentinel task per slice, assigned to tester, with `phase: "RED-GATE"`. This task is marked complete when all RED tasks for that slice are done.
+
 ### Step 5 — Implement
 
 #### Tier S — Single Session
@@ -285,10 +515,24 @@ Spawn agents based on the plan from Step 2.
 
 **Implementation order (RED → GREEN → REFACTOR):**
 
-1. **RED** — Spawn `tester`: write failing tests from spec acceptance criteria
-2. **GREEN** — Spawn domain agents in parallel: implement to pass the tests
+**If Step 4f generated micro-tasks:** agents receive their assigned micro-tasks from `TaskCreate` entries instead of text-based plans. Each micro-task includes file paths, code snippets, verification commands, and spec traces.
+
+**If Step 4f was skipped:** agents receive the text-based task list from Step 2d (existing behavior).
+
+1. **RED** — Spawn `tester`: write failing tests from spec acceptance criteria (or from RED-phase micro-tasks). After completing all test tasks for a slice, tester marks the `"RED complete: V{N}"` sentinel task as completed.
+2. **GREEN** — Spawn domain agents in parallel: implement to pass the tests. Before running a verification command, check the `verificationStatus`:
+   - `"ready"` → run the verification command immediately after completing the task
+   - `"deferred"` → check if the RED-GATE sentinel for this task's slice is completed. If yes → run verification. If no → skip verification, continue to next task.
 3. **REFACTOR** — Domain agents refactor while keeping tests green
 4. **Verify** — Spawn `tester`: verify coverage and add edge cases
+
+**Per-task verification loop (when micro-tasks are active):**
+
+After each task where verification runs:
+1. Run the verification command
+2. **Pass** → mark task complete, proceed to next
+3. **Fail** → fix and re-verify (max 3 retries)
+4. **3 failures** → escalate to lead with: task ID, error output, attempted fixes, affected files
 
 **Quality gate:**
 
@@ -363,6 +607,14 @@ git branch -D feat/<number>-<slug>
 | **Pre-commit hook failure** | Fix, re-stage, create NEW commit (never amend) |
 | **Agent blocked** | Report blocker, ask user for guidance |
 | **Spec has unresolved `[NEEDS CLARIFICATION]` markers** | Pre-flight warns, user chooses: resolve inline, return to bootstrap, or proceed with risk |
+| **Spec has no Breadboard AND no Success Criteria** | Skip Step 4f, warn user, use text-based task list from Step 2d |
+| **Task count exceeds 30** | Warn user, show full task list, suggest splitting. Do not truncate. |
+| **Consistency check finds 0 coverage** | Block agent spawning. Return to spec or regenerate. |
+| **Verification command references missing file** | Mark `[deferred]`. If fails after RED phase, escalate to lead. |
+| **Single affordance expands beyond 5 min** | Split into 2-3 sub-tasks. 2-5 min is a guide; some tasks may reach 8-10 min. |
+| **Session interrupted after plan commit** | On resume: re-read plan artifact, reconstruct TaskCreate entries, skip consistency check. |
+| **User wants to regenerate micro-tasks** | New commit with regenerated plan (never amend). Latest plan artifact is authoritative. |
+| **`plans/` directory doesn't exist** | Scaffold creates it on first use (Step 4f.7). |
 
 ## Safety Rules
 

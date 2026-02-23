@@ -1,0 +1,110 @@
+---
+title: "Example: Micro-Task Generation"
+description: Shows how Breadboard affordances expand into micro-tasks
+---
+
+## Example Spec Input
+
+A spec with these Breadboard affordances:
+
+```
+| ID | Handler | Wiring | Logic |
+|----|---------|--------|-------|
+| N1 | Auth validator | Req -> N1 -> S1 | Validate JWT, extract user |
+| N2 | Profile fetcher | N1 -> N2 -> S2 | Fetch user profile from DB |
+```
+
+```
+| ID | Store | Type |
+|----|-------|------|
+| S1 | JWT secret | Config |
+| S2 | User profiles table | Persistent (DB) |
+```
+
+And Slices:
+
+```
+| Slice | Description | Affordances |
+|-------|-------------|-------------|
+| V1 | Auth + profile fetch | N1, N2, S1, S2 |
+```
+
+## Generated Micro-Tasks
+
+### Slice V1: Auth + profile fetch
+
+#### Task 1: Create user profiles schema [P] -> backend-dev
+- **File:** `apps/api/src/users/schema.ts`
+- **Snippet:** `export const usersTable = pgTable('users', { id: text('id').primaryKey(), ... })`
+- **Verify:** `bun run typecheck` (ready)
+- **Expected:** No type errors
+- **Time:** 3 min
+- **Difficulty:** 2
+- **Traces:** S2
+
+#### Task 2: Add JWT validation middleware -> backend-dev
+- **File:** `apps/api/src/auth/jwt.guard.ts`
+- **Snippet:** `@Injectable() export class JwtGuard implements CanActivate { ... }`
+- **Verify:** `bun run test apps/api/src/auth/jwt.guard.spec.ts` (deferred)
+- **Expected:** JWT validation passes for valid tokens, rejects invalid
+- **Time:** 5 min
+- **Difficulty:** 3
+- **Traces:** N1, S1
+
+#### Task 3: Implement profile fetcher service -> backend-dev
+- **File:** `apps/api/src/users/users.service.ts`
+- **Snippet:** `async getProfile(userId: string): Promise<UserProfile> { ... }`
+- **Verify:** `bun run test apps/api/src/users/users.service.spec.ts` (deferred)
+- **Expected:** Returns user profile for valid ID, throws for invalid
+- **Time:** 4 min
+- **Difficulty:** 3
+- **Traces:** N2, S2
+
+#### Task 4: Write auth guard tests -> tester
+- **File:** `apps/api/src/auth/jwt.guard.spec.ts`
+- **Snippet:** `describe('JwtGuard', () => { it('should validate token', ...) })`
+- **Verify:** `bun run test apps/api/src/auth/jwt.guard.spec.ts` (ready)
+- **Expected:** Tests fail (RED phase — no implementation yet)
+- **Time:** 3 min
+- **Difficulty:** 2
+- **Traces:** N1
+- **Phase:** RED
+
+#### Task 5: Write profile service tests -> tester
+- **File:** `apps/api/src/users/users.service.spec.ts`
+- **Snippet:** `describe('UsersService', () => { it('should fetch profile', ...) })`
+- **Verify:** `bun run test apps/api/src/users/users.service.spec.ts` (ready)
+- **Expected:** Tests fail (RED phase — no implementation yet)
+- **Time:** 3 min
+- **Difficulty:** 2
+- **Traces:** N2
+- **Phase:** RED
+
+#### RED-GATE: RED complete V1 -> tester
+- **Verify:** All test tasks for V1 marked complete
+- **Phase:** RED-GATE
+
+## TaskCreate Metadata Example
+
+Task 2 (JWT validation middleware) would produce:
+
+```json
+{
+  "taskDifficulty": 3,
+  "verificationCommand": "bun run test apps/api/src/auth/jwt.guard.spec.ts",
+  "verificationStatus": "deferred",
+  "expectedOutput": "JWT validation passes for valid tokens, rejects invalid",
+  "estimatedMinutes": 5,
+  "parallel": false,
+  "specTrace": "N1, S1",
+  "slice": "V1",
+  "phase": "GREEN"
+}
+```
+
+## Parallelization Analysis
+
+- Task 1 (schema) and Task 4 (auth tests): different files, no import overlap -> both `[P]`
+- Task 2 (auth guard) imports from Task 1's schema indirectly (N1->S1 wiring) -> not parallel with Task 1
+- Task 3 depends on Task 1 (N2->S2 wiring) -> not parallel with Task 1
+- Task 4 and Task 5: different test files, no overlap -> both `[P]`
