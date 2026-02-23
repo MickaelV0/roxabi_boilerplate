@@ -1,0 +1,49 @@
+---
+title: "Test Fixture: Consistency Check Validation"
+description: "Deliberately flawed spec for testing Step 4f.5 consistency check. Contains a coverage gap (SC-3 has no matching affordance) and a gold plating opportunity (N3 has no spec trace)."
+---
+
+## Context
+
+Test fixture --- do not use for real scaffolding.
+
+## Breadboard
+
+### Code Affordances
+
+| ID | Handler | Wiring | Logic |
+|----|---------|--------|-------|
+| N1 | User creator | Req -> N1 -> S1 | Create user record |
+| N2 | Email sender | N1 -> N2 | Send welcome email |
+| N3 | Audit logger | N1 -> N3 -> S2 | Log creation event (NO SPEC TRACE --- gold plating) |
+
+### Data Stores
+
+| ID | Store | Type |
+|----|-------|------|
+| S1 | Users table | Persistent (DB) |
+| S2 | Audit log table | Persistent (DB) |
+
+## Slices
+
+| Slice | Description | Affordances |
+|-------|-------------|-------------|
+| V1 | User creation + email | N1, N2, S1 |
+
+## Success Criteria
+
+- [ ] SC-1: User can be created with name and email
+- [ ] SC-2: Welcome email sent after user creation
+- [ ] SC-3: User creation is rate-limited to 10/min (COVERAGE GAP --- no matching affordance)
+
+## Expected Consistency Check Results
+
+When running Step 4f.5 against this spec:
+
+- **Coverage gap:** SC-3 (rate limiting) has no matching affordance or task in V1
+- **Gold plating:** N3 (audit logger) and S2 (audit log table) have no spec trace --- N3 is not referenced in any success criterion
+- **Expected report:**
+  - Criteria covered: 2/3
+  - Uncovered criteria: SC-3
+  - Tasks without spec backing: N3 -> S2 audit logging tasks
+  - Gold plating exemptions applied: 0 (audit logging is NOT in the exempt categories)

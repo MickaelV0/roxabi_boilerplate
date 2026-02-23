@@ -68,19 +68,20 @@ Multiple agents of the same type may run concurrently on non-overlapping file gr
 
 ### Micro-Task Consumption Protocol
 
-> **Pre-#283 behavior:** Before shared task list infrastructure ships (#283), micro-tasks are delivered to agents via spawn prompts (Task tool description or TeamCreate instructions). The TaskList/TaskUpdate protocol below applies when shared task lists are available. Until then, the orchestrator manages task assignment and sequencing.
-
 When `/scaffold` Step 4f generates micro-tasks, agents receive structured work units via `TaskCreate` entries instead of text-based plans. Each micro-task includes metadata (see scaffold SKILL.md Step 4f.9 for the full schema).
 
 **Claiming tasks:**
-1. Check `TaskList` for tasks matching your domain with status `pending` and no owner
-2. Prefer tasks in ID order (lowest first) within your assigned slice
-3. Claim with `TaskUpdate` (set `owner` to your name)
+
+Tasks are delivered via spawn prompts (Task tool description or TeamCreate instructions). The orchestrator manages assignment and sequencing.
+
+1. Receive your assigned micro-tasks in the spawn prompt
+2. Execute tasks in the order provided (lowest ID first within your assigned slice)
+3. Report completion to the lead after each task
 
 **Running verification:**
 1. After completing a task, check `verificationStatus` in task metadata
 2. `"ready"` → run the `verificationCommand` immediately
-3. `"deferred"` → check if the RED-GATE sentinel for this task's `slice` is marked completed. If yes → run verification. If no → skip, continue to next task.
+3. `"deferred"` → the orchestrator will only spawn you for GREEN tasks after the tester completes RED tasks for that slice. If you encounter a deferred task unexpectedly, skip verification and continue to the next task.
 4. `"manual"` → no automated command. Agent verifies by inspecting the file/code and marks task complete.
 
 **Handling failures:**
@@ -91,8 +92,13 @@ When `/scaffold` Step 4f generates micro-tasks, agents receive structured work u
 **RED-GATE sentinels:**
 - Each slice has a `"RED complete: V{N}"` sentinel task assigned to tester with `phase: "RED-GATE"`
 - Tester marks the sentinel complete after finishing all RED tasks for that slice
-- Domain agents check the sentinel before running deferred verification commands
-- **Pre-#283:** The orchestrator manages RED-GATE ordering by spawning GREEN agents only after the tester completes RED tasks for each slice. Post-#283: Agents check the sentinel task status directly via TaskList.
+- The orchestrator manages RED-GATE ordering by spawning GREEN agents only after the tester completes RED tasks for each slice
+
+**Post-#283:** When shared task list infrastructure ships (#283), agents will claim tasks directly via TaskList/TaskUpdate instead of receiving them in spawn prompts:
+1. Check `TaskList` for tasks matching your domain with status `pending` and no owner
+2. Prefer tasks in ID order (lowest first) within your assigned slice
+3. Claim with `TaskUpdate` (set `owner` to your name)
+4. RED-GATE sentinels will be checked directly via TaskList instead of relying on orchestrator sequencing
 
 ### Standards
 

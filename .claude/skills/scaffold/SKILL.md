@@ -278,6 +278,8 @@ Read the spec and determine the generation mode:
 
 > **Format detection v1:** Look for `## Breadboard` (heading level 2) with sub-tables containing ID columns (U*, N*, S*), and `## Slices` with a table containing Slice/Description/Affordances columns. If both are present → primary mode. If only `## Success Criteria` with checkbox items → fallback mode.
 
+> **Partial spec:** If only one of `## Breadboard` or `## Slices` is present (but not both), treat as fallback mode if `## Success Criteria` exists, or skip mode otherwise.
+
 #### 4f.2. Generate Micro-Tasks
 
 **Primary mode (Breadboard + Slices):**
@@ -297,11 +299,23 @@ For each criterion (SC-1, SC-2, ...):
 3. Each micro-task gets a verification command (or explicit `[manual]` marker if no automated check is possible)
 4. Assign agents per Step 2c file-path rules
 
+**Verification command heuristics for fallback mode:**
+
+| Change type | Verification approach | Example |
+|------------|----------------------|---------|
+| Application code (`.ts/.tsx`) | Unit/integration test (if adjacent test exists) or typecheck | `bun run test apps/api/src/auth/auth.service.test.ts` |
+| Type definitions | Typecheck (scoped) | `bun run typecheck --filter=@repo/types` |
+| Config files (`.json/.yaml`) | Lint + content check | `bun run lint && grep -q 'key' path/to/config.json` |
+| Skill/agent files (`.md`) | Grep for expected content | `grep -q 'Step 4f' .claude/skills/scaffold/SKILL.md` |
+| Documentation (`.mdx`) | File exists + content check | `test -f docs/path.mdx && grep -q '## Section' docs/path.mdx` |
+| Migration files | Migrate + check schema | `bun run db:migrate && bun run db:generate --check` |
+| Other | Manual checklist | `[manual]` marker with description |
+
 **RED-phase verification:** RED tasks use structural verification (grep for expected test structure) rather than running tests, since tests are expected to fail before implementation. Verification confirms the test file exists with the expected describe/it blocks.
 
 **Verification command safety:** Always single-quote literal strings in grep arguments to prevent shell expansion (use `grep -q 'expected' file` not `grep -q "expected" file`). Verification commands must be non-destructive and read-only. Permitted prefixes: `bun run test`, `bun run typecheck`, `bun run lint`, `grep -q`, `test -f`, `bun run db:generate --check`. Commands that write files, delete data, or modify state are forbidden.
 
-**Per-slice floor:** Each slice must produce at least 3 micro-tasks. If a slice generates fewer than 3, merge it with an adjacent slice or expand the highest-complexity affordances into additional sub-tasks.
+**Per-slice floor:** Each slice must produce at least 2 micro-tasks (one implementation + one test). If a slice generates fewer than 2, merge it with an adjacent slice.
 
 **Each micro-task includes:**
 
@@ -336,12 +350,12 @@ Calculate the feature-level complexity score (from #280 rubric) and derive the t
 
 | Tier | Target range | Minimum floor |
 |------|-------------|---------------|
-| F-lite | 5-15 tasks | 3 (one setup, one core, one test) |
-| F-full | 15-30 tasks | 3 (one setup, one core, one test) |
+| F-lite | 5-15 tasks | 2 (one implementation, one test) |
+| F-full | 15-30 tasks | 2 (one implementation, one test) |
 
 **If task count exceeds 30:** Warn the user via `AskUserQuestion` and suggest splitting via `/bootstrap` Gate 2.5 or manual decomposition. Show the full task list — no truncation. User can proceed or return to spec.
 
-**If task count is below the minimum floor (3):** Warn the user that the feature may not have enough granularity for micro-task benefits. Suggest expanding the highest-complexity affordances into additional sub-tasks or falling back to the text-based task list from Step 2d.
+**If task count is below the minimum floor (2):** Warn the user that the feature may not have enough granularity for micro-task benefits. Suggest falling back to the text-based task list from Step 2d.
 
 #### 4f.5. Run Consistency Check
 
@@ -549,6 +563,8 @@ After each task where verification runs:
 3. **Fail** → fix and re-verify (max 3 retries)
 4. **3 failures** → escalate to lead with: task ID, error output, attempted fixes, affected files
 
+**Tracking first-try pass rate:** The orchestrator tracks the count of tasks that pass verification on first attempt vs. those requiring retries. This feeds the Step 7 summary line (`Verification: {N}/{total} passed first try`).
+
 **Quality gate:**
 
 ```bash
@@ -631,7 +647,7 @@ git branch -D feat/<number>-<slug>
 | **Single affordance expands beyond 5 min** | Split into 2-3 sub-tasks. 2-5 min is a guide; some tasks may reach 8-10 min. |
 | **Session interrupted after plan commit** | On resume: re-read plan artifact, reconstruct TaskCreate entries, skip consistency check. |
 | **User wants to regenerate micro-tasks** | New commit with regenerated plan (never amend). Latest plan artifact is authoritative. |
-| **`plans/` directory doesn't exist** | Scaffold creates it on first use (Step 4f.7). |
+| **`plans/` directory doesn't exist** | Scaffold creates it on first use (Step 4f.8). |
 
 ## Safety Rules
 
