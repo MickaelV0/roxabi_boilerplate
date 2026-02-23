@@ -147,8 +147,8 @@ describe('TenantInterceptor', () => {
       expect(cls.set).toHaveBeenCalledWith('tenantId', 'org-1')
     })
 
-    it('should resolve to parent org ID when org has a parent', async () => {
-      // Arrange
+    it('should use org ID directly even when org has a parent (parent resolution deferred to Phase 3)', async () => {
+      // Arrange — parentOrganizationId is present but resolution is disabled (TODO in interceptor)
       const cls = createMockCls(store)
       const db = createMockDb([
         { id: 'child-org', name: 'Child Org', parentOrganizationId: 'parent-org' },
@@ -163,8 +163,8 @@ describe('TenantInterceptor', () => {
       const result$ = interceptor.intercept(context as never, next as never)
       await lastValueFrom(result$)
 
-      // Assert
-      expect(cls.set).toHaveBeenCalledWith('tenantId', 'parent-org')
+      // Assert — returns orgId directly; parent resolution is deferred to Phase 3
+      expect(cls.set).toHaveBeenCalledWith('tenantId', 'child-org')
     })
 
     it('should fall back to activeOrganizationId when org is not found in DB', async () => {
