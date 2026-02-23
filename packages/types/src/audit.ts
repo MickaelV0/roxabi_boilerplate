@@ -9,6 +9,7 @@ export type AuditAction =
   | 'member.invited'
   | 'member.role_changed'
   | 'member.removed'
+  | 'invitation.revoked'
   | 'org.created'
   | 'org.updated'
   | 'org.deleted'
@@ -36,5 +37,4 @@ export interface AuditLogEntry {
   before: Record<string, unknown> | null
   after: Record<string, unknown> | null
   metadata: Record<string, unknown> | null
-  createdAt: Date
 }

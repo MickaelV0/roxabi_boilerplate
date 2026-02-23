@@ -1,10 +1,12 @@
 import { HttpStatus } from '@nestjs/common'
 import { describe, expect, it, vi } from 'vitest'
-import { MemberNotFoundException } from '../../rbac/exceptions/member-not-found.exception.js'
-import { RoleNotFoundException } from '../../rbac/exceptions/role-not-found.exception.js'
 import { InvitationAlreadyPendingException } from '../exceptions/invitation-already-pending.exception.js'
 import { LastOwnerConstraintException } from '../exceptions/last-owner-constraint.exception.js'
 import { MemberAlreadyExistsException } from '../exceptions/member-already-exists.exception.js'
+import { AdminMemberNotFoundException } from '../exceptions/member-not-found.exception.js'
+import { AdminRoleNotFoundException } from '../exceptions/role-not-found.exception.js'
+import { SelfRemovalException } from '../exceptions/self-removal.exception.js'
+import { SelfRoleChangeException } from '../exceptions/self-role-change.exception.js'
 import { AdminExceptionFilter } from './admin-exception.filter.js'
 
 function createMockCls(id = 'test-correlation-id') {
@@ -39,10 +41,10 @@ describe('AdminExceptionFilter', () => {
   const cls = createMockCls()
   const filter = new AdminExceptionFilter(cls as never)
 
-  it('should return 404 for MemberNotFoundException', () => {
+  it('should return 404 for AdminMemberNotFoundException', () => {
     // Arrange
     const { host, statusFn } = createMockHost()
-    const exception = new MemberNotFoundException('m-123')
+    const exception = new AdminMemberNotFoundException('m-123')
 
     // Act
     filter.catch(exception, host as never)
@@ -51,10 +53,10 @@ describe('AdminExceptionFilter', () => {
     expect(statusFn).toHaveBeenCalledWith(HttpStatus.NOT_FOUND)
   })
 
-  it('should return 404 for RoleNotFoundException', () => {
+  it('should return 404 for AdminRoleNotFoundException', () => {
     // Arrange
     const { host, statusFn } = createMockHost()
-    const exception = new RoleNotFoundException('r-456')
+    const exception = new AdminRoleNotFoundException('r-456')
 
     // Act
     filter.catch(exception, host as never)
@@ -63,7 +65,7 @@ describe('AdminExceptionFilter', () => {
     expect(statusFn).toHaveBeenCalledWith(HttpStatus.NOT_FOUND)
   })
 
-  it('should return 400 for MemberAlreadyExistsException', () => {
+  it('should return 409 for MemberAlreadyExistsException', () => {
     // Arrange
     const { host, statusFn } = createMockHost()
     const exception = new MemberAlreadyExistsException()
@@ -72,10 +74,10 @@ describe('AdminExceptionFilter', () => {
     filter.catch(exception, host as never)
 
     // Assert
-    expect(statusFn).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST)
+    expect(statusFn).toHaveBeenCalledWith(HttpStatus.CONFLICT)
   })
 
-  it('should return 400 for InvitationAlreadyPendingException', () => {
+  it('should return 409 for InvitationAlreadyPendingException', () => {
     // Arrange
     const { host, statusFn } = createMockHost()
     const exception = new InvitationAlreadyPendingException()
@@ -84,7 +86,7 @@ describe('AdminExceptionFilter', () => {
     filter.catch(exception, host as never)
 
     // Assert
-    expect(statusFn).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST)
+    expect(statusFn).toHaveBeenCalledWith(HttpStatus.CONFLICT)
   })
 
   it('should return 400 for LastOwnerConstraintException', () => {
@@ -99,10 +101,34 @@ describe('AdminExceptionFilter', () => {
     expect(statusFn).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST)
   })
 
+  it('should return 400 for SelfRemovalException', () => {
+    // Arrange
+    const { host, statusFn } = createMockHost()
+    const exception = new SelfRemovalException()
+
+    // Act
+    filter.catch(exception, host as never)
+
+    // Assert
+    expect(statusFn).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST)
+  })
+
+  it('should return 400 for SelfRoleChangeException', () => {
+    // Arrange
+    const { host, statusFn } = createMockHost()
+    const exception = new SelfRoleChangeException()
+
+    // Act
+    filter.catch(exception, host as never)
+
+    // Assert
+    expect(statusFn).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST)
+  })
+
   it('should include structured error body with statusCode, message, errorCode, path, correlationId, and timestamp', () => {
     // Arrange
     const { host, getSentBody } = createMockHost({ url: '/admin/members/m-789' })
-    const exception = new MemberNotFoundException('m-789')
+    const exception = new AdminMemberNotFoundException('m-789')
 
     // Act
     filter.catch(exception, host as never)
@@ -113,15 +139,18 @@ describe('AdminExceptionFilter', () => {
     expect(body.path).toBe('/admin/members/m-789')
     expect(body.correlationId).toBe('test-correlation-id')
     expect(body.message).toBe('Member "m-789" not found')
-    expect(body.errorCode).toBe('MEMBER_NOT_FOUND')
+    expect(body.errorCode).toBe('ADMIN_MEMBER_NOT_FOUND')
     expect(body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/)
   })
 
   it('should include correct errorCode for each exception type', () => {
     // Arrange
     const cases = [
-      { exception: new MemberNotFoundException('m-1'), expectedCode: 'MEMBER_NOT_FOUND' },
-      { exception: new RoleNotFoundException('r-1'), expectedCode: 'ROLE_NOT_FOUND' },
+      {
+        exception: new AdminMemberNotFoundException('m-1'),
+        expectedCode: 'ADMIN_MEMBER_NOT_FOUND',
+      },
+      { exception: new AdminRoleNotFoundException('r-1'), expectedCode: 'ADMIN_ROLE_NOT_FOUND' },
       {
         exception: new MemberAlreadyExistsException(),
         expectedCode: 'MEMBER_ALREADY_EXISTS',
@@ -131,6 +160,8 @@ describe('AdminExceptionFilter', () => {
         expectedCode: 'INVITATION_ALREADY_PENDING',
       },
       { exception: new LastOwnerConstraintException(), expectedCode: 'LAST_OWNER_CONSTRAINT' },
+      { exception: new SelfRemovalException(), expectedCode: 'SELF_REMOVAL' },
+      { exception: new SelfRoleChangeException(), expectedCode: 'SELF_ROLE_CHANGE' },
     ]
 
     for (const { exception, expectedCode } of cases) {
@@ -146,7 +177,7 @@ describe('AdminExceptionFilter', () => {
   it('should set x-correlation-id response header', () => {
     // Arrange
     const { host, headerFn } = createMockHost()
-    const exception = new MemberNotFoundException('m-1')
+    const exception = new AdminMemberNotFoundException('m-1')
 
     // Act
     filter.catch(exception, host as never)

@@ -1,0 +1,51 @@
+import {
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  UseFilters,
+} from '@nestjs/common'
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { Throttle } from '@nestjs/throttler'
+import { Permissions } from '../auth/decorators/permissions.decorator.js'
+import { Session } from '../auth/decorators/session.decorator.js'
+import type { AdminSession } from '../auth/types.js'
+import { AdminMembersService } from './admin-members.service.js'
+import { AdminExceptionFilter } from './filters/admin-exception.filter.js'
+
+@ApiTags('Admin Invitations')
+@ApiBearerAuth()
+@UseFilters(AdminExceptionFilter)
+@Throttle({ global: { ttl: 60_000, limit: 30 } })
+@Controller('api/admin/invitations')
+export class AdminInvitationsController {
+  constructor(private readonly adminMembersService: AdminMembersService) {}
+
+  @Get()
+  @Permissions('members:read')
+  @ApiOperation({ summary: 'List pending invitations for the current organization' })
+  @ApiResponse({ status: 200, description: 'List of pending invitations' })
+  async listPendingInvitations(@Session() session: AdminSession) {
+    return this.adminMembersService.listPendingInvitations(session.session.activeOrganizationId)
+  }
+
+  @Delete(':invitationId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Permissions('members:write')
+  @ApiOperation({ summary: 'Revoke a pending invitation' })
+  @ApiResponse({ status: 204, description: 'Invitation revoked' })
+  @ApiResponse({ status: 404, description: 'Invitation not found' })
+  async revokeInvitation(
+    @Param('invitationId', new ParseUUIDPipe({ version: '4' })) invitationId: string,
+    @Session() session: AdminSession
+  ) {
+    await this.adminMembersService.revokeInvitation(
+      invitationId,
+      session.session.activeOrganizationId,
+      session.user.id
+    )
+  }
+}

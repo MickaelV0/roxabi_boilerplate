@@ -1,11 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@repo/ui'
+import type { OrgRole } from '@/components/admin/types'
 import { roleLabel } from '@/lib/org-utils'
-
-type OrgRole = {
-  id: string
-  name: string
-  slug: string
-}
 
 type RoleSelectProps = {
   currentRole: string

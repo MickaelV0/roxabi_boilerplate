@@ -18,15 +18,10 @@ import {
 import { UserPlusIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import type { OrgRole } from '@/components/admin/types'
 import { parseErrorMessage } from '@/lib/error-utils'
 import { roleLabel } from '@/lib/org-utils'
 import { m } from '@/paraglide/messages'
-
-type OrgRole = {
-  id: string
-  name: string
-  slug: string
-}
 
 async function inviteMember(email: string, roleId: string): Promise<void> {
   const res = await fetch('/api/admin/members/invite', {
@@ -62,7 +57,7 @@ export function InviteDialog({ roles, onSuccess }: InviteDialogProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!email || !roleId) return
+    if (!(email && roleId)) return
     setSubmitting(true)
     try {
       await inviteMember(email, roleId)
@@ -78,7 +73,18 @@ export function InviteDialog({ roles, onSuccess }: InviteDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen)
+        // S6: Reset form state when dialog opens
+        if (nextOpen) {
+          setEmail('')
+          const memberRole = roles.find((r) => r.name === 'member')
+          setRoleId(memberRole?.id ?? roles[0]?.id ?? '')
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button>
           <UserPlusIcon className="mr-2 size-4" />

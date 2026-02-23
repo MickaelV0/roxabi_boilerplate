@@ -17,6 +17,16 @@ APP_USER="${POSTGRES_APP_USER:-roxabi_app}"
 APP_PASSWORD="${POSTGRES_APP_PASSWORD:-roxabi_app}"
 DB_NAME="${POSTGRES_DB:-roxabi}"
 
+# Validate credentials to prevent SQL injection in interpolated SQL strings
+if ! echo "$APP_USER" | grep -qP '^[a-z_][a-z0-9_]*$'; then
+  echo "ERROR: Invalid APP_USER: '$APP_USER'" >&2
+  exit 1
+fi
+if echo "$APP_PASSWORD" | grep -q "'"; then
+  echo "ERROR: APP_PASSWORD must not contain single quotes" >&2
+  exit 1
+fi
+
 echo "Creating application user '$APP_USER'..."
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$DB_NAME" <<-EOSQL
@@ -54,7 +64,15 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$DB_NAME" <<-EOSQL
   ALTER DEFAULT PRIVILEGES IN SCHEMA drizzle GRANT SELECT ON TABLES TO ${APP_USER};
 
   -- Grant app_user role to the app user so SET LOCAL ROLE works
-  GRANT app_user TO ${APP_USER};
+  -- Wrapped in exception handler: app_user role may not exist yet on first boot
+  -- (created by migration 0009); the grant will be applied by setup-app-user later
+  DO \$\$
+  BEGIN
+    GRANT app_user TO ${APP_USER};
+  EXCEPTION WHEN undefined_object THEN
+    RAISE NOTICE 'Role app_user does not exist yet — grant will be applied by migration 0009';
+  END
+  \$\$;
 EOSQL
 
 echo "Application user '$APP_USER' created successfully."

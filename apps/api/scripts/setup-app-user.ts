@@ -21,6 +21,15 @@ import { assertNotProduction, requireDatabaseUrl } from './guards.js'
 const APP_USER = process.env.POSTGRES_APP_USER ?? 'roxabi_app'
 const APP_PASSWORD = process.env.POSTGRES_APP_PASSWORD ?? 'roxabi_app'
 
+// Validate credentials to prevent SQL injection in interpolated SQL strings
+const IDENTIFIER_REGEX = /^[a-z_][a-z0-9_]*$/
+if (!IDENTIFIER_REGEX.test(APP_USER)) {
+  throw new Error(`Invalid APP_USER: "${APP_USER}" — must match /^[a-z_][a-z0-9_]*$/`)
+}
+if (APP_PASSWORD.includes("'")) {
+  throw new Error('APP_PASSWORD must not contain single quotes')
+}
+
 async function setupAppUser() {
   assertNotProduction('setup-app-user')
   const databaseUrl = requireDatabaseUrl('setup-app-user')
@@ -71,6 +80,18 @@ async function setupAppUser() {
     await client.unsafe(
       `ALTER DEFAULT PRIVILEGES IN SCHEMA drizzle GRANT SELECT ON TABLES TO ${APP_USER}`
     )
+
+    // Grant app_user role so SET LOCAL ROLE app_user works
+    // (matches docker/init-app-user.sh behavior)
+    try {
+      await client.unsafe(`GRANT app_user TO ${APP_USER}`)
+    } catch (err) {
+      // app_user role may not exist yet if migrations haven't run (0000_rls_infrastructure creates it)
+      console.warn(
+        `[setup-app-user] Could not grant app_user role to ${APP_USER} (role may not exist yet):`,
+        err instanceof Error ? err.message : err
+      )
+    }
 
     console.log(`[setup-app-user] Application user '${APP_USER}' created successfully.`)
     console.log(

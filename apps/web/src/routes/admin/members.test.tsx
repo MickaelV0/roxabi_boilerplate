@@ -1,4 +1,6 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
@@ -51,6 +53,24 @@ mockParaglideMessages()
 import './members'
 import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
+
+// ---------------------------------------------------------------------------
+// QueryClient wrapper for tests
+// ---------------------------------------------------------------------------
+
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  })
+}
+
+function renderWithQueryClient(ui: ReactNode) {
+  const queryClient = createTestQueryClient()
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>)
+}
 
 // ---------------------------------------------------------------------------
 // Test data factories
@@ -196,6 +216,18 @@ function setupFetchWithMutations({
 }
 
 /**
+ * Submit the invite form by dispatching a submit event on the form element.
+ * fireEvent.click on a submit button does not reliably trigger onSubmit in jsdom
+ * with React 19, so we dispatch the submit event directly on the form.
+ */
+function submitInviteForm() {
+  const emailInput = screen.getByPlaceholderText('org_invite_email_placeholder')
+  const form = emailInput.closest('form')
+  if (!form) throw new Error('No form element found around the invite email input')
+  fireEvent.submit(form)
+}
+
+/**
  * Click a role option scoped to a specific member's table row.
  * Avoids matching InviteDialog's Select which renders the same role options.
  */
@@ -231,7 +263,7 @@ describe('AdminMembersPage', () => {
 
     // Act
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     // Assert
     expect(screen.getByText('org_members_title')).toBeInTheDocument()
@@ -246,7 +278,7 @@ describe('AdminMembersPage', () => {
 
     // Act
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     // Assert
     const skeletons = screen.getAllByTestId('skeleton')
@@ -273,7 +305,7 @@ describe('AdminMembersPage', () => {
 
     // Act
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     // Assert
     await waitFor(() => {
@@ -291,7 +323,7 @@ describe('AdminMembersPage', () => {
 
     // Act
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     // Assert
     await waitFor(() => {
@@ -307,7 +339,7 @@ describe('AdminMembersPage', () => {
 
     // Act
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     // Assert -- Dialog mock renders children immediately (always open)
     await waitFor(() => {
@@ -332,7 +364,7 @@ describe('AdminMembersPage', () => {
 
     // Act
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     // Assert -- owner role renders as Badge (span with data-variant), may also appear in invite dialog SelectItem
     await waitFor(() => {
@@ -359,7 +391,7 @@ describe('AdminMembersPage', () => {
 
     // Act
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     // Assert -- non-owner should see SelectItem options for roles
     await waitFor(() => {
@@ -388,7 +420,7 @@ describe('AdminMembersPage', () => {
 
     // Act
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     // Assert -- only 1 remove button (for non-owner member)
     await waitFor(() => {
@@ -413,7 +445,7 @@ describe('AdminMembersPage', () => {
 
     // Act
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     await waitFor(() => {
       expect(screen.getByText('Dev')).toBeInTheDocument()
@@ -437,7 +469,7 @@ describe('AdminMembersPage', () => {
 
     // Act
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     // Assert
     await waitFor(() => {
@@ -453,7 +485,7 @@ describe('AdminMembersPage', () => {
 
     // Act
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     // Assert
     await waitFor(() => {
@@ -461,10 +493,11 @@ describe('AdminMembersPage', () => {
     })
   })
 
-  it('should filter members by name when searching', async () => {
-    // Arrange
+  it('should send search param to server when searching by name', async () => {
+    // Arrange -- search is now server-side with 300ms debounce
+    vi.useFakeTimers()
     setupActiveOrg()
-    setupFetch(
+    const mockFetch = setupFetch(
       createMembersResponse([
         createMember({
           id: 'm-alice',
@@ -480,25 +513,36 @@ describe('AdminMembersPage', () => {
     )
 
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
-    await waitFor(() => {
+    await vi.waitFor(() => {
       expect(screen.getByText('Alice Smith')).toBeInTheDocument()
     })
 
-    // Act
+    // Act -- type into search input (triggers server-side search after debounce)
     const searchInput = screen.getByPlaceholderText('org_members_search_placeholder')
     fireEvent.change(searchInput, { target: { value: 'Alice' } })
+    await vi.advanceTimersByTimeAsync(300)
 
-    // Assert
-    expect(screen.getByText('Alice Smith')).toBeInTheDocument()
-    expect(screen.queryByText('Bob Jones')).not.toBeInTheDocument()
+    // Assert -- fetch should be called with search param
+    await vi.waitFor(() => {
+      const membersCalls = mockFetch.mock.calls.filter(
+        (args) =>
+          typeof args[0] === 'string' &&
+          args[0].includes('/api/admin/members') &&
+          args[0].includes('search=Alice')
+      )
+      expect(membersCalls.length).toBeGreaterThanOrEqual(1)
+    })
+
+    vi.useRealTimers()
   })
 
-  it('should filter members by email when searching', async () => {
-    // Arrange
+  it('should send search param to server when searching by email', async () => {
+    // Arrange -- search is now server-side with 300ms debounce
+    vi.useFakeTimers()
     setupActiveOrg()
-    setupFetch(
+    const mockFetch = setupFetch(
       createMembersResponse([
         createMember({
           id: 'm-alice',
@@ -514,47 +558,99 @@ describe('AdminMembersPage', () => {
     )
 
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
-    await waitFor(() => {
+    await vi.waitFor(() => {
       expect(screen.getByText('Alice Smith')).toBeInTheDocument()
     })
 
-    // Act
+    // Act -- type email-based search
     const searchInput = screen.getByPlaceholderText('org_members_search_placeholder')
     fireEvent.change(searchInput, { target: { value: 'bob@' } })
+    await vi.advanceTimersByTimeAsync(300)
 
-    // Assert
-    expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument()
-    expect(screen.getByText('Bob Jones')).toBeInTheDocument()
+    // Assert -- fetch should be called with search param
+    await vi.waitFor(() => {
+      const membersCalls = mockFetch.mock.calls.filter(
+        (args) =>
+          typeof args[0] === 'string' &&
+          args[0].includes('/api/admin/members') &&
+          args[0].includes('search=bob')
+      )
+      expect(membersCalls.length).toBeGreaterThanOrEqual(1)
+    })
+
+    vi.useRealTimers()
   })
 
-  it('should show no-results message when search has no matches', async () => {
-    // Arrange
+  it('should show no-results message when server returns empty for search', async () => {
+    // Arrange -- search is server-side; mock returns empty for search requests
+    vi.useFakeTimers()
     setupActiveOrg()
-    setupFetch(
-      createMembersResponse([
-        createMember({
-          id: 'm-alice',
-          role: 'member',
-          user: { id: 'u-1', name: 'Alice Smith', email: 'alice@acme.com', image: null },
-        }),
-      ])
-    )
+    const mockFetch = vi.fn().mockImplementation((url: string) => {
+      if (typeof url === 'string' && url.includes('/api/admin/members')) {
+        if (url.includes('search=')) {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve(
+                createMembersResponse([], { page: 1, limit: 20, total: 0, totalPages: 0 })
+              ),
+          })
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve(
+              createMembersResponse([
+                createMember({
+                  id: 'm-alice',
+                  role: 'member',
+                  user: {
+                    id: 'u-1',
+                    name: 'Alice Smith',
+                    email: 'alice@acme.com',
+                    image: null,
+                  },
+                }),
+              ])
+            ),
+        })
+      }
+      if (typeof url === 'string' && url.includes('/api/roles')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(createRolesResponse()),
+        })
+      }
+      if (typeof url === 'string' && url.includes('/api/admin/invitations')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ data: [] }),
+        })
+      }
+      return Promise.resolve({ ok: false, json: () => Promise.resolve(null) })
+    })
+    globalThis.fetch = mockFetch
 
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
-    await waitFor(() => {
+    await vi.waitFor(() => {
       expect(screen.getByText('Alice Smith')).toBeInTheDocument()
     })
 
-    // Act
+    // Act -- type a nonexistent search term
     const searchInput = screen.getByPlaceholderText('org_members_search_placeholder')
     fireEvent.change(searchInput, { target: { value: 'nonexistent' } })
+    await vi.advanceTimersByTimeAsync(300)
 
     // Assert
-    expect(screen.getByText('org_members_no_results')).toBeInTheDocument()
+    await vi.waitFor(() => {
+      expect(screen.getByText('org_members_no_results')).toBeInTheDocument()
+    })
+
+    vi.useRealTimers()
   })
 
   it('should show empty state when org has no members', async () => {
@@ -564,7 +660,7 @@ describe('AdminMembersPage', () => {
 
     // Act
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     // Assert
     await waitFor(() => {
@@ -593,7 +689,7 @@ describe('AdminMembersPage', () => {
 
     // Act
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     // Assert — uses i18n key: admin_members_count({"count":2})
     await waitFor(() => {
@@ -608,7 +704,7 @@ describe('AdminMembersPage', () => {
 
     // Act
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     // Assert
     await waitFor(() => {
@@ -641,7 +737,7 @@ describe('InviteDialog', () => {
 
     // Act
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     // Assert — the submit button text is org_invite_send, disabled when no email
     await waitFor(() => {
@@ -657,7 +753,7 @@ describe('InviteDialog', () => {
     setupFetchWithMutations()
 
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('org_invite_email_placeholder')).toBeInTheDocument()
@@ -678,18 +774,20 @@ describe('InviteDialog', () => {
     const mockFetch = setupFetchWithMutations()
 
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
+    // Wait for roles to load (role options appear in InviteDialog)
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('org_invite_email_placeholder')).toBeInTheDocument()
+      expect(screen.getAllByText('org_role_admin').length).toBeGreaterThanOrEqual(1)
     })
 
     // Act
     const emailInput = screen.getByPlaceholderText('org_invite_email_placeholder')
     fireEvent.change(emailInput, { target: { value: 'newuser@acme.com' } })
 
-    const submitButton = screen.getByText('org_invite_send')
-    fireEvent.click(submitButton)
+    // Submit the form directly
+    const form = emailInput.closest('form')!
+    fireEvent.submit(form)
 
     // Assert
     await waitFor(() => {
@@ -712,18 +810,17 @@ describe('InviteDialog', () => {
     setupFetchWithMutations()
 
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('org_invite_email_placeholder')).toBeInTheDocument()
+      expect(screen.getAllByText('org_role_admin').length).toBeGreaterThanOrEqual(1)
     })
 
     // Act
     const emailInput = screen.getByPlaceholderText('org_invite_email_placeholder')
     fireEvent.change(emailInput, { target: { value: 'new@acme.com' } })
 
-    const submitButton = screen.getByText('org_invite_send')
-    fireEvent.click(submitButton)
+    submitInviteForm()
 
     // Assert
     await waitFor(() => {
@@ -739,18 +836,17 @@ describe('InviteDialog', () => {
     setupFetchWithMutations()
 
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('org_invite_email_placeholder')).toBeInTheDocument()
+      expect(screen.getAllByText('org_role_admin').length).toBeGreaterThanOrEqual(1)
     })
 
     // Act
     const emailInput = screen.getByPlaceholderText('org_invite_email_placeholder')
     fireEvent.change(emailInput, { target: { value: 'new@acme.com' } })
 
-    const submitButton = screen.getByText('org_invite_send')
-    fireEvent.click(submitButton)
+    submitInviteForm()
 
     // Assert
     await waitFor(() => {
@@ -769,18 +865,17 @@ describe('InviteDialog', () => {
     })
 
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('org_invite_email_placeholder')).toBeInTheDocument()
+      expect(screen.getAllByText('org_role_admin').length).toBeGreaterThanOrEqual(1)
     })
 
     // Act
     const emailInput = screen.getByPlaceholderText('org_invite_email_placeholder')
     fireEvent.change(emailInput, { target: { value: 'existing@acme.com' } })
 
-    const submitButton = screen.getByText('org_invite_send')
-    fireEvent.click(submitButton)
+    submitInviteForm()
 
     // Assert
     await waitFor(() => {
@@ -801,18 +896,17 @@ describe('InviteDialog', () => {
     })
 
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('org_invite_email_placeholder')).toBeInTheDocument()
+      expect(screen.getAllByText('org_role_admin').length).toBeGreaterThanOrEqual(1)
     })
 
     // Act
     const emailInput = screen.getByPlaceholderText('org_invite_email_placeholder')
     fireEvent.change(emailInput, { target: { value: 'pending@acme.com' } })
 
-    const submitButton = screen.getByText('org_invite_send')
-    fireEvent.click(submitButton)
+    submitInviteForm()
 
     // Assert
     await waitFor(() => {
@@ -828,7 +922,7 @@ describe('InviteDialog', () => {
     const mockFetch = setupFetchWithMutations()
 
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     await waitFor(() => {
       expect(screen.getByText('org_invite_send')).toBeInTheDocument()
@@ -876,7 +970,7 @@ describe('RoleSelect', () => {
 
     // Act
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     // Assert — role select should show option elements for each role
     await waitFor(() => {
@@ -900,7 +994,7 @@ describe('RoleSelect', () => {
 
     // Act
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     // Assert — owner role renders as Badge (span with data-variant)
     await waitFor(() => {
@@ -924,7 +1018,7 @@ describe('RoleSelect', () => {
     })
 
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     await waitFor(() => {
       expect(screen.getByText('Dev')).toBeInTheDocument()
@@ -961,7 +1055,7 @@ describe('RoleSelect', () => {
     })
 
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     await waitFor(() => {
       expect(screen.getByText('Dev')).toBeInTheDocument()
@@ -994,7 +1088,7 @@ describe('RoleSelect', () => {
     })
 
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     await waitFor(() => {
       expect(screen.getByText('Dev')).toBeInTheDocument()
@@ -1023,7 +1117,7 @@ describe('RoleSelect', () => {
     })
 
     const Page = captured.Component
-    render(<Page />)
+    renderWithQueryClient(<Page />)
 
     await waitFor(() => {
       expect(screen.getByText('Dev')).toBeInTheDocument()

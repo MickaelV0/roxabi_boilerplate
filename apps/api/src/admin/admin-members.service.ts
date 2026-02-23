@@ -1,31 +1,53 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { and, count, eq } from 'drizzle-orm'
+import { and, count, eq, ilike, or } from 'drizzle-orm'
+import { ClsService } from 'nestjs-cls'
 import { AuditService } from '../audit/audit.service.js'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { invitations, members, users } from '../database/schema/auth.schema.js'
 import { roles } from '../database/schema/rbac.schema.js'
-import { MemberNotFoundException } from '../rbac/exceptions/member-not-found.exception.js'
-import { RoleNotFoundException } from '../rbac/exceptions/role-not-found.exception.js'
 import { InvitationAlreadyPendingException } from './exceptions/invitation-already-pending.exception.js'
+import { InvitationNotFoundException } from './exceptions/invitation-not-found.exception.js'
 import { LastOwnerConstraintException } from './exceptions/last-owner-constraint.exception.js'
 import { MemberAlreadyExistsException } from './exceptions/member-already-exists.exception.js'
+import { AdminMemberNotFoundException } from './exceptions/member-not-found.exception.js'
+import { AdminRoleNotFoundException } from './exceptions/role-not-found.exception.js'
 import { SelfRemovalException } from './exceptions/self-removal.exception.js'
+import { SelfRoleChangeException } from './exceptions/self-role-change.exception.js'
 
+/**
+ * AdminMembersService intentionally uses the raw DRIZZLE connection (not TenantService)
+ * because admin operations require organization-scoped access that is explicitly filtered
+ * by organizationId in every query. The active organization is derived from the user's
+ * session (session.activeOrganizationId), not from RLS policies.
+ *
+ * WARNING: The raw DRIZZLE connection bypasses all RLS policies. Any new queries added
+ * to this service MUST include explicit WHERE clauses filtering by organizationId.
+ * Changes to this file should be flagged in code review.
+ */
 @Injectable()
 export class AdminMembersService {
   private readonly logger = new Logger(AdminMembersService.name)
 
   constructor(
     @Inject(DRIZZLE) private readonly db: DrizzleDB,
-    private readonly auditService: AuditService
+    private readonly auditService: AuditService,
+    private readonly cls: ClsService
   ) {}
 
   /**
    * List members for an organization with offset-based pagination.
    * Joins members -> users -> roles to return full details.
+   * Supports optional server-side search by user name or email (ILIKE).
    */
-  async listMembers(orgId: string, options: { page: number; limit: number }) {
+  async listMembers(orgId: string, options: { page: number; limit: number; search?: string }) {
     const offset = (options.page - 1) * options.limit
+
+    const conditions = [eq(members.organizationId, orgId)]
+    if (options.search) {
+      const pattern = `%${options.search}%`
+      conditions.push(or(ilike(users.name, pattern), ilike(users.email, pattern))!)
+    }
+    const whereClause = and(...conditions)
 
     const [memberRows, totalResult] = await Promise.all([
       this.db
@@ -44,11 +66,15 @@ export class AdminMembersService {
         .from(members)
         .innerJoin(users, eq(members.userId, users.id))
         .leftJoin(roles, eq(members.roleId, roles.id))
-        .where(eq(members.organizationId, orgId))
+        .where(whereClause)
         .orderBy(users.name)
         .limit(options.limit)
         .offset(offset),
-      this.db.select({ count: count() }).from(members).where(eq(members.organizationId, orgId)),
+      this.db
+        .select({ count: count() })
+        .from(members)
+        .innerJoin(users, eq(members.userId, users.id))
+        .where(whereClause),
     ])
 
     const total = totalResult[0]?.count ?? 0
@@ -94,10 +120,14 @@ export class AdminMembersService {
       .limit(1)
 
     if (!role) {
-      throw new RoleNotFoundException(data.roleId)
+      throw new AdminRoleNotFoundException(data.roleId)
     }
 
     // Check if a user with this email is already a member
+    // NOTE (TOCTOU): The sequential SELECT + INSERT is not atomic. A member could be added
+    // between the check and the insert. The unique constraint catch block below handles the
+    // invitation race. The member-exists check is a best-effort guard; a concurrent membership
+    // addition is an acceptable edge case for Phase 1.
     const [existingMember] = await this.db
       .select({ id: members.id })
       .from(members)
@@ -144,11 +174,14 @@ export class AdminMembersService {
         })
         .returning()
     } catch (err) {
-      // Handle unique constraint violation (invitations_org_email_unique)
-      if (err instanceof Error && err.message.includes('invitations_org_email_unique')) {
-        throw new InvitationAlreadyPendingException()
-      }
-      throw err
+      invitation = await this.handleInviteConstraintViolation(
+        err,
+        orgId,
+        data.email,
+        role.slug,
+        actorId,
+        expiresAt
+      )
     }
 
     // Audit log (fire-and-forget)
@@ -167,7 +200,7 @@ export class AdminMembersService {
         },
       })
       .catch((err) => {
-        this.logger.error('[audit] Failed to log member.invited', err)
+        this.logger.error(`[${this.cls.getId()}][audit] Failed to log member.invited`, err)
       })
 
     return invitation
@@ -191,7 +224,7 @@ export class AdminMembersService {
       .limit(1)
 
     if (!newRole) {
-      throw new RoleNotFoundException(data.roleId)
+      throw new AdminRoleNotFoundException(data.roleId)
     }
 
     // Get the member with their current role info in a single joined query
@@ -210,7 +243,17 @@ export class AdminMembersService {
       .limit(1)
 
     if (!memberWithRole) {
-      throw new MemberNotFoundException(memberId)
+      throw new AdminMemberNotFoundException(memberId)
+    }
+
+    // Prevent self-role-change (no self-escalation)
+    if (memberWithRole.userId === actorId) {
+      throw new SelfRoleChangeException()
+    }
+
+    // Short-circuit if the role is already the same (S9)
+    if (memberWithRole.roleId === data.roleId) {
+      return { updated: true }
     }
 
     const beforeRoleSlug = memberWithRole.currentRoleSlug ?? null
@@ -243,7 +286,7 @@ export class AdminMembersService {
         },
       })
       .catch((err) => {
-        this.logger.error('[audit] Failed to log member.role_changed', err)
+        this.logger.error(`[${this.cls.getId()}][audit] Failed to log member.role_changed`, err)
       })
 
     return { updated: true }
@@ -269,7 +312,7 @@ export class AdminMembersService {
       .limit(1)
 
     if (!member) {
-      throw new MemberNotFoundException(memberId)
+      throw new AdminMemberNotFoundException(memberId)
     }
 
     // Prevent self-removal
@@ -277,8 +320,8 @@ export class AdminMembersService {
       throw new SelfRemovalException()
     }
 
-    // Check if this is the last owner
-    if (member.roleSlug === 'owner') {
+    // Check if this is the last owner (check both roleSlug and legacy role field for safety)
+    if (member.roleSlug === 'owner' || member.role === 'owner') {
       const [ownerCount] = await this.db
         .select({ count: count() })
         .from(members)
@@ -309,9 +352,117 @@ export class AdminMembersService {
         },
       })
       .catch((err) => {
-        this.logger.error('[audit] Failed to log member.removed', err)
+        this.logger.error(`[${this.cls.getId()}][audit] Failed to log member.removed`, err)
       })
 
     return { removed: true }
+  }
+
+  /**
+   * Handle unique constraint violation during invitation insert.
+   * Uses postgres error code 23505 (unique_violation) instead of fragile string matching.
+   *
+   * NOTE (W7): The unique constraint is on (org, email) regardless of status.
+   * If a non-pending invitation (accepted/rejected/expired) exists, update it
+   * to pending instead of throwing.
+   */
+  private async handleInviteConstraintViolation(
+    err: unknown,
+    orgId: string,
+    email: string,
+    roleSlug: string,
+    actorId: string,
+    expiresAt: Date
+  ): Promise<typeof invitations.$inferSelect | undefined> {
+    const pgErr = err as { code?: string; constraint_name?: string }
+    if (pgErr.code !== '23505' || pgErr.constraint_name !== 'invitations_org_email_unique') {
+      throw err
+    }
+
+    const [existing] = await this.db
+      .select({ id: invitations.id, status: invitations.status })
+      .from(invitations)
+      .where(and(eq(invitations.organizationId, orgId), eq(invitations.email, email)))
+      .limit(1)
+
+    if (existing && existing.status === 'pending') {
+      throw new InvitationAlreadyPendingException()
+    }
+
+    // Re-invite: update existing non-pending invitation back to pending
+    if (existing) {
+      const [updated] = await this.db
+        .update(invitations)
+        .set({
+          role: roleSlug,
+          status: 'pending',
+          inviterId: actorId,
+          expiresAt,
+        })
+        .where(eq(invitations.id, existing.id))
+        .returning()
+      return updated
+    }
+
+    // Fallback: constraint violation but no matching row found — re-throw
+    throw err
+  }
+
+  /**
+   * List pending invitations for an organization.
+   */
+  async listPendingInvitations(orgId: string) {
+    const rows = await this.db
+      .select({
+        id: invitations.id,
+        email: invitations.email,
+        role: invitations.role,
+        status: invitations.status,
+        expiresAt: invitations.expiresAt,
+      })
+      .from(invitations)
+      .where(and(eq(invitations.organizationId, orgId), eq(invitations.status, 'pending')))
+      .orderBy(invitations.expiresAt)
+
+    return { data: rows }
+  }
+
+  /**
+   * Revoke (delete) a pending invitation.
+   * Verifies the invitation belongs to the given organization before deleting.
+   */
+  async revokeInvitation(invitationId: string, orgId: string, actorId: string) {
+    const [invitation] = await this.db
+      .select({
+        id: invitations.id,
+        email: invitations.email,
+        organizationId: invitations.organizationId,
+      })
+      .from(invitations)
+      .where(and(eq(invitations.id, invitationId), eq(invitations.organizationId, orgId)))
+      .limit(1)
+
+    if (!invitation) {
+      throw new InvitationNotFoundException(invitationId)
+    }
+
+    await this.db.delete(invitations).where(eq(invitations.id, invitationId))
+
+    // Audit log (fire-and-forget)
+    this.auditService
+      .log({
+        actorId,
+        actorType: 'user',
+        organizationId: orgId,
+        action: 'invitation.revoked',
+        resource: 'invitation',
+        resourceId: invitationId,
+        before: { email: invitation.email },
+      })
+      .catch((err) => {
+        this.logger.error(`[${this.cls.getId()}][audit] Failed to log invitation.revoked`, err)
+      })
+
+    return { revoked: true }
   }
 }

@@ -52,7 +52,7 @@ describe('AuthController', () => {
       const authService = createMockAuthService()
       const controller = new AuthController(authService as never)
       const session = {
-        user: { id: 'user-1', role: 'user' },
+        user: { id: 'user-1', role: 'user' as const },
         session: { id: 'sess-1', activeOrganizationId: 'org-1' },
         permissions: ['members:read', 'roles:read'],
       }
@@ -69,7 +69,7 @@ describe('AuthController', () => {
       const authService = createMockAuthService()
       const controller = new AuthController(authService as never)
       const session = {
-        user: { id: 'user-1', role: 'user' },
+        user: { id: 'user-1', role: 'user' as const },
         session: { id: 'sess-1', activeOrganizationId: null },
         permissions: [],
       }

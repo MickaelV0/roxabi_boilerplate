@@ -20,4 +20,5 @@ ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_organization_id_organization
 CREATE INDEX "idx_audit_logs_actor" ON "audit_logs" USING btree ("actor_id");--> statement-breakpoint
 CREATE INDEX "idx_audit_logs_org" ON "audit_logs" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "idx_audit_logs_timestamp" ON "audit_logs" USING btree ("timestamp" DESC NULLS LAST);--> statement-breakpoint
-CREATE INDEX "idx_audit_logs_action" ON "audit_logs" USING btree ("action");
+CREATE INDEX "idx_audit_logs_action" ON "audit_logs" USING btree ("action");--> statement-breakpoint
+CREATE INDEX "idx_audit_logs_org_action_ts" ON "audit_logs" USING btree ("organization_id","action","timestamp" DESC NULLS LAST);

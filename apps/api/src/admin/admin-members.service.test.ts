@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuditService } from '../audit/audit.service.js'
-import { MemberNotFoundException } from '../rbac/exceptions/member-not-found.exception.js'
-import { RoleNotFoundException } from '../rbac/exceptions/role-not-found.exception.js'
 import { AdminMembersService } from './admin-members.service.js'
 import { InvitationAlreadyPendingException } from './exceptions/invitation-already-pending.exception.js'
 import { LastOwnerConstraintException } from './exceptions/last-owner-constraint.exception.js'
 import { MemberAlreadyExistsException } from './exceptions/member-already-exists.exception.js'
+import { AdminMemberNotFoundException } from './exceptions/member-not-found.exception.js'
+import { AdminRoleNotFoundException } from './exceptions/role-not-found.exception.js'
 import { SelfRemovalException } from './exceptions/self-removal.exception.js'
+import { SelfRoleChangeException } from './exceptions/self-role-change.exception.js'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -59,6 +60,10 @@ function createMockAuditService(): AuditService {
   return { log: vi.fn().mockResolvedValue(undefined) } as unknown as AuditService
 }
 
+function createMockClsService(id = 'test-correlation-id') {
+  return { getId: vi.fn().mockReturnValue(id) }
+}
+
 /**
  * Instantiate the service with fresh mocks.
  * Returns the service and its mock collaborators so tests can configure
@@ -67,8 +72,9 @@ function createMockAuditService(): AuditService {
 function createService() {
   const db = createMockDb()
   const auditService = createMockAuditService()
-  const service = new AdminMembersService(db as never, auditService)
-  return { service, db, auditService }
+  const cls = createMockClsService()
+  const service = new AdminMembersService(db as never, auditService, cls as never)
+  return { service, db, auditService, cls }
 }
 
 // ---------------------------------------------------------------------------
@@ -231,14 +237,14 @@ describe('AdminMembersService', () => {
       expect(db.insert).toHaveBeenCalled()
     })
 
-    it('should throw RoleNotFoundException when role does not exist', async () => {
+    it('should throw AdminRoleNotFoundException when role does not exist', async () => {
       // Arrange
       db.select.mockReturnValueOnce(createChainMock([]))
 
       // Act & Assert
       await expect(
         service.inviteMember('org-1', { email: 'new@example.com', roleId: 'r-invalid' }, 'actor-1')
-      ).rejects.toThrow(RoleNotFoundException)
+      ).rejects.toThrow(AdminRoleNotFoundException)
     })
 
     it('should throw MemberAlreadyExistsException when member already in org', async () => {
@@ -291,6 +297,30 @@ describe('AdminMembersService', () => {
 
       // Assert — resourceId falls back to ''
       expect(auditService.log).toHaveBeenCalledWith(expect.objectContaining({ resourceId: '' }))
+    })
+
+    it('should not throw when auditService.log rejects (fire-and-forget)', async () => {
+      // Arrange
+      const invitation = {
+        id: 'inv-1',
+        email: 'new@example.com',
+        role: 'member',
+        status: 'pending',
+      }
+      db.select
+        .mockReturnValueOnce(createChainMock([{ id: 'r-member', slug: 'member' }]))
+        .mockReturnValueOnce(createChainMock([]))
+        .mockReturnValueOnce(createChainMock([]))
+      db.insert.mockReturnValueOnce(createChainMock([invitation]))
+      vi.mocked(auditService.log).mockRejectedValue(new Error('audit down'))
+
+      // Act & Assert -- should resolve without throwing
+      await expect(
+        service.inviteMember('org-1', { email: 'new@example.com', roleId: 'r-member' }, 'actor-1')
+      ).resolves.toBeDefined()
+
+      // Flush microtasks so the .catch() handler runs
+      await new Promise<void>((resolve) => queueMicrotask(resolve))
     })
 
     it('should call auditService.log after creating invitation', async () => {
@@ -365,17 +395,17 @@ describe('AdminMembersService', () => {
       expect(db.update).toHaveBeenCalled()
     })
 
-    it('should throw RoleNotFoundException when target role does not exist', async () => {
+    it('should throw AdminRoleNotFoundException when target role does not exist', async () => {
       // Arrange
       db.select.mockReturnValueOnce(createChainMock([]))
 
       // Act & Assert
       await expect(
         service.changeMemberRole('m-1', 'org-1', { roleId: 'r-invalid' }, 'actor-1')
-      ).rejects.toThrow(RoleNotFoundException)
+      ).rejects.toThrow(AdminRoleNotFoundException)
     })
 
-    it('should throw MemberNotFoundException when member not found', async () => {
+    it('should throw AdminMemberNotFoundException when member not found', async () => {
       // Arrange
       db.select
         .mockReturnValueOnce(createChainMock([{ id: 'r-admin', slug: 'admin', name: 'Admin' }]))
@@ -384,7 +414,7 @@ describe('AdminMembersService', () => {
       // Act & Assert
       await expect(
         service.changeMemberRole('m-missing', 'org-1', { roleId: 'r-admin' }, 'actor-1')
-      ).rejects.toThrow(MemberNotFoundException)
+      ).rejects.toThrow(AdminMemberNotFoundException)
     })
 
     it('should call auditService.log with before and after snapshots', async () => {
@@ -491,6 +521,61 @@ describe('AdminMembersService', () => {
         })
       )
     })
+
+    it('should throw SelfRoleChangeException when actor changes their own role', async () => {
+      // Arrange — member.userId matches actorId
+      const newRole = { id: 'r-admin', slug: 'admin', name: 'Admin' }
+      const memberWithRole = {
+        id: 'm-1',
+        userId: 'actor-1',
+        role: 'member',
+        roleId: 'r-member',
+        currentRoleSlug: 'member',
+        currentRoleName: 'Member',
+      }
+
+      db.select
+        .mockReturnValueOnce(createChainMock([newRole])) // target role
+        .mockReturnValueOnce(createChainMock([memberWithRole])) // member is the actor
+
+      // Act & Assert
+      await expect(
+        service.changeMemberRole('m-1', 'org-1', { roleId: 'r-admin' }, 'actor-1')
+      ).rejects.toThrow(SelfRoleChangeException)
+
+      // Should not have called update
+      expect(db.update).not.toHaveBeenCalled()
+    })
+
+    it('should short-circuit when new roleId equals current roleId', async () => {
+      // Arrange — member already has the target role
+      const newRole = { id: 'r-member', slug: 'member', name: 'Member' }
+      const memberWithRole = {
+        id: 'm-1',
+        userId: 'u-1',
+        role: 'member',
+        roleId: 'r-member',
+        currentRoleSlug: 'member',
+        currentRoleName: 'Member',
+      }
+
+      db.select
+        .mockReturnValueOnce(createChainMock([newRole])) // target role
+        .mockReturnValueOnce(createChainMock([memberWithRole])) // member already has same role
+
+      // Act
+      const result = await service.changeMemberRole(
+        'm-1',
+        'org-1',
+        { roleId: 'r-member' },
+        'actor-1'
+      )
+
+      // Assert — returns early without UPDATE or audit log
+      expect(result).toEqual({ updated: true })
+      expect(db.update).not.toHaveBeenCalled()
+      expect(auditService.log).not.toHaveBeenCalled()
+    })
   })
 
   // -----------------------------------------------------------------------
@@ -538,13 +623,13 @@ describe('AdminMembersService', () => {
       expect(result).toEqual({ removed: true })
     })
 
-    it('should throw MemberNotFoundException when member not found', async () => {
+    it('should throw AdminMemberNotFoundException when member not found', async () => {
       // Arrange
       db.select.mockReturnValueOnce(createChainMock([]))
 
       // Act & Assert
       await expect(service.removeMember('m-missing', 'org-1', 'actor-1')).rejects.toThrow(
-        MemberNotFoundException
+        AdminMemberNotFoundException
       )
     })
 

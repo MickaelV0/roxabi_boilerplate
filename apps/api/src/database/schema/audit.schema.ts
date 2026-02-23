@@ -1,7 +1,6 @@
 import { relations } from 'drizzle-orm'
 import { index, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 import { organizations, users } from './auth.schema.js'
-import { timestamps } from './timestamps.js'
 
 const genId = () => crypto.randomUUID()
 
@@ -9,7 +8,6 @@ export const auditLogs = pgTable(
   'audit_logs',
   {
     id: text('id').primaryKey().$defaultFn(genId),
-    // TODO: Consider removing `timestamp` in favor of `createdAt` from timestamps helper to avoid redundancy (requires migration)
     timestamp: timestamp('timestamp', { withTimezone: true }).defaultNow().notNull(),
     // ON DELETE no action is intentional -- audit trail must be preserved even if the user is deleted
     actorId: text('actor_id')
@@ -24,7 +22,6 @@ export const auditLogs = pgTable(
     before: jsonb('before').$type<Record<string, unknown>>(),
     after: jsonb('after').$type<Record<string, unknown>>(),
     metadata: jsonb('metadata').$type<Record<string, unknown>>(),
-    createdAt: timestamps.createdAt,
   },
   (table) => [
     index('idx_audit_logs_actor').on(table.actorId),

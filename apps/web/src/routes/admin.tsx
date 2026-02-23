@@ -21,23 +21,53 @@ export const Route = createFileRoute('/admin')({
 
 type SidebarLink = {
   to: string
-  label: string
+  label: () => string
   icon: React.ComponentType<{ className?: string }>
   disabled?: boolean
 }
 
 const ORG_LINKS: SidebarLink[] = [
-  { to: '/admin/members', label: 'Members', icon: UsersIcon },
-  { to: '/admin/settings', label: 'Settings', icon: SettingsIcon },
+  { to: '/admin/members', label: () => m.admin_sidebar_link_members(), icon: UsersIcon },
+  { to: '/admin/settings', label: () => m.admin_sidebar_link_settings(), icon: SettingsIcon },
 ]
 
 const SYSTEM_LINKS: SidebarLink[] = [
-  { to: '/admin/users', label: 'Users', icon: ShieldIcon, disabled: true },
-  { to: '/admin/organizations', label: 'Organizations', icon: BuildingIcon, disabled: true },
-  { to: '/admin/system-settings', label: 'System Settings', icon: SettingsIcon, disabled: true },
-  { to: '/admin/feature-flags', label: 'Feature Flags', icon: FlagIcon, disabled: true },
-  { to: '/admin/health', label: 'Health', icon: HeartPulseIcon, disabled: true },
-  { to: '/admin/audit-logs', label: 'Audit Logs', icon: ScrollTextIcon, disabled: true },
+  {
+    to: '/admin/users',
+    label: () => m.admin_sidebar_link_users(),
+    icon: ShieldIcon,
+    disabled: true,
+  },
+  {
+    to: '/admin/organizations',
+    label: () => m.admin_sidebar_link_organizations(),
+    icon: BuildingIcon,
+    disabled: true,
+  },
+  {
+    to: '/admin/system-settings',
+    label: () => m.admin_sidebar_link_system_settings(),
+    icon: SettingsIcon,
+    disabled: true,
+  },
+  {
+    to: '/admin/feature-flags',
+    label: () => m.admin_sidebar_link_feature_flags(),
+    icon: FlagIcon,
+    disabled: true,
+  },
+  {
+    to: '/admin/health',
+    label: () => m.admin_sidebar_link_health(),
+    icon: HeartPulseIcon,
+    disabled: true,
+  },
+  {
+    to: '/admin/audit-logs',
+    label: () => m.admin_sidebar_link_audit_logs(),
+    icon: ScrollTextIcon,
+    disabled: true,
+  },
 ]
 
 function SidebarGroup({
@@ -65,7 +95,7 @@ function SidebarGroup({
               className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground/50 cursor-not-allowed"
             >
               <Icon className="size-4" />
-              <span>{link.label}</span>
+              <span>{link.label()}</span>
               <span className="ml-auto text-[10px] font-medium uppercase tracking-wide opacity-60">
                 {m.admin_sidebar_soon()}
               </span>
@@ -86,7 +116,7 @@ function SidebarGroup({
             aria-current={isActive ? 'page' : undefined}
           >
             <Icon className="size-4" />
-            <span>{link.label}</span>
+            <span>{link.label()}</span>
           </Link>
         )
       })}
@@ -94,15 +124,17 @@ function SidebarGroup({
   )
 }
 
-function isSuperAdmin(session: { user?: Record<string, unknown> } | null | undefined): boolean {
-  if (!session?.user) return false
-  return session.user.role === 'superadmin'
+function isSuperAdmin(session: unknown): boolean {
+  if (session == null || typeof session !== 'object') return false
+  const s = session as Record<string, unknown>
+  if (s.user == null || typeof s.user !== 'object') return false
+  return (s.user as Record<string, unknown>).role === 'superadmin'
 }
 
 function AdminLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const { data: session } = useSession()
-  const superAdmin = isSuperAdmin(session as { user?: Record<string, unknown> } | null)
+  const superAdmin = isSuperAdmin(session)
 
   return (
     <div className="mx-auto flex max-w-7xl gap-0 p-0 md:gap-6 md:p-6">
@@ -153,7 +185,7 @@ function AdminLayout() {
               aria-current={isActive ? 'page' : undefined}
             >
               <Icon className="size-4" />
-              {link.label}
+              {link.label()}
             </Link>
           )
         })}
@@ -169,7 +201,7 @@ function AdminLayout() {
                   className="flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-muted-foreground/50 cursor-not-allowed"
                 >
                   <Icon className="size-4" />
-                  {link.label}
+                  {link.label()}
                 </span>
               )
             }
@@ -187,7 +219,7 @@ function AdminLayout() {
                 aria-current={isActive ? 'page' : undefined}
               >
                 <Icon className="size-4" />
-                {link.label}
+                {link.label()}
               </Link>
             )
           })}

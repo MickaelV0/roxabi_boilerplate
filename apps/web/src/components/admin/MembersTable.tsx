@@ -13,28 +13,10 @@ import {
   TooltipTrigger,
 } from '@repo/ui'
 import { RoleSelect } from '@/components/admin/RoleSelect'
+import type { Member, OrgRole } from '@/components/admin/types'
 import { roleBadgeVariant, roleLabel } from '@/lib/org-utils'
 import { m } from '@/paraglide/messages'
 import { getLocale } from '@/paraglide/runtime'
-
-type Member = {
-  id: string
-  userId: string
-  role: string
-  createdAt: string
-  user: {
-    id: string
-    name: string | null
-    email: string
-    image: string | null
-  }
-}
-
-type OrgRole = {
-  id: string
-  name: string
-  slug: string
-}
 
 type MembersTableProps = {
   members: Member[]

@@ -15,15 +15,17 @@ import {
   Input,
   Skeleton,
 } from '@repo/ui'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { SearchIcon, UsersIcon } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { ErrorCard } from '@/components/admin/ErrorCard'
 import { InviteDialog } from '@/components/admin/InviteDialog'
 import { MembersTable } from '@/components/admin/MembersTable'
 import { PaginationControls } from '@/components/admin/PaginationControls'
 import { PendingInvitations } from '@/components/admin/PendingInvitations'
+import type { MembersResponse, OrgRole } from '@/components/admin/types'
 import { authClient } from '@/lib/auth-client'
 import { parseErrorMessage } from '@/lib/error-utils'
 import { m } from '@/paraglide/messages'
@@ -36,48 +38,29 @@ export const Route = createFileRoute('/admin/members')({
 })
 
 // ---------------------------------------------------------------------------
-// Types
+// Constants
 // ---------------------------------------------------------------------------
 
-type Member = {
-  id: string
-  userId: string
-  role: string
-  createdAt: string
-  user: {
-    id: string
-    name: string | null
-    email: string
-    image: string | null
-  }
-}
-
-type PaginationMeta = {
-  page: number
-  limit: number
-  total: number
-  totalPages: number
-}
-
-type MembersResponse = {
-  data: Member[]
-  pagination: PaginationMeta
-}
-
-type OrgRole = {
-  id: string
-  name: string
-  slug: string
-}
+const PAGE_LIMIT = 20
+const SEARCH_DEBOUNCE_MS = 300
 
 // ---------------------------------------------------------------------------
 // API helpers
 // ---------------------------------------------------------------------------
 
-const PAGE_LIMIT = 20
-
-async function fetchMembers(page: number, signal?: AbortSignal): Promise<MembersResponse> {
-  const res = await fetch(`/api/admin/members?page=${page}&limit=${PAGE_LIMIT}`, {
+async function fetchMembers(
+  page: number,
+  search: string | undefined,
+  signal?: AbortSignal
+): Promise<MembersResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(PAGE_LIMIT),
+  })
+  if (search) {
+    params.set('search', search)
+  }
+  const res = await fetch(`/api/admin/members?${params.toString()}`, {
     credentials: 'include',
     signal,
   })
@@ -107,7 +90,7 @@ async function updateMemberRole(memberId: string, roleId: string): Promise<void>
   }
 }
 
-async function removeMember(memberId: string): Promise<void> {
+async function removeMemberApi(memberId: string): Promise<void> {
   const res = await fetch(`/api/admin/members/${memberId}`, {
     method: 'DELETE',
     credentials: 'include',
@@ -116,73 +99,6 @@ async function removeMember(memberId: string): Promise<void> {
     const data: unknown = await res.json().catch(() => null)
     throw new Error(parseErrorMessage(data, m.auth_toast_error()))
   }
-}
-
-// ---------------------------------------------------------------------------
-// Hook: useAdminMembers
-// ---------------------------------------------------------------------------
-
-function useAdminMembers(orgId: string | undefined) {
-  const [members, setMembers] = useState<Member[]>([])
-  const [pagination, setPagination] = useState<PaginationMeta>({
-    page: 1,
-    limit: PAGE_LIMIT,
-    total: 0,
-    totalPages: 0,
-  })
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [version, setVersion] = useState(0)
-
-  const refetch = useCallback(() => setVersion((v) => v + 1), [])
-
-  const goToPage = useCallback((page: number) => {
-    setPagination((prev) => ({ ...prev, page }))
-    setVersion((v) => v + 1)
-  }, [])
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: version triggers manual refetch
-  useEffect(() => {
-    const controller = new AbortController()
-    setIsLoading(true)
-    setError(null)
-    fetchMembers(pagination.page, controller.signal)
-      .then((res) => {
-        if (!controller.signal.aborted) {
-          setMembers(res.data)
-          setPagination(res.pagination)
-          setIsLoading(false)
-        }
-      })
-      .catch((err: unknown) => {
-        if (!controller.signal.aborted) {
-          setError(err instanceof Error ? err.message : m.auth_toast_error())
-          setIsLoading(false)
-        }
-      })
-    return () => controller.abort()
-  }, [version, pagination.page, orgId])
-
-  return { members, pagination, isLoading, error, refetch, goToPage }
-}
-
-// ---------------------------------------------------------------------------
-// Hook: useOrgRoles
-// ---------------------------------------------------------------------------
-
-function useOrgRoles(orgId: string | undefined) {
-  const [roles, setRoles] = useState<OrgRole[]>([])
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: orgId triggers refetch on org switch
-  useEffect(() => {
-    const controller = new AbortController()
-    fetchRoles(controller.signal).then((data) => {
-      if (!controller.signal.aborted) setRoles(data)
-    })
-    return () => controller.abort()
-  }, [orgId])
-
-  return roles
 }
 
 // ---------------------------------------------------------------------------
@@ -215,16 +131,25 @@ function EmptyState() {
   )
 }
 
+// S8: Include member name/email in the remove confirmation dialog
+type MemberToRemove = {
+  id: string
+  name: string | null
+  email: string
+}
+
 type RemoveMemberDialogProps = {
-  memberId: string | null
+  member: MemberToRemove | null
   onConfirm: () => void
   onCancel: () => void
 }
 
-function RemoveMemberDialog({ memberId, onConfirm, onCancel }: RemoveMemberDialogProps) {
+function RemoveMemberDialog({ member, onConfirm, onCancel }: RemoveMemberDialogProps) {
+  const displayName = member?.name ?? member?.email ?? ''
+
   return (
     <AlertDialog
-      open={memberId !== null}
+      open={member !== null}
       onOpenChange={(open: boolean) => {
         if (!open) onCancel()
       }}
@@ -232,7 +157,10 @@ function RemoveMemberDialog({ memberId, onConfirm, onCancel }: RemoveMemberDialo
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{m.org_members_remove()}</AlertDialogTitle>
-          <AlertDialogDescription>{m.org_members_remove_confirm()}</AlertDialogDescription>
+          <AlertDialogDescription>
+            {m.org_members_remove_confirm()}{' '}
+            <span className="font-medium text-foreground">{displayName}</span>
+          </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
@@ -249,56 +177,136 @@ function RemoveMemberDialog({ memberId, onConfirm, onCancel }: RemoveMemberDialo
 }
 
 // ---------------------------------------------------------------------------
+// Custom hook: debounced search value
+// ---------------------------------------------------------------------------
+
+function useDebouncedValue(value: string, delayMs: number) {
+  const [debounced, setDebounced] = useState(value)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delayMs)
+    return () => clearTimeout(timer)
+  }, [value, delayMs])
+
+  return debounced
+}
+
+// ---------------------------------------------------------------------------
 // Main page component
 // ---------------------------------------------------------------------------
 
 function AdminMembersPage() {
   const { data: activeOrg } = authClient.useActiveOrganization()
-  const { members, pagination, isLoading, error, refetch, goToPage } = useAdminMembers(
-    activeOrg?.id
-  )
-  const roles = useOrgRoles(activeOrg?.id)
+  const queryClient = useQueryClient()
+  const orgId = activeOrg?.id
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [removeMemberId, setRemoveMemberId] = useState<string | null>(null)
-  const [inviteRefreshKey, setInviteRefreshKey] = useState(0)
+  // Search state with debounce (W13)
+  const [searchInput, setSearchInput] = useState('')
+  const debouncedSearch = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS)
 
-  // Client-side search within the current page
-  const filteredMembers = members.filter((member) => {
-    if (!searchQuery) return true
-    const q = searchQuery.toLowerCase()
-    return (
-      member.user.name?.toLowerCase().includes(q) || member.user.email.toLowerCase().includes(q)
-    )
+  // Pagination state
+  const [page, setPage] = useState(1)
+
+  // Reset page to 1 when search changes
+  const prevSearchRef = useRef(debouncedSearch)
+  useEffect(() => {
+    if (prevSearchRef.current !== debouncedSearch) {
+      setPage(1)
+      prevSearchRef.current = debouncedSearch
+    }
+  }, [debouncedSearch])
+
+  // S8: Track member details for remove dialog
+  const [memberToRemove, setMemberToRemove] = useState<MemberToRemove | null>(null)
+
+  // B6: TanStack Query for members
+  const membersQuery = useQuery({
+    queryKey: ['admin-members', orgId, page, PAGE_LIMIT, debouncedSearch || undefined],
+    queryFn: ({ signal }) => fetchMembers(page, debouncedSearch || undefined, signal),
+    enabled: !!orgId,
   })
 
-  async function handleRoleChange(memberId: string, roleId: string) {
-    try {
-      await updateMemberRole(memberId, roleId)
+  // B6: TanStack Query for roles
+  const rolesQuery = useQuery({
+    queryKey: ['org-roles', orgId],
+    queryFn: ({ signal }) => fetchRoles(signal),
+    staleTime: 60_000,
+    enabled: !!orgId,
+  })
+
+  // B6: useMutation for role change
+  const roleChangeMutation = useMutation({
+    mutationFn: ({ memberId, roleId }: { memberId: string; roleId: string }) =>
+      updateMemberRole(memberId, roleId),
+    onSuccess: () => {
       toast.success(m.org_toast_role_updated())
-      refetch()
-    } catch (err) {
+      queryClient.invalidateQueries({ queryKey: ['admin-members'] })
+    },
+    onError: (err) => {
       toast.error(err instanceof Error ? err.message : m.auth_toast_error())
-    }
+    },
+  })
+
+  // B6: useMutation for member removal
+  const removeMemberMutation = useMutation({
+    mutationFn: (memberId: string) => removeMemberApi(memberId),
+    onSuccess: () => {
+      toast.success(m.org_toast_member_removed())
+      queryClient.invalidateQueries({ queryKey: ['admin-members'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-invitations'] })
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : m.auth_toast_error())
+    },
+    onSettled: () => {
+      setMemberToRemove(null)
+    },
+  })
+
+  function handleRoleChange(memberId: string, roleId: string) {
+    roleChangeMutation.mutate({ memberId, roleId })
   }
 
-  async function handleRemoveMember() {
-    if (!removeMemberId) return
-    try {
-      await removeMember(removeMemberId)
-      toast.success(m.org_toast_member_removed())
-      refetch()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : m.auth_toast_error())
-    } finally {
-      setRemoveMemberId(null)
-    }
+  function handleRemoveMember() {
+    if (!memberToRemove) return
+    removeMemberMutation.mutate(memberToRemove.id)
   }
 
   function handleInviteSuccess() {
-    refetch()
-    setInviteRefreshKey((k) => k + 1)
+    queryClient.invalidateQueries({ queryKey: ['admin-members'] })
+    queryClient.invalidateQueries({ queryKey: ['admin-invitations'] })
   }
+
+  function handlePageChange(newPage: number) {
+    setPage(newPage)
+  }
+
+  // S8: Build the onRemove handler that captures member identity
+  function handleRemoveClick(memberId: string) {
+    const found = membersQuery.data?.data.find((mem) => mem.id === memberId)
+    if (found) {
+      setMemberToRemove({
+        id: found.id,
+        name: found.user.name,
+        email: found.user.email,
+      })
+    }
+  }
+
+  const membersList = membersQuery.data?.data ?? []
+  const pagination = membersQuery.data?.pagination ?? {
+    page: 1,
+    limit: PAGE_LIMIT,
+    total: 0,
+    totalPages: 0,
+  }
+  const roles = rolesQuery.data ?? []
+  const isLoading = membersQuery.isLoading
+  const error = membersQuery.error
+    ? membersQuery.error instanceof Error
+      ? membersQuery.error.message
+      : m.auth_toast_error()
+    : null
 
   if (!activeOrg) {
     return (
@@ -317,19 +325,20 @@ function AdminMembersPage() {
         <InviteDialog roles={roles} onSuccess={handleInviteSuccess} />
       </div>
 
-      {/* Search */}
+      {/* Search -- W13: server-side search with debounce */}
       <div className="relative max-w-sm">
         <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder={m.org_members_search_placeholder()}
-          value={searchQuery}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+          aria-label={m.org_members_search_placeholder()}
+          value={searchInput}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}
           className="pl-9"
         />
       </div>
 
       {/* Error state */}
-      {error && <ErrorCard message={error} onRetry={refetch} />}
+      {error && <ErrorCard message={error} onRetry={() => membersQuery.refetch()} />}
 
       {/* Loading state */}
       {isLoading && !error && (
@@ -351,8 +360,8 @@ function AdminMembersPage() {
             <CardDescription>{m.admin_members_count({ count: pagination.total })}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {filteredMembers.length === 0 ? (
-              searchQuery ? (
+            {membersList.length === 0 ? (
+              searchInput ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">
                   {m.org_members_no_results()}
                 </p>
@@ -361,26 +370,26 @@ function AdminMembersPage() {
               )
             ) : (
               <MembersTable
-                members={filteredMembers}
+                members={membersList}
                 roles={roles}
                 onRoleChange={handleRoleChange}
-                onRemove={setRemoveMemberId}
+                onRemove={handleRemoveClick}
               />
             )}
 
-            <PaginationControls pagination={pagination} onPageChange={goToPage} />
+            <PaginationControls pagination={pagination} onPageChange={handlePageChange} />
           </CardContent>
         </Card>
       )}
 
       {/* Pending invitations */}
-      <PendingInvitations refreshKey={inviteRefreshKey} />
+      <PendingInvitations />
 
-      {/* Remove member confirmation dialog */}
+      {/* S8: Remove member confirmation dialog with member identity */}
       <RemoveMemberDialog
-        memberId={removeMemberId}
+        member={memberToRemove}
         onConfirm={handleRemoveMember}
-        onCancel={() => setRemoveMemberId(null)}
+        onCancel={() => setMemberToRemove(null)}
       />
     </div>
   )

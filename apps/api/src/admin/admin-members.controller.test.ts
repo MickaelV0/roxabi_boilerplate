@@ -38,6 +38,7 @@ describe('AdminMembersController', () => {
       expect(mockAdminMembersService.listMembers).toHaveBeenCalledWith('org-1', {
         page: 1,
         limit: 20,
+        search: undefined,
       })
     })
 
@@ -55,6 +56,7 @@ describe('AdminMembersController', () => {
       expect(mockAdminMembersService.listMembers).toHaveBeenCalledWith('org-1', {
         page: 3,
         limit: 10,
+        search: undefined,
       })
     })
 
@@ -72,6 +74,42 @@ describe('AdminMembersController', () => {
       // Assert
       expect(result.data).toEqual([])
       expect(result.pagination.total).toBe(0)
+    })
+
+    it('should pass search parameter to service when provided', async () => {
+      // Arrange
+      vi.mocked(mockAdminMembersService.listMembers).mockResolvedValue({
+        data: [],
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      } as never)
+
+      // Act
+      await controller.listMembers(mockSession, 1, 20, 'alice')
+
+      // Assert
+      expect(mockAdminMembersService.listMembers).toHaveBeenCalledWith('org-1', {
+        page: 1,
+        limit: 20,
+        search: 'alice',
+      })
+    })
+
+    it('should trim whitespace-only search to undefined', async () => {
+      // Arrange
+      vi.mocked(mockAdminMembersService.listMembers).mockResolvedValue({
+        data: [],
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      } as never)
+
+      // Act
+      await controller.listMembers(mockSession, 1, 20, '   ')
+
+      // Assert
+      expect(mockAdminMembersService.listMembers).toHaveBeenCalledWith('org-1', {
+        page: 1,
+        limit: 20,
+        search: undefined,
+      })
     })
   })
 
@@ -140,34 +178,34 @@ describe('AdminMembersController', () => {
       )
     })
 
-    it('should propagate RoleNotFoundException from service', async () => {
+    it('should propagate AdminRoleNotFoundException from service', async () => {
       // Arrange
-      const { RoleNotFoundException } = await import(
-        '../rbac/exceptions/role-not-found.exception.js'
+      const { AdminRoleNotFoundException } = await import(
+        './exceptions/role-not-found.exception.js'
       )
       vi.mocked(mockAdminMembersService.changeMemberRole).mockRejectedValue(
-        new RoleNotFoundException('r-invalid')
+        new AdminRoleNotFoundException('r-invalid')
       )
 
       // Act & Assert
       await expect(
         controller.changeMemberRole('member-1', mockSession, { roleId: 'r-invalid' })
-      ).rejects.toThrow(RoleNotFoundException)
+      ).rejects.toThrow(AdminRoleNotFoundException)
     })
 
-    it('should propagate MemberNotFoundException from service', async () => {
+    it('should propagate AdminMemberNotFoundException from service', async () => {
       // Arrange
-      const { MemberNotFoundException } = await import(
-        '../rbac/exceptions/member-not-found.exception.js'
+      const { AdminMemberNotFoundException } = await import(
+        './exceptions/member-not-found.exception.js'
       )
       vi.mocked(mockAdminMembersService.changeMemberRole).mockRejectedValue(
-        new MemberNotFoundException('m-missing')
+        new AdminMemberNotFoundException('m-missing')
       )
 
       // Act & Assert
       await expect(
         controller.changeMemberRole('m-missing', mockSession, { roleId: 'r-1' })
-      ).rejects.toThrow(MemberNotFoundException)
+      ).rejects.toThrow(AdminMemberNotFoundException)
     })
   })
 
@@ -203,18 +241,18 @@ describe('AdminMembersController', () => {
       )
     })
 
-    it('should propagate MemberNotFoundException from service', async () => {
+    it('should propagate AdminMemberNotFoundException from service', async () => {
       // Arrange
-      const { MemberNotFoundException } = await import(
-        '../rbac/exceptions/member-not-found.exception.js'
+      const { AdminMemberNotFoundException } = await import(
+        './exceptions/member-not-found.exception.js'
       )
       vi.mocked(mockAdminMembersService.removeMember).mockRejectedValue(
-        new MemberNotFoundException('m-missing')
+        new AdminMemberNotFoundException('m-missing')
       )
 
       // Act & Assert
       await expect(controller.removeMember('m-missing', mockSession)).rejects.toThrow(
-        MemberNotFoundException
+        AdminMemberNotFoundException
       )
     })
   })

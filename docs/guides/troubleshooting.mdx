@@ -207,6 +207,20 @@ bun run db:branch:drop
 
 For more on branch databases, see [Configuration -- Branch Databases](../configuration#branch-databases-local-development).
 
+## After Pulling Admin Panel Changes (PR #279)
+
+If you had an existing Docker Postgres setup before this PR, the `roxabi_app` database user
+was not created automatically (Docker init scripts only run on first boot). Run:
+
+```bash
+bun run db:setup-app-user
+```
+
+This creates the `roxabi_app` user with RLS-enforced permissions. Without it, tenant-scoped
+queries will fail with "permission denied to set role app_user".
+
+Alternative: delete your Docker volume and recreate: `bun run db:down && docker volume rm roxabi_boilerplate_postgres_data && bun run db:up`
+
 ## Pre-commit Hook Failures
 
 **Symptom:** Commit is rejected by Lefthook with Biome formatting errors or commitlint violations.

@@ -388,6 +388,12 @@ function applyRlsPolicies(dbName: string): void {
 function setupAppUserForBranch(dbName: string): void {
   const appUser = process.env.POSTGRES_APP_USER ?? 'roxabi_app'
 
+  // Validate app user to prevent SQL injection in interpolated SQL strings
+  const IDENTIFIER_REGEX = /^[a-z_][a-z0-9_]*$/
+  if (!IDENTIFIER_REGEX.test(appUser)) {
+    throw new Error(`Invalid POSTGRES_APP_USER: "${appUser}" — must match /^[a-z_][a-z0-9_]*$/`)
+  }
+
   log(`Granting permissions to '${appUser}' on '${dbName}'...`)
 
   const grantSql = `

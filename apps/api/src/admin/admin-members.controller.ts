@@ -19,6 +19,7 @@ import { Throttle } from '@nestjs/throttler'
 import { z } from 'zod'
 import { Permissions } from '../auth/decorators/permissions.decorator.js'
 import { Session } from '../auth/decorators/session.decorator.js'
+import type { AdminSession } from '../auth/types.js'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
 import { AdminMembersService } from './admin-members.service.js'
 import { AdminExceptionFilter } from './filters/admin-exception.filter.js'
@@ -31,11 +32,6 @@ const inviteMemberSchema = z.object({
 const changeMemberRoleSchema = z.object({
   roleId: z.string().uuid(),
 })
-
-type AdminSession = {
-  user: { id: string }
-  session: { activeOrganizationId: string }
-}
 
 type InviteMemberDto = z.infer<typeof inviteMemberSchema>
 type ChangeMemberRoleDto = z.infer<typeof changeMemberRoleSchema>
@@ -58,13 +54,16 @@ export class AdminMembersController {
     @Session()
     session: { session: { activeOrganizationId: string } },
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+    @Query('search') search?: string
   ) {
     const safeLimit = Math.min(Math.max(limit, 1), MAX_PAGE_LIMIT)
     const safePage = Math.max(page, 1)
+    const safeSearch = search?.trim() || undefined
     return this.adminMembersService.listMembers(session.session.activeOrganizationId, {
       page: safePage,
       limit: safeLimit,
+      search: safeSearch,
     })
   }
 

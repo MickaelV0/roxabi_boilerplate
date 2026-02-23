@@ -364,7 +364,7 @@ function ReactivationBanner({ orgId, deleteScheduledFor, canReactivate }: Reacti
 function AdminSettingsPage() {
   const { data: session } = useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
-  const { data: orgs } = useOrganizations()
+  const { data: orgs } = useOrganizations(session?.user?.id)
 
   const canDeleteOrg = hasPermission(session, 'organizations:delete')
   const canEditOrg = hasPermission(session, 'organizations:write')

@@ -1,4 +1,12 @@
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   Badge,
   Button,
   Card,
@@ -13,8 +21,9 @@ import {
   TableHeader,
   TableRow,
 } from '@repo/ui'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { MailIcon } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { roleLabel } from '@/lib/org-utils'
 import { m } from '@/paraglide/messages'
@@ -25,7 +34,6 @@ type Invitation = {
   email: string
   role: string
   status: string
-  invitedAt: string
   expiresAt: string
 }
 
@@ -34,7 +42,6 @@ type InvitationsResponse = {
 }
 
 async function fetchInvitations(signal?: AbortSignal): Promise<Invitation[]> {
-  // TODO: Backend fixer to create GET /api/admin/invitations endpoint
   const res = await fetch('/api/admin/invitations', {
     credentials: 'include',
     signal,
@@ -44,7 +51,7 @@ async function fetchInvitations(signal?: AbortSignal): Promise<Invitation[]> {
   return json.data ?? []
 }
 
-async function revokeInvitation(invitationId: string): Promise<void> {
+async function revokeInvitationApi(invitationId: string): Promise<void> {
   const res = await fetch(`/api/admin/invitations/${invitationId}`, {
     method: 'DELETE',
     credentials: 'include',
@@ -54,143 +61,182 @@ async function revokeInvitation(invitationId: string): Promise<void> {
   }
 }
 
-type PendingInvitationsProps = {
-  /** Incremented to trigger a refetch after new invitations are sent */
-  refreshKey?: number
+// S7: Confirmation dialog for revoking invitations
+type RevokeConfirmDialogProps = {
+  invitation: { id: string; email: string } | null
+  onConfirm: () => void
+  onCancel: () => void
 }
 
-export function PendingInvitations({ refreshKey }: PendingInvitationsProps) {
-  const [invitations, setInvitations] = useState<Invitation[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(false)
+function RevokeConfirmDialog({ invitation, onConfirm, onCancel }: RevokeConfirmDialogProps) {
+  return (
+    <AlertDialog
+      open={invitation !== null}
+      onOpenChange={(open: boolean) => {
+        if (!open) onCancel()
+      }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{m.admin_invitations_revoke()}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {m.org_members_remove_confirm()}{' '}
+            <span className="font-medium text-foreground">{invitation?.email}</span>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={onConfirm}
+          >
+            {m.admin_invitations_revoke()}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
+export function PendingInvitations() {
+  const queryClient = useQueryClient()
   const locale = getLocale()
 
-  const load = useCallback((signal?: AbortSignal) => {
-    setIsLoading(true)
-    setError(false)
-    fetchInvitations(signal)
-      .then((data) => {
-        if (!signal?.aborted) {
-          setInvitations(data)
-          setIsLoading(false)
-        }
-      })
-      .catch(() => {
-        if (!signal?.aborted) {
-          setError(true)
-          setIsLoading(false)
-        }
-      })
-  }, [])
+  // S7: Track invitation to revoke for confirmation
+  const [invitationToRevoke, setInvitationToRevoke] = useState<{
+    id: string
+    email: string
+  } | null>(null)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshKey triggers manual refetch
-  useEffect(() => {
-    const controller = new AbortController()
-    load(controller.signal)
-    return () => controller.abort()
-  }, [load, refreshKey])
+  // B3/B6: TanStack Query for invitations
+  const invitationsQuery = useQuery({
+    queryKey: ['admin-invitations'],
+    queryFn: ({ signal }) => fetchInvitations(signal),
+  })
 
-  async function handleRevoke(invitationId: string) {
-    try {
-      await revokeInvitation(invitationId)
+  // B3/B6: useMutation for revoking
+  const revokeMutation = useMutation({
+    mutationFn: (invitationId: string) => revokeInvitationApi(invitationId),
+    onSuccess: () => {
       toast.success(m.org_toast_invitation_revoked())
-      setInvitations((prev) => prev.filter((inv) => inv.id !== invitationId))
-    } catch {
+      queryClient.invalidateQueries({ queryKey: ['admin-invitations'] })
+    },
+    onError: () => {
       toast.error(m.auth_toast_error())
-    }
+    },
+    onSettled: () => {
+      setInvitationToRevoke(null)
+    },
+  })
+
+  function handleRevokeConfirm() {
+    if (!invitationToRevoke) return
+    revokeMutation.mutate(invitationToRevoke.id)
   }
 
+  const invitations = invitationsQuery.data ?? []
+  const isLoading = invitationsQuery.isLoading
+  const isError = invitationsQuery.isError
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MailIcon className="size-5" />
-          {m.admin_invitations_title()}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {isLoading && (
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list
-              <div key={i} className="flex items-center gap-4 px-2">
-                <Skeleton className="h-4 w-36" />
-                <Skeleton className="h-6 w-20 rounded-full" />
-                <Skeleton className="h-4 w-24" />
-              </div>
-            ))}
-          </div>
-        )}
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MailIcon className="size-5" />
+            {m.admin_invitations_title()}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading && (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list
+                <div key={i} className="flex items-center gap-4 px-2">
+                  <Skeleton className="h-4 w-36" />
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              ))}
+            </div>
+          )}
 
-        {error && (
-          <p className="py-4 text-center text-sm text-muted-foreground">
-            {m.admin_invitations_error()}
-          </p>
-        )}
+          {isError && (
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              {m.admin_invitations_error()}
+            </p>
+          )}
 
-        {!isLoading && !error && invitations.length === 0 && (
-          <div className="flex flex-col items-center gap-3 py-8 text-center">
-            <MailIcon className="size-8 text-muted-foreground/50" />
-            <p className="text-sm text-muted-foreground">{m.admin_invitations_empty()}</p>
-          </div>
-        )}
+          {!(isLoading || isError) && invitations.length === 0 && (
+            <div className="flex flex-col items-center gap-3 py-8 text-center">
+              <MailIcon className="size-8 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">{m.admin_invitations_empty()}</p>
+            </div>
+          )}
 
-        {!isLoading && !error && invitations.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table className="w-full text-sm">
-              <TableHeader>
-                <TableRow className="border-b text-left text-muted-foreground">
-                  <TableHead className="pb-2 pr-4 font-medium">
-                    {m.org_invitations_email()}
-                  </TableHead>
-                  <TableHead className="pb-2 pr-4 font-medium">
-                    {m.org_invitations_role()}
-                  </TableHead>
-                  <TableHead className="pb-2 pr-4 font-medium">
-                    {m.org_invitations_status()}
-                  </TableHead>
-                  <TableHead className="pb-2 pr-4 font-medium">
-                    {m.admin_invitations_invited_date()}
-                  </TableHead>
-                  <TableHead className="pb-2 pr-4 font-medium">
-                    {m.admin_invitations_expires()}
-                  </TableHead>
-                  <TableHead className="pb-2 font-medium">{m.org_members_actions()}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invitations.map((invitation) => (
-                  <TableRow key={invitation.id} className="border-b last:border-0">
-                    <TableCell className="py-3 pr-4">{invitation.email}</TableCell>
-                    <TableCell className="py-3 pr-4">
-                      <Badge variant="outline">{roleLabel(invitation.role)}</Badge>
-                    </TableCell>
-                    <TableCell className="py-3 pr-4">
-                      <Badge variant="secondary">{invitation.status}</Badge>
-                    </TableCell>
-                    <TableCell className="py-3 pr-4 text-muted-foreground">
-                      {new Date(invitation.invitedAt).toLocaleDateString(locale)}
-                    </TableCell>
-                    <TableCell className="py-3 pr-4 text-muted-foreground">
-                      {new Date(invitation.expiresAt).toLocaleDateString(locale)}
-                    </TableCell>
-                    <TableCell className="py-3">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => handleRevoke(invitation.id)}
-                      >
-                        {m.admin_invitations_revoke()}
-                      </Button>
-                    </TableCell>
+          {!(isLoading || isError) && invitations.length > 0 && (
+            <div className="overflow-x-auto">
+              <Table className="w-full text-sm">
+                <TableHeader>
+                  <TableRow className="border-b text-left text-muted-foreground">
+                    <TableHead className="pb-2 pr-4 font-medium">
+                      {m.org_invitations_email()}
+                    </TableHead>
+                    <TableHead className="pb-2 pr-4 font-medium">
+                      {m.org_invitations_role()}
+                    </TableHead>
+                    <TableHead className="pb-2 pr-4 font-medium">
+                      {m.org_invitations_status()}
+                    </TableHead>
+                    <TableHead className="pb-2 pr-4 font-medium">
+                      {m.admin_invitations_expires()}
+                    </TableHead>
+                    <TableHead className="pb-2 font-medium">{m.org_members_actions()}</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                </TableHeader>
+                <TableBody>
+                  {invitations.map((invitation) => (
+                    <TableRow key={invitation.id} className="border-b last:border-0">
+                      <TableCell className="py-3 pr-4">{invitation.email}</TableCell>
+                      <TableCell className="py-3 pr-4">
+                        <Badge variant="outline">{roleLabel(invitation.role)}</Badge>
+                      </TableCell>
+                      <TableCell className="py-3 pr-4">
+                        <Badge variant="secondary">{invitation.status}</Badge>
+                      </TableCell>
+                      <TableCell className="py-3 pr-4 text-muted-foreground">
+                        {new Date(invitation.expiresAt).toLocaleDateString(locale)}
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() =>
+                            setInvitationToRevoke({
+                              id: invitation.id,
+                              email: invitation.email,
+                            })
+                          }
+                        >
+                          {m.admin_invitations_revoke()}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* S7: Revoke confirmation dialog */}
+      <RevokeConfirmDialog
+        invitation={invitationToRevoke}
+        onConfirm={handleRevokeConfirm}
+        onCancel={() => setInvitationToRevoke(null)}
+      />
+    </>
   )
 }
