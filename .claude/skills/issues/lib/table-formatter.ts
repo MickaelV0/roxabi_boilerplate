@@ -194,9 +194,10 @@ function shortName(title: string): string {
   return s
 }
 
-function buildChains(allItems: RawItem[]): string[] {
-  // Build graph: number → { title, blocks[] }
-  const graph = new Map<number, { num: number; title: string; blocks: number[] }>()
+type GraphNode = { num: number; title: string; blocks: number[] }
+
+function buildDependencyGraph(allItems: RawItem[]): Map<number, GraphNode> {
+  const graph = new Map<number, GraphNode>()
   for (const item of allItems) {
     const blocks = (item.content.blocking?.nodes ?? [])
       .filter((b) => b.state === 'OPEN')
@@ -208,15 +209,10 @@ function buildChains(allItems: RawItem[]): string[] {
       blocks: [...new Set(blocks)],
     })
   }
+  return graph
+}
 
-  // Issues that block others
-  const blockers = [...graph.values()]
-    .filter((n) => n.blocks.length > 0)
-    .map((n) => n.num)
-    .sort()
-  if (blockers.length === 0) return []
-
-  // Build in-set dependency map for topological sort
+function topologicalSort(blockers: number[], graph: Map<number, GraphNode>): number[] {
   const inDeps = new Map<number, number[]>()
   for (const num of blockers) {
     const upstream = blockers.filter(
@@ -225,7 +221,6 @@ function buildChains(allItems: RawItem[]): string[] {
     inDeps.set(num, upstream)
   }
 
-  // Topological sort
   const emitted: number[] = []
   let remaining = [...blockers]
   while (remaining.length > 0) {
@@ -234,7 +229,6 @@ function buildChains(allItems: RawItem[]): string[] {
       .filter((num) => (inDeps.get(num) ?? []).every((d) => emittedSet.has(d)))
       .sort()
     if (ready.length === 0) {
-      // Break cycles
       emitted.push(...remaining.sort())
       remaining = []
     } else {
@@ -242,35 +236,40 @@ function buildChains(allItems: RawItem[]): string[] {
       remaining = remaining.filter((n) => !ready.includes(n))
     }
   }
+  return emitted
+}
 
-  // Format chains
+function formatChainLines(emitted: number[], graph: Map<number, GraphNode>): string[] {
   const lines: string[] = []
   for (const num of emitted) {
     const node = graph.get(num)
     if (!node) continue
-    if (node.blocks.length === 1) {
-      const t = node.blocks[0]
+    const [first, ...rest] = node.blocks
+    const firstNode = graph.get(first)
+    lines.push(
+      `  #${num} ${shortName(node.title)} \u2500\u2500\u25BA #${first} ${shortName(firstNode?.title ?? '')}`
+    )
+    for (const t of rest) {
       const targetNode = graph.get(t)
       lines.push(
-        `  #${num} ${shortName(node.title)} \u2500\u2500\u25BA #${t} ${shortName(targetNode?.title ?? '')}`
+        `                               \u2514\u2500\u2500\u25BA #${t} ${shortName(targetNode?.title ?? '')}`
       )
-    } else {
-      const first = node.blocks[0]
-      const firstNode = graph.get(first)
-      lines.push(
-        `  #${num} ${shortName(node.title)} \u2500\u2500\u25BA #${first} ${shortName(firstNode?.title ?? '')}`
-      )
-      for (let i = 1; i < node.blocks.length; i++) {
-        const t = node.blocks[i]
-        const targetNode = graph.get(t)
-        lines.push(
-          `                               \u2514\u2500\u2500\u25BA #${t} ${shortName(targetNode?.title ?? '')}`
-        )
-      }
     }
   }
-
   return lines
+}
+
+function buildChains(allItems: RawItem[]): string[] {
+  const graph = buildDependencyGraph(allItems)
+
+  const blockers = [...graph.values()]
+    .filter((n) => n.blocks.length > 0)
+    .map((n) => n.num)
+    .sort()
+  if (blockers.length === 0) return []
+
+  const emitted = topologicalSort(blockers, graph)
+  return formatChainLines(emitted, graph)
 }
 
 /** Format raw items as JSON (matching old fetch_issues.sh --json output). */

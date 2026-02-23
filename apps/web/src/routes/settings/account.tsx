@@ -311,11 +311,50 @@ function OrgResolutionStep({
   )
 }
 
-function DeleteAccountSection() {
-  const { data: session } = useSession()
-  const navigate = useNavigate()
-  const userEmail = session?.user?.email ?? ''
+async function fetchOwnedOrgsForUser(userId: string | undefined): Promise<OwnedOrg[]> {
+  try {
+    const res = await fetchOrganizations()
+    const orgsData: Array<{ id: string; name: string }> = res.ok ? await res.json() : []
+    if (orgsData.length === 0) return []
 
+    const owned: OwnedOrg[] = []
+    for (const org of orgsData) {
+      const { data: fullOrg } = await authClient.organization.getFullOrganization({
+        query: { organizationId: org.id },
+      })
+      if (!fullOrg) continue
+
+      const userMember = fullOrg.members.find(
+        (member: { userId: string; role: string }) => member.userId === userId
+      )
+      if (userMember && userMember.role === 'owner') {
+        owned.push({
+          id: org.id,
+          name: org.name,
+          memberCount: fullOrg.members.length,
+          members: fullOrg.members.map(
+            (member: {
+              id: string
+              userId: string
+              role: string
+              user: { name: string | null }
+            }) => ({
+              id: member.id,
+              userId: member.userId,
+              name: member.user.name ?? m.account_org_member_unknown(),
+              role: member.role,
+            })
+          ),
+        })
+      }
+    }
+    return owned
+  } catch {
+    return []
+  }
+}
+
+function useDeleteAccountFlow(userId: string | undefined) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [ownedOrgs, setOwnedOrgs] = useState<OwnedOrg[]>([])
@@ -323,57 +362,11 @@ function DeleteAccountSection() {
   const [showOrgStep, setShowOrgStep] = useState(false)
   const [loadingOrgs, setLoadingOrgs] = useState(false)
 
-  async function fetchOwnedOrgs(): Promise<OwnedOrg[]> {
-    try {
-      const res = await fetchOrganizations()
-      const orgsData: Array<{ id: string; name: string }> = res.ok ? await res.json() : []
-      if (orgsData.length === 0) return []
-
-      const owned: OwnedOrg[] = []
-      for (const org of orgsData) {
-        const { data: fullOrg } = await authClient.organization.getFullOrganization({
-          query: { organizationId: org.id },
-        })
-        if (!fullOrg) continue
-
-        const userMember = fullOrg.members.find(
-          (member: { userId: string; role: string }) => member.userId === session?.user?.id
-        )
-        if (userMember && userMember.role === 'owner') {
-          owned.push({
-            id: org.id,
-            name: org.name,
-            memberCount: fullOrg.members.length,
-            members: fullOrg.members.map(
-              (member: {
-                id: string
-                userId: string
-                role: string
-                user: { name: string | null }
-              }) => ({
-                id: member.id,
-                userId: member.userId,
-                name: member.user.name ?? m.account_org_member_unknown(),
-                role: member.role,
-              })
-            ),
-          })
-        }
-      }
-
-      return owned
-    } catch {
-      return []
-    }
-  }
-
   async function handleDeleteClick() {
     setLoadingOrgs(true)
-    const orgs = await fetchOwnedOrgs()
+    const orgs = await fetchOwnedOrgsForUser(userId)
     setOwnedOrgs(orgs)
-
     if (orgs.length > 0) {
-      // Initialize resolutions with default "delete" for each org
       setResolutions(orgs.map((org) => ({ organizationId: org.id, action: 'delete' as const })))
       setShowOrgStep(true)
     } else {
@@ -383,63 +376,57 @@ function DeleteAccountSection() {
     setLoadingOrgs(false)
   }
 
-  async function handleOrgStepComplete() {
-    // Validate all transfer resolutions have a target member
-    const allResolved = resolutions.every(
-      (r) => r.action === 'delete' || (r.action === 'transfer' && r.transferToUserId)
-    )
-    if (!allResolved) {
-      toast.error(m.account_delete_select_member())
-      return
-    }
-    setShowOrgStep(false)
-    // Email was already confirmed in the org step — proceed directly to deletion
-    await handleConfirmDelete()
+  return {
+    deleteOpen,
+    setDeleteOpen,
+    deleting,
+    setDeleting,
+    ownedOrgs,
+    resolutions,
+    setResolutions,
+    showOrgStep,
+    setShowOrgStep,
+    loadingOrgs,
+    handleDeleteClick,
   }
+}
 
-  async function handleConfirmDelete() {
-    setDeleting(true)
-    try {
-      const res = await deleteAccount(userEmail, resolutions)
+function DangerZoneCard({ loading, onClick }: { loading: boolean; onClick: () => void }) {
+  return (
+    <Card id="danger-zone">
+      <CardHeader>
+        <CardTitle className="text-destructive">{m.account_danger_zone()}</CardTitle>
+        <CardDescription>{m.account_danger_zone_desc()}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button variant="destructive" onClick={onClick} disabled={loading}>
+          {loading ? m.account_delete_checking() : m.account_delete_button()}
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
 
-      if (!res.ok) {
-        const data: unknown = await res.json().catch(() => null)
-        console.error('Delete account error:', data)
-        toast.error(m.account_delete_error())
-        return
-      }
-
-      setDeleteOpen(false)
-      toast.success(m.account_delete_success())
-      navigate({ to: '/account-reactivation' })
-    } catch {
-      toast.error(m.account_delete_error())
-    } finally {
-      setDeleting(false)
-    }
-  }
-
+function DeleteAccountDialogs({
+  flow,
+  userEmail,
+  onOrgStepComplete,
+  onConfirmDelete,
+}: {
+  flow: ReturnType<typeof useDeleteAccountFlow>
+  userEmail: string
+  onOrgStepComplete: () => void
+  onConfirmDelete: () => void
+}) {
   return (
     <>
-      <Card id="danger-zone">
-        <CardHeader>
-          <CardTitle className="text-destructive">{m.account_danger_zone()}</CardTitle>
-          <CardDescription>{m.account_danger_zone_desc()}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button variant="destructive" onClick={handleDeleteClick} disabled={loadingOrgs}>
-            {loadingOrgs ? m.account_delete_checking() : m.account_delete_button()}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {showOrgStep && (
+      {flow.showOrgStep && (
         <DestructiveConfirmDialog
-          open={showOrgStep}
+          open={flow.showOrgStep}
           onOpenChange={(open: boolean) => {
             if (!open) {
-              setShowOrgStep(false)
-              setResolutions([])
+              flow.setShowOrgStep(false)
+              flow.setResolutions([])
             }
           }}
           title={m.account_delete_resolve_title()}
@@ -448,27 +435,78 @@ function DeleteAccountSection() {
           confirmLabel={m.account_delete_resolve_email_label()}
           impactSummary={
             <OrgResolutionStep
-              orgs={ownedOrgs}
-              resolutions={resolutions}
-              onResolve={setResolutions}
+              orgs={flow.ownedOrgs}
+              resolutions={flow.resolutions}
+              onResolve={flow.setResolutions}
             />
           }
-          onConfirm={handleOrgStepComplete}
+          onConfirm={onOrgStepComplete}
           isLoading={false}
         />
       )}
 
       <DestructiveConfirmDialog
-        open={deleteOpen}
+        open={flow.deleteOpen}
         onOpenChange={(open: boolean) => {
-          if (!open) setDeleteOpen(false)
+          if (!open) flow.setDeleteOpen(false)
         }}
         title={m.account_delete_confirm_title()}
         description={m.account_delete_confirm_desc()}
         confirmText={userEmail}
         confirmLabel={m.account_delete_confirm_email_label()}
-        onConfirm={handleConfirmDelete}
-        isLoading={deleting}
+        onConfirm={onConfirmDelete}
+        isLoading={flow.deleting}
+      />
+    </>
+  )
+}
+
+function DeleteAccountSection() {
+  const { data: session } = useSession()
+  const navigate = useNavigate()
+  const userEmail = session?.user?.email ?? ''
+  const flow = useDeleteAccountFlow(session?.user?.id)
+
+  async function handleConfirmDelete() {
+    flow.setDeleting(true)
+    try {
+      const res = await deleteAccount(userEmail, flow.resolutions)
+      if (!res.ok) {
+        const data: unknown = await res.json().catch(() => null)
+        console.error('Delete account error:', data)
+        toast.error(m.account_delete_error())
+        return
+      }
+      flow.setDeleteOpen(false)
+      toast.success(m.account_delete_success())
+      navigate({ to: '/account-reactivation' })
+    } catch {
+      toast.error(m.account_delete_error())
+    } finally {
+      flow.setDeleting(false)
+    }
+  }
+
+  async function handleOrgStepComplete() {
+    const allResolved = flow.resolutions.every(
+      (r) => r.action === 'delete' || (r.action === 'transfer' && r.transferToUserId)
+    )
+    if (!allResolved) {
+      toast.error(m.account_delete_select_member())
+      return
+    }
+    flow.setShowOrgStep(false)
+    await handleConfirmDelete()
+  }
+
+  return (
+    <>
+      <DangerZoneCard loading={flow.loadingOrgs} onClick={flow.handleDeleteClick} />
+      <DeleteAccountDialogs
+        flow={flow}
+        userEmail={userEmail}
+        onOrgStepComplete={handleOrgStepComplete}
+        onConfirmDelete={handleConfirmDelete}
       />
     </>
   )

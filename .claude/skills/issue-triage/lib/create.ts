@@ -91,6 +91,79 @@ function parseNumberList(input: string): number[] {
     .map(Number)
 }
 
+async function applyProjectFields(
+  itemId: string,
+  issueNumber: number,
+  opts: CreateOptions
+): Promise<void> {
+  if (opts.status) {
+    const canonical = resolveStatus(opts.status)
+    if (!(canonical && STATUS_OPTIONS[canonical])) {
+      console.error('Error: Invalid status')
+      process.exit(1)
+    }
+    await updateField(itemId, STATUS_FIELD_ID, STATUS_OPTIONS[canonical])
+    console.log(`Status=${canonical} #${issueNumber}`)
+  }
+
+  if (opts.size) {
+    const canonical = resolveSize(opts.size)
+    if (!(canonical && SIZE_OPTIONS[canonical])) {
+      console.error('Error: Invalid size')
+      process.exit(1)
+    }
+    await updateField(itemId, SIZE_FIELD_ID, SIZE_OPTIONS[canonical])
+    console.log(`Size=${canonical} #${issueNumber}`)
+  }
+
+  if (opts.priority) {
+    const canonical = resolvePriority(opts.priority)
+    if (!(canonical && PRIORITY_OPTIONS[canonical])) {
+      console.error('Error: Invalid priority')
+      process.exit(1)
+    }
+    await updateField(itemId, PRIORITY_FIELD_ID, PRIORITY_OPTIONS[canonical])
+    console.log(`Priority=${canonical} #${issueNumber}`)
+  }
+}
+
+async function applyRelationships(
+  nodeId: string,
+  issueNumber: number,
+  opts: CreateOptions
+): Promise<void> {
+  if (opts.parent) {
+    const parentNum = opts.parent.replace(/^#/, '')
+    const parentNodeId = await getNodeId(parentNum)
+    await addSubIssue(parentNodeId, nodeId)
+    console.log(`Parent=#${parentNum} #${issueNumber}`)
+  }
+
+  if (opts.addChild) {
+    for (const child of parseNumberList(opts.addChild)) {
+      const childNodeId = await getNodeId(child)
+      await addSubIssue(nodeId, childNodeId)
+      console.log(`Child=#${child} #${issueNumber}`)
+    }
+  }
+
+  if (opts.blockedBy) {
+    for (const dep of parseNumberList(opts.blockedBy)) {
+      const blockingNodeId = await getNodeId(dep)
+      await addBlockedBy(nodeId, blockingNodeId)
+      console.log(`BlockedBy=#${dep} #${issueNumber}`)
+    }
+  }
+
+  if (opts.blocks) {
+    for (const dep of parseNumberList(opts.blocks)) {
+      const blockedNodeId = await getNodeId(dep)
+      await addBlockedBy(blockedNodeId, nodeId)
+      console.log(`Blocks=#${dep} #${issueNumber}`)
+    }
+  }
+}
+
 export async function createIssue(args: string[]): Promise<void> {
   const opts = parseArgs(args)
 
@@ -133,72 +206,12 @@ export async function createIssue(args: string[]): Promise<void> {
 
   // Set project fields (require a valid item_id from addToProject)
   if (itemId) {
-    if (opts.status) {
-      const canonical = resolveStatus(opts.status)
-      if (!(canonical && STATUS_OPTIONS[canonical])) {
-        console.error('Error: Invalid status')
-        process.exit(1)
-      }
-      await updateField(itemId, STATUS_FIELD_ID, STATUS_OPTIONS[canonical])
-      console.log(`Status=${canonical} #${issueNumber}`)
-    }
-
-    if (opts.size) {
-      const canonical = resolveSize(opts.size)
-      if (!(canonical && SIZE_OPTIONS[canonical])) {
-        console.error('Error: Invalid size')
-        process.exit(1)
-      }
-      await updateField(itemId, SIZE_FIELD_ID, SIZE_OPTIONS[canonical])
-      console.log(`Size=${canonical} #${issueNumber}`)
-    }
-
-    if (opts.priority) {
-      const canonical = resolvePriority(opts.priority)
-      if (!(canonical && PRIORITY_OPTIONS[canonical])) {
-        console.error('Error: Invalid priority')
-        process.exit(1)
-      }
-      await updateField(itemId, PRIORITY_FIELD_ID, PRIORITY_OPTIONS[canonical])
-      console.log(`Priority=${canonical} #${issueNumber}`)
-    }
+    await applyProjectFields(itemId, issueNumber, opts)
   } else if (opts.status || opts.size || opts.priority) {
     console.error(
       'Warning: Skipped project field updates (status/size/priority) — issue not on project board'
     )
   }
 
-  // Set parent
-  if (opts.parent) {
-    const parentNum = opts.parent.replace(/^#/, '')
-    const parentNodeId = await getNodeId(parentNum)
-    await addSubIssue(parentNodeId, nodeId)
-    console.log(`Parent=#${parentNum} #${issueNumber}`)
-  }
-
-  // Add children
-  if (opts.addChild) {
-    for (const child of parseNumberList(opts.addChild)) {
-      const childNodeId = await getNodeId(child)
-      await addSubIssue(nodeId, childNodeId)
-      console.log(`Child=#${child} #${issueNumber}`)
-    }
-  }
-
-  // Set dependencies
-  if (opts.blockedBy) {
-    for (const dep of parseNumberList(opts.blockedBy)) {
-      const blockingNodeId = await getNodeId(dep)
-      await addBlockedBy(nodeId, blockingNodeId)
-      console.log(`BlockedBy=#${dep} #${issueNumber}`)
-    }
-  }
-
-  if (opts.blocks) {
-    for (const dep of parseNumberList(opts.blocks)) {
-      const blockedNodeId = await getNodeId(dep)
-      await addBlockedBy(blockedNodeId, nodeId)
-      console.log(`Blocks=#${dep} #${issueNumber}`)
-    }
-  }
+  await applyRelationships(nodeId, issueNumber, opts)
 }

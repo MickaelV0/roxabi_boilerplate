@@ -41,7 +41,260 @@ export const Route = createFileRoute('/register')({
   }),
 })
 
-function RegisterPage() {
+function RegistrationSuccess({
+  message,
+  redirectParam,
+}: {
+  message: string
+  redirectParam?: string
+}) {
+  return (
+    <AuthLayout title={m.auth_register_title()} description={m.auth_register_desc()}>
+      <Card className="border-0 shadow-none">
+        <CardHeader className="items-center text-center">
+          <CheckCircle className="size-12 text-success" aria-hidden="true" />
+          <CardTitle className="text-lg">{m.auth_register_success_title()}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-center">
+          <p className="text-sm text-muted-foreground">{message}</p>
+          <Link
+            to="/login"
+            search={redirectParam ? { redirect: redirectParam } : undefined}
+            className="inline-block text-sm underline hover:text-foreground text-muted-foreground"
+          >
+            {m.auth_back_to_sign_in()}
+          </Link>
+        </CardContent>
+      </Card>
+    </AuthLayout>
+  )
+}
+
+type RegistrationFormProps = {
+  name: string
+  setName: (v: string) => void
+  email: string
+  emailError: string
+  onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onEmailBlur: () => void
+  password: string
+  setPassword: (v: string) => void
+  acceptedTerms: boolean
+  setAcceptedTerms: (v: boolean) => void
+  loading: boolean
+  error: string
+  onSubmit: (e: React.FormEvent) => void
+  hasOAuth: boolean
+  providers: { google?: boolean; github?: boolean }
+  oauthLoading: string | null
+  onOAuth: (provider: 'google' | 'github') => void
+  redirectParam?: string
+}
+
+function RegistrationPasswordField({
+  password,
+  setPassword,
+  loading,
+}: {
+  password: string
+  setPassword: (v: string) => void
+  loading: boolean
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor="password">{m.auth_password()}</Label>
+      <PasswordInput
+        id="password"
+        value={password}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+        required
+        disabled={loading}
+        showStrength
+        strengthLabels={{
+          weak: m.password_strength_weak(),
+          fair: m.password_strength_fair(),
+          good: m.password_strength_good(),
+          strong: m.password_strength_strong(),
+        }}
+        ruleLabels={{
+          minLength: m.password_rule_min_length(),
+          uppercase: m.password_rule_uppercase(),
+          number: m.password_rule_number(),
+          symbol: m.password_rule_symbol(),
+        }}
+        toggleLabels={{
+          show: m.password_toggle_show(),
+          hide: m.password_toggle_hide(),
+        }}
+      />
+    </div>
+  )
+}
+
+function RegistrationFields({
+  name,
+  setName,
+  email,
+  emailError,
+  onEmailChange,
+  onEmailBlur,
+  password,
+  setPassword,
+  acceptedTerms,
+  setAcceptedTerms,
+  loading,
+  onSubmit,
+}: Pick<
+  RegistrationFormProps,
+  | 'name'
+  | 'setName'
+  | 'email'
+  | 'emailError'
+  | 'onEmailChange'
+  | 'onEmailBlur'
+  | 'password'
+  | 'setPassword'
+  | 'acceptedTerms'
+  | 'setAcceptedTerms'
+  | 'loading'
+  | 'onSubmit'
+>) {
+  return (
+    <form onSubmit={onSubmit} aria-busy={loading} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="name">{m.auth_name()}</Label>
+        <Input
+          id="name"
+          type="text"
+          value={name}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+          required
+          disabled={loading}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="email">{m.auth_email()}</Label>
+        <Input
+          id="email"
+          type="email"
+          value={email}
+          onChange={onEmailChange}
+          onBlur={onEmailBlur}
+          required
+          disabled={loading}
+          aria-invalid={emailError ? true : undefined}
+          aria-describedby={emailError ? 'email-error' : undefined}
+        />
+        {emailError && (
+          <p id="email-error" className="text-sm text-destructive">
+            {emailError}
+          </p>
+        )}
+      </div>
+      <RegistrationPasswordField password={password} setPassword={setPassword} loading={loading} />
+      <div className="flex items-start gap-2">
+        <Checkbox
+          id="accept-terms"
+          checked={acceptedTerms}
+          onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+          disabled={loading}
+        />
+        <Label htmlFor="accept-terms" className="text-sm font-normal leading-snug cursor-pointer">
+          <span>
+            {m.auth_accept_privacy_prefix()}{' '}
+            <Link
+              to="/legal/confidentialite"
+              className="underline hover:text-foreground"
+              target="_blank"
+            >
+              {m.auth_accept_privacy_policy()}
+            </Link>{' '}
+            {m.auth_accept_terms_and()}{' '}
+            <Link to="/legal/cgu" className="underline hover:text-foreground" target="_blank">
+              {m.auth_accept_terms_of_service()}
+            </Link>
+          </span>
+        </Label>
+      </div>
+      <Button type="submit" className="w-full" disabled={loading || !acceptedTerms}>
+        {loading ? m.auth_creating_account() : m.auth_create_account_button()}
+      </Button>
+    </form>
+  )
+}
+
+function RegistrationForm(props: RegistrationFormProps) {
+  return (
+    <AuthLayout title={m.auth_register_title()} description={m.auth_register_desc()}>
+      {props.error && (
+        <FormMessage variant="error" className="justify-center">
+          {props.error}
+        </FormMessage>
+      )}
+
+      <RegistrationFields
+        name={props.name}
+        setName={props.setName}
+        email={props.email}
+        emailError={props.emailError}
+        onEmailChange={props.onEmailChange}
+        onEmailBlur={props.onEmailBlur}
+        password={props.password}
+        setPassword={props.setPassword}
+        acceptedTerms={props.acceptedTerms}
+        setAcceptedTerms={props.setAcceptedTerms}
+        loading={props.loading}
+        onSubmit={props.onSubmit}
+      />
+
+      {props.hasOAuth && (
+        <>
+          <OrDivider />
+          <div
+            className={cn(
+              'grid gap-2',
+              props.providers.google && props.providers.github ? 'grid-cols-2' : 'grid-cols-1'
+            )}
+          >
+            {props.providers.google && (
+              <OAuthButton
+                provider="google"
+                loading={props.oauthLoading === 'google'}
+                disabled={props.loading || props.oauthLoading !== null}
+                onClick={() => props.onOAuth('google')}
+              >
+                {m.auth_sign_up_with_google()}
+              </OAuthButton>
+            )}
+            {props.providers.github && (
+              <OAuthButton
+                provider="github"
+                loading={props.oauthLoading === 'github'}
+                disabled={props.loading || props.oauthLoading !== null}
+                onClick={() => props.onOAuth('github')}
+              >
+                {m.auth_sign_up_with_github()}
+              </OAuthButton>
+            )}
+          </div>
+        </>
+      )}
+
+      <p className="text-center text-sm text-muted-foreground">
+        {m.auth_have_account()}{' '}
+        <Link
+          to="/login"
+          search={props.redirectParam ? { redirect: props.redirectParam } : undefined}
+          className="underline hover:text-foreground"
+        >
+          {m.auth_sign_in_link()}
+        </Link>
+      </p>
+    </AuthLayout>
+  )
+}
+
+function useRegisterState() {
   const { redirect: redirectParam } = Route.useSearch()
   const providers = Route.useLoaderData()
   const hasOAuth = providers.google || providers.github
@@ -55,52 +308,64 @@ function RegisterPage() {
   const [emailError, setEmailError] = useState('')
   const [acceptedTerms, setAcceptedTerms] = useState(false)
 
+  return {
+    redirectParam,
+    providers,
+    hasOAuth,
+    name,
+    setName,
+    email,
+    setEmail,
+    password,
+    setPassword,
+    error,
+    setError,
+    message,
+    setMessage,
+    loading,
+    setLoading,
+    oauthLoading,
+    setOauthLoading,
+    emailError,
+    setEmailError,
+    acceptedTerms,
+    setAcceptedTerms,
+  }
+}
+
+function useRegisterHandlers(state: ReturnType<typeof useRegisterState>) {
   function handleEmailBlur() {
-    if (email && !EMAIL_REGEX.test(email)) {
-      setEmailError(m.auth_email_invalid())
-    }
+    if (state.email && !EMAIL_REGEX.test(state.email)) state.setEmailError(m.auth_email_invalid())
   }
 
   function handleEmailChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setEmail(e.target.value)
-    if (emailError) {
-      setEmailError('')
-    }
+    state.setEmail(e.target.value)
+    if (state.emailError) state.setEmailError('')
   }
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
-    setMessage('')
-
-    if (email && !EMAIL_REGEX.test(email)) {
-      setEmailError(m.auth_email_invalid())
+    state.setError('')
+    state.setMessage('')
+    if (state.email && !EMAIL_REGEX.test(state.email)) {
+      state.setEmailError(m.auth_email_invalid())
       return
     }
-
-    setLoading(true)
+    state.setLoading(true)
     try {
-      // locale is declared in Better Auth's user.additionalFields
-      // but the client SDK types don't reflect additional fields in signUp params.
-      // Using `as` cast because @ts-expect-error only suppresses errors on the
-      // next line and cannot reach `locale` inside a multi-line object literal.
       const { error: signUpError } = await authClient.signUp.email({
-        name,
-        email,
-        password,
+        name: state.name,
+        email: state.email,
+        password: state.password,
         locale: navigator.language?.split('-')[0] ?? 'en',
       } as Parameters<typeof authClient.signUp.email>[0])
       if (signUpError) {
-        // Conscious UX trade-off: revealing that an email is already registered
-        // enables account enumeration, but provides a significantly better user
-        // experience than a generic error. Mitigated by rate limiting on sign-up.
         if (signUpError.code === 'USER_ALREADY_EXISTS') {
-          setError(m.auth_register_email_exists())
+          state.setError(m.auth_register_email_exists())
         } else {
-          setError(m.auth_register_unable())
+          state.setError(m.auth_register_unable())
         }
       } else {
-        // Sync GDPR consent to server (non-blocking)
         fetch('/api/consent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -110,191 +375,58 @@ function RegisterPage() {
             policyVersion: legalConfig.consentPolicyVersion,
             action: 'customized',
           }),
-        }).catch(() => {
-          // Consent sync failure is non-critical
-        })
+        }).catch(() => {})
         toast.success(m.auth_toast_account_created())
-        setMessage(m.auth_check_email_verify())
+        state.setMessage(m.auth_check_email_verify())
       }
     } catch {
       toast.error(m.auth_toast_error())
     } finally {
-      setLoading(false)
+      state.setLoading(false)
     }
   }
 
   async function handleOAuth(provider: 'google' | 'github') {
-    setOauthLoading(provider)
+    state.setOauthLoading(provider)
     try {
       await authClient.signIn.social({ provider })
     } catch {
       toast.error(m.auth_toast_error())
-      setOauthLoading(null)
+      state.setOauthLoading(null)
     }
   }
 
-  if (message) {
-    return (
-      <AuthLayout title={m.auth_register_title()} description={m.auth_register_desc()}>
-        <Card className="border-0 shadow-none">
-          <CardHeader className="items-center text-center">
-            <CheckCircle className="size-12 text-success" aria-hidden="true" />
-            <CardTitle className="text-lg">{m.auth_register_success_title()}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-center">
-            <p className="text-sm text-muted-foreground">{message}</p>
-            <Link
-              to="/login"
-              search={redirectParam ? { redirect: redirectParam } : undefined}
-              className="inline-block text-sm underline hover:text-foreground text-muted-foreground"
-            >
-              {m.auth_back_to_sign_in()}
-            </Link>
-          </CardContent>
-        </Card>
-      </AuthLayout>
-    )
+  return { handleEmailBlur, handleEmailChange, handleRegister, handleOAuth }
+}
+
+function RegisterPage() {
+  const state = useRegisterState()
+  const handlers = useRegisterHandlers(state)
+
+  if (state.message) {
+    return <RegistrationSuccess message={state.message} redirectParam={state.redirectParam} />
   }
 
   return (
-    <AuthLayout title={m.auth_register_title()} description={m.auth_register_desc()}>
-      {error && (
-        <FormMessage variant="error" className="justify-center">
-          {error}
-        </FormMessage>
-      )}
-
-      <form onSubmit={handleRegister} aria-busy={loading} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">{m.auth_name()}</Label>
-          <Input
-            id="name"
-            type="text"
-            value={name}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-            required
-            disabled={loading}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="email">{m.auth_email()}</Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={handleEmailChange}
-            onBlur={handleEmailBlur}
-            required
-            disabled={loading}
-            aria-invalid={emailError ? true : undefined}
-            aria-describedby={emailError ? 'email-error' : undefined}
-          />
-          {emailError && (
-            <p id="email-error" className="text-sm text-destructive">
-              {emailError}
-            </p>
-          )}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="password">{m.auth_password()}</Label>
-          <PasswordInput
-            id="password"
-            value={password}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-            required
-            disabled={loading}
-            showStrength
-            strengthLabels={{
-              weak: m.password_strength_weak(),
-              fair: m.password_strength_fair(),
-              good: m.password_strength_good(),
-              strong: m.password_strength_strong(),
-            }}
-            ruleLabels={{
-              minLength: m.password_rule_min_length(),
-              uppercase: m.password_rule_uppercase(),
-              number: m.password_rule_number(),
-              symbol: m.password_rule_symbol(),
-            }}
-            toggleLabels={{
-              show: m.password_toggle_show(),
-              hide: m.password_toggle_hide(),
-            }}
-          />
-        </div>
-        <div className="flex items-start gap-2">
-          <Checkbox
-            id="accept-terms"
-            checked={acceptedTerms}
-            onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
-            disabled={loading}
-          />
-          <Label htmlFor="accept-terms" className="text-sm font-normal leading-snug cursor-pointer">
-            <span>
-              {m.auth_accept_privacy_prefix()}{' '}
-              <Link
-                to="/legal/confidentialite"
-                className="underline hover:text-foreground"
-                target="_blank"
-              >
-                {m.auth_accept_privacy_policy()}
-              </Link>{' '}
-              {m.auth_accept_terms_and()}{' '}
-              <Link to="/legal/cgu" className="underline hover:text-foreground" target="_blank">
-                {m.auth_accept_terms_of_service()}
-              </Link>
-            </span>
-          </Label>
-        </div>
-        <Button type="submit" className="w-full" disabled={loading || !acceptedTerms}>
-          {loading ? m.auth_creating_account() : m.auth_create_account_button()}
-        </Button>
-      </form>
-
-      {hasOAuth && (
-        <>
-          <OrDivider />
-
-          <div
-            className={cn(
-              'grid gap-2',
-              providers.google && providers.github ? 'grid-cols-2' : 'grid-cols-1'
-            )}
-          >
-            {providers.google && (
-              <OAuthButton
-                provider="google"
-                loading={oauthLoading === 'google'}
-                disabled={loading || oauthLoading !== null}
-                onClick={() => handleOAuth('google')}
-              >
-                {m.auth_sign_up_with_google()}
-              </OAuthButton>
-            )}
-            {providers.github && (
-              <OAuthButton
-                provider="github"
-                loading={oauthLoading === 'github'}
-                disabled={loading || oauthLoading !== null}
-                onClick={() => handleOAuth('github')}
-              >
-                {m.auth_sign_up_with_github()}
-              </OAuthButton>
-            )}
-          </div>
-        </>
-      )}
-
-      <p className="text-center text-sm text-muted-foreground">
-        {m.auth_have_account()}{' '}
-        <Link
-          to="/login"
-          search={redirectParam ? { redirect: redirectParam } : undefined}
-          className="underline hover:text-foreground"
-        >
-          {m.auth_sign_in_link()}
-        </Link>
-      </p>
-    </AuthLayout>
+    <RegistrationForm
+      name={state.name}
+      setName={state.setName}
+      email={state.email}
+      emailError={state.emailError}
+      onEmailChange={handlers.handleEmailChange}
+      onEmailBlur={handlers.handleEmailBlur}
+      password={state.password}
+      setPassword={state.setPassword}
+      acceptedTerms={state.acceptedTerms}
+      setAcceptedTerms={state.setAcceptedTerms}
+      loading={state.loading}
+      error={state.error}
+      onSubmit={handlers.handleRegister}
+      hasOAuth={state.hasOAuth}
+      providers={state.providers}
+      oauthLoading={state.oauthLoading}
+      onOAuth={handlers.handleOAuth}
+      redirectParam={state.redirectParam}
+    />
   )
 }

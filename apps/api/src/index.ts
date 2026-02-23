@@ -9,23 +9,7 @@ import { AppModule } from './app.module.js'
 import { parseCorsOrigins } from './cors.js'
 import { registerRateLimitHeadersHook } from './throttler/index.js'
 
-async function bootstrap() {
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    new FastifyAdapter({
-      logger: {
-        level: process.env.LOG_LEVEL || 'debug',
-      },
-      bodyLimit: 1_048_576, // 1 MiB — explicit limit
-      trustProxy: 1, // trust single proxy hop (Vercel) for correct client IP from x-forwarded-for
-    })
-  )
-
-  app.enableShutdownHooks()
-
-  const configService = app.get(ConfigService)
-  const logger = new Logger('Bootstrap')
-
+async function configureSecurityHeaders(app: NestFastifyApplication) {
   // Security headers (must be registered before routes)
   await app.register(helmet, {
     global: true,
@@ -64,20 +48,9 @@ async function bootstrap() {
         done()
       }
     )
+}
 
-  // Rate limit headers via onSend hook
-  registerRateLimitHeadersHook(app)
-
-  // Global pipes
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    })
-  )
-
-  // CORS
+function configureCors(app: NestFastifyApplication, configService: ConfigService, logger: Logger) {
   const nodeEnv = configService.get<string>('NODE_ENV', 'development')
   const isProduction = nodeEnv === 'production'
   const rawOrigins = configService.get<string>('CORS_ORIGIN', 'http://localhost:3000')
@@ -88,7 +61,15 @@ async function bootstrap() {
   }
   app.enableCors({ origin: corsResult.origins, credentials: true })
 
-  // Swagger setup — gated by SWAGGER_ENABLED env var
+  return nodeEnv
+}
+
+function configureSwagger(
+  app: NestFastifyApplication,
+  configService: ConfigService,
+  nodeEnv: string,
+  logger: Logger
+) {
   const swaggerEnabled = configService.get<boolean>('SWAGGER_ENABLED', nodeEnv !== 'production')
   if (swaggerEnabled) {
     const config = new DocumentBuilder()
@@ -109,6 +90,39 @@ async function bootstrap() {
   } else {
     logger.log('Swagger UI disabled (set SWAGGER_ENABLED=true to enable)')
   }
+}
+
+async function bootstrap() {
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter({
+      logger: {
+        level: process.env.LOG_LEVEL || 'debug',
+      },
+      bodyLimit: 1_048_576, // 1 MiB — explicit limit
+      trustProxy: 1, // trust single proxy hop (Vercel) for correct client IP from x-forwarded-for
+    })
+  )
+
+  app.enableShutdownHooks()
+
+  const configService = app.get(ConfigService)
+  const logger = new Logger('Bootstrap')
+
+  await configureSecurityHeaders(app)
+  registerRateLimitHeadersHook(app)
+
+  // Global pipes
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    })
+  )
+
+  const nodeEnv = configureCors(app, configService, logger)
+  configureSwagger(app, configService, nodeEnv, logger)
 
   const port = configService.get<number>('PORT', 4000)
   await app.listen(port, '0.0.0.0')

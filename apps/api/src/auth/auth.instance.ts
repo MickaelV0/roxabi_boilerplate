@@ -41,28 +41,153 @@ export type OrganizationCreatedCallback = (data: {
   creatorUserId: string
 }) => void | Promise<void>
 
-export function createBetterAuth(
-  db: DrizzleDB,
-  emailProvider: EmailProvider,
-  config: AuthInstanceConfig,
-  onOrganizationCreated?: OrganizationCreatedCallback
-) {
+function buildSocialProviders(config: AuthInstanceConfig): Record<string, unknown> {
   const socialProviders: Record<string, unknown> = {}
-
   if (config.googleClientId && config.googleClientSecret) {
     socialProviders.google = {
       clientId: config.googleClientId,
       clientSecret: config.googleClientSecret,
     }
   }
-
   if (config.githubClientId && config.githubClientSecret) {
     socialProviders.github = {
       clientId: config.githubClientId,
       clientSecret: config.githubClientSecret,
     }
   }
+  return socialProviders
+}
 
+/** Rewrite callbackURL to point to the frontend app instead of the API root */
+function rewriteCallbackUrl(url: string, appURL?: string): string {
+  return appURL
+    ? url.replace(/callbackURL=[^&]*/, `callbackURL=${encodeURIComponent(appURL)}`)
+    : url
+}
+
+function buildEmailAndPasswordConfig(emailProvider: EmailProvider, config: AuthInstanceConfig) {
+  return {
+    enabled: true,
+    requireEmailVerification: true,
+    async sendResetPassword({
+      user,
+      url,
+    }: {
+      user: { email: string } & UserWithLocale
+      url: string
+    }) {
+      const emailUrl = rewriteCallbackUrl(url, config.appURL)
+      try {
+        const locale = (user as UserWithLocale).locale ?? 'en'
+        const { html, text, subject } = await renderResetEmail(emailUrl, locale, config.appURL)
+        await emailProvider.send({ to: user.email, subject, html, text })
+      } catch (error) {
+        logger.error('Failed to render reset password email, using fallback', error)
+        await emailProvider.send({
+          to: user.email,
+          subject: 'Reset your password',
+          html: `<p>Click <a href="${escapeHtml(emailUrl)}">here</a> to reset your password.</p>`,
+          text: `Reset your password: ${emailUrl}`,
+        })
+      }
+    },
+  }
+}
+
+function buildEmailVerificationConfig(emailProvider: EmailProvider, config: AuthInstanceConfig) {
+  return {
+    // Better Auth applies server-side rate limiting on verification email sends
+    // (rateLimit plugin). Client-side cooldown (60s) is UX guidance only.
+    // Server-side rate limiting is the hard limit. See issue #53 for additional
+    // rate limiting.
+    sendOnSignIn: true,
+    async sendVerificationEmail({
+      user,
+      url,
+    }: {
+      user: { email: string } & UserWithLocale
+      url: string
+    }) {
+      const emailUrl = rewriteCallbackUrl(url, config.appURL)
+      try {
+        const locale = (user as UserWithLocale).locale ?? 'en'
+        const { html, text, subject } = await renderVerificationEmail(
+          emailUrl,
+          locale,
+          config.appURL
+        )
+        await emailProvider.send({ to: user.email, subject, html, text })
+      } catch (error) {
+        logger.error('Failed to render verification email, using fallback', error)
+        await emailProvider.send({
+          to: user.email,
+          subject: 'Verify your email',
+          html: `<p>Click <a href="${escapeHtml(url)}">here</a> to verify your email.</p>`,
+          text: `Verify your email: ${url}`,
+        })
+      }
+    },
+  }
+}
+
+function buildMagicLinkPlugin(
+  db: DrizzleDB,
+  emailProvider: EmailProvider,
+  config: AuthInstanceConfig
+) {
+  return magicLink({
+    async sendMagicLink({ email, url }) {
+      const emailUrl = rewriteCallbackUrl(url, config.appURL)
+      try {
+        const [userData] = await db
+          .select({ locale: users.locale })
+          .from(users)
+          .where(eq(users.email, email))
+        const locale = userData?.locale ?? 'en'
+        const { html, text, subject } = await renderMagicLinkEmail(emailUrl, locale, config.appURL)
+        await emailProvider.send({ to: email, subject, html, text })
+      } catch (error) {
+        logger.error('Failed to render magic link email, using fallback', error)
+        await emailProvider.send({
+          to: email,
+          subject: 'Sign in to Roxabi',
+          html: `<p>Click <a href="${escapeHtml(emailUrl)}">here</a> to sign in.</p>`,
+          text: `Sign in to Roxabi: ${emailUrl}`,
+        })
+      }
+    },
+  })
+}
+
+function buildOrganizationPlugin(onOrganizationCreated?: OrganizationCreatedCallback) {
+  return organization({
+    schema: {
+      organization: {
+        additionalFields: {
+          deletedAt: { type: 'date', required: false, input: false },
+          deleteScheduledFor: { type: 'date', required: false, input: false },
+        },
+      },
+    },
+    organizationHooks: onOrganizationCreated
+      ? {
+          afterCreateOrganization: async ({ organization: org, member }) => {
+            onOrganizationCreated({
+              organizationId: org.id,
+              creatorUserId: member.userId,
+            })
+          },
+        }
+      : undefined,
+  })
+}
+
+export function createBetterAuth(
+  db: DrizzleDB,
+  emailProvider: EmailProvider,
+  config: AuthInstanceConfig,
+  onOrganizationCreated?: OrganizationCreatedCallback
+) {
   const trustedOrigins = config.appURL ? [config.appURL] : []
 
   return betterAuth({
@@ -72,12 +197,7 @@ export function createBetterAuth(
     trustedOrigins,
     user: {
       additionalFields: {
-        locale: {
-          type: 'string',
-          required: false,
-          defaultValue: 'en',
-          input: true,
-        },
+        locale: { type: 'string', required: false, defaultValue: 'en', input: true },
       },
     },
     databaseHooks: {
@@ -93,15 +213,10 @@ export function createBetterAuth(
               if (!user.image) {
                 updateFields.image = `${DICEBEAR_CDN_BASE}/lorelei/svg?seed=${user.id}`
               }
-
-              // Sanitize locale: only allow supported locales, default to 'en'.
-              // The `input: true` on additionalFields allows arbitrary strings from
-              // the client, so we enforce valid values server-side.
               const userLocale = (user as UserWithLocale).locale
               if (userLocale && !SUPPORTED_LOCALES.includes(userLocale)) {
                 updateFields.locale = 'en'
               }
-
               await db.update(users).set(updateFields).where(eq(users.id, user.id))
             } catch (error) {
               logger.warn('Failed to set default avatar for user', { userId: user.id, error })
@@ -110,144 +225,19 @@ export function createBetterAuth(
         },
       },
     },
-    database: drizzleAdapter(db, {
-      provider: 'pg',
-      usePlural: true,
-    }),
-    emailAndPassword: {
-      enabled: true,
-      requireEmailVerification: true,
-      async sendResetPassword({ user, url }) {
-        const emailUrl = config.appURL
-          ? url.replace(/callbackURL=[^&]*/, `callbackURL=${encodeURIComponent(config.appURL)}`)
-          : url
-        try {
-          const locale = (user as UserWithLocale).locale ?? 'en'
-          const { html, text, subject } = await renderResetEmail(emailUrl, locale, config.appURL)
-          await emailProvider.send({
-            to: user.email,
-            subject,
-            html,
-            text,
-          })
-        } catch (error) {
-          logger.error('Failed to render reset password email, using fallback', error)
-          await emailProvider.send({
-            to: user.email,
-            subject: 'Reset your password',
-            html: `<p>Click <a href="${escapeHtml(emailUrl)}">here</a> to reset your password.</p>`,
-            text: `Reset your password: ${emailUrl}`,
-          })
-        }
-      },
-    },
-    // Better Auth applies server-side rate limiting on verification email sends
-    // (rateLimit plugin). Client-side cooldown (60s) is UX guidance only.
-    // Server-side rate limiting is the hard limit. See issue #53 for additional
-    // rate limiting.
-    emailVerification: {
-      sendOnSignIn: true,
-      async sendVerificationEmail({ user, url }) {
-        // Rewrite callbackURL to point to the frontend app instead of the API root
-        const emailUrl = config.appURL
-          ? url.replace(/callbackURL=[^&]*/, `callbackURL=${encodeURIComponent(config.appURL)}`)
-          : url
-        try {
-          const locale = (user as UserWithLocale).locale ?? 'en'
-          const { html, text, subject } = await renderVerificationEmail(
-            emailUrl,
-            locale,
-            config.appURL
-          )
-          await emailProvider.send({
-            to: user.email,
-            subject,
-            html,
-            text,
-          })
-        } catch (error) {
-          logger.error('Failed to render verification email, using fallback', error)
-          await emailProvider.send({
-            to: user.email,
-            subject: 'Verify your email',
-            html: `<p>Click <a href="${escapeHtml(url)}">here</a> to verify your email.</p>`,
-            text: `Verify your email: ${url}`,
-          })
-        }
-      },
-    },
-    socialProviders,
+    database: drizzleAdapter(db, { provider: 'pg', usePlural: true }),
+    emailAndPassword: buildEmailAndPasswordConfig(emailProvider, config),
+    emailVerification: buildEmailVerificationConfig(emailProvider, config),
+    socialProviders: buildSocialProviders(config),
     session: {
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,
-      cookieCache: {
-        enabled: true,
-        maxAge: 5 * 60,
-      },
+      cookieCache: { enabled: true, maxAge: 5 * 60 },
     },
     plugins: [
-      organization({
-        schema: {
-          organization: {
-            additionalFields: {
-              deletedAt: {
-                type: 'date',
-                required: false,
-                input: false,
-              },
-              deleteScheduledFor: {
-                type: 'date',
-                required: false,
-                input: false,
-              },
-            },
-          },
-        },
-        organizationHooks: onOrganizationCreated
-          ? {
-              afterCreateOrganization: async ({ organization: org, member }) => {
-                onOrganizationCreated({
-                  organizationId: org.id,
-                  creatorUserId: member.userId,
-                })
-              },
-            }
-          : undefined,
-      }),
+      buildOrganizationPlugin(onOrganizationCreated),
       admin(),
-      magicLink({
-        async sendMagicLink({ email, url }) {
-          const emailUrl = config.appURL
-            ? url.replace(/callbackURL=[^&]*/, `callbackURL=${encodeURIComponent(config.appURL)}`)
-            : url
-          try {
-            const [userData] = await db
-              .select({ locale: users.locale })
-              .from(users)
-              .where(eq(users.email, email))
-            const locale = userData?.locale ?? 'en'
-            const { html, text, subject } = await renderMagicLinkEmail(
-              emailUrl,
-              locale,
-              config.appURL
-            )
-            await emailProvider.send({
-              to: email,
-              subject,
-              html,
-              text,
-            })
-          } catch (error) {
-            logger.error('Failed to render magic link email, using fallback', error)
-            await emailProvider.send({
-              to: email,
-              subject: 'Sign in to Roxabi',
-              html: `<p>Click <a href="${escapeHtml(emailUrl)}">here</a> to sign in.</p>`,
-              text: `Sign in to Roxabi: ${emailUrl}`,
-            })
-          }
-        },
-      }),
+      buildMagicLinkPlugin(db, emailProvider, config),
     ],
   })
 }
