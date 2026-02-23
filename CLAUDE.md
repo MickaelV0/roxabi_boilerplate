@@ -135,6 +135,8 @@ Docs → `doc-writer` | Tests → `tester` | Review fixes → `fixer`
 - **Sequential**: one at a time, better control
 - **Parallel (Recommended)**: multiple sub-agents, faster
 
+**Intra-domain parallelization:** For Tier F-full, when a domain has 4+ independent tasks (no shared files), spawn multiple agents of the same type (e.g., 2 `frontend-dev` agents on separate file groups). See scaffold Step 2c and review Phase 2/4 for thresholds.
+
 ---
 
 ### 5. Git Commits

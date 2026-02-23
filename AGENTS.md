@@ -27,7 +27,7 @@ Team-wide coordination rules. Loaded by orchestrator, not auto-loaded by agents 
 1. **Assessment**: Fetch issue → check analysis/spec → spawn product-lead (+architect if needed) → human approves spec
 2. **Implementation**: Spawn domain agents + tester. RED → GREEN → REFACTOR → all tests pass → PR
 3. **Review**: Fresh review agents (security, architect, product, tester + domain). Conventional Comments → `/1b1` walkthrough
-4. **Fix & Merge**: Fixer applies accepted comments → CI → human merges
+4. **Fix & Merge**: Fixer(s) apply accepted comments → CI → human merges. Multiple fixers per domain when 6+ findings span distinct modules.
 
 ### Task Lifecycle
 
@@ -61,6 +61,8 @@ Team-wide coordination rules. Loaded by orchestrator, not auto-loaded by agents 
 | architect | `docs/architecture/`, ADR files | Never writes application code |
 | product-lead | `analyses/`, `specs/`, GitHub issues via `gh` | Never writes application code |
 | doc-writer | `docs/`, `CLAUDE.md` | Never writes application code |
+
+> **Intra-domain parallelization:** Multiple agents of the same type may run concurrently on non-overlapping file groups. Agents in the same domain must NOT modify shared files — if file conflicts exist, merge those tasks into a single agent.
 
 ### Standards
 
