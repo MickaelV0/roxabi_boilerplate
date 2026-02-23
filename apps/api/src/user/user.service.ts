@@ -20,6 +20,8 @@ import { EmailConfirmationMismatchException } from './exceptions/email-confirmat
 import { TransferTargetNotMemberException } from './exceptions/transfer-target-not-member.exception.js'
 import { UserNotFoundException } from './exceptions/user-not-found.exception.js'
 
+type DrizzleTx = Parameters<Parameters<DrizzleDB['transaction']>[0]>[0]
+
 const profileColumns = {
   id: users.id,
   fullName: users.name,
@@ -170,7 +172,7 @@ export class UserService {
   }
 
   private async processOrgTransfer(
-    tx: Parameters<Parameters<DrizzleDB['transaction']>[0]>[0],
+    tx: DrizzleTx,
     resolution: Extract<OrgOwnershipResolution, { action: 'transfer' }>,
     now: Date
   ) {
@@ -205,7 +207,7 @@ export class UserService {
   }
 
   private async processOrgDeletion(
-    tx: Parameters<Parameters<DrizzleDB['transaction']>[0]>[0],
+    tx: DrizzleTx,
     organizationId: string,
     now: Date,
     deleteScheduledFor: Date
@@ -230,7 +232,7 @@ export class UserService {
   }
 
   private async processOrgResolution(
-    tx: Parameters<Parameters<DrizzleDB['transaction']>[0]>[0],
+    tx: DrizzleTx,
     resolution: OrgOwnershipResolution,
     userId: string,
     now: Date,
@@ -332,7 +334,7 @@ export class UserService {
   }
 
   private async anonymizeUserRecords(
-    tx: Parameters<Parameters<DrizzleDB['transaction']>[0]>[0],
+    tx: DrizzleTx,
     userId: string,
     originalEmail: string,
     now: Date
@@ -364,11 +366,7 @@ export class UserService {
     await tx.delete(invitations).where(eq(invitations.email, originalEmail))
   }
 
-  private async purgeOwnedOrganizations(
-    tx: Parameters<Parameters<DrizzleDB['transaction']>[0]>[0],
-    userId: string,
-    now: Date
-  ) {
+  private async purgeOwnedOrganizations(tx: DrizzleTx, userId: string, now: Date) {
     const ownedDeletedOrgs = await tx
       .select({ orgId: organizations.id })
       .from(members)

@@ -122,8 +122,8 @@ function buildEmailVerificationConfig(emailProvider: EmailProvider, config: Auth
         await emailProvider.send({
           to: user.email,
           subject: 'Verify your email',
-          html: `<p>Click <a href="${escapeHtml(url)}">here</a> to verify your email.</p>`,
-          text: `Verify your email: ${url}`,
+          html: `<p>Click <a href="${escapeHtml(emailUrl)}">here</a> to verify your email.</p>`,
+          text: `Verify your email: ${emailUrl}`,
         })
       }
     },
@@ -213,6 +213,9 @@ export function createBetterAuth(
               if (!user.image) {
                 updateFields.image = `${DICEBEAR_CDN_BASE}/lorelei/svg?seed=${user.id}`
               }
+              // Sanitize locale: only allow supported locales, default to 'en'.
+              // The `input: true` on additionalFields allows arbitrary strings from
+              // the client, so we enforce valid values server-side.
               const userLocale = (user as UserWithLocale).locale
               if (userLocale && !SUPPORTED_LOCALES.includes(userLocale)) {
                 updateFields.locale = 'en'

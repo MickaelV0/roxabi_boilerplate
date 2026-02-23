@@ -19,6 +19,21 @@ import { m } from '@/paraglide/messages'
 
 import { ColorPicker } from './ColorPicker'
 
+type PresetState = {
+  activeBase: string
+  activeColor: string | null
+  onBaseClick: (preset: ShadcnPreset) => void
+  onColorClick: (preset: ShadcnPreset) => void
+}
+
+type ThemeActions = {
+  onColorChange: (key: (typeof SEED_COLOR_KEYS)[number], v: string) => void
+  onFontFamilyChange: (v: string) => void
+  onFontSizeChange: (v: number[]) => void
+  onRadiusChange: (v: number[]) => void
+  onReset: () => void
+}
+
 type ThemeEditorProps = {
   config: ThemeConfig
   onConfigChange: (config: ThemeConfig) => void
@@ -185,7 +200,7 @@ function SeedColorsSection({
   )
 }
 
-function TypographySection({
+function ThemeFontControls({
   config,
   onFontFamilyChange,
   onFontSizeChange,
@@ -353,32 +368,18 @@ function ShadowsSection({
 function ThemeEditorSidebar({
   config,
   onConfigChange,
-  activeBase,
-  activeColor,
+  presetState,
+  themeActions,
   onToggle,
-  onBaseClick,
-  onColorClick,
-  onColorChange,
-  onFontFamilyChange,
-  onFontSizeChange,
-  onRadiusChange,
-  onReset,
   sidebarRef,
   announcementRef,
   isOpen,
 }: {
   config: ThemeConfig
   onConfigChange: (config: ThemeConfig) => void
-  activeBase: string
-  activeColor: string | null
+  presetState: PresetState
+  themeActions: ThemeActions
   onToggle: () => void
-  onBaseClick: (preset: ShadcnPreset) => void
-  onColorClick: (preset: ShadcnPreset) => void
-  onColorChange: (key: (typeof SEED_COLOR_KEYS)[number], v: string) => void
-  onFontFamilyChange: (v: string) => void
-  onFontSizeChange: (v: number[]) => void
-  onRadiusChange: (v: number[]) => void
-  onReset: () => void
   sidebarRef: React.RefObject<HTMLElement | null>
   announcementRef: React.RefObject<HTMLOutputElement | null>
   isOpen: boolean
@@ -406,25 +407,31 @@ function ThemeEditorSidebar({
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4">
-          <BasePresetsSection activeBase={activeBase} onBaseClick={onBaseClick} />
-          <ColorPresetsSection activeColor={activeColor} onColorClick={onColorClick} />
-          <Separator className="my-4" />
-          <SeedColorsSection config={config} onColorChange={onColorChange} />
-          <Separator className="my-4" />
-          <TypographySection
-            config={config}
-            onFontFamilyChange={onFontFamilyChange}
-            onFontSizeChange={onFontSizeChange}
+          <BasePresetsSection
+            activeBase={presetState.activeBase}
+            onBaseClick={presetState.onBaseClick}
+          />
+          <ColorPresetsSection
+            activeColor={presetState.activeColor}
+            onColorClick={presetState.onColorClick}
           />
           <Separator className="my-4" />
-          <RadiusSection config={config} onRadiusChange={onRadiusChange} />
+          <SeedColorsSection config={config} onColorChange={themeActions.onColorChange} />
+          <Separator className="my-4" />
+          <ThemeFontControls
+            config={config}
+            onFontFamilyChange={themeActions.onFontFamilyChange}
+            onFontSizeChange={themeActions.onFontSizeChange}
+          />
+          <Separator className="my-4" />
+          <RadiusSection config={config} onRadiusChange={themeActions.onRadiusChange} />
           <Separator className="my-4" />
           <ShadowsSection
             config={config}
             onShadowChange={(shadow) => onConfigChange({ ...config, shadows: shadow })}
           />
           <Separator className="my-4" />
-          <Button variant="outline" size="sm" className="w-full" onClick={onReset}>
+          <Button variant="outline" size="sm" className="w-full" onClick={themeActions.onReset}>
             <RotateCcwIcon className="size-3.5" />
             {m.ds_theme_reset()}
           </Button>
@@ -539,31 +546,34 @@ export function ThemeEditor({
       <ThemeEditorSidebar
         config={config}
         onConfigChange={onConfigChange}
-        activeBase={activeBase}
-        activeColor={activeColor}
+        presetState={{
+          activeBase,
+          activeColor,
+          onBaseClick: handleBaseClick,
+          onColorClick: handleColorClick,
+        }}
+        themeActions={{
+          onColorChange: handleColorChange,
+          onFontFamilyChange: (v) =>
+            onConfigChange({ ...config, typography: { ...config.typography, fontFamily: v } }),
+          onFontSizeChange: (values) => {
+            const px = values[0]
+            if (px !== undefined)
+              onConfigChange({
+                ...config,
+                typography: { ...config.typography, baseFontSize: `${px}px` },
+              })
+          },
+          onRadiusChange: (values) => {
+            const rem = values[0]
+            if (rem !== undefined) onConfigChange({ ...config, radius: `${rem}rem` })
+          },
+          onReset: () => {
+            onReset()
+            announce(m.ds_theme_announce_reset())
+          },
+        }}
         onToggle={onToggle}
-        onBaseClick={handleBaseClick}
-        onColorClick={handleColorClick}
-        onColorChange={handleColorChange}
-        onFontFamilyChange={(v) =>
-          onConfigChange({ ...config, typography: { ...config.typography, fontFamily: v } })
-        }
-        onFontSizeChange={(values) => {
-          const px = values[0]
-          if (px !== undefined)
-            onConfigChange({
-              ...config,
-              typography: { ...config.typography, baseFontSize: `${px}px` },
-            })
-        }}
-        onRadiusChange={(values) => {
-          const rem = values[0]
-          if (rem !== undefined) onConfigChange({ ...config, radius: `${rem}rem` })
-        }}
-        onReset={() => {
-          onReset()
-          announce(m.ds_theme_announce_reset())
-        }}
         sidebarRef={sidebarRef}
         announcementRef={announcementRef}
         isOpen={isOpen}

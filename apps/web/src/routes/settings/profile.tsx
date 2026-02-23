@@ -123,20 +123,32 @@ function useProfileData(user: { id: string; name: string | null } | undefined): 
     if (computed) set({ fullName: computed })
   }, [s.firstName, s.lastName, s.fullNameCustomized, s.loaded, set])
 
-  return {
-    ...s,
-    setFirstName: (v) => set({ firstName: v }),
-    setLastName: (v) => set({ lastName: v }),
-    setFullName: (v) => set({ fullName: v }),
-    setFullNameCustomized: (v) => set({ fullNameCustomized: v }),
-    setAvatarStyle: (v) => set({ avatarStyle: v }),
-    setAvatarSeed: (v) => set({ avatarSeed: v }),
-    setAvatarOptions: (v) =>
+  const setFirstName = useCallback((v: string) => set({ firstName: v }), [set])
+  const setLastName = useCallback((v: string) => set({ lastName: v }), [set])
+  const setFullName = useCallback((v: string) => set({ fullName: v }), [set])
+  const setFullNameCustomized = useCallback((v: boolean) => set({ fullNameCustomized: v }), [set])
+  const setAvatarStyle = useCallback((v: AvatarStyle) => set({ avatarStyle: v }), [set])
+  const setAvatarSeed = useCallback((v: string) => set({ avatarSeed: v }), [set])
+  const setAvatarOptions = useCallback(
+    (v: Record<string, unknown> | ((prev: Record<string, unknown>) => Record<string, unknown>)) =>
       setS((prev) => ({
         ...prev,
         avatarOptions: typeof v === 'function' ? v(prev.avatarOptions) : v,
       })),
-    setSaving: (v) => set({ saving: v }),
+    []
+  )
+  const setSaving = useCallback((v: boolean) => set({ saving: v }), [set])
+
+  return {
+    ...s,
+    setFirstName,
+    setLastName,
+    setFullName,
+    setFullNameCustomized,
+    setAvatarStyle,
+    setAvatarSeed,
+    setAvatarOptions,
+    setSaving,
   }
 }
 

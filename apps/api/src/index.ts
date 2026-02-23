@@ -50,8 +50,12 @@ async function configureSecurityHeaders(app: NestFastifyApplication) {
     )
 }
 
-function configureCors(app: NestFastifyApplication, configService: ConfigService, logger: Logger) {
-  const nodeEnv = configService.get<string>('NODE_ENV', 'development')
+function configureCors(
+  app: NestFastifyApplication,
+  configService: ConfigService,
+  logger: Logger,
+  nodeEnv: string
+) {
   const isProduction = nodeEnv === 'production'
   const rawOrigins = configService.get<string>('CORS_ORIGIN', 'http://localhost:3000')
   const corsResult = parseCorsOrigins(rawOrigins, isProduction)
@@ -60,8 +64,6 @@ function configureCors(app: NestFastifyApplication, configService: ConfigService
     logger.warn(corsResult.warning)
   }
   app.enableCors({ origin: corsResult.origins, credentials: true })
-
-  return nodeEnv
 }
 
 function configureSwagger(
@@ -121,7 +123,8 @@ async function bootstrap() {
     })
   )
 
-  const nodeEnv = configureCors(app, configService, logger)
+  const nodeEnv = configService.get<string>('NODE_ENV', 'development')
+  configureCors(app, configService, logger, nodeEnv)
   configureSwagger(app, configService, nodeEnv, logger)
 
   const port = configService.get<number>('PORT', 4000)

@@ -430,6 +430,19 @@ function DesignSystemPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const theme = useDesignSystemTheme()
 
+  const handleBaseSelect = useCallback(
+    (preset: ShadcnPreset) => theme.applyComposed(preset.name, theme.activeColor),
+    [theme.applyComposed, theme.activeColor]
+  )
+  const handleColorSelect = useCallback(
+    (preset: ShadcnPreset | null) => theme.applyComposed(theme.activeBase, preset?.name ?? null),
+    [theme.applyComposed, theme.activeBase]
+  )
+  const handleReset = useCallback(
+    () => theme.applyComposed('zinc', null, true),
+    [theme.applyComposed]
+  )
+
   return (
     <>
       <ThemeScript />
@@ -444,16 +457,9 @@ function DesignSystemPage() {
       <ThemeEditor
         config={theme.themeConfig}
         onConfigChange={theme.onConfigChange}
-        onBaseSelect={useCallback(
-          (preset: ShadcnPreset) => theme.applyComposed(preset.name, theme.activeColor),
-          [theme.applyComposed, theme.activeColor]
-        )}
-        onColorSelect={useCallback(
-          (preset: ShadcnPreset | null) =>
-            theme.applyComposed(theme.activeBase, preset?.name ?? null),
-          [theme.applyComposed, theme.activeBase]
-        )}
-        onReset={useCallback(() => theme.applyComposed('zinc', null, true), [theme.applyComposed])}
+        onBaseSelect={handleBaseSelect}
+        onColorSelect={handleColorSelect}
+        onReset={handleReset}
         activeBase={theme.activeBase}
         activeColor={theme.activeColor}
         isOpen={sidebarOpen}

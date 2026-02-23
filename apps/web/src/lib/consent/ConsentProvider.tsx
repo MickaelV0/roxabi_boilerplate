@@ -5,7 +5,7 @@ import type {
   ConsentCookiePayload,
   ConsentState,
 } from '@repo/types'
-import { createContext, type ReactNode, useEffect, useState } from 'react'
+import { createContext, type ReactNode, useEffect, useMemo, useState } from 'react'
 import { ConsentBanner } from '@/components/consent/ConsentBanner'
 import { ConsentModal } from '@/components/consent/ConsentModal'
 import { legalConfig } from '@/config/legal.config'
@@ -169,10 +169,10 @@ export function ConsentProvider({ children, initialConsent: serverConsent }: Con
 
   useDbReconciliation(session.data?.user?.id, setConsent, setShowBanner)
 
-  const { acceptAll, rejectAll, saveCustom, openSettings } = createConsentActions(
-    setConsent,
-    setShowBanner,
-    setModalOpen
+  const { acceptAll, rejectAll, saveCustom, openSettings } = useMemo(
+    () => createConsentActions(setConsent, setShowBanner, setModalOpen),
+    // setConsent, setShowBanner, setModalOpen are useState setters (stable identity)
+    []
   )
 
   const value: ConsentContextValue = {
