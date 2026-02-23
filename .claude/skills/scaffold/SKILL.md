@@ -102,6 +102,14 @@ Analyze file paths from the spec to recommend agents:
 
 **Tier S:** skip agent recommendation (single session).
 
+**Intra-domain parallelization:** When a single domain has 4+ tasks touching independent file groups (no shared files), recommend spawning multiple agents of the same type. Each agent receives a distinct subset of tasks.
+
+Example: A large frontend feature might spawn:
+- `frontend-dev` (pages) — routing, page components
+- `frontend-dev` (components) — shared UI components, hooks
+
+Only recommend this for Tier F-full with clearly separable file groups. Default to 1 agent per domain otherwise.
+
 #### 2d. Break into Tasks
 
 For each task:
@@ -109,6 +117,7 @@ For each task:
 - **Files:** Specific file paths to create or modify
 - **Agent:** Which agent owns this task
 - **Dependencies:** Which tasks must complete first
+- **Parallel-safe:** Yes/No — can this task run concurrently with other tasks in the same domain? (Yes if no shared files with sibling tasks)
 
 Order: types first → backend → frontend → tests → docs → config.
 
@@ -267,6 +276,8 @@ Spawn agents based on the plan from Step 2.
 
 **Single-domain:** use `Task` tool (subagents within the session).
 **Multi-domain:** use `TeamCreate` (independent agent sessions).
+
+**Intra-domain parallel:** When the plan from Step 2 recommends multiple agents in the same domain, spawn them as separate `Task` calls (subagents) or as separate team members (TeamCreate). Each agent receives only its assigned task subset. Agents in the same domain must NOT share files — if file conflicts are detected during planning, merge those tasks into a single agent.
 
 **Implementation order (RED → GREEN → REFACTOR):**
 
