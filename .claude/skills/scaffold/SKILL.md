@@ -297,6 +297,12 @@ For each criterion (SC-1, SC-2, ...):
 3. Each micro-task gets a verification command (or explicit `[manual]` marker if no automated check is possible)
 4. Assign agents per Step 2c file-path rules
 
+**RED-phase verification:** RED tasks use structural verification (grep for expected test structure) rather than running tests, since tests are expected to fail before implementation. Verification confirms the test file exists with the expected describe/it blocks.
+
+**Verification command safety:** Always single-quote literal strings in grep arguments to prevent shell expansion (use `grep -q 'expected' file` not `grep -q "expected" file`). Verification commands must be non-destructive and read-only. Permitted prefixes: `bun run test`, `bun run typecheck`, `bun run lint`, `grep -q`, `test -f`, `bun run db:generate --check`. Commands that write files, delete data, or modify state are forbidden.
+
+**Per-slice floor:** Each slice must produce at least 3 micro-tasks. If a slice generates fewer than 3, merge it with an adjacent slice or expand the highest-complexity affordances into additional sub-tasks.
+
 **Each micro-task includes:**
 
 | Field | Description |
@@ -316,6 +322,8 @@ For each criterion (SC-1, SC-2, ...):
 
 #### 4f.3. Detect Parallelization
 
+**`[P]` definition:** `[P]` means this task has no file-path or import conflict with ANY other `[P]`-marked task in the same slice and phase. All `[P]`-marked tasks within a slice+phase form a maximal independent set that can safely execute in parallel.
+
 For each pair of micro-tasks within the same slice:
 
 1. **File-path check:** Do they touch the same file? → not parallel-safe
@@ -333,6 +341,8 @@ Calculate the feature-level complexity score (from #280 rubric) and derive the t
 
 **If task count exceeds 30:** Warn the user via `AskUserQuestion` and suggest splitting via `/bootstrap` Gate 2.5 or manual decomposition. Show the full task list — no truncation. User can proceed or return to spec.
 
+**If task count is below the minimum floor (3):** Warn the user that the feature may not have enough granularity for micro-task benefits. Suggest expanding the highest-complexity affordances into additional sub-tasks or falling back to the text-based task list from Step 2d.
+
 #### 4f.5. Run Consistency Check
 
 Bidirectional spec-to-task validation:
@@ -346,6 +356,8 @@ Bidirectional spec-to-task validation:
 | Quality | Linting fixes, formatting, barrel/index export updates |
 | Build | Package.json changes, build configuration, environment setup |
 | Documentation | Inline code comments, JSDoc, README updates |
+
+**Scoping rule:** Exempt categories apply only to tasks whose *sole purpose* is the listed activity. If a task also implements spec-traced logic (e.g., a Drizzle schema that is part of a feature's data model), it must have a spec trace regardless of incidental infrastructure work.
 
 3. **Generate consistency report:**
    - Criteria covered: N/total
@@ -397,11 +409,12 @@ generated: {ISO timestamp}
 #### Task 1: {Description} [P] → {agent}
 - **File:** {path}
 - **Snippet:** {code skeleton}
-- **Verify:** `{command}` ({ready|deferred})
+- **Verify:** `{command}` ({ready|deferred|manual})
 - **Expected:** {output}
 - **Time:** {N} min
 - **Difficulty:** {1-5}
 - **Traces:** {SC-N, U1→N1→S1}
+- **Phase:** {RED|GREEN|REFACTOR}
 
 #### Task 2: {Description} → {agent}
 ...
@@ -409,32 +422,15 @@ generated: {ISO timestamp}
 #### RED-GATE: RED complete V1 → tester
 - **Verify:** All test tasks for V1 marked complete
 - **Phase:** RED-GATE
+
+> **Pre-#283:** The orchestrator manages RED-GATE ordering by spawning GREEN agents only after the tester completes RED tasks for each slice. Post-#283: Agents check the sentinel task status directly via TaskList.
 ```
 
 **Bootstrap context:** If an analysis exists at `analyses/{issue}-*.mdx`, include its Conclusions and selected Shape sections under `## Bootstrap Context`. This gives domain agents architectural rationale without re-reading the analysis.
 
 Create `plans/` directory if it doesn't exist. The directory is tracked in git (not gitignored), lives at project root alongside `analyses/` and `specs/`.
 
-#### 4f.7. Commit Plan Artifact
-
-Commit the plan as a **standalone commit** (separate from the Step 4e stub commit, never amending):
-
-```bash
-mkdir -p plans
-git add plans/{issue}-{slug}.mdx
-git commit -m "$(cat <<'EOF'
-docs(<scope>): add scaffold plan for <feature>
-
-Micro-task plan with consistency report. Generated from spec.
-
-Refs #<issue_number>
-
-Co-Authored-By: Claude <model> <noreply@anthropic.com>
-EOF
-)"
-```
-
-#### 4f.8. Present for Approval
+#### 4f.7. Present for Approval
 
 Present the micro-task queue and consistency report to the user via `AskUserQuestion`:
 
@@ -456,9 +452,28 @@ Slices:
 ```
 
 Options:
-- **Approve** — create TaskCreate entries and proceed to Step 5
+- **Approve** — commit the plan artifact, create TaskCreate entries, and proceed to Step 5
 - **Modify** — regenerate with adjusted parameters or manual task edits (new plan commit, never amend)
 - **Return to spec** — go back to refine the spec
+
+#### 4f.8. Commit Plan Artifact
+
+On approval, commit the plan as a **standalone commit** (separate from the Step 4e stub commit, never amending):
+
+```bash
+mkdir -p plans
+git add plans/{issue}-{slug}.mdx
+git commit -m "$(cat <<'EOF'
+docs(<scope>): add scaffold plan for <feature>
+
+Micro-task plan with consistency report. Generated from spec.
+
+Refs #<issue_number>
+
+Co-Authored-By: Claude <model> <noreply@anthropic.com>
+EOF
+)"
+```
 
 #### 4f.9. Dispatch TaskCreate Entries
 
@@ -482,7 +497,7 @@ On approval, create `TaskCreate` entries for each micro-task with metadata:
 |-------|------|--------|-------------|
 | `taskDifficulty` | number | 1-5 | Per-task difficulty (not feature complexity) |
 | `verificationCommand` | string | bash command | Executable check that confirms completion |
-| `verificationStatus` | string | `"ready"` or `"deferred"` | `"ready"` = run immediately. `"deferred"` = wait for RED-GATE sentinel |
+| `verificationStatus` | string | `"ready"`, `"deferred"`, or `"manual"` | `"ready"` = run immediately. `"deferred"` = wait for RED-GATE sentinel. `"manual"` = no automated check available, agent marks complete after code/file inspection. |
 | `expectedOutput` | string | text | What success looks like |
 | `estimatedMinutes` | number | 2-10 | Target: 2-5 min |
 | `parallel` | boolean | true/false | `true` if `[P]` marked |
@@ -522,7 +537,7 @@ Spawn agents based on the plan from Step 2.
 1. **RED** — Spawn `tester`: write failing tests from spec acceptance criteria (or from RED-phase micro-tasks). After completing all test tasks for a slice, tester marks the `"RED complete: V{N}"` sentinel task as completed.
 2. **GREEN** — Spawn domain agents in parallel: implement to pass the tests. Before running a verification command, check the `verificationStatus`:
    - `"ready"` → run the verification command immediately after completing the task
-   - `"deferred"` → check if the RED-GATE sentinel for this task's slice is completed. If yes → run verification. If no → skip verification, continue to next task.
+   - `"deferred"` → check if the RED-GATE sentinel for this task's slice is completed. If yes → run verification. If no → skip verification, continue to next task. If no other tasks are available and the RED-GATE sentinel for the current slice is incomplete, message the lead and wait for the RED phase to complete before running deferred verification.
 3. **REFACTOR** — Domain agents refactor while keeping tests green
 4. **Verify** — Spawn `tester`: verify coverage and add edge cases
 
@@ -566,6 +581,8 @@ Scaffold Complete
     - packages/types/src/<feature>.ts
     - apps/api/src/<feature>/controller.ts
     - ...
+
+  Verification: {N}/{total} passed first try ({percentage}%)
 
   PR: #<pr_number>
 

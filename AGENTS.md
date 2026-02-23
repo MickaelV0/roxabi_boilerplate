@@ -68,6 +68,8 @@ Multiple agents of the same type may run concurrently on non-overlapping file gr
 
 ### Micro-Task Consumption Protocol
 
+> **Pre-#283 behavior:** Before shared task list infrastructure ships (#283), micro-tasks are delivered to agents via spawn prompts (Task tool description or TeamCreate instructions). The TaskList/TaskUpdate protocol below applies when shared task lists are available. Until then, the orchestrator manages task assignment and sequencing.
+
 When `/scaffold` Step 4f generates micro-tasks, agents receive structured work units via `TaskCreate` entries instead of text-based plans. Each micro-task includes metadata (see scaffold SKILL.md Step 4f.9 for the full schema).
 
 **Claiming tasks:**
@@ -79,6 +81,7 @@ When `/scaffold` Step 4f generates micro-tasks, agents receive structured work u
 1. After completing a task, check `verificationStatus` in task metadata
 2. `"ready"` → run the `verificationCommand` immediately
 3. `"deferred"` → check if the RED-GATE sentinel for this task's `slice` is marked completed. If yes → run verification. If no → skip, continue to next task.
+4. `"manual"` → no automated command. Agent verifies by inspecting the file/code and marks task complete.
 
 **Handling failures:**
 1. Verification fails → fix and re-verify (max 3 retries)
@@ -89,6 +92,7 @@ When `/scaffold` Step 4f generates micro-tasks, agents receive structured work u
 - Each slice has a `"RED complete: V{N}"` sentinel task assigned to tester with `phase: "RED-GATE"`
 - Tester marks the sentinel complete after finishing all RED tasks for that slice
 - Domain agents check the sentinel before running deferred verification commands
+- **Pre-#283:** The orchestrator manages RED-GATE ordering by spawning GREEN agents only after the tester completes RED tasks for each slice. Post-#283: Agents check the sentinel task status directly via TaskList.
 
 ### Standards
 

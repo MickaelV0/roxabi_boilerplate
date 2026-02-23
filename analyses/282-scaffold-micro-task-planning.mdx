@@ -97,8 +97,8 @@ The generation algorithm has two modes based on spec content:
    b. Generate 1-5 micro-tasks depending on criterion complexity
    c. Generate verification commands using file-type heuristics:
       - `.ts/.tsx` files → prefer `bun run test {adjacent-test-file}` if test exists, otherwise `bun run typecheck`
-      - `.md/.mdx` files → `grep -q "{expected content}" {file}`
-      - `.json/.yaml` config → `bun run lint` + `grep -q "{key}" {file}`
+      - `.md/.mdx` files → `grep -q '{expected content}' {file}`
+      - `.json/.yaml` config → `bun run lint` + `grep -q '{key}' {file}`
       - Other → `[manual]` checklist
    d. Assign agents and mark [P] based on file-path analysis
 
@@ -110,9 +110,9 @@ Verification commands are executable checks that confirm a micro-task is complet
 |------------|----------------------|---------|
 | **Application code** (`.ts/.tsx`) | Unit/integration test | `bun run test apps/api/test/auth.test.ts` |
 | **Type definitions** | Typecheck | `bun run typecheck --filter=@repo/types` |
-| **Config files** | Lint + specific check | `bun run lint && grep -q "key" path/to/config.json` |
-| **Skill/agent files** (`.md`) | Grep for expected content | `grep -q "Step 4f" .claude/skills/scaffold/SKILL.md` |
-| **Documentation** (`.mdx`) | File exists + content check | `test -f docs/path.mdx && grep -q "## Section" docs/path.mdx` |
+| **Config files** | Lint + specific check | `bun run lint && grep -q 'key' path/to/config.json` |
+| **Skill/agent files** (`.md`) | Grep for expected content | `grep -q 'Step 4f' .claude/skills/scaffold/SKILL.md` |
+| **Documentation** (`.mdx`) | File exists + content check | `test -f docs/path.mdx && grep -q '## Section' docs/path.mdx` |
 | **Migration files** | Migrate + check schema | `bun run db:migrate && bun run db:generate --check` |
 
 When no automated verification is possible, the task includes `[manual]` and a human-readable checklist instead of a command.
@@ -196,6 +196,11 @@ generated: {ISO timestamp}
 - Criteria covered: {N}/{total}
 - Uncovered criteria: {list or "none"}
 - Tasks without spec backing: {list or "none"}
+- Gold plating exemptions applied: {count}
+
+## Bootstrap Context
+
+{Conclusions and selected shape from analyses/{issue}-*.mdx, if exists}
 
 ## Micro-Tasks
 

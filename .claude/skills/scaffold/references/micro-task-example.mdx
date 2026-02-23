@@ -31,6 +31,8 @@ And Slices:
 
 ## Generated Micro-Tasks
 
+> **Ordering note:** Tasks are listed in generation order (data stores → code handlers → UI → tests). Execution follows phase order: RED (test tasks) first, then GREEN (implementation tasks), then REFACTOR. The `Phase` field on each task determines execution sequence.
+
 ### Slice V1: Auth + profile fetch
 
 #### Task 1: Create user profiles schema [P] -> backend-dev
@@ -41,40 +43,43 @@ And Slices:
 - **Time:** 3 min
 - **Difficulty:** 2
 - **Traces:** S2
+- **Phase:** GREEN
 
 #### Task 2: Add JWT validation middleware -> backend-dev
 - **File:** `apps/api/src/auth/jwt.guard.ts`
 - **Snippet:** `@Injectable() export class JwtGuard implements CanActivate { ... }`
-- **Verify:** `bun run test apps/api/src/auth/jwt.guard.spec.ts` (deferred)
+- **Verify:** `bun run test apps/api/src/auth/jwt.guard.test.ts` (deferred)
 - **Expected:** JWT validation passes for valid tokens, rejects invalid
 - **Time:** 5 min
 - **Difficulty:** 3
 - **Traces:** N1, S1
+- **Phase:** GREEN
 
 #### Task 3: Implement profile fetcher service -> backend-dev
 - **File:** `apps/api/src/users/users.service.ts`
 - **Snippet:** `async getProfile(userId: string): Promise<UserProfile> { ... }`
-- **Verify:** `bun run test apps/api/src/users/users.service.spec.ts` (deferred)
+- **Verify:** `bun run test apps/api/src/users/users.service.test.ts` (deferred)
 - **Expected:** Returns user profile for valid ID, throws for invalid
 - **Time:** 4 min
 - **Difficulty:** 3
 - **Traces:** N2, S2
+- **Phase:** GREEN
 
 #### Task 4: Write auth guard tests -> tester
-- **File:** `apps/api/src/auth/jwt.guard.spec.ts`
+- **File:** `apps/api/src/auth/jwt.guard.test.ts`
 - **Snippet:** `describe('JwtGuard', () => { it('should validate token', ...) })`
-- **Verify:** `bun run test apps/api/src/auth/jwt.guard.spec.ts` (ready)
-- **Expected:** Tests fail (RED phase — no implementation yet)
+- **Verify:** `grep -q 'describe.*JwtGuard' apps/api/src/auth/jwt.guard.test.ts` (ready)
+- **Expected:** Test file contains expected describe/it blocks
 - **Time:** 3 min
 - **Difficulty:** 2
 - **Traces:** N1
 - **Phase:** RED
 
 #### Task 5: Write profile service tests -> tester
-- **File:** `apps/api/src/users/users.service.spec.ts`
+- **File:** `apps/api/src/users/users.service.test.ts`
 - **Snippet:** `describe('UsersService', () => { it('should fetch profile', ...) })`
-- **Verify:** `bun run test apps/api/src/users/users.service.spec.ts` (ready)
-- **Expected:** Tests fail (RED phase — no implementation yet)
+- **Verify:** `grep -q 'describe.*UsersService' apps/api/src/users/users.service.test.ts` (ready)
+- **Expected:** Test file contains expected describe/it blocks
 - **Time:** 3 min
 - **Difficulty:** 2
 - **Traces:** N2
@@ -84,6 +89,8 @@ And Slices:
 - **Verify:** All test tasks for V1 marked complete
 - **Phase:** RED-GATE
 
+> **Pre-#283:** The orchestrator manages RED-GATE ordering by spawning GREEN agents only after the tester completes RED tasks for each slice. Post-#283: Agents check the sentinel task status directly via TaskList.
+
 ## TaskCreate Metadata Example
 
 Task 2 (JWT validation middleware) would produce:
@@ -91,7 +98,7 @@ Task 2 (JWT validation middleware) would produce:
 ```json
 {
   "taskDifficulty": 3,
-  "verificationCommand": "bun run test apps/api/src/auth/jwt.guard.spec.ts",
+  "verificationCommand": "bun run test apps/api/src/auth/jwt.guard.test.ts",
   "verificationStatus": "deferred",
   "expectedOutput": "JWT validation passes for valid tokens, rejects invalid",
   "estimatedMinutes": 5,
@@ -103,6 +110,8 @@ Task 2 (JWT validation middleware) would produce:
 ```
 
 ## Parallelization Analysis
+
+> This analysis is illustrative, covering key conflict patterns (file overlap, import inference, test independence). A complete analysis would check all N×(N-1)/2 pairs within the slice.
 
 - Task 1 (schema) and Task 4 (auth tests): different files, no import overlap -> both `[P]`
 - Task 2 (auth guard) imports from Task 1's schema indirectly (N1->S1 wiring) -> not parallel with Task 1

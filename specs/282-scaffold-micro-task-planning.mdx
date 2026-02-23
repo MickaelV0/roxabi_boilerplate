@@ -142,7 +142,7 @@ Each micro-task created via N6 carries this metadata:
 |-------|------|--------|-------------|
 | `taskDifficulty` | number | 1-5 | Per-task difficulty (not feature complexity). 1=trivial, 5=complex multi-concern. |
 | `verificationCommand` | string | bash command | Executable check that confirms completion. |
-| `verificationStatus` | string | `"ready"` or `"deferred"` | `"ready"` = run immediately. `"deferred"` = wait for RED-GATE sentinel. |
+| `verificationStatus` | string | `"ready"`, `"deferred"`, or `"manual"` | `"ready"` = run immediately. `"deferred"` = wait for RED-GATE sentinel. `"manual"` = no automated check available, agent marks complete after code/file inspection. |
 | `expectedOutput` | string | text | What success looks like when the verification command runs. |
 | `estimatedMinutes` | number | 2-10 | Target: 2-5 min. May reach 8-10 for atomic operations. |
 | `parallel` | boolean | true/false | `true` if `[P]` (no file/import conflicts with sibling tasks). |
@@ -192,11 +192,12 @@ generated: {ISO timestamp}
 #### Task 1: {Description} [P] → {agent}
 - **File:** {path}
 - **Snippet:** {code skeleton}
-- **Verify:** `{command}` ({ready|deferred})
+- **Verify:** `{command}` ({ready|deferred|manual})
 - **Expected:** {output}
 - **Time:** {N} min
 - **Difficulty:** {1-5}
 - **Traces:** {SC-N, U1→N1→S1}
+- **Phase:** {RED|GREEN|REFACTOR}
 
 #### Task 2: {Description} → {agent}
 ...
