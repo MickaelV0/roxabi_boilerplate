@@ -52,6 +52,9 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$DB_NAME" <<-EOSQL
   GRANT USAGE ON SCHEMA drizzle TO ${APP_USER};
   GRANT SELECT ON ALL TABLES IN SCHEMA drizzle TO ${APP_USER};
   ALTER DEFAULT PRIVILEGES IN SCHEMA drizzle GRANT SELECT ON TABLES TO ${APP_USER};
+
+  -- Grant app_user role to the app user so SET LOCAL ROLE works
+  GRANT app_user TO ${APP_USER};
 EOSQL
 
 echo "Application user '$APP_USER' created successfully."

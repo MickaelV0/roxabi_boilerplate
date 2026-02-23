@@ -54,6 +54,8 @@ export class TenantService {
     }
 
     return this.db.transaction(async (tx) => {
+      // Switch to app_user role — RLS policies are enforced for this role
+      await tx.execute(sql`SET LOCAL ROLE app_user`)
       // Set tenant context for this transaction — RLS policies read this value
       await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`)
 

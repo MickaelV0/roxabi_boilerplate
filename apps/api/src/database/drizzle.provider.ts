@@ -33,7 +33,7 @@ export const postgresClientProvider = {
     if (!config.get<string>('DATABASE_APP_URL')) {
       logger.warn(
         'DATABASE_APP_URL not set — connecting as table owner. ' +
-          'RLS policies will be BYPASSED. Set DATABASE_APP_URL to use the roxabi_app user.'
+          'RLS is still enforced via SET LOCAL ROLE. Set DATABASE_APP_URL for defense-in-depth.'
       )
     }
 

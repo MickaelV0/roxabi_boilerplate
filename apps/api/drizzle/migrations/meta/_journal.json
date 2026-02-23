@@ -64,6 +64,13 @@
       "when": 1771759053313,
       "tag": "0008_lush_marvex",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1771828342887,
+      "tag": "0009_grant-app-user-role",
+      "breakpoints": true
     }
   ]
 }

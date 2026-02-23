@@ -403,6 +403,9 @@ function setupAppUserForBranch(dbName: string): void {
     ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO ${appUser};
     ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO ${appUser};
 
+    -- Grant app_user role so SET LOCAL ROLE app_user works at runtime
+    GRANT app_user TO ${appUser};
+
     -- Grant drizzle schema access
     CREATE SCHEMA IF NOT EXISTS drizzle;
     GRANT USAGE ON SCHEMA drizzle TO ${appUser};
@@ -414,9 +417,7 @@ function setupAppUserForBranch(dbName: string): void {
   if (result.status !== 0) {
     // Non-fatal: the app user may not exist yet (e.g., fresh Docker setup before init ran)
     log(`Warning: Failed to grant permissions to '${appUser}': ${result.stderr}`)
-    log(
-      "If roxabi_app doesn't exist yet, run: cd apps/api && bun run db:setup-app-user"
-    )
+    log("If roxabi_app doesn't exist yet, run: cd apps/api && bun run db:setup-app-user")
   } else {
     log(`Permissions granted to '${appUser}'.`)
   }
@@ -461,6 +462,13 @@ function runMigrations(databaseUrl: string, dbName: string): void {
     if (rlsResult.status !== 0) {
       log(`Warning: RLS infrastructure returned non-zero: ${rlsResult.stderr}`)
     }
+  }
+
+  // Step 2a-bis: Grant app_user to current_user so SET LOCAL ROLE works
+  const grantRoleSql = `GRANT app_user TO current_user;`
+  const grantRoleResult = runSql(dbName, grantRoleSql)
+  if (grantRoleResult.status !== 0) {
+    log(`Warning: GRANT app_user TO current_user returned non-zero: ${grantRoleResult.stderr}`)
   }
 
   // Step 2a: Apply RLS policies to tenant-scoped tables
