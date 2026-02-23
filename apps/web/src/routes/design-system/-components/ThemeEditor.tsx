@@ -350,27 +350,14 @@ function ShadowsSection({
  * Selecting a base keeps the current color overlay. Selecting a color keeps the
  * current base. Clicking an active color deselects it (returns to base-only).
  */
-function ThemeEditorSidebar({
-  config,
-  onConfigChange,
-  activeBase,
-  activeColor,
-  onBaseClick,
-  onColorClick,
-  onColorChange,
-  onFontFamilyChange,
-  onFontSizeChange,
-  onRadiusChange,
-  onReset,
-  onToggle,
-  sidebarRef,
-  announcementRef,
-  isOpen,
-}: {
-  config: ThemeConfig
+
+type ThemeEditorSidebarRefs = {
+  sidebarRef: React.RefObject<HTMLElement | null>
+  announcementRef: React.RefObject<HTMLOutputElement | null>
+}
+
+type ThemeEditorSidebarHandlers = {
   onConfigChange: (config: ThemeConfig) => void
-  activeBase: string
-  activeColor: string | null
   onBaseClick: (preset: ShadcnPreset) => void
   onColorClick: (preset: ShadcnPreset) => void
   onColorChange: (key: (typeof SEED_COLOR_KEYS)[number], v: string) => void
@@ -379,13 +366,39 @@ function ThemeEditorSidebar({
   onRadiusChange: (v: number[]) => void
   onReset: () => void
   onToggle: () => void
-  sidebarRef: React.RefObject<HTMLElement | null>
-  announcementRef: React.RefObject<HTMLOutputElement | null>
+}
+
+type ThemeEditorSidebarProps = {
+  config: ThemeConfig
+  activeBase: string
+  activeColor: string | null
   isOpen: boolean
-}) {
+  refs: ThemeEditorSidebarRefs
+  handlers: ThemeEditorSidebarHandlers
+}
+
+function ThemeEditorSidebar({
+  config,
+  activeBase,
+  activeColor,
+  isOpen,
+  refs,
+  handlers,
+}: ThemeEditorSidebarProps) {
+  const {
+    onConfigChange,
+    onBaseClick,
+    onColorClick,
+    onColorChange,
+    onFontFamilyChange,
+    onFontSizeChange,
+    onRadiusChange,
+    onReset,
+    onToggle,
+  } = handlers
   return (
     <aside
-      ref={sidebarRef}
+      ref={refs.sidebarRef}
       aria-label={m.ds_theme_editor_aria()}
       tabIndex={-1}
       className={cn(
@@ -430,7 +443,7 @@ function ThemeEditorSidebar({
           </Button>
         </div>
 
-        <output ref={announcementRef} aria-live="polite" className="sr-only" />
+        <output ref={refs.announcementRef} aria-live="polite" className="sr-only" />
       </div>
     </aside>
   )
@@ -541,35 +554,35 @@ export function ThemeEditor({
       <ThemeEditorTrigger triggerRef={triggerRef} isOpen={isOpen} onToggle={onToggle} />
       <ThemeEditorSidebar
         config={config}
-        onConfigChange={onConfigChange}
         activeBase={activeBase}
         activeColor={activeColor}
-        onBaseClick={handleBaseClick}
-        onColorClick={handleColorClick}
-        onColorChange={handleColorChange}
-        onFontFamilyChange={(v) =>
-          onConfigChange({ ...config, typography: { ...config.typography, fontFamily: v } })
-        }
-        onFontSizeChange={(values) => {
-          const px = values[0]
-          if (px !== undefined)
-            onConfigChange({
-              ...config,
-              typography: { ...config.typography, baseFontSize: `${px}px` },
-            })
-        }}
-        onRadiusChange={(values) => {
-          const rem = values[0]
-          if (rem !== undefined) onConfigChange({ ...config, radius: `${rem}rem` })
-        }}
-        onReset={() => {
-          onReset()
-          announce(m.ds_theme_announce_reset())
-        }}
-        onToggle={onToggle}
-        sidebarRef={sidebarRef}
-        announcementRef={announcementRef}
         isOpen={isOpen}
+        refs={{ sidebarRef, announcementRef }}
+        handlers={{
+          onConfigChange,
+          onBaseClick: handleBaseClick,
+          onColorClick: handleColorClick,
+          onColorChange: handleColorChange,
+          onFontFamilyChange: (v) =>
+            onConfigChange({ ...config, typography: { ...config.typography, fontFamily: v } }),
+          onFontSizeChange: (values) => {
+            const px = values[0]
+            if (px !== undefined)
+              onConfigChange({
+                ...config,
+                typography: { ...config.typography, baseFontSize: `${px}px` },
+              })
+          },
+          onRadiusChange: (values) => {
+            const rem = values[0]
+            if (rem !== undefined) onConfigChange({ ...config, radius: `${rem}rem` })
+          },
+          onReset: () => {
+            onReset()
+            announce(m.ds_theme_announce_reset())
+          },
+          onToggle,
+        }}
       />
     </>
   )

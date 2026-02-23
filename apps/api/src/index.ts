@@ -9,7 +9,7 @@ import { AppModule } from './app.module.js'
 import { parseCorsOrigins } from './cors.js'
 import { registerRateLimitHeadersHook } from './throttler/index.js'
 
-async function configureSecurityHeaders(app: NestFastifyApplication) {
+async function configureSecurityHeaders(app: NestFastifyApplication): Promise<void> {
   // Security headers (must be registered before routes)
   await app.register(helmet, {
     global: true,
@@ -55,7 +55,7 @@ function configureCors(
   configService: ConfigService,
   logger: Logger,
   nodeEnv: string
-) {
+): void {
   const isProduction = nodeEnv === 'production'
   const rawOrigins = configService.get<string>('CORS_ORIGIN', 'http://localhost:3000')
   const corsResult = parseCorsOrigins(rawOrigins, isProduction)
@@ -71,7 +71,7 @@ function configureSwagger(
   configService: ConfigService,
   logger: Logger,
   nodeEnv: string
-) {
+): void {
   const swaggerEnabled = configService.get<boolean>('SWAGGER_ENABLED', nodeEnv !== 'production')
   if (swaggerEnabled) {
     const config = new DocumentBuilder()

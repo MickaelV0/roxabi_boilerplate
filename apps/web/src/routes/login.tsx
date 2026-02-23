@@ -255,16 +255,28 @@ function OAuthSection({
 }
 
 function PasswordLoginTab({
-  form,
+  email,
+  password,
+  rememberMe,
   loading,
+  oauthLoading,
   onSubmit,
+  onEmailChange,
+  onPasswordChange,
+  onRememberMeChange,
   hasOAuth,
   providers,
   onOAuth,
 }: {
-  form: LoginFormState
+  email: string
+  password: string
+  rememberMe: boolean
   loading: boolean
+  oauthLoading: string | null
   onSubmit: (e: React.FormEvent) => void
+  onEmailChange: (v: string) => void
+  onPasswordChange: (v: string) => void
+  onRememberMeChange: (v: boolean) => void
   hasOAuth: boolean
   providers: { google?: boolean; github?: boolean }
   onOAuth: (provider: 'google' | 'github') => void
@@ -272,21 +284,21 @@ function PasswordLoginTab({
   return (
     <TabsContent value="password" className="space-y-6 pt-4">
       <PasswordLoginForm
-        email={form.email}
-        password={form.password}
-        rememberMe={form.rememberMe}
+        email={email}
+        password={password}
+        rememberMe={rememberMe}
         loading={loading}
         onSubmit={onSubmit}
-        onEmailChange={form.setEmail}
-        onPasswordChange={form.setPassword}
-        onRememberMeChange={form.setRememberMe}
+        onEmailChange={onEmailChange}
+        onPasswordChange={onPasswordChange}
+        onRememberMeChange={onRememberMeChange}
       />
 
       {hasOAuth && (
         <OAuthSection
           providers={providers}
           loading={loading}
-          oauthLoading={form.oauthLoading}
+          oauthLoading={oauthLoading}
           onOAuth={onOAuth}
         />
       )}
@@ -390,7 +402,7 @@ function useStoredRedirect(navigate: ReturnType<typeof useNavigate>) {
 }
 
 // ---------------------------------------------------------------------------
-// Handler hooks (accept form state + only the slices they need)
+// Handler factories (accept form state + only the slices they need)
 // ---------------------------------------------------------------------------
 
 type AuthHandlerDeps = {
@@ -399,7 +411,7 @@ type AuthHandlerDeps = {
   redirectParam: string | undefined
 }
 
-function useLoginAuthHandlers(deps: AuthHandlerDeps) {
+function createLoginAuthHandlers(deps: AuthHandlerDeps) {
   const { form, navigate, redirectParam } = deps
 
   async function handleEmailLogin(e: React.FormEvent) {
@@ -479,7 +491,7 @@ type SecondaryHandlerDeps = {
   redirectParam: string | undefined
 }
 
-function useLoginSecondaryHandlers(deps: SecondaryHandlerDeps) {
+function createLoginSecondaryHandlers(deps: SecondaryHandlerDeps) {
   const { form, redirectParam } = deps
 
   async function handleResendVerification() {
@@ -538,13 +550,13 @@ function useLoginPage() {
   useResendCooldownEffect(form.resendCooldown, form.decrementResendCooldown)
   useStoredRedirect(navigate)
 
-  const authHandlers = useLoginAuthHandlers({
+  const authHandlers = createLoginAuthHandlers({
     form,
     navigate,
     redirectParam,
   })
 
-  const secondaryHandlers = useLoginSecondaryHandlers({
+  const secondaryHandlers = createLoginSecondaryHandlers({
     form,
     redirectParam,
   })
@@ -605,9 +617,15 @@ function LoginPage() {
         </TabsList>
 
         <PasswordLoginTab
-          form={form}
+          email={form.email}
+          password={form.password}
+          rememberMe={form.rememberMe}
           loading={form.loading}
+          oauthLoading={form.oauthLoading}
           onSubmit={authHandlers.handleEmailLogin}
+          onEmailChange={form.setEmail}
+          onPasswordChange={form.setPassword}
+          onRememberMeChange={form.setRememberMe}
           hasOAuth={hasOAuth}
           providers={providers}
           onOAuth={secondaryHandlers.handleOAuth}

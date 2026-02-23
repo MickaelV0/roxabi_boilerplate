@@ -18,7 +18,7 @@ import {
 } from '@repo/ui'
 import { createFileRoute } from '@tanstack/react-router'
 import { AlertTriangle, Dices } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react' // useCallback kept for `set` (patch helper)
 import { toast } from 'sonner'
 import { OptionsForm } from '@/components/avatar/OptionsForm'
 import { authClient, useSession } from '@/lib/auth-client'
@@ -109,9 +109,9 @@ async function fetchProfile(fallbackName: string, fallbackId: string) {
 // -- Custom hook --
 
 function useProfileData(user: { id: string; name: string | null } | undefined): ProfileData {
-  const [s, setS] = useState(initialProfileForm)
+  const [formState, setFormState] = useState(initialProfileForm)
   const set = useCallback(
-    (patch: Partial<ProfileFormState>) => setS((prev) => ({ ...prev, ...patch })),
+    (patch: Partial<ProfileFormState>) => setFormState((prev) => ({ ...prev, ...patch })),
     []
   )
 
@@ -123,38 +123,28 @@ function useProfileData(user: { id: string; name: string | null } | undefined): 
   }, [user, set])
 
   useEffect(() => {
-    if (!s.loaded || s.fullNameCustomized) return
-    const computed = [s.firstName, s.lastName].filter(Boolean).join(' ')
+    if (!formState.loaded || formState.fullNameCustomized) return
+    const computed = [formState.firstName, formState.lastName].filter(Boolean).join(' ')
     if (computed) set({ fullName: computed })
-  }, [s.firstName, s.lastName, s.fullNameCustomized, s.loaded, set])
-
-  const setFirstName = useCallback((v: string) => set({ firstName: v }), [set])
-  const setLastName = useCallback((v: string) => set({ lastName: v }), [set])
-  const setFullName = useCallback((v: string) => set({ fullName: v }), [set])
-  const setFullNameCustomized = useCallback((v: boolean) => set({ fullNameCustomized: v }), [set])
-  const setAvatarStyle = useCallback((v: AvatarStyle) => set({ avatarStyle: v }), [set])
-  const setAvatarSeed = useCallback((v: string) => set({ avatarSeed: v }), [set])
-  const setAvatarOptions = useCallback(
-    (v: Record<string, unknown> | ((prev: Record<string, unknown>) => Record<string, unknown>)) =>
-      setS((prev) => ({
-        ...prev,
-        avatarOptions: typeof v === 'function' ? v(prev.avatarOptions) : v,
-      })),
-    []
-  )
-  const setSaving = useCallback((v: boolean) => set({ saving: v }), [set])
+  }, [formState.firstName, formState.lastName, formState.fullNameCustomized, formState.loaded, set])
 
   return {
-    state: s,
+    state: formState,
     actions: {
-      setFirstName,
-      setLastName,
-      setFullName,
-      setFullNameCustomized,
-      setAvatarStyle,
-      setAvatarSeed,
-      setAvatarOptions,
-      setSaving,
+      setFirstName: (v: string) => set({ firstName: v }),
+      setLastName: (v: string) => set({ lastName: v }),
+      setFullName: (v: string) => set({ fullName: v }),
+      setFullNameCustomized: (v: boolean) => set({ fullNameCustomized: v }),
+      setAvatarStyle: (v: AvatarStyle) => set({ avatarStyle: v }),
+      setAvatarSeed: (v: string) => set({ avatarSeed: v }),
+      setAvatarOptions: (
+        v: Record<string, unknown> | ((prev: Record<string, unknown>) => Record<string, unknown>)
+      ) =>
+        setFormState((prev) => ({
+          ...prev,
+          avatarOptions: typeof v === 'function' ? v(prev.avatarOptions) : v,
+        })),
+      setSaving: (v: boolean) => set({ saving: v }),
     },
   }
 }

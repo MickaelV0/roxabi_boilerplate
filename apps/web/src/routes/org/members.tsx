@@ -87,14 +87,26 @@ function useMembersFormState() {
 type MembersFormState = ReturnType<typeof useMembersFormState>
 
 function InviteDialog({
-  form,
+  inviteOpen,
+  inviteEmail,
+  inviteRole,
+  inviting,
+  onOpenChange,
+  onEmailChange,
+  onRoleChange,
   onInvite,
 }: {
-  form: MembersFormState
+  inviteOpen: boolean
+  inviteEmail: string
+  inviteRole: 'admin' | 'member'
+  inviting: boolean
+  onOpenChange: (open: boolean) => void
+  onEmailChange: (v: string) => void
+  onRoleChange: (v: 'admin' | 'member') => void
   onInvite: (e: React.FormEvent) => void
 }) {
   return (
-    <Dialog open={form.inviteOpen} onOpenChange={form.setInviteOpen}>
+    <Dialog open={inviteOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <Button>{m.org_invite_title()}</Button>
       </DialogTrigger>
@@ -108,21 +120,19 @@ function InviteDialog({
             <Input
               id="invite-email"
               type="email"
-              value={form.inviteEmail}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                form.setInviteEmail(e.target.value)
-              }
+              value={inviteEmail}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onEmailChange(e.target.value)}
               placeholder={m.org_invite_email_placeholder()}
               required
-              disabled={form.inviting}
+              disabled={inviting}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="invite-role">{m.org_invite_role()}</Label>
             <Select
-              value={form.inviteRole}
+              value={inviteRole}
               onValueChange={(v: string) => {
-                if (v === 'admin' || v === 'member') form.setInviteRole(v)
+                if (v === 'admin' || v === 'member') onRoleChange(v)
               }}
             >
               <SelectTrigger>
@@ -140,8 +150,8 @@ function InviteDialog({
                 {m.common_cancel()}
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={form.inviting}>
-              {form.inviting ? m.org_invite_sending() : m.org_invite_send()}
+            <Button type="submit" disabled={inviting}>
+              {inviting ? m.org_invite_sending() : m.org_invite_send()}
             </Button>
           </DialogFooter>
         </form>
@@ -311,7 +321,7 @@ function PendingInvitationsTable({
   )
 }
 
-function useMembersHandlers(form: MembersFormState) {
+function createMembersHandlers(form: MembersFormState) {
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault()
     form.setInviting(true)
@@ -428,7 +438,7 @@ function OrgMembersContent({
   members: NonNullable<ActiveOrgData['members']>
   invitations: Array<{ id: string; email: string; role: string; status: string }>
   form: MembersFormState
-  handlers: ReturnType<typeof useMembersHandlers>
+  handlers: ReturnType<typeof createMembersHandlers>
 }) {
   const filteredMembers = members.filter(
     (member) =>
@@ -440,7 +450,18 @@ function OrgMembersContent({
     <>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{m.org_members_title()}</h1>
-        {canManage && <InviteDialog form={form} onInvite={handlers.handleInvite} />}
+        {canManage && (
+          <InviteDialog
+            inviteOpen={form.inviteOpen}
+            inviteEmail={form.inviteEmail}
+            inviteRole={form.inviteRole}
+            inviting={form.inviting}
+            onOpenChange={form.setInviteOpen}
+            onEmailChange={form.setInviteEmail}
+            onRoleChange={form.setInviteRole}
+            onInvite={handlers.handleInvite}
+          />
+        )}
       </div>
 
       <Input
@@ -478,7 +499,7 @@ function OrgMembersPage() {
   const { data: activeOrg } = authClient.useActiveOrganization()
   const canManage = hasPermission(session, 'members:write')
   const form = useMembersFormState()
-  const handlers = useMembersHandlers(form)
+  const handlers = createMembersHandlers(form)
 
   if (!activeOrg) {
     return (

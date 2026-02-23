@@ -206,7 +206,7 @@ export class UserService {
 
   private async processOrgDeletion(
     tx: DrizzleTx,
-    organizationId: string,
+    resolution: Extract<OrgOwnershipResolution, { action: 'delete' }>,
     now: Date,
     deleteScheduledFor: Date
   ) {
@@ -214,19 +214,24 @@ export class UserService {
     await tx
       .update(organizations)
       .set({ deletedAt: now, deleteScheduledFor, updatedAt: now })
-      .where(eq(organizations.id, organizationId))
+      .where(eq(organizations.id, resolution.organizationId))
 
     // Clear activeOrganizationId on sessions referencing this org
     await tx
       .update(sessions)
       .set({ activeOrganizationId: null })
-      .where(eq(sessions.activeOrganizationId, organizationId))
+      .where(eq(sessions.activeOrganizationId, resolution.organizationId))
 
     // Invalidate pending invitations for this org
     await tx
       .update(invitations)
       .set({ status: 'expired' })
-      .where(and(eq(invitations.organizationId, organizationId), eq(invitations.status, 'pending')))
+      .where(
+        and(
+          eq(invitations.organizationId, resolution.organizationId),
+          eq(invitations.status, 'pending')
+        )
+      )
   }
 
   private async processOrgResolution(
@@ -248,12 +253,7 @@ export class UserService {
     if (resolution.action === 'transfer') {
       await this.processOrgTransfer(tx, resolution, context.now)
     } else if (resolution.action === 'delete') {
-      await this.processOrgDeletion(
-        tx,
-        resolution.organizationId,
-        context.now,
-        context.deleteScheduledFor
-      )
+      await this.processOrgDeletion(tx, resolution, context.now, context.deleteScheduledFor)
     }
   }
 

@@ -12,6 +12,7 @@ import { admin } from 'better-auth/plugins/admin'
 import { magicLink } from 'better-auth/plugins/magic-link'
 import { organization } from 'better-auth/plugins/organization'
 import { eq } from 'drizzle-orm'
+import { rewriteCallbackUrl } from '../common/url.util.js'
 import type { DrizzleDB } from '../database/drizzle.provider.js'
 import { users } from '../database/schema/auth.schema.js'
 import type { EmailProvider } from './email/email.provider.js'
@@ -56,13 +57,6 @@ function buildSocialProviders(config: AuthInstanceConfig): Record<string, unknow
     }
   }
   return socialProviders
-}
-
-/** Rewrite callbackURL to point to the frontend app instead of the API root */
-function rewriteCallbackUrl(url: string, appURL?: string): string {
-  return appURL
-    ? url.replace(/callbackURL=[^&]*/, `callbackURL=${encodeURIComponent(appURL)}`)
-    : url
 }
 
 function buildEmailAndPasswordConfig(emailProvider: EmailProvider, config: AuthInstanceConfig) {
