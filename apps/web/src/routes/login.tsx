@@ -17,7 +17,7 @@ import {
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { fetchOrganizations, fetchUserProfile } from '@/lib/api'
+import { fetchUserProfile } from '@/lib/api'
 import { authClient, fetchEnabledProviders } from '@/lib/auth-client'
 import { requireGuest, safeRedirect } from '@/lib/route-guards'
 import { m } from '@/paraglide/messages'
@@ -361,23 +361,6 @@ async function checkSoftDeletedAccount(navigate: ReturnType<typeof useNavigate>)
   return false
 }
 
-/** Auto-select the first active org if no org is currently active (best-effort). */
-async function autoSelectOrg() {
-  try {
-    const { data: currentSession } = await authClient.getSession()
-    const activeOrgId = (currentSession as Record<string, unknown> | null)?.activeOrganizationId
-    if (activeOrgId) return
-
-    const res = await fetchOrganizations()
-    const orgs = res.ok ? ((await res.json()) as Array<{ id: string }>) : []
-    if (orgs[0]) {
-      await authClient.organization.setActive({ organizationId: orgs[0].id })
-    }
-  } catch {
-    // Non-blocking
-  }
-}
-
 function useResendCooldownEffect(resendCooldown: number, decrementResendCooldown: () => void) {
   useEffect(() => {
     if (resendCooldown <= 0) return
@@ -474,7 +457,7 @@ function handleSignInError(signInError: { status: number }, email: string, form:
   }
 }
 
-/** Handle successful sign-in: check soft-delete, auto-select org, navigate. */
+/** Handle successful sign-in: check soft-delete, then navigate. */
 async function handleSignInSuccess(
   navigate: ReturnType<typeof useNavigate>,
   redirectParam: string | undefined
@@ -482,7 +465,6 @@ async function handleSignInSuccess(
   toast.success(m.auth_toast_signed_in())
   const redirected = await checkSoftDeletedAccount(navigate)
   if (redirected) return
-  await autoSelectOrg()
   navigate({ to: safeRedirect(redirectParam) })
 }
 

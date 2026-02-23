@@ -20,28 +20,46 @@ import {
 } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
 import { Check, ChevronDown, Plus, Settings, Users } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
 import { roleBadgeVariant, roleLabel } from '@/lib/org-utils'
-import { useOrganizations } from '@/lib/use-organizations'
+import type { useOrganizations } from '@/lib/use-organizations'
 import { m } from '@/paraglide/messages'
 
-export function OrgSwitcher() {
+type OrgSwitcherProps = {
+  orgState: ReturnType<typeof useOrganizations>
+}
+
+export function OrgSwitcher({ orgState }: OrgSwitcherProps) {
   const { data: session } = useSession()
-  const { data: orgs, isLoading: orgsLoading, refetch: refetchOrgs } = useOrganizations()
+  const { data: orgs, isLoading: orgsLoading, refetch: refetchOrgs } = orgState
   const { data: activeOrg } = authClient.useActiveOrganization()
   const [createOpen, setCreateOpen] = useState(false)
-  // Optimistic org name — shown immediately on switch before the server responds.
-  // Also used as fallback when activeOrg hasn't hydrated yet but orgs are loaded.
+  // Optimistic org name — shown immediately on switch, cleared only once activeOrg catches up.
   const [optimisticOrgName, setOptimisticOrgName] = useState<string | null>(null)
+  const prevActiveOrgId = useRef(activeOrg?.id)
+
+  // Clear optimistic name once activeOrg actually changes (Better Auth has caught up)
+  useEffect(() => {
+    if (activeOrg?.id !== prevActiveOrgId.current) {
+      prevActiveOrgId.current = activeOrg?.id
+      setOptimisticOrgName(null)
+    }
+  }, [activeOrg?.id])
+
   const displayedOrgName = optimisticOrgName ?? activeOrg?.name ?? orgs?.[0]?.name
 
   const activeMember = activeOrg?.members?.find(
     (member: { userId: string }) => member.userId === session?.user?.id
   )
 
-  if (orgsLoading || !orgs || orgs.length === 0) {
+  // Still loading — render nothing to avoid flashing the "Create" button
+  if (orgsLoading || orgs === undefined) {
+    return null
+  }
+
+  if (orgs.length === 0) {
     return (
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogTrigger asChild>
@@ -64,7 +82,6 @@ export function OrgSwitcher() {
       refetchOrgs()
     } catch {
       toast.error(m.auth_toast_error())
-    } finally {
       setOptimisticOrgName(null)
     }
   }

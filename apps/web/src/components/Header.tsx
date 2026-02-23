@@ -4,6 +4,7 @@ import { BookOpenIcon, Menu, X } from 'lucide-react'
 import { Collapsible } from 'radix-ui'
 import { useEffect, useRef, useState } from 'react'
 import { useSession } from '@/lib/auth-client'
+import { useOrganizations } from '@/lib/use-organizations'
 import { m } from '@/paraglide/messages'
 import { GithubIcon } from './GithubIcon'
 import { LocaleSwitcher } from './LocaleSwitcher'
@@ -14,6 +15,10 @@ import { UserMenu } from './UserMenu'
 
 export function Header() {
   const { data: session } = useSession()
+  // Pass session user ID so orgs refetch after login/logout
+  const orgState = useOrganizations(session?.user?.id)
+  // Show auth section only when both session and orgs are resolved to avoid incremental rendering
+  const authReady = session && orgState.data !== undefined
   const [mobileOpen, setMobileOpen] = useState(false)
   const mobileRef = useRef<HTMLDivElement>(null)
 
@@ -81,12 +86,12 @@ export function Header() {
             <LocaleSwitcher />
             <ThemeToggle />
             <GithubIcon />
-            {session ? (
+            {authReady ? (
               <div className="hidden items-center gap-1 md:flex">
-                <OrgSwitcher />
+                <OrgSwitcher orgState={orgState} />
                 <UserMenu />
               </div>
-            ) : (
+            ) : !session ? (
               <div className="hidden items-center gap-1 md:flex">
                 <Button variant="ghost" size="sm" asChild>
                   <Link to="/login">{m.nav_sign_in()}</Link>
@@ -95,8 +100,8 @@ export function Header() {
                   <Link to="/register">{m.nav_sign_up()}</Link>
                 </Button>
               </div>
-            )}
-            {session && (
+            ) : null}
+            {authReady && (
               <div className="md:hidden">
                 <UserMenu />
               </div>

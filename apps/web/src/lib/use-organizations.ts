@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useCallback } from 'react'
 import { fetchOrganizations } from '@/lib/api'
 
 type Organization = {
@@ -9,35 +10,28 @@ type Organization = {
   createdAt: string
 }
 
-export function useOrganizations() {
-  const [data, setData] = useState<Organization[] | undefined>(undefined)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-  const [version, setVersion] = useState(0)
+export const ORGANIZATIONS_QUERY_KEY = ['organizations'] as const
 
-  const refetch = useCallback(() => setVersion((v) => v + 1), [])
+/**
+ * @param sessionKey - Pass a session-dependent value (e.g. user ID) so orgs
+ *   are refetched when the session changes (login/logout).
+ */
+export function useOrganizations(sessionKey?: string | null) {
+  const queryClient = useQueryClient()
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: version triggers manual refetch
-  useEffect(() => {
-    const controller = new AbortController()
-    setIsLoading(true)
-    setError(null)
-    fetchOrganizations(controller.signal)
-      .then((res) => (res.ok ? res.json() : []))
-      .then((orgs: Organization[]) => {
-        if (!controller.signal.aborted) {
-          setData(orgs)
-          setIsLoading(false)
-        }
-      })
-      .catch((err: unknown) => {
-        if (!controller.signal.aborted) {
-          setError(err instanceof Error ? err : new Error('Failed to fetch organizations'))
-          setIsLoading(false)
-        }
-      })
-    return () => controller.abort()
-  }, [version])
+  const { data, isLoading, error } = useQuery<Organization[]>({
+    queryKey: [...ORGANIZATIONS_QUERY_KEY, sessionKey],
+    queryFn: async ({ signal }) => {
+      const res = await fetchOrganizations(signal)
+      return res.ok ? res.json() : []
+    },
+    staleTime: 30_000,
+    enabled: sessionKey !== undefined,
+  })
+
+  const refetch = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ORGANIZATIONS_QUERY_KEY })
+  }, [queryClient])
 
   return { data, isLoading, error, refetch }
 }
