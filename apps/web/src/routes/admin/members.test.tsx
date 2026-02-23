@@ -88,9 +88,9 @@ function createMembersResponse(
 
 function createRolesResponse() {
   return [
-    { id: 'r-owner', name: 'owner' },
-    { id: 'r-admin', name: 'admin' },
-    { id: 'r-member', name: 'member' },
+    { id: 'r-owner', name: 'Owner', slug: 'owner' },
+    { id: 'r-admin', name: 'Admin', slug: 'admin' },
+    { id: 'r-member', name: 'Member', slug: 'member' },
   ]
 }
 
