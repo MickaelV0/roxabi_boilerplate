@@ -30,6 +30,16 @@ export class AdminAuditLogsController {
     @Query('organizationId') organizationId?: string,
     @Query('search') search?: string
   ) {
-    // TODO: implement — parse and validate query params, call service listAuditLogs
+    const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100)
+    const filters = {
+      from: from ? new Date(from) : undefined,
+      to: to ? new Date(to) : undefined,
+      actorId: actorId || undefined,
+      action: action || undefined,
+      resource: resource || undefined,
+      organizationId: organizationId || undefined,
+      search: search?.trim() || undefined,
+    }
+    return this.adminAuditLogsService.listAuditLogs(filters, cursor || undefined, safeLimit)
   }
 }

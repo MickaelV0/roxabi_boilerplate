@@ -1,4 +1,5 @@
 import type { CursorPaginatedResponse } from '@repo/types'
+import { useInfiniteQuery } from '@tanstack/react-query'
 
 /**
  * useCursorPagination — wraps TanStack Query's useInfiniteQuery for cursor-based pagination.
@@ -7,24 +8,31 @@ import type { CursorPaginatedResponse } from '@repo/types'
  * Used by all three Phase 2 list pages (users, organizations, audit logs).
  */
 
-// TODO: implement — generic hook that:
-// 1. Accepts a fetch function (url, cursor?) => CursorPaginatedResponse<T>
-// 2. Uses useInfiniteQuery with getNextPageParam from cursor.next
-// 3. Flattens pages into a single data array
-// 4. Returns loadMore function, hasMore flag, loading states
-
-export function useCursorPagination<T>(_options: {
+type UseCursorPaginationOptions<T> = {
   queryKey: unknown[]
   fetchFn: (cursor?: string) => Promise<CursorPaginatedResponse<T>>
   enabled?: boolean
-}) {
-  // TODO: implement
+}
+
+export function useCursorPagination<T>(options: UseCursorPaginationOptions<T>) {
+  const query = useInfiniteQuery({
+    queryKey: options.queryKey,
+    queryFn: ({ pageParam }) => options.fetchFn(pageParam ?? undefined),
+    getNextPageParam: (lastPage) => (lastPage.cursor.hasMore ? lastPage.cursor.next : undefined),
+    initialPageParam: undefined as string | undefined,
+    enabled: options.enabled,
+  })
+
+  const data = query.data?.pages.flatMap((page) => page.data) ?? []
+  const lastPage = query.data?.pages[query.data.pages.length - 1]
+  const hasMore = lastPage?.cursor.hasMore ?? false
+
   return {
-    data: [] as T[],
-    loadMore: () => {},
-    hasMore: false,
-    isLoading: false,
-    isLoadingMore: false,
-    error: null as Error | null,
+    data,
+    loadMore: () => query.fetchNextPage(),
+    hasMore,
+    isLoading: query.isLoading,
+    isLoadingMore: query.isFetchingNextPage,
+    error: query.error,
   }
 }

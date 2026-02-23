@@ -1,87 +1,789 @@
-import { describe, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { AuditService } from '../audit/audit.service.js'
+import { AdminOrganizationsService } from './admin-organizations.service.js'
+import { OrgCycleDetectedException } from './exceptions/org-cycle-detected.exception.js'
+import { OrgDepthExceededException } from './exceptions/org-depth-exceeded.exception.js'
+import { AdminOrgNotFoundException } from './exceptions/org-not-found.exception.js'
+import { OrgSlugConflictException } from './exceptions/org-slug-conflict.exception.js'
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Creates a chainable mock that mimics Drizzle's query-builder API.
+ * Every builder method returns the same proxy so chains like
+ * `.select().from().innerJoin().where().limit()` resolve correctly.
+ *
+ * The final awaited value is controlled by `result`.
+ */
+function createChainMock(result: unknown = []) {
+  const chain: Record<string, unknown> = {}
+  const methods = [
+    'select',
+    'from',
+    'innerJoin',
+    'leftJoin',
+    'where',
+    'orderBy',
+    'limit',
+    'offset',
+    'insert',
+    'values',
+    'returning',
+    'update',
+    'set',
+    'delete',
+    'groupBy',
+  ]
+  for (const m of methods) {
+    chain[m] = vi.fn(() => chain)
+  }
+  // Make the chain thenable so `await db.select()...` resolves to `result`
+  // biome-ignore lint/suspicious/noThenProperty: intentional thenable mock for Drizzle chain
+  chain.then = (resolve: (v: unknown) => void) => resolve(result)
+  return chain
+}
+
+function createMockDb() {
+  return {
+    select: vi.fn(),
+    insert: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    transaction: vi.fn(async (fn: (tx: Record<string, unknown>) => unknown) =>
+      fn({
+        select: vi.fn(),
+        insert: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+      })
+    ),
+  }
+}
+
+function createMockAuditService(): AuditService {
+  return { log: vi.fn().mockResolvedValue(undefined) } as unknown as AuditService
+}
+
+function createMockClsService(id = 'test-correlation-id') {
+  return { getId: vi.fn().mockReturnValue(id) }
+}
+
+/**
+ * Instantiate the service with fresh mocks.
+ * Returns the service and its mock collaborators so tests can configure
+ * per-call return values.
+ */
+function createService() {
+  const db = createMockDb()
+  const auditService = createMockAuditService()
+  const cls = createMockClsService()
+  const service = new AdminOrganizationsService(db as never, auditService, cls as never)
+  return { service, db, auditService, cls }
+}
+
+// ---------------------------------------------------------------------------
+// Fixtures
+// ---------------------------------------------------------------------------
+
+const baseOrg = {
+  id: 'org-1',
+  name: 'Acme Corp',
+  slug: 'acme-corp',
+  parentOrganizationId: null,
+  logo: null,
+  metadata: null,
+  deletedAt: null,
+  deleteScheduledFor: null,
+  createdAt: new Date('2025-01-01T00:00:00.000Z'),
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
 
 describe('AdminOrganizationsService', () => {
+  let service: AdminOrganizationsService
+  let db: ReturnType<typeof createMockDb>
+  let auditService: AuditService
+
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    ;({ service, db, auditService } = createService())
+  })
+
+  // -----------------------------------------------------------------------
+  // listOrganizations
+  // -----------------------------------------------------------------------
   describe('listOrganizations', () => {
-    it('should return cursor-paginated organizations', () => {
-      // TODO: implement — SC: "GET /api/admin/organizations returns all orgs cursor-paginated"
+    it('should return cursor-paginated organizations', async () => {
+      // Arrange
+      const orgRow = { ...baseOrg, memberCount: 5 }
+      const orgsChain = createChainMock([orgRow])
+      db.select.mockReturnValueOnce(orgsChain)
+
+      // Act
+      const result = await service.listOrganizations({}, undefined, 20)
+
+      // Assert
+      expect(result).toBeDefined()
+      expect(result.data).toBeDefined()
+      expect(result.cursor).toBeDefined()
     })
 
-    it('should include member count via subquery', () => {
-      // TODO: implement — member count as correlated subquery
+    it('should return hasMore=true and next cursor when more rows exist', async () => {
+      // Arrange -- return limit+1 rows to signal more data
+      const limit = 2
+      const rows = [
+        { ...baseOrg, id: 'org-1', createdAt: new Date('2025-01-03'), memberCount: 3 },
+        { ...baseOrg, id: 'org-2', createdAt: new Date('2025-01-02'), memberCount: 1 },
+        { ...baseOrg, id: 'org-3', createdAt: new Date('2025-01-01'), memberCount: 0 },
+      ]
+      db.select.mockReturnValueOnce(createChainMock(rows))
+
+      // Act
+      const result = await service.listOrganizations({}, undefined, limit)
+
+      // Assert
+      expect(result.cursor.hasMore).toBe(true)
+      expect(result.cursor.next).not.toBeNull()
+      expect(result.data).toHaveLength(limit)
     })
 
-    it('should filter by status', () => {
-      // TODO: implement
+    it('should return hasMore=false when fewer rows than limit exist', async () => {
+      // Arrange
+      const rows = [{ ...baseOrg, id: 'org-1', createdAt: new Date('2025-01-01'), memberCount: 2 }]
+      db.select.mockReturnValueOnce(createChainMock(rows))
+
+      // Act
+      const result = await service.listOrganizations({}, undefined, 20)
+
+      // Assert
+      expect(result.cursor.hasMore).toBe(false)
+      expect(result.cursor.next).toBeNull()
     })
 
-    it('should search by name or slug', () => {
-      // TODO: implement
+    it('should filter by status active (deletedAt IS NULL)', async () => {
+      // Arrange
+      const orgsChain = createChainMock([])
+      db.select.mockReturnValueOnce(orgsChain)
+
+      // Act
+      await service.listOrganizations({ status: 'active' }, undefined, 20)
+
+      // Assert -- where must have been called with active filter conditions
+      expect(orgsChain.where).toHaveBeenCalled()
+    })
+
+    it('should filter by status archived (deletedAt IS NOT NULL)', async () => {
+      // Arrange
+      const archivedOrg = {
+        ...baseOrg,
+        id: 'org-archived',
+        deletedAt: new Date('2025-06-01'),
+        memberCount: 0,
+      }
+      const orgsChain = createChainMock([archivedOrg])
+      db.select.mockReturnValueOnce(orgsChain)
+
+      // Act
+      const result = await service.listOrganizations({ status: 'archived' }, undefined, 20)
+
+      // Assert
+      expect(result.data).toBeDefined()
+      expect(orgsChain.where).toHaveBeenCalled()
+    })
+
+    it('should search by name or slug using ILIKE', async () => {
+      // Arrange
+      const orgsChain = createChainMock([])
+      db.select.mockReturnValueOnce(orgsChain)
+
+      // Act
+      await service.listOrganizations({ search: 'acme' }, undefined, 20)
+
+      // Assert
+      expect(orgsChain.where).toHaveBeenCalled()
+    })
+
+    it('should apply cursor condition when cursor is provided', async () => {
+      // Arrange -- encode a valid cursor
+      const cursor = btoa(JSON.stringify({ t: '2025-01-01T00:00:00.000Z', i: 'org-abc' }))
+      const orgsChain = createChainMock([])
+      db.select.mockReturnValueOnce(orgsChain)
+
+      // Act
+      await service.listOrganizations({}, cursor, 20)
+
+      // Assert -- where should include cursor condition
+      expect(orgsChain.where).toHaveBeenCalled()
+    })
+
+    it('should return empty data when no orgs exist', async () => {
+      // Arrange
+      db.select.mockReturnValueOnce(createChainMock([]))
+
+      // Act
+      const result = await service.listOrganizations({}, undefined, 20)
+
+      // Assert
+      expect(result.data).toEqual([])
+      expect(result.cursor.hasMore).toBe(false)
+      expect(result.cursor.next).toBeNull()
+    })
+
+    it('should include memberCount in response', async () => {
+      // Arrange
+      const orgRow = { ...baseOrg, memberCount: 42 }
+      db.select.mockReturnValueOnce(createChainMock([orgRow]))
+
+      // Act
+      const result = await service.listOrganizations({}, undefined, 20)
+
+      // Assert
+      expect(result.data[0]).toBeDefined()
+      expect(result.data[0]!.memberCount).toBe(42)
     })
   })
 
+  // -----------------------------------------------------------------------
+  // listOrganizationsForTree
+  // -----------------------------------------------------------------------
   describe('listOrganizationsForTree', () => {
-    it('should return all non-deleted orgs for tree assembly', () => {
-      // TODO: implement — SC: "?view=tree returns flat list for client-side tree assembly"
+    it('should return all non-deleted orgs with id, name, slug, parentOrganizationId', async () => {
+      // Arrange
+      const treeOrgs = [
+        { id: 'org-1', name: 'Parent Corp', slug: 'parent-corp', parentOrganizationId: null },
+        { id: 'org-2', name: 'Child Inc', slug: 'child-inc', parentOrganizationId: 'org-1' },
+      ]
+      // First call: count query; second call: org list
+      db.select
+        .mockReturnValueOnce(createChainMock([{ count: 2 }]))
+        .mockReturnValueOnce(createChainMock(treeOrgs))
+
+      // Act
+      const result = await service.listOrganizationsForTree()
+
+      // Assert
+      expect(result.treeViewAvailable).toBe(true)
+      expect(result.data).toHaveLength(2)
+      expect(result.data[0]).toHaveProperty('id')
+      expect(result.data[0]).toHaveProperty('name')
+      expect(result.data[0]).toHaveProperty('slug')
+      expect(result.data[0]).toHaveProperty('parentOrganizationId')
     })
 
-    it('should return treeViewAvailable=false when > 1000 orgs', () => {
-      // TODO: implement — SC: "returns 200 with treeViewAvailable: false if > 1000 orgs"
+    it('should return treeViewAvailable=false when count exceeds 1000', async () => {
+      // Arrange -- count query returns > 1000
+      db.select.mockReturnValueOnce(createChainMock([{ count: 1500 }]))
+
+      // Act
+      const result = await service.listOrganizationsForTree()
+
+      // Assert
+      expect(result.treeViewAvailable).toBe(false)
+    })
+
+    it('should return treeViewAvailable=true when count is within 1000', async () => {
+      // Arrange -- count query returns <= 1000
+      const treeOrgs = [{ id: 'org-1', name: 'Root', slug: 'root', parentOrganizationId: null }]
+      db.select
+        .mockReturnValueOnce(createChainMock([{ count: 500 }]))
+        .mockReturnValueOnce(createChainMock(treeOrgs))
+
+      // Act
+      const result = await service.listOrganizationsForTree()
+
+      // Assert
+      expect(result.treeViewAvailable).toBe(true)
     })
   })
 
+  // -----------------------------------------------------------------------
+  // getOrganizationDetail
+  // -----------------------------------------------------------------------
+  describe('getOrganizationDetail', () => {
+    it('should return org detail with members and child orgs', async () => {
+      // Arrange
+      const orgRow = { ...baseOrg }
+      const memberRows = [
+        {
+          memberId: 'm-1',
+          userId: 'user-1',
+          userName: 'Alice',
+          email: 'alice@example.com',
+          role: 'owner',
+          joinedAt: new Date('2024-06-01'),
+        },
+      ]
+      const childRows = [
+        { id: 'org-child-1', name: 'Child Org', slug: 'child-org', parentOrganizationId: 'org-1' },
+      ]
+
+      // getOrganizationDetail makes 3 queries: org lookup, members, children
+      db.select
+        .mockReturnValueOnce(createChainMock([orgRow])) // org detail
+        .mockReturnValueOnce(createChainMock(memberRows)) // members
+        .mockReturnValueOnce(createChainMock(childRows)) // children
+
+      // Act
+      const result = await service.getOrganizationDetail('org-1')
+
+      // Assert
+      expect(result).toBeDefined()
+      expect(result.organization).toBeDefined()
+      expect(result.members).toBeDefined()
+      expect(result.children).toBeDefined()
+    })
+
+    it('should throw AdminOrgNotFoundException when org not found', async () => {
+      // Arrange -- first select returns empty (org not found)
+      db.select.mockReturnValueOnce(createChainMock([]))
+
+      // Act & Assert
+      await expect(service.getOrganizationDetail('org-missing')).rejects.toThrow(
+        AdminOrgNotFoundException
+      )
+    })
+
+    it('should return empty members and children when none exist', async () => {
+      // Arrange
+      db.select
+        .mockReturnValueOnce(createChainMock([baseOrg])) // org found
+        .mockReturnValueOnce(createChainMock([])) // no members
+        .mockReturnValueOnce(createChainMock([])) // no children
+
+      // Act
+      const result = await service.getOrganizationDetail('org-1')
+
+      // Assert
+      expect(result.members).toEqual([])
+      expect(result.children).toEqual([])
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // createOrganization
+  // -----------------------------------------------------------------------
   describe('createOrganization', () => {
-    it('should create org with optional parentOrganizationId', () => {
-      // TODO: implement — SC: "POST /api/admin/organizations creates an org with optional parentOrganizationId"
+    it('should create org with no parent (parentOrganizationId null)', async () => {
+      // Arrange
+      const createdOrg = { ...baseOrg, id: 'org-new' }
+      db.insert.mockReturnValueOnce(createChainMock([createdOrg]))
+
+      // Act
+      const result = await service.createOrganization(
+        { name: 'New Org', slug: 'new-org' },
+        'actor-super'
+      )
+
+      // Assert
+      expect(result).toBeDefined()
+      expect(db.insert).toHaveBeenCalled()
     })
 
-    it('should reject parent that would create depth > 3', () => {
-      // TODO: implement — SC: "Setting a parent that would create depth > 3 returns 400"
+    it('should create org with valid parent', async () => {
+      // Arrange -- parent exists at depth 0 (root)
+      const parentOrg = { ...baseOrg, id: 'org-parent', parentOrganizationId: null }
+      db.select.mockReturnValueOnce(createChainMock([parentOrg]))
+
+      const createdOrg = { ...baseOrg, id: 'org-new', parentOrganizationId: 'org-parent' }
+      db.insert.mockReturnValueOnce(createChainMock([createdOrg]))
+
+      // Act
+      const result = await service.createOrganization(
+        { name: 'Child Org', slug: 'child-org', parentOrganizationId: 'org-parent' },
+        'actor-super'
+      )
+
+      // Assert
+      expect(result).toBeDefined()
     })
 
-    it('should reject duplicate slug', () => {
-      // TODO: implement — SC: "Duplicate slug returns 409"
+    it('should throw OrgDepthExceededException when parent depth would exceed 3', async () => {
+      // Arrange -- mock parent chain: grandparent -> parent -> org (depth 2)
+      // Adding a child here would make depth 3 which exceeds the max
+      const grandparent = { ...baseOrg, id: 'org-gp', parentOrganizationId: null }
+      const parent = { ...baseOrg, id: 'org-parent', parentOrganizationId: 'org-gp' }
+      const deepParent = { ...baseOrg, id: 'org-deep', parentOrganizationId: 'org-parent' }
+
+      // Walk-up queries: deep parent -> parent -> grandparent -> root (null parent)
+      db.select
+        .mockReturnValueOnce(createChainMock([deepParent]))
+        .mockReturnValueOnce(createChainMock([parent]))
+        .mockReturnValueOnce(createChainMock([grandparent]))
+
+      // Act & Assert
+      await expect(
+        service.createOrganization(
+          { name: 'Too Deep', slug: 'too-deep', parentOrganizationId: 'org-deep' },
+          'actor-super'
+        )
+      ).rejects.toThrow(OrgDepthExceededException)
+    })
+
+    it('should throw OrgSlugConflictException on pg error 23505', async () => {
+      // Arrange -- insert throws a unique constraint violation
+      const pgError = { code: '23505', constraint_name: 'organizations_slug_unique' }
+      const insertChain = createChainMock([])
+      // biome-ignore lint/suspicious/noThenProperty: intentional thenable mock to simulate pg rejection
+      insertChain.then = (_resolve: unknown, reject: (e: unknown) => void) => reject(pgError)
+      db.insert.mockReturnValueOnce(insertChain)
+
+      // Act & Assert
+      await expect(
+        service.createOrganization({ name: 'Duplicate', slug: 'acme-corp' }, 'actor-super')
+      ).rejects.toThrow(OrgSlugConflictException)
+    })
+
+    it('should call auditService.log with organization.created action', async () => {
+      // Arrange
+      const createdOrg = { ...baseOrg, id: 'org-new' }
+      db.insert.mockReturnValueOnce(createChainMock([createdOrg]))
+
+      // Act
+      await service.createOrganization({ name: 'New Org', slug: 'new-org' }, 'actor-super')
+
+      // Assert
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'organization.created',
+          resource: 'organization',
+          actorId: 'actor-super',
+        })
+      )
     })
   })
 
+  // -----------------------------------------------------------------------
+  // updateOrganization
+  // -----------------------------------------------------------------------
   describe('updateOrganization', () => {
-    it('should update name, slug, and parent with audit log', () => {
-      // TODO: implement — SC: "PATCH updates name, slug, parent. Validates depth and cycle detection"
+    it('should update name and slug with before/after audit log', async () => {
+      // Arrange -- read before-state then perform update
+      const beforeOrg = { ...baseOrg }
+      const updatedOrg = { ...baseOrg, name: 'Acme Updated', slug: 'acme-updated' }
+
+      db.select.mockReturnValueOnce(createChainMock([beforeOrg]))
+      db.update.mockReturnValueOnce(createChainMock([updatedOrg]))
+
+      // Act
+      const result = await service.updateOrganization(
+        'org-1',
+        { name: 'Acme Updated', slug: 'acme-updated' },
+        'actor-super'
+      )
+
+      // Assert
+      expect(result).toBeDefined()
+      expect(db.update).toHaveBeenCalled()
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'organization.updated',
+          resource: 'organization',
+          resourceId: 'org-1',
+          actorId: 'actor-super',
+          before: expect.objectContaining({ name: 'Acme Corp' }),
+          after: expect.objectContaining({ name: 'Acme Updated' }),
+        })
+      )
     })
 
-    it('should detect cycles in parent chain', () => {
-      // TODO: implement — Edge case: Reparent org creates cycle
+    it('should throw AdminOrgNotFoundException when org not found', async () => {
+      // Arrange
+      db.select.mockReturnValueOnce(createChainMock([]))
+
+      // Act & Assert
+      await expect(
+        service.updateOrganization('org-missing', { name: 'New Name' }, 'actor-super')
+      ).rejects.toThrow(AdminOrgNotFoundException)
     })
 
-    it('should validate full subtree depth on reparent', () => {
-      // TODO: implement — Edge case: Reparent creates depth > 3 with subtree
+    it('should throw OrgSlugConflictException on duplicate slug (pg error 23505)', async () => {
+      // Arrange -- org exists, but update throws a unique constraint violation
+      db.select.mockReturnValueOnce(createChainMock([baseOrg]))
+      const pgError = { code: '23505', constraint_name: 'organizations_slug_unique' }
+      const updateChain = createChainMock([])
+      // biome-ignore lint/suspicious/noThenProperty: intentional thenable mock to simulate pg rejection
+      updateChain.then = (_resolve: unknown, reject: (e: unknown) => void) => reject(pgError)
+      db.update.mockReturnValueOnce(updateChain)
+
+      // Act & Assert
+      await expect(
+        service.updateOrganization('org-1', { slug: 'taken-slug' }, 'actor-super')
+      ).rejects.toThrow(OrgSlugConflictException)
+    })
+
+    it('should throw OrgCycleDetectedException when reparenting to a descendant', async () => {
+      // Arrange -- org-A is parent of org-B. Trying to set org-A's parent to org-B
+      // Walk-up from org-B: org-B -> org-A (cycle found!)
+      const orgA = { ...baseOrg, id: 'org-A', parentOrganizationId: null }
+      const orgB = { ...baseOrg, id: 'org-B', parentOrganizationId: 'org-A' }
+
+      // First select: fetch org-A (the org being updated)
+      db.select.mockReturnValueOnce(createChainMock([orgA]))
+      // Walk-up from new parent (org-B): find org-B, then its parent is org-A (the target) -- cycle!
+      db.select
+        .mockReturnValueOnce(createChainMock([orgB]))
+        .mockReturnValueOnce(createChainMock([orgA]))
+
+      // Act & Assert
+      await expect(
+        service.updateOrganization('org-A', { parentOrganizationId: 'org-B' }, 'actor-super')
+      ).rejects.toThrow(OrgCycleDetectedException)
+    })
+
+    it('should throw OrgDepthExceededException when reparent creates depth > 3', async () => {
+      // Arrange -- reparenting would create a chain deeper than 3
+      const orgToUpdate = { ...baseOrg, id: 'org-move', parentOrganizationId: null }
+      const grandparent = { ...baseOrg, id: 'org-gp', parentOrganizationId: null }
+      const parent = { ...baseOrg, id: 'org-parent', parentOrganizationId: 'org-gp' }
+      const newParent = { ...baseOrg, id: 'org-new-parent', parentOrganizationId: 'org-parent' }
+
+      // First select: fetch the org being updated
+      db.select.mockReturnValueOnce(createChainMock([orgToUpdate]))
+      // Walk-up from newParent: newParent -> parent -> grandparent -> root
+      // That's already depth 3, so adding org-move as child makes it 4 (exceeds 3)
+      db.select
+        .mockReturnValueOnce(createChainMock([newParent]))
+        .mockReturnValueOnce(createChainMock([parent]))
+        .mockReturnValueOnce(createChainMock([grandparent]))
+
+      // Act & Assert
+      await expect(
+        service.updateOrganization(
+          'org-move',
+          { parentOrganizationId: 'org-new-parent' },
+          'actor-super'
+        )
+      ).rejects.toThrow(OrgDepthExceededException)
+    })
+
+    it('should not call auditService.log when org not found', async () => {
+      // Arrange
+      db.select.mockReturnValueOnce(createChainMock([]))
+
+      // Act
+      await service.updateOrganization('org-missing', { name: 'X' }, 'actor-super').catch(() => {})
+
+      // Assert
+      expect(auditService.log).not.toHaveBeenCalled()
     })
   })
 
+  // -----------------------------------------------------------------------
+  // getDeletionImpact
+  // -----------------------------------------------------------------------
   describe('getDeletionImpact', () => {
-    it('should return correct member and child counts', () => {
-      // TODO: implement — SC: "deletion-impact returns memberCount, activeMembers, childOrgCount, childMemberCount"
+    it('should return memberCount, childOrgCount, childMemberCount', async () => {
+      // Arrange -- org exists, then impact queries
+      db.select
+        .mockReturnValueOnce(createChainMock([baseOrg])) // org lookup
+        .mockReturnValueOnce(createChainMock([{ count: 10 }])) // member count
+        .mockReturnValueOnce(createChainMock([{ count: 3 }])) // child org count
+        .mockReturnValueOnce(createChainMock([{ count: 25 }])) // child member count
+
+      // Act
+      const result = await service.getDeletionImpact('org-1')
+
+      // Assert
+      expect(result).toBeDefined()
+      expect(result.memberCount).toBe(10)
+      expect(result.childOrgCount).toBe(3)
+      expect(result.childMemberCount).toBe(25)
     })
 
-    it('should count child members recursively', () => {
-      // TODO: implement — SC: "Recursive child member count is correct"
+    it('should throw AdminOrgNotFoundException when org not found', async () => {
+      // Arrange
+      db.select.mockReturnValueOnce(createChainMock([]))
+
+      // Act & Assert
+      await expect(service.getDeletionImpact('org-missing')).rejects.toThrow(
+        AdminOrgNotFoundException
+      )
+    })
+
+    it('should return zeros when org has no members or children', async () => {
+      // Arrange
+      db.select
+        .mockReturnValueOnce(createChainMock([baseOrg])) // org lookup
+        .mockReturnValueOnce(createChainMock([{ count: 0 }])) // member count
+        .mockReturnValueOnce(createChainMock([{ count: 0 }])) // child org count
+        .mockReturnValueOnce(createChainMock([{ count: 0 }])) // child member count
+
+      // Act
+      const result = await service.getDeletionImpact('org-1')
+
+      // Assert
+      expect(result.memberCount).toBe(0)
+      expect(result.childOrgCount).toBe(0)
+      expect(result.childMemberCount).toBe(0)
     })
   })
 
+  // -----------------------------------------------------------------------
+  // deleteOrganization
+  // -----------------------------------------------------------------------
   describe('deleteOrganization', () => {
-    it('should soft-delete org without cascade-deleting children', () => {
-      // TODO: implement — SC: "Children become orphaned (not cascade-deleted)"
+    it('should soft-delete by setting deletedAt and deleteScheduledFor', async () => {
+      // Arrange
+      const activeOrg = { ...baseOrg, deletedAt: null, deleteScheduledFor: null }
+      const deletedOrg = {
+        ...baseOrg,
+        deletedAt: new Date(),
+        deleteScheduledFor: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      }
+
+      db.select.mockReturnValueOnce(createChainMock([activeOrg]))
+      db.update.mockReturnValueOnce(createChainMock([deletedOrg]))
+
+      // Act
+      const result = await service.deleteOrganization('org-1', 'actor-super')
+
+      // Assert
+      expect(result).toBeDefined()
+      expect(db.update).toHaveBeenCalled()
+    })
+
+    it('should throw AdminOrgNotFoundException when org not found', async () => {
+      // Arrange
+      db.select.mockReturnValueOnce(createChainMock([]))
+
+      // Act & Assert
+      await expect(service.deleteOrganization('org-missing', 'actor-super')).rejects.toThrow(
+        AdminOrgNotFoundException
+      )
+    })
+
+    it('should call auditService.log with organization.deleted action', async () => {
+      // Arrange
+      const activeOrg = { ...baseOrg }
+      const deletedOrg = { ...baseOrg, deletedAt: new Date() }
+
+      db.select.mockReturnValueOnce(createChainMock([activeOrg]))
+      db.update.mockReturnValueOnce(createChainMock([deletedOrg]))
+
+      // Act
+      await service.deleteOrganization('org-1', 'actor-super')
+
+      // Assert
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'organization.deleted',
+          resource: 'organization',
+          resourceId: 'org-1',
+          actorId: 'actor-super',
+        })
+      )
+    })
+
+    it('should not throw when auditService.log rejects (fire-and-forget)', async () => {
+      // Arrange
+      const activeOrg = { ...baseOrg }
+      const deletedOrg = { ...baseOrg, deletedAt: new Date() }
+
+      db.select.mockReturnValueOnce(createChainMock([activeOrg]))
+      db.update.mockReturnValueOnce(createChainMock([deletedOrg]))
+      vi.mocked(auditService.log).mockRejectedValue(new Error('audit service down'))
+
+      // Act & Assert -- should resolve without throwing
+      await expect(service.deleteOrganization('org-1', 'actor-super')).resolves.toBeDefined()
+
+      // Flush microtasks so the .catch() handler runs
+      await new Promise<void>((resolve) => queueMicrotask(resolve))
     })
   })
 
+  // -----------------------------------------------------------------------
+  // restoreOrganization
+  // -----------------------------------------------------------------------
   describe('restoreOrganization', () => {
-    it('should restore soft-deleted org with audit log', () => {
-      // TODO: implement — SC: "POST .../restore restores. Both audit logged"
-    })
-  })
+    it('should restore by clearing deletedAt and deleteScheduledFor', async () => {
+      // Arrange
+      const deletedOrg = {
+        ...baseOrg,
+        deletedAt: new Date('2025-06-01'),
+        deleteScheduledFor: new Date('2025-07-01'),
+      }
+      const restoredOrg = { ...baseOrg, deletedAt: null, deleteScheduledFor: null }
 
-  describe('validateHierarchy', () => {
-    it('should run depth + cycle checks inside a transaction', () => {
-      // TODO: implement — Uses db.transaction() for consistency
+      db.select.mockReturnValueOnce(createChainMock([deletedOrg]))
+      db.update.mockReturnValueOnce(createChainMock([restoredOrg]))
+
+      // Act
+      const result = await service.restoreOrganization('org-1', 'actor-super')
+
+      // Assert
+      expect(result).toBeDefined()
+      expect(db.update).toHaveBeenCalled()
+    })
+
+    it('should throw AdminOrgNotFoundException when org not found', async () => {
+      // Arrange
+      db.select.mockReturnValueOnce(createChainMock([]))
+
+      // Act & Assert
+      await expect(service.restoreOrganization('org-missing', 'actor-super')).rejects.toThrow(
+        AdminOrgNotFoundException
+      )
+    })
+
+    it('should throw AdminOrgNotFoundException when org is not deleted (deletedAt is null)', async () => {
+      // Arrange -- org exists but deletedAt is null (not soft-deleted)
+      const activeOrg = { ...baseOrg, deletedAt: null, deleteScheduledFor: null }
+      db.select.mockReturnValueOnce(createChainMock([activeOrg]))
+
+      // Act & Assert
+      await expect(service.restoreOrganization('org-1', 'actor-super')).rejects.toThrow(
+        AdminOrgNotFoundException
+      )
+    })
+
+    it('should call auditService.log with organization.restored action', async () => {
+      // Arrange
+      const deletedOrg = {
+        ...baseOrg,
+        deletedAt: new Date('2025-06-01'),
+        deleteScheduledFor: new Date('2025-07-01'),
+      }
+      const restoredOrg = { ...baseOrg, deletedAt: null, deleteScheduledFor: null }
+
+      db.select.mockReturnValueOnce(createChainMock([deletedOrg]))
+      db.update.mockReturnValueOnce(createChainMock([restoredOrg]))
+
+      // Act
+      await service.restoreOrganization('org-1', 'actor-super')
+
+      // Assert
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'organization.restored',
+          resource: 'organization',
+          resourceId: 'org-1',
+          actorId: 'actor-super',
+        })
+      )
+    })
+
+    it('should not throw when auditService.log rejects (fire-and-forget)', async () => {
+      // Arrange
+      const deletedOrg = {
+        ...baseOrg,
+        deletedAt: new Date('2025-06-01'),
+        deleteScheduledFor: new Date('2025-07-01'),
+      }
+      const restoredOrg = { ...baseOrg, deletedAt: null, deleteScheduledFor: null }
+
+      db.select.mockReturnValueOnce(createChainMock([deletedOrg]))
+      db.update.mockReturnValueOnce(createChainMock([restoredOrg]))
+      vi.mocked(auditService.log).mockRejectedValue(new Error('audit service down'))
+
+      // Act & Assert
+      await expect(service.restoreOrganization('org-1', 'actor-super')).resolves.toBeDefined()
+
+      // Flush microtasks
+      await new Promise<void>((resolve) => queueMicrotask(resolve))
     })
   })
 })

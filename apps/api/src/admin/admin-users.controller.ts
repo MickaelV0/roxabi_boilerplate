@@ -14,12 +14,28 @@ import {
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Throttle } from '@nestjs/throttler'
+import { z } from 'zod'
 import { Roles } from '../auth/decorators/roles.decorator.js'
 import { Session } from '../auth/decorators/session.decorator.js'
 import type { AuthenticatedSession } from '../auth/types.js'
 import { SkipOrg } from '../common/decorators/skip-org.decorator.js'
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
 import { AdminUsersService } from './admin-users.service.js'
 import { AdminExceptionFilter } from './filters/admin-exception.filter.js'
+
+const updateUserSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  email: z.string().email().optional(),
+  role: z.enum(['user', 'admin', 'superadmin']).optional(),
+})
+
+const banUserSchema = z.object({
+  reason: z.string().min(5).max(500),
+  expires: z.string().datetime().nullable().optional(),
+})
+
+type UpdateUserDto = z.infer<typeof updateUserSchema>
+type BanUserDto = z.infer<typeof banUserSchema>
 
 @ApiTags('Admin Users')
 @ApiBearerAuth()
@@ -42,7 +58,14 @@ export class AdminUsersController {
     @Query('organizationId') organizationId?: string,
     @Query('search') search?: string
   ) {
-    // TODO: implement — parse and validate query params, call service
+    const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100)
+    const filters = {
+      role: role || undefined,
+      status: status || undefined,
+      organizationId: organizationId || undefined,
+      search: search?.trim() || undefined,
+    }
+    return this.adminUsersService.listUsers(filters, cursor || undefined, safeLimit)
   }
 
   @Get(':userId')
@@ -50,7 +73,7 @@ export class AdminUsersController {
   @ApiResponse({ status: 200, description: 'User detail' })
   @ApiResponse({ status: 404, description: 'User not found' })
   async getUserDetail(@Param('userId', new ParseUUIDPipe({ version: '4' })) userId: string) {
-    // TODO: implement — call service getUserDetail
+    return this.adminUsersService.getUserDetail(userId)
   }
 
   @Patch(':userId')
@@ -61,9 +84,9 @@ export class AdminUsersController {
   async updateUser(
     @Param('userId', new ParseUUIDPipe({ version: '4' })) userId: string,
     @Session() session: AuthenticatedSession,
-    @Body() body: unknown
+    @Body(new ZodValidationPipe(updateUserSchema)) body: UpdateUserDto
   ) {
-    // TODO: implement — Zod validation, call service updateUser
+    return this.adminUsersService.updateUser(userId, body, session.user.id)
   }
 
   @Post(':userId/ban')
@@ -73,9 +96,10 @@ export class AdminUsersController {
   async banUser(
     @Param('userId', new ParseUUIDPipe({ version: '4' })) userId: string,
     @Session() session: AuthenticatedSession,
-    @Body() body: unknown
+    @Body(new ZodValidationPipe(banUserSchema)) body: BanUserDto
   ) {
-    // TODO: implement — Zod validation (reason 5-500 chars), call service banUser
+    const expires = body.expires ? new Date(body.expires) : null
+    return this.adminUsersService.banUser(userId, body.reason, expires, session.user.id)
   }
 
   @Post(':userId/unban')
@@ -86,7 +110,7 @@ export class AdminUsersController {
     @Param('userId', new ParseUUIDPipe({ version: '4' })) userId: string,
     @Session() session: AuthenticatedSession
   ) {
-    // TODO: implement — call service unbanUser
+    return this.adminUsersService.unbanUser(userId, session.user.id)
   }
 
   @Delete(':userId')
@@ -98,7 +122,7 @@ export class AdminUsersController {
     @Param('userId', new ParseUUIDPipe({ version: '4' })) userId: string,
     @Session() session: AuthenticatedSession
   ) {
-    // TODO: implement — call service deleteUser
+    await this.adminUsersService.deleteUser(userId, session.user.id)
   }
 
   @Post(':userId/restore')
@@ -109,6 +133,6 @@ export class AdminUsersController {
     @Param('userId', new ParseUUIDPipe({ version: '4' })) userId: string,
     @Session() session: AuthenticatedSession
   ) {
-    // TODO: implement — call service restoreUser
+    return this.adminUsersService.restoreUser(userId, session.user.id)
   }
 }

@@ -129,14 +129,12 @@ export class TenantInterceptor implements NestInterceptor {
         }
       }
 
-      // Check if the organizations table has a parent column.
-      const parentId = (org as Record<string, unknown>).parentOrganizationId as
-        | string
-        | null
-        | undefined
-      if (parentId) {
-        return parentId
-      }
+      // TODO: re-enable in Phase 3 when parent tenant resolution is designed.
+      // parentOrganizationId is present in the schema but the resolution
+      // strategy (which context should inherit which tenant) is not yet defined.
+      // if (org.parentOrganizationId) {
+      //   return org.parentOrganizationId
+      // }
 
       return orgId
     } catch (error) {

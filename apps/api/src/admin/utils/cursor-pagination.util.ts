@@ -1,20 +1,48 @@
 import type { CursorPaginatedResponse } from '@repo/types'
-import type { SQL } from 'drizzle-orm'
-
-/**
- * Decode a Base64-encoded cursor into its (timestamp, id) components.
- */
-export function decodeCursor(cursor: string): { timestamp: Date; id: string } {
-  // TODO: implement — decode Base64 cursor string to { timestamp, id }
-  throw new Error('Not implemented')
-}
+import { and, eq, lt, or, type SQL } from 'drizzle-orm'
+import type { PgColumn } from 'drizzle-orm/pg-core'
 
 /**
  * Encode a (timestamp, id) pair into a Base64 cursor string.
  */
 export function encodeCursor(timestamp: Date, id: string): string {
-  // TODO: implement — encode { timestamp, id } to Base64 string
-  throw new Error('Not implemented')
+  return btoa(JSON.stringify({ t: timestamp.toISOString(), i: id }))
+}
+
+/**
+ * Decode a Base64-encoded cursor into its (timestamp, id) components.
+ */
+export function decodeCursor(cursor: string): { timestamp: Date; id: string } {
+  if (!cursor) {
+    throw new Error('Invalid cursor: empty string')
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(atob(cursor))
+  } catch {
+    throw new Error('Invalid cursor: malformed Base64 or JSON')
+  }
+
+  if (
+    typeof parsed !== 'object' ||
+    parsed === null ||
+    !('t' in parsed) ||
+    !('i' in parsed) ||
+    typeof (parsed as Record<string, unknown>).t !== 'string' ||
+    typeof (parsed as Record<string, unknown>).i !== 'string'
+  ) {
+    throw new Error('Invalid cursor: missing required fields')
+  }
+
+  const { t, i } = parsed as { t: string; i: string }
+  const timestamp = new Date(t)
+
+  if (Number.isNaN(timestamp.getTime())) {
+    throw new Error('Invalid cursor: timestamp is not a valid date')
+  }
+
+  return { timestamp, id: i }
 }
 
 /**
@@ -23,9 +51,9 @@ export function encodeCursor(timestamp: Date, id: string): string {
  *
  * Each service composes its own query and applies this condition in the WHERE clause.
  */
-export function buildCursorCondition(cursor: string, tsColumn: unknown, idColumn: unknown): SQL {
-  // TODO: implement — parse cursor, return Drizzle SQL condition
-  throw new Error('Not implemented')
+export function buildCursorCondition(cursor: string, tsColumn: PgColumn, idColumn: PgColumn): SQL {
+  const { timestamp, id } = decodeCursor(cursor)
+  return or(lt(tsColumn, timestamp), and(eq(tsColumn, timestamp), lt(idColumn, id)))!
 }
 
 /**
@@ -38,6 +66,9 @@ export function buildCursorResponse<T>(
   getTimestamp: (row: T) => Date,
   getId: (row: T) => string
 ): CursorPaginatedResponse<T> {
-  // TODO: implement — trim rows, compute hasMore and next cursor
-  throw new Error('Not implemented')
+  const hasMore = rows.length > limit
+  const data = hasMore ? rows.slice(0, limit) : rows
+  const lastRow = data[data.length - 1]
+  const next = hasMore && lastRow ? encodeCursor(getTimestamp(lastRow), getId(lastRow)) : null
+  return { data, cursor: { next, hasMore } }
 }

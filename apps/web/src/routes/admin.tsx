@@ -36,13 +36,11 @@ const SYSTEM_LINKS: SidebarLink[] = [
     to: '/admin/users',
     label: () => m.admin_sidebar_link_users(),
     icon: ShieldIcon,
-    disabled: true,
   },
   {
     to: '/admin/organizations',
     label: () => m.admin_sidebar_link_organizations(),
     icon: BuildingIcon,
-    disabled: true,
   },
   {
     to: '/admin/system-settings',
@@ -66,7 +64,6 @@ const SYSTEM_LINKS: SidebarLink[] = [
     to: '/admin/audit-logs',
     label: () => m.admin_sidebar_link_audit_logs(),
     icon: ScrollTextIcon,
-    disabled: true,
   },
 ]
 

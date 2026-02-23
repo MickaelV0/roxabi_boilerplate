@@ -1,5 +1,14 @@
 import { isNotNull } from 'drizzle-orm'
-import { boolean, index, jsonb, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core'
+import {
+  type AnyPgColumn,
+  boolean,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+} from 'drizzle-orm/pg-core'
 import { timestamps } from './timestamps.js'
 
 const genId = () => crypto.randomUUID()
@@ -32,6 +41,7 @@ export const users = pgTable(
     index('users_delete_scheduled_for_idx')
       .on(table.deleteScheduledFor)
       .where(isNotNull(table.deleteScheduledFor)),
+    index('idx_users_cursor').on(table.createdAt.desc(), table.id.desc()),
   ]
 )
 
@@ -89,6 +99,9 @@ export const organizations = pgTable(
     slug: text('slug').unique(),
     logo: text('logo'),
     metadata: text('metadata'),
+    parentOrganizationId: text('parent_organization_id').references(
+      (): AnyPgColumn => organizations.id
+    ),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     deleteScheduledFor: timestamp('delete_scheduled_for', { withTimezone: true }),
     ...timestamps,
@@ -98,6 +111,7 @@ export const organizations = pgTable(
     index('organizations_delete_scheduled_for_idx')
       .on(table.deleteScheduledFor)
       .where(isNotNull(table.deleteScheduledFor)),
+    index('idx_orgs_cursor').on(table.createdAt.desc(), table.id.desc()),
   ]
 )
 
