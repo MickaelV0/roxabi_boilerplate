@@ -66,6 +66,40 @@ Multiple agents of the same type may run concurrently on non-overlapping file gr
 | product-lead | `analyses/`, `specs/`, GitHub issues via `gh` | Never writes application code |
 | doc-writer | `docs/`, `CLAUDE.md` | Never writes application code |
 
+### Micro-Task Consumption Protocol
+
+When `/scaffold` Step 4f generates micro-tasks, agents receive structured work units via `TaskCreate` entries instead of text-based plans. Each micro-task includes metadata (see scaffold SKILL.md Step 4f.9 for the full schema).
+
+**Claiming tasks:**
+
+Tasks are delivered via spawn prompts (Task tool description or TeamCreate instructions). The orchestrator manages assignment and sequencing.
+
+1. Receive your assigned micro-tasks in the spawn prompt
+2. Execute tasks in the order provided (lowest ID first within your assigned slice)
+3. Report completion to the lead after each task
+
+**Running verification:**
+1. After completing a task, check `verificationStatus` in task metadata
+2. `"ready"` → run the `verificationCommand` immediately
+3. `"deferred"` → the orchestrator will only spawn you for GREEN tasks after the tester completes RED tasks for that slice. If you encounter a deferred task unexpectedly, skip verification and continue to the next task.
+4. `"manual"` → no automated command. Agent verifies by inspecting the file/code and marks task complete.
+
+**Handling failures:**
+1. Verification fails → fix and re-verify (max 3 retries)
+2. After 3 failures → escalate to lead with: task ID, error output, attempted fixes, affected files
+3. Do NOT mark the task as completed if verification fails
+
+**RED-GATE sentinels:**
+- Each slice has a `"RED complete: V{N}"` sentinel task assigned to tester with `phase: "RED-GATE"`
+- Tester marks the sentinel complete after finishing all RED tasks for that slice
+- The orchestrator manages RED-GATE ordering by spawning GREEN agents only after the tester completes RED tasks for each slice
+
+**Post-#283:** When shared task list infrastructure ships (#283), agents will claim tasks directly via TaskList/TaskUpdate instead of receiving them in spawn prompts:
+1. Check `TaskList` for tasks matching your domain with status `pending` and no owner
+2. Prefer tasks in ID order (lowest first) within your assigned slice
+3. Claim with `TaskUpdate` (set `owner` to your name)
+4. RED-GATE sentinels will be checked directly via TaskList instead of relying on orchestrator sequencing
+
 ### Standards
 
 All agents must follow:

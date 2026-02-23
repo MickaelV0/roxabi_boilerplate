@@ -3,7 +3,7 @@ title: "Scaffold Micro-Task Planning"
 description: Analysis for improving scaffold planning with spec-driven micro-tasks, verification commands, committed plan artifacts, and cross-artifact consistency checks.
 ---
 
-**Status:** Draft — Feb 2026
+**Status:** Promoted to spec — Feb 2026
 **Issue:** #282 (Phase 3 of #251 AI Workflow Improvement Strategy)
 **Tier:** F-full (score 4/10, upgraded due to execution model change)
 **Dependencies:** #280 (complexity scoring — closed), #281 (bootstrap enrichment — closed)
@@ -97,8 +97,8 @@ The generation algorithm has two modes based on spec content:
    b. Generate 1-5 micro-tasks depending on criterion complexity
    c. Generate verification commands using file-type heuristics:
       - `.ts/.tsx` files → prefer `bun run test {adjacent-test-file}` if test exists, otherwise `bun run typecheck`
-      - `.md/.mdx` files → `grep -q "{expected content}" {file}`
-      - `.json/.yaml` config → `bun run lint` + `grep -q "{key}" {file}`
+      - `.md/.mdx` files → `grep -q '{expected content}' {file}`
+      - `.json/.yaml` config → `bun run lint` + `grep -q '{key}' {file}`
       - Other → `[manual]` checklist
    d. Assign agents and mark [P] based on file-path analysis
 
@@ -110,9 +110,9 @@ Verification commands are executable checks that confirm a micro-task is complet
 |------------|----------------------|---------|
 | **Application code** (`.ts/.tsx`) | Unit/integration test | `bun run test apps/api/test/auth.test.ts` |
 | **Type definitions** | Typecheck | `bun run typecheck --filter=@repo/types` |
-| **Config files** | Lint + specific check | `bun run lint && grep -q "key" path/to/config.json` |
-| **Skill/agent files** (`.md`) | Grep for expected content | `grep -q "Step 4f" .claude/skills/scaffold/SKILL.md` |
-| **Documentation** (`.mdx`) | File exists + content check | `test -f docs/path.mdx && grep -q "## Section" docs/path.mdx` |
+| **Config files** | Lint + specific check | `bun run lint && grep -q 'key' path/to/config.json` |
+| **Skill/agent files** (`.md`) | Grep for expected content | `grep -q 'Step 4f' .claude/skills/scaffold/SKILL.md` |
+| **Documentation** (`.mdx`) | File exists + content check | `test -f docs/path.mdx && grep -q '## Section' docs/path.mdx` |
 | **Migration files** | Migrate + check schema | `bun run db:migrate && bun run db:generate --check` |
 
 When no automated verification is possible, the task includes `[manual]` and a human-readable checklist instead of a command.
@@ -185,6 +185,10 @@ generated: {ISO timestamp}
 
 {1-2 sentence overview}
 
+## Bootstrap Context
+
+{Conclusions and selected shape from analyses/{issue}-*.mdx, if exists}
+
 ## Agents
 
 | Agent | Task count | Files |
@@ -196,6 +200,7 @@ generated: {ISO timestamp}
 - Criteria covered: {N}/{total}
 - Uncovered criteria: {list or "none"}
 - Tasks without spec backing: {list or "none"}
+- Gold plating exemptions applied: {count}
 
 ## Micro-Tasks
 
@@ -362,8 +367,8 @@ Both modes are compatible — #282 generates tasks in the same format regardless
 
 ## Next Steps
 
-- [ ] Promote this analysis to a spec: `/interview --promote analyses/282-scaffold-micro-task-planning.mdx`
-- [ ] Spec must address:
+- [x] Promote this analysis to a spec: `/interview --promote analyses/282-scaffold-micro-task-planning.mdx`
+- [x] Spec must address:
   - Exact SKILL.md Step 4f instructions and modified Step 5 instructions
   - AGENTS.md updates for micro-task consumption rules
   - Pin the Breadboard/Slices MDX format from #281's implementation (reference bootstrap skill template)
