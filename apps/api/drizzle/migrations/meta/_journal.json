@@ -57,6 +57,27 @@
       "when": 1771761834273,
       "tag": "0007_cheerful_sunspot",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1771762000000,
+      "tag": "0008_lush_marvex",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1771828342887,
+      "tag": "0009_grant-app-user-role",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1771843269325,
+      "tag": "0010_zippy_madripoor",
+      "breakpoints": true
     }
   ]
 }

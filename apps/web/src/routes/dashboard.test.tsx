@@ -179,10 +179,10 @@ describe('DashboardPage', () => {
 
     // Check link targets
     const settingsLink = screen.getByText('dashboard_open_settings').closest('a')
-    expect(settingsLink).toHaveAttribute('href', '/org/settings')
+    expect(settingsLink).toHaveAttribute('href', '/admin/settings')
 
     const membersLink = screen.getByText('dashboard_view_members').closest('a')
-    expect(membersLink).toHaveAttribute('href', '/org/members')
+    expect(membersLink).toHaveAttribute('href', '/admin/members')
   })
 
   it('should show loading skeleton when orgs are loading', () => {

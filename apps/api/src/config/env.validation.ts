@@ -13,6 +13,7 @@ export const envSchema = z.object({
   PORT: z.coerce.number().default(4000),
   VERCEL_ENV: z.enum(['production', 'preview', 'development']).optional(),
   DATABASE_URL: z.string().optional(),
+  DATABASE_APP_URL: z.string().optional(),
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
   LOG_LEVEL: z.string().default('debug'),
   BETTER_AUTH_SECRET: z.string().min(32).default('dev-secret-do-not-use-in-production'),

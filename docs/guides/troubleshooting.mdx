@@ -45,13 +45,14 @@ If the project pins a specific version, check `package.json` for the `packageMan
 
 **Symptom:** `EADDRINUSE` error when starting the dev server or API.
 
-**Cause:** Another process is already listening on port 3000 (web) or 4000 (API).
+**Cause:** Another process is already listening on port 3000 (web), 4000 (API), or 3001 (email preview).
 
 **Fix:** Kill the process occupying the port, or start on a different port:
 
 ```bash
 lsof -ti:3000 | xargs -r kill
 lsof -ti:4000 | xargs -r kill
+lsof -ti:3001 | xargs -r kill
 ```
 
 Alternatively, set the `PORT` environment variable to use a different port.
@@ -205,6 +206,20 @@ bun run db:branch:drop
 ```
 
 For more on branch databases, see [Configuration -- Branch Databases](../configuration#branch-databases-local-development).
+
+## After Pulling Admin Panel Changes (PR #279)
+
+If you had an existing Docker Postgres setup before this PR, the `roxabi_app` database user
+was not created automatically (Docker init scripts only run on first boot). Run:
+
+```bash
+bun run db:setup-app-user
+```
+
+This creates the `roxabi_app` user with RLS-enforced permissions. Without it, tenant-scoped
+queries will fail with "permission denied to set role app_user".
+
+Alternative: delete your Docker volume and recreate: `bun run db:down && docker volume rm roxabi_boilerplate_postgres_data && bun run db:up`
 
 ## Pre-commit Hook Failures
 

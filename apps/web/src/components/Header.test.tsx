@@ -75,6 +75,10 @@ vi.mock('./OrgSwitcher', () => ({
   OrgSwitcher: () => <div data-testid="org-switcher" />,
 }))
 
+vi.mock('@/lib/use-organizations', () => ({
+  useOrganizations: () => ({ data: undefined, isLoading: true, error: null, refetch: vi.fn() }),
+}))
+
 vi.mock('@/lib/config', () => ({
   GITHUB_REPO_URL: 'https://github.com/test/repo',
 }))

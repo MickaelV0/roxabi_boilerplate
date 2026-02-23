@@ -133,6 +133,17 @@ The `PermissionService` intentionally uses the raw `DRIZZLE` connection (not `Te
 
 > **Warning:** The raw DRIZZLE connection bypasses all RLS policies. Any new queries added to this service must include explicit `WHERE` clauses for user/org isolation. Changes to this file should be flagged in code review.
 
+### Sanctioned RLS Bypass Services
+
+Two services intentionally use the raw `DRIZZLE` connection instead of `TenantService`. Both are documented in-code with a block comment explaining the justification and security constraints.
+
+| Service | Location | Justification | Isolation mechanism |
+|---------|----------|---------------|---------------------|
+| `PermissionService` | `apps/api/src/rbac/permission.service.ts` | Runs during authentication, before tenant context is established | Explicit `WHERE` on `userId` and `organizationId` |
+| `AdminMembersService` | `apps/api/src/admin/admin-members.service.ts` | Admin operations require organization-scoped access derived from the session's `activeOrganizationId`, not from RLS policies | Explicit `WHERE` on `organizationId` in every query |
+
+> **Adding a new RLS bypass:** If a new service needs raw DRIZZLE access, it must (1) document the justification in a block comment at the top of the service class, (2) include explicit `WHERE` clauses for tenant isolation in every query, and (3) be added to this table. Changes to RLS bypass services should always be flagged in code review.
+
 ## Schema Design
 
 Three tables implement the RBAC model, defined in `apps/api/src/database/schema/rbac.schema.ts`. For the full schema conventions (naming, timestamps, primary keys), see the [Database Architecture](./database).

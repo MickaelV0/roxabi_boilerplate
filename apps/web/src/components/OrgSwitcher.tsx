@@ -20,24 +20,46 @@ import {
 } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
 import { Check, ChevronDown, Plus, Settings, Users } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
 import { roleBadgeVariant, roleLabel } from '@/lib/org-utils'
-import { useOrganizations } from '@/lib/use-organizations'
+import type { useOrganizations } from '@/lib/use-organizations'
 import { m } from '@/paraglide/messages'
 
-export function OrgSwitcher() {
+type OrgSwitcherProps = {
+  orgState: ReturnType<typeof useOrganizations>
+}
+
+export function OrgSwitcher({ orgState }: OrgSwitcherProps) {
   const { data: session } = useSession()
-  const { data: orgs, isLoading: orgsLoading, refetch: refetchOrgs } = useOrganizations()
+  const { data: orgs, isLoading: orgsLoading, refetch: refetchOrgs } = orgState
   const { data: activeOrg } = authClient.useActiveOrganization()
   const [createOpen, setCreateOpen] = useState(false)
+  // Optimistic org name — shown immediately on switch, cleared only once activeOrg catches up.
+  const [optimisticOrgName, setOptimisticOrgName] = useState<string | null>(null)
+  const prevActiveOrgId = useRef(activeOrg?.id)
+
+  // Clear optimistic name once activeOrg actually changes (Better Auth has caught up)
+  useEffect(() => {
+    if (activeOrg?.id !== prevActiveOrgId.current) {
+      prevActiveOrgId.current = activeOrg?.id
+      setOptimisticOrgName(null)
+    }
+  }, [activeOrg?.id])
+
+  const displayedOrgName = optimisticOrgName ?? activeOrg?.name ?? orgs?.[0]?.name
 
   const activeMember = activeOrg?.members?.find(
     (member: { userId: string }) => member.userId === session?.user?.id
   )
 
-  if (orgsLoading || !orgs || orgs.length === 0) {
+  // Still loading — render nothing to avoid flashing the "Create" button
+  if (orgsLoading || orgs === undefined) {
+    return null
+  }
+
+  if (orgs.length === 0) {
     return (
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogTrigger asChild>
@@ -53,12 +75,14 @@ export function OrgSwitcher() {
 
   async function handleSwitch(orgId: string, orgName: string) {
     if (activeOrg?.id === orgId) return
+    setOptimisticOrgName(orgName)
     try {
       await authClient.organization.setActive({ organizationId: orgId })
       toast.success(m.org_toast_switched({ name: orgName }))
       refetchOrgs()
     } catch {
       toast.error(m.auth_toast_error())
+      setOptimisticOrgName(null)
     }
   }
 
@@ -67,7 +91,7 @@ export function OrgSwitcher() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm">
-            {activeOrg?.name ?? m.org_switcher_no_org()}
+            {displayedOrgName ?? m.org_switcher_no_org()}
             <ChevronDown className="ml-1 size-3" />
           </Button>
         </DropdownMenuTrigger>
@@ -100,15 +124,15 @@ export function OrgSwitcher() {
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link to="/org/settings">
-                  <Settings className="mr-2 size-4" />
-                  {m.user_menu_org_settings()}
+                <Link to="/admin/members">
+                  <Users className="mr-2 size-4" />
+                  {m.user_menu_org_members()}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/org/members">
-                  <Users className="mr-2 size-4" />
-                  {m.user_menu_org_members()}
+                <Link to="/admin/settings">
+                  <Settings className="mr-2 size-4" />
+                  {m.user_menu_org_settings()}
                 </Link>
               </DropdownMenuItem>
             </>

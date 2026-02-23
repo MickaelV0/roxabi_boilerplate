@@ -195,7 +195,14 @@ function findWorktreeRoot(): string {
   process.exit(1)
 }
 
-/** Update the .env file at the worktree root to use the branch DATABASE_URL. */
+/** Build the DATABASE_APP_URL for a branch database using the roxabi_app user. */
+function buildAppDatabaseUrl(dbName: string): string {
+  const appUser = process.env.POSTGRES_APP_USER ?? 'roxabi_app'
+  const appPassword = process.env.POSTGRES_APP_PASSWORD ?? 'roxabi_app'
+  return buildDatabaseUrlUtil(dbName, appUser, appPassword)
+}
+
+/** Update the .env file at the worktree root to use the branch DATABASE_URL and DATABASE_APP_URL. */
 function updateEnvFile(databaseUrl: string): void {
   const root = findWorktreeRoot()
   const envPath = path.join(root, '.env')
@@ -207,23 +214,35 @@ function updateEnvFile(databaseUrl: string): void {
 
   const content = fs.readFileSync(envPath, 'utf-8')
   const lines = content.split('\n')
-  let replaced = false
+  let replacedUrl = false
+  let replacedAppUrl = false
+
+  // Derive the app URL from the owner URL by substituting the user/password
+  const dbName = databaseUrl.split('/').pop() ?? ''
+  const appUrl = buildAppDatabaseUrl(dbName)
 
   const updatedLines = lines.map((line) => {
     if (/^DATABASE_URL\s*=/.test(line)) {
-      replaced = true
+      replacedUrl = true
       return `DATABASE_URL=${databaseUrl}`
+    }
+    if (/^DATABASE_APP_URL\s*=/.test(line)) {
+      replacedAppUrl = true
+      return `DATABASE_APP_URL=${appUrl}`
     }
     return line
   })
 
-  if (!replaced) {
-    // DATABASE_URL line not found — append it
+  if (!replacedUrl) {
     updatedLines.push(`DATABASE_URL=${databaseUrl}`)
+  }
+  if (!replacedAppUrl) {
+    updatedLines.push(`DATABASE_APP_URL=${appUrl}`)
   }
 
   fs.writeFileSync(envPath, updatedLines.join('\n'), 'utf-8')
   log(`Updated ${envPath} with DATABASE_URL=${redactUrl(databaseUrl)}`)
+  log(`Updated ${envPath} with DATABASE_APP_URL=${redactUrl(appUrl)}`)
 }
 
 /**
@@ -320,6 +339,97 @@ function stampMigrations(dbName: string, apiDir: string): void {
 }
 
 /**
+ * Apply RLS policies to all tenant-scoped tables.
+ *
+ * `drizzle-kit push` creates table structures but skips custom SQL in migrations.
+ * This queries the database for tables with a `tenant_id` column and applies
+ * the `create_tenant_rls_policy()` helper to each one (idempotent).
+ */
+function applyRlsPolicies(dbName: string): void {
+  log('Applying RLS policies to tenant-scoped tables...')
+
+  const policySql = `
+    DO $$
+    DECLARE
+      tbl text;
+    BEGIN
+      FOR tbl IN
+        SELECT c.table_name
+        FROM information_schema.columns c
+        WHERE c.column_name = 'tenant_id'
+          AND c.table_schema = 'public'
+          -- Skip tables that already have RLS enabled
+          AND NOT EXISTS (
+            SELECT 1 FROM pg_class pc
+            WHERE pc.relname = c.table_name
+              AND pc.relrowsecurity = true
+          )
+      LOOP
+        PERFORM create_tenant_rls_policy(tbl);
+      END LOOP;
+    END;
+    $$;
+  `
+
+  const result = runSql(dbName, policySql)
+  if (result.status !== 0) {
+    log(`Warning: RLS policy application returned non-zero: ${result.stderr}`)
+  } else {
+    log('RLS policies applied.')
+  }
+}
+
+/**
+ * Grant the roxabi_app user permissions on a branch database.
+ *
+ * The roxabi_app role is a cluster-level role created by Docker's init script
+ * (or by `db:setup-app-user`). Branch databases need per-database grants.
+ */
+function setupAppUserForBranch(dbName: string): void {
+  const appUser = process.env.POSTGRES_APP_USER ?? 'roxabi_app'
+
+  // Validate app user to prevent SQL injection in interpolated SQL strings
+  const IDENTIFIER_REGEX = /^[a-z_][a-z0-9_]*$/
+  if (!IDENTIFIER_REGEX.test(appUser)) {
+    throw new Error(`Invalid POSTGRES_APP_USER: "${appUser}" — must match /^[a-z_][a-z0-9_]*$/`)
+  }
+
+  log(`Granting permissions to '${appUser}' on '${dbName}'...`)
+
+  const grantSql = `
+    -- Grant connect and schema usage
+    GRANT CONNECT ON DATABASE "${dbName}" TO ${appUser};
+    GRANT USAGE ON SCHEMA public TO ${appUser};
+
+    -- Grant DML on all tables and sequences
+    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${appUser};
+    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${appUser};
+
+    -- Ensure future tables/sequences also get permissions
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO ${appUser};
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO ${appUser};
+
+    -- Grant app_user role so SET LOCAL ROLE app_user works at runtime
+    GRANT app_user TO ${appUser};
+
+    -- Grant drizzle schema access
+    CREATE SCHEMA IF NOT EXISTS drizzle;
+    GRANT USAGE ON SCHEMA drizzle TO ${appUser};
+    GRANT SELECT ON ALL TABLES IN SCHEMA drizzle TO ${appUser};
+    ALTER DEFAULT PRIVILEGES IN SCHEMA drizzle GRANT SELECT ON TABLES TO ${appUser};
+  `
+
+  const result = runSql(dbName, grantSql)
+  if (result.status !== 0) {
+    // Non-fatal: the app user may not exist yet (e.g., fresh Docker setup before init ran)
+    log(`Warning: Failed to grant permissions to '${appUser}': ${result.stderr}`)
+    log("If roxabi_app doesn't exist yet, run: cd apps/api && bun run db:setup-app-user")
+  } else {
+    log(`Permissions granted to '${appUser}'.`)
+  }
+}
+
+/**
  * Set up the branch database schema.
  *
  * Branch DBs use `drizzle-kit push` (not `db:migrate`) because there is no
@@ -359,6 +469,21 @@ function runMigrations(databaseUrl: string, dbName: string): void {
       log(`Warning: RLS infrastructure returned non-zero: ${rlsResult.stderr}`)
     }
   }
+
+  // Step 2a-bis: Grant app_user to current_user so SET LOCAL ROLE works
+  const grantRoleSql = `GRANT app_user TO current_user;`
+  const grantRoleResult = runSql(dbName, grantRoleSql)
+  if (grantRoleResult.status !== 0) {
+    log(`Warning: GRANT app_user TO current_user returned non-zero: ${grantRoleResult.stderr}`)
+  }
+
+  // Step 2a: Apply RLS policies to tenant-scoped tables
+  // drizzle-kit push creates tables but not RLS policies (those live in custom SQL migrations).
+  // We call the helper function for each table that has a tenant_id column.
+  applyRlsPolicies(dbName)
+
+  // Step 2b: Set up roxabi_app user permissions on the branch database
+  setupAppUserForBranch(dbName)
 
   // Step 3: Stamp all migrations as applied
   stampMigrations(dbName, apiDir)

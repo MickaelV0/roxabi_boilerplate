@@ -3,12 +3,19 @@ import { ApiExcludeController } from '@nestjs/swagger'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { AuthService } from './auth.service.js'
 import { AllowAnonymous } from './decorators/allow-anonymous.js'
+import { Session } from './decorators/session.decorator.js'
 import { toFetchHeaders } from './fastify-headers.js'
+import type { AuthenticatedSession } from './types.js'
 
 @Controller()
 @ApiExcludeController()
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Get('api/session')
+  getSession(@Session() session: AuthenticatedSession) {
+    return session
+  }
 
   @Get('api/auth/providers')
   @AllowAnonymous()

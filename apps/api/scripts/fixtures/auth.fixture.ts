@@ -6,12 +6,14 @@ export type UserDef = {
   email: string
   name: string
   emailVerified?: boolean
+  role?: string
 }
 
 export const MINIMAL_USERS: UserDef[] = [
   { email: 'dev@roxabi.local', name: 'Dev User' },
   { email: 'admin@roxabi.local', name: 'Admin User' },
   { email: 'viewer@roxabi.local', name: 'Viewer User' },
+  { email: 'superadmin@roxabi.local', name: 'Super Admin', role: 'superadmin' },
 ]
 
 export const FULL_EXTRA_USERS: UserDef[] = [
@@ -39,6 +41,7 @@ export async function seed(tx: Tx, preset: Preset, ctx: FixtureContext): Promise
       name: userDef.name,
       email: userDef.email,
       emailVerified: userDef.emailVerified !== false,
+      ...(userDef.role ? { role: userDef.role } : {}),
     }))
   )
 

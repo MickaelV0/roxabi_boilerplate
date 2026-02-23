@@ -165,11 +165,14 @@ Tables fall into three categories based on their tenant scope:
 | Category | RLS? | `tenantColumn`? | Examples |
 |----------|------|-----------------|----------|
 | Global | No | No | `users`, `accounts`, `permissions`, `verifications` |
+| Global (with org FK) | No | No | `audit_logs` |
 | Tenant-scoped | Yes | Yes | `roles` |
 | Implicitly scoped (via FK) | No | No | `role_permissions` (scoped through FK to `roles`) |
 | Auth-managed | No | No | `organizations`, `members`, `sessions`, `invitations` |
 
 **Global tables** contain data shared across all tenants (user profiles, permission definitions). They do not have RLS.
+
+**Global tables with org FK** have an `organization_id` foreign key for associative purposes but intentionally do not use RLS or `tenantColumn`. The `audit_logs` table falls into this category: it references `organization_id` to record which organization an action relates to, but audit records must survive user and organization deletion for compliance purposes. Read access to audit logs requires admin permissions enforced at the application level, not through RLS.
 
 **Tenant-scoped tables** have a `tenant_id` column and an RLS policy. The `roles` table is the current example.
 
