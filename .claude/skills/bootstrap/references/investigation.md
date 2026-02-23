@@ -9,6 +9,7 @@ Read the approved analysis and check for uncertainty signals:
 - **Explicit uncertainty markers:** "needs testing", "unclear if", "to be validated", "unknown performance", "requires investigation", trade-off sections without a concluded decision
 - **Multiple competing approaches:** 2+ approaches listed without a clear winner, or a recommendation "pending validation"
 - **External dependency risk:** Reliance on a third-party API, library, or service not yet tested in this project
+- **Shape unknowns:** Any shape in the analysis's `## Shapes` section with unvalidated integration points, untested technical approaches, or unknown feasibility (e.g., "trade-offs include unknown performance characteristics")
 
 If no signals detected → skip to "Ensure GitHub Issue."
 
@@ -16,7 +17,7 @@ If no signals detected → skip to "Ensure GitHub Issue."
 
 If signals are detected, present via `AskUserQuestion`:
 
-> "The analysis contains technical uncertainty: {detected signals summary}. Would you like to investigate before writing the spec?"
+> "The analysis contains technical uncertainty: {detected signals summary}. {If shape unknowns detected: 'The analysis contains N shape(s) with unvalidated technical assumptions that need investigation.'} Would you like to investigate before writing the spec?"
 
 Options:
 - **Investigate** — Spike the uncertain areas before speccing

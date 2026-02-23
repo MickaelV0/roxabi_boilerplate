@@ -78,6 +78,14 @@ Spawn **fresh review agents** via the `Task` tool. Each agent is a new instance 
    | **backend-dev** | If `apps/api/` or `packages/types/` changed | Backend patterns, API design, error handling |
    | **devops** | If config files or CI changed | Configuration, deployment, infrastructure |
 
+   **Subdomain splitting for large PRs:** When a domain agent's scope covers 8+ changed files spanning distinct modules (e.g., `apps/api/src/auth/` + `apps/api/src/users/` + `apps/api/src/notifications/`), split into multiple reviewers of the same type, each scoped to a module group. This improves review depth by reducing context per agent.
+
+   Example: A PR touching 15 backend files across 3 services → spawn 2 `backend-dev` reviewers:
+   - `backend-dev` (auth + users) — files in `apps/api/src/auth/`, `apps/api/src/users/`
+   - `backend-dev` (notifications) — files in `apps/api/src/notifications/`
+
+   Default to 1 agent per domain for PRs under 8 files in that domain.
+
 2. **Spawn each agent** with a Task that includes:
    - The full diff (`git diff staging...HEAD` or `gh pr diff`)
    - The list of changed files
@@ -220,7 +228,10 @@ After the walkthrough:
   | **Frontend fixer** | If accepted findings touch `apps/web/` or `packages/ui/` | Frontend test/source fixes only |
   | **Infra fixer** | If accepted findings touch `packages/config/`, root configs, or CI | Config/infra fixes only |
 
-  If all accepted findings fall within a **single domain**, spawn one fixer. If findings span **2+ domains**, spawn one fixer per domain in parallel.
+  **Spawning logic:**
+  - **Single domain, ≤5 findings:** spawn one fixer
+  - **Single domain, 6+ findings across distinct modules:** spawn multiple fixers, each scoped to a module group (e.g., one for `apps/api/src/auth/`, another for `apps/api/src/users/`). Fixers in the same domain must NOT share files.
+  - **Multi-domain:** spawn one fixer per domain in parallel. Apply the 6+ splitting rule within each domain.
 
   Each fixer receives only the findings relevant to its domain. All fixers use the `fixer` agent definition (`.claude/agents/fixer.md`) with their domain scope specified in the prompt.
 

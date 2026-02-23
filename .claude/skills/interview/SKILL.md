@@ -85,6 +85,35 @@ Conduct the interview using **AskUserQuestion**. Follow the four-phase framework
 - How does this integrate with existing systems?
 - What does success look like?
 
+> **Shape Up terminology:** A *shape* is a mutually exclusive architecture approach — each has a name, trade-offs, and rough scope. A *breadboard* maps a shape into connected affordance tables (UI elements → code handlers → data stores). *Slices* break a shape into demo-able vertical increments. These concepts are explored during the interview and formalized in the output templates below.
+
+**Analysis-specific depth (multi-shape exploration):**
+
+When the interview is for an **Analysis** document, Phase 3 should also explore:
+
+- **Architecture shapes:** "What are 2-3 mutually exclusive approaches to solving this?" For each shape, capture: name, description, trade-offs, and rough scope.
+- **Constraint alignment:** "Which constraints or requirements would eliminate any of these approaches?"
+
+**Spec-specific depth (ambiguity detection):**
+
+When the interview is for a **Spec** document (or promoting to spec), Phase 3 should also probe for ambiguity using the **9-category taxonomy**:
+
+| Category | Example probe |
+|----------|--------------|
+| Functional Scope | "What exactly happens when X?" |
+| Domain & Data Model | "What entities are involved? What are the relationships?" |
+| UX | "What does the user see/do at each step?" |
+| Non-Functional | "What are the performance/scale/reliability requirements?" |
+| Integrations | "What external systems does this touch?" |
+| Edge Cases | "What happens when X fails or is missing?" |
+| Constraints | "What technical/time/budget limits apply?" |
+| Terminology | "Are there terms that could mean different things to different people?" |
+| Completion Signals | "How do we know this is done? What does success look like?" |
+
+For each ambiguity detected, rank by **Impact x Uncertainty** (High/Medium/Low for each). High-Impact + High-Uncertainty items become interview follow-up questions. Ambiguity that impacts implementation can be marked inline as `[NEEDS CLARIFICATION: description]` (max 3-5 per spec). These must be resolved before scaffold execution.
+
+> **Example:** During a Spec interview about user notifications, the probe "What external systems does this touch?" (Integrations) reveals uncertainty about whether to use SendGrid or Resend for email. Scored as High-Impact (core feature) x High-Uncertainty (no prior evaluation) → becomes a follow-up question: "Which email provider should we evaluate?" If unresolved after interview, mark as `[NEEDS CLARIFICATION: email provider selection — SendGrid vs Resend]` in the spec.
+
 **Adapt depth by document type:**
 
 - **Brainstorm**: Focus on Phase 1 and divergent exploration. Ask "What else?" and "What if?" questions. Depth can be lighter.
@@ -173,6 +202,33 @@ description: {One-line description of the analysis}
 
 {Body of the analysis — findings, comparisons, data, reasoning}
 
+## Shapes
+
+{2-3 mutually exclusive architecture approaches. Skip for Tier S.}
+
+### Shape 1: {Name}
+
+- **Description:** {What this approach does}
+- **Trade-offs:** {Pros and cons}
+- **Rough scope:** {Estimated effort and files touched}
+
+### Shape 2: {Name}
+
+- **Description:** {What this approach does}
+- **Trade-offs:** {Pros and cons}
+- **Rough scope:** {Estimated effort and files touched}
+
+## Fit Check
+
+{Binary validation matrix — ✅ meets requirement, ❌ does not. No partial marks — ambiguity belongs in `[NEEDS CLARIFICATION]` markers or Breadboard unknowns, not here.}
+
+| Requirement | Shape 1 | Shape 2 | Shape 3 |
+|-------------|---------|---------|---------|
+| {Req 1}     | ✅      | ❌      | ✅      |
+| {Req 2}     | ✅      | ✅      | ❌      |
+
+**Selected shape:** {Name} — {One-line rationale}
+
 ## Conclusions
 
 {Key takeaways and decisions reached}
@@ -185,6 +241,8 @@ description: {One-line description of the analysis}
 ```
 
 ### Spec
+
+> **Inline ambiguity markers:** `[NEEDS CLARIFICATION: description]` markers indicate unresolved ambiguity (max 3-5 per spec). These must be resolved before `/scaffold` execution.
 
 Output path: `specs/{issue}-{slug}.mdx`
 
@@ -215,6 +273,39 @@ description: {One-line description of the feature or project}
 ### Edge cases
 
 {Edge cases and how they should be handled}
+
+## Breadboard
+
+{Map the selected shape into connected affordance tables. Skip for Tier S.}
+
+### UI Affordances
+
+| ID | Element | Location | Trigger |
+|----|---------|----------|---------|
+| U1 | {Button, form, display...} | {Page/component} | {User action} |
+
+### Code Affordances
+
+| ID | Handler | Wiring | Logic |
+|----|---------|--------|-------|
+| N1 | {Function/endpoint} | U1 → N1 → S1 | {What it does} |
+
+### Data Stores
+
+| ID | Store | Type | Accessed by |
+|----|-------|------|-------------|
+| S1 | {Table, cache, API...} | {Persistent/transient/external} | N1, N2 |
+
+{Unknowns: Mark any uncertain wiring — these trigger investigation spikes during bootstrap (Gate 1.5) before spec execution.}
+
+## Slices
+
+{Break the selected shape into demo-able vertical increments. Each slice is a working subset. Skip for Tier S.}
+
+| Slice | Description | Affordances | Demo |
+|-------|-------------|-------------|------|
+| V1 | {Minimal working version} | U1, N1, S1 | {What can be demonstrated} |
+| V2 | {Next increment} | U2, N2, S1 | {What can be demonstrated} |
 
 ## Constraints
 

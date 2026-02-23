@@ -57,6 +57,27 @@ Identify all files that need to be created or modified:
 
 Use `Glob` and `Grep` to find existing feature modules as reference patterns.
 
+#### 2a.1. Pre-flight: Check for unresolved ambiguity markers
+
+Scan the spec for unresolved markers. Use the **Grep** tool to count matches:
+
+- **Pattern:** `\[NEEDS CLARIFICATION`
+- **Path:** `specs/<number>-*.mdx`
+- **Output mode:** `count`
+
+**If markers are found (count > 0):**
+
+Present via `AskUserQuestion`:
+
+> "The spec contains {N} unresolved `[NEEDS CLARIFICATION]` marker(s). These indicate ambiguity that should be resolved before implementation."
+
+Options:
+- **Resolve now** — List each marker for inline resolution (user provides the answer, scaffold updates the spec)
+- **Return to bootstrap** — Go back to `/bootstrap --spec <N>` to resolve via interview
+- **Proceed anyway** — Continue scaffolding with known ambiguity (adds risk)
+
+**If no markers found:** proceed normally.
+
 #### 2b. Determine Tier
 
 Classify as S / F-lite / F-full per [dev-process.mdx](docs/processes/dev-process.mdx). Judgment-based, not file-count-based.
@@ -81,6 +102,18 @@ Analyze file paths from the spec to recommend agents:
 
 **Tier S:** skip agent recommendation (single session).
 
+**Intra-domain parallelization:** When a single domain has 4+ tasks touching independent file groups (no shared files), recommend spawning multiple agents of the same type. Each agent receives a distinct subset of tasks.
+
+Example: A large frontend feature might spawn:
+- `frontend-dev` (pages) — routing, page components
+- `frontend-dev` (components) — shared UI components, hooks
+
+Only recommend this for Tier F-full with clearly separable file groups. Default to 1 agent per domain otherwise.
+
+> **Shared barrel files:** If parallel agents would both need to update a shared barrel/index export file, merge those tasks into a single agent.
+
+> **Note:** Review (Phase 2) uses an 8+ changed-files threshold and fixer (Phase 4) uses a 6+ findings threshold — units differ per context.
+
 #### 2d. Break into Tasks
 
 For each task:
@@ -88,6 +121,7 @@ For each task:
 - **Files:** Specific file paths to create or modify
 - **Agent:** Which agent owns this task
 - **Dependencies:** Which tasks must complete first
+- **Parallel-safe:** Yes/No — can this task run concurrently with other tasks in the same domain? (Yes if no shared files with sibling tasks)
 
 Order: types first → backend → frontend → tests → docs → config.
 
@@ -103,8 +137,8 @@ Files: {N} files to create/modify
 Agents: {agent list}
 
 Tasks:
-  1. {description} → {agent} ({files})
-  2. {description} → {agent} ({files})
+  1. {description} → {agent} ({files}) [parallel-safe: {Yes/No}]
+  2. {description} → {agent} ({files}) [parallel-safe: {Yes/No}]
   ...
 ```
 
@@ -247,6 +281,8 @@ Spawn agents based on the plan from Step 2.
 **Single-domain:** use `Task` tool (subagents within the session).
 **Multi-domain:** use `TeamCreate` (independent agent sessions).
 
+**Intra-domain parallelization:** When the plan from Step 2 recommends multiple agents in the same domain, spawn them as separate `Task` calls (subagents) or as separate team members (TeamCreate). Each agent receives only its assigned task subset. Agents in the same domain must NOT share files — if file conflicts are detected during planning, merge those tasks into a single agent.
+
 **Implementation order (RED → GREEN → REFACTOR):**
 
 1. **RED** — Spawn `tester`: write failing tests from spec acceptance criteria
@@ -326,6 +362,7 @@ git branch -D feat/<number>-<slug>
 | **Tests fail during implementation** | Agents fix and re-test, loop until green |
 | **Pre-commit hook failure** | Fix, re-stage, create NEW commit (never amend) |
 | **Agent blocked** | Report blocker, ask user for guidance |
+| **Spec has unresolved `[NEEDS CLARIFICATION]` markers** | Pre-flight warns, user chooses: resolve inline, return to bootstrap, or proceed with risk |
 
 ## Safety Rules
 

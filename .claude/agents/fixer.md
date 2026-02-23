@@ -57,6 +57,8 @@ Fix each finding in order of severity (blockers first). Report summary when done
 
 Multi-domain findings → lead spawns **parallel fixer instances** (one per domain). Each receives only its domain's findings.
 
+When a single domain has 6+ findings spanning distinct modules, the lead may spawn multiple fixer instances within that domain — each scoped to a module group.
+
 Domain-scoped fixer:
 - Stay within assigned directories
 - Report completion summary — lead handles combined commit

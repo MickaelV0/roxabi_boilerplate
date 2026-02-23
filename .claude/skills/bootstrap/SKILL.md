@@ -138,6 +138,8 @@ The bootstrap orchestrator drives the entire pipeline directly:
 - **If no analysis exists**: conduct a structured interview with the user (using `/interview` in Analysis mode) to produce `analyses/{slug}.mdx`.
   - If domain expertise is needed during writing, spawn the relevant expert subagent via `Task` (see [Expert Consultation](#expert-consultation)).
 
+> **Shaping patterns:** The interview skill now explores multi-shape architecture approaches (2-3 mutually exclusive shapes) during Phase 3 depth questions. The resulting analysis should include `## Shapes` and `## Fit Check` sections. These are populated from the interview — no separate step is needed. For Tier S, shapes and fit check may be skipped.
+
 ### 1b. Expert Review
 
 After generating the analysis, decide which expert reviewers to spawn based on the document content. Do NOT ask the user — apply these rules automatically:
@@ -229,11 +231,29 @@ The issue number is then used for:
 - **If no spec exists**: promote the approved analysis to a spec (using `/interview` with `--promote <path-to-analysis>`) to produce `specs/{issue}-{slug}.mdx`.
   - If domain expertise is needed during writing, spawn the relevant expert subagent via `Task` (see [Expert Consultation](#expert-consultation)).
 
+> **Shaping patterns:** The spec template now includes `## Breadboard` (UI->Code->Data affordance tables with wiring) and `## Slices` (demo-able vertical increments). These are populated during spec writing from the selected shape in the analysis. The spec may also contain inline `[NEEDS CLARIFICATION: description]` markers for unresolved ambiguity (max 3-5 per spec). For Tier S, Breadboard and Slices may be skipped.
+
 ### 2b. Expert Review
 
 After generating the spec, decide which expert reviewers to spawn — same auto-selection rules as Gate 1b. Do NOT ask the user.
 
 Apply the same reviewer table (always **doc-writer** + **product-lead**, add **architect** / **devops** when their domain is present in the spec). Specs with implementation details should always include **architect**.
+
+**Requirement-quality pre-check ("unit tests for English"):**
+
+Before spawning expert reviewers, validate the spec against this checklist:
+
+| Check | Validation |
+|-------|-----------|
+| **Testable criteria** | Each success criterion is binary (pass/fail), not subjective |
+| **No dangling references** | All breadboard IDs (U1, N1, S1) are wired — no orphan affordances |
+| **Ambiguity budget** | Max 3-5 `[NEEDS CLARIFICATION]` markers; if more, return to interview |
+| **Slice coverage** | Every breadboard affordance appears in at least one slice |
+| **Edge case completeness** | Each edge case has a defined handling strategy |
+
+> **Note:** If the spec lacks `## Breadboard` or `## Slices` sections (e.g., Tier S or pre-enrichment specs), skip the "No dangling references" and "Slice coverage" checks.
+
+If 2+ checks fail, inform the user before proceeding with expert review. The user can choose to fix the spec or continue with review as-is.
 
 Spawn selected reviewers **in parallel** via `Task`. Each reviewer receives the spec path and reviews from their focus area. Incorporate feedback and note unresolved concerns.
 
@@ -296,6 +316,8 @@ Once both gates are passed:
 2. **Inform the user (plain text):**
 
 > "Bootstrap complete. You have an approved analysis and spec (committed). Run `/scaffold --spec <N>` to execute."
+
+> **Scaffold guard:** When the user runs `/scaffold`, a pre-flight check will verify no unresolved `[NEEDS CLARIFICATION]` markers remain in the spec. Unresolved markers block scaffold execution. Remind the user to resolve any markers before scaffolding.
 
 **Do not scaffold or create PRs.** Bootstrap stops at the approved spec.
 

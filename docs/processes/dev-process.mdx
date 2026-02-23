@@ -188,6 +188,8 @@ Two modes are available depending on task complexity. See the [Agent Teams Guide
 - Tier F single-domain: subagents via `Task` tool
 - Tier F multi-domain: agent teams via `TeamCreate`
 
+**Intra-domain parallelization (Tier F-full):** When a single domain has 4+ tasks on independent file groups, spawn multiple agents of the same type. Each agent receives a distinct task subset with no shared files. Example: 2 `backend-dev` agents — one for auth service, one for user service.
+
 ### Roles
 
 | Actor | Role | Does NOT |
