@@ -10,15 +10,8 @@ type PipelineStep = {
   isGate?: boolean
 }
 
-export function EndToEndSection() {
-  const reducedMotion = useReducedMotion()
-  const { ref: pipelineRef, inView } = useInView({
-    threshold: 0.3,
-    triggerOnce: true,
-  })
-  const visible = inView || reducedMotion
-
-  const pipelineSteps: ReadonlyArray<PipelineStep> = [
+function getPipelineSteps(): ReadonlyArray<PipelineStep> {
+  return [
     {
       command: '/bootstrap',
       from: m.talk_e2e_step_idea(),
@@ -66,28 +59,119 @@ export function EndToEndSection() {
       isGate: true,
     },
   ]
+}
 
-  const integrations = [
-    {
-      icon: GitPullRequest,
-      label: 'GitHub',
-      detail: m.talk_e2e_int_github_detail(),
-    },
-    {
-      icon: Rocket,
-      label: 'Vercel',
-      detail: m.talk_e2e_int_vercel_detail(),
-    },
-    {
-      icon: Globe,
-      label: 'CI/CD',
-      detail: m.talk_e2e_int_cicd_detail(),
-    },
+function getIntegrations() {
+  return [
+    { icon: GitPullRequest, label: 'GitHub', detail: m.talk_e2e_int_github_detail() },
+    { icon: Rocket, label: 'Vercel', detail: m.talk_e2e_int_vercel_detail() },
+    { icon: Globe, label: 'CI/CD', detail: m.talk_e2e_int_cicd_detail() },
   ]
+}
+
+function PipelineDesktop({
+  steps,
+  visible,
+}: {
+  steps: ReadonlyArray<PipelineStep>
+  visible: boolean
+}) {
+  return (
+    <div className="hidden lg:flex items-center justify-center gap-1.5">
+      {steps.map((step, index) => (
+        <div
+          key={`${step.command}-${step.from}`}
+          className={cn(
+            'flex items-center gap-1.5 transition-all duration-700',
+            visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+          )}
+          style={{ transitionDelay: visible ? `${index * 180}ms` : '0ms' }}
+        >
+          <Card
+            variant="subtle"
+            className={cn(
+              'items-center p-5 text-center min-w-[140px]',
+              step.isGate && 'border-yellow-500/30'
+            )}
+          >
+            <p className="font-mono text-base font-bold text-primary">{step.command}</p>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              {step.from} → {step.to}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground/70">{step.description}</p>
+            {step.isGate && (
+              <p className="mt-1.5 text-xs font-semibold text-yellow-500">
+                {m.talk_e2e_validation_gate()}
+              </p>
+            )}
+          </Card>
+          {index < steps.length - 1 && (
+            <ArrowRight
+              className={cn(
+                'h-4 w-4 text-primary/60 shrink-0 transition-all duration-500',
+                visible ? 'opacity-100' : 'opacity-0'
+              )}
+              style={{ transitionDelay: visible ? `${index * 180 + 90}ms` : '0ms' }}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function PipelineMobile({
+  steps,
+  visible,
+}: {
+  steps: ReadonlyArray<PipelineStep>
+  visible: boolean
+}) {
+  return (
+    <div className="lg:hidden space-y-3 max-w-md mx-auto">
+      {steps.map((step, index) => (
+        <div key={`${step.command}-${step.from}`}>
+          <Card
+            variant="subtle"
+            className={cn(
+              'p-4 transition-all duration-700',
+              visible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-6',
+              step.isGate && 'border-yellow-500/30'
+            )}
+            style={{ transitionDelay: visible ? `${index * 150}ms` : '0ms' }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-base font-bold text-primary">{step.command}</span>
+              <span className="text-xs text-muted-foreground">
+                {step.from} → {step.to}
+              </span>
+              {step.isGate && (
+                <span className="text-xs font-semibold text-yellow-500">{m.talk_e2e_gate()}</span>
+              )}
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>
+          </Card>
+          {index < steps.length - 1 && (
+            <div className="flex justify-center py-1">
+              <ArrowRight className="h-4 w-4 text-muted-foreground/40 rotate-90" />
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function EndToEndSection() {
+  const reducedMotion = useReducedMotion()
+  const { ref: pipelineRef, inView } = useInView({ threshold: 0.3, triggerOnce: true })
+  const visible = inView || reducedMotion
+
+  const pipelineSteps = getPipelineSteps()
+  const integrations = getIntegrations()
 
   return (
     <div className="relative mx-auto max-w-7xl w-full">
-      {/* Background glow */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute right-0 bottom-1/4 h-[500px] w-[500px] translate-x-1/4 rounded-full bg-primary/5 blur-[120px] dark:bg-primary/10" />
       </div>
@@ -102,93 +186,11 @@ export function EndToEndSection() {
         <p className="mt-4 text-lg text-muted-foreground">{m.talk_e2e_subtitle()}</p>
       </AnimatedSection>
 
-      {/* Pipeline flow */}
       <div ref={pipelineRef} className="mt-14">
-        {/* Desktop: horizontal pipeline */}
-        <div className="hidden lg:flex items-center justify-center gap-1.5">
-          {pipelineSteps.map((step, index) => (
-            <div
-              key={`${step.command}-${step.from}`}
-              className={cn(
-                'flex items-center gap-1.5 transition-all duration-700',
-                visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-              )}
-              style={{
-                transitionDelay: visible ? `${index * 180}ms` : '0ms',
-              }}
-            >
-              <Card
-                variant="subtle"
-                className={cn(
-                  'items-center p-5 text-center min-w-[140px]',
-                  step.isGate && 'border-yellow-500/30'
-                )}
-              >
-                <p className="font-mono text-base font-bold text-primary">{step.command}</p>
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  {step.from} → {step.to}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground/70">{step.description}</p>
-                {step.isGate && (
-                  <p className="mt-1.5 text-xs font-semibold text-yellow-500">
-                    {m.talk_e2e_validation_gate()}
-                  </p>
-                )}
-              </Card>
-              {index < pipelineSteps.length - 1 && (
-                <ArrowRight
-                  className={cn(
-                    'h-4 w-4 text-primary/60 shrink-0 transition-all duration-500',
-                    visible ? 'opacity-100' : 'opacity-0'
-                  )}
-                  style={{
-                    transitionDelay: visible ? `${index * 180 + 90}ms` : '0ms',
-                  }}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Mobile/Tablet: vertical pipeline */}
-        <div className="lg:hidden space-y-3 max-w-md mx-auto">
-          {pipelineSteps.map((step, index) => (
-            <div key={`${step.command}-${step.from}`}>
-              <Card
-                variant="subtle"
-                className={cn(
-                  'p-4 transition-all duration-700',
-                  visible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-6',
-                  step.isGate && 'border-yellow-500/30'
-                )}
-                style={{
-                  transitionDelay: visible ? `${index * 150}ms` : '0ms',
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-base font-bold text-primary">{step.command}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {step.from} → {step.to}
-                  </span>
-                  {step.isGate && (
-                    <span className="text-xs font-semibold text-yellow-500">
-                      {m.talk_e2e_gate()}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>
-              </Card>
-              {index < pipelineSteps.length - 1 && (
-                <div className="flex justify-center py-1">
-                  <ArrowRight className="h-4 w-4 text-muted-foreground/40 rotate-90" />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        <PipelineDesktop steps={pipelineSteps} visible={visible} />
+        <PipelineMobile steps={pipelineSteps} visible={visible} />
       </div>
 
-      {/* Integrations row */}
       <AnimatedSection className="mt-10">
         <div className="grid gap-4 sm:grid-cols-3">
           {integrations.map((item) => (

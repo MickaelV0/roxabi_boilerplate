@@ -3,7 +3,10 @@ import type { RawItem } from '../../shared/types'
 import { formatDeps, formatJson, formatTable, pad, sortIssues } from '../lib/table-formatter'
 import type { Issue } from '../lib/types'
 
-function makeRawItem(overrides: Partial<RawItem['content']> = {}, fields: Record<string, string> = {}): RawItem {
+function makeRawItem(
+  overrides: Partial<RawItem['content']> = {},
+  fields: Record<string, string> = {}
+): RawItem {
   return {
     content: {
       number: 1,
@@ -125,7 +128,10 @@ describe('table-formatter', () => {
   describe('formatTable', () => {
     it('produces header with issue count', () => {
       const items = [
-        makeRawItem({ number: 1, title: 'First issue' }, { Status: 'Backlog', Priority: 'P1 - High', Size: 'M' }),
+        makeRawItem(
+          { number: 1, title: 'First issue' },
+          { Status: 'Backlog', Priority: 'P1 - High', Size: 'M' }
+        ),
       ]
       const output = formatTable(items, { sortBy: 'priority', titleLength: 55 })
       expect(output).toContain('1 issues')

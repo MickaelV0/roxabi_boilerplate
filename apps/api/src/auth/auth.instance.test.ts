@@ -759,7 +759,7 @@ describe('createBetterAuth callbackURL rewrite', () => {
     )
   })
 
-  it('should use rewritten URL in fallback email when render throws', async () => {
+  it('should use rewritten URL in fallback email when render throws (reset password)', async () => {
     // Arrange
     const mockDb = createMockDb()
     const mockEmail = createMockEmailProvider()
@@ -789,6 +789,153 @@ describe('createBetterAuth callbackURL rewrite', () => {
       html: `<p>Click <a href="${escapeHtml(rewrittenUrl)}">here</a> to reset your password.</p>`,
       text: `Reset your password: ${rewrittenUrl}`,
     })
+  })
+
+  it('should use rewritten URL in fallback email when render throws (verification)', async () => {
+    // Regression test: verifies the fallback email uses emailUrl (rewritten)
+    // instead of the raw url when renderVerificationEmail throws. The URL must
+    // contain a callbackURL parameter so we can distinguish rewritten from raw.
+    // Arrange
+    const mockDb = createMockDb()
+    const mockEmail = createMockEmailProvider()
+    createBetterAuth(mockDb as never, mockEmail as never, defaultConfig)
+
+    const emailVerification = capturedConfig.config?.emailVerification as {
+      sendVerificationEmail: (params: {
+        user: { email: string; locale?: string }
+        url: string
+      }) => Promise<void>
+    }
+
+    mockRenderVerificationEmail.mockRejectedValueOnce(new Error('Template render failed'))
+
+    // Act — URL with callbackURL to distinguish raw url from rewritten emailUrl
+    await emailVerification.sendVerificationEmail({
+      user: { email: 'user@example.com' },
+      url: 'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=%2F',
+    })
+
+    // Assert — fallback should use rewritten emailUrl, NOT the raw url
+    const rewrittenUrl =
+      'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=http%3A%2F%2Flocalhost%3A3000'
+    expect(mockEmail.send).toHaveBeenCalledWith({
+      to: 'user@example.com',
+      subject: 'Verify your email',
+      html: `<p>Click <a href="${escapeHtml(rewrittenUrl)}">here</a> to verify your email.</p>`,
+      text: `Verify your email: ${rewrittenUrl}`,
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// rewriteCallbackUrl edge cases (tested via email handler behavior)
+// ---------------------------------------------------------------------------
+
+describe('rewriteCallbackUrl edge cases', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    capturedConfig.config = null
+    capturedMagicLinkConfig.config = null
+  })
+
+  it('should return URL unchanged when it has no callbackURL parameter', async () => {
+    // Arrange
+    const mockDb = createMockDb()
+    const mockEmail = createMockEmailProvider()
+    createBetterAuth(mockDb as never, mockEmail as never, defaultConfig)
+
+    const emailVerification = capturedConfig.config?.emailVerification as {
+      sendVerificationEmail: (params: {
+        user: { email: string; locale?: string }
+        url: string
+      }) => Promise<void>
+    }
+
+    mockRenderVerificationEmail.mockResolvedValueOnce({
+      html: '<p>Verify</p>',
+      text: 'Verify',
+      subject: 'Verify',
+    })
+
+    // Act — URL without callbackURL parameter
+    await emailVerification.sendVerificationEmail({
+      user: { email: 'user@example.com', locale: 'en' },
+      url: 'http://localhost:4000/api/auth/verify-email?token=abc',
+    })
+
+    // Assert — URL should remain unchanged since there is no callbackURL to rewrite
+    expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
+      'http://localhost:4000/api/auth/verify-email?token=abc',
+      'en',
+      'http://localhost:3000'
+    )
+  })
+
+  it('should rewrite callbackURL when appURL is configured', async () => {
+    // Arrange
+    const mockDb = createMockDb()
+    const mockEmail = createMockEmailProvider()
+    createBetterAuth(mockDb as never, mockEmail as never, defaultConfig)
+
+    const emailVerification = capturedConfig.config?.emailVerification as {
+      sendVerificationEmail: (params: {
+        user: { email: string; locale?: string }
+        url: string
+      }) => Promise<void>
+    }
+
+    mockRenderVerificationEmail.mockResolvedValueOnce({
+      html: '<p>Verify</p>',
+      text: 'Verify',
+      subject: 'Verify',
+    })
+
+    // Act — URL with callbackURL parameter and valid appURL
+    await emailVerification.sendVerificationEmail({
+      user: { email: 'user@example.com', locale: 'en' },
+      url: 'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=%2Fdashboard',
+    })
+
+    // Assert — callbackURL should be rewritten to appURL
+    expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
+      'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=http%3A%2F%2Flocalhost%3A3000',
+      'en',
+      'http://localhost:3000'
+    )
+  })
+
+  it('should not rewrite callbackURL when appURL is undefined', async () => {
+    // Arrange
+    const mockDb = createMockDb()
+    const mockEmail = createMockEmailProvider()
+    const configNoApp = { secret: 'test-secret', baseURL: 'http://localhost:4000' }
+    createBetterAuth(mockDb as never, mockEmail as never, configNoApp)
+
+    const emailAndPassword = capturedConfig.config?.emailAndPassword as {
+      sendResetPassword: (params: {
+        user: { email: string; locale?: string }
+        url: string
+      }) => Promise<void>
+    }
+
+    mockRenderResetEmail.mockResolvedValueOnce({
+      html: '<p>Reset</p>',
+      text: 'Reset',
+      subject: 'Reset',
+    })
+
+    // Act — URL with callbackURL but no appURL configured
+    await emailAndPassword.sendResetPassword({
+      user: { email: 'user@example.com', locale: 'en' },
+      url: 'http://localhost:4000/api/auth/reset-password?token=xyz&callbackURL=%2F',
+    })
+
+    // Assert — URL should remain unchanged when appURL is undefined
+    expect(mockRenderResetEmail).toHaveBeenCalledWith(
+      'http://localhost:4000/api/auth/reset-password?token=xyz&callbackURL=%2F',
+      'en',
+      undefined
+    )
   })
 })
 

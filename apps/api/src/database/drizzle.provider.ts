@@ -8,6 +8,7 @@ export const DRIZZLE = Symbol('DRIZZLE')
 export const POSTGRES_CLIENT = Symbol('POSTGRES_CLIENT')
 
 export type DrizzleDB = PostgresJsDatabase<typeof schema>
+export type DrizzleTx = Parameters<Parameters<DrizzleDB['transaction']>[0]>[0]
 export type PostgresClient = ReturnType<typeof postgres>
 
 export const postgresClientProvider = {

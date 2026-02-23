@@ -40,7 +40,7 @@ import {
   TooltipTrigger,
 } from '@repo/ui'
 import { createFileRoute } from '@tanstack/react-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { m } from '@/paraglide/messages'
 
 import { ComponentShowcase } from './-components/ComponentShowcase'
@@ -161,83 +161,34 @@ function findColor(name: string | null): ShadcnPreset | null {
   return COLOR_PRESETS.find((p) => p.name === name) ?? null
 }
 
-function DesignSystemPage() {
-  const TABS: { id: TabId; label: string }[] = [
-    { id: 'colors', label: m.ds_tab_colors() },
-    { id: 'typography', label: m.ds_tab_typography() },
-    { id: 'spacing', label: m.ds_tab_spacing() },
-    { id: 'components', label: m.ds_tab_components() },
-    { id: 'compositions', label: m.ds_tab_compositions() },
-  ]
+/** Apply non-color overrides (typography, radius, shadows) onto a derived theme (mutates). */
+function applyNonColorOverrides(
+  derived: { light: Record<string, string>; dark: Record<string, string> },
+  config: ThemeConfig
+) {
+  derived.light.radius = config.radius
+  derived.dark.radius = config.radius
+  derived.light['font-family'] = config.typography.fontFamily
+  derived.dark['font-family'] = config.typography.fontFamily
+  derived.light['font-size'] = config.typography.baseFontSize
+  derived.dark['font-size'] = config.typography.baseFontSize
+  overlayShadows(derived, config)
+}
 
-  const [activeTab, setActiveTab] = useState<TabId>('colors')
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [themeConfig, setThemeConfig] = useState<ThemeConfig>(ZINC_CONFIG)
-  const [activeBase, setActiveBase] = useState('zinc')
-  const [activeColor, setActiveColor] = useState<string | null>(null)
-  const announcementRef = useRef<HTMLOutputElement>(null)
+/** Persist theme data to localStorage (best-effort). */
+function persistTheme(data: Record<string, unknown>) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+  } catch {
+    // localStorage unavailable
+  }
+}
 
-  /** Apply the composed base + color theme and sync UI state + localStorage.
-   *  When `resetAll` is true the ZINC_CONFIG defaults for typography, radius,
-   *  and shadows are restored instead of preserving the current values. */
-  const applyComposed = useCallback(
-    (baseName: string, colorName: string | null, resetAll = false) => {
-      const base = findBase(baseName)
-      const color = findColor(colorName)
-
-      const config = getComposedConfig(base, color)
-
-      if (resetAll) {
-        // Restore ZINC_CONFIG defaults for non-color settings
-        config.typography = ZINC_CONFIG.typography
-        config.radius = ZINC_CONFIG.radius
-        config.shadows = ZINC_CONFIG.shadows
-      } else {
-        // Preserve current non-color settings across preset switches
-        config.typography = themeConfig.typography
-        config.radius = themeConfig.radius
-        config.shadows = themeConfig.shadows
-      }
-
-      const isDefault = baseName === 'zinc' && !colorName && resetAll
-
-      if (isDefault) {
-        // Full reset: remove all CSS overrides, restoring stylesheet defaults
-        resetTheme()
-      } else {
-        // Apply the composed theme with current overrides
-        const derived = getComposedDerivedTheme(base, color)
-        derived.light.radius = config.radius
-        derived.dark.radius = config.radius
-        derived.light['font-family'] = config.typography.fontFamily
-        derived.dark['font-family'] = config.typography.fontFamily
-        derived.light['font-size'] = config.typography.baseFontSize
-        derived.dark['font-size'] = config.typography.baseFontSize
-        overlayShadows(derived, config)
-        applyTheme(derived)
-      }
-
-      setThemeConfig(config)
-      setActiveBase(baseName)
-      setActiveColor(colorName)
-
-      try {
-        if (isDefault) {
-          localStorage.removeItem(STORAGE_KEY)
-        } else {
-          localStorage.setItem(
-            STORAGE_KEY,
-            JSON.stringify({ base: baseName, color: colorName, config })
-          )
-        }
-      } catch {
-        // localStorage unavailable
-      }
-    },
-    [themeConfig]
-  )
-
-  // Load theme from localStorage on mount
+function useThemeFromStorage(
+  setThemeConfig: (c: ThemeConfig) => void,
+  setActiveBase: (b: string) => void,
+  setActiveColor: (c: string | null) => void
+) {
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
@@ -249,23 +200,11 @@ function DesignSystemPage() {
         config: ThemeConfig
       }
 
-      // Restore base + color composition
       if (data.base) {
         const base = findBase(data.base)
         const color = findColor(data.color ?? null)
         const derived = getComposedDerivedTheme(base, color)
-
-        // Overlay non-color settings saved alongside the preset
-        if (data.config) {
-          derived.light.radius = data.config.radius
-          derived.dark.radius = data.config.radius
-          derived.light['font-family'] = data.config.typography.fontFamily
-          derived.dark['font-family'] = data.config.typography.fontFamily
-          derived.light['font-size'] = data.config.typography.baseFontSize
-          derived.dark['font-size'] = data.config.typography.baseFontSize
-          overlayShadows(derived, data.config)
-        }
-
+        if (data.config) applyNonColorOverrides(derived, data.config)
         applyTheme(derived)
         setThemeConfig(data.config)
         setActiveBase(data.base)
@@ -280,184 +219,231 @@ function DesignSystemPage() {
       const derived = deriveFullTheme(data.config)
       applyTheme(derived)
     } catch {
-      // localStorage unavailable or corrupt — use defaults
       localStorage.removeItem(STORAGE_KEY)
     }
-  }, [])
+  }, [setThemeConfig, setActiveBase, setActiveColor])
+}
 
-  // Handle manual config changes from color pickers / sliders.
-  // When only non-color settings (typography, radius, shadows) change we keep the
-  // active preset selection and compose the derived theme from the preset + overrides.
-  // When seed colors change we depart from the preset.
-  const handleConfigChange = useCallback(
+function applyThemeComposition(
+  baseName: string,
+  colorName: string | null,
+  themeConfig: ThemeConfig,
+  resetAll: boolean
+) {
+  const base = findBase(baseName)
+  const color = findColor(colorName)
+  const config = getComposedConfig(base, color)
+
+  if (resetAll) {
+    config.typography = ZINC_CONFIG.typography
+    config.radius = ZINC_CONFIG.radius
+    config.shadows = ZINC_CONFIG.shadows
+  } else {
+    config.typography = themeConfig.typography
+    config.radius = themeConfig.radius
+    config.shadows = themeConfig.shadows
+  }
+
+  const isDefault = baseName === 'zinc' && !colorName && resetAll
+
+  if (isDefault) {
+    resetTheme()
+  } else {
+    const derived = getComposedDerivedTheme(base, color)
+    applyNonColorOverrides(derived, config)
+    applyTheme(derived)
+  }
+
+  if (isDefault) {
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch {
+      // localStorage unavailable
+    }
+  } else {
+    persistTheme({ base: baseName, color: colorName, config })
+  }
+
+  return config
+}
+
+function getTabs(): { id: TabId; label: string }[] {
+  return [
+    { id: 'colors', label: m.ds_tab_colors() },
+    { id: 'typography', label: m.ds_tab_typography() },
+    { id: 'spacing', label: m.ds_tab_spacing() },
+    { id: 'components', label: m.ds_tab_components() },
+    { id: 'compositions', label: m.ds_tab_compositions() },
+  ]
+}
+
+function TabNavigation({
+  tabs,
+  activeTab,
+  onTabChange,
+}: {
+  tabs: { id: TabId; label: string }[]
+  activeTab: TabId
+  onTabChange: (id: TabId) => void
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label={m.ds_sections_label()}
+      className="mb-8 flex flex-wrap gap-1 rounded-lg border border-border bg-muted/50 p-1"
+    >
+      {tabs.map((tab) => (
+        <button
+          type="button"
+          key={tab.id}
+          role="tab"
+          id={`tab-${tab.id}`}
+          aria-selected={activeTab === tab.id}
+          aria-controls={`panel-${tab.id}`}
+          tabIndex={activeTab === tab.id ? 0 : -1}
+          onClick={() => onTabChange(tab.id)}
+          onKeyDown={(e) => {
+            const currentIndex = tabs.findIndex((t) => t.id === activeTab)
+            if (e.key === 'ArrowRight') {
+              e.preventDefault()
+              const next = tabs[(currentIndex + 1) % tabs.length]
+              if (next) onTabChange(next.id)
+            } else if (e.key === 'ArrowLeft') {
+              e.preventDefault()
+              const prev = tabs[(currentIndex - 1 + tabs.length) % tabs.length]
+              if (prev) onTabChange(prev.id)
+            }
+          }}
+          className={cn(
+            'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+            activeTab === tab.id
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function TabPanels({ activeTab, config }: { activeTab: TabId; config: ThemeConfig }) {
+  return (
+    <>
+      {activeTab === 'colors' && (
+        <div role="tabpanel" id="panel-colors" aria-labelledby="tab-colors">
+          <ColorsSection config={config} />
+        </div>
+      )}
+      {activeTab === 'typography' && (
+        <div role="tabpanel" id="panel-typography" aria-labelledby="tab-typography">
+          <TypographySection config={config} />
+        </div>
+      )}
+      {activeTab === 'spacing' && (
+        <div role="tabpanel" id="panel-spacing" aria-labelledby="tab-spacing">
+          <SpacingSection config={config} />
+        </div>
+      )}
+      {activeTab === 'components' && (
+        <div role="tabpanel" id="panel-components" aria-labelledby="tab-components">
+          <ComponentsSection />
+        </div>
+      )}
+      {activeTab === 'compositions' && (
+        <div role="tabpanel" id="panel-compositions" aria-labelledby="tab-compositions">
+          <CompositionsSection />
+        </div>
+      )}
+    </>
+  )
+}
+
+function useDesignSystemTheme() {
+  const [themeConfig, setThemeConfig] = useState<ThemeConfig>(ZINC_CONFIG)
+  const [activeBase, setActiveBase] = useState('zinc')
+  const [activeColor, setActiveColor] = useState<string | null>(null)
+
+  useThemeFromStorage(setThemeConfig, setActiveBase, setActiveColor)
+
+  const applyComposed = useCallback(
+    (baseName: string, colorName: string | null, resetAll = false) => {
+      const config = applyThemeComposition(baseName, colorName, themeConfig, resetAll)
+      setThemeConfig(config)
+      setActiveBase(baseName)
+      setActiveColor(colorName)
+    },
+    [themeConfig]
+  )
+
+  const onConfigChange = useCallback(
     (newConfig: ThemeConfig) => {
       const colorsChanged = SEED_COLOR_KEYS.some(
         (key) => newConfig.colors[key] !== themeConfig.colors[key]
       )
-
       setThemeConfig(newConfig)
 
       if (colorsChanged) {
-        // Manual color edit — depart from preset
         setActiveBase('zinc')
         setActiveColor(null)
-
-        const derived = deriveFullTheme(newConfig)
-        applyTheme(derived)
-
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({ config: newConfig }))
-        } catch {
-          // localStorage unavailable
-        }
+        applyTheme(deriveFullTheme(newConfig))
+        persistTheme({ config: newConfig })
       } else {
-        // Non-color change — preserve preset selection
         const base = findBase(activeBase)
         const color = findColor(activeColor)
         const derived = getComposedDerivedTheme(base, color)
-
-        // Overlay non-color settings from the updated config
-        derived.light.radius = newConfig.radius
-        derived.dark.radius = newConfig.radius
-        derived.light['font-family'] = newConfig.typography.fontFamily
-        derived.dark['font-family'] = newConfig.typography.fontFamily
-        derived.light['font-size'] = newConfig.typography.baseFontSize
-        derived.dark['font-size'] = newConfig.typography.baseFontSize
-        overlayShadows(derived, newConfig)
-
+        applyNonColorOverrides(derived, newConfig)
         applyTheme(derived)
-
-        try {
-          localStorage.setItem(
-            STORAGE_KEY,
-            JSON.stringify({ base: activeBase, color: activeColor, config: newConfig })
-          )
-        } catch {
-          // localStorage unavailable
-        }
+        persistTheme({ base: activeBase, color: activeColor, config: newConfig })
       }
     },
     [themeConfig, activeBase, activeColor]
   )
 
-  // Handle base preset selection (keeps current color overlay)
+  return { themeConfig, activeBase, activeColor, applyComposed, onConfigChange }
+}
+
+function DesignSystemPage() {
+  const TABS = getTabs()
+  const [activeTab, setActiveTab] = useState<TabId>('colors')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const theme = useDesignSystemTheme()
+
   const handleBaseSelect = useCallback(
-    (preset: ShadcnPreset) => {
-      applyComposed(preset.name, activeColor)
-    },
-    [applyComposed, activeColor]
+    (preset: ShadcnPreset) => theme.applyComposed(preset.name, theme.activeColor),
+    [theme.applyComposed, theme.activeColor]
   )
-
-  // Handle color preset selection (keeps current base)
   const handleColorSelect = useCallback(
-    (preset: ShadcnPreset | null) => {
-      applyComposed(activeBase, preset?.name ?? null)
-    },
-    [applyComposed, activeBase]
+    (preset: ShadcnPreset | null) => theme.applyComposed(theme.activeBase, preset?.name ?? null),
+    [theme.applyComposed, theme.activeBase]
   )
-
-  // Reset to Zinc base with no color overlay, restoring all defaults
-  const handleReset = useCallback(() => {
-    applyComposed('zinc', null, true)
-  }, [applyComposed])
-
-  function toggleSidebar() {
-    setSidebarOpen((prev) => !prev)
-  }
+  const handleReset = useCallback(
+    () => theme.applyComposed('zinc', null, true),
+    [theme.applyComposed]
+  )
 
   return (
     <>
       <ThemeScript />
-
       <main className="mx-auto max-w-7xl px-6 py-16">
-        {/* Page header */}
         <div className="mb-12 text-center">
           <h1 className="text-4xl font-bold tracking-tight">{m.ds_title()}</h1>
           <p className="mt-3 text-lg text-muted-foreground">{m.ds_subtitle()}</p>
         </div>
-
-        {/* Tab navigation */}
-        <div
-          role="tablist"
-          aria-label={m.ds_sections_label()}
-          className="mb-8 flex flex-wrap gap-1 rounded-lg border border-border bg-muted/50 p-1"
-        >
-          {TABS.map((tab) => (
-            <button
-              type="button"
-              key={tab.id}
-              role="tab"
-              id={`tab-${tab.id}`}
-              aria-selected={activeTab === tab.id}
-              aria-controls={`panel-${tab.id}`}
-              tabIndex={activeTab === tab.id ? 0 : -1}
-              onClick={() => setActiveTab(tab.id)}
-              onKeyDown={(e) => {
-                const currentIndex = TABS.findIndex((t) => t.id === activeTab)
-                if (e.key === 'ArrowRight') {
-                  e.preventDefault()
-                  const next = TABS[(currentIndex + 1) % TABS.length]
-                  if (next) setActiveTab(next.id)
-                } else if (e.key === 'ArrowLeft') {
-                  e.preventDefault()
-                  const prev = TABS[(currentIndex - 1 + TABS.length) % TABS.length]
-                  if (prev) setActiveTab(prev.id)
-                }
-              }}
-              className={cn(
-                'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                activeTab === tab.id
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab panels — conditional rendering (only active tab is mounted) */}
-        {activeTab === 'colors' && (
-          <div role="tabpanel" id="panel-colors" aria-labelledby="tab-colors">
-            <ColorsSection config={themeConfig} />
-          </div>
-        )}
-        {activeTab === 'typography' && (
-          <div role="tabpanel" id="panel-typography" aria-labelledby="tab-typography">
-            <TypographySection config={themeConfig} />
-          </div>
-        )}
-        {activeTab === 'spacing' && (
-          <div role="tabpanel" id="panel-spacing" aria-labelledby="tab-spacing">
-            <SpacingSection config={themeConfig} />
-          </div>
-        )}
-        {activeTab === 'components' && (
-          <div role="tabpanel" id="panel-components" aria-labelledby="tab-components">
-            <ComponentsSection />
-          </div>
-        )}
-        {activeTab === 'compositions' && (
-          <div role="tabpanel" id="panel-compositions" aria-labelledby="tab-compositions">
-            <CompositionsSection />
-          </div>
-        )}
-
-        {/* Announcements for screen readers */}
-        <output ref={announcementRef} aria-live="polite" className="sr-only" />
+        <TabNavigation tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabPanels activeTab={activeTab} config={theme.themeConfig} />
       </main>
-
-      {/* Theme Editor sidebar */}
       <ThemeEditor
-        config={themeConfig}
-        onConfigChange={handleConfigChange}
+        config={theme.themeConfig}
+        onConfigChange={theme.onConfigChange}
         onBaseSelect={handleBaseSelect}
         onColorSelect={handleColorSelect}
         onReset={handleReset}
-        activeBase={activeBase}
-        activeColor={activeColor}
+        activeBase={theme.activeBase}
+        activeColor={theme.activeColor}
         isOpen={sidebarOpen}
-        onToggle={toggleSidebar}
+        onToggle={() => setSidebarOpen((prev) => !prev)}
       />
     </>
   )
@@ -693,6 +679,255 @@ function SpacingSection({ config }: { config: ThemeConfig }) {
 // Tab Section: Components
 // ---------------------------------------------------------------------------
 
+function InteractiveControlDemos() {
+  return (
+    <>
+      <ComponentShowcase
+        name="Button"
+        category={m.ds_category_inputs()}
+        propControls={[
+          {
+            name: 'variant',
+            type: 'select',
+            options: ['default', 'destructive', 'outline', 'secondary', 'ghost', 'link'],
+            defaultValue: 'default',
+          },
+          {
+            name: 'size',
+            type: 'select',
+            options: ['default', 'sm', 'lg', 'icon'],
+            defaultValue: 'default',
+          },
+          { name: 'disabled', type: 'boolean', defaultValue: false },
+        ]}
+      >
+        {(props) => (
+          // TODO(#90): type preview props properly — ComponentShowcase children receive Record<string, unknown>
+          <Button
+            variant={props.variant as 'default'}
+            size={props.size as 'default'}
+            disabled={Boolean(props.disabled)}
+          >
+            {props.size === 'icon' ? 'A' : m.ds_demo_click_me()}
+          </Button>
+        )}
+      </ComponentShowcase>
+
+      <ComponentShowcase
+        name="Input"
+        category={m.ds_category_inputs()}
+        propControls={[
+          { name: 'placeholder', type: 'text', defaultValue: m.ds_demo_type_something() },
+          { name: 'disabled', type: 'boolean', defaultValue: false },
+        ]}
+      >
+        {(props) => (
+          <Input
+            placeholder={String(props.placeholder)}
+            disabled={Boolean(props.disabled)}
+            className="max-w-sm"
+          />
+        )}
+      </ComponentShowcase>
+
+      <ComponentShowcase
+        name="Textarea"
+        category={m.ds_category_inputs()}
+        propControls={[
+          { name: 'placeholder', type: 'text', defaultValue: m.ds_demo_enter_message() },
+          { name: 'disabled', type: 'boolean', defaultValue: false },
+        ]}
+      >
+        {(props) => (
+          <Textarea
+            placeholder={String(props.placeholder)}
+            disabled={Boolean(props.disabled)}
+            className="max-w-sm"
+          />
+        )}
+      </ComponentShowcase>
+    </>
+  )
+}
+
+function ToggleInputDemos() {
+  return (
+    <>
+      <ComponentShowcase
+        name="Checkbox"
+        category={m.ds_category_inputs()}
+        propControls={[{ name: 'disabled', type: 'boolean', defaultValue: false }]}
+      >
+        {(props) => (
+          <div className="flex items-center gap-2">
+            <Checkbox id="demo-cb" disabled={Boolean(props.disabled)} />
+            <Label htmlFor="demo-cb">{m.ds_demo_accept_terms()}</Label>
+          </div>
+        )}
+      </ComponentShowcase>
+
+      <ComponentShowcase
+        name="Switch"
+        category={m.ds_category_inputs()}
+        propControls={[{ name: 'disabled', type: 'boolean', defaultValue: false }]}
+      >
+        {(props) => (
+          <div className="flex items-center gap-2">
+            <Switch id="demo-sw" disabled={Boolean(props.disabled)} />
+            <Label htmlFor="demo-sw">{m.ds_demo_airplane_mode()}</Label>
+          </div>
+        )}
+      </ComponentShowcase>
+
+      <ComponentShowcase name="Select" category={m.ds_category_inputs()} propControls={[]}>
+        {() => (
+          <Select>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder={m.ds_demo_pick_fruit()} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="apple">{m.ds_demo_apple()}</SelectItem>
+              <SelectItem value="banana">{m.ds_demo_banana()}</SelectItem>
+              <SelectItem value="cherry">{m.ds_demo_cherry()}</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+      </ComponentShowcase>
+
+      <ComponentShowcase
+        name="Slider"
+        category={m.ds_category_inputs()}
+        propControls={[{ name: 'disabled', type: 'boolean', defaultValue: false }]}
+      >
+        {(props) => (
+          <Slider
+            defaultValue={[50]}
+            max={100}
+            step={1}
+            disabled={Boolean(props.disabled)}
+            className="max-w-sm"
+          />
+        )}
+      </ComponentShowcase>
+    </>
+  )
+}
+
+function DataDisplayDemos() {
+  return (
+    <>
+      <ComponentShowcase
+        name="Badge"
+        category={m.ds_category_data_display()}
+        propControls={[
+          {
+            name: 'variant',
+            type: 'select',
+            options: ['default', 'secondary', 'destructive', 'outline'],
+            defaultValue: 'default',
+          },
+          { name: 'text', type: 'text', defaultValue: 'Badge' },
+        ]}
+      >
+        {/* TODO(#90): type preview props properly — ComponentShowcase children receive Record<string, unknown> */}
+        {(props) => <Badge variant={props.variant as 'default'}>{String(props.text)}</Badge>}
+      </ComponentShowcase>
+
+      <ComponentShowcase name="Avatar" category={m.ds_category_data_display()} propControls={[]}>
+        {() => (
+          <div className="flex items-center gap-4">
+            <Avatar>
+              <AvatarImage src="https://github.com/shadcn.png" alt={m.ds_demo_user()} />
+              <AvatarFallback>CN</AvatarFallback>
+            </Avatar>
+            <Avatar>
+              <AvatarFallback>JD</AvatarFallback>
+            </Avatar>
+            <Avatar>
+              <AvatarFallback>AB</AvatarFallback>
+            </Avatar>
+          </div>
+        )}
+      </ComponentShowcase>
+    </>
+  )
+}
+
+function LayoutDemos() {
+  return (
+    <>
+      <ComponentShowcase name="Card" category={m.ds_category_layout()} propControls={[]}>
+        {() => (
+          <Card className="max-w-sm">
+            <CardHeader>
+              <CardTitle>{m.ds_demo_card_title()}</CardTitle>
+              <CardDescription>{m.ds_demo_card_desc()}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">{m.ds_demo_card_content()}</p>
+            </CardContent>
+            <CardFooter className="gap-2">
+              <Button size="sm">{m.ds_demo_action()}</Button>
+              <Button size="sm" variant="outline">
+                {m.common_cancel()}
+              </Button>
+            </CardFooter>
+          </Card>
+        )}
+      </ComponentShowcase>
+
+      <ComponentShowcase name="Separator" category={m.ds_category_layout()} propControls={[]}>
+        {() => (
+          <div className="max-w-sm space-y-4">
+            <div>
+              <h4 className="text-sm font-medium">{m.ds_demo_section_above()}</h4>
+              <p className="text-sm text-muted-foreground">{m.ds_demo_content_above()}</p>
+            </div>
+            <Separator />
+            <div>
+              <h4 className="text-sm font-medium">{m.ds_demo_section_below()}</h4>
+              <p className="text-sm text-muted-foreground">{m.ds_demo_content_below()}</p>
+            </div>
+          </div>
+        )}
+      </ComponentShowcase>
+    </>
+  )
+}
+
+function FeedbackDemos() {
+  return (
+    <>
+      <ComponentShowcase name="Skeleton" category={m.ds_category_feedback()} propControls={[]}>
+        {() => (
+          <div className="flex items-center gap-4">
+            <Skeleton className="size-12 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          </div>
+        )}
+      </ComponentShowcase>
+
+      <ComponentShowcase name="Tooltip" category={m.ds_category_feedback()} propControls={[]}>
+        {() => (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline">{m.ds_demo_hover_me()}</Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{m.ds_demo_tooltip_text()}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </ComponentShowcase>
+    </>
+  )
+}
+
 function ComponentsSection() {
   return (
     <section>
@@ -700,237 +935,11 @@ function ComponentsSection() {
       <p className="mb-8 text-muted-foreground">{m.ds_components_desc()}</p>
 
       <div className="space-y-10">
-        {/* Button */}
-        <ComponentShowcase
-          name="Button"
-          category={m.ds_category_inputs()}
-          propControls={[
-            {
-              name: 'variant',
-              type: 'select',
-              options: ['default', 'destructive', 'outline', 'secondary', 'ghost', 'link'],
-              defaultValue: 'default',
-            },
-            {
-              name: 'size',
-              type: 'select',
-              options: ['default', 'sm', 'lg', 'icon'],
-              defaultValue: 'default',
-            },
-            { name: 'disabled', type: 'boolean', defaultValue: false },
-          ]}
-        >
-          {(props) => (
-            // TODO(#90): type preview props properly — ComponentShowcase children receive Record<string, unknown>
-            <Button
-              variant={props.variant as 'default'}
-              size={props.size as 'default'}
-              disabled={Boolean(props.disabled)}
-            >
-              {props.size === 'icon' ? 'A' : m.ds_demo_click_me()}
-            </Button>
-          )}
-        </ComponentShowcase>
-
-        {/* Badge */}
-        <ComponentShowcase
-          name="Badge"
-          category={m.ds_category_data_display()}
-          propControls={[
-            {
-              name: 'variant',
-              type: 'select',
-              options: ['default', 'secondary', 'destructive', 'outline'],
-              defaultValue: 'default',
-            },
-            { name: 'text', type: 'text', defaultValue: 'Badge' },
-          ]}
-        >
-          {/* TODO(#90): type preview props properly — ComponentShowcase children receive Record<string, unknown> */}
-          {(props) => <Badge variant={props.variant as 'default'}>{String(props.text)}</Badge>}
-        </ComponentShowcase>
-
-        {/* Input */}
-        <ComponentShowcase
-          name="Input"
-          category={m.ds_category_inputs()}
-          propControls={[
-            { name: 'placeholder', type: 'text', defaultValue: m.ds_demo_type_something() },
-            { name: 'disabled', type: 'boolean', defaultValue: false },
-          ]}
-        >
-          {(props) => (
-            <Input
-              placeholder={String(props.placeholder)}
-              disabled={Boolean(props.disabled)}
-              className="max-w-sm"
-            />
-          )}
-        </ComponentShowcase>
-
-        {/* Textarea */}
-        <ComponentShowcase
-          name="Textarea"
-          category={m.ds_category_inputs()}
-          propControls={[
-            { name: 'placeholder', type: 'text', defaultValue: m.ds_demo_enter_message() },
-            { name: 'disabled', type: 'boolean', defaultValue: false },
-          ]}
-        >
-          {(props) => (
-            <Textarea
-              placeholder={String(props.placeholder)}
-              disabled={Boolean(props.disabled)}
-              className="max-w-sm"
-            />
-          )}
-        </ComponentShowcase>
-
-        {/* Checkbox */}
-        <ComponentShowcase
-          name="Checkbox"
-          category={m.ds_category_inputs()}
-          propControls={[{ name: 'disabled', type: 'boolean', defaultValue: false }]}
-        >
-          {(props) => (
-            <div className="flex items-center gap-2">
-              <Checkbox id="demo-cb" disabled={Boolean(props.disabled)} />
-              <Label htmlFor="demo-cb">{m.ds_demo_accept_terms()}</Label>
-            </div>
-          )}
-        </ComponentShowcase>
-
-        {/* Switch */}
-        <ComponentShowcase
-          name="Switch"
-          category={m.ds_category_inputs()}
-          propControls={[{ name: 'disabled', type: 'boolean', defaultValue: false }]}
-        >
-          {(props) => (
-            <div className="flex items-center gap-2">
-              <Switch id="demo-sw" disabled={Boolean(props.disabled)} />
-              <Label htmlFor="demo-sw">{m.ds_demo_airplane_mode()}</Label>
-            </div>
-          )}
-        </ComponentShowcase>
-
-        {/* Select */}
-        <ComponentShowcase name="Select" category={m.ds_category_inputs()} propControls={[]}>
-          {() => (
-            <Select>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder={m.ds_demo_pick_fruit()} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="apple">{m.ds_demo_apple()}</SelectItem>
-                <SelectItem value="banana">{m.ds_demo_banana()}</SelectItem>
-                <SelectItem value="cherry">{m.ds_demo_cherry()}</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-        </ComponentShowcase>
-
-        {/* Slider */}
-        <ComponentShowcase
-          name="Slider"
-          category={m.ds_category_inputs()}
-          propControls={[{ name: 'disabled', type: 'boolean', defaultValue: false }]}
-        >
-          {(props) => (
-            <Slider
-              defaultValue={[50]}
-              max={100}
-              step={1}
-              disabled={Boolean(props.disabled)}
-              className="max-w-sm"
-            />
-          )}
-        </ComponentShowcase>
-
-        {/* Card */}
-        <ComponentShowcase name="Card" category={m.ds_category_layout()} propControls={[]}>
-          {() => (
-            <Card className="max-w-sm">
-              <CardHeader>
-                <CardTitle>{m.ds_demo_card_title()}</CardTitle>
-                <CardDescription>{m.ds_demo_card_desc()}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">{m.ds_demo_card_content()}</p>
-              </CardContent>
-              <CardFooter className="gap-2">
-                <Button size="sm">{m.ds_demo_action()}</Button>
-                <Button size="sm" variant="outline">
-                  {m.common_cancel()}
-                </Button>
-              </CardFooter>
-            </Card>
-          )}
-        </ComponentShowcase>
-
-        {/* Avatar */}
-        <ComponentShowcase name="Avatar" category={m.ds_category_data_display()} propControls={[]}>
-          {() => (
-            <div className="flex items-center gap-4">
-              <Avatar>
-                <AvatarImage src="https://github.com/shadcn.png" alt={m.ds_demo_user()} />
-                <AvatarFallback>CN</AvatarFallback>
-              </Avatar>
-              <Avatar>
-                <AvatarFallback>JD</AvatarFallback>
-              </Avatar>
-              <Avatar>
-                <AvatarFallback>AB</AvatarFallback>
-              </Avatar>
-            </div>
-          )}
-        </ComponentShowcase>
-
-        {/* Separator */}
-        <ComponentShowcase name="Separator" category={m.ds_category_layout()} propControls={[]}>
-          {() => (
-            <div className="max-w-sm space-y-4">
-              <div>
-                <h4 className="text-sm font-medium">{m.ds_demo_section_above()}</h4>
-                <p className="text-sm text-muted-foreground">{m.ds_demo_content_above()}</p>
-              </div>
-              <Separator />
-              <div>
-                <h4 className="text-sm font-medium">{m.ds_demo_section_below()}</h4>
-                <p className="text-sm text-muted-foreground">{m.ds_demo_content_below()}</p>
-              </div>
-            </div>
-          )}
-        </ComponentShowcase>
-
-        {/* Skeleton */}
-        <ComponentShowcase name="Skeleton" category={m.ds_category_feedback()} propControls={[]}>
-          {() => (
-            <div className="flex items-center gap-4">
-              <Skeleton className="size-12 rounded-full" />
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-48" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-            </div>
-          )}
-        </ComponentShowcase>
-
-        {/* Tooltip */}
-        <ComponentShowcase name="Tooltip" category={m.ds_category_feedback()} propControls={[]}>
-          {() => (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline">{m.ds_demo_hover_me()}</Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{m.ds_demo_tooltip_text()}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-        </ComponentShowcase>
+        <InteractiveControlDemos />
+        <ToggleInputDemos />
+        <DataDisplayDemos />
+        <LayoutDemos />
+        <FeedbackDemos />
       </div>
     </section>
   )

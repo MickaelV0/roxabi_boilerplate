@@ -12,7 +12,7 @@ function createMockConfigService(cronSecret?: string) {
   return {
     get: vi.fn().mockImplementation((key: string) => {
       if (key === 'CRON_SECRET') return cronSecret
-      return undefined
+      return
     }),
   } as unknown as ConfigService
 }

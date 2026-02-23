@@ -71,11 +71,8 @@ export async function listIssues(args: string[]): Promise<void> {
   console.log('| # | Title | Size | Pri |')
   console.log('|---|-------|------|-----|')
   for (const issue of untriaged) {
-    const title =
-      issue.title.length > 45 ? issue.title.slice(0, 42) + '...' : issue.title
-    console.log(
-      `| #${issue.number} | ${title} | ${issue.size ?? '-'} | ${issue.priority ?? '-'} |`
-    )
+    const title = issue.title.length > 45 ? `${issue.title.slice(0, 42)}...` : issue.title
+    console.log(`| #${issue.number} | ${title} | ${issue.size ?? '-'} | ${issue.priority ?? '-'} |`)
   }
   console.log('')
   console.log(`*${untriaged.length} to triage*`)

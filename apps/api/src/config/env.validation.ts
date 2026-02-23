@@ -101,7 +101,7 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
   if (
     validatedConfig.NODE_ENV === 'production' &&
     validatedConfig.RATE_LIMIT_ENABLED === true &&
-    (!validatedConfig.KV_REST_API_URL || !validatedConfig.KV_REST_API_TOKEN)
+    !(validatedConfig.KV_REST_API_URL && validatedConfig.KV_REST_API_TOKEN)
   ) {
     throw new Error(
       'KV_REST_API_URL and KV_REST_API_TOKEN are required in production when rate limiting is enabled. ' +

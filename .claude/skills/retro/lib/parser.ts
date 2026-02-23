@@ -201,7 +201,7 @@ function enrichFromIndex(
   sessionId: string,
   sessionsIndex: Record<string, unknown> | null
 ): void {
-  if (!sessionsIndex || !(sessionId in sessionsIndex)) return
+  if (!(sessionsIndex && sessionId in sessionsIndex)) return
   const indexEntry = sessionsIndex[sessionId] as Record<string, unknown> | undefined
   if (indexEntry && typeof indexEntry.summary === 'string' && !session.summary) {
     session.summary = indexEntry.summary
