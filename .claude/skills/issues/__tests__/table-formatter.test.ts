@@ -188,6 +188,35 @@ describe('table-formatter', () => {
       // Count should show 1 root issue, not 2
       expect(output).toContain('1 issues')
     })
+
+    it('should include Chains section with dependency arrows when blocking relationships exist', () => {
+      // Arrange
+      const blocker = makeRawItem(
+        {
+          number: 50,
+          title: 'Setup auth module',
+          blocking: { nodes: [{ number: 51, state: 'OPEN' }] },
+        },
+        { Status: 'In Progress', Priority: 'P0 - Urgent', Size: 'M' }
+      )
+      const blocked = makeRawItem(
+        {
+          number: 51,
+          title: 'Add login page',
+          blockedBy: { nodes: [{ number: 50, state: 'OPEN' }] },
+        },
+        { Status: 'Backlog', Priority: 'P1 - High', Size: 'S' }
+      )
+
+      // Act
+      const output = formatTable([blocker, blocked], { sortBy: 'priority', titleLength: 55 })
+
+      // Assert
+      expect(output).toContain('Chains:')
+      expect(output).toContain('#50')
+      expect(output).toContain('#51')
+      expect(output).toMatch(/#50.*──►.*#51/)
+    })
   })
 
   describe('formatJson', () => {
