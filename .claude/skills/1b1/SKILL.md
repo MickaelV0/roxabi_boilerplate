@@ -32,7 +32,35 @@ For each item in the list, **sequentially**:
 
 #### 2a. Brief the User
 
-Present a short context block:
+Present a short context block appropriate to the item type.
+
+**For review findings with enriched fields** (findings from `/review` that include root cause, solutions, and confidence):
+
+```
+── Item {N}/{total}: {title or summary} ──
+
+<label> -- estimated confidence: <X>% -- <reviewer>
+  <file_path>:<line_number>
+
+Root cause: <why this issue exists>
+
+Solutions:
+  1. <primary recommendation> (recommended)
+  2. <alternative approach>
+  3. <alternative approach>
+
+Recommended: Solution 1 -- <rationale for why this is the best option>
+```
+
+Note: Use "estimated confidence" framing (not just "confidence") to avoid user anchoring on the number as ground truth.
+
+If the finding was demoted from auto-apply (failed), include the failure note before the root cause:
+
+```
+Auto-apply attempted but failed: <reason>
+```
+
+**For all other items** (tasks, issues, TODOs, or review findings without enriched fields):
 
 ```
 ── Item {N}/{total}: {title or summary} ──
@@ -51,6 +79,14 @@ Use `AskUserQuestion` with options appropriate to the item type:
 - **Reject** — Finding is invalid or incorrect, discard it
 - **Skip** — Move to the next item without deciding
 - **Defer** — Finding is valid but not urgent, note it for later (add to a deferred list)
+
+**Solution-choice follow-up (review findings with enriched fields only):** When the user selects "Fix now" for a review finding that has a solutions list, present a secondary `AskUserQuestion` with the available solutions:
+
+- **Solution 1 (recommended):** &lt;brief description of the primary recommendation&gt;
+- **Solution 2:** &lt;brief description of the alternative approach&gt;
+- **Solution 3:** &lt;brief description of the alternative approach&gt; (include only if a third solution exists)
+
+The recommended solution must be the first option. The user picks which solution to apply before the fix is executed.
 
 **For tasks / plan items:**
 - **Do it** — Execute this task now
@@ -73,6 +109,7 @@ Adapt the options to what makes sense for the specific item. Always include **Sk
 #### 2c. Execute the Decision
 
 - **Fix / Do it / Act:** Perform the action. Show a brief confirmation of what was done.
+  - **For review findings with enriched fields:** After the user selects "Fix now" and chooses a solution from the follow-up question (see 2b above), pass the **chosen solution text** to the fixer agent as the specific fix instruction. This replaces the generic "fix this finding" prompt — the fixer receives the exact solution the user selected, along with the full finding context (label, file path, line number, root cause). If the finding was demoted from auto-apply (failed), also include the failure note so the fixer understands what was already attempted and why it failed.
 - **Reject:** Acknowledge the finding is invalid, discard it, and continue.
 - **Skip:** Move to the next item silently.
 - **Defer:** Add to a running "deferred" list. Continue to the next item.

@@ -101,7 +101,40 @@ Spawn **fresh review agents** via the `Task` tool. Each agent is a new instance 
    - Readability (naming, complexity, comments)
    - Observability (logging, correlation IDs, timeouts)
 
-4. **Categorize each finding:**
+4. **Output findings in the enriched format.** Every finding produced by a review agent MUST include the full enriched format — Conventional Comment label, root cause analysis, 2-3 concrete solutions with a recommended marker, and a confidence score:
+
+   ```
+   <label>: <description>
+     <file_path>:<line_number>
+     -- <reviewer_agent>
+     Root cause: <why this issue exists -- not just what it is>
+     Solutions:
+       1. <primary recommendation> (recommended)
+       2. <alternative approach>
+       3. <alternative approach> [optional]
+     Confidence: <0-100>%
+   ```
+
+   **Confidence scoring criteria:** The confidence score reflects both **diagnostic certainty** (is the finding correct?) and **fix certainty** (is the recommended fix correct?). Both must be high for a high overall score. A finding where the diagnosis is clear but the fix is uncertain should score lower than one where both are well-understood.
+
+   **Example:**
+
+   ```
+   issue(blocking): This sql.raw() call with user input is a SQL injection vector.
+     apps/api/src/users/users.service.ts:42
+     -- security-auditor
+     Root cause: The raw SQL call was introduced during the Knex-to-Drizzle migration
+       without converting to parameterized queries.
+     Solutions:
+       1. Replace sql.raw(input) with sql.param(input) using Drizzle's parameterized API (recommended)
+       2. Use prepared statements with explicit parameter binding
+       3. Add input validation + escaping as a defense-in-depth layer
+     Confidence: 92%
+   ```
+
+   **Missing enrichment fields:** If any enrichment field (root cause, solutions, confidence) is missing from an agent's output, default the finding's confidence to 0% and route it to 1b1. Do not attempt to infer missing fields.
+
+5. **Categorize each finding:**
 
    | Category | Severity | Label | Blocks merge? |
    |----------|----------|-------|---------------|
@@ -115,7 +148,7 @@ Spawn **fresh review agents** via the `Task` tool. Each agent is a new instance 
 
 ### Phase 3 — Merge and Present Findings
 
-Collect findings from all review agents and merge them into a single report. Deduplicate any overlapping findings (e.g., if both security-auditor and backend-dev flag the same SQL injection). Attribute each finding to the agent that raised it.
+Collect findings from all review agents and merge them into a single report. Deduplicate any overlapping findings (e.g., if both security-auditor and backend-dev flag the same SQL injection). Attribute each finding to the agent that raised it. After deduplication, **sort findings by confidence (descending) within each category group** so the highest-confidence findings appear first in each section.
 
 Format every finding as a **Conventional Comment** with file path, line number, and reviewer attribution:
 
@@ -203,6 +236,45 @@ After presenting findings locally, **post the full review as a PR comment** so t
    - Include the summary line and verdict
    - Wrap finding labels in backticks for readability (e.g., `` `issue(blocking):` ``)
    - Use a `## Code Review` header so comments are easy to find
+   - **All findings are included in the PR comment regardless of confidence level.** Auto-applied findings (those processed in Phase 3.6) are marked with an `[auto-applied]` prefix in the PR comment so reviewers can see what was fixed automatically. The grouped format and verdict logic remain unchanged.
+
+---
+
+### Phase 3.6 — Confidence-Gated Auto-Apply
+
+After posting the review to the PR, split findings based on confidence and category for automated fixing.
+
+1. **Split findings into two queues:**
+   - **Auto-apply queue:** Findings with confidence **>= 80%** AND category in [`issue`, `suggestion`, `todo`] (actionable categories). Confidence exactly 80% is inclusive (treated as >= 80%).
+   - **1b1 queue:** Findings with confidence **< 80%** OR non-actionable categories (`praise`, `thought`, `question`). Praise findings are exempt from auto-apply entirely. `thought` and `question` findings always go to 1b1 regardless of confidence.
+
+2. **If the auto-apply queue is empty**, skip this phase entirely and proceed to Phase 4.
+
+3. **Serial application:** Pass auto-apply queue findings to fixer agents **one at a time** (serial, not batched). Each finding is applied and validated before moving to the next.
+
+4. **On success:** Mark the finding as `[applied]` in the post-apply summary.
+
+5. **On failure** (test failure, lint error, or any validation issue):
+   - The fixer reverts its changes via `git checkout -- <affected files>`.
+   - The finding is demoted to the 1b1 queue with a note: "Auto-apply attempted but failed: {reason}."
+   - **All remaining unapplied findings in the auto-apply queue are also demoted to 1b1.** Do not continue applying after a failure.
+
+6. **On fixer timeout or crash:** The finding is demoted to the 1b1 queue with a note: "Auto-apply failed: fixer agent did not respond." No partial changes should remain — the fixer must revert before erroring.
+
+7. **On fixer "cannot auto-fix" report:** The finding is demoted to the 1b1 queue with the fixer's explanation attached.
+
+8. **Post-apply summary:** After all auto-apply attempts complete (or halt on failure), display a summary before starting 1b1:
+
+   ```
+   -- Auto-Applied Fixes (confidence >= 80%) --
+
+   Applied N finding(s) automatically:
+     1. [applied] issue(blocking): SQL injection in users.service.ts:42 (92%)
+     2. [applied] suggestion(blocking): Missing null check in auth.guard.ts:18 (88%)
+     3. [failed -> 1b1] nitpick: Unused import in dashboard.tsx:3 (85%) -- test failure after fix
+
+   Remaining M finding(s) (confidence <80% or non-actionable) will be presented one-by-one.
+   ```
 
 ---
 
@@ -305,12 +377,22 @@ After all fixes are committed, pushed, and the follow-up PR comment is posted:
 | Critical security finding | Escalate immediately to human, do not wait for 1b1 |
 | Review agents disagree | Present both perspectives in 1b1, human decides |
 | No PR for current branch | Skip PR comment (Phase 3.5), findings stay local only |
+| All findings >= 80% | All auto-applied. Post-apply summary shown. 1b1 is skipped (no items). |
+| All findings < 80% | Phase 3.6 is skipped. All go through enriched 1b1. |
+| Auto-apply breaks tests | Fixer reverts via `git checkout -- <files>`. Finding demoted to 1b1 with failure note. |
+| Auto-apply causes lint error | Same as test failure — revert, demote to 1b1. |
+| Fixer agent times out | Finding demoted to 1b1 with note: "Auto-apply failed: fixer agent did not respond." |
+| Fixer reports "cannot auto-fix" | Finding demoted to 1b1 with fixer's explanation. |
+| Praise/thought/question finding | Exempt from auto-apply. Praise in summary, thought/question always to 1b1. |
+| Confidence exactly 80% | Treated as >= 80% (inclusive threshold). |
+| Review agent outputs confidence without root cause | Invalid — default confidence to 0%, force to 1b1. |
+| Phase 3.6 modifies files that 1b1 findings also target | Phase 4 fixer re-reads files before applying. Stale findings reported, not silently applied. |
 
 ## Safety Rules
 
 1. **Fresh agents only** — review agents must be new instances with no implementation context
 2. **Never auto-merge** or approve PRs on GitHub
-3. **Human decides on every finding** — findings go through 1b1 walkthrough before any fix is applied
+3. **Human decides on every finding with estimated confidence <80%.** Findings with confidence >= 80% and actionable categories (`issue`, `suggestion`, `todo`) are auto-applied by fixer agents, with results shown in a post-apply summary. The human can review auto-applied changes via git diff at any time.
 4. **Always post review to PR** — if a PR exists, findings must be posted as a comment for traceability. After fixes are applied, post a follow-up comment confirming which findings were addressed.
 5. **Fixer handles fixes** — the review skill does not fix code; that is the fixer agent's responsibility after 1b1
 
