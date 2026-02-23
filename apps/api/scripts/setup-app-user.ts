@@ -54,9 +54,7 @@ async function setupAppUser() {
     )
 
     // Grant sequence usage (for serial/identity columns)
-    await client.unsafe(
-      `GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${APP_USER}`
-    )
+    await client.unsafe(`GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${APP_USER}`)
 
     // Ensure future tables and sequences also get permissions
     await client.unsafe(

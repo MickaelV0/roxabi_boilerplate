@@ -173,6 +173,7 @@ function useAdminMembers(orgId: string | undefined) {
 function useOrgRoles(orgId: string | undefined) {
   const [roles, setRoles] = useState<OrgRole[]>([])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: orgId triggers refetch on org switch
   useEffect(() => {
     const controller = new AbortController()
     fetchRoles(controller.signal).then((data) => {
@@ -253,7 +254,9 @@ function RemoveMemberDialog({ memberId, onConfirm, onCancel }: RemoveMemberDialo
 
 function AdminMembersPage() {
   const { data: activeOrg } = authClient.useActiveOrganization()
-  const { members, pagination, isLoading, error, refetch, goToPage } = useAdminMembers(activeOrg?.id)
+  const { members, pagination, isLoading, error, refetch, goToPage } = useAdminMembers(
+    activeOrg?.id
+  )
   const roles = useOrgRoles(activeOrg?.id)
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -341,7 +344,7 @@ function AdminMembersPage() {
       )}
 
       {/* Members table */}
-      {!isLoading && !error && (
+      {!(isLoading || error) && (
         <Card>
           <CardHeader>
             <CardTitle>{m.org_members_active()}</CardTitle>
