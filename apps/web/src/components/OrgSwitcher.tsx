@@ -32,6 +32,10 @@ export function OrgSwitcher() {
   const { data: orgs, isLoading: orgsLoading, refetch: refetchOrgs } = useOrganizations()
   const { data: activeOrg } = authClient.useActiveOrganization()
   const [createOpen, setCreateOpen] = useState(false)
+  // Optimistic org name — shown immediately on switch before the server responds.
+  // Also used as fallback when activeOrg hasn't hydrated yet but orgs are loaded.
+  const [optimisticOrgName, setOptimisticOrgName] = useState<string | null>(null)
+  const displayedOrgName = optimisticOrgName ?? activeOrg?.name ?? orgs?.[0]?.name
 
   const activeMember = activeOrg?.members?.find(
     (member: { userId: string }) => member.userId === session?.user?.id
@@ -53,12 +57,15 @@ export function OrgSwitcher() {
 
   async function handleSwitch(orgId: string, orgName: string) {
     if (activeOrg?.id === orgId) return
+    setOptimisticOrgName(orgName)
     try {
       await authClient.organization.setActive({ organizationId: orgId })
       toast.success(m.org_toast_switched({ name: orgName }))
       refetchOrgs()
     } catch {
       toast.error(m.auth_toast_error())
+    } finally {
+      setOptimisticOrgName(null)
     }
   }
 
@@ -67,7 +74,7 @@ export function OrgSwitcher() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm">
-            {activeOrg?.name ?? m.org_switcher_no_org()}
+            {displayedOrgName ?? m.org_switcher_no_org()}
             <ChevronDown className="ml-1 size-3" />
           </Button>
         </DropdownMenuTrigger>
