@@ -279,16 +279,33 @@ After spec approval, evaluate whether the feature should be decomposed into sub-
 
 ### 2.5a. Detect Splitting Signals
 
+**First check:** If the tier is **S**, skip Gate 2.5 entirely. Proceed to Issue Status Transitions and Completion.
+
+**Pre-check for existing sub-issues:**
+
+Before evaluating splitting signals, check if the parent issue already has sub-issues:
+
+```bash
+gh api graphql -f query='{ repository(owner: "{owner}", name: "{repo}") { issue(number: {N}) { subIssues(first: 10) { nodes { number title state } } } } }'
+```
+
+**If sub-issues already exist**, present them to the user via **AskUserQuestion**:
+
+> "Issue #{N} already has {count} sub-issues: {list}."
+
+Options:
+- **Keep existing** — Skip Gate 2.5 entirely
+- **Replace** — Close existing sub-issues and create new ones
+- **Add additional** — Create new sub-issues alongside existing ones
+
 Read the approved spec and count:
 
 1. **Acceptance criteria count:** Count `- [ ]` checkboxes in `## Success Criteria`
 2. **Slice count:** Count rows in the `## Slices` table (if present)
-3. **Implementation phase count:** Count `### Phase N` headings in `## Implementation Phases` (if present)
 
 **Trigger thresholds:** Propose splitting when ANY of:
-- Acceptance criteria > 5
+- Acceptance criteria > 8
 - Slices > 3
-- Implementation phases > 2
 
 **If no thresholds are met:** Skip Gate 2.5 entirely. Proceed to Issue Status Transitions and Completion.
 
@@ -311,6 +328,7 @@ For each proposed sub-issue, determine:
 | **Dependencies** | Which other sub-issues must complete first (infer from slice order or phase dependencies) |
 | **Estimated tier** | Score using the complexity rubric from Step 1a |
 | **Size label** | XS/S/M/L/XL based on estimated tier |
+| **Priority** | Inherit from parent issue. If the parent has no priority, default to Medium |
 
 ### 2.5c. Present to User
 
@@ -345,7 +363,7 @@ bun .claude/skills/issue-triage/triage.ts create \
   --body "<body>" \
   --parent <parent_issue_number> \
   --size <XS|S|M|L|XL> \
-  --priority <Low|Medium|High>
+  --priority <Urgent|High|Medium|Low>
 ```
 
 **Sub-issue body template:**
@@ -367,6 +385,10 @@ bun .claude/skills/issue-triage/triage.ts create \
 {List of sibling sub-issues that must complete first, if any}
 ```
 
+**Track created issue numbers:**
+
+After each `triage.ts create` call, parse the output to capture the created issue number. The output format is: `Created #N: <title>`. Store a mapping of sub-issue title → issue number for use in dependency wiring.
+
 After creating all sub-issues, set dependency relationships between them:
 
 ```bash
@@ -378,6 +400,35 @@ bun .claude/skills/issue-triage/triage.ts set <B> --blocked-by <A>
 
 > "Created {N} sub-issues under #{parent_issue_number}. Each can be scaffolded independently with `/scaffold --issue <N>`."
 
+**Generate sub-specs:**
+
+After creating all sub-issues, generate a lightweight spec file for each sub-issue so that `/scaffold --issue <N>` can find it:
+
+```bash
+# For each sub-issue:
+cat > specs/{sub_issue_number}-{sub_slug}.mdx << 'SPEC_EOF'
+---
+title: "{sub-issue title}"
+parent_spec: "specs/{parent_issue}-{parent_slug}.mdx"
+parent_issue: {parent_issue_number}
+---
+
+## Scope
+
+{Subset of slices/affordances/criteria from parent spec for this sub-issue}
+
+## Success Criteria
+
+{Subset of acceptance criteria from parent spec for this sub-issue}
+
+## Reference
+
+Full spec: [specs/{parent_issue}-{parent_slug}.mdx](../specs/{parent_issue}-{parent_slug}.mdx)
+SPEC_EOF
+```
+
+These sub-specs are lightweight references to the parent spec. Scaffold uses them as entry points.
+
 ### 2.5e. Edge Cases
 
 | Scenario | Behavior |
@@ -388,6 +439,10 @@ bun .claude/skills/issue-triage/triage.ts set <B> --blocked-by <A>
 | Only 1 sub-issue would result | Skip split — no value in a single sub-issue |
 | User adjusts then re-adjusts | Re-propose each time. No limit on adjustment rounds. |
 | Sub-issue creation fails (GitHub API) | Report error, ask user to retry or skip |
+| Circular dependencies detected | Reject the split proposal. Inform user: "Circular dependency detected between sub-issues. Adjust the split to remove cycles." |
+| Partial sub-issue creation failure | Report which sub-issues were created and which failed. Ask user: "Retry failed creations?" or "Continue with partial split?" Already-created sub-issues are NOT rolled back. |
+| Spec revised after split (stale sub-issues) | Warn user that existing sub-issues may be stale. Offer to re-run Gate 2.5 to regenerate the split. |
+| All criteria tightly coupled (cannot meaningfully split) | Proactively recommend "Skip" option. Inform user: "Criteria appear tightly coupled — splitting may not add value." |
 
 ---
 
@@ -404,10 +459,10 @@ Use the triage helper to update status. Replace `<ISSUE_NUMBER>` with the actual
 
 ```bash
 # Gate 1 → Analysis
-.claude/skills/issue-triage/triage.sh set <ISSUE_NUMBER> --status Analysis
+bun .claude/skills/issue-triage/triage.ts set <ISSUE_NUMBER> --status Analysis
 
 # Gate 2 → Specs
-.claude/skills/issue-triage/triage.sh set <ISSUE_NUMBER> --status Specs
+bun .claude/skills/issue-triage/triage.ts set <ISSUE_NUMBER> --status Specs
 ```
 
 **When to update:** (an issue is always available — see [Ensure GitHub Issue](#ensure-github-issue-between-gate-1-and-gate-2))
@@ -439,7 +494,7 @@ Once all gates are passed (Gate 1 + Gate 2 + optional Gate 2.5):
 
 If Gate 2.5 created sub-issues:
 
-> "Bootstrap complete with {N} sub-issues created under #{parent_issue_number}. Run `/scaffold --issue <N>` for each sub-issue, or `/scaffold --spec <parent_N>` for the full feature."
+> "Bootstrap complete with {N} sub-issues created under #{parent_issue_number}. Run `/scaffold --issue <N>` for each sub-issue in dependency order. The parent spec remains as the reference document."
 
 > **Scaffold guard:** When the user runs `/scaffold`, a pre-flight check will verify no unresolved `[NEEDS CLARIFICATION]` markers remain in the spec. Unresolved markers block scaffold execution. Remind the user to resolve any markers before scaffolding.
 

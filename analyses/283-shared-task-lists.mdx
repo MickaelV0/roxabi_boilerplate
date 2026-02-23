@@ -66,6 +66,8 @@ Research into official Claude Code documentation confirms:
 
 ### Remaining Delta
 
+> **Note:** This delta was the original analysis before selecting Shape 2. After selecting Shape 2 (TeamCreate Convention Only), most items were eliminated. The only remaining item was the AGENTS.md "Post-#283" flip, which has been completed.
+
 The actual work is smaller than the issue body suggests because prerequisites are done:
 
 | Change | Files | Complexity |
@@ -120,7 +122,7 @@ Cleanup happens after PR creation, not before. If the worktree is reused for a n
 
 ### Task Auto-Unblocking
 
-Issue #283 success criterion 2: "Tasks auto-unblock when dependencies complete." Claude Code's `TaskUpdate` with `addBlockedBy` creates dependency relationships. When a blocking task is marked `completed`, the blocked task becomes eligible for claiming. This is a built-in Claude Code behavior — **the investigation spike Stage 2 must verify this works as expected** with two agents and a dependency chain.
+Issue #283 success criterion 2: "Tasks auto-unblock when dependencies complete." Claude Code's `TaskUpdate` with `addBlockedBy` creates dependency relationships. When a blocking task is marked `completed`, the blocked task becomes eligible for claiming. This is a built-in Claude Code behavior — **this remains unverified; if auto-unblocking is relied upon in a future feature, verify with a two-agent dependency chain test.**
 
 ### Per-Worktree Isolation
 
