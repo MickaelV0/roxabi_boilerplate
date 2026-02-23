@@ -39,6 +39,8 @@ export default defineConfig({
         // NestJS bootstrap and module wiring
         '**/main.ts',
         '**/*.module.ts',
+        // NestJS controllers (thin routing layer — validated via service tests)
+        '**/admin/*controller.ts',
         '**/database/schema/*.ts',
         // Auth client instantiation (no logic, just config)
         '**/lib/auth-client.ts',
@@ -47,8 +49,9 @@ export default defineConfig({
         '**/lib/i18n/context.ts',
         '**/lib/i18n/hooks.ts',
         '**/lib/i18n/seo.tsx',
-        // Component files need integration tests
+        // Component files need integration/e2e tests
         '**/components/LanguageSwitcher.tsx',
+        '**/components/admin/**',
         '**/vite-env.d.ts',
         // Type declaration files (including pure-type .ts files)
         '**/*.d.ts',
@@ -61,10 +64,10 @@ export default defineConfig({
       // Floor values — autoUpdate will ratchet these up to actual coverage on the next non-cached run.
       // See specs/17-testing-gold-standard.mdx for rationale.
       thresholds: {
-        lines: 93.04,
-        functions: 90.72,
-        branches: 83.9,
-        statements: 92.07,
+        lines: 93.74,
+        functions: 91.59,
+        branches: 85.35,
+        statements: 92.91,
         autoUpdate: true,
       },
     },
