@@ -94,11 +94,13 @@ Tasks are delivered via spawn prompts (Task tool description or TeamCreate instr
 - Tester marks the sentinel complete after finishing all RED tasks for that slice
 - The orchestrator manages RED-GATE ordering by spawning GREEN agents only after the tester completes RED tasks for each slice
 
-**Post-#283:** When shared task list infrastructure ships (#283), agents will claim tasks directly via TaskList/TaskUpdate instead of receiving them in spawn prompts:
+**Dynamic task claiming:** Agents can claim tasks directly via TaskList/TaskUpdate in addition to receiving them in spawn prompts:
 1. Check `TaskList` for tasks matching your domain with status `pending` and no owner
 2. Prefer tasks in ID order (lowest first) within your assigned slice
 3. Claim with `TaskUpdate` (set `owner` to your name)
-4. RED-GATE sentinels will be checked directly via TaskList instead of relying on orchestrator sequencing
+4. RED-GATE sentinels can be checked directly via TaskList instead of relying on orchestrator sequencing
+
+**Arbitration rule:** Spawn-prompt assignment is authoritative. TaskList is for discovering unassigned tasks only. If you receive a task in your spawn prompt, you own it regardless of TaskList state.
 
 ### Standards
 
