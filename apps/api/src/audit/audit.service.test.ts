@@ -38,6 +38,7 @@ describe('AuditService', () => {
         before: null,
         after: null,
         metadata: null,
+        apiKeyId: null,
       })
     })
 
@@ -73,6 +74,7 @@ describe('AuditService', () => {
         before: { roleId: 'r-old', roleSlug: 'member' },
         after: { roleId: 'r-new', roleSlug: 'admin' },
         metadata: { reason: 'promotion' },
+        apiKeyId: null,
       })
     })
 

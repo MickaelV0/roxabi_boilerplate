@@ -1,5 +1,7 @@
 import { cn } from '@repo/ui'
 import { createFileRoute, Link, Outlet, useRouterState } from '@tanstack/react-router'
+import { useSession } from '@/lib/auth-client'
+import { hasPermission } from '@/lib/permissions'
 import { requireAuth } from '@/lib/route-guards'
 import { m } from '@/paraglide/messages'
 
@@ -8,36 +10,62 @@ export const Route = createFileRoute('/settings')({
   component: SettingsLayout,
 })
 
+type SettingsTab = {
+  to: string
+  label: () => string
+  match: (pathname: string) => boolean
+  visible?: boolean
+}
+
 function SettingsLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const isAccount = pathname.includes('/settings/account')
+  const { data: session } = useSession()
 
-  // TODO: implement — settings layout with sidebar navigation
-  // Tabs: Profile, Account
+  const canReadApiKeys = hasPermission(session, 'api_keys:read' as never)
+
+  const tabs: SettingsTab[] = [
+    {
+      to: '/settings/profile',
+      label: () => m.settings_tab_profile(),
+      match: (p) => p.includes('/settings/profile') || p === '/settings',
+    },
+    {
+      to: '/settings/account',
+      label: () => m.settings_tab_account(),
+      match: (p) => p.includes('/settings/account'),
+    },
+    {
+      to: '/settings/api-keys',
+      label: () => m.settings_tab_api_keys(),
+      match: (p) => p.includes('/settings/api-keys'),
+      visible: canReadApiKeys,
+    },
+  ]
+
+  const visibleTabs = tabs.filter((tab) => tab.visible !== false)
+
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">
       <h1 className="text-2xl font-bold">{m.settings_title()}</h1>
       <nav className="flex gap-2 border-b pb-2" aria-label={m.settings_nav_label()}>
-        <Link
-          to="/settings/profile"
-          className={cn(
-            'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-            !isAccount ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
-          )}
-          aria-current={!isAccount ? 'page' : undefined}
-        >
-          {m.settings_tab_profile()}
-        </Link>
-        <Link
-          to="/settings/account"
-          className={cn(
-            'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-            isAccount ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
-          )}
-          aria-current={isAccount ? 'page' : undefined}
-        >
-          {m.settings_tab_account()}
-        </Link>
+        {visibleTabs.map((tab) => {
+          const isActive = tab.match(pathname)
+          return (
+            <Link
+              key={tab.to}
+              to={tab.to}
+              className={cn(
+                'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                isActive
+                  ? 'bg-muted text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+              aria-current={isActive ? 'page' : undefined}
+            >
+              {tab.label()}
+            </Link>
+          )
+        })}
       </nav>
       <Outlet />
     </div>

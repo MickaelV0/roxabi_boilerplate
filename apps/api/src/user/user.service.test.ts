@@ -5,6 +5,10 @@ import { TransferTargetNotMemberException } from './exceptions/transfer-target-n
 import { UserNotFoundException } from './exceptions/user-not-found.exception.js'
 import { UserService } from './user.service.js'
 
+const mockEventEmitter = {
+  emitAsync: vi.fn().mockResolvedValue([]),
+}
+
 const mockUser = {
   id: 'user-1',
   fullName: 'John Doe',
@@ -67,7 +71,7 @@ describe('UserService', () => {
           }),
         }),
       }
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act
       const result = await service.getSoftDeleteStatus('user-1')
@@ -87,7 +91,7 @@ describe('UserService', () => {
         }),
       })
       const db = { select: selectFn }
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act — use unique userId to avoid module-level cache collision with other tests
       const result = await service.getSoftDeleteStatus('user-active')
@@ -109,7 +113,7 @@ describe('UserService', () => {
           }),
         }),
       }
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act
       const result = await service.getSoftDeleteStatus('nonexistent')
@@ -124,7 +128,7 @@ describe('UserService', () => {
       // Arrange
       const { db, chains } = createMockDb()
       chains.select.limit.mockResolvedValue([mockUser])
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act
       const result = await service.getProfile('user-1')
@@ -146,7 +150,7 @@ describe('UserService', () => {
       // Arrange
       const { db, chains } = createMockDb()
       chains.select.limit.mockResolvedValue([])
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act & Assert
       await expect(service.getProfile('nonexistent')).rejects.toThrow(UserNotFoundException)
@@ -162,7 +166,7 @@ describe('UserService', () => {
       ])
       const updatedUser = { ...mockUser, firstName: 'Jane', fullName: 'Jane Doe' }
       chains.update.returning.mockResolvedValue([updatedUser])
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act
       const result = await service.updateProfile('user-1', { firstName: 'Jane' })
@@ -177,7 +181,7 @@ describe('UserService', () => {
       const { db, chains } = createMockDb()
       const updatedUser = { ...mockUser, fullName: 'Custom Name', fullNameCustomized: true }
       chains.update.returning.mockResolvedValue([updatedUser])
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act
       const result = await service.updateProfile('user-1', { fullName: 'Custom Name' })
@@ -191,7 +195,7 @@ describe('UserService', () => {
       // Arrange
       const { db, chains } = createMockDb()
       chains.update.returning.mockResolvedValue([])
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act & Assert
       await expect(service.updateProfile('nonexistent', { fullName: 'Jane' })).rejects.toThrow(
@@ -205,7 +209,7 @@ describe('UserService', () => {
       // Arrange
       const { db, chains } = createMockDb()
       chains.select.limit.mockResolvedValue([{ id: 'user-1', email: 'john@example.com' }])
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act & Assert
       await expect(service.softDelete('user-1', 'wrong@example.com', [])).rejects.toThrow(
@@ -217,7 +221,7 @@ describe('UserService', () => {
       // Arrange
       const { db, chains } = createMockDb()
       chains.select.limit.mockResolvedValue([])
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act & Assert
       await expect(service.softDelete('nonexistent', 'john@example.com', [])).rejects.toThrow(
@@ -243,7 +247,7 @@ describe('UserService', () => {
         return cb(tx)
       })
 
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
       const orgResolutions = [
         { organizationId: 'org-1', action: 'transfer' as const, transferToUserId: 'user-999' },
       ]
@@ -295,7 +299,7 @@ describe('UserService', () => {
         return cb(tx)
       })
 
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
       const orgResolutions = [
         { organizationId: 'org-1', action: 'transfer' as const, transferToUserId: 'user-2' },
       ]
@@ -345,7 +349,7 @@ describe('UserService', () => {
         return cb(tx)
       })
 
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
       const orgResolutions = [{ organizationId: 'org-1', action: 'delete' as const }]
 
       // Act
@@ -382,7 +386,7 @@ describe('UserService', () => {
         }
         return cb(tx)
       })
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act
       const result = await service.softDelete('user-1', 'john@example.com', [])
@@ -398,7 +402,7 @@ describe('UserService', () => {
       const { db, chains } = createMockDb()
       const reactivatedUser = { ...mockUser, deletedAt: null, deleteScheduledFor: null }
       chains.update.returning.mockResolvedValue([reactivatedUser])
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act
       const result = await service.reactivate('user-1')
@@ -412,7 +416,7 @@ describe('UserService', () => {
       // Arrange
       const { db, chains } = createMockDb()
       chains.update.returning.mockResolvedValue([])
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act & Assert
       await expect(service.reactivate('nonexistent')).rejects.toThrow(UserNotFoundException)
@@ -435,7 +439,7 @@ describe('UserService', () => {
         }),
       })
 
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act
       const result = await service.getOwnedOrganizations('user-1')
@@ -456,7 +460,7 @@ describe('UserService', () => {
         }),
       })
 
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act
       const result = await service.getOwnedOrganizations('user-1')
@@ -471,7 +475,7 @@ describe('UserService', () => {
       // Arrange
       const { db, chains } = createMockDb()
       chains.select.limit.mockResolvedValue([])
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act & Assert
       await expect(service.purge('nonexistent', 'john@example.com')).rejects.toThrow(
@@ -485,7 +489,7 @@ describe('UserService', () => {
       chains.select.limit.mockResolvedValue([
         { id: 'user-purge-1', email: 'john@example.com', deletedAt: null },
       ])
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act & Assert
       await expect(service.purge('user-purge-1', 'john@example.com')).rejects.toThrow(
@@ -499,7 +503,7 @@ describe('UserService', () => {
       chains.select.limit.mockResolvedValue([
         { id: 'user-purge-2', email: 'john@example.com', deletedAt: new Date() },
       ])
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act & Assert
       await expect(service.purge('user-purge-2', 'wrong@example.com')).rejects.toThrow(
@@ -533,7 +537,7 @@ describe('UserService', () => {
         }
         return cb(tx)
       })
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act
       const result = await service.purge('user-purge-3', 'john@example.com')
@@ -577,7 +581,7 @@ describe('UserService', () => {
         }
         return cb(tx)
       })
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act
       const result = await service.purge('user-purge-4', 'john@example.com')
@@ -628,7 +632,7 @@ describe('UserService', () => {
         }
         return cb(tx)
       })
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act
       const result = await service.purge('user-purge-5', 'john@example.com')
@@ -672,7 +676,7 @@ describe('UserService', () => {
         }
         return cb(tx)
       })
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act
       const result = await service.purge('user-purge-6', 'john@example.com')
@@ -719,7 +723,7 @@ describe('UserService', () => {
         }
         return cb(tx)
       })
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Act
       await service.purge('user-purge-avatar', 'john@example.com')
@@ -758,7 +762,7 @@ describe('UserService', () => {
         }
         return cb(tx)
       })
-      const service = new UserService(db as never)
+      const service = new UserService(db as never, mockEventEmitter as never)
 
       // Prime the cache by calling getSoftDeleteStatus first
       // (Using a different db mock for the initial query)
@@ -773,7 +777,7 @@ describe('UserService', () => {
           }),
         }),
       }
-      const cacheService = new UserService(cacheDb as never)
+      const cacheService = new UserService(cacheDb as never, mockEventEmitter as never)
       await cacheService.getSoftDeleteStatus('user-purge-7')
 
       // Act
@@ -790,7 +794,7 @@ describe('UserService', () => {
           }),
         }),
       }
-      const freshService = new UserService(freshDb as never)
+      const freshService = new UserService(freshDb as never, mockEventEmitter as never)
       const result = await freshService.getSoftDeleteStatus('user-purge-7')
 
       // Assert -- cache was invalidated so the fresh DB query returns null (no user)

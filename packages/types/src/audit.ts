@@ -45,8 +45,10 @@ export type AuditAction =
   | 'flag.deleted'
   | 'impersonation.started'
   | 'impersonation.ended'
+  | 'api_key.created'
+  | 'api_key.revoked'
 
-export type AuditActorType = 'user' | 'system' | 'impersonation'
+export type AuditActorType = 'user' | 'system' | 'impersonation' | 'api_key'
 
 export interface AuditLogEntry {
   id: string
@@ -61,4 +63,5 @@ export interface AuditLogEntry {
   before: Record<string, unknown> | null
   after: Record<string, unknown> | null
   metadata: Record<string, unknown> | null
+  apiKeyId: string | null
 }

@@ -1,5 +1,6 @@
 import { relations } from 'drizzle-orm'
 import { index, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { apiKeys } from './api-key.schema.js'
 import { organizations, users } from './auth.schema.js'
 
 const genId = () => crypto.randomUUID()
@@ -19,6 +20,7 @@ export const auditLogs = pgTable(
     action: text('action').notNull(),
     resource: text('resource').notNull(),
     resourceId: text('resource_id').notNull(),
+    apiKeyId: text('api_key_id').references(() => apiKeys.id, { onDelete: 'set null' }),
     before: jsonb('before').$type<Record<string, unknown>>(),
     after: jsonb('after').$type<Record<string, unknown>>(),
     metadata: jsonb('metadata').$type<Record<string, unknown>>(),
@@ -49,5 +51,9 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   organization: one(organizations, {
     fields: [auditLogs.organizationId],
     references: [organizations.id],
+  }),
+  apiKey: one(apiKeys, {
+    fields: [auditLogs.apiKeyId],
+    references: [apiKeys.id],
   }),
 }))

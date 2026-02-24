@@ -1,6 +1,11 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import type { OrgOwnershipResolution } from '@repo/types'
 import { and, eq, isNotNull } from 'drizzle-orm'
+import {
+  USER_SOFT_DELETED,
+  UserSoftDeletedEvent,
+} from '../common/events/user-soft-deleted.event.js'
 import { DRIZZLE, type DrizzleDB, type DrizzleTx } from '../database/drizzle.provider.js'
 import { whereActive } from '../database/helpers/where-active.js'
 import {
@@ -50,7 +55,10 @@ const softDeleteCache = new Map<
 export class UserService {
   private readonly logger = new Logger(UserService.name)
 
-  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: DrizzleDB,
+    private readonly eventEmitter: EventEmitter2
+  ) {}
 
   async getSoftDeleteStatus(userId: string) {
     const cached = softDeleteCache.get(userId)
@@ -263,13 +271,13 @@ export class UserService {
     const now = new Date()
     const deleteScheduledFor = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-    return await this.db.transaction(async (tx) => {
+    const updated = await this.db.transaction(async (tx) => {
       for (const resolution of orgResolutions) {
         await this.processOrgResolution(tx, resolution, userId, { now, deleteScheduledFor })
       }
 
       // Soft-delete the user
-      const [updated] = await tx
+      const [result] = await tx
         .update(users)
         .set({ deletedAt: now, deleteScheduledFor, updatedAt: now })
         .where(eq(users.id, userId))
@@ -281,8 +289,13 @@ export class UserService {
       // Invalidate cached soft-delete status after successful deletion
       this.invalidateSoftDeleteCache(userId)
 
-      return updated
+      return result
     })
+
+    // Emit after transaction commits to prevent listeners from running on partial state
+    await this.eventEmitter.emitAsync(USER_SOFT_DELETED, new UserSoftDeletedEvent(userId))
+
+    return updated
   }
 
   async reactivate(userId: string) {

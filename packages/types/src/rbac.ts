@@ -1,5 +1,11 @@
 /** Resource types that can have permissions */
-export type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles'
+export type PermissionResource =
+  | 'users'
+  | 'organizations'
+  | 'members'
+  | 'invitations'
+  | 'roles'
+  | 'api_keys'
 
 /** Actions that can be performed on resources */
 export type PermissionAction = 'read' | 'write' | 'delete'
