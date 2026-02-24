@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -31,7 +32,20 @@ const updateUserSchema = z.object({
 
 const banUserSchema = z.object({
   reason: z.string().min(5).max(500),
-  expires: z.string().datetime().nullable().optional(),
+  expires: z.string().nullable().optional(),
+})
+
+const listUsersQuerySchema = z.object({
+  cursor: z.string().optional(),
+  limit: z.preprocess((val) => {
+    if (val === undefined || val === null || val === '') return 20
+    const n = Number(val)
+    return Number.isNaN(n) ? 20 : Math.min(Math.max(Math.floor(n), 1), 100)
+  }, z.number().int()),
+  role: z.enum(['user', 'admin', 'superadmin']).optional(),
+  status: z.enum(['active', 'banned', 'archived']).optional(),
+  organizationId: z.string().uuid().optional(),
+  search: z.string().optional(),
 })
 
 type UpdateUserDto = z.infer<typeof updateUserSchema>
@@ -58,14 +72,21 @@ export class AdminUsersController {
     @Query('organizationId') organizationId?: string,
     @Query('search') search?: string
   ) {
-    const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100)
-    const filters = {
+    const parsed = listUsersQuerySchema.safeParse({
+      cursor: cursor || undefined,
+      limit,
       role: role || undefined,
       status: status || undefined,
       organizationId: organizationId || undefined,
       search: search?.trim() || undefined,
+    })
+
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten().fieldErrors)
     }
-    return this.adminUsersService.listUsers(filters, cursor || undefined, safeLimit)
+
+    const { limit: safeLimit, cursor: safeCursor, ...filters } = parsed.data
+    return this.adminUsersService.listUsers(filters, safeCursor, safeLimit)
   }
 
   @Get(':userId')
@@ -99,6 +120,9 @@ export class AdminUsersController {
     @Body(new ZodValidationPipe(banUserSchema)) body: BanUserDto
   ) {
     const expires = body.expires ? new Date(body.expires) : null
+    if (expires && Number.isNaN(expires.getTime())) {
+      throw new BadRequestException('Invalid expiry date')
+    }
     return this.adminUsersService.banUser(userId, body.reason, expires, session.user.id)
   }
 

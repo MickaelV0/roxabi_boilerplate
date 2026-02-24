@@ -20,7 +20,7 @@ export function LoadMoreButton({ onClick, hasMore, isLoading }: LoadMoreButtonPr
     if (!el) return
 
     const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && hasMore && !isLoading) {
+      if (entry?.isIntersecting && hasMore && !isLoading) {
         onClick()
       }
     })

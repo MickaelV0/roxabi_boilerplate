@@ -1,5 +1,5 @@
-import { cn, Separator } from '@repo/ui'
-import { createFileRoute, Link, Outlet, useRouterState } from '@tanstack/react-router'
+import { Button, cn, Separator } from '@repo/ui'
+import { createFileRoute, Link, Outlet, useRouter, useRouterState } from '@tanstack/react-router'
 import {
   ActivityIcon,
   BuildingIcon,
@@ -14,9 +14,31 @@ import { requireAdmin } from '@/lib/admin-guards'
 import { useSession } from '@/lib/auth-client'
 import { m } from '@/paraglide/messages'
 
+function AdminErrorBoundary({ error }: { error: Error }) {
+  const router = useRouter()
+
+  return (
+    <div className="flex flex-col items-center gap-4 py-12 text-center">
+      <h2 className="text-lg font-semibold">Something went wrong</h2>
+      <p className="text-sm text-muted-foreground">
+        {error.message || 'An unexpected error occurred.'}
+      </p>
+      <div className="flex gap-2">
+        <Button variant="outline" size="sm" onClick={() => router.history.back()}>
+          Go back
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => router.invalidate()}>
+          Try again
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export const Route = createFileRoute('/admin')({
   beforeLoad: requireAdmin,
   component: AdminLayout,
+  errorComponent: AdminErrorBoundary,
 })
 
 type SidebarLink = {

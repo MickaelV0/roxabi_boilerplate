@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuditService } from '../audit/audit.service.js'
+import { createChainMock } from './__test-utils__/create-chain-mock.js'
 import { AdminOrganizationsService } from './admin-organizations.service.js'
+import { NotDeletedException } from './exceptions/not-deleted.exception.js'
 import { OrgCycleDetectedException } from './exceptions/org-cycle-detected.exception.js'
 import { OrgDepthExceededException } from './exceptions/org-depth-exceeded.exception.js'
 import { AdminOrgNotFoundException } from './exceptions/org-not-found.exception.js'
@@ -9,41 +11,6 @@ import { OrgSlugConflictException } from './exceptions/org-slug-conflict.excepti
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Creates a chainable mock that mimics Drizzle's query-builder API.
- * Every builder method returns the same proxy so chains like
- * `.select().from().innerJoin().where().limit()` resolve correctly.
- *
- * The final awaited value is controlled by `result`.
- */
-function createChainMock(result: unknown = []) {
-  const chain: Record<string, unknown> = {}
-  const methods = [
-    'select',
-    'from',
-    'innerJoin',
-    'leftJoin',
-    'where',
-    'orderBy',
-    'limit',
-    'offset',
-    'insert',
-    'values',
-    'returning',
-    'update',
-    'set',
-    'delete',
-    'groupBy',
-  ]
-  for (const m of methods) {
-    chain[m] = vi.fn(() => chain)
-  }
-  // Make the chain thenable so `await db.select()...` resolves to `result`
-  // biome-ignore lint/suspicious/noThenProperty: intentional thenable mock for Drizzle chain
-  chain.then = (resolve: (v: unknown) => void) => resolve(result)
-  return chain
-}
 
 function createMockDb() {
   return {
@@ -437,7 +404,7 @@ describe('AdminOrganizationsService', () => {
       ).rejects.toThrow(OrgSlugConflictException)
     })
 
-    it('should call auditService.log with organization.created action', async () => {
+    it('should call auditService.log with org.created action', async () => {
       // Arrange
       const createdOrg = { ...baseOrg, id: 'org-new' }
       db.insert.mockReturnValueOnce(createChainMock([createdOrg]))
@@ -448,7 +415,7 @@ describe('AdminOrganizationsService', () => {
       // Assert
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({
-          action: 'organization.created',
+          action: 'org.created',
           resource: 'organization',
           actorId: 'actor-super',
         })
@@ -480,7 +447,7 @@ describe('AdminOrganizationsService', () => {
       expect(db.update).toHaveBeenCalled()
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({
-          action: 'organization.updated',
+          action: 'org.updated',
           resource: 'organization',
           resourceId: 'org-1',
           actorId: 'actor-super',
@@ -517,16 +484,20 @@ describe('AdminOrganizationsService', () => {
 
     it('should throw OrgCycleDetectedException when reparenting to a descendant', async () => {
       // Arrange -- org-A is parent of org-B. Trying to set org-A's parent to org-B
-      // Walk-up from org-B: org-B -> org-A (cycle found!)
       const orgA = { ...baseOrg, id: 'org-A', parentOrganizationId: null }
-      const orgB = { ...baseOrg, id: 'org-B', parentOrganizationId: 'org-A' }
 
-      // First select: fetch org-A (the org being updated)
+      // First select: fetch org-A (the org being updated) -- on db
       db.select.mockReturnValueOnce(createChainMock([orgA]))
-      // Walk-up from new parent (org-B): find org-B, then its parent is org-A (the target) -- cycle!
-      db.select
-        .mockReturnValueOnce(createChainMock([orgB]))
-        .mockReturnValueOnce(createChainMock([orgA]))
+
+      // validateHierarchy now uses db.transaction(); configure tx.select for walk-up
+      const txSelect = vi.fn()
+      // Walk-up from org-B: find org-B, its parent is org-A (the target) -- cycle!
+      txSelect.mockReturnValueOnce(
+        createChainMock([{ id: 'org-B', parentOrganizationId: 'org-A' }])
+      )
+      db.transaction.mockImplementationOnce(async (fn: (tx: Record<string, unknown>) => unknown) =>
+        fn({ select: txSelect, insert: vi.fn(), update: vi.fn(), delete: vi.fn() })
+      )
 
       // Act & Assert
       await expect(
@@ -537,20 +508,29 @@ describe('AdminOrganizationsService', () => {
     it('should throw OrgDepthExceededException when reparent creates depth > 3', async () => {
       // Arrange -- reparenting would create a chain deeper than 3
       const orgToUpdate = { ...baseOrg, id: 'org-move', parentOrganizationId: null }
-      const grandparent = { ...baseOrg, id: 'org-gp', parentOrganizationId: null }
-      const parent = { ...baseOrg, id: 'org-parent', parentOrganizationId: 'org-gp' }
-      const newParent = { ...baseOrg, id: 'org-new-parent', parentOrganizationId: 'org-parent' }
 
-      // First select: fetch the org being updated
+      // First select: fetch the org being updated -- on db
       db.select.mockReturnValueOnce(createChainMock([orgToUpdate]))
-      // Walk-up from newParent: newParent -> parent -> grandparent -> root
-      // That's already depth 3, so adding org-move as child makes it 4 (exceeds 3)
-      db.select
-        .mockReturnValueOnce(createChainMock([newParent]))
-        .mockReturnValueOnce(createChainMock([parent]))
-        .mockReturnValueOnce(createChainMock([grandparent]))
 
-      // Act & Assert
+      // validateHierarchy uses db.transaction(); configure tx.select for walk-up
+      const txSelect = vi.fn()
+      // Walk-up from newParent: newParent -> parent -> grandparent -> root (depth=2)
+      txSelect
+        .mockReturnValueOnce(
+          createChainMock([{ id: 'org-new-parent', parentOrganizationId: 'org-parent' }])
+        )
+        .mockReturnValueOnce(
+          createChainMock([{ id: 'org-parent', parentOrganizationId: 'org-gp' }])
+        )
+        .mockReturnValueOnce(createChainMock([{ id: 'org-gp', parentOrganizationId: null }]))
+      db.transaction.mockImplementationOnce(async (fn: (tx: Record<string, unknown>) => unknown) =>
+        fn({ select: txSelect, insert: vi.fn(), update: vi.fn(), delete: vi.fn() })
+      )
+
+      // getSubtreeDepth uses db.select -- org-move has no children
+      db.select.mockReturnValueOnce(createChainMock([]))
+
+      // Act & Assert -- depth(2) + 1 + subtreeDepth(0) = 3 >= 3, throws
       await expect(
         service.updateOrganization(
           'org-move',
@@ -576,12 +556,18 @@ describe('AdminOrganizationsService', () => {
   // getDeletionImpact
   // -----------------------------------------------------------------------
   describe('getDeletionImpact', () => {
-    it('should return memberCount, childOrgCount, childMemberCount', async () => {
+    it('should return memberCount, activeMembers, childOrgCount, childMemberCount', async () => {
       // Arrange -- org exists, then impact queries
       db.select
         .mockReturnValueOnce(createChainMock([baseOrg])) // org lookup
         .mockReturnValueOnce(createChainMock([{ count: 10 }])) // member count
-        .mockReturnValueOnce(createChainMock([{ count: 3 }])) // child org count
+        .mockReturnValueOnce(createChainMock([{ count: 7 }])) // active members
+        .mockReturnValueOnce(createChainMock([{ count: 3 }])) // child org count (direct)
+        // getDescendantOrgIds: 3 direct children, each with no grandchildren
+        .mockReturnValueOnce(createChainMock([{ id: 'c1' }, { id: 'c2' }, { id: 'c3' }]))
+        .mockReturnValueOnce(createChainMock([])) // c1 children
+        .mockReturnValueOnce(createChainMock([])) // c2 children
+        .mockReturnValueOnce(createChainMock([])) // c3 children
         .mockReturnValueOnce(createChainMock([{ count: 25 }])) // child member count
 
       // Act
@@ -590,6 +576,7 @@ describe('AdminOrganizationsService', () => {
       // Assert
       expect(result).toBeDefined()
       expect(result.memberCount).toBe(10)
+      expect(result.activeMembers).toBe(7)
       expect(result.childOrgCount).toBe(3)
       expect(result.childMemberCount).toBe(25)
     })
@@ -609,14 +596,16 @@ describe('AdminOrganizationsService', () => {
       db.select
         .mockReturnValueOnce(createChainMock([baseOrg])) // org lookup
         .mockReturnValueOnce(createChainMock([{ count: 0 }])) // member count
+        .mockReturnValueOnce(createChainMock([{ count: 0 }])) // active members
         .mockReturnValueOnce(createChainMock([{ count: 0 }])) // child org count
-        .mockReturnValueOnce(createChainMock([{ count: 0 }])) // child member count
+        .mockReturnValueOnce(createChainMock([])) // getDescendantOrgIds: no children
 
       // Act
       const result = await service.getDeletionImpact('org-1')
 
       // Assert
       expect(result.memberCount).toBe(0)
+      expect(result.activeMembers).toBe(0)
       expect(result.childOrgCount).toBe(0)
       expect(result.childMemberCount).toBe(0)
     })
@@ -656,7 +645,7 @@ describe('AdminOrganizationsService', () => {
       )
     })
 
-    it('should call auditService.log with organization.deleted action', async () => {
+    it('should call auditService.log with org.deleted action', async () => {
       // Arrange
       const activeOrg = { ...baseOrg }
       const deletedOrg = { ...baseOrg, deletedAt: new Date() }
@@ -670,7 +659,7 @@ describe('AdminOrganizationsService', () => {
       // Assert
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({
-          action: 'organization.deleted',
+          action: 'org.deleted',
           resource: 'organization',
           resourceId: 'org-1',
           actorId: 'actor-super',
@@ -729,18 +718,18 @@ describe('AdminOrganizationsService', () => {
       )
     })
 
-    it('should throw AdminOrgNotFoundException when org is not deleted (deletedAt is null)', async () => {
+    it('should throw NotDeletedException when org is not deleted (deletedAt is null)', async () => {
       // Arrange -- org exists but deletedAt is null (not soft-deleted)
       const activeOrg = { ...baseOrg, deletedAt: null, deleteScheduledFor: null }
       db.select.mockReturnValueOnce(createChainMock([activeOrg]))
 
       // Act & Assert
       await expect(service.restoreOrganization('org-1', 'actor-super')).rejects.toThrow(
-        AdminOrgNotFoundException
+        NotDeletedException
       )
     })
 
-    it('should call auditService.log with organization.restored action', async () => {
+    it('should call auditService.log with org.restored action', async () => {
       // Arrange
       const deletedOrg = {
         ...baseOrg,
@@ -758,7 +747,7 @@ describe('AdminOrganizationsService', () => {
       // Assert
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({
-          action: 'organization.restored',
+          action: 'org.restored',
           resource: 'organization',
           resourceId: 'org-1',
           actorId: 'actor-super',

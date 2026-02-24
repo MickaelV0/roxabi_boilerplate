@@ -8,6 +8,11 @@ import {
   CardTitle,
   Input,
   Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Skeleton,
   Table,
   TableBody,
@@ -162,7 +167,7 @@ function MembersCard({ members }: { members: AdminOrgDetail['members'] }) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {formatDate(member.createdAt)}
+                    {formatDate((member as { joinedAt?: string }).joinedAt ?? member.createdAt)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -225,8 +230,7 @@ type EditOrgFormProps = {
   onCancel: () => void
 }
 
-const NATIVE_SELECT_CLASS =
-  'h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none'
+const NONE_SENTINEL = '__none__'
 
 function useOrgEditMutation(
   orgId: string,
@@ -271,19 +275,22 @@ type ParentOrgSelectProps = {
 
 function ParentOrgSelect({ id, value, options, onChange }: ParentOrgSelectProps) {
   return (
-    <select
-      id={id}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={NATIVE_SELECT_CLASS}
+    <Select
+      value={value || NONE_SENTINEL}
+      onValueChange={(val) => onChange(val === NONE_SENTINEL ? '' : val)}
     >
-      <option value="">None (top-level)</option>
-      {options.map((o) => (
-        <option key={o.id} value={o.id}>
-          {o.name} ({o.slug})
-        </option>
-      ))}
-    </select>
+      <SelectTrigger id={id} className="w-full">
+        <SelectValue placeholder="None (top-level)" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={NONE_SENTINEL}>None (top-level)</SelectItem>
+        {options.map((o) => (
+          <SelectItem key={o.id} value={o.id}>
+            {o.name} ({o.slug})
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }
 

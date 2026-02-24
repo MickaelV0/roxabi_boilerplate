@@ -1,47 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuditService } from '../audit/audit.service.js'
+import { createChainMock } from './__test-utils__/create-chain-mock.js'
 import { AdminUsersService } from './admin-users.service.js'
 import { EmailConflictException } from './exceptions/email-conflict.exception.js'
+import { NotDeletedException } from './exceptions/not-deleted.exception.js'
+import { SelfActionException } from './exceptions/self-action.exception.js'
 import { UserAlreadyBannedException } from './exceptions/user-already-banned.exception.js'
 import { AdminUserNotFoundException } from './exceptions/user-not-found.exception.js'
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Creates a chainable mock that mimics Drizzle's query-builder API.
- * Every builder method returns the same proxy so chains like
- * `.select().from().innerJoin().where().limit()` resolve correctly.
- *
- * The final awaited value is controlled by `result`.
- */
-function createChainMock(result: unknown = []) {
-  const chain: Record<string, unknown> = {}
-  const methods = [
-    'select',
-    'from',
-    'innerJoin',
-    'leftJoin',
-    'where',
-    'orderBy',
-    'limit',
-    'offset',
-    'insert',
-    'values',
-    'returning',
-    'update',
-    'set',
-    'delete',
-  ]
-  for (const m of methods) {
-    chain[m] = vi.fn(() => chain)
-  }
-  // Make the chain thenable so `await db.select()...` resolves to `result`
-  // biome-ignore lint/suspicious/noThenProperty: intentional thenable mock for Drizzle chain
-  chain.then = (resolve: (v: unknown) => void) => resolve(result)
-  return chain
-}
 
 function createMockDb() {
   return {
@@ -108,16 +77,24 @@ describe('AdminUsersService', () => {
   // listUsers
   // -----------------------------------------------------------------------
   describe('listUsers', () => {
-    it('should return cursor-paginated users from all organizations', async () => {
+    /**
+     * Helper: mock db.select for the two-query listUsers pattern.
+     * Query 1 returns user rows, Query 2 returns membership rows.
+     * Returns the first chain mock for assertion on where/orderBy/limit.
+     */
+    function mockListUsersQueries(userRows: unknown[] = [], membershipRows: unknown[] = []) {
+      const usersChain = createChainMock(userRows)
+      const membershipsChain = createChainMock(membershipRows)
+      db.select.mockReturnValueOnce(usersChain).mockReturnValueOnce(membershipsChain)
+      return { usersChain, membershipsChain }
+    }
+
+    it('should return cursor-paginated users with organizations array', async () => {
       // Arrange
-      const userRow = {
-        ...baseUser,
-        orgName: 'Acme Corp',
-        orgId: 'org-1',
-      }
-      // Service fetches limit+1 rows to determine hasMore
-      const usersChain = createChainMock([userRow])
-      db.select.mockReturnValueOnce(usersChain)
+      mockListUsersQueries(
+        [{ ...baseUser }],
+        [{ userId: 'user-1', orgId: 'org-1', orgName: 'Acme Corp', orgSlug: 'acme', role: 'admin' }]
+      )
 
       // Act
       const result = await service.listUsers({}, undefined, 20)
@@ -125,6 +102,10 @@ describe('AdminUsersService', () => {
       // Assert
       expect(result).toBeDefined()
       expect(result.data).toBeDefined()
+      expect(result.data).toHaveLength(1)
+      expect(result.data[0]!.organizations).toEqual([
+        { id: 'org-1', name: 'Acme Corp', slug: 'acme', role: 'admin' },
+      ])
       expect(result.cursor).toBeDefined()
     })
 
@@ -132,29 +113,11 @@ describe('AdminUsersService', () => {
       // Arrange — return limit+1 rows to signal more data
       const limit = 2
       const rows = [
-        {
-          ...baseUser,
-          id: 'u-1',
-          createdAt: new Date('2025-01-03'),
-          orgName: 'Org A',
-          orgId: 'org-1',
-        },
-        {
-          ...baseUser,
-          id: 'u-2',
-          createdAt: new Date('2025-01-02'),
-          orgName: 'Org A',
-          orgId: 'org-1',
-        },
-        {
-          ...baseUser,
-          id: 'u-3',
-          createdAt: new Date('2025-01-01'),
-          orgName: 'Org B',
-          orgId: 'org-2',
-        },
+        { ...baseUser, id: 'u-1', createdAt: new Date('2025-01-03') },
+        { ...baseUser, id: 'u-2', createdAt: new Date('2025-01-02') },
+        { ...baseUser, id: 'u-3', createdAt: new Date('2025-01-01') },
       ]
-      db.select.mockReturnValueOnce(createChainMock(rows))
+      mockListUsersQueries(rows, [])
 
       // Act
       const result = await service.listUsers({}, undefined, limit)
@@ -167,16 +130,8 @@ describe('AdminUsersService', () => {
 
     it('should return hasMore=false when fewer rows than limit exist', async () => {
       // Arrange
-      const rows = [
-        {
-          ...baseUser,
-          id: 'u-1',
-          createdAt: new Date('2025-01-01'),
-          orgName: 'Org A',
-          orgId: 'org-1',
-        },
-      ]
-      db.select.mockReturnValueOnce(createChainMock(rows))
+      const rows = [{ ...baseUser, id: 'u-1', createdAt: new Date('2025-01-01') }]
+      mockListUsersQueries(rows, [])
 
       // Act
       const result = await service.listUsers({}, undefined, 20)
@@ -188,15 +143,8 @@ describe('AdminUsersService', () => {
 
     it('should filter users by role', async () => {
       // Arrange
-      const adminRow = {
-        ...baseUser,
-        id: 'u-admin',
-        role: 'admin',
-        orgName: 'Org A',
-        orgId: 'org-1',
-      }
-      const usersChain = createChainMock([adminRow])
-      db.select.mockReturnValueOnce(usersChain)
+      const adminRow = { ...baseUser, id: 'u-admin', role: 'admin' }
+      const { usersChain } = mockListUsersQueries([adminRow], [])
 
       // Act
       const result = await service.listUsers({ role: 'admin' }, undefined, 20)
@@ -209,8 +157,7 @@ describe('AdminUsersService', () => {
 
     it('should filter users by status active (banned=false, deletedAt IS NULL)', async () => {
       // Arrange
-      const usersChain = createChainMock([])
-      db.select.mockReturnValueOnce(usersChain)
+      const { usersChain } = mockListUsersQueries([], [])
 
       // Act
       await service.listUsers({ status: 'active' }, undefined, 20)
@@ -226,11 +173,8 @@ describe('AdminUsersService', () => {
         id: 'u-banned',
         banned: true,
         banReason: 'spam',
-        orgName: 'Org A',
-        orgId: 'org-1',
       }
-      const usersChain = createChainMock([bannedRow])
-      db.select.mockReturnValueOnce(usersChain)
+      const { usersChain } = mockListUsersQueries([bannedRow], [])
 
       // Act
       const result = await service.listUsers({ status: 'banned' }, undefined, 20)
@@ -246,11 +190,8 @@ describe('AdminUsersService', () => {
         ...baseUser,
         id: 'u-archived',
         deletedAt: new Date('2025-06-01'),
-        orgName: 'Org A',
-        orgId: 'org-1',
       }
-      const usersChain = createChainMock([archivedRow])
-      db.select.mockReturnValueOnce(usersChain)
+      const { usersChain } = mockListUsersQueries([archivedRow], [])
 
       // Act
       const result = await service.listUsers({ status: 'archived' }, undefined, 20)
@@ -260,10 +201,11 @@ describe('AdminUsersService', () => {
       expect(usersChain.where).toHaveBeenCalledWith(expect.anything())
     })
 
-    it('should filter users by organizationId', async () => {
-      // Arrange
-      const usersChain = createChainMock([])
-      db.select.mockReturnValueOnce(usersChain)
+    it('should filter users by organizationId using EXISTS subquery', async () => {
+      // Arrange — organizationId filter uses EXISTS, so the first query (users)
+      // still needs a second db.select call for the EXISTS subquery builder.
+      // The chain mock handles this transparently.
+      const { usersChain } = mockListUsersQueries([], [])
 
       // Act
       await service.listUsers({ organizationId: 'org-specific' }, undefined, 20)
@@ -274,8 +216,7 @@ describe('AdminUsersService', () => {
 
     it('should search users by name or email using ILIKE', async () => {
       // Arrange
-      const usersChain = createChainMock([])
-      db.select.mockReturnValueOnce(usersChain)
+      const { usersChain } = mockListUsersQueries([], [])
 
       // Act
       await service.listUsers({ search: 'alice' }, undefined, 20)
@@ -286,8 +227,7 @@ describe('AdminUsersService', () => {
 
     it('should escape special ILIKE characters % and _ in search term', async () => {
       // Arrange — search with SQL wildcard characters that must be escaped
-      const usersChain = createChainMock([])
-      db.select.mockReturnValueOnce(usersChain)
+      const { usersChain } = mockListUsersQueries([], [])
 
       // Act — should not throw, and escaping should be applied
       await service.listUsers({ search: 'user%name_test' }, undefined, 20)
@@ -299,8 +239,7 @@ describe('AdminUsersService', () => {
     it('should apply cursor condition when cursor is provided', async () => {
       // Arrange — encode a valid cursor
       const cursor = btoa(JSON.stringify({ t: '2025-01-01T00:00:00.000Z', i: 'user-abc' }))
-      const usersChain = createChainMock([])
-      db.select.mockReturnValueOnce(usersChain)
+      const { usersChain } = mockListUsersQueries([], [])
 
       // Act
       await service.listUsers({}, cursor, 20)
@@ -310,7 +249,7 @@ describe('AdminUsersService', () => {
     })
 
     it('should return empty data with no cursor when no users exist', async () => {
-      // Arrange
+      // Arrange — only one db.select call needed (no memberships query for empty users)
       db.select.mockReturnValueOnce(createChainMock([]))
 
       // Act
@@ -320,6 +259,51 @@ describe('AdminUsersService', () => {
       expect(result.data).toEqual([])
       expect(result.cursor.hasMore).toBe(false)
       expect(result.cursor.next).toBeNull()
+    })
+
+    it('should return empty organizations array for users with no memberships', async () => {
+      // Arrange — user exists but no membership rows returned
+      mockListUsersQueries([{ ...baseUser }], [])
+
+      // Act
+      const result = await service.listUsers({}, undefined, 20)
+
+      // Assert
+      expect(result.data).toHaveLength(1)
+      expect(result.data[0]!.organizations).toEqual([])
+    })
+
+    it('should merge multiple organizations per user', async () => {
+      // Arrange — one user with two org memberships
+      mockListUsersQueries(
+        [{ ...baseUser }],
+        [
+          {
+            userId: 'user-1',
+            orgId: 'org-1',
+            orgName: 'Acme Corp',
+            orgSlug: 'acme',
+            role: 'admin',
+          },
+          {
+            userId: 'user-1',
+            orgId: 'org-2',
+            orgName: 'Beta Inc',
+            orgSlug: 'beta',
+            role: 'member',
+          },
+        ]
+      )
+
+      // Act
+      const result = await service.listUsers({}, undefined, 20)
+
+      // Assert
+      expect(result.data[0]!.organizations).toHaveLength(2)
+      expect(result.data[0]!.organizations).toEqual([
+        { id: 'org-1', name: 'Acme Corp', slug: 'acme', role: 'admin' },
+        { id: 'org-2', name: 'Beta Inc', slug: 'beta', role: 'member' },
+      ])
     })
   })
 
@@ -363,11 +347,11 @@ describe('AdminUsersService', () => {
       // Act
       const result = await service.getUserDetail('user-1')
 
-      // Assert
+      // Assert — flat shape after #8 fix
       expect(result).toBeDefined()
-      expect(result.user).toBeDefined()
-      expect(result.memberships).toBeDefined()
-      expect(result.auditEntries).toBeDefined()
+      expect(result.id).toBe('user-1')
+      expect(result.organizations).toBeDefined()
+      expect(result.activitySummary).toBeDefined()
     })
 
     it('should limit audit entries to last 10', async () => {
@@ -422,7 +406,7 @@ describe('AdminUsersService', () => {
       const result = await service.getUserDetail('user-1')
 
       // Assert
-      expect(result.memberships).toEqual([])
+      expect(result.organizations).toEqual([])
     })
   })
 
@@ -535,6 +519,14 @@ describe('AdminUsersService', () => {
   // banUser
   // -----------------------------------------------------------------------
   describe('banUser', () => {
+    it('should throw SelfActionException when banning self', async () => {
+      // Arrange — actorId equals userId
+      // Act & Assert
+      await expect(service.banUser('user-1', 'Spam activity', null, 'user-1')).rejects.toThrow(
+        SelfActionException
+      )
+    })
+
     it('should set banned=true with reason and optional expiry', async () => {
       // Arrange
       const notBannedUser = { ...baseUser, banned: false }
@@ -591,29 +583,6 @@ describe('AdminUsersService', () => {
       await expect(
         service.banUser('user-1', 'Another reason', null, 'actor-super')
       ).rejects.toThrow(UserAlreadyBannedException)
-    })
-
-    it('should reject ban reason shorter than 5 characters', async () => {
-      // Arrange
-      const notBannedUser = { ...baseUser, banned: false }
-      db.select.mockReturnValueOnce(createChainMock([notBannedUser]))
-
-      // Act & Assert
-      await expect(service.banUser('user-1', 'bad', null, 'actor-super')).rejects.toThrow(
-        'Ban reason must be between 5 and 500 characters'
-      )
-    })
-
-    it('should reject ban reason longer than 500 characters', async () => {
-      // Arrange
-      const notBannedUser = { ...baseUser, banned: false }
-      db.select.mockReturnValueOnce(createChainMock([notBannedUser]))
-
-      // Act & Assert
-      const longReason = 'x'.repeat(501)
-      await expect(service.banUser('user-1', longReason, null, 'actor-super')).rejects.toThrow(
-        'Ban reason must be between 5 and 500 characters'
-      )
     })
 
     it('should accept ban reason of exactly 5 characters', async () => {
@@ -753,6 +722,12 @@ describe('AdminUsersService', () => {
   // deleteUser
   // -----------------------------------------------------------------------
   describe('deleteUser', () => {
+    it('should throw SelfActionException when deleting self', async () => {
+      // Arrange — actorId equals userId
+      // Act & Assert
+      await expect(service.deleteUser('user-1', 'user-1')).rejects.toThrow(SelfActionException)
+    })
+
     it('should soft-delete user by setting deletedAt and deleteScheduledFor', async () => {
       // Arrange
       const activeUser = { ...baseUser, deletedAt: null, deleteScheduledFor: null }
@@ -867,14 +842,14 @@ describe('AdminUsersService', () => {
       )
     })
 
-    it('should throw AdminUserNotFoundException when user is not deleted', async () => {
+    it('should throw NotDeletedException when user is not deleted', async () => {
       // Arrange — user exists but deletedAt is null (not soft-deleted)
       const activeUser = { ...baseUser, deletedAt: null, deleteScheduledFor: null }
       db.select.mockReturnValueOnce(createChainMock([activeUser]))
 
       // Act & Assert
       await expect(service.restoreUser('user-1', 'actor-super')).rejects.toThrow(
-        AdminUserNotFoundException
+        NotDeletedException
       )
     })
 

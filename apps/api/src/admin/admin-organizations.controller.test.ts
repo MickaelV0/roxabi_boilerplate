@@ -429,7 +429,7 @@ describe('AdminOrganizationsController', () => {
   describe('GET /api/admin/organizations/:orgId/deletion-impact', () => {
     it('should delegate to service.getDeletionImpact', async () => {
       // Arrange
-      const impact = { memberCount: 5, childOrgCount: 2, childMemberCount: 10 }
+      const impact = { memberCount: 5, activeMembers: 3, childOrgCount: 2, childMemberCount: 10 }
       vi.mocked(mockAdminOrganizationsService.getDeletionImpact).mockResolvedValue(impact)
 
       // Act

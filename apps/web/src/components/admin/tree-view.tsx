@@ -1,6 +1,6 @@
 import { Badge, cn } from '@repo/ui'
 import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 type TreeNode = {
   id: string
@@ -91,7 +91,8 @@ function TreeNodeRow({ node, depth, expanded, selectedId, onToggle, onSelect }: 
   const isSelected = selectedId === node.id
 
   return (
-    <div role="treeitem" tabIndex={-1} aria-expanded={hasChildren ? isExpanded : undefined}>
+    // biome-ignore lint/a11y/useFocusableInteractive: inner button is the focusable element for this treeitem
+    <div role="treeitem" aria-expanded={hasChildren ? isExpanded : undefined}>
       <button
         type="button"
         className={cn(
@@ -139,7 +140,8 @@ function TreeNodeRow({ node, depth, expanded, selectedId, onToggle, onSelect }: 
       </button>
 
       {hasChildren && isExpanded && (
-        <fieldset className="contents">
+        // biome-ignore lint/a11y/useSemanticElements: ARIA tree pattern requires role="group" on non-fieldset container
+        <div role="group" className="contents">
           {node.children.map((child) => (
             <TreeNodeRow
               key={child.id}
@@ -151,7 +153,7 @@ function TreeNodeRow({ node, depth, expanded, selectedId, onToggle, onSelect }: 
               onSelect={onSelect}
             />
           ))}
-        </fieldset>
+        </div>
       )}
     </div>
   )
@@ -165,9 +167,21 @@ function TreeNodeRow({ node, depth, expanded, selectedId, onToggle, onSelect }: 
  * "(parent archived)" badge. Click handler navigates to org detail.
  */
 export function TreeView({ nodes, onSelect, selectedId }: TreeViewProps) {
-  const tree = buildTree(nodes)
+  const tree = useMemo(() => buildTree(nodes), [nodes])
 
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(tree.map((n) => n.id)))
+
+  // Sync expanded roots when tree data changes
+  useEffect(() => {
+    setExpanded((prev) => {
+      const rootIds = new Set(tree.map((n) => n.id))
+      const next = new Set(prev)
+      for (const id of rootIds) {
+        next.add(id)
+      }
+      return next
+    })
+  }, [tree])
 
   function handleToggle(id: string) {
     setExpanded((prev) => {

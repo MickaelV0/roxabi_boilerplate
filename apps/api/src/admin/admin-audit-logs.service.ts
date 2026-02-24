@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { SENSITIVE_FIELDS } from '@repo/types'
 import { and, desc, eq, gte, ilike, lte, or, type SQL } from 'drizzle-orm'
 import {
   buildCursorCondition,
@@ -8,8 +7,7 @@ import {
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { auditLogs } from '../database/schema/audit.schema.js'
 import { users } from '../database/schema/auth.schema.js'
-
-export { SENSITIVE_FIELDS }
+import { redactSensitiveFields } from './utils/redact-sensitive-fields.js'
 
 /**
  * AdminAuditLogsService -- audit log query and redaction for super admins.
@@ -69,7 +67,10 @@ export class AdminAuditLogsService {
 
     // Search filter -- ILIKE on action, resource, resourceId
     if (filters.search) {
-      const escaped = filters.search.replace(/%/g, '\\%').replace(/_/g, '\\_')
+      const escaped = filters.search
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_')
       const pattern = `%${escaped}%`
       conditions.push(
         or(
@@ -113,8 +114,8 @@ export class AdminAuditLogsService {
     const mapped = rows.map((row) => ({
       ...row,
       actorName: row.actorName ?? '[Deleted User]',
-      before: this.redactSensitiveFields(row.before ?? null),
-      after: this.redactSensitiveFields(row.after ?? null),
+      before: redactSensitiveFields(row.before ?? null),
+      after: redactSensitiveFields(row.after ?? null),
     }))
 
     return buildCursorResponse(
@@ -126,31 +127,10 @@ export class AdminAuditLogsService {
   }
 
   /**
-   * Recursively redact sensitive field values in audit log data.
-   * Matches field names case-insensitively against SENSITIVE_FIELDS.
-   * Returns a new object (does not mutate the input).
+   * Delegates to shared redactSensitiveFields utility.
+   * Kept as public instance method for backward compatibility with existing callers.
    */
   redactSensitiveFields(data: Record<string, unknown> | null): Record<string, unknown> | null {
-    if (data === null) {
-      return null
-    }
-
-    const sensitiveSet = SENSITIVE_FIELDS.map((f) => f.toLowerCase())
-
-    const redact = (obj: Record<string, unknown>): Record<string, unknown> => {
-      const result: Record<string, unknown> = {}
-      for (const [key, value] of Object.entries(obj)) {
-        if (sensitiveSet.includes(key.toLowerCase())) {
-          result[key] = '[REDACTED]'
-        } else if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-          result[key] = redact(value as Record<string, unknown>)
-        } else {
-          result[key] = value
-        }
-      }
-      return result
-    }
-
-    return redact(data)
+    return redactSensitiveFields(data)
   }
 }

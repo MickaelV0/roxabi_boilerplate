@@ -1,43 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createChainMock } from './__test-utils__/create-chain-mock.js'
 import { AdminAuditLogsService } from './admin-audit-logs.service.js'
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Creates a chainable mock that mimics Drizzle's query-builder API.
- * Every builder method returns the same proxy so chains like
- * `.select().from().leftJoin().where().orderBy().limit()` resolve correctly.
- *
- * The final awaited value is controlled by `result`.
- */
-function createChainMock(result: unknown = []) {
-  const chain: Record<string, unknown> = {}
-  const methods = [
-    'select',
-    'from',
-    'innerJoin',
-    'leftJoin',
-    'where',
-    'orderBy',
-    'limit',
-    'offset',
-    'insert',
-    'values',
-    'returning',
-    'update',
-    'set',
-    'delete',
-  ]
-  for (const m of methods) {
-    chain[m] = vi.fn(() => chain)
-  }
-  // Make the chain thenable so `await db.select()...` resolves to `result`
-  // biome-ignore lint/suspicious/noThenProperty: intentional thenable mock for Drizzle chain
-  chain.then = (resolve: (v: unknown) => void) => resolve(result)
-  return chain
-}
 
 function createMockDb() {
   return { select: vi.fn(), insert: vi.fn(), update: vi.fn(), delete: vi.fn() }

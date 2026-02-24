@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { and, desc, eq, ilike, isNotNull, isNull, or, type SQL } from 'drizzle-orm'
+import { and, desc, eq, exists, ilike, inArray, isNotNull, isNull, or, type SQL } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import { AuditService } from '../audit/audit.service.js'
 import {
@@ -9,11 +9,13 @@ import {
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { auditLogs } from '../database/schema/audit.schema.js'
 import { members, organizations, users } from '../database/schema/auth.schema.js'
-import { SENSITIVE_FIELDS } from './admin-audit-logs.service.js'
 import { EmailConflictException } from './exceptions/email-conflict.exception.js'
+import { NotDeletedException } from './exceptions/not-deleted.exception.js'
 import { SelfActionException } from './exceptions/self-action.exception.js'
+import { SuperadminProtectionException } from './exceptions/superadmin-protection.exception.js'
 import { UserAlreadyBannedException } from './exceptions/user-already-banned.exception.js'
 import { AdminUserNotFoundException } from './exceptions/user-not-found.exception.js'
+import { redactSensitiveFields } from './utils/redact-sensitive-fields.js'
 
 /**
  * AdminUsersService — cross-tenant user management for super admins.
@@ -35,7 +37,10 @@ export class AdminUsersService {
 
   /**
    * List users with cursor-based pagination and optional filters.
-   * Joins users LEFT JOIN members + organizations for org info.
+   *
+   * Uses a two-query approach to avoid duplicate rows from LEFT JOIN:
+   * 1. Query users table only (with filters, cursor, limit).
+   * 2. Batch-fetch memberships for the returned user IDs.
    */
   async listUsers(
     filters: { role?: string; status?: string; organizationId?: string; search?: string },
@@ -59,14 +64,26 @@ export class AdminUsersService {
       conditions.push(isNotNull(users.deletedAt))
     }
 
-    // Organization filter
+    // Organization filter — EXISTS subquery on members table
     if (filters.organizationId) {
-      conditions.push(eq(members.organizationId, filters.organizationId))
+      conditions.push(
+        exists(
+          this.db
+            .select({ one: members.id })
+            .from(members)
+            .where(
+              and(eq(members.userId, users.id), eq(members.organizationId, filters.organizationId))
+            )
+        )
+      )
     }
 
     // Search filter — ILIKE on name and email with escaping
     if (filters.search) {
-      const escaped = filters.search.replace(/%/g, '\\%').replace(/_/g, '\\_')
+      const escaped = filters.search
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_')
       const pattern = `%${escaped}%`
       conditions.push(or(ilike(users.name, pattern), ilike(users.email, pattern))!)
     }
@@ -78,7 +95,8 @@ export class AdminUsersService {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 
-    const rows = await this.db
+    // Query 1: Users only (no joins) — correct pagination without duplicates
+    const userRows = await this.db
       .select({
         id: users.id,
         name: users.name,
@@ -90,22 +108,55 @@ export class AdminUsersService {
         deletedAt: users.deletedAt,
         deleteScheduledFor: users.deleteScheduledFor,
         createdAt: users.createdAt,
-        orgName: organizations.name,
-        orgId: organizations.id,
       })
       .from(users)
-      .leftJoin(members, eq(users.id, members.userId))
-      .leftJoin(organizations, eq(members.organizationId, organizations.id))
       .where(whereClause)
       .orderBy(desc(users.createdAt), desc(users.id))
       .limit(limit + 1)
 
-    return buildCursorResponse(
-      rows,
+    // Build cursor response before fetching memberships (uses limit+1 logic)
+    const paginatedResult = buildCursorResponse(
+      userRows,
       limit,
       (row) => row.createdAt,
       (row) => row.id
     )
+
+    // Query 2: Batch-fetch memberships for the page of users
+    const userIds = paginatedResult.data.map((u) => u.id)
+    let membershipsByUserId: Map<
+      string,
+      { id: string; name: string; slug: string | null; role: string }[]
+    > = new Map()
+
+    if (userIds.length > 0) {
+      const membershipRows = await this.db
+        .select({
+          userId: members.userId,
+          orgId: organizations.id,
+          orgName: organizations.name,
+          orgSlug: organizations.slug,
+          role: members.role,
+        })
+        .from(members)
+        .innerJoin(organizations, eq(members.organizationId, organizations.id))
+        .where(inArray(members.userId, userIds))
+
+      membershipsByUserId = new Map()
+      for (const row of membershipRows) {
+        const list = membershipsByUserId.get(row.userId) ?? []
+        list.push({ id: row.orgId, name: row.orgName, slug: row.orgSlug, role: row.role })
+        membershipsByUserId.set(row.userId, list)
+      }
+    }
+
+    // Merge organizations onto each user
+    const data = paginatedResult.data.map((user) => ({
+      ...user,
+      organizations: membershipsByUserId.get(user.id) ?? [],
+    }))
+
+    return { data, cursor: paginatedResult.cursor }
   }
 
   /**
@@ -140,6 +191,7 @@ export class AdminUsersService {
         memberId: members.id,
         orgId: organizations.id,
         orgName: organizations.name,
+        orgSlug: organizations.slug,
         role: members.role,
         joinedAt: members.createdAt,
       })
@@ -174,11 +226,20 @@ export class AdminUsersService {
     // Redact sensitive fields from audit log before/after data
     const redactedEntries = auditEntries.map((entry) => ({
       ...entry,
-      before: this.redactSensitiveFields(entry.before),
-      after: this.redactSensitiveFields(entry.after),
+      before: redactSensitiveFields(entry.before),
+      after: redactSensitiveFields(entry.after),
     }))
 
-    return { user, memberships, auditEntries: redactedEntries }
+    return {
+      ...user,
+      organizations: memberships.map((m) => ({
+        id: m.orgId,
+        name: m.orgName,
+        slug: m.orgSlug,
+        role: m.role,
+      })),
+      activitySummary: redactedEntries,
+    }
   }
 
   /**
@@ -212,6 +273,16 @@ export class AdminUsersService {
       throw new AdminUserNotFoundException(userId)
     }
 
+    // Prevent self role change
+    if (data.role && actorId === userId) {
+      throw new SelfActionException()
+    }
+
+    // Prevent demotion of other superadmins
+    if (data.role && data.role !== 'superadmin' && beforeUser.role === 'superadmin') {
+      throw new SuperadminProtectionException()
+    }
+
     // Perform the update
     let updatedUser: typeof users.$inferSelect
     try {
@@ -225,12 +296,16 @@ export class AdminUsersService {
       throw err
     }
 
+    // Determine audit action: use 'user.role_changed' for role changes
+    const auditAction =
+      data.role && data.role !== beforeUser.role ? 'user.role_changed' : 'user.updated'
+
     // Fire-and-forget audit log
     this.auditService
       .log({
         actorId,
         actorType: 'user',
-        action: 'user.updated',
+        action: auditAction,
         resource: 'user',
         resourceId: userId,
         before: { ...beforeUser },
@@ -238,7 +313,7 @@ export class AdminUsersService {
       })
       .catch((err) => {
         this.logger.error(
-          { correlationId: this.cls.getId(), action: 'user.updated', error: err.message },
+          { correlationId: this.cls.getId(), action: auditAction, error: err.message },
           'Audit log write failed'
         )
         // TODO: Add metrics counter for audit failures (Phase 3)
@@ -248,16 +323,11 @@ export class AdminUsersService {
   }
 
   /**
-   * Ban a user. Validates reason length (5-500 chars).
+   * Ban a user.
    */
   async banUser(userId: string, reason: string, expires: Date | null, actorId: string) {
     if (actorId === userId) {
       throw new SelfActionException()
-    }
-
-    // Validate reason length
-    if (reason.length < 5 || reason.length > 500) {
-      throw new Error('Ban reason must be between 5 and 500 characters')
     }
 
     // Read current user
@@ -280,6 +350,10 @@ export class AdminUsersService {
 
     if (!user) {
       throw new AdminUserNotFoundException(userId)
+    }
+
+    if (user.role === 'superadmin') {
+      throw new SuperadminProtectionException()
     }
 
     if (user.banned) {
@@ -408,6 +482,10 @@ export class AdminUsersService {
       throw new AdminUserNotFoundException(userId)
     }
 
+    if (user.role === 'superadmin') {
+      throw new SuperadminProtectionException()
+    }
+
     const now = new Date()
     const scheduledFor = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 
@@ -471,7 +549,7 @@ export class AdminUsersService {
 
     // Verify user is actually deleted
     if (!user.deletedAt) {
-      throw new AdminUserNotFoundException(userId)
+      throw new NotDeletedException('User', userId)
     }
 
     // Clear deletion fields
@@ -504,35 +582,5 @@ export class AdminUsersService {
       })
 
     return updatedUser
-  }
-
-  /**
-   * Redact sensitive field values in audit log before/after data.
-   * Matches field names case-insensitively against SENSITIVE_FIELDS.
-   */
-  private redactSensitiveFields(
-    data: Record<string, unknown> | null
-  ): Record<string, unknown> | null {
-    if (data === null) {
-      return null
-    }
-
-    const sensitiveSet = SENSITIVE_FIELDS.map((f) => f.toLowerCase())
-
-    const redact = (obj: Record<string, unknown>): Record<string, unknown> => {
-      const result: Record<string, unknown> = {}
-      for (const [key, value] of Object.entries(obj)) {
-        if (sensitiveSet.includes(key.toLowerCase())) {
-          result[key] = '[REDACTED]'
-        } else if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-          result[key] = redact(value as Record<string, unknown>)
-        } else {
-          result[key] = value
-        }
-      }
-      return result
-    }
-
-    return redact(data)
   }
 }

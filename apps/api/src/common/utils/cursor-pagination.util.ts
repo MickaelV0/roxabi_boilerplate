@@ -1,7 +1,7 @@
-import { BadRequestException } from '@nestjs/common'
 import type { CursorPaginatedResponse } from '@repo/types'
 import { and, eq, lt, or, type SQL } from 'drizzle-orm'
 import type { PgColumn } from 'drizzle-orm/pg-core'
+import { InvalidCursorError } from './invalid-cursor.error.js'
 
 /**
  * Encode a (timestamp, id) pair into a Base64 cursor string.
@@ -47,10 +47,10 @@ export function decodeCursor(cursor: string): { timestamp: Date; id: string } {
 
     return { timestamp, id: i }
   } catch (error) {
-    if (error instanceof BadRequestException) {
+    if (error instanceof InvalidCursorError) {
       throw error
     }
-    throw new BadRequestException('Invalid cursor token')
+    throw new InvalidCursorError()
   }
 }
 

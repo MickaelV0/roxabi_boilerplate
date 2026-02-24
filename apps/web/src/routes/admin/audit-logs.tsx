@@ -4,6 +4,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  cn,
   Skeleton,
   Table,
   TableBody,
@@ -91,6 +92,8 @@ const FILTER_CONFIGS: FilterConfig[] = [
   { key: 'to', label: 'To', type: 'date' },
   { key: 'action', label: 'Action', type: 'select', options: AUDIT_ACTION_OPTIONS },
   { key: 'resource', label: 'Resource', type: 'search', placeholder: 'e.g. user' },
+  { key: 'actorId', label: 'Actor ID', type: 'search', placeholder: 'UUID...' },
+  { key: 'organizationId', label: 'Org ID', type: 'search', placeholder: 'UUID...' },
   { key: 'search', label: 'Search', type: 'search', placeholder: 'Search...' },
 ]
 
@@ -291,7 +294,7 @@ function AuditLogRow({ entry, isExpanded, onToggle }: AuditLogRowProps) {
   return (
     <>
       <TableRow
-        className="cursor-pointer hover:bg-muted/50"
+        className={cn('hover:bg-muted/50', hasDiff && 'cursor-pointer')}
         onClick={hasDiff ? onToggle : undefined}
       >
         <TableCell className="w-8 px-2">

@@ -1,6 +1,15 @@
-import { Button, Input, Label } from '@repo/ui'
+import {
+  Button,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@repo/ui'
 import { RotateCcwIcon } from 'lucide-react'
-import { useCallback, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 type FilterConfig = {
   key: string
@@ -18,6 +27,44 @@ type FilterBarProps = {
 }
 
 const DEBOUNCE_MS = 300
+const ALL_SENTINEL = '__all__'
+
+function DebouncedSearchInput({
+  id,
+  placeholder,
+  value,
+  onChange,
+}: {
+  id: string
+  placeholder: string
+  value: string
+  onChange: (value: string) => void
+}) {
+  const [localValue, setLocalValue] = useState(value)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    setLocalValue(value)
+  }, [value])
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const newValue = e.target.value
+    setLocalValue(newValue)
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => onChange(newValue), DEBOUNCE_MS)
+  }
+
+  return (
+    <Input
+      id={id}
+      type="text"
+      placeholder={placeholder}
+      value={localValue}
+      onChange={handleChange}
+      className="h-9 w-48"
+    />
+  )
+}
 
 /**
  * FilterBar — reusable filter bar for admin list pages.
@@ -26,18 +73,6 @@ const DEBOUNCE_MS = 300
  * Used by: users list, organizations list, audit logs list.
  */
 export function FilterBar({ filters, values, onChange, onReset }: FilterBarProps) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const handleSearchChange = useCallback(
-    (key: string, value: string) => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-      timerRef.current = setTimeout(() => {
-        onChange(key, value)
-      }, DEBOUNCE_MS)
-    },
-    [onChange]
-  )
-
   return (
     <div className="flex flex-wrap gap-3 py-4 items-end">
       {filters.map((filter) => (
@@ -50,29 +85,30 @@ export function FilterBar({ filters, values, onChange, onReset }: FilterBarProps
           </Label>
 
           {(filter.type === 'select' || filter.type === 'searchable-select') && (
-            <select
-              id={`filter-${filter.key}`}
-              value={values[filter.key] ?? ''}
-              onChange={(e) => onChange(filter.key, e.target.value)}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none"
+            <Select
+              value={values[filter.key] || ALL_SENTINEL}
+              onValueChange={(val) => onChange(filter.key, val === ALL_SENTINEL ? '' : val)}
             >
-              <option value="">All</option>
-              {filter.options?.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id={`filter-${filter.key}`} className="h-9 w-[180px]">
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_SENTINEL}>All</SelectItem>
+                {filter.options?.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
 
           {filter.type === 'search' && (
-            <Input
+            <DebouncedSearchInput
               id={`filter-${filter.key}`}
-              type="text"
               placeholder={filter.placeholder ?? 'Search...'}
               value={values[filter.key] ?? ''}
-              onChange={(e) => handleSearchChange(filter.key, e.target.value)}
-              className="h-9 w-48"
+              onChange={(val) => onChange(filter.key, val)}
             />
           )}
 

@@ -13,9 +13,10 @@ import {
   TableHeader,
   TableRow,
 } from '@repo/ui'
+import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { ShieldIcon, UsersIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { FilterConfig } from '@/components/admin/filter-bar'
 import { FilterBar } from '@/components/admin/filter-bar'
 import { LoadMoreButton } from '@/components/admin/load-more-button'
@@ -110,8 +111,33 @@ function EmptyState() {
   )
 }
 
+function useOrgFilterConfigs(): FilterConfig[] {
+  const { data: orgsData } = useQuery<{ data: { id: string; name: string }[] }>({
+    queryKey: ['admin', 'organizations', 'filter-options'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/organizations?limit=100')
+      if (!res.ok) throw new Error('Failed to fetch organizations')
+      return res.json()
+    },
+  })
+
+  return useMemo<FilterConfig[]>(
+    () => [
+      ...FILTER_CONFIGS,
+      {
+        key: 'organizationId',
+        label: 'Organization',
+        type: 'select',
+        options: (orgsData?.data ?? []).map((o) => ({ value: o.id, label: o.name })),
+      },
+    ],
+    [orgsData]
+  )
+}
+
 function AdminUsersPage() {
   const [filters, setFilters] = useState<UserFilters>(INITIAL_FILTERS)
+  const filterConfigs = useOrgFilterConfigs()
 
   const {
     data: users,
@@ -152,7 +178,7 @@ function AdminUsersPage() {
 
       {/* Filters */}
       <FilterBar
-        filters={FILTER_CONFIGS}
+        filters={filterConfigs}
         values={filters}
         onChange={handleFilterChange}
         onReset={handleFilterReset}

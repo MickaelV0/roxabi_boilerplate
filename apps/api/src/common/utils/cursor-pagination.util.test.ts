@@ -1,13 +1,12 @@
-import { BadRequestException } from '@nestjs/common'
 import { SQL } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
-
 import {
   buildCursorCondition,
   buildCursorResponse,
   decodeCursor,
   encodeCursor,
 } from './cursor-pagination.util.js'
+import { InvalidCursorError } from './invalid-cursor.error.js'
 
 describe('cursor-pagination.util', () => {
   describe('encodeCursor / decodeCursor', () => {
@@ -54,17 +53,17 @@ describe('cursor-pagination.util', () => {
       expect(decoded.id).toBe(originalId)
     })
 
-    it('should throw BadRequestException on invalid cursor string', () => {
+    it('should throw InvalidCursorError on invalid cursor string', () => {
       // Arrange
       const invalidCursor = 'not-a-valid-cursor!!!'
 
       // Act & Assert
-      expect(() => decodeCursor(invalidCursor)).toThrow(BadRequestException)
+      expect(() => decodeCursor(invalidCursor)).toThrow(InvalidCursorError)
     })
 
-    it('should throw BadRequestException on empty cursor string', () => {
+    it('should throw InvalidCursorError on empty cursor string', () => {
       // Act & Assert
-      expect(() => decodeCursor('')).toThrow(BadRequestException)
+      expect(() => decodeCursor('')).toThrow(InvalidCursorError)
     })
 
     it('should handle timestamp at Unix epoch (edge case)', () => {
@@ -178,14 +177,14 @@ describe('cursor-pagination.util', () => {
       expect(result1.queryChunks).not.toEqual(result2.queryChunks)
     })
 
-    it('should throw BadRequestException when given an invalid cursor string', () => {
+    it('should throw InvalidCursorError when given an invalid cursor string', () => {
       // Arrange
       const mockTsColumn = {} as never
       const mockIdColumn = {} as never
 
       // Act & Assert
       expect(() => buildCursorCondition('invalid-cursor', mockTsColumn, mockIdColumn)).toThrow(
-        BadRequestException
+        InvalidCursorError
       )
     })
   })

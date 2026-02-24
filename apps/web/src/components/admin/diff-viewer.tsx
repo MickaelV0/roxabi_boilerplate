@@ -1,13 +1,4 @@
-/** Sensitive fields that are redacted client-side as defense-in-depth */
-export const SENSITIVE_FIELDS = [
-  'password',
-  'passwordhash',
-  'token',
-  'secret',
-  'accesstoken',
-  'refreshtoken',
-  'idtoken',
-] as const
+import { SENSITIVE_FIELDS } from '@repo/types'
 
 type DiffViewerProps = {
   before: Record<string, unknown> | null
@@ -32,7 +23,11 @@ export function redactSensitiveFields(
   const result: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(data)) {
     const normalizedKey = key.toLowerCase().replace(/[_-]/g, '')
-    if (SENSITIVE_FIELDS.some((field) => normalizedKey.includes(field))) {
+    if (
+      SENSITIVE_FIELDS.some((field) =>
+        normalizedKey.includes(field.toLowerCase().replace(/[_-]/g, ''))
+      )
+    ) {
       result[key] = '[REDACTED]'
     } else {
       result[key] = value

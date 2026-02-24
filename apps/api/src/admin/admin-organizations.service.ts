@@ -8,10 +8,13 @@ import {
 } from '../common/utils/cursor-pagination.util.js'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { members, organizations, users } from '../database/schema/auth.schema.js'
+import { NotDeletedException } from './exceptions/not-deleted.exception.js'
 import { OrgCycleDetectedException } from './exceptions/org-cycle-detected.exception.js'
 import { OrgDepthExceededException } from './exceptions/org-depth-exceeded.exception.js'
 import { AdminOrgNotFoundException } from './exceptions/org-not-found.exception.js'
 import { OrgSlugConflictException } from './exceptions/org-slug-conflict.exception.js'
+
+const MAX_HIERARCHY_DEPTH = 10
 
 /**
  * AdminOrganizationsService — cross-tenant org management for super admins.
@@ -50,7 +53,10 @@ export class AdminOrganizationsService {
 
     // Search filter — ILIKE on name or slug
     if (filters.search) {
-      const escaped = filters.search.replace(/%/g, '\\%').replace(/_/g, '\\_')
+      const escaped = filters.search
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_')
       const pattern = `%${escaped}%`
       conditions.push(or(ilike(organizations.name, pattern), ilike(organizations.slug, pattern))!)
     }
@@ -109,20 +115,24 @@ export class AdminOrganizationsService {
           name: string
           slug: string | null
           parentOrganizationId: string | null
+          memberCount: number
         }[],
       }
     }
 
-    // Fetch all non-deleted orgs
+    // Fetch all non-deleted orgs with member counts
     const rows = await this.db
       .select({
         id: organizations.id,
         name: organizations.name,
         slug: organizations.slug,
         parentOrganizationId: organizations.parentOrganizationId,
+        memberCount: count(members.id),
       })
       .from(organizations)
+      .leftJoin(members, eq(organizations.id, members.organizationId))
       .where(isNull(organizations.deletedAt))
+      .groupBy(organizations.id)
 
     return { treeViewAvailable: true, data: rows }
   }
@@ -220,13 +230,13 @@ export class AdminOrganizationsService {
       .log({
         actorId,
         actorType: 'user',
-        action: 'organization.created',
+        action: 'org.created',
         resource: 'organization',
         resourceId: createdOrg.id,
         after: { ...createdOrg },
       })
       .catch((err) => {
-        this.logger.error(`[${this.cls.getId()}][audit] Failed to log organization.created`, err)
+        this.logger.error(`[${this.cls.getId()}][audit] Failed to log org.created`, err)
       })
 
     return createdOrg
@@ -283,19 +293,26 @@ export class AdminOrganizationsService {
       throw err
     }
 
+    // Determine audit action: use 'org.parent_changed' for reparent, 'org.updated' otherwise
+    const auditAction =
+      data.parentOrganizationId !== undefined &&
+      data.parentOrganizationId !== beforeOrg.parentOrganizationId
+        ? 'org.parent_changed'
+        : 'org.updated'
+
     // Fire-and-forget audit log
     this.auditService
       .log({
         actorId,
         actorType: 'user',
-        action: 'organization.updated',
+        action: auditAction,
         resource: 'organization',
         resourceId: orgId,
         before: { ...beforeOrg },
         after: { ...updatedOrg },
       })
       .catch((err) => {
-        this.logger.error(`[${this.cls.getId()}][audit] Failed to log organization.updated`, err)
+        this.logger.error(`[${this.cls.getId()}][audit] Failed to log ${auditAction}`, err)
       })
 
     return updatedOrg
@@ -325,30 +342,39 @@ export class AdminOrganizationsService {
       .from(members)
       .where(eq(members.organizationId, orgId))
 
-    // Child org count
+    // Active members: not deleted and not banned
+    const [activeMembersResult] = await this.db
+      .select({ count: count() })
+      .from(members)
+      .innerJoin(users, eq(members.userId, users.id))
+      .where(
+        and(eq(members.organizationId, orgId), isNull(users.deletedAt), eq(users.banned, false))
+      )
+
+    // Child org count (direct children only)
     const [childOrgCountResult] = await this.db
       .select({ count: count() })
       .from(organizations)
       .where(eq(organizations.parentOrganizationId, orgId))
 
-    // Child member count (members in child orgs)
-    const [childMemberCountResult] = await this.db
-      .select({ count: count() })
-      .from(members)
-      .where(
-        inArray(
-          members.organizationId,
-          this.db
-            .select({ id: organizations.id })
-            .from(organizations)
-            .where(eq(organizations.parentOrganizationId, orgId))
-        )
-      )
+    // Collect all descendant org IDs recursively for child member count
+    const descendantIds = await this.getDescendantOrgIds(orgId)
+
+    // Child member count (members in ALL descendant orgs)
+    let childMemberCount = 0
+    if (descendantIds.length > 0) {
+      const [childMemberCountResult] = await this.db
+        .select({ count: count() })
+        .from(members)
+        .where(inArray(members.organizationId, descendantIds))
+      childMemberCount = childMemberCountResult!.count
+    }
 
     return {
       memberCount: memberCountResult!.count,
+      activeMembers: activeMembersResult!.count,
       childOrgCount: childOrgCountResult!.count,
-      childMemberCount: childMemberCountResult!.count,
+      childMemberCount,
     }
   }
 
@@ -395,14 +421,14 @@ export class AdminOrganizationsService {
       .log({
         actorId,
         actorType: 'user',
-        action: 'organization.deleted',
+        action: 'org.deleted',
         resource: 'organization',
         resourceId: orgId,
         before: { ...org },
         after: { ...updatedOrg },
       })
       .catch((err) => {
-        this.logger.error(`[${this.cls.getId()}][audit] Failed to log organization.deleted`, err)
+        this.logger.error(`[${this.cls.getId()}][audit] Failed to log org.deleted`, err)
       })
 
     return updatedOrg
@@ -435,7 +461,7 @@ export class AdminOrganizationsService {
 
     // Verify org is actually deleted
     if (!org.deletedAt) {
-      throw new AdminOrgNotFoundException(orgId)
+      throw new NotDeletedException('Organization', orgId)
     }
 
     // Clear deletion fields
@@ -453,14 +479,14 @@ export class AdminOrganizationsService {
       .log({
         actorId,
         actorType: 'user',
-        action: 'organization.restored',
+        action: 'org.restored',
         resource: 'organization',
         resourceId: orgId,
         before: { ...org },
         after: { ...updatedOrg },
       })
       .catch((err) => {
-        this.logger.error(`[${this.cls.getId()}][audit] Failed to log organization.restored`, err)
+        this.logger.error(`[${this.cls.getId()}][audit] Failed to log org.restored`, err)
       })
 
     return updatedOrg
@@ -472,8 +498,10 @@ export class AdminOrganizationsService {
    */
   private async getDepth(orgId: string): Promise<number> {
     let depth = 0
+    let iterations = 0
     let currentId: string | null = orgId
     while (currentId) {
+      if (iterations++ >= MAX_HIERARCHY_DEPTH) break
       const [org] = await this.db
         .select({ parentOrganizationId: organizations.parentOrganizationId })
         .from(organizations)
@@ -491,10 +519,17 @@ export class AdminOrganizationsService {
    * Walks up from newParentId, checking each node.
    */
   private async validateHierarchy(orgId: string, newParentId: string): Promise<void> {
+    // Self-parent guard
+    if (orgId === newParentId) {
+      throw new OrgCycleDetectedException()
+    }
+
     await this.db.transaction(async (tx) => {
       let depth = 0
+      let iterations = 0
       let currentId: string | null = newParentId
       while (currentId) {
+        if (iterations++ >= MAX_HIERARCHY_DEPTH) break
         const [org] = await tx
           .select({
             id: organizations.id,
@@ -514,10 +549,55 @@ export class AdminOrganizationsService {
         }
       }
 
-      // Check depth: adding orgId as child of newParent
-      if (depth + 1 >= 3) {
+      // Also compute subtree depth of the org being moved
+      const subtreeDepth = await this.getSubtreeDepth(orgId)
+
+      // Check depth: parent chain depth + 1 (for orgId itself) + subtree depth
+      if (depth + 1 + subtreeDepth >= 3) {
         throw new OrgDepthExceededException()
       }
     })
+  }
+
+  /**
+   * Get the depth of the deepest descendant below orgId.
+   * Returns 0 if orgId has no children.
+   */
+  private async getSubtreeDepth(orgId: string): Promise<number> {
+    const children = await this.db
+      .select({ id: organizations.id })
+      .from(organizations)
+      .where(eq(organizations.parentOrganizationId, orgId))
+
+    if (children.length === 0) return 0
+
+    let maxChildDepth = 0
+    for (const child of children) {
+      const childDepth = await this.getSubtreeDepth(child.id)
+      if (childDepth + 1 > maxChildDepth) {
+        maxChildDepth = childDepth + 1
+      }
+      if (maxChildDepth >= MAX_HIERARCHY_DEPTH) break
+    }
+    return maxChildDepth
+  }
+
+  /**
+   * Collect all descendant org IDs recursively (for deletion impact).
+   */
+  private async getDescendantOrgIds(orgId: string): Promise<string[]> {
+    const children = await this.db
+      .select({ id: organizations.id })
+      .from(organizations)
+      .where(eq(organizations.parentOrganizationId, orgId))
+
+    const ids: string[] = []
+    for (const child of children) {
+      ids.push(child.id)
+      const grandchildren = await this.getDescendantOrgIds(child.id)
+      ids.push(...grandchildren)
+      if (ids.length >= 1000) break // safety cap
+    }
+    return ids
   }
 }

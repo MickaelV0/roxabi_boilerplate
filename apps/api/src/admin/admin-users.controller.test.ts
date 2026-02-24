@@ -23,6 +23,8 @@ const mockAdminUsersService: AdminUsersService = {
 
 // Reconstruct Zod schemas from admin-users.controller.ts for validation testing.
 // The source schemas are module-private and cannot be imported.
+// NOTE: Keep these in sync with the source schemas in admin-users.controller.ts.
+// If the source schemas change, these test copies must be updated to match.
 const updateUserSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   email: z.string().email().optional(),
@@ -31,7 +33,7 @@ const updateUserSchema = z.object({
 
 const banUserSchema = z.object({
   reason: z.string().min(5).max(500),
-  expires: z.string().datetime().nullable().optional(),
+  expires: z.string().nullable().optional(),
 })
 
 // ---------------------------------------------------------------------------
@@ -94,11 +96,23 @@ describe('AdminUsersController', () => {
       })
 
       // Act
-      await controller.listUsers('cursor-abc', '10', 'admin', 'active', 'org-1', 'alice')
+      await controller.listUsers(
+        'cursor-abc',
+        '10',
+        'admin',
+        'active',
+        '00000000-0000-4000-8000-000000000001',
+        'alice'
+      )
 
       // Assert
       expect(mockAdminUsersService.listUsers).toHaveBeenCalledWith(
-        { role: 'admin', status: 'active', organizationId: 'org-1', search: 'alice' },
+        {
+          role: 'admin',
+          status: 'active',
+          organizationId: '00000000-0000-4000-8000-000000000001',
+          search: 'alice',
+        },
         'cursor-abc',
         10
       )
@@ -375,15 +389,15 @@ describe('AdminUsersController', () => {
       expect(result.success).toBe(true)
     })
 
-    it('should reject invalid datetime string for expires', () => {
-      // Arrange
+    it('should accept any string for expires (runtime validation handles date parsing)', () => {
+      // Arrange — schema accepts any string; controller validates with new Date()
       const input = { reason: 'Temporary ban', expires: 'not-a-date' }
 
       // Act
       const result = banUserSchema.safeParse(input)
 
-      // Assert
-      expect(result.success).toBe(false)
+      // Assert — schema-level accepts, runtime rejects invalid dates
+      expect(result.success).toBe(true)
     })
 
     it('should reject missing reason', () => {
