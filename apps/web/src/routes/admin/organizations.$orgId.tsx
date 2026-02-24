@@ -26,9 +26,10 @@ import { BuildingIcon, CalendarIcon, NetworkIcon, PencilIcon, UsersIcon, XIcon }
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { BackLink, DetailSkeleton } from '@/components/admin/detail-shared'
-import { MemberKebabButton } from '@/components/admin/member-context-menu'
+import { MemberContextMenu, MemberKebabButton } from '@/components/admin/member-context-menu'
 import { OrgActions } from '@/components/admin/org-actions'
 import { requireSuperAdmin } from '@/lib/admin-guards'
+import { useSession } from '@/lib/auth-client'
 import { formatDate } from '@/lib/format-date'
 
 export const Route = createFileRoute('/admin/organizations/$orgId')({
@@ -136,37 +137,46 @@ function MembersCard({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {/* TODO: wrap TableRow in MemberContextMenu for right-click (#313) */}
-              {members.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell className="font-medium">{member.name || 'Unnamed'}</TableCell>
-                  <TableCell className="text-muted-foreground">{member.email}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="capitalize">
-                      {member.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {formatDate(member.createdAt)}
-                  </TableCell>
-                  <TableCell>
-                    {/* TODO: implement kebab button (#313) */}
-                    <MemberKebabButton
-                      member={{
-                        id: member.id,
-                        userId: member.userId,
-                        name: member.name,
-                        email: member.email,
-                        role: member.role,
-                        roleId: member.roleId,
-                      }}
-                      orgId={orgId}
-                      currentUserId={currentUserId}
-                      onActionComplete={onActionComplete}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
+              {members.map((member) => {
+                const memberForMenu = {
+                  id: member.id,
+                  userId: member.userId,
+                  name: member.name,
+                  email: member.email,
+                  role: member.role,
+                  roleId: member.roleId,
+                }
+                return (
+                  <MemberContextMenu
+                    key={member.id}
+                    member={memberForMenu}
+                    orgId={orgId}
+                    currentUserId={currentUserId}
+                    onActionComplete={onActionComplete}
+                  >
+                    <TableRow>
+                      <TableCell className="font-medium">{member.name || 'Unnamed'}</TableCell>
+                      <TableCell className="text-muted-foreground">{member.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize">
+                          {member.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(member.createdAt)}
+                      </TableCell>
+                      <TableCell>
+                        <MemberKebabButton
+                          member={memberForMenu}
+                          orgId={orgId}
+                          currentUserId={currentUserId}
+                          onActionComplete={onActionComplete}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  </MemberContextMenu>
+                )
+              })}
             </TableBody>
           </Table>
         )}
@@ -418,7 +428,9 @@ function OrgDetailHeader({
 function AdminOrgDetailPage() {
   const { orgId } = Route.useParams()
   const queryClient = useQueryClient()
+  const { data: session } = useSession()
   const [isEditing, setIsEditing] = useState(false)
+  const currentUserId = session?.user?.id ?? ''
 
   const { data, isLoading, error } = useQuery<AdminOrgDetail>({
     queryKey: ['admin', 'organizations', orgId],
@@ -476,11 +488,10 @@ function AdminOrgDetailPage() {
         <EditOrgForm org={data} onSave={handleEditSave} onCancel={() => setIsEditing(false)} />
       )}
       <ProfileCard data={data} />
-      {/* TODO: derive currentUserId from session (#313) */}
       <MembersCard
         members={data.members}
         orgId={data.id}
-        currentUserId=""
+        currentUserId={currentUserId}
         onActionComplete={handleActionComplete}
       />
       <ChildOrgsCard childOrgs={data.children} />

@@ -200,7 +200,6 @@ export class AdminUsersService {
   private async fetchLastActiveByUserIds(userIds: string[]): Promise<Map<string, string>> {
     if (userIds.length === 0) return new Map()
 
-    // TODO: implement — batch audit query for lastActive
     const rows = await this.db
       .select({
         actorId: auditLogs.actorId,

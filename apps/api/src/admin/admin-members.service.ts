@@ -372,7 +372,6 @@ export class AdminMembersService {
     member: { roleSlug: string | null; role: string; roleId: string | null },
     orgId: string
   ) {
-    // TODO: implement — dual-check owner status, count owners, throw if last
     if (member.roleSlug !== 'owner' && member.role !== 'owner') return
 
     const [ownerCount] = await this.db

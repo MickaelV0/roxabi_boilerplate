@@ -232,11 +232,9 @@ function AdminUsersList() {
                         {user.role ?? 'user'}
                       </Badge>
                     </TableCell>
-                    {/* TODO: implement Orgs count badge (#312) */}
                     <TableCell>
                       <Badge variant="outline">{user.organizationCount ?? 0}</Badge>
                     </TableCell>
-                    {/* TODO: implement Last Active relative timestamp (#312) */}
                     <TableCell className="text-muted-foreground">
                       {user.lastActive ? formatRelativeTime(user.lastActive) : 'Never'}
                     </TableCell>

@@ -1,8 +1,6 @@
 /**
  * Format an ISO timestamp as a relative time string (e.g., "2 hours ago", "3 days ago").
  * Returns "Never" for null/undefined inputs.
- *
- * TODO: implement — use Intl.RelativeTimeFormat or a lightweight lib
  */
 export function formatRelativeTime(isoTimestamp: string | null | undefined): string {
   if (!isoTimestamp) return 'Never'

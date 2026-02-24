@@ -127,7 +127,6 @@ export class AdminOrganizationsController {
   @ApiResponse({ status: 200, description: 'Roles list' })
   @ApiResponse({ status: 404, description: 'Organization not found' })
   async listOrgRoles(@Param('orgId', new ParseUUIDPipe({ version: '4' })) orgId: string) {
-    // TODO: implement — delegates to adminOrganizationsService.listOrgRoles(orgId)
     return this.adminOrganizationsService.listOrgRoles(orgId)
   }
 
@@ -142,7 +141,6 @@ export class AdminOrganizationsController {
     @Session() session: AuthenticatedSession,
     @Body(new ZodValidationPipe(changeMemberRoleSchema)) body: ChangeMemberRoleDto
   ) {
-    // TODO: implement — delegates to adminMembersService.changeMemberRole with last-owner guard
     return this.adminMembersService.changeMemberRole(memberId, orgId, body, session.user.id)
   }
 

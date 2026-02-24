@@ -219,7 +219,6 @@ export class AdminOrganizationsService {
    * Returns { data: { id, name, slug }[] }.
    */
   async listOrgRoles(orgId: string) {
-    // TODO: implement — verify org exists, then query roles
     await this.findOrgOrThrow(orgId)
 
     const roleRows = await this.db
