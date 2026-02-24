@@ -54,7 +54,7 @@ type UserMenuContentProps = {
 // Hooks
 // ---------------------------------------------------------------------------
 
-function useUserMenuMutations(userId: string, userName: string, onActionComplete: () => void) {
+function useUserBanMutations(userId: string, userName: string, onActionComplete: () => void) {
   const banMutation = useMutation({
     mutationFn: async ({ reason, expires }: { reason: string; expires?: string }) => {
       const res = await fetch(`/api/admin/users/${userId}/ban`, {
@@ -91,6 +91,10 @@ function useUserMenuMutations(userId: string, userName: string, onActionComplete
     },
   })
 
+  return { banMutation, unbanMutation }
+}
+
+function useUserLifecycleMutations(userId: string, userName: string, onActionComplete: () => void) {
   const deleteMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/admin/users/${userId}`, {
@@ -125,7 +129,7 @@ function useUserMenuMutations(userId: string, userName: string, onActionComplete
     },
   })
 
-  return { banMutation, unbanMutation, deleteMutation, restoreMutation }
+  return { deleteMutation, restoreMutation }
 }
 
 // ---------------------------------------------------------------------------
@@ -142,7 +146,7 @@ type UserMenuDialogsProps = {
   setShowDeleteDialog: (open: boolean) => void
   showRestoreDialog: boolean
   setShowRestoreDialog: (open: boolean) => void
-  mutations: ReturnType<typeof useUserMenuMutations>
+  mutations: ReturnType<typeof useUserBanMutations> & ReturnType<typeof useUserLifecycleMutations>
 }
 
 function UserMenuDialogs({
@@ -294,7 +298,13 @@ function UserMenuContent({ user, onActionComplete, variant }: UserMenuContentPro
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showRestoreDialog, setShowRestoreDialog] = useState(false)
 
-  const mutations = useUserMenuMutations(user.id, user.name, onActionComplete)
+  const { banMutation, unbanMutation } = useUserBanMutations(user.id, user.name, onActionComplete)
+  const { deleteMutation, restoreMutation } = useUserLifecycleMutations(
+    user.id,
+    user.name,
+    onActionComplete
+  )
+  const mutations = { banMutation, unbanMutation, deleteMutation, restoreMutation }
 
   const MenuItem = variant === 'context' ? ContextMenuItem : DropdownMenuItem
   const MenuSeparator = variant === 'context' ? ContextMenuSeparator : DropdownMenuSeparator

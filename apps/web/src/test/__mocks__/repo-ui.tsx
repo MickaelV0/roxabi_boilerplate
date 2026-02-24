@@ -16,10 +16,6 @@ import React from 'react'
  *   - Test needs custom mock behavior (e.g., tracking calls, conditional rendering)
  */
 
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
 /**
  * Simplified mock: filter + join. Diverges from the real cn() which uses
  * clsx + tailwind-merge (class deduplication & conflict resolution).
@@ -27,18 +23,10 @@ import React from 'react'
  */
 export const cn = (...args: unknown[]) => args.filter(Boolean).join(' ')
 
-// ---------------------------------------------------------------------------
-// Animation
-// ---------------------------------------------------------------------------
-
 export const AnimatedSection = ({
   children,
   className,
 }: React.PropsWithChildren<{ className?: string }>) => <div className={className}>{children}</div>
-
-// ---------------------------------------------------------------------------
-// Layout / Card
-// ---------------------------------------------------------------------------
 
 export const Card = ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
   <div {...props}>{children}</div>
@@ -56,10 +44,6 @@ export const CardTitle = ({
   children,
   ...props
 }: React.PropsWithChildren<Record<string, unknown>>) => <h3 {...props}>{children}</h3>
-
-// ---------------------------------------------------------------------------
-// Inputs
-// ---------------------------------------------------------------------------
 
 export const Button = ({
   children,
@@ -124,10 +108,6 @@ export const PasswordInput = (props: Record<string, unknown>) => (
   <input type="password" {...props} />
 )
 
-// ---------------------------------------------------------------------------
-// Accordion
-// ---------------------------------------------------------------------------
-
 export const Accordion = ({
   children,
 }: React.PropsWithChildren<{ type?: string; collapsible?: boolean }>) => (
@@ -149,10 +129,6 @@ export const AccordionTrigger = ({
 
 export const AccordionContent = ({ children }: React.PropsWithChildren) => <div>{children}</div>
 
-// ---------------------------------------------------------------------------
-// Data display
-// ---------------------------------------------------------------------------
-
 export const Badge = ({
   children,
   variant,
@@ -167,10 +143,6 @@ export const Skeleton = ({ className }: { className?: string }) => (
   <div data-testid="skeleton" className={className} />
 )
 
-// ---------------------------------------------------------------------------
-// Feedback
-// ---------------------------------------------------------------------------
-
 export const FormMessage = ({
   children,
   ...props
@@ -179,10 +151,6 @@ export const FormMessage = ({
     {children}
   </div>
 )
-
-// ---------------------------------------------------------------------------
-// Tabs
-// ---------------------------------------------------------------------------
 
 export const Tabs = ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
   <div data-testid="tabs" {...props}>
@@ -216,10 +184,6 @@ export const TabsContent = ({
     {children}
   </div>
 )
-
-// ---------------------------------------------------------------------------
-// Select
-// ---------------------------------------------------------------------------
 
 const SelectContext = React.createContext<{
   onValueChange?: (value: string) => void
@@ -265,10 +229,6 @@ export const SelectTrigger = ({ children }: React.PropsWithChildren<{ className?
 
 export const SelectValue = () => <span />
 
-// ---------------------------------------------------------------------------
-// Dialog
-// ---------------------------------------------------------------------------
-
 export const Dialog = ({ children }: React.PropsWithChildren) => <div>{children}</div>
 
 export const DialogClose = ({ children }: React.PropsWithChildren) => <div>{children}</div>
@@ -284,10 +244,6 @@ export const DialogHeader = ({ children }: React.PropsWithChildren) => <div>{chi
 export const DialogTitle = ({ children }: React.PropsWithChildren) => <h2>{children}</h2>
 
 export const DialogTrigger = ({ children }: React.PropsWithChildren) => <div>{children}</div>
-
-// ---------------------------------------------------------------------------
-// AlertDialog
-// ---------------------------------------------------------------------------
 
 export const AlertDialog = ({
   children,
@@ -313,10 +269,6 @@ export const AlertDialogFooter = ({ children }: React.PropsWithChildren) => <div
 export const AlertDialogHeader = ({ children }: React.PropsWithChildren) => <div>{children}</div>
 
 export const AlertDialogTitle = ({ children }: React.PropsWithChildren) => <h2>{children}</h2>
-
-// ---------------------------------------------------------------------------
-// ContextMenu
-// ---------------------------------------------------------------------------
 
 export const ContextMenu = ({ children }: React.PropsWithChildren) => <div>{children}</div>
 
@@ -351,10 +303,6 @@ export const ContextMenuSubTrigger = ({
 export const ContextMenuSubContent = ({ children }: React.PropsWithChildren) => (
   <div>{children}</div>
 )
-
-// ---------------------------------------------------------------------------
-// DropdownMenu
-// ---------------------------------------------------------------------------
 
 export const DropdownMenu = ({ children }: React.PropsWithChildren) => <div>{children}</div>
 
@@ -393,17 +341,9 @@ export const DropdownMenuSubContent = ({ children }: React.PropsWithChildren) =>
   <div>{children}</div>
 )
 
-// ---------------------------------------------------------------------------
-// Hooks
-// ---------------------------------------------------------------------------
-
 export const useInView = () => ({ ref: { current: null }, inView: true })
 
 export const useReducedMotion = () => false
-
-// ---------------------------------------------------------------------------
-// Presentation
-// ---------------------------------------------------------------------------
 
 export const PresentationNav = ({
   sections,
@@ -435,10 +375,6 @@ export const StatCounter = ({
   </div>
 )
 
-// ---------------------------------------------------------------------------
-// Table
-// ---------------------------------------------------------------------------
-
 export const Table = ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
   <table {...props}>{children}</table>
 )
@@ -468,10 +404,6 @@ export const TableCell = ({
   ...props
 }: React.PropsWithChildren<Record<string, unknown>>) => <td {...props}>{children}</td>
 
-// ---------------------------------------------------------------------------
-// Tooltip
-// ---------------------------------------------------------------------------
-
 export const TooltipProvider = ({ children }: React.PropsWithChildren) => <div>{children}</div>
 
 export const Tooltip = ({ children }: React.PropsWithChildren) => <div>{children}</div>
@@ -483,15 +415,7 @@ export const TooltipTrigger = ({
 
 export const TooltipContent = ({ children }: React.PropsWithChildren) => <div>{children}</div>
 
-// ---------------------------------------------------------------------------
-// Separator
-// ---------------------------------------------------------------------------
-
 export const Separator = () => <hr data-slot="separator" />
-
-// ---------------------------------------------------------------------------
-// Alert
-// ---------------------------------------------------------------------------
 
 export const Alert = ({
   children,
@@ -506,10 +430,6 @@ export const Alert = ({
 export const AlertTitle = ({ children }: React.PropsWithChildren) => <h5>{children}</h5>
 
 export const AlertDescription = ({ children }: React.PropsWithChildren) => <div>{children}</div>
-
-// ---------------------------------------------------------------------------
-// DestructiveConfirmDialog
-// ---------------------------------------------------------------------------
 
 export const DestructiveConfirmDialog = ({
   open,
@@ -544,10 +464,6 @@ export const DestructiveConfirmDialog = ({
     </div>
   ) : null
 
-// ---------------------------------------------------------------------------
-// ConfirmDialog
-// ---------------------------------------------------------------------------
-
 export const ConfirmDialog = ({
   open,
   title,
@@ -574,9 +490,5 @@ export const ConfirmDialog = ({
       </button>
     </div>
   ) : null
-
-// ---------------------------------------------------------------------------
-// Textarea
-// ---------------------------------------------------------------------------
 
 export const Textarea = (props: Record<string, unknown>) => <textarea {...props} />
