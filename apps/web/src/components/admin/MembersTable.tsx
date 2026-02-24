@@ -21,6 +21,7 @@ export function MembersTable({
   onActionComplete,
 }: MembersTableProps) {
   const locale = getLocale()
+  const roleIdBySlug = new Map(roles.map((r) => [r.slug, r.id]))
 
   return (
     <div className="overflow-x-auto">
@@ -42,7 +43,7 @@ export function MembersTable({
               name: member.user.name ?? '',
               email: member.user.email,
               role: member.role,
-              roleId: roles.find((r) => r.slug === member.role)?.id ?? null,
+              roleId: roleIdBySlug.get(member.role) ?? null,
             }
             return (
               <MemberContextMenu

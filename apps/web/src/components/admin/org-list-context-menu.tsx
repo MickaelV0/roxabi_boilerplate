@@ -44,7 +44,10 @@ type OrgListMenuContentProps = {
 function useOrgMenuMutations(orgId: string, orgName: string, onActionComplete: () => void) {
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/admin/organizations/${orgId}`, { method: 'DELETE' })
+      const res = await fetch(`/api/admin/organizations/${orgId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
       if (!res.ok) throw new Error('Failed to delete organization')
     },
     onSuccess: () => {
@@ -58,7 +61,10 @@ function useOrgMenuMutations(orgId: string, orgName: string, onActionComplete: (
 
   const restoreMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/admin/organizations/${orgId}/restore`, { method: 'POST' })
+      const res = await fetch(`/api/admin/organizations/${orgId}/restore`, {
+        method: 'POST',
+        credentials: 'include',
+      })
       if (!res.ok) throw new Error('Failed to restore organization')
     },
     onSuccess: () => {
@@ -121,11 +127,14 @@ function OrgListMenuDialogs({
   const { data: impact } = useQuery<OrgDeletionImpact>({
     queryKey: ['admin', 'organizations', org.id, 'deletion-impact'],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/organizations/${org.id}/deletion-impact`)
+      const res = await fetch(`/api/admin/organizations/${org.id}/deletion-impact`, {
+        credentials: 'include',
+      })
       if (!res.ok) throw new Error('Failed to fetch deletion impact')
       return res.json()
     },
     enabled: showDeleteDialog,
+    staleTime: 30_000,
   })
 
   return (
@@ -198,7 +207,7 @@ function OrgListMenuContent({ org, onActionComplete, variant }: OrgListMenuConte
         </MenuItem>
       ) : (
         <MenuItem
-          className="text-destructive focus:text-destructive"
+          variant="destructive"
           onClick={(e) => {
             e.preventDefault()
             setShowDeleteDialog(true)
@@ -245,7 +254,7 @@ export function OrgListKebabButton({ org, onActionComplete }: OrgListKebabButton
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" aria-label="More actions">
           <MoreHorizontalIcon className="size-4" />
         </Button>
       </DropdownMenuTrigger>

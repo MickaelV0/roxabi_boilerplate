@@ -1,13 +1,5 @@
 import type { AdminUser } from '@repo/types'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
   Button,
   ConfirmDialog,
   ContextMenu,
@@ -21,9 +13,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  Input,
-  Label,
-  Textarea,
 } from '@repo/ui'
 import { useMutation } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
@@ -35,8 +24,10 @@ import {
   ShieldCheckIcon,
   Trash2Icon,
 } from 'lucide-react'
-import React, { useState } from 'react'
+import type { ReactNode } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
+import { BanDialog } from './ban-dialog'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -45,7 +36,7 @@ import { toast } from 'sonner'
 type UserContextMenuProps = {
   user: AdminUser
   onActionComplete: () => void
-  children: React.ReactNode
+  children: ReactNode
 }
 
 type UserKebabButtonProps = {
@@ -69,6 +60,7 @@ function useUserMenuMutations(userId: string, userName: string, onActionComplete
       const res = await fetch(`/api/admin/users/${userId}/ban`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ reason, expires }),
       })
       if (!res.ok) throw new Error('Failed to ban user')
@@ -84,7 +76,10 @@ function useUserMenuMutations(userId: string, userName: string, onActionComplete
 
   const unbanMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/admin/users/${userId}/unban`, { method: 'POST' })
+      const res = await fetch(`/api/admin/users/${userId}/unban`, {
+        method: 'POST',
+        credentials: 'include',
+      })
       if (!res.ok) throw new Error('Failed to unban user')
     },
     onSuccess: () => {
@@ -98,7 +93,10 @@ function useUserMenuMutations(userId: string, userName: string, onActionComplete
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' })
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
       if (!res.ok) throw new Error('Failed to delete user')
     },
     onSuccess: () => {
@@ -112,7 +110,10 @@ function useUserMenuMutations(userId: string, userName: string, onActionComplete
 
   const restoreMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/admin/users/${userId}/restore`, { method: 'POST' })
+      const res = await fetch(`/api/admin/users/${userId}/restore`, {
+        method: 'POST',
+        credentials: 'include',
+      })
       if (!res.ok) throw new Error('Failed to restore user')
     },
     onSuccess: () => {
@@ -125,85 +126,6 @@ function useUserMenuMutations(userId: string, userName: string, onActionComplete
   })
 
   return { banMutation, unbanMutation, deleteMutation, restoreMutation }
-}
-
-// ---------------------------------------------------------------------------
-// BanDialog
-// ---------------------------------------------------------------------------
-
-type BanDialogProps = {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  userName: string
-  isPending: boolean
-  onSubmit: (reason: string, expires?: string) => void
-}
-
-function BanDialog({ open, onOpenChange, userName, isPending, onSubmit }: BanDialogProps) {
-  const [reason, setReason] = useState('')
-  const [expiry, setExpiry] = useState('')
-  const isValid = reason.length >= 5 && reason.length <= 500
-
-  // Reset form when dialog closes
-  React.useEffect(() => {
-    if (!open) {
-      setReason('')
-      setExpiry('')
-    }
-  }, [open])
-
-  return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Ban {userName}</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will revoke access for {userName}. You can unban them later.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-
-        <div className="space-y-3 py-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="ban-reason" className="text-sm font-medium">
-              Reason (5-500 characters)
-            </Label>
-            <Textarea
-              id="ban-reason"
-              value={reason}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReason(e.target.value)}
-              placeholder="Reason for banning this user..."
-              rows={3}
-              className="resize-none"
-            />
-            <p className="text-xs text-muted-foreground">{reason.length}/500 characters</p>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="ban-expiry" className="text-sm font-medium">
-              Expiry date (optional)
-            </Label>
-            <Input
-              id="ban-expiry"
-              type="date"
-              value={expiry}
-              onChange={(e) => setExpiry(e.target.value)}
-              className="w-48"
-            />
-          </div>
-        </div>
-
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => onSubmit(reason, expiry ? new Date(expiry).toISOString() : undefined)}
-            disabled={!isValid || isPending}
-            className="bg-destructive text-white hover:bg-destructive/90"
-          >
-            {isPending ? 'Banning...' : 'Confirm Ban'}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  )
 }
 
 // ---------------------------------------------------------------------------
@@ -324,7 +246,7 @@ function UserStatusMenuItems({
       ) : (
         !user.deletedAt && (
           <MenuItem
-            className="text-destructive focus:text-destructive"
+            variant="destructive"
             onClick={(e) => {
               e.preventDefault()
               onBan()
@@ -348,7 +270,7 @@ function UserStatusMenuItems({
         </MenuItem>
       ) : (
         <MenuItem
-          className="text-destructive focus:text-destructive"
+          variant="destructive"
           onClick={(e) => {
             e.preventDefault()
             onDelete()
@@ -433,7 +355,7 @@ export function UserKebabButton({ user, onActionComplete }: UserKebabButtonProps
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" aria-label="More actions">
           <MoreHorizontalIcon className="size-4" />
         </Button>
       </DropdownMenuTrigger>

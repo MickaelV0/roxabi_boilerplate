@@ -41,10 +41,7 @@ function InvitationMenuContent({ invitation, onRevoke, variant }: InvitationMenu
   const MenuItem = variant === 'context' ? ContextMenuItem : DropdownMenuItem
 
   return (
-    <MenuItem
-      className="text-destructive focus:text-destructive"
-      onClick={() => onRevoke(invitation)}
-    >
+    <MenuItem variant="destructive" onClick={() => onRevoke(invitation)}>
       Revoke invitation
     </MenuItem>
   )
@@ -77,7 +74,7 @@ export function InvitationKebabButton({ invitation, onRevoke }: InvitationKebabB
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" aria-label="More actions">
           <MoreHorizontalIcon className="size-4" />
         </Button>
       </DropdownMenuTrigger>

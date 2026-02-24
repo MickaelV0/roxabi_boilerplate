@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // ---------------------------------------------------------------------------
 // Mock factories (extracted to keep vi.mock callback small)
@@ -32,8 +32,12 @@ function mockTrigger({ children, asChild }: { children?: ReactNode; asChild?: bo
   return <div>{children}</div>
 }
 
-function mockSubTrigger({ children }: { children?: ReactNode }) {
-  return <span>{children}</span>
+function mockSubTrigger({ children, disabled }: { children?: ReactNode; disabled?: boolean }) {
+  return (
+    <span aria-disabled={disabled || undefined} data-testid="sub-trigger">
+      {children}
+    </span>
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -106,10 +110,16 @@ vi.mock('@tanstack/react-router', () => ({
   },
 }))
 
-const { mockMutate } = vi.hoisted(() => ({ mockMutate: vi.fn() }))
+const { mockMutate, mutationCalls } = vi.hoisted(() => ({
+  mockMutate: vi.fn(),
+  mutationCalls: [] as Array<Record<string, unknown>>,
+}))
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn().mockReturnValue({ data: undefined, isLoading: false, isError: false }),
-  useMutation: vi.fn().mockReturnValue({ mutate: mockMutate, isPending: false }),
+  useMutation: vi.fn().mockImplementation((options: Record<string, unknown>) => {
+    mutationCalls.push(options)
+    return { mutate: mockMutate, isPending: false }
+  }),
   useQueryClient: vi.fn().mockReturnValue({ invalidateQueries: vi.fn() }),
 }))
 
@@ -142,10 +152,30 @@ const defaultProps = {
 }
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the captured useMutation options by index (call order).
+ * Index 0 = useChangeRoleMutation, Index 1 = useEditProfileMutation
+ * (based on render order in MemberMenuContent).
+ */
+function getMutationOptions(index: number) {
+  return mutationCalls[index] as {
+    onSuccess?: () => void
+    onError?: (err: unknown) => void
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 describe('MemberContextMenu (#313)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mutationCalls.length = 0
+  })
   it('should render a kebab menu button for each member row', () => {
     const member = createMember()
     render(<MemberKebabButton member={member} {...defaultProps} />)
@@ -226,5 +256,166 @@ describe('MemberContextMenu (#313)', () => {
       'href',
       expect.stringContaining('/admin/users/u-42')
     )
+  })
+
+  // -------------------------------------------------------------------------
+  // B3: Role-change mutation tests
+  // -------------------------------------------------------------------------
+
+  it('should call mutate with correct roleId when clicking a role submenu item', async () => {
+    // Arrange
+    const { useQuery } = await import('@tanstack/react-query')
+    vi.mocked(useQuery).mockReturnValue({
+      data: {
+        data: [
+          { id: 'r-owner', name: 'Owner', slug: 'owner' },
+          { id: 'r-admin', name: 'Admin', slug: 'admin' },
+          { id: 'r-member', name: 'Member', slug: 'member' },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+    } as ReturnType<typeof useQuery>)
+
+    const member = createMember({ roleId: 'r-member' })
+    render(
+      <MemberContextMenu member={member} {...defaultProps}>
+        <div>Member Row</div>
+      </MemberContextMenu>
+    )
+
+    // Act — click a non-current role
+    fireEvent.click(screen.getByText('Owner'))
+
+    // Assert (W10: mockMutate is asserted here)
+    expect(mockMutate).toHaveBeenCalledWith('r-owner')
+  })
+
+  it('should show toast success and call onActionComplete after role change', async () => {
+    // Arrange
+    const { toast } = await import('sonner')
+    const onActionComplete = vi.fn()
+    const member = createMember()
+    render(
+      <MemberContextMenu
+        member={member}
+        orgId="org-1"
+        currentUserId="current-user"
+        onActionComplete={onActionComplete}
+      >
+        <div>Member Row</div>
+      </MemberContextMenu>
+    )
+
+    // Act — invoke the onSuccess callback of the change-role mutation (index 0)
+    const changeRoleOptions = getMutationOptions(0)
+    changeRoleOptions.onSuccess?.()
+
+    // Assert
+    expect(toast.success).toHaveBeenCalledWith('Role updated successfully')
+    expect(onActionComplete).toHaveBeenCalled()
+  })
+
+  it('should show toast error when role change mutation fails', async () => {
+    // Arrange
+    const { toast } = await import('sonner')
+    const member = createMember()
+    render(
+      <MemberContextMenu member={member} {...defaultProps}>
+        <div>Member Row</div>
+      </MemberContextMenu>
+    )
+
+    // Act — invoke the onError callback of the change-role mutation (index 0)
+    const changeRoleOptions = getMutationOptions(0)
+    changeRoleOptions.onError?.(new Error('Cannot change role: this is the last owner'))
+
+    // Assert
+    expect(toast.error).toHaveBeenCalledWith('Cannot change role: this is the last owner')
+  })
+
+  // -------------------------------------------------------------------------
+  // B4: Self-action prevention test
+  // -------------------------------------------------------------------------
+
+  it('should disable Change role submenu when member is current user', () => {
+    // Arrange — currentUserId matches member.userId
+    const member = createMember({ userId: 'self-user' })
+    render(
+      <MemberContextMenu
+        member={member}
+        orgId="org-1"
+        currentUserId="self-user"
+        onActionComplete={vi.fn()}
+      >
+        <div>Member Row</div>
+      </MemberContextMenu>
+    )
+
+    // Assert — the SubTrigger for "Change role" is aria-disabled
+    const changeRoleTrigger = screen
+      .getByText(/Change role/i)
+      .closest('[data-testid="sub-trigger"]')
+    expect(changeRoleTrigger).toHaveAttribute('aria-disabled', 'true')
+
+    // Assert — tooltip text is present
+    expect(screen.getByText('Cannot change your own role')).toBeInTheDocument()
+  })
+
+  // -------------------------------------------------------------------------
+  // W12: Edit profile error handling tests
+  // -------------------------------------------------------------------------
+
+  it('should show inline error when edit profile mutation fails with 409', async () => {
+    // Arrange
+    const { toast } = await import('sonner')
+    const member = createMember()
+    render(
+      <MemberContextMenu member={member} {...defaultProps}>
+        <div>Member Row</div>
+      </MemberContextMenu>
+    )
+
+    // Open the edit dialog
+    fireEvent.click(screen.getByText(/Edit profile/i))
+    await waitFor(() => {
+      expect(screen.getByLabelText(/name/i)).toBeInTheDocument()
+    })
+
+    // Act — invoke the onError callback of the edit-profile mutation (index 1)
+    // with a 409-style error message containing "email already exists"
+    const editProfileOptions = getMutationOptions(1)
+    editProfileOptions.onError?.(new Error('A user with this email already exists'))
+
+    // Assert — inline error displayed, NOT toast.error
+    await waitFor(() => {
+      expect(screen.getByText('A user with this email already exists')).toBeInTheDocument()
+    })
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+
+  it('should show toast error when edit profile mutation fails with non-409 error', async () => {
+    // Arrange
+    const { toast } = await import('sonner')
+    const member = createMember()
+    render(
+      <MemberContextMenu member={member} {...defaultProps}>
+        <div>Member Row</div>
+      </MemberContextMenu>
+    )
+
+    // Open the edit dialog
+    fireEvent.click(screen.getByText(/Edit profile/i))
+    await waitFor(() => {
+      expect(screen.getByLabelText(/name/i)).toBeInTheDocument()
+    })
+
+    // Act — invoke the onError callback of the edit-profile mutation (index 1)
+    // with a non-409 error (e.g. 500)
+    const editProfileOptions = getMutationOptions(1)
+    editProfileOptions.onError?.(new Error('Failed to update profile'))
+
+    // Assert — toast.error used, no inline error
+    expect(toast.error).toHaveBeenCalledWith('Failed to update profile')
   })
 })
