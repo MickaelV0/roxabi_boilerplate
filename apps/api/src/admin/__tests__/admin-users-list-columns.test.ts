@@ -59,6 +59,7 @@ const baseUser = {
  *   Query 2: batch memberships by userId
  *   Query 3: batch lastActive by userId (MAX(timestamp) from audit_logs)
  */
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: test describe block with multiple test cases
 describe('AdminUsersService — listUsers columns (#312)', () => {
   let service: AdminUsersService
   let db: ReturnType<typeof createMockDb>

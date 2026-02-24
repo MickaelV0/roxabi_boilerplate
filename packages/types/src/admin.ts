@@ -50,7 +50,6 @@ export type AdminUser = {
 /** Extended user detail with activity summary */
 export type AdminUserDetail = AdminUser & {
   image: string | null
-  lastActive: string | null
   activitySummary: import('./audit').AuditLogEntry[]
 }
 

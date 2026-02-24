@@ -38,7 +38,7 @@ import {
   PencilIcon,
   ShieldIcon,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 export type MemberForMenu = {
@@ -287,6 +287,10 @@ function RoleSubmenuItems({
   const isSelf = member.userId === currentUserId
 
   const MenuItem = variant === 'context' ? ContextMenuItem : DropdownMenuItem
+
+  useEffect(() => {
+    if (isError) toast.error('Failed to load roles')
+  }, [isError])
 
   if (isLoading) {
     return (

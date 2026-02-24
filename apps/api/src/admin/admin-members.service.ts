@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common'
 import { and, count, eq, ilike, or } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import { AuditService } from '../audit/audit.service.js'
-import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
+import { DRIZZLE, type DrizzleDB, type DrizzleTx } from '../database/drizzle.provider.js'
 import { invitations, members, users } from '../database/schema/auth.schema.js'
 import { roles } from '../database/schema/rbac.schema.js'
 import { InvitationAlreadyPendingException } from './exceptions/invitation-already-pending.exception.js'
@@ -252,20 +252,25 @@ export class AdminMembersService {
       return { updated: true }
     }
 
-    // Last-owner guard (#313): prevent demoting the last owner
-    await this.ensureNotLastOwnerOnRoleChange(
-      {
-        roleSlug: memberWithRole.currentRoleSlug,
-        role: memberWithRole.role,
-        roleId: memberWithRole.roleId,
-      },
-      orgId
-    )
+    // Last-owner guard (#313): prevent demoting the last owner.
+    // Wrapped in a transaction to prevent TOCTOU race — the owner count check
+    // and the role update execute atomically within the same transaction.
+    await this.db.transaction(async (tx) => {
+      await this.ensureNotLastOwnerOnRoleChange(
+        tx,
+        {
+          roleSlug: memberWithRole.currentRoleSlug,
+          role: memberWithRole.role,
+          roleId: memberWithRole.roleId,
+        },
+        orgId
+      )
 
-    await this.db
-      .update(members)
-      .set({ roleId: data.roleId, role: newRole.slug })
-      .where(eq(members.id, memberId))
+      await tx
+        .update(members)
+        .set({ roleId: data.roleId, role: newRole.slug })
+        .where(and(eq(members.id, memberId), eq(members.organizationId, orgId)))
+    })
 
     this.logMemberAudit('member.role_changed', 'member', orgId, memberId, actorId, {
       before: {
@@ -367,14 +372,18 @@ export class AdminMembersService {
    * Last-owner guard for role changes (#313).
    * Uses dual-field check matching removeMember pattern:
    * roleSlug === 'owner' || member.role === 'owner'
+   *
+   * Accepts a transaction handle (`tx`) so the count query runs inside the
+   * same transaction as the subsequent role update, preventing TOCTOU races.
    */
   private async ensureNotLastOwnerOnRoleChange(
+    tx: DrizzleTx,
     member: { roleSlug: string | null; role: string; roleId: string | null },
     orgId: string
   ) {
     if (member.roleSlug !== 'owner' && member.role !== 'owner') return
 
-    const [ownerCount] = await this.db
+    const [ownerCount] = await tx
       .select({ count: count() })
       .from(members)
       // biome-ignore lint/style/noNonNullAssertion: roleId is guaranteed by the owner role check above

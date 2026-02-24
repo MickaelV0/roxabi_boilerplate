@@ -16,15 +16,23 @@ function createMockDb() {
     insert: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
-    transaction: vi.fn(async (fn: (tx: Record<string, unknown>) => unknown) =>
-      fn({
-        select: vi.fn(),
-        insert: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-      })
-    ),
+    transaction: vi.fn(),
   }
+}
+
+function mockTransaction(db: ReturnType<typeof createMockDb>) {
+  const txSelect = vi.fn()
+  const txUpdate = vi.fn()
+  const tx = {
+    select: txSelect,
+    insert: vi.fn(),
+    update: txUpdate,
+    delete: vi.fn(),
+  }
+  db.transaction.mockImplementationOnce(async (fn: (tx: Record<string, unknown>) => unknown) =>
+    fn(tx)
+  )
+  return tx
 }
 
 function createMockAuditService(): AuditService {
@@ -121,6 +129,7 @@ describe('AdminOrganizationsService — listOrgRoles (#313)', () => {
   })
 })
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: test describe block with multiple test cases
 describe('AdminMembersService — changeMemberRole last-owner guard (#313)', () => {
   let service: AdminMembersService
   let db: ReturnType<typeof createMockDb>
@@ -174,15 +183,18 @@ describe('AdminMembersService — changeMemberRole last-owner guard (#313)', () 
     db.select
       .mockReturnValueOnce(createChainMock([newRole])) // target role
       .mockReturnValueOnce(createChainMock([memberWithRole])) // member (owner)
-      .mockReturnValueOnce(createChainMock([ownerCount])) // only 1 owner in the org
+
+    // Guard + update run inside a transaction; owner count uses tx.select
+    const tx = mockTransaction(db)
+    tx.select.mockReturnValueOnce(createChainMock([ownerCount]))
 
     // Act & Assert
     await expect(
       service.changeMemberRole('m-1', 'org-1', { roleId: 'r-member' }, 'actor-super')
     ).rejects.toThrow(LastOwnerConstraintException)
 
-    // Should not have called update
-    expect(db.update).not.toHaveBeenCalled()
+    // Should not have called tx.update (threw before reaching it)
+    expect(tx.update).not.toHaveBeenCalled()
   })
 
   // SC: All role changes are audit-logged.
@@ -201,7 +213,10 @@ describe('AdminMembersService — changeMemberRole last-owner guard (#313)', () 
     db.select
       .mockReturnValueOnce(createChainMock([newRole])) // target role
       .mockReturnValueOnce(createChainMock([memberWithRole])) // member with current role
-    db.update.mockReturnValueOnce(createChainMock(undefined))
+
+    // Guard + update run inside a transaction
+    const tx = mockTransaction(db)
+    tx.update.mockReturnValueOnce(createChainMock(undefined))
 
     // Act
     await service.changeMemberRole('m-1', 'org-1', { roleId: 'r-admin' }, 'actor-super')

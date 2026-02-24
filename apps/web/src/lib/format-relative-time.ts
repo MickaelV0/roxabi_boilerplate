@@ -7,6 +7,7 @@ export function formatRelativeTime(isoTimestamp: string | null | undefined): str
 
   const now = Date.now()
   const then = new Date(isoTimestamp).getTime()
+  if (Number.isNaN(then)) return 'Never'
   const diffMs = now - then
 
   const seconds = Math.floor(diffMs / 1000)
