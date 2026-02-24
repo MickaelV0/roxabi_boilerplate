@@ -20,3 +20,7 @@ pre-push:
       run: CI=true bun run typecheck
     test:
       run: CI=true bun run test:coverage
+    i18n:
+      run: bun run i18n:validate
+    license:
+      run: bun run license:check
