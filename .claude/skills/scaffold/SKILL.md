@@ -125,14 +125,41 @@ For each task:
 
 Order: types first → backend → frontend → tests → docs → config.
 
-#### 2e. Present Plan for Approval
+#### 2e. Select Slices (multi-slice specs only)
 
-Present via `AskUserQuestion`:
+If the spec contains **2+ slices**, present them for selection via `AskUserQuestion`:
+
+```
+Spec has {N} slices. Select which to implement in this run:
+
+  V1: {description} ({N} files, {agents})
+  V2: {description} ({N} files, {agents})
+  V3: {description} ({N} files, {agents})
+  ...
+```
+
+Options (multiSelect: true):
+- One option per slice (label: `V1: {short description}`)
+
+**Rules:**
+- Default recommendation: **one slice** (the next unimplemented slice in order)
+- Respect slice dependencies — if V2 depends on V1, V1 must be selected too (or already implemented)
+- After this run completes (commit + PR), re-run `/scaffold --spec N` to pick the next slice(s)
+- Each scaffold run is self-contained: plan → setup → implement → PR
+
+**Single-slice specs:** Skip this step.
+
+**Resuming:** When re-running scaffold on a spec with prior slices already implemented, detect which slices are done (check existing code/tests) and only offer remaining slices.
+
+#### 2f. Present Plan for Approval
+
+Present via `AskUserQuestion` (scoped to selected slices only):
 
 ```
 Implementation Plan: {Spec Title}
 Spec: specs/{N}-{slug}.mdx
 Tier: {S|F-lite|F-full}
+Slices: {selected slices} (of {total} in spec)
 Files: {N} files to create/modify
 Agents: {agent list}
 
@@ -266,7 +293,7 @@ EOF
 
 **Tier S:** Skip this step entirely. Proceed directly to Step 5.
 
-**Tier F-lite / F-full:** Generate fine-grained micro-tasks from the spec for agent consumption.
+**Tier F-lite / F-full:** Generate fine-grained micro-tasks from the spec for agent consumption. **Only generate tasks for the slices selected in Step 2e.**
 
 #### 4f.1. Detect Spec Format
 
@@ -641,6 +668,8 @@ git branch -D feat/<number>-<slug>
 | **Spec has unresolved `[NEEDS CLARIFICATION]` markers** | Pre-flight warns, user chooses: resolve inline, return to bootstrap, or proceed with risk |
 | **Spec has no Breadboard AND no Success Criteria** | Skip Step 4f, warn user, use text-based task list from Step 2d |
 | **Task count exceeds 30** | Warn user, show full task list, suggest splitting. Do not truncate. |
+| **Multi-slice spec** | Step 2e presents slices for selection. Default: one slice per run. Re-run scaffold for remaining slices. |
+| **All slices already implemented** | Detect via existing code/tests. Inform user, suggest `/review` instead. |
 | **Consistency check finds 0 coverage** | Block agent spawning. Return to spec or regenerate. |
 | **Verification command references missing file** | Mark `[deferred]`. If fails after RED phase, escalate to lead. |
 | **Single affordance expands beyond 5 min** | Split into 2-3 sub-tasks. 2-5 min is a guide; some tasks may reach 8-10 min. |

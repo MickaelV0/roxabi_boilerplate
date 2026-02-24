@@ -220,10 +220,16 @@ After presenting findings locally, split findings based on confidence and catego
    - **Auto-apply queue:** Findings that meet **all** of the following criteria:
      - Confidence **>= 80%**
      - Category in [`issue`, `suggestion`, `todo`] (actionable categories)
-     - **At least two independent review agents** flagged it with confidence >= 80%. Single-agent findings at any confidence level go to 1b1.
+     - **At least two independent review agents** confirmed it with confidence >= 80% (see verification step below)
      - **Not a security finding.** Findings originating from `security-auditor` or categorized as security issues are **excluded from auto-apply** regardless of confidence score — they always route to 1b1. Security fixes require human judgment due to their risk profile.
-   - **1b1 queue:** All other findings — those with confidence **< 80%**, non-actionable categories (`praise`, `thought`, `question`), single-agent findings, or security findings. Praise findings are exempt from auto-apply entirely. `thought` and `question` findings always go to 1b1 regardless of confidence.
+   - **1b1 queue:** All other findings — those with confidence **< 80%**, non-actionable categories (`praise`, `thought`, `question`), unconfirmed single-agent findings, or security findings. Praise findings are exempt from auto-apply entirely. `thought` and `question` findings always go to 1b1 regardless of confidence.
    - Confidence exactly 80% is inclusive (treated as >= 80%) for the threshold check.
+
+   **Single-agent verification:** When a finding is flagged by only one agent at >= 80% confidence (and meets the other auto-apply criteria), spawn a **fresh verification agent** of a different domain type to confirm:
+   - The verification agent receives the finding, the relevant file(s), and the diff
+   - If the verifier confirms the finding at >= 80% confidence → the finding now has 2-agent consensus and qualifies for auto-apply
+   - If the verifier rejects or scores < 80% → the finding goes to 1b1
+   - Batch all single-agent verifications in parallel to minimize overhead
 
 2. **Confirmation prompt for large auto-apply queues:** If the auto-apply queue contains **more than 5 findings**, present the user with an `AskUserQuestion` before proceeding: "N findings qualify for auto-apply (confidence >= 80%, consensus from 2+ agents). Proceed with auto-apply, or review all individually via 1b1?" Options: "Auto-apply all N" / "Review individually via 1b1". If the user chooses to review individually, move all auto-apply queue findings to the 1b1 queue and skip the rest of Phase 3.5.
 
@@ -398,7 +404,8 @@ After all fixes are committed, pushed, and the follow-up PR comment is posted:
 | Review agents disagree | Present both perspectives in 1b1, human decides |
 | No PR for current branch | Skip PR comment (Phase 3.6), findings stay local only |
 | All findings >= 80% with consensus | All auto-applied. Post-apply summary shown. 1b1 is skipped (no items). |
-| All findings < 80% or single-agent | Phase 3.5 is skipped. All go through enriched 1b1. |
+| All findings < 80% | Phase 3.5 is skipped. All go through enriched 1b1. |
+| Single-agent finding at 80%+ | Verification agent spawned. If confirmed → auto-apply. If rejected → 1b1. |
 | Auto-apply breaks tests | Fixer restores via `git stash pop`. Finding demoted to 1b1 with failure note. |
 | Auto-apply causes lint error | Same as test failure — stash restore, demote to 1b1. |
 | Fixer agent times out | Finding demoted to 1b1 with note: "Auto-apply failed: fixer agent did not respond." |
@@ -412,7 +419,7 @@ After all fixes are committed, pushed, and the follow-up PR comment is posted:
 
 1. **Fresh agents only** — review agents must be new instances with no implementation context
 2. **Never auto-merge** or approve PRs on GitHub
-3. **Human decides on every finding except high-confidence consensus findings.** The human gate is only bypassed when **at least two independent review agents** flagged the same finding with confidence >= 80% AND it is an actionable category (`issue`, `suggestion`, `todo`) AND it is not a security finding. All other findings go through the 1b1 walkthrough. The human can review auto-applied changes via `git diff` at any time.
+3. **Human decides on every finding except high-confidence consensus findings.** The human gate is only bypassed when **at least two agents** (original reviewers or original + verification agent) confirmed the same finding with confidence >= 80% AND it is an actionable category (`issue`, `suggestion`, `todo`) AND it is not a security finding. Single-agent 80%+ findings get a fresh verification agent before auto-apply. All other findings go through the 1b1 walkthrough. The human can review auto-applied changes via `git diff` at any time.
 4. **Always post review to PR** — if a PR exists, findings must be posted as a comment for traceability. After fixes are applied, post a follow-up comment confirming which findings were addressed.
 5. **Fixer handles fixes** — the review skill does not fix code; that is the fixer agent's responsibility after 1b1
 

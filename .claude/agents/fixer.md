@@ -87,7 +87,13 @@ Single-domain fixer:
 
 ### Auto-Apply Scope Constraint
 
-When called for auto-apply (not 1b1), the fixer may **only modify files explicitly referenced in the finding** (the `file_path` field). Any fix that would require changes to files beyond the finding's scope must be rejected as "cannot auto-fix — scope violation." Do not create new files, modify adjacent files, or refactor surrounding code during auto-apply.
+When called for auto-apply (not 1b1), the fixer may modify:
+1. Files explicitly referenced in the finding (`file_path` field)
+2. **Co-located test files** (`*.test.ts` / `*.spec.ts` adjacent to the referenced file) when the source fix causes test failures
+
+Any fix that would require changes to files **beyond the referenced file and its co-located tests** must be rejected as "cannot auto-fix — scope violation." Do not create new files, modify unrelated files, or refactor surrounding code during auto-apply.
+
+**Test adaptation workflow:** After applying a source fix, run tests. If co-located tests fail because they asserted the removed/changed behavior, update or remove those tests to match the new behavior. Then re-validate.
 
 ### Auto-Apply Failure Protocol
 
