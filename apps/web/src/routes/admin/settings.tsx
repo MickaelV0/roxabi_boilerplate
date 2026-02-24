@@ -19,6 +19,7 @@ import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
 import { isErrorWithMessage } from '@/lib/error-utils'
 import { hasPermission } from '@/lib/permissions'
+import { enforceRoutePermission } from '@/lib/route-permissions'
 import { useOrganizations } from '@/lib/use-organizations'
 import { m } from '@/paraglide/messages'
 import { getLocale } from '@/paraglide/runtime'
@@ -36,6 +37,8 @@ function hasSoftDeleteFields(org: unknown): org is SoftDeletableOrg {
 }
 
 export const Route = createFileRoute('/admin/settings')({
+  staticData: { permission: 'members:write' },
+  beforeLoad: enforceRoutePermission,
   component: AdminSettingsPage,
   head: () => ({
     meta: [{ title: `${m.org_settings_title()} | Roxabi` }],

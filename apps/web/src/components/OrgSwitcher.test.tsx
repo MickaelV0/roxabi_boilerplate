@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
 function getClosestAncestor(element: Element, selector: string): Element {
@@ -124,6 +124,11 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
+const mockUseCanAccess = vi.hoisted(() => vi.fn(() => false))
+vi.mock('@/lib/route-permissions', () => ({
+  useCanAccess: mockUseCanAccess,
+}))
+
 mockParaglideMessages()
 
 import { toast } from 'sonner'
@@ -160,6 +165,10 @@ function setupWithOrgs({ includeMembers = false }: { includeMembers?: boolean } 
 }
 
 describe('OrgSwitcher', () => {
+  beforeEach(() => {
+    mockUseCanAccess.mockReturnValue(false)
+  })
+
   it('should render nothing while loading', () => {
     const { container } = render(
       <OrgSwitcher orgState={buildOrgState({ data: undefined, isLoading: true })} />
@@ -289,8 +298,9 @@ describe('OrgSwitcher', () => {
     })
   })
 
-  it('should show org settings and members links when active org exists and user is admin', () => {
-    // Arrange — includeMembers gives the user an 'admin' org role, enabling canAccessAdmin
+  it('should show org settings and members links when useCanAccess returns true', () => {
+    // Arrange — useCanAccess returns true for admin routes
+    mockUseCanAccess.mockReturnValue(true)
     const orgState = setupWithOrgs({ includeMembers: true })
 
     // Act
@@ -301,8 +311,9 @@ describe('OrgSwitcher', () => {
     expect(screen.getByText('user_menu_org_members')).toBeInTheDocument()
   })
 
-  it('should hide org settings and members links when user is not an admin', () => {
-    // Arrange — no members data means activeMember is undefined, canAccessAdmin is false
+  it('should hide org settings and members links when useCanAccess returns false', () => {
+    // Arrange — useCanAccess returns false (default)
+    mockUseCanAccess.mockReturnValue(false)
     const orgState = setupWithOrgs()
 
     // Act

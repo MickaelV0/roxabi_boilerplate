@@ -32,11 +32,12 @@ import { FilterBar } from '@/components/admin/filter-bar'
 import { LoadMoreButton } from '@/components/admin/load-more-button'
 import { TreeView } from '@/components/admin/tree-view'
 import { useCursorPagination } from '@/hooks/use-cursor-pagination'
-import { requireSuperAdmin } from '@/lib/admin-guards'
 import { formatDate } from '@/lib/format-date'
+import { enforceRoutePermission } from '@/lib/route-permissions'
 
 export const Route = createFileRoute('/admin/organizations')({
-  beforeLoad: requireSuperAdmin,
+  staticData: { permission: 'role:superadmin' },
+  beforeLoad: enforceRoutePermission,
   component: AdminOrganizationsPage,
   head: () => ({ meta: [{ title: 'Organizations | Admin | Roxabi' }] }),
 })

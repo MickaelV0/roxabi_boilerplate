@@ -28,12 +28,13 @@ import { toast } from 'sonner'
 import { BackLink, DetailSkeleton } from '@/components/admin/detail-shared'
 import { MemberContextMenu, MemberKebabButton } from '@/components/admin/member-context-menu'
 import { OrgActions } from '@/components/admin/org-actions'
-import { requireSuperAdmin } from '@/lib/admin-guards'
 import { useSession } from '@/lib/auth-client'
 import { formatDate } from '@/lib/format-date'
+import { enforceRoutePermission } from '@/lib/route-permissions'
 
 export const Route = createFileRoute('/admin/organizations/$orgId')({
-  beforeLoad: requireSuperAdmin,
+  staticData: { permission: 'role:superadmin' },
+  beforeLoad: enforceRoutePermission,
   component: AdminOrgDetailPage,
   head: () => ({ meta: [{ title: 'Organization Detail | Admin | Roxabi' }] }),
 })

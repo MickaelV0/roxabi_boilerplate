@@ -10,8 +10,7 @@ import {
   ShieldIcon,
   UsersIcon,
 } from 'lucide-react'
-import { requireAdmin } from '@/lib/admin-guards'
-import { useSession } from '@/lib/auth-client'
+import { enforceRoutePermission, useCanAccess } from '@/lib/route-permissions'
 import { m } from '@/paraglide/messages'
 
 function AdminErrorBoundary({ error }: { error: Error }) {
@@ -36,7 +35,8 @@ function AdminErrorBoundary({ error }: { error: Error }) {
 }
 
 export const Route = createFileRoute('/admin')({
-  beforeLoad: requireAdmin,
+  staticData: { permission: 'members:write' },
+  beforeLoad: enforceRoutePermission,
   component: AdminLayout,
   errorComponent: AdminErrorBoundary,
 })
@@ -143,13 +143,6 @@ function SidebarGroup({
   )
 }
 
-function isSuperAdmin(session: unknown): boolean {
-  if (session == null || typeof session !== 'object') return false
-  if (!('user' in session) || session.user == null || typeof session.user !== 'object') return false
-  if (!('role' in session.user)) return false
-  return session.user.role === 'superadmin'
-}
-
 function MobileNavLink({ link, pathname }: { link: SidebarLink; pathname: string }) {
   const Icon = link.icon
   const isActive = pathname.startsWith(link.to)
@@ -226,8 +219,7 @@ function AdminMobileNav({ pathname, superAdmin }: { pathname: string; superAdmin
 
 function AdminLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const { data: session } = useSession()
-  const superAdmin = isSuperAdmin(session)
+  const superAdmin = useCanAccess('/admin/users')
 
   return (
     <div className="mx-auto flex max-w-7xl gap-0 p-0 md:gap-6 md:p-6">
