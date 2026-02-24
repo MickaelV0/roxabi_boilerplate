@@ -127,8 +127,10 @@ export function buildHtml(
   .col-block { width: 36px; text-align: center; }
   .col-deps { min-width: 120px; font-size: 12px; }
 
-  .depth-child td { border-bottom: none; padding-top: 2px; padding-bottom: 2px; }
-  .depth-child .col-title { padding-left: 28px; color: var(--text-muted); font-size: 12px; }
+  .issue-row:not(.depth-0) td { border-bottom: none; padding-top: 2px; padding-bottom: 2px; }
+  .depth-1 .col-title { padding-left: 28px; color: var(--text-muted); font-size: 12px; }
+  .depth-2 .col-title { padding-left: 48px; color: var(--text-muted); font-size: 12px; }
+  .depth-3 .col-title { padding-left: 68px; color: var(--text-muted); font-size: 12px; }
   .tree-prefix { color: var(--border); margin-right: 4px; font-family: monospace; }
 
   .badge {

@@ -87,7 +87,7 @@ export function issueRow(issue: Issue, indent = 0, prefix = ''): string {
       ? `<span class="tree-prefix">${prefix}</span><a href="${issue.url}" target="_blank" rel="noopener">#${issue.number}</a> ${escHtml(issue.title)}`
       : `<a href="${issue.url}" target="_blank" rel="noopener">#${issue.number}</a> ${escHtml(issue.title)}`
 
-  let html = `<tr class="issue-row depth-${indent > 0 ? 'child' : 'root'} ${blockClass}" data-issue="${issue.number}" data-status="${escHtml(issue.status)}" data-size="${escHtml(issue.size)}" data-priority="${escHtml(issue.priority)}">
+  let html = `<tr class="issue-row depth-${indent} ${blockClass}" data-issue="${issue.number}" data-status="${escHtml(issue.status)}" data-size="${escHtml(issue.size)}" data-priority="${escHtml(issue.priority)}">
     <td class="col-num">${indent === 0 ? `<a href="${issue.url}" target="_blank" rel="noopener">#${issue.number}</a>` : ''}</td>
     <td class="col-title">${titleHtml}</td>
     <td class="col-status"><span class="badge ${statusClass}">${escHtml(status)}</span></td>
