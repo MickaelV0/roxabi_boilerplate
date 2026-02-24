@@ -19,20 +19,18 @@ const mockAddSubIssue = vi.mocked(github.addSubIssue)
 
 const { createIssue } = await import('../lib/create')
 
-describe('issue-triage/create', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    // Default: gh issue create returns URL with issue number
-    mockRun.mockResolvedValue('https://github.com/test/repo/issues/99')
-    mockGetNodeId.mockImplementation(async (num) => `node-${num}`)
-    mockAddToProject.mockResolvedValue('item-99')
-    vi.spyOn(console, 'log').mockImplementation(() => {})
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-  })
+function setupMocks() {
+  vi.clearAllMocks()
+  mockRun.mockResolvedValue('https://github.com/test/repo/issues/99')
+  mockGetNodeId.mockImplementation(async (num) => `node-${num}`)
+  mockAddToProject.mockResolvedValue('item-99')
+  vi.spyOn(console, 'log').mockImplementation(() => {})
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+}
 
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
+describe('issue-triage/create > basic creation', () => {
+  beforeEach(setupMocks)
+  afterEach(() => vi.restoreAllMocks())
 
   it('creates an issue with title', async () => {
     await createIssue(['--title', 'Test issue'])
@@ -57,6 +55,11 @@ describe('issue-triage/create', () => {
     await createIssue(['--title', 'Test', '--priority', 'High'])
     expect(mockUpdateField).toHaveBeenCalledWith('item-99', expect.any(String), '742ac87b')
   })
+})
+
+describe('issue-triage/create > relationships', () => {
+  beforeEach(setupMocks)
+  afterEach(() => vi.restoreAllMocks())
 
   it('sets parent relationship', async () => {
     await createIssue(['--title', 'Child', '--parent', '50'])
@@ -79,6 +82,11 @@ describe('issue-triage/create', () => {
     await createIssue(['--title', 'Test', '--blocks', '20'])
     expect(mockAddBlockedBy).toHaveBeenCalledWith('node-20', 'node-99')
   })
+})
+
+describe('issue-triage/create > options and error handling', () => {
+  beforeEach(setupMocks)
+  afterEach(() => vi.restoreAllMocks())
 
   it('includes labels in create command', async () => {
     await createIssue(['--title', 'Test', '--label', 'bug,frontend'])
