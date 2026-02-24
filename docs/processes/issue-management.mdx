@@ -86,7 +86,7 @@ Use the provided GitHub templates:
 Use `/issue-triage create` to create an issue, add it to the project board, and set all fields in one shot:
 
 ```bash
-.claude/skills/issue-triage/triage.sh create \
+bun .claude/skills/issue-triage/triage.ts create \
   --title "feat: notification preferences" \
   --body "Allow users to configure notification channels" \
   --label "feature" \
@@ -135,25 +135,25 @@ Use the `/issue-triage` skill to list untriaged issues, set fields, create new i
 
 ```bash
 # List issues missing Size or Priority
-.claude/skills/issue-triage/triage.sh list
+bun .claude/skills/issue-triage/triage.ts list
 
 # Set size, priority, and status
-.claude/skills/issue-triage/triage.sh set 42 --size M --priority High
-.claude/skills/issue-triage/triage.sh set 42 --status "In Progress"
+bun .claude/skills/issue-triage/triage.ts set 42 --size M --priority High
+bun .claude/skills/issue-triage/triage.ts set 42 --status "In Progress"
 
 # Create a new issue with full setup
-.claude/skills/issue-triage/triage.sh create \
+bun .claude/skills/issue-triage/triage.ts create \
   --title "feat: avatar upload" \
   --size M --priority High --parent 163
 
 # Manage parent/child (sub-issue) relationships
-.claude/skills/issue-triage/triage.sh set 164 --parent 163
-.claude/skills/issue-triage/triage.sh set 163 --add-child 164,165
-.claude/skills/issue-triage/triage.sh set 164 --rm-parent
+bun .claude/skills/issue-triage/triage.ts set 164 --parent 163
+bun .claude/skills/issue-triage/triage.ts set 163 --add-child 164,165
+bun .claude/skills/issue-triage/triage.ts set 164 --rm-parent
 
 # Manage blocked-by dependencies
-.claude/skills/issue-triage/triage.sh set 91 --blocked-by 117
-.claude/skills/issue-triage/triage.sh set 91 --rm-blocked-by 117
+bun .claude/skills/issue-triage/triage.ts set 91 --blocked-by 117
+bun .claude/skills/issue-triage/triage.ts set 91 --rm-blocked-by 117
 ```
 
 ---
@@ -198,8 +198,8 @@ When an issue blocks another, use the `/issue-triage` skill (preferred) or the r
 
 ```bash
 # Preferred — via /issue-triage
-.claude/skills/issue-triage/triage.sh set 51 --blocked-by 19
-.claude/skills/issue-triage/triage.sh set 19 --blocks 51
+bun .claude/skills/issue-triage/triage.ts set 51 --blocked-by 19
+bun .claude/skills/issue-triage/triage.ts set 19 --blocks 51
 ```
 
 If using the API directly:

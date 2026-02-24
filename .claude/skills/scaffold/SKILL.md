@@ -191,7 +191,7 @@ gh issue view <number> --json number,title,state 2>/dev/null
 #### 3b. Update Issue Status
 
 ```bash
-.claude/skills/issue-triage/triage.sh set <ISSUE_NUMBER> --status "In Progress"
+bun .claude/skills/issue-triage/triage.ts set <ISSUE_NUMBER> --status "In Progress"
 ```
 
 #### 3c. Pre-flight Checks
@@ -557,7 +557,7 @@ Implement directly (no agents):
 1. Read stubs and spec acceptance criteria
 2. Implement business logic
 3. Write/update tests
-4. Run: `bun lint && bun typecheck && bun test`
+4. Run: `bun lint && bun typecheck && bun run test`
 5. Loop until green
 
 #### Tier F — Agent-Driven (test-first)
@@ -594,7 +594,7 @@ After each task where verification runs:
 **Quality gate:**
 
 ```bash
-bun lint && bun typecheck && bun test
+bun lint && bun typecheck && bun run test
 ```
 
 - **Pass** — proceed to PR

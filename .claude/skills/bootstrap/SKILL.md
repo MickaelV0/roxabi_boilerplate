@@ -101,7 +101,7 @@ Before choosing a tier, score the issue/idea on a 1-10 complexity scale. This in
 |-------|------|---------|-----------|
 | 1-3 | **S** | Worktree + direct implementation + PR | Single session, no agents |
 | 4-6 | **F-lite** | Worktree + subagents + /review | Task subagents (1-2 domain + tester) |
-| 7-10 | **F-full** | Bootstrap + worktree + agent team + /review | TeamCreate (3+ agents, test-first) |
+| 7-10 | **F-full** | Bootstrap + worktree + agent team + /review | Task subagents (3+ agents, test-first) |
 
 **Important:** The score is a guide, not a gate. Human judgment overrides. A score of 6 may be F-lite (clear mechanical changes) or F-full (design decisions needed). Present the score and recommended tier to the user via `AskUserQuestion` for validation.
 

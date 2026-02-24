@@ -98,7 +98,7 @@ After creation, display the PR URL.
 If an issue number was detected (from the branch name or user input), move it to **Review** on the project board:
 
 ```bash
-.claude/skills/issue-triage/triage.sh set <ISSUE_NUMBER> --status Review
+bun .claude/skills/issue-triage/triage.ts set <ISSUE_NUMBER> --status Review
 ```
 
 Skip this step if no issue is associated with the PR.

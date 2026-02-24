@@ -14,7 +14,7 @@ Generate tests for changed or specified files. Follows existing test patterns in
 /test                      → Generate tests for files changed vs main
 /test src/auth/login.ts    → Generate tests for a specific file
 /test --e2e                → Generate Playwright e2e tests for changed files
-/test --run                → Run existing tests (shortcut for bun test)
+/test --run                → Run existing tests (shortcut for bun run test)
 ```
 
 ## Instructions
@@ -116,7 +116,7 @@ For each approved test file:
 1. Write the file using **Write**.
 2. Run the test:
    ```bash
-   bun test {test_file_path}
+   bun run test {test_file_path}
    ```
 3. Report results (pass/fail with summary).
 4. If failures occur, offer to fix via **AskUserQuestion**:
@@ -149,7 +149,7 @@ For each approved test file:
 | File has no exports | Skip it. Inform user: "No exports found, may not need tests." |
 | Tests already exist | Offer to add missing coverage, not overwrite |
 | Test framework not detected | Ask user via AskUserQuestion |
-| `--run` flag | Run `bun test` and report results only |
+| `--run` flag | Run `bun run test` and report results only |
 | Source file is a React component | Generate component tests with appropriate rendering approach |
 | File is in a monorepo package | Place tests relative to the package, not the root |
 

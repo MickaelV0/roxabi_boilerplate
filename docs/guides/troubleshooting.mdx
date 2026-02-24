@@ -82,7 +82,7 @@ rm bun.lock
 bun install
 ```
 
-> **Warning:** Deleting `bun.lock` changes resolved dependency versions. Only do this if the lockfile has unresolvable merge conflicts. Run `bun run typecheck && bun test` afterward to catch any version drift.
+> **Warning:** Deleting `bun.lock` changes resolved dependency versions. Only do this if the lockfile has unresolvable merge conflicts. Run `bun run typecheck && bun run test` afterward to catch any version drift.
 
 After reinstalling, verify everything builds:
 

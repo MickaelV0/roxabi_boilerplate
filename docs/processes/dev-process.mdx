@@ -116,7 +116,7 @@ Follow this order:
 1. **Read** existing files before modifying
 2. **Implement** business logic
 3. **Update tests**
-4. **Run quality checks**: `bun lint && bun typecheck && bun test`
+4. **Run quality checks**: `bun lint && bun typecheck && bun run test`
 5. **Verify** all checks pass
 6. *(Optional)* Delegate to **tester** subagent for a quick quality check
 
@@ -124,7 +124,7 @@ Follow this order:
 
 Before creating the PR, verify **all applicable items** from the [Quality Checklist](#quality-checklist):
 - All impacted artifacts are included (code, tests, docs, config)
-- `bun lint && bun typecheck && bun test` pass locally
+- `bun lint && bun typecheck && bun run test` pass locally
 - No debug code or console.log left behind
 
 ```bash
@@ -222,8 +222,8 @@ Human: "develop #XXX"
         |                  |
         No                 |
         |                  |
-  product-lead: interview  |
-  (+ architect if needed)  |
+  /bootstrap: interview    |
+  + expert reviewers       |
         |                  |
   Write analysis           |
         |                  |
@@ -315,13 +315,13 @@ Human: "develop #XXX"
    - `specs/*` — matching spec
 3. **If a sufficient spec exists** — skip to Phase 2
 4. **If gaps exist** (no issue detail, no analysis, no spec):
-   - Main Claude spawns **product-lead** agent
-   - Product-lead interacts directly with the human to:
-     - Clarify and structure the issue if needed
-     - Write the analysis (human approves)
-     - Write the spec (human approves)
-   - If deeper technical analysis is needed, product-lead requests **architect** agent
-   - Once spec is approved, product-lead returns control to Main Claude
+   - Main Claude runs `/bootstrap` which drives the pipeline directly:
+     - Conducts interviews with the human (via `/interview`)
+     - Writes the analysis, spawns expert reviewers (product-lead, doc-writer, architect if needed)
+     - Human approves the analysis
+     - Writes the spec, spawns expert reviewers
+     - Human approves the spec
+   - Once spec is approved, Main Claude proceeds to Phase 2
 
 > **Investigation (optional):** If the analysis reveals technical uncertainty, the orchestrator may suggest spiking a solution before writing the spec. See the bootstrap skill (Gate 1.5) for details.
 
@@ -359,7 +359,7 @@ Human: "develop #XXX"
    3. **REFACTOR** — Domain agents refactor while keeping tests green
    4. Tester verifies coverage and adds edge cases
 
-9. **Quality gate** — `bun lint && bun typecheck && bun test`
+9. **Quality gate** — `bun lint && bun typecheck && bun run test`
    - **Pass** — proceed to PR
    - **Fail** — agents fix, re-test, loop until green
 

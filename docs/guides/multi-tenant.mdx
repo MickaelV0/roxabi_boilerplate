@@ -369,7 +369,7 @@ The tenant integration tests require a running PostgreSQL database with the RLS 
 cd apps/api && bun run db:migrate
 
 # Run tenant integration tests
-bun test apps/api/src/tenant/tenant.integration.test.ts
+bun run test apps/api/src/tenant/tenant.integration.test.ts
 ```
 
 The tests are automatically skipped (not executed) when `DATABASE_URL` is not set, so they will not break CI environments without a database.
