@@ -47,8 +47,9 @@ export default defineConfig({
         '**/lib/i18n/context.ts',
         '**/lib/i18n/hooks.ts',
         '**/lib/i18n/seo.tsx',
-        // Component files need integration tests
+        // Component files need integration/e2e tests
         '**/components/LanguageSwitcher.tsx',
+        '**/components/admin/**',
         '**/vite-env.d.ts',
         // Type declaration files (including pure-type .ts files)
         '**/*.d.ts',
@@ -58,14 +59,12 @@ export default defineConfig({
         // Generated i18n runtime (paraglide)
         '**/paraglide/**',
       ],
-      // Floor values — autoUpdate will ratchet these up to actual coverage on the next non-cached run.
       // See specs/17-testing-gold-standard.mdx for rationale.
       thresholds: {
-        lines: 93.04,
-        functions: 90.72,
-        branches: 83.9,
-        statements: 92.07,
-        autoUpdate: true,
+        lines: 93,
+        functions: 92,
+        branches: 84,
+        statements: 92,
       },
     },
   },

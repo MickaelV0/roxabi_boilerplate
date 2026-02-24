@@ -33,6 +33,7 @@ export const auditLogs = pgTable(
       table.action,
       table.timestamp.desc()
     ),
+    index('idx_audit_cursor').on(table.timestamp.desc(), table.id.desc()),
   ]
 )
 

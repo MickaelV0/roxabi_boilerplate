@@ -19,7 +19,7 @@ export const Route = createFileRoute('/dashboard')({
 function DashboardPage() {
   const { data: session } = useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
-  const { data: orgs, isLoading: orgsLoading } = useOrganizations()
+  const { data: orgs, isLoading: orgsLoading } = useOrganizations(session?.user?.id)
   const autoSelectAttempted = useRef(false)
   const accountCheckDone = useRef(false)
   const [accountChecked, setAccountChecked] = useState(false)

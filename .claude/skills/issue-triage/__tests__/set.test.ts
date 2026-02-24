@@ -23,18 +23,17 @@ const mockGetParentNumber = vi.mocked(github.getParentNumber)
 
 const { setIssue } = await import('../lib/set')
 
-describe('issue-triage/set', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    mockGetItemId.mockResolvedValue('item-123')
-    mockGetNodeId.mockImplementation(async (num) => `node-${num}`)
-    vi.spyOn(console, 'log').mockImplementation(() => {})
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-  })
+function setupMocks() {
+  vi.clearAllMocks()
+  mockGetItemId.mockResolvedValue('item-123')
+  mockGetNodeId.mockImplementation(async (num) => `node-${num}`)
+  vi.spyOn(console, 'log').mockImplementation(() => {})
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+}
 
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
+describe('issue-triage/set > field updates', () => {
+  beforeEach(setupMocks)
+  afterEach(() => vi.restoreAllMocks())
 
   it('updates size field', async () => {
     await setIssue(['42', '--size', 'M'])
@@ -63,6 +62,11 @@ describe('issue-triage/set', () => {
       '331d27a4' // In Progress option ID
     )
   })
+})
+
+describe('issue-triage/set > dependencies', () => {
+  beforeEach(setupMocks)
+  afterEach(() => vi.restoreAllMocks())
 
   it('adds blocked-by dependency', async () => {
     await setIssue(['42', '--blocked-by', '100'])
@@ -90,6 +94,11 @@ describe('issue-triage/set', () => {
     await setIssue(['42', '--rm-blocks', '50'])
     expect(mockRemoveBlockedBy).toHaveBeenCalledWith('node-50', 'node-42')
   })
+})
+
+describe('issue-triage/set > parent-child relationships', () => {
+  beforeEach(setupMocks)
+  afterEach(() => vi.restoreAllMocks())
 
   it('sets parent relationship', async () => {
     await setIssue(['42', '--parent', '10'])
@@ -112,6 +121,11 @@ describe('issue-triage/set', () => {
     await setIssue(['42', '--rm-child', '50'])
     expect(mockRemoveSubIssue).toHaveBeenCalledWith('node-42', 'node-50')
   })
+})
+
+describe('issue-triage/set > combined flags', () => {
+  beforeEach(setupMocks)
+  afterEach(() => vi.restoreAllMocks())
 
   it('handles multiple flags at once', async () => {
     await setIssue(['42', '--size', 'L', '--priority', 'Urgent', '--blocked-by', '99'])

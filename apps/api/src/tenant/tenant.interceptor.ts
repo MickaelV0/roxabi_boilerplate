@@ -8,10 +8,12 @@ import {
   type NestInterceptor,
   Optional,
 } from '@nestjs/common'
+import { Reflector } from '@nestjs/core'
 import { eq } from 'drizzle-orm'
 import type { FastifyRequest } from 'fastify'
 import { ClsService } from 'nestjs-cls'
 import { from, type Observable, switchMap } from 'rxjs'
+import { SKIP_ORG_KEY } from '../common/decorators/skip-org.decorator.js'
 import { ErrorCode } from '../common/error-codes.js'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import * as schema from '../database/schema/index.js'
@@ -41,10 +43,19 @@ export class TenantInterceptor implements NestInterceptor {
 
   constructor(
     private readonly cls: ClsService,
+    private readonly reflector: Reflector,
     @Optional() @Inject(DRIZZLE) private readonly db: DrizzleDB | null
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const skipOrg = this.reflector.getAllAndOverride<boolean>(SKIP_ORG_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ])
+    if (skipOrg) {
+      return next.handle()
+    }
+
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>()
     const activeOrganizationId = request.session?.session?.activeOrganizationId ?? null
 
@@ -129,14 +140,12 @@ export class TenantInterceptor implements NestInterceptor {
         }
       }
 
-      // Check if the organizations table has a parent column.
-      const parentId = (org as Record<string, unknown>).parentOrganizationId as
-        | string
-        | null
-        | undefined
-      if (parentId) {
-        return parentId
-      }
+      // TODO: re-enable in Phase 3 when parent tenant resolution is designed.
+      // parentOrganizationId is present in the schema but the resolution
+      // strategy (which context should inherit which tenant) is not yet defined.
+      // if (org.parentOrganizationId) {
+      //   return org.parentOrganizationId
+      // }
 
       return orgId
     } catch (error) {

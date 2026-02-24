@@ -1,12 +1,21 @@
 import { HttpStatus } from '@nestjs/common'
 import { describe, expect, it, vi } from 'vitest'
+import { EmailConflictException } from '../exceptions/email-conflict.exception.js'
 import { InvitationAlreadyPendingException } from '../exceptions/invitation-already-pending.exception.js'
+import { InvitationNotFoundException } from '../exceptions/invitation-not-found.exception.js'
 import { LastOwnerConstraintException } from '../exceptions/last-owner-constraint.exception.js'
 import { MemberAlreadyExistsException } from '../exceptions/member-already-exists.exception.js'
 import { AdminMemberNotFoundException } from '../exceptions/member-not-found.exception.js'
+import { OrgCycleDetectedException } from '../exceptions/org-cycle-detected.exception.js'
+import { OrgDepthExceededException } from '../exceptions/org-depth-exceeded.exception.js'
+import { AdminOrgNotFoundException } from '../exceptions/org-not-found.exception.js'
+import { OrgSlugConflictException } from '../exceptions/org-slug-conflict.exception.js'
 import { AdminRoleNotFoundException } from '../exceptions/role-not-found.exception.js'
+import { SelfActionException } from '../exceptions/self-action.exception.js'
 import { SelfRemovalException } from '../exceptions/self-removal.exception.js'
 import { SelfRoleChangeException } from '../exceptions/self-role-change.exception.js'
+import { UserAlreadyBannedException } from '../exceptions/user-already-banned.exception.js'
+import { AdminUserNotFoundException } from '../exceptions/user-not-found.exception.js'
 import { AdminExceptionFilter } from './admin-exception.filter.js'
 
 function createMockCls(id = 'test-correlation-id') {
@@ -125,6 +134,114 @@ describe('AdminExceptionFilter', () => {
     expect(statusFn).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST)
   })
 
+  it('should return 400 for SelfActionException', () => {
+    // Arrange
+    const { host, statusFn } = createMockHost()
+    const exception = new SelfActionException()
+
+    // Act
+    filter.catch(exception, host as never)
+
+    // Assert
+    expect(statusFn).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST)
+  })
+
+  it('should return 400 for UserAlreadyBannedException', () => {
+    // Arrange
+    const { host, statusFn } = createMockHost()
+    const exception = new UserAlreadyBannedException('u-1')
+
+    // Act
+    filter.catch(exception, host as never)
+
+    // Assert
+    expect(statusFn).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST)
+  })
+
+  it('should return 400 for OrgDepthExceededException', () => {
+    // Arrange
+    const { host, statusFn } = createMockHost()
+    const exception = new OrgDepthExceededException()
+
+    // Act
+    filter.catch(exception, host as never)
+
+    // Assert
+    expect(statusFn).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST)
+  })
+
+  it('should return 400 for OrgCycleDetectedException', () => {
+    // Arrange
+    const { host, statusFn } = createMockHost()
+    const exception = new OrgCycleDetectedException()
+
+    // Act
+    filter.catch(exception, host as never)
+
+    // Assert
+    expect(statusFn).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST)
+  })
+
+  it('should return 404 for InvitationNotFoundException', () => {
+    // Arrange
+    const { host, statusFn } = createMockHost()
+    const exception = new InvitationNotFoundException('inv-1')
+
+    // Act
+    filter.catch(exception, host as never)
+
+    // Assert
+    expect(statusFn).toHaveBeenCalledWith(HttpStatus.NOT_FOUND)
+  })
+
+  it('should return 404 for AdminUserNotFoundException', () => {
+    // Arrange
+    const { host, statusFn } = createMockHost()
+    const exception = new AdminUserNotFoundException('u-1')
+
+    // Act
+    filter.catch(exception, host as never)
+
+    // Assert
+    expect(statusFn).toHaveBeenCalledWith(HttpStatus.NOT_FOUND)
+  })
+
+  it('should return 404 for AdminOrgNotFoundException', () => {
+    // Arrange
+    const { host, statusFn } = createMockHost()
+    const exception = new AdminOrgNotFoundException('org-1')
+
+    // Act
+    filter.catch(exception, host as never)
+
+    // Assert
+    expect(statusFn).toHaveBeenCalledWith(HttpStatus.NOT_FOUND)
+  })
+
+  it('should return 409 for EmailConflictException', () => {
+    // Arrange
+    const { host, statusFn } = createMockHost()
+    const exception = new EmailConflictException()
+
+    // Act
+    filter.catch(exception, host as never)
+
+    // Assert
+    expect(statusFn).toHaveBeenCalledWith(HttpStatus.CONFLICT)
+  })
+
+  it('should return 409 for OrgSlugConflictException', () => {
+    // Arrange
+    const { host, statusFn } = createMockHost()
+    const exception = new OrgSlugConflictException()
+
+    // Act
+    filter.catch(exception, host as never)
+
+    // Assert
+    expect(statusFn).toHaveBeenCalledWith(HttpStatus.CONFLICT)
+  })
+
   it('should include structured error body with statusCode, message, errorCode, path, correlationId, and timestamp', () => {
     // Arrange
     const { host, getSentBody } = createMockHost({ url: '/admin/members/m-789' })
@@ -162,6 +279,27 @@ describe('AdminExceptionFilter', () => {
       { exception: new LastOwnerConstraintException(), expectedCode: 'LAST_OWNER_CONSTRAINT' },
       { exception: new SelfRemovalException(), expectedCode: 'SELF_REMOVAL' },
       { exception: new SelfRoleChangeException(), expectedCode: 'SELF_ROLE_CHANGE' },
+      { exception: new SelfActionException(), expectedCode: 'SELF_ACTION' },
+      {
+        exception: new AdminUserNotFoundException('u-1'),
+        expectedCode: 'ADMIN_USER_NOT_FOUND',
+      },
+      {
+        exception: new UserAlreadyBannedException('u-1'),
+        expectedCode: 'USER_ALREADY_BANNED',
+      },
+      { exception: new EmailConflictException(), expectedCode: 'EMAIL_CONFLICT' },
+      {
+        exception: new InvitationNotFoundException('inv-1'),
+        expectedCode: 'INVITATION_NOT_FOUND',
+      },
+      {
+        exception: new AdminOrgNotFoundException('org-1'),
+        expectedCode: 'ADMIN_ORG_NOT_FOUND',
+      },
+      { exception: new OrgSlugConflictException(), expectedCode: 'ADMIN_ORG_SLUG_CONFLICT' },
+      { exception: new OrgDepthExceededException(), expectedCode: 'ADMIN_ORG_DEPTH_EXCEEDED' },
+      { exception: new OrgCycleDetectedException(), expectedCode: 'ADMIN_ORG_CYCLE_DETECTED' },
     ]
 
     for (const { exception, expectedCode } of cases) {
