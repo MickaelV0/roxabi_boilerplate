@@ -5,6 +5,7 @@ import { AdminUsersService } from './admin-users.service.js'
 import { EmailConflictException } from './exceptions/email-conflict.exception.js'
 import { NotDeletedException } from './exceptions/not-deleted.exception.js'
 import { SelfActionException } from './exceptions/self-action.exception.js'
+import { SuperadminProtectionException } from './exceptions/superadmin-protection.exception.js'
 import { UserAlreadyBannedException } from './exceptions/user-already-banned.exception.js'
 import { AdminUserNotFoundException } from './exceptions/user-not-found.exception.js'
 
@@ -513,6 +514,55 @@ describe('AdminUsersService', () => {
       // Assert
       expect(auditService.log).not.toHaveBeenCalled()
     })
+
+    it('should throw SuperadminProtectionException when changing a superadmin role to non-superadmin', async () => {
+      // Arrange
+      const superadminUser = { ...baseUser, role: 'superadmin' }
+      db.select.mockReturnValueOnce(createChainMock([superadminUser]))
+
+      // Act & Assert
+      await expect(service.updateUser('user-1', { role: 'admin' }, 'actor-super')).rejects.toThrow(
+        SuperadminProtectionException
+      )
+    })
+
+    it('should use audit action user.role_changed when role is changed', async () => {
+      // Arrange
+      const beforeUser = { ...baseUser, role: 'user' }
+      const updatedUser = { ...baseUser, role: 'admin' }
+
+      db.select.mockReturnValueOnce(createChainMock([beforeUser]))
+      db.update.mockReturnValueOnce(createChainMock([updatedUser]))
+
+      // Act
+      await service.updateUser('user-1', { role: 'admin' }, 'actor-super')
+
+      // Assert
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'user.role_changed',
+        })
+      )
+    })
+
+    it('should use audit action user.updated when role is not changed', async () => {
+      // Arrange
+      const beforeUser = { ...baseUser, role: 'user' }
+      const updatedUser = { ...baseUser, name: 'New Name', role: 'user' }
+
+      db.select.mockReturnValueOnce(createChainMock([beforeUser]))
+      db.update.mockReturnValueOnce(createChainMock([updatedUser]))
+
+      // Act
+      await service.updateUser('user-1', { name: 'New Name' }, 'actor-super')
+
+      // Assert
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'user.updated',
+        })
+      )
+    })
   })
 
   // -----------------------------------------------------------------------
@@ -572,6 +622,17 @@ describe('AdminUsersService', () => {
       await expect(
         service.banUser('user-missing', 'Spam activity', null, 'actor-super')
       ).rejects.toThrow(AdminUserNotFoundException)
+    })
+
+    it('should throw SuperadminProtectionException when banning a superadmin', async () => {
+      // Arrange
+      const superadminUser = { ...baseUser, role: 'superadmin', banned: false }
+      db.select.mockReturnValueOnce(createChainMock([superadminUser]))
+
+      // Act & Assert
+      await expect(service.banUser('user-1', 'Spam activity', null, 'actor-super')).rejects.toThrow(
+        SuperadminProtectionException
+      )
     })
 
     it('should throw UserAlreadyBannedException when user is already banned', async () => {
@@ -746,6 +807,17 @@ describe('AdminUsersService', () => {
       // Assert
       expect(result).toBeDefined()
       expect(db.update).toHaveBeenCalled()
+    })
+
+    it('should throw SuperadminProtectionException when deleting a superadmin', async () => {
+      // Arrange
+      const superadminUser = { ...baseUser, role: 'superadmin' }
+      db.select.mockReturnValueOnce(createChainMock([superadminUser]))
+
+      // Act & Assert
+      await expect(service.deleteUser('user-1', 'actor-super')).rejects.toThrow(
+        SuperadminProtectionException
+      )
     })
 
     it('should throw AdminUserNotFoundException when user does not exist', async () => {

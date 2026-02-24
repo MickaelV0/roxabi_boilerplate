@@ -1,3 +1,4 @@
+import type { AuditLogEntry } from '@repo/types'
 import {
   Badge,
   Card,
@@ -30,19 +31,11 @@ export const Route = createFileRoute('/admin/audit-logs')({
   head: () => ({ meta: [{ title: 'Audit Logs | Admin | Roxabi' }] }),
 })
 
-type AuditEntry = {
-  id: string
-  timestamp: string
-  actorId: string
-  actorName: string
-  actorType: string
-  action: string
-  resource: string
-  resourceId: string
-  organizationId: string | null
-  before: Record<string, unknown> | null
-  after: Record<string, unknown> | null
-  metadata: Record<string, unknown> | null
+type AuditEntry = Omit<AuditLogEntry, 'timestamp' | 'action' | 'actorType'> & {
+  timestamp: string // API serializes dates as strings
+  actorName: string // enriched by the API
+  actorType: string // API may return values outside the strict union
+  action: string // API may return values outside the strict union
 }
 
 type AuditLogFilters = {

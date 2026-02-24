@@ -13,7 +13,6 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Skeleton,
   Table,
   TableBody,
   TableCell,
@@ -23,17 +22,10 @@ import {
 } from '@repo/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import {
-  ArrowLeftIcon,
-  BuildingIcon,
-  CalendarIcon,
-  NetworkIcon,
-  PencilIcon,
-  UsersIcon,
-  XIcon,
-} from 'lucide-react'
+import { BuildingIcon, CalendarIcon, NetworkIcon, PencilIcon, UsersIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { BackLink, DetailSkeleton } from '@/components/admin/detail-shared'
 import { OrgActions } from '@/components/admin/org-actions'
 import { requireSuperAdmin } from '@/lib/admin-guards'
 import { formatDate } from '@/lib/format-date'
@@ -43,31 +35,6 @@ export const Route = createFileRoute('/admin/organizations/$orgId')({
   component: AdminOrgDetailPage,
   head: () => ({ meta: [{ title: 'Organization Detail | Admin | Roxabi' }] }),
 })
-
-const BACK_LINK_CLASS =
-  'inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors'
-
-function BackLink() {
-  return (
-    <Link to="/admin/organizations" className={BACK_LINK_CLASS}>
-      <ArrowLeftIcon className="size-4" />
-      Back to Organizations
-    </Link>
-  )
-}
-
-function DetailSkeleton() {
-  return (
-    <div className="space-y-6">
-      <Skeleton className="h-8 w-64" />
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Skeleton className="h-32" />
-        <Skeleton className="h-32" />
-      </div>
-      <Skeleton className="h-48" />
-    </div>
-  )
-}
 
 function ProfileField({
   icon: Icon,
@@ -167,7 +134,7 @@ function MembersCard({ members }: { members: AdminOrgDetail['members'] }) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {formatDate((member as { joinedAt?: string }).joinedAt ?? member.createdAt)}
+                    {formatDate(member.createdAt)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -446,7 +413,7 @@ function AdminOrgDetailPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <BackLink />
+        <BackLink to="/admin/organizations" label="Back to Organizations" />
         <DetailSkeleton />
       </div>
     )
@@ -455,7 +422,7 @@ function AdminOrgDetailPage() {
   if (error || !data) {
     return (
       <div className="space-y-6">
-        <BackLink />
+        <BackLink to="/admin/organizations" label="Back to Organizations" />
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-sm text-muted-foreground">
@@ -469,7 +436,7 @@ function AdminOrgDetailPage() {
 
   return (
     <div className="space-y-6">
-      <BackLink />
+      <BackLink to="/admin/organizations" label="Back to Organizations" />
       <OrgDetailHeader
         data={data}
         isEditing={isEditing}

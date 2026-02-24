@@ -23,6 +23,7 @@ import { LoadMoreButton } from '@/components/admin/load-more-button'
 import { useCursorPagination } from '@/hooks/use-cursor-pagination'
 import { requireSuperAdmin } from '@/lib/admin-guards'
 import { formatDate } from '@/lib/format-date'
+import { statusLabel, statusVariant } from '@/lib/user-status'
 
 export const Route = createFileRoute('/admin/users')({
   beforeLoad: requireSuperAdmin,
@@ -72,18 +73,6 @@ const FILTER_CONFIGS: FilterConfig[] = [
     placeholder: 'Search by name or email...',
   },
 ]
-
-function statusVariant(user: AdminUser): 'default' | 'destructive' | 'secondary' {
-  if (user.banned) return 'destructive'
-  if (user.deletedAt) return 'secondary'
-  return 'default'
-}
-
-function statusLabel(user: AdminUser): string {
-  if (user.banned) return 'Banned'
-  if (user.deletedAt) return 'Archived'
-  return 'Active'
-}
 
 function UsersTableSkeleton() {
   return (

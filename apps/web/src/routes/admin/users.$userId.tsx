@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
   Separator,
-  Skeleton,
   Table,
   TableBody,
   TableCell,
@@ -25,7 +24,6 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import {
-  ArrowLeftIcon,
   BuildingIcon,
   CalendarIcon,
   MailIcon,
@@ -36,52 +34,17 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { BackLink, DetailSkeleton } from '@/components/admin/detail-shared'
 import { UserActions } from '@/components/admin/user-actions'
 import { requireSuperAdmin } from '@/lib/admin-guards'
 import { formatDate, formatTimestamp } from '@/lib/format-date'
+import { statusLabel, statusVariant } from '@/lib/user-status'
 
 export const Route = createFileRoute('/admin/users/$userId')({
   beforeLoad: requireSuperAdmin,
   component: AdminUserDetailPage,
   head: () => ({ meta: [{ title: 'User Detail | Admin | Roxabi' }] }),
 })
-
-function statusVariant(user: AdminUserDetail): 'default' | 'destructive' | 'secondary' {
-  if (user.banned) return 'destructive'
-  if (user.deletedAt) return 'secondary'
-  return 'default'
-}
-
-function statusLabel(user: AdminUserDetail): string {
-  if (user.banned) return 'Banned'
-  if (user.deletedAt) return 'Archived'
-  return 'Active'
-}
-
-const BACK_LINK_CLASS =
-  'inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors'
-
-function BackLink() {
-  return (
-    <Link to="/admin/users" className={BACK_LINK_CLASS}>
-      <ArrowLeftIcon className="size-4" />
-      Back to Users
-    </Link>
-  )
-}
-
-function DetailSkeleton() {
-  return (
-    <div className="space-y-6">
-      <Skeleton className="h-8 w-64" />
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Skeleton className="h-32" />
-        <Skeleton className="h-32" />
-      </div>
-      <Skeleton className="h-48" />
-    </div>
-  )
-}
 
 function ProfileCard({ data }: { data: AdminUserDetail }) {
   return (
@@ -177,7 +140,15 @@ function MembershipsCard({ organizations }: { organizations: AdminUserDetail['or
             <TableBody>
               {organizations.map((org) => (
                 <TableRow key={org.id}>
-                  <TableCell className="font-medium">{org.name}</TableCell>
+                  <TableCell>
+                    <Link
+                      to="/admin/organizations/$orgId"
+                      params={{ orgId: org.id }}
+                      className="font-medium text-foreground hover:underline"
+                    >
+                      {org.name}
+                    </Link>
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="capitalize">
                       {org.role}
@@ -430,7 +401,7 @@ function AdminUserDetailPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <BackLink />
+        <BackLink to="/admin/users" label="Back to Users" />
         <DetailSkeleton />
       </div>
     )
@@ -439,7 +410,7 @@ function AdminUserDetailPage() {
   if (error || !data) {
     return (
       <div className="space-y-6">
-        <BackLink />
+        <BackLink to="/admin/users" label="Back to Users" />
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-sm text-muted-foreground">
@@ -453,7 +424,7 @@ function AdminUserDetailPage() {
 
   return (
     <div className="space-y-6">
-      <BackLink />
+      <BackLink to="/admin/users" label="Back to Users" />
       <UserDetailHeader
         data={data}
         isEditing={isEditing}

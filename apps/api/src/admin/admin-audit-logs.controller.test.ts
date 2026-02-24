@@ -248,7 +248,7 @@ describe('AdminAuditLogsController', () => {
       })
 
       // Act
-      await controller.listAuditLogs('', undefined, undefined, undefined, '', '', '', '', '')
+      await controller.listAuditLogs(undefined, undefined, undefined, undefined, '', '', '', '', '')
 
       // Assert
       expect(mockAdminAuditLogsService.listAuditLogs).toHaveBeenCalledWith(

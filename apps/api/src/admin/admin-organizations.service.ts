@@ -14,7 +14,7 @@ import { OrgDepthExceededException } from './exceptions/org-depth-exceeded.excep
 import { AdminOrgNotFoundException } from './exceptions/org-not-found.exception.js'
 import { OrgSlugConflictException } from './exceptions/org-slug-conflict.exception.js'
 
-const MAX_HIERARCHY_DEPTH = 10
+const MAX_PARENT_WALK_ITERATIONS = 10
 
 /**
  * AdminOrganizationsService — cross-tenant org management for super admins.
@@ -183,9 +183,12 @@ export class AdminOrganizationsService {
         name: organizations.name,
         slug: organizations.slug,
         parentOrganizationId: organizations.parentOrganizationId,
+        memberCount: count(members.id),
       })
       .from(organizations)
+      .leftJoin(members, eq(organizations.id, members.organizationId))
       .where(eq(organizations.parentOrganizationId, orgId))
+      .groupBy(organizations.id)
 
     return { organization, members: orgMembers, children }
   }
@@ -233,6 +236,7 @@ export class AdminOrganizationsService {
         action: 'org.created',
         resource: 'organization',
         resourceId: createdOrg.id,
+        organizationId: createdOrg.id,
         after: { ...createdOrg },
       })
       .catch((err) => {
@@ -308,6 +312,7 @@ export class AdminOrganizationsService {
         action: auditAction,
         resource: 'organization',
         resourceId: orgId,
+        organizationId: orgId,
         before: { ...beforeOrg },
         after: { ...updatedOrg },
       })
@@ -403,6 +408,10 @@ export class AdminOrganizationsService {
       throw new AdminOrgNotFoundException(orgId)
     }
 
+    if (org.deletedAt) {
+      throw new NotDeletedException('Organization', orgId)
+    }
+
     const now = new Date()
     const scheduledFor = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 
@@ -424,6 +433,7 @@ export class AdminOrganizationsService {
         action: 'org.deleted',
         resource: 'organization',
         resourceId: orgId,
+        organizationId: orgId,
         before: { ...org },
         after: { ...updatedOrg },
       })
@@ -482,6 +492,7 @@ export class AdminOrganizationsService {
         action: 'org.restored',
         resource: 'organization',
         resourceId: orgId,
+        organizationId: orgId,
         before: { ...org },
         after: { ...updatedOrg },
       })
@@ -501,7 +512,7 @@ export class AdminOrganizationsService {
     let iterations = 0
     let currentId: string | null = orgId
     while (currentId) {
-      if (iterations++ >= MAX_HIERARCHY_DEPTH) break
+      if (iterations++ >= MAX_PARENT_WALK_ITERATIONS) break
       const [org] = await this.db
         .select({ parentOrganizationId: organizations.parentOrganizationId })
         .from(organizations)
@@ -529,7 +540,7 @@ export class AdminOrganizationsService {
       let iterations = 0
       let currentId: string | null = newParentId
       while (currentId) {
-        if (iterations++ >= MAX_HIERARCHY_DEPTH) break
+        if (iterations++ >= MAX_PARENT_WALK_ITERATIONS) break
         const [org] = await tx
           .select({
             id: organizations.id,
@@ -577,7 +588,7 @@ export class AdminOrganizationsService {
       if (childDepth + 1 > maxChildDepth) {
         maxChildDepth = childDepth + 1
       }
-      if (maxChildDepth >= MAX_HIERARCHY_DEPTH) break
+      if (maxChildDepth >= MAX_PARENT_WALK_ITERATIONS) break
     }
     return maxChildDepth
   }

@@ -1,7 +1,6 @@
 import { Reflector } from '@nestjs/core'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { z } from 'zod'
-import { AdminUsersController } from './admin-users.controller.js'
+import { AdminUsersController, banUserSchema, updateUserSchema } from './admin-users.controller.js'
 import type { AdminUsersService } from './admin-users.service.js'
 import { EmailConflictException } from './exceptions/email-conflict.exception.js'
 import { UserAlreadyBannedException } from './exceptions/user-already-banned.exception.js'
@@ -20,21 +19,6 @@ const mockAdminUsersService: AdminUsersService = {
   deleteUser: vi.fn(),
   restoreUser: vi.fn(),
 } as unknown as AdminUsersService
-
-// Reconstruct Zod schemas from admin-users.controller.ts for validation testing.
-// The source schemas are module-private and cannot be imported.
-// NOTE: Keep these in sync with the source schemas in admin-users.controller.ts.
-// If the source schemas change, these test copies must be updated to match.
-const updateUserSchema = z.object({
-  name: z.string().min(1).max(255).optional(),
-  email: z.string().email().optional(),
-  role: z.enum(['user', 'admin', 'superadmin']).optional(),
-})
-
-const banUserSchema = z.object({
-  reason: z.string().min(5).max(500),
-  expires: z.string().nullable().optional(),
-})
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -389,15 +373,15 @@ describe('AdminUsersController', () => {
       expect(result.success).toBe(true)
     })
 
-    it('should accept any string for expires (runtime validation handles date parsing)', () => {
-      // Arrange — schema accepts any string; controller validates with new Date()
+    it('should reject non-datetime string for expires', () => {
+      // Arrange — schema now validates datetime format
       const input = { reason: 'Temporary ban', expires: 'not-a-date' }
 
       // Act
       const result = banUserSchema.safeParse(input)
 
-      // Assert — schema-level accepts, runtime rejects invalid dates
-      expect(result.success).toBe(true)
+      // Assert — schema-level rejects invalid datetime strings
+      expect(result.success).toBe(false)
     })
 
     it('should reject missing reason', () => {

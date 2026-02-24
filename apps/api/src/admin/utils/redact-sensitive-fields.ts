@@ -11,7 +11,13 @@ export function redactSensitiveFields(
     for (const [key, value] of Object.entries(obj)) {
       if (SENSITIVE_SET.has(key.toLowerCase())) {
         result[key] = '[REDACTED]'
-      } else if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      } else if (Array.isArray(value)) {
+        result[key] = value.map((item) =>
+          item !== null && typeof item === 'object' && !Array.isArray(item)
+            ? redact(item as Record<string, unknown>)
+            : item
+        )
+      } else if (value !== null && typeof value === 'object') {
         result[key] = redact(value as Record<string, unknown>)
       } else {
         result[key] = value

@@ -24,19 +24,19 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
 import { AdminUsersService } from './admin-users.service.js'
 import { AdminExceptionFilter } from './filters/admin-exception.filter.js'
 
-const updateUserSchema = z.object({
+export const updateUserSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   email: z.string().email().optional(),
   role: z.enum(['user', 'admin', 'superadmin']).optional(),
 })
 
-const banUserSchema = z.object({
+export const banUserSchema = z.object({
   reason: z.string().min(5).max(500),
-  expires: z.string().nullable().optional(),
+  expires: z.string().datetime().nullable().optional(),
 })
 
 const listUsersQuerySchema = z.object({
-  cursor: z.string().optional(),
+  cursor: z.string().min(1).optional(),
   limit: z.preprocess((val) => {
     if (val === undefined || val === null || val === '') return 20
     const n = Number(val)
@@ -45,7 +45,7 @@ const listUsersQuerySchema = z.object({
   role: z.enum(['user', 'admin', 'superadmin']).optional(),
   status: z.enum(['active', 'banned', 'archived']).optional(),
   organizationId: z.string().uuid().optional(),
-  search: z.string().optional(),
+  search: z.string().max(255).optional(),
 })
 
 type UpdateUserDto = z.infer<typeof updateUserSchema>

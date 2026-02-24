@@ -47,6 +47,12 @@ function DebouncedSearchInput({
     setLocalValue(value)
   }, [value])
 
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const newValue = e.target.value
     setLocalValue(newValue)

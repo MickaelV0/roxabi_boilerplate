@@ -486,6 +486,10 @@ export class AdminUsersService {
       throw new SuperadminProtectionException()
     }
 
+    if (user.deletedAt) {
+      throw new NotDeletedException('User', userId)
+    }
+
     const now = new Date()
     const scheduledFor = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 

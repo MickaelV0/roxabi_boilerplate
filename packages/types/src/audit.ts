@@ -2,11 +2,24 @@
 export const SENSITIVE_FIELDS = [
   'password',
   'passwordHash',
+  'password_hash',
   'token',
   'secret',
+  'secretKey',
+  'secret_key',
   'accessToken',
+  'access_token',
   'refreshToken',
+  'refresh_token',
   'idToken',
+  'apiKey',
+  'api_key',
+  'clientSecret',
+  'client_secret',
+  'privateKey',
+  'private_key',
+  'authorization',
+  'cookie',
 ] as const
 
 export type AuditAction =

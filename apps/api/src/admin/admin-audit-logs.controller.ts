@@ -8,7 +8,7 @@ import { AdminAuditLogsService } from './admin-audit-logs.service.js'
 import { AdminExceptionFilter } from './filters/admin-exception.filter.js'
 
 const listAuditLogsQuerySchema = z.object({
-  cursor: z.string().optional(),
+  cursor: z.string().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional().default(20),
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
@@ -16,7 +16,7 @@ const listAuditLogsQuerySchema = z.object({
   action: z.string().optional(),
   resource: z.string().optional(),
   organizationId: z.string().uuid().optional(),
-  search: z.string().optional(),
+  search: z.string().max(255).optional(),
 })
 
 @ApiTags('Admin Audit Logs')
