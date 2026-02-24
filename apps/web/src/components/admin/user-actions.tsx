@@ -1,4 +1,4 @@
-import { Button, Input, Label, Textarea } from '@repo/ui'
+import { Button, ConfirmDialog, DestructiveConfirmDialog, Input, Label, Textarea } from '@repo/ui'
 import { useMutation } from '@tanstack/react-query'
 import { BanIcon, RotateCcwIcon, ShieldCheckIcon, Trash2Icon } from 'lucide-react'
 import { useState } from 'react'
@@ -227,6 +227,9 @@ export function UserActions({
   onActionComplete,
 }: UserActionsProps) {
   const [showBanForm, setShowBanForm] = useState(false)
+  const [showUnbanDialog, setShowUnbanDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false)
   const { banMutation, unbanMutation, deleteMutation, restoreMutation } = useUserMutations(
     userId,
     userName,
@@ -237,31 +240,15 @@ export function UserActions({
     banMutation.mutate({ reason, expires }, { onSuccess: () => setShowBanForm(false) })
   }
 
-  function handleUnban() {
-    if (!window.confirm(`Are you sure you want to unban ${userName}?`)) return
-    unbanMutation.mutate()
-  }
-
-  function handleDelete() {
-    const msg = `Are you sure you want to delete ${userName}? This can be reversed by restoring.`
-    if (!window.confirm(msg)) return
-    deleteMutation.mutate()
-  }
-
-  function handleRestore() {
-    if (!window.confirm(`Are you sure you want to restore ${userName}?`)) return
-    restoreMutation.mutate()
-  }
-
   return (
     <div className="space-y-3">
       <ActionButtons
         isBanned={isBanned}
         isArchived={isArchived}
         onBanClick={() => setShowBanForm(!showBanForm)}
-        onUnban={handleUnban}
-        onDelete={handleDelete}
-        onRestore={handleRestore}
+        onUnban={() => setShowUnbanDialog(true)}
+        onDelete={() => setShowDeleteDialog(true)}
+        onRestore={() => setShowRestoreDialog(true)}
         unbanPending={unbanMutation.isPending}
         deletePending={deleteMutation.isPending}
         restorePending={restoreMutation.isPending}
@@ -273,6 +260,45 @@ export function UserActions({
           onCancel={() => setShowBanForm(false)}
         />
       )}
+
+      <ConfirmDialog
+        open={showUnbanDialog}
+        onOpenChange={setShowUnbanDialog}
+        title={`Unban ${userName}`}
+        description={`Are you sure you want to unban ${userName}? They will regain access to their account.`}
+        variant="info"
+        confirmText="Unban"
+        onConfirm={() => {
+          unbanMutation.mutate(undefined, { onSuccess: () => setShowUnbanDialog(false) })
+        }}
+        loading={unbanMutation.isPending}
+      />
+
+      <DestructiveConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title={`Delete ${userName}`}
+        description="This action will soft-delete (archive) the user. It can be reversed by restoring."
+        confirmText={userName}
+        confirmLabel={`Type "${userName}" to confirm deletion`}
+        onConfirm={() => {
+          deleteMutation.mutate(undefined, { onSuccess: () => setShowDeleteDialog(false) })
+        }}
+        isLoading={deleteMutation.isPending}
+      />
+
+      <ConfirmDialog
+        open={showRestoreDialog}
+        onOpenChange={setShowRestoreDialog}
+        title={`Restore ${userName}`}
+        description={`Are you sure you want to restore ${userName}? The user account will be reactivated.`}
+        variant="info"
+        confirmText="Restore"
+        onConfirm={() => {
+          restoreMutation.mutate(undefined, { onSuccess: () => setShowRestoreDialog(false) })
+        }}
+        loading={restoreMutation.isPending}
+      />
     </div>
   )
 }

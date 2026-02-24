@@ -203,8 +203,8 @@ describe('AdminUsersService', () => {
 
       // Assert
       expect(result.data).toBeDefined()
-      // The where clause on the chain must have been called (filter applied)
-      expect(usersChain.where).toHaveBeenCalled()
+      // The where clause on the chain must have been called with a defined filter condition
+      expect(usersChain.where).toHaveBeenCalledWith(expect.anything())
     })
 
     it('should filter users by status active (banned=false, deletedAt IS NULL)', async () => {
@@ -215,8 +215,8 @@ describe('AdminUsersService', () => {
       // Act
       await service.listUsers({ status: 'active' }, undefined, 20)
 
-      // Assert — where must have been called with active filter conditions
-      expect(usersChain.where).toHaveBeenCalled()
+      // Assert — where must have been called with a defined filter condition (not undefined)
+      expect(usersChain.where).toHaveBeenCalledWith(expect.anything())
     })
 
     it('should filter users by status banned (banned=true)', async () => {
@@ -237,7 +237,7 @@ describe('AdminUsersService', () => {
 
       // Assert
       expect(result.data).toBeDefined()
-      expect(usersChain.where).toHaveBeenCalled()
+      expect(usersChain.where).toHaveBeenCalledWith(expect.anything())
     })
 
     it('should filter users by status archived (deletedAt IS NOT NULL)', async () => {
@@ -257,7 +257,7 @@ describe('AdminUsersService', () => {
 
       // Assert
       expect(result.data).toBeDefined()
-      expect(usersChain.where).toHaveBeenCalled()
+      expect(usersChain.where).toHaveBeenCalledWith(expect.anything())
     })
 
     it('should filter users by organizationId', async () => {
@@ -268,8 +268,8 @@ describe('AdminUsersService', () => {
       // Act
       await service.listUsers({ organizationId: 'org-specific' }, undefined, 20)
 
-      // Assert
-      expect(usersChain.where).toHaveBeenCalled()
+      // Assert — where must have been called with a defined filter (not undefined)
+      expect(usersChain.where).toHaveBeenCalledWith(expect.anything())
     })
 
     it('should search users by name or email using ILIKE', async () => {
@@ -280,8 +280,8 @@ describe('AdminUsersService', () => {
       // Act
       await service.listUsers({ search: 'alice' }, undefined, 20)
 
-      // Assert
-      expect(usersChain.where).toHaveBeenCalled()
+      // Assert — where must have been called with a defined search condition
+      expect(usersChain.where).toHaveBeenCalledWith(expect.anything())
     })
 
     it('should escape special ILIKE characters % and _ in search term', async () => {
@@ -292,8 +292,8 @@ describe('AdminUsersService', () => {
       // Act — should not throw, and escaping should be applied
       await service.listUsers({ search: 'user%name_test' }, undefined, 20)
 
-      // Assert
-      expect(usersChain.where).toHaveBeenCalled()
+      // Assert — where must have been called with a defined condition
+      expect(usersChain.where).toHaveBeenCalledWith(expect.anything())
     })
 
     it('should apply cursor condition when cursor is provided', async () => {
@@ -306,7 +306,7 @@ describe('AdminUsersService', () => {
       await service.listUsers({}, cursor, 20)
 
       // Assert — where should include cursor condition
-      expect(usersChain.where).toHaveBeenCalled()
+      expect(usersChain.where).toHaveBeenCalledWith(expect.anything())
     })
 
     it('should return empty data with no cursor when no users exist', async () => {
@@ -599,7 +599,9 @@ describe('AdminUsersService', () => {
       db.select.mockReturnValueOnce(createChainMock([notBannedUser]))
 
       // Act & Assert
-      await expect(service.banUser('user-1', 'bad', null, 'actor-super')).rejects.toThrow()
+      await expect(service.banUser('user-1', 'bad', null, 'actor-super')).rejects.toThrow(
+        'Ban reason must be between 5 and 500 characters'
+      )
     })
 
     it('should reject ban reason longer than 500 characters', async () => {
@@ -609,7 +611,9 @@ describe('AdminUsersService', () => {
 
       // Act & Assert
       const longReason = 'x'.repeat(501)
-      await expect(service.banUser('user-1', longReason, null, 'actor-super')).rejects.toThrow()
+      await expect(service.banUser('user-1', longReason, null, 'actor-super')).rejects.toThrow(
+        'Ban reason must be between 5 and 500 characters'
+      )
     })
 
     it('should accept ban reason of exactly 5 characters', async () => {

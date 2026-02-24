@@ -34,5 +34,6 @@ export function useCursorPagination<T>(options: UseCursorPaginationOptions<T>) {
     isLoading: query.isLoading,
     isLoadingMore: query.isFetchingNextPage,
     error: query.error,
+    refetch: query.refetch,
   }
 }

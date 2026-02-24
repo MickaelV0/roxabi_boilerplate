@@ -1,20 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common'
+import { SENSITIVE_FIELDS } from '@repo/types'
 import { and, desc, eq, gte, ilike, lte, or, type SQL } from 'drizzle-orm'
+import {
+  buildCursorCondition,
+  buildCursorResponse,
+} from '../common/utils/cursor-pagination.util.js'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { auditLogs } from '../database/schema/audit.schema.js'
 import { users } from '../database/schema/auth.schema.js'
-import { buildCursorCondition, buildCursorResponse } from './utils/cursor-pagination.util.js'
 
-/** Sensitive fields that must be redacted in audit log before/after data */
-export const SENSITIVE_FIELDS = [
-  'password',
-  'passwordHash',
-  'token',
-  'secret',
-  'accessToken',
-  'refreshToken',
-  'idToken',
-] as const
+export { SENSITIVE_FIELDS }
 
 /**
  * AdminAuditLogsService -- audit log query and redaction for super admins.

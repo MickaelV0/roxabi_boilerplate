@@ -2,13 +2,18 @@ import { Inject, Injectable, Logger } from '@nestjs/common'
 import { and, desc, eq, ilike, isNotNull, isNull, or, type SQL } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import { AuditService } from '../audit/audit.service.js'
+import {
+  buildCursorCondition,
+  buildCursorResponse,
+} from '../common/utils/cursor-pagination.util.js'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { auditLogs } from '../database/schema/audit.schema.js'
 import { members, organizations, users } from '../database/schema/auth.schema.js'
+import { SENSITIVE_FIELDS } from './admin-audit-logs.service.js'
 import { EmailConflictException } from './exceptions/email-conflict.exception.js'
+import { SelfActionException } from './exceptions/self-action.exception.js'
 import { UserAlreadyBannedException } from './exceptions/user-already-banned.exception.js'
 import { AdminUserNotFoundException } from './exceptions/user-not-found.exception.js'
-import { buildCursorCondition, buildCursorResponse } from './utils/cursor-pagination.util.js'
 
 /**
  * AdminUsersService — cross-tenant user management for super admins.
@@ -166,7 +171,14 @@ export class AdminUsersService {
       .orderBy(desc(auditLogs.timestamp))
       .limit(10)
 
-    return { user, memberships, auditEntries }
+    // Redact sensitive fields from audit log before/after data
+    const redactedEntries = auditEntries.map((entry) => ({
+      ...entry,
+      before: this.redactSensitiveFields(entry.before),
+      after: this.redactSensitiveFields(entry.after),
+    }))
+
+    return { user, memberships, auditEntries: redactedEntries }
   }
 
   /**
@@ -225,7 +237,11 @@ export class AdminUsersService {
         after: { ...updatedUser },
       })
       .catch((err) => {
-        this.logger.error(`[${this.cls.getId()}][audit] Failed to log user.updated`, err)
+        this.logger.error(
+          { correlationId: this.cls.getId(), action: 'user.updated', error: err.message },
+          'Audit log write failed'
+        )
+        // TODO: Add metrics counter for audit failures (Phase 3)
       })
 
     return updatedUser
@@ -235,6 +251,10 @@ export class AdminUsersService {
    * Ban a user. Validates reason length (5-500 chars).
    */
   async banUser(userId: string, reason: string, expires: Date | null, actorId: string) {
+    if (actorId === userId) {
+      throw new SelfActionException()
+    }
+
     // Validate reason length
     if (reason.length < 5 || reason.length > 500) {
       throw new Error('Ban reason must be between 5 and 500 characters')
@@ -289,7 +309,11 @@ export class AdminUsersService {
         after: { ...updatedUser },
       })
       .catch((err) => {
-        this.logger.error(`[${this.cls.getId()}][audit] Failed to log user.banned`, err)
+        this.logger.error(
+          { correlationId: this.cls.getId(), action: 'user.banned', error: err.message },
+          'Audit log write failed'
+        )
+        // TODO: Add metrics counter for audit failures (Phase 3)
       })
 
     return updatedUser
@@ -344,7 +368,11 @@ export class AdminUsersService {
         after: { ...updatedUser },
       })
       .catch((err) => {
-        this.logger.error(`[${this.cls.getId()}][audit] Failed to log user.unbanned`, err)
+        this.logger.error(
+          { correlationId: this.cls.getId(), action: 'user.unbanned', error: err.message },
+          'Audit log write failed'
+        )
+        // TODO: Add metrics counter for audit failures (Phase 3)
       })
 
     return updatedUser
@@ -354,6 +382,10 @@ export class AdminUsersService {
    * Soft-delete a user — set deletedAt and deleteScheduledFor (now + 30 days).
    */
   async deleteUser(userId: string, actorId: string) {
+    if (actorId === userId) {
+      throw new SelfActionException()
+    }
+
     // Read current user
     const [user] = await this.db
       .select({
@@ -401,7 +433,11 @@ export class AdminUsersService {
         after: { ...updatedUser },
       })
       .catch((err) => {
-        this.logger.error(`[${this.cls.getId()}][audit] Failed to log user.deleted`, err)
+        this.logger.error(
+          { correlationId: this.cls.getId(), action: 'user.deleted', error: err.message },
+          'Audit log write failed'
+        )
+        // TODO: Add metrics counter for audit failures (Phase 3)
       })
 
     return updatedUser
@@ -460,9 +496,43 @@ export class AdminUsersService {
         after: { ...updatedUser },
       })
       .catch((err) => {
-        this.logger.error(`[${this.cls.getId()}][audit] Failed to log user.restored`, err)
+        this.logger.error(
+          { correlationId: this.cls.getId(), action: 'user.restored', error: err.message },
+          'Audit log write failed'
+        )
+        // TODO: Add metrics counter for audit failures (Phase 3)
       })
 
     return updatedUser
+  }
+
+  /**
+   * Redact sensitive field values in audit log before/after data.
+   * Matches field names case-insensitively against SENSITIVE_FIELDS.
+   */
+  private redactSensitiveFields(
+    data: Record<string, unknown> | null
+  ): Record<string, unknown> | null {
+    if (data === null) {
+      return null
+    }
+
+    const sensitiveSet = SENSITIVE_FIELDS.map((f) => f.toLowerCase())
+
+    const redact = (obj: Record<string, unknown>): Record<string, unknown> => {
+      const result: Record<string, unknown> = {}
+      for (const [key, value] of Object.entries(obj)) {
+        if (sensitiveSet.includes(key.toLowerCase())) {
+          result[key] = '[REDACTED]'
+        } else if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+          result[key] = redact(value as Record<string, unknown>)
+        } else {
+          result[key] = value
+        }
+      }
+      return result
+    }
+
+    return redact(data)
   }
 }

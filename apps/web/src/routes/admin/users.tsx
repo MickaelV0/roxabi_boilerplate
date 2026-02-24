@@ -21,6 +21,7 @@ import { FilterBar } from '@/components/admin/filter-bar'
 import { LoadMoreButton } from '@/components/admin/load-more-button'
 import { useCursorPagination } from '@/hooks/use-cursor-pagination'
 import { requireSuperAdmin } from '@/lib/admin-guards'
+import { formatDate } from '@/lib/format-date'
 
 export const Route = createFileRoute('/admin/users')({
   beforeLoad: requireSuperAdmin,
@@ -81,14 +82,6 @@ function statusLabel(user: AdminUser): string {
   if (user.banned) return 'Banned'
   if (user.deletedAt) return 'Archived'
   return 'Active'
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
 }
 
 function UsersTableSkeleton() {

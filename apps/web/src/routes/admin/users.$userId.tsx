@@ -1,10 +1,18 @@
 import type { AdminUserDetail, AuditLogEntry } from '@repo/types'
 import {
   Badge,
+  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Separator,
   Skeleton,
   Table,
@@ -14,40 +22,29 @@ import {
   TableHeader,
   TableRow,
 } from '@repo/ui'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import {
   ArrowLeftIcon,
   BuildingIcon,
   CalendarIcon,
   MailIcon,
+  PencilIcon,
   ShieldIcon,
   UserIcon,
+  XIcon,
 } from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { UserActions } from '@/components/admin/user-actions'
 import { requireSuperAdmin } from '@/lib/admin-guards'
+import { formatDate, formatTimestamp } from '@/lib/format-date'
 
 export const Route = createFileRoute('/admin/users/$userId')({
   beforeLoad: requireSuperAdmin,
   component: AdminUserDetailPage,
   head: () => ({ meta: [{ title: 'User Detail | Admin | Roxabi' }] }),
 })
-
-function formatDate(dateStr: string | Date): string {
-  const d = typeof dateStr === 'string' ? new Date(dateStr) : dateStr
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-}
-
-function formatTimestamp(dateStr: string | Date): string {
-  const d = typeof dateStr === 'string' ? new Date(dateStr) : dateStr
-  return d.toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
 
 function statusVariant(user: AdminUserDetail): 'default' | 'destructive' | 'secondary' {
   if (user.banned) return 'destructive'
@@ -237,9 +234,179 @@ function ActivityCard({ entries }: { entries: AuditLogEntry[] }) {
   )
 }
 
+const ROLE_OPTIONS = [
+  { value: 'user', label: 'User' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'superadmin', label: 'Super Admin' },
+]
+
+type EditUserFormProps = {
+  user: AdminUserDetail
+  onSave: () => void
+  onCancel: () => void
+}
+
+function EditUserForm({ user, onSave, onCancel }: EditUserFormProps) {
+  const [name, setName] = useState(user.name || '')
+  const [email, setEmail] = useState(user.email)
+  const [role, setRole] = useState(user.role ?? 'user')
+  const [error, setError] = useState<string | null>(null)
+
+  const mutation = useMutation({
+    mutationFn: async (payload: { name: string; email: string; role: string }) => {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        if (res.status === 409) {
+          throw new Error(body?.message ?? 'A user with this email already exists')
+        }
+        throw new Error(body?.message ?? 'Failed to update user')
+      }
+      return res.json()
+    },
+    onSuccess: () => {
+      toast.success('User updated successfully')
+      onSave()
+    },
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : 'Failed to update user')
+    },
+  })
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    mutation.mutate({ name, email, role })
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <PencilIcon className="size-4" />
+          Edit User
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <p className="text-sm text-destructive rounded-md border border-destructive/20 bg-destructive/5 p-3">
+              {error}
+            </p>
+          )}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-name" className="text-sm font-medium">
+                Name
+              </Label>
+              <Input
+                id="edit-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="User name"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-email" className="text-sm font-medium">
+                Email
+              </Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="user@example.com"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-role" className="text-sm font-medium">
+                Global Role
+              </Label>
+              <Select value={role} onValueChange={setRole}>
+                <SelectTrigger id="edit-role" className="w-full">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button type="submit" size="sm" loading={mutation.isPending}>
+              Save Changes
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
+
+type UserDetailHeaderProps = {
+  data: AdminUserDetail
+  isEditing: boolean
+  onEditToggle: (editing: boolean) => void
+  onActionComplete: () => void
+}
+
+function UserDetailHeader({
+  data,
+  isEditing,
+  onEditToggle,
+  onActionComplete,
+}: UserDetailHeaderProps) {
+  return (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h1 className="text-2xl font-bold">{data.name || 'Unnamed User'}</h1>
+        <p className="text-sm text-muted-foreground">{data.email}</p>
+      </div>
+      <div className="flex items-center gap-2">
+        {!isEditing && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onEditToggle(true)}
+            className="gap-1.5"
+          >
+            <PencilIcon className="size-3.5" />
+            Edit
+          </Button>
+        )}
+        {isEditing && (
+          <Button variant="ghost" size="sm" onClick={() => onEditToggle(false)} className="gap-1.5">
+            <XIcon className="size-3.5" />
+            Cancel Edit
+          </Button>
+        )}
+        <UserActions
+          userId={data.id}
+          userName={data.name || data.email}
+          isBanned={Boolean(data.banned)}
+          isArchived={Boolean(data.deletedAt)}
+          onActionComplete={onActionComplete}
+        />
+      </div>
+    </div>
+  )
+}
+
 function AdminUserDetailPage() {
   const { userId } = Route.useParams()
   const queryClient = useQueryClient()
+  const [isEditing, setIsEditing] = useState(false)
 
   const { data, isLoading, error } = useQuery<AdminUserDetail>({
     queryKey: ['admin', 'users', userId],
@@ -253,6 +420,11 @@ function AdminUserDetailPage() {
   function handleActionComplete() {
     queryClient.invalidateQueries({ queryKey: ['admin', 'users', userId] })
     queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+  }
+
+  function handleEditSave() {
+    setIsEditing(false)
+    handleActionComplete()
   }
 
   if (isLoading) {
@@ -282,19 +454,15 @@ function AdminUserDetailPage() {
   return (
     <div className="space-y-6">
       <BackLink />
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{data.name || 'Unnamed User'}</h1>
-          <p className="text-sm text-muted-foreground">{data.email}</p>
-        </div>
-        <UserActions
-          userId={data.id}
-          userName={data.name || data.email}
-          isBanned={Boolean(data.banned)}
-          isArchived={Boolean(data.deletedAt)}
-          onActionComplete={handleActionComplete}
-        />
-      </div>
+      <UserDetailHeader
+        data={data}
+        isEditing={isEditing}
+        onEditToggle={setIsEditing}
+        onActionComplete={handleActionComplete}
+      />
+      {isEditing && (
+        <EditUserForm user={data} onSave={handleEditSave} onCancel={() => setIsEditing(false)} />
+      )}
       <ProfileCard data={data} />
       <MembershipsCard organizations={data.organizations} />
       {data.activitySummary && <ActivityCard entries={data.activitySummary} />}

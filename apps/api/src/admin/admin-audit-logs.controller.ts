@@ -1,10 +1,23 @@
-import { Controller, Get, Query, UseFilters } from '@nestjs/common'
+import { BadRequestException, Controller, Get, Query, UseFilters } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Throttle } from '@nestjs/throttler'
+import { z } from 'zod'
 import { Roles } from '../auth/decorators/roles.decorator.js'
 import { SkipOrg } from '../common/decorators/skip-org.decorator.js'
 import { AdminAuditLogsService } from './admin-audit-logs.service.js'
 import { AdminExceptionFilter } from './filters/admin-exception.filter.js'
+
+const listAuditLogsQuerySchema = z.object({
+  cursor: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+  actorId: z.string().uuid().optional(),
+  action: z.string().optional(),
+  resource: z.string().optional(),
+  organizationId: z.string().uuid().optional(),
+  search: z.string().optional(),
+})
 
 @ApiTags('Admin Audit Logs')
 @ApiBearerAuth()
@@ -30,16 +43,23 @@ export class AdminAuditLogsController {
     @Query('organizationId') organizationId?: string,
     @Query('search') search?: string
   ) {
-    const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100)
-    const filters = {
-      from: from ? new Date(from) : undefined,
-      to: to ? new Date(to) : undefined,
+    const parsed = listAuditLogsQuerySchema.safeParse({
+      cursor,
+      limit,
+      from: from || undefined,
+      to: to || undefined,
       actorId: actorId || undefined,
       action: action || undefined,
       resource: resource || undefined,
       organizationId: organizationId || undefined,
       search: search?.trim() || undefined,
+    })
+
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten().fieldErrors)
     }
-    return this.adminAuditLogsService.listAuditLogs(filters, cursor || undefined, safeLimit)
+
+    const { limit: safeLimit, cursor: safeCursor, ...filters } = parsed.data
+    return this.adminAuditLogsService.listAuditLogs(filters, safeCursor, safeLimit)
   }
 }

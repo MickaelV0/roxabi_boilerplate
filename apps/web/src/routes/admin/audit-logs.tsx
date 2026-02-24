@@ -21,6 +21,7 @@ import { FilterBar } from '@/components/admin/filter-bar'
 import { LoadMoreButton } from '@/components/admin/load-more-button'
 import { useCursorPagination } from '@/hooks/use-cursor-pagination'
 import { requireSuperAdmin } from '@/lib/admin-guards'
+import { formatTimestamp } from '@/lib/format-date'
 
 export const Route = createFileRoute('/admin/audit-logs')({
   beforeLoad: requireSuperAdmin,
@@ -63,10 +64,32 @@ const INITIAL_FILTERS: AuditLogFilters = {
   search: '',
 }
 
+const AUDIT_ACTION_OPTIONS = [
+  { value: 'user.created', label: 'User Created' },
+  { value: 'user.updated', label: 'User Updated' },
+  { value: 'user.banned', label: 'User Banned' },
+  { value: 'user.unbanned', label: 'User Unbanned' },
+  { value: 'user.deleted', label: 'User Deleted' },
+  { value: 'user.restored', label: 'User Restored' },
+  { value: 'user.role_changed', label: 'User Role Changed' },
+  { value: 'member.invited', label: 'Member Invited' },
+  { value: 'member.role_changed', label: 'Member Role Changed' },
+  { value: 'member.removed', label: 'Member Removed' },
+  { value: 'invitation.revoked', label: 'Invitation Revoked' },
+  { value: 'org.created', label: 'Org Created' },
+  { value: 'org.updated', label: 'Org Updated' },
+  { value: 'org.deleted', label: 'Org Deleted' },
+  { value: 'org.restored', label: 'Org Restored' },
+  { value: 'org.parent_changed', label: 'Org Parent Changed' },
+  { value: 'settings.updated', label: 'Settings Updated' },
+  { value: 'impersonation.started', label: 'Impersonation Started' },
+  { value: 'impersonation.ended', label: 'Impersonation Ended' },
+]
+
 const FILTER_CONFIGS: FilterConfig[] = [
   { key: 'from', label: 'From', type: 'date' },
   { key: 'to', label: 'To', type: 'date' },
-  { key: 'action', label: 'Action', type: 'search', placeholder: 'e.g. user.updated' },
+  { key: 'action', label: 'Action', type: 'select', options: AUDIT_ACTION_OPTIONS },
   { key: 'resource', label: 'Resource', type: 'search', placeholder: 'e.g. user' },
   { key: 'search', label: 'Search', type: 'search', placeholder: 'Search...' },
 ]
@@ -105,17 +128,6 @@ function actionVariant(action: string): 'default' | 'secondary' | 'destructive' 
     return 'secondary'
   }
   return 'outline'
-}
-
-function formatTimestamp(dateStr: string): string {
-  return new Date(dateStr).toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
 }
 
 function AuditLogsSkeleton() {
@@ -281,15 +293,26 @@ function AuditLogRow({ entry, isExpanded, onToggle }: AuditLogRowProps) {
       <TableRow
         className="cursor-pointer hover:bg-muted/50"
         onClick={hasDiff ? onToggle : undefined}
-        aria-expanded={hasDiff ? isExpanded : undefined}
       >
         <TableCell className="w-8 px-2">
-          {hasDiff &&
-            (isExpanded ? (
-              <ChevronDownIcon className="size-4 text-muted-foreground" />
-            ) : (
-              <ChevronRightIcon className="size-4 text-muted-foreground" />
-            ))}
+          {hasDiff && (
+            <button
+              type="button"
+              aria-expanded={isExpanded}
+              aria-label={isExpanded ? 'Collapse details' : 'Expand details'}
+              className="inline-flex items-center"
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggle()
+              }}
+            >
+              {isExpanded ? (
+                <ChevronDownIcon className="size-4 text-muted-foreground" />
+              ) : (
+                <ChevronRightIcon className="size-4 text-muted-foreground" />
+              )}
+            </button>
+          )}
         </TableCell>
         <TableCell className="text-muted-foreground whitespace-nowrap text-xs">
           {formatTimestamp(entry.timestamp)}

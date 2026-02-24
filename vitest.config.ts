@@ -39,8 +39,6 @@ export default defineConfig({
         // NestJS bootstrap and module wiring
         '**/main.ts',
         '**/*.module.ts',
-        // NestJS controllers (thin routing layer — validated via service tests)
-        '**/admin/*controller.ts',
         '**/database/schema/*.ts',
         // Auth client instantiation (no logic, just config)
         '**/lib/auth-client.ts',

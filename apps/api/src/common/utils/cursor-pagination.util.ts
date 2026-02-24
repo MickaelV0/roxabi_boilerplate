@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common'
 import type { CursorPaginatedResponse } from '@repo/types'
 import { and, eq, lt, or, type SQL } from 'drizzle-orm'
 import type { PgColumn } from 'drizzle-orm/pg-core'
@@ -11,38 +12,46 @@ export function encodeCursor(timestamp: Date, id: string): string {
 
 /**
  * Decode a Base64-encoded cursor into its (timestamp, id) components.
+ * Throws BadRequestException (400) for any malformed cursor input.
  */
 export function decodeCursor(cursor: string): { timestamp: Date; id: string } {
-  if (!cursor) {
-    throw new Error('Invalid cursor: empty string')
-  }
-
-  let parsed: unknown
   try {
-    parsed = JSON.parse(atob(cursor))
-  } catch {
-    throw new Error('Invalid cursor: malformed Base64 or JSON')
+    if (!cursor) {
+      throw new Error('empty string')
+    }
+
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(atob(cursor))
+    } catch {
+      throw new Error('malformed Base64 or JSON')
+    }
+
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      !('t' in parsed) ||
+      !('i' in parsed) ||
+      typeof (parsed as Record<string, unknown>).t !== 'string' ||
+      typeof (parsed as Record<string, unknown>).i !== 'string'
+    ) {
+      throw new Error('missing required fields')
+    }
+
+    const { t, i } = parsed as { t: string; i: string }
+    const timestamp = new Date(t)
+
+    if (Number.isNaN(timestamp.getTime())) {
+      throw new Error('timestamp is not a valid date')
+    }
+
+    return { timestamp, id: i }
+  } catch (error) {
+    if (error instanceof BadRequestException) {
+      throw error
+    }
+    throw new BadRequestException('Invalid cursor token')
   }
-
-  if (
-    typeof parsed !== 'object' ||
-    parsed === null ||
-    !('t' in parsed) ||
-    !('i' in parsed) ||
-    typeof (parsed as Record<string, unknown>).t !== 'string' ||
-    typeof (parsed as Record<string, unknown>).i !== 'string'
-  ) {
-    throw new Error('Invalid cursor: missing required fields')
-  }
-
-  const { t, i } = parsed as { t: string; i: string }
-  const timestamp = new Date(t)
-
-  if (Number.isNaN(timestamp.getTime())) {
-    throw new Error('Invalid cursor: timestamp is not a valid date')
-  }
-
-  return { timestamp, id: i }
 }
 
 /**

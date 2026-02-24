@@ -12,6 +12,7 @@ import { OrgDepthExceededException } from '../exceptions/org-depth-exceeded.exce
 import { AdminOrgNotFoundException } from '../exceptions/org-not-found.exception.js'
 import { OrgSlugConflictException } from '../exceptions/org-slug-conflict.exception.js'
 import { AdminRoleNotFoundException } from '../exceptions/role-not-found.exception.js'
+import { SelfActionException } from '../exceptions/self-action.exception.js'
 import { SelfRemovalException } from '../exceptions/self-removal.exception.js'
 import { SelfRoleChangeException } from '../exceptions/self-role-change.exception.js'
 import { UserAlreadyBannedException } from '../exceptions/user-already-banned.exception.js'
@@ -24,6 +25,7 @@ type AdminException =
   | LastOwnerConstraintException
   | SelfRemovalException
   | SelfRoleChangeException
+  | SelfActionException
   | AdminMemberNotFoundException
   | AdminRoleNotFoundException
   | AdminUserNotFoundException
@@ -41,6 +43,7 @@ type AdminException =
   LastOwnerConstraintException,
   SelfRemovalException,
   SelfRoleChangeException,
+  SelfActionException,
   AdminMemberNotFoundException,
   AdminRoleNotFoundException,
   AdminUserNotFoundException,

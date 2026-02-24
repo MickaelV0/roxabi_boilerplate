@@ -65,7 +65,7 @@ function classifyKey(
   if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
     return { key, type: 'changed', oldValue: formatValue(oldVal), newValue: formatValue(newVal) }
   }
-  return { key, type: 'unchanged', oldValue: formatValue(oldVal) }
+  return { key, type: 'unchanged', oldValue: formatValue(oldVal), newValue: formatValue(oldVal) }
 }
 
 function computeDiff(
@@ -149,7 +149,7 @@ export function DiffViewer({ before, after }: DiffViewerProps) {
               {line.type === 'unchanged' && (
                 <>
                   <td className="px-3 py-1.5 text-muted-foreground text-xs">{line.oldValue}</td>
-                  <td className="px-3 py-1.5 text-muted-foreground text-xs">{line.oldValue}</td>
+                  <td className="px-3 py-1.5 text-muted-foreground text-xs">{line.newValue}</td>
                 </>
               )}
             </tr>

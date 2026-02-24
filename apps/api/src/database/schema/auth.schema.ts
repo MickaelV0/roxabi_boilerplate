@@ -112,6 +112,7 @@ export const organizations = pgTable(
       .on(table.deleteScheduledFor)
       .where(isNotNull(table.deleteScheduledFor)),
     index('idx_orgs_cursor').on(table.createdAt.desc(), table.id.desc()),
+    index('idx_orgs_parent_org').on(table.parentOrganizationId),
   ]
 )
 

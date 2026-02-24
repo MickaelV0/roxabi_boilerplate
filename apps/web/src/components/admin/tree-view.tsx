@@ -7,6 +7,8 @@ type TreeNode = {
   name: string
   slug: string | null
   parentOrganizationId: string | null
+  memberCount?: number
+  deletedAt?: string | null
 }
 
 type TreeViewProps = {
@@ -70,9 +72,9 @@ function ExpandToggle({
   return (
     <button
       type="button"
-      tabIndex={-1}
       className="shrink-0 rounded p-0.5 hover:bg-muted"
       onClick={onClick}
+      aria-label={isExpanded ? 'Collapse' : 'Expand'}
     >
       {isExpanded ? (
         <ChevronDownIcon className="size-3.5 text-muted-foreground" />
@@ -89,7 +91,7 @@ function TreeNodeRow({ node, depth, expanded, selectedId, onToggle, onSelect }: 
   const isSelected = selectedId === node.id
 
   return (
-    <>
+    <div role="treeitem" tabIndex={-1} aria-expanded={hasChildren ? isExpanded : undefined}>
       <button
         type="button"
         className={cn(
@@ -117,27 +119,41 @@ function TreeNodeRow({ node, depth, expanded, selectedId, onToggle, onSelect }: 
 
         {node.slug && <span className="shrink-0 text-xs text-muted-foreground">/{node.slug}</span>}
 
-        {node.isOrphan && (
-          <Badge variant="secondary" className="ml-auto shrink-0 text-[10px]">
-            parent archived
-          </Badge>
-        )}
+        <span className="ml-auto flex shrink-0 items-center gap-1.5">
+          {node.memberCount != null && (
+            <Badge variant="outline" className="text-[10px]">
+              {node.memberCount} {node.memberCount === 1 ? 'member' : 'members'}
+            </Badge>
+          )}
+          {node.deletedAt && (
+            <Badge variant="secondary" className="text-[10px]">
+              archived
+            </Badge>
+          )}
+          {node.isOrphan && (
+            <Badge variant="secondary" className="text-[10px]">
+              parent archived
+            </Badge>
+          )}
+        </span>
       </button>
 
-      {hasChildren &&
-        isExpanded &&
-        node.children.map((child) => (
-          <TreeNodeRow
-            key={child.id}
-            node={child}
-            depth={depth + 1}
-            expanded={expanded}
-            selectedId={selectedId}
-            onToggle={onToggle}
-            onSelect={onSelect}
-          />
-        ))}
-    </>
+      {hasChildren && isExpanded && (
+        <fieldset className="contents">
+          {node.children.map((child) => (
+            <TreeNodeRow
+              key={child.id}
+              node={child}
+              depth={depth + 1}
+              expanded={expanded}
+              selectedId={selectedId}
+              onToggle={onToggle}
+              onSelect={onSelect}
+            />
+          ))}
+        </fieldset>
+      )}
+    </div>
   )
 }
 
@@ -151,7 +167,7 @@ function TreeNodeRow({ node, depth, expanded, selectedId, onToggle, onSelect }: 
 export function TreeView({ nodes, onSelect, selectedId }: TreeViewProps) {
   const tree = buildTree(nodes)
 
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(nodes.map((n) => n.id)))
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(tree.map((n) => n.id)))
 
   function handleToggle(id: string) {
     setExpanded((prev) => {

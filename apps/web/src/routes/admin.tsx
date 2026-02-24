@@ -123,9 +123,9 @@ function SidebarGroup({
 
 function isSuperAdmin(session: unknown): boolean {
   if (session == null || typeof session !== 'object') return false
-  const s = session as Record<string, unknown>
-  if (s.user == null || typeof s.user !== 'object') return false
-  return (s.user as Record<string, unknown>).role === 'superadmin'
+  if (!('user' in session) || session.user == null || typeof session.user !== 'object') return false
+  if (!('role' in session.user)) return false
+  return session.user.role === 'superadmin'
 }
 
 function AdminLayout() {

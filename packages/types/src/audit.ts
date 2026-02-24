@@ -1,3 +1,14 @@
+/** Sensitive fields that must be redacted in audit log before/after data */
+export const SENSITIVE_FIELDS = [
+  'password',
+  'passwordHash',
+  'token',
+  'secret',
+  'accessToken',
+  'refreshToken',
+  'idToken',
+] as const
+
 export type AuditAction =
   | 'user.created'
   | 'user.updated'

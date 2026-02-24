@@ -1,3 +1,5 @@
+import { BadRequestException } from '@nestjs/common'
+import { SQL } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -52,17 +54,17 @@ describe('cursor-pagination.util', () => {
       expect(decoded.id).toBe(originalId)
     })
 
-    it('should throw on invalid cursor string', () => {
+    it('should throw BadRequestException on invalid cursor string', () => {
       // Arrange
       const invalidCursor = 'not-a-valid-cursor!!!'
 
       // Act & Assert
-      expect(() => decodeCursor(invalidCursor)).toThrow()
+      expect(() => decodeCursor(invalidCursor)).toThrow(BadRequestException)
     })
 
-    it('should throw on empty cursor string', () => {
+    it('should throw BadRequestException on empty cursor string', () => {
       // Act & Assert
-      expect(() => decodeCursor('')).toThrow()
+      expect(() => decodeCursor('')).toThrow(BadRequestException)
     })
 
     it('should handle timestamp at Unix epoch (edge case)', () => {
@@ -123,7 +125,7 @@ describe('cursor-pagination.util', () => {
   })
 
   describe('buildCursorCondition', () => {
-    it('should return a truthy SQL condition object', () => {
+    it('should return a Drizzle SQL instance', () => {
       // Arrange
       const timestamp = new Date('2024-01-15T10:30:00.000Z')
       const id = 'row-abc'
@@ -134,9 +136,57 @@ describe('cursor-pagination.util', () => {
       // Act
       const result = buildCursorCondition(cursor, mockTsColumn, mockIdColumn)
 
-      // Assert — just verify it exists and is not null/undefined
+      // Assert — verify it is a proper SQL object
       expect(result).toBeDefined()
       expect(result).not.toBeNull()
+      expect(result).toBeInstanceOf(SQL)
+    })
+
+    it('should produce a compound SQL condition with queryChunks', () => {
+      // Arrange
+      const timestamp = new Date('2024-01-15T10:30:00.000Z')
+      const id = 'row-abc'
+      const cursor = encodeCursor(timestamp, id)
+      const mockTsColumn = {} as never
+      const mockIdColumn = {} as never
+
+      // Act
+      const result = buildCursorCondition(cursor, mockTsColumn, mockIdColumn)
+
+      // Assert — the result should be an OR condition wrapping sub-expressions
+      // The pattern is: (tsColumn < cursor_ts) OR (tsColumn = cursor_ts AND idColumn < cursor_id)
+      expect(result.queryChunks).toBeDefined()
+      expect(result.queryChunks.length).toBeGreaterThan(0)
+      // At least one sub-SQL chunk exists (the OR wraps two branches)
+      const sqlChunks = result.queryChunks.filter((chunk) => chunk instanceof SQL)
+      expect(sqlChunks.length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('should decode the cursor and use its timestamp and id values', () => {
+      // Arrange — use two different cursors and verify they produce different conditions
+      const cursor1 = encodeCursor(new Date('2024-01-01T00:00:00.000Z'), 'id-alpha')
+      const cursor2 = encodeCursor(new Date('2024-06-01T00:00:00.000Z'), 'id-beta')
+      const mockTsColumn = {} as never
+      const mockIdColumn = {} as never
+
+      // Act
+      const result1 = buildCursorCondition(cursor1, mockTsColumn, mockIdColumn)
+      const result2 = buildCursorCondition(cursor2, mockTsColumn, mockIdColumn)
+
+      // Assert — different cursors must produce different SQL conditions
+      expect(result1).not.toBe(result2)
+      expect(result1.queryChunks).not.toEqual(result2.queryChunks)
+    })
+
+    it('should throw BadRequestException when given an invalid cursor string', () => {
+      // Arrange
+      const mockTsColumn = {} as never
+      const mockIdColumn = {} as never
+
+      // Act & Assert
+      expect(() => buildCursorCondition('invalid-cursor', mockTsColumn, mockIdColumn)).toThrow(
+        BadRequestException
+      )
     })
   })
 

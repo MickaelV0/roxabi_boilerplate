@@ -70,7 +70,7 @@ export function FilterBar({ filters, values, onChange, onReset }: FilterBarProps
               id={`filter-${filter.key}`}
               type="text"
               placeholder={filter.placeholder ?? 'Search...'}
-              defaultValue={values[filter.key] ?? ''}
+              value={values[filter.key] ?? ''}
               onChange={(e) => handleSearchChange(filter.key, e.target.value)}
               className="h-9 w-48"
             />

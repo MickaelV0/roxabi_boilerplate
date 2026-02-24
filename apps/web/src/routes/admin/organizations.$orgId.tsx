@@ -1,10 +1,13 @@
-import type { AdminOrgDetail } from '@repo/types'
+import type { AdminOrganization, AdminOrgDetail } from '@repo/types'
 import {
   Badge,
+  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
+  Input,
+  Label,
   Skeleton,
   Table,
   TableBody,
@@ -13,25 +16,28 @@ import {
   TableHeader,
   TableRow,
 } from '@repo/ui'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowLeftIcon, BuildingIcon, CalendarIcon, NetworkIcon, UsersIcon } from 'lucide-react'
+import {
+  ArrowLeftIcon,
+  BuildingIcon,
+  CalendarIcon,
+  NetworkIcon,
+  PencilIcon,
+  UsersIcon,
+  XIcon,
+} from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { OrgActions } from '@/components/admin/org-actions'
 import { requireSuperAdmin } from '@/lib/admin-guards'
+import { formatDate } from '@/lib/format-date'
 
 export const Route = createFileRoute('/admin/organizations/$orgId')({
   beforeLoad: requireSuperAdmin,
   component: AdminOrgDetailPage,
   head: () => ({ meta: [{ title: 'Organization Detail | Admin | Roxabi' }] }),
 })
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-}
 
 const BACK_LINK_CLASS =
   'inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors'
@@ -213,9 +219,203 @@ function ChildOrgsCard({ childOrgs }: { childOrgs: AdminOrgDetail['children'] })
   )
 }
 
+type EditOrgFormProps = {
+  org: AdminOrgDetail
+  onSave: () => void
+  onCancel: () => void
+}
+
+const NATIVE_SELECT_CLASS =
+  'h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none'
+
+function useOrgEditMutation(
+  orgId: string,
+  onSave: () => void,
+  setError: (e: string | null) => void
+) {
+  return useMutation({
+    mutationFn: async (payload: {
+      name: string
+      slug: string
+      parentOrganizationId: string | null
+    }) => {
+      const res = await fetch(`/api/admin/organizations/${orgId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        if (res.status === 409) throw new Error(body?.message ?? 'Slug already exists')
+        if (res.status === 400) throw new Error(body?.message ?? 'Invalid data')
+        throw new Error(body?.message ?? 'Failed to update organization')
+      }
+      return res.json()
+    },
+    onSuccess: () => {
+      toast.success('Organization updated successfully')
+      onSave()
+    },
+    onError: (err: unknown) => {
+      setError(err instanceof Error ? err.message : 'Failed to update organization')
+    },
+  })
+}
+
+type ParentOrgSelectProps = {
+  id: string
+  value: string
+  options: AdminOrganization[]
+  onChange: (v: string) => void
+}
+
+function ParentOrgSelect({ id, value, options, onChange }: ParentOrgSelectProps) {
+  return (
+    <select
+      id={id}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={NATIVE_SELECT_CLASS}
+    >
+      <option value="">None (top-level)</option>
+      {options.map((o) => (
+        <option key={o.id} value={o.id}>
+          {o.name} ({o.slug})
+        </option>
+      ))}
+    </select>
+  )
+}
+
+function EditOrgForm({ org, onSave, onCancel }: EditOrgFormProps) {
+  const [name, setName] = useState(org.name)
+  const [slug, setSlug] = useState(org.slug ?? '')
+  const [parentOrgId, setParentOrgId] = useState(org.parentOrganization?.id ?? '')
+  const [error, setError] = useState<string | null>(null)
+
+  const { data: allOrgs } = useQuery<{ data: AdminOrganization[] }>({
+    queryKey: ['admin', 'organizations', 'all-for-parent'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/organizations?view=tree')
+      if (!res.ok) throw new Error('Failed to fetch organizations')
+      return res.json()
+    },
+  })
+
+  const mutation = useOrgEditMutation(org.id, onSave, setError)
+  const availableParents = allOrgs?.data?.filter((o) => !o.deletedAt && o.id !== org.id) ?? []
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    mutation.mutate({ name, slug, parentOrganizationId: parentOrgId || null })
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <PencilIcon className="size-4" />
+          Edit Organization
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <p className="text-sm text-destructive rounded-md border border-destructive/20 bg-destructive/5 p-3">
+              {error}
+            </p>
+          )}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-org-name">Name</Label>
+              <Input
+                id="edit-org-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-org-slug">Slug</Label>
+              <Input id="edit-org-slug" value={slug} onChange={(e) => setSlug(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-org-parent">Parent Organization</Label>
+              <ParentOrgSelect
+                id="edit-org-parent"
+                value={parentOrgId}
+                options={availableParents}
+                onChange={setParentOrgId}
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button type="submit" size="sm" loading={mutation.isPending}>
+              Save Changes
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
+
+type OrgDetailHeaderProps = {
+  data: AdminOrgDetail
+  isEditing: boolean
+  onEditToggle: (editing: boolean) => void
+  onActionComplete: () => void
+}
+
+function OrgDetailHeader({
+  data,
+  isEditing,
+  onEditToggle,
+  onActionComplete,
+}: OrgDetailHeaderProps) {
+  return (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h1 className="text-2xl font-bold">{data.name}</h1>
+        <p className="text-sm text-muted-foreground">{data.slug ?? 'No slug'}</p>
+      </div>
+      <div className="flex items-center gap-2">
+        {!isEditing && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onEditToggle(true)}
+            className="gap-1.5"
+          >
+            <PencilIcon className="size-3.5" />
+            Edit
+          </Button>
+        )}
+        {isEditing && (
+          <Button variant="ghost" size="sm" onClick={() => onEditToggle(false)} className="gap-1.5">
+            <XIcon className="size-3.5" />
+            Cancel Edit
+          </Button>
+        )}
+        <OrgActions
+          orgId={data.id}
+          orgName={data.name}
+          isArchived={Boolean(data.deletedAt)}
+          onActionComplete={onActionComplete}
+        />
+      </div>
+    </div>
+  )
+}
+
 function AdminOrgDetailPage() {
   const { orgId } = Route.useParams()
   const queryClient = useQueryClient()
+  const [isEditing, setIsEditing] = useState(false)
 
   const { data, isLoading, error } = useQuery<AdminOrgDetail>({
     queryKey: ['admin', 'organizations', orgId],
@@ -229,6 +429,11 @@ function AdminOrgDetailPage() {
   function handleActionComplete() {
     queryClient.invalidateQueries({ queryKey: ['admin', 'organizations', orgId] })
     queryClient.invalidateQueries({ queryKey: ['admin', 'organizations'] })
+  }
+
+  function handleEditSave() {
+    setIsEditing(false)
+    handleActionComplete()
   }
 
   if (isLoading) {
@@ -258,18 +463,15 @@ function AdminOrgDetailPage() {
   return (
     <div className="space-y-6">
       <BackLink />
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{data.name}</h1>
-          <p className="text-sm text-muted-foreground">{data.slug ?? 'No slug'}</p>
-        </div>
-        <OrgActions
-          orgId={data.id}
-          orgName={data.name}
-          isArchived={Boolean(data.deletedAt)}
-          onActionComplete={handleActionComplete}
-        />
-      </div>
+      <OrgDetailHeader
+        data={data}
+        isEditing={isEditing}
+        onEditToggle={setIsEditing}
+        onActionComplete={handleActionComplete}
+      />
+      {isEditing && (
+        <EditOrgForm org={data} onSave={handleEditSave} onCancel={() => setIsEditing(false)} />
+      )}
       <ProfileCard data={data} />
       <MembersCard members={data.members} />
       <ChildOrgsCard childOrgs={data.children} />

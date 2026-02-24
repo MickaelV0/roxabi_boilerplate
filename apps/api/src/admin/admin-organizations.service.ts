@@ -1,14 +1,17 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { and, count, desc, eq, ilike, isNotNull, isNull, or, type SQL } from 'drizzle-orm'
+import { and, count, desc, eq, ilike, inArray, isNotNull, isNull, or, type SQL } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import { AuditService } from '../audit/audit.service.js'
+import {
+  buildCursorCondition,
+  buildCursorResponse,
+} from '../common/utils/cursor-pagination.util.js'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { members, organizations, users } from '../database/schema/auth.schema.js'
 import { OrgCycleDetectedException } from './exceptions/org-cycle-detected.exception.js'
 import { OrgDepthExceededException } from './exceptions/org-depth-exceeded.exception.js'
 import { AdminOrgNotFoundException } from './exceptions/org-not-found.exception.js'
 import { OrgSlugConflictException } from './exceptions/org-slug-conflict.exception.js'
-import { buildCursorCondition, buildCursorResponse } from './utils/cursor-pagination.util.js'
 
 /**
  * AdminOrganizationsService — cross-tenant org management for super admins.
@@ -329,14 +332,18 @@ export class AdminOrganizationsService {
       .where(eq(organizations.parentOrganizationId, orgId))
 
     // Child member count (members in child orgs)
-    const [childMemberCountResult] = await this.db.select({ count: count() }).from(members).where(
-      eq(
-        members.organizationId,
-        // This is simplified -- in a real implementation we'd use a subquery
-        // but for the test mock it just needs to be a separate select call
-        orgId
+    const [childMemberCountResult] = await this.db
+      .select({ count: count() })
+      .from(members)
+      .where(
+        inArray(
+          members.organizationId,
+          this.db
+            .select({ id: organizations.id })
+            .from(organizations)
+            .where(eq(organizations.parentOrganizationId, orgId))
+        )
       )
-    )
 
     return {
       memberCount: memberCountResult!.count,
@@ -484,31 +491,33 @@ export class AdminOrganizationsService {
    * Walks up from newParentId, checking each node.
    */
   private async validateHierarchy(orgId: string, newParentId: string): Promise<void> {
-    let depth = 0
-    let currentId: string | null = newParentId
-    while (currentId) {
-      const [org] = await this.db
-        .select({
-          id: organizations.id,
-          parentOrganizationId: organizations.parentOrganizationId,
-        })
-        .from(organizations)
-        .where(eq(organizations.id, currentId))
-        .limit(1)
-      if (!org) break
+    await this.db.transaction(async (tx) => {
+      let depth = 0
+      let currentId: string | null = newParentId
+      while (currentId) {
+        const [org] = await tx
+          .select({
+            id: organizations.id,
+            parentOrganizationId: organizations.parentOrganizationId,
+          })
+          .from(organizations)
+          .where(eq(organizations.id, currentId))
+          .limit(1)
+        if (!org) break
 
-      currentId = org.parentOrganizationId
-      if (currentId) depth++
+        currentId = org.parentOrganizationId
+        if (currentId) depth++
 
-      // Check for cycle: if we encounter the org being updated in the chain
-      if (currentId === orgId) {
-        throw new OrgCycleDetectedException()
+        // Check for cycle: if we encounter the org being updated in the chain
+        if (currentId === orgId) {
+          throw new OrgCycleDetectedException()
+        }
       }
-    }
 
-    // Check depth: adding orgId as child of newParent
-    if (depth + 1 >= 3) {
-      throw new OrgDepthExceededException()
-    }
+      // Check depth: adding orgId as child of newParent
+      if (depth + 1 >= 3) {
+        throw new OrgDepthExceededException()
+      }
+    })
   }
 }
