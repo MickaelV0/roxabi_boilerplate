@@ -54,12 +54,17 @@ Spawn fresh agents via Task (¬implementation context → ¬bias).
 | Agent | Condition | Focus |
 |-------|-----------|-------|
 | **security-auditor** | always | OWASP, secrets, injection, auth |
-| **architect** | always | patterns, structure, circular deps |
-| **product-lead** | always | spec compliance, product fit |
-| **tester** | always | coverage, AAA, edge cases |
+| **architect** | |Δ| > 5 ∨ src ⊇ {arch, pattern, structure, service, module} | patterns, structure, circular deps |
+| **product-lead** | spec(issue_num) ∃ | spec compliance, product fit |
+| **tester** | Δ ∩ {`src/`, `test/`, `*.test.*`, `*.spec.*`} ≠ ∅ | coverage, AAA, edge cases |
 | **frontend-dev** | Δ ∩ {`apps/web/`, `packages/ui/`} ≠ ∅ | FE patterns, components, hooks |
 | **backend-dev** | Δ ∩ {`apps/api/`, `packages/types/`} ≠ ∅ | BE patterns, API, errors |
 | **devops** | Δ ∩ {configs, CI} ≠ ∅ | config, deploy, infra |
+
+**Notes:**
+- **architect skip:** XS changes (≤5 files) ∧ no arch keywords → faster feedback
+- **product-lead skip:** phase 1.5 auto-detects spec; if missing, skip entirely
+- **tester skip:** config/docs/infra only → skip (test reviewers handled by domain-specific agents)
 
 **Subdomain split:** |files_domain| ≥ 8 ∧ distinct modules → N same-type agents, 1/module group. Default: 1 agent/domain.
 
@@ -79,7 +84,7 @@ Spawn fresh agents via Task (¬implementation context → ¬bias).
 
 ### Agent payload
 
-Each agent receives: full diff + Δ + spec (if ∃) + "output Conventional Comments"
+Each **spawned** agent receives: full diff + Δ + spec (if ∃) + "output Conventional Comments". Only agents matching Phase 2 conditions are spawned.
 
 ### Review dimensions (scoped per domain)
 
@@ -224,6 +229,9 @@ All use `.claude/agents/fixer.md`. Done → stage + commit + push (1 commit). CI
 | C(f) = T | Inclusive (≥ T) |
 | Missing root cause/solutions | C(f) := 0, → Q_1b1 |
 | Phase 3.5 edits ∩ Phase 4 targets | Phase 4 fixer re-reads files first |
+| architect skipped (|Δ| ≤ 5 + no arch keywords) | No arch review → faster, still security/spec/test |
+| product-lead skipped (no spec) | Skip compliance check → Phase 1.5 validation skipped |
+| tester skipped (pure config/docs) | No test coverage review → focus on security/devops |
 
 ## Safety Rules
 
