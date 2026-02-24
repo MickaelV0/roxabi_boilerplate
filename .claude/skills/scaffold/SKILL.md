@@ -146,6 +146,22 @@ Read [references/micro-tasks.md](references/micro-tasks.md) for full procedure.
 
 ## Step 5 — Implement
 
+### 5a. Context Injection (Tier F only)
+
+Tier S ⇒ skip this sub-step.
+
+For each agent to spawn, include domain-specific read instructions in the Task prompt. Use section header text only (no numeric prefixes) — robust against section renumbering:
+
+| Agent | Read instructions to inject |
+|-------|----------------------------|
+| **frontend-dev** | "Before implementing, read `docs/standards/frontend-patterns.mdx` sections: Component Patterns, AI Quick Reference. Read `docs/standards/testing.mdx` section: Frontend Testing Patterns." |
+| **backend-dev** | "Before implementing, read `docs/standards/backend-patterns.mdx` sections: Design Patterns, Error Handling, AI Quick Reference. Read `docs/standards/testing.mdx` section: Backend Testing Patterns." |
+| **tester** | "Before writing tests, read `docs/standards/testing.mdx` sections: Test Structure (AAA Pattern), Coverage Guidelines, Mocking Strategies, AI-Assisted TDD Workflow." |
+| **architect** | "Before reviewing architecture, read `docs/standards/frontend-patterns.mdx` section: AI Quick Reference. Read `docs/standards/backend-patterns.mdx` section: AI Quick Reference." |
+| **devops** | No standards doc injection (devops reads config files, not standards docs) |
+
+Agents receive these instructions as part of their Task prompt and read the specified sections instead of discovering and reading full docs.
+
 ### Tier S — Direct
 
 Read stubs + criteria → implement → tests → `bun lint && bun typecheck && bun run test` → loop until ✓.

@@ -86,13 +86,50 @@ Spawn **fresh review agents** via the `Task` tool. Each agent is a new instance 
 
    Default to 1 agent per domain for PRs under 8 files in that domain.
 
-2. **Spawn each agent** with a Task that includes:
+2. **Build scoped file list for security-auditor** before spawning it:
+
+   This step runs only for the security-auditor spawn — other agents are unaffected.
+
+   ```bash
+   # Step 1: Get changed files
+   # Branch mode:
+   CHANGED=$(git diff --name-only staging...HEAD)
+   # PR mode:
+   CHANGED=$(gh pr diff <number> --name-only)
+   ```
+
+   For each changed file, extract import paths. The codebase uses ESM (`"type": "module"`) — only `from '...'` clauses are matched:
+
+   ```bash
+   # Step 2: Extract import paths from each changed file
+   # Matches 'from "..."' on ANY line (handles multi-line imports)
+   grep -ohE "from ['\"][^'\"]+['\"]" <file> | grep -oE "['\"][^'\"]+['\"]" | tr -d "'\""
+   ```
+
+   Resolve imports to file paths using the alias mapping table:
+
+   | Import Pattern | Resolution Rule |
+   |---------------|----------------|
+   | `./foo`, `../bar` | Resolve relative to importing file's directory, try `.ts` and `/index.ts` extensions |
+   | `@repo/types` | → `packages/types/src/index.ts` |
+   | `@repo/ui` | → `packages/ui/src/index.ts` |
+   | `@repo/config` | → `packages/config/src/index.ts` |
+   | `@repo/email` | → `packages/email/src/index.ts` |
+   | `@/*` (web files only) | → `apps/web/src/` + remainder + `.ts` |
+   | External packages | Skip (not local files) |
+
+   Add always-include paths: `apps/api/src/auth/**`
+
+   Deduplicate and pass combined list to security-auditor prompt:
+   "Audit the following files for OWASP Top 10 vulnerabilities. This is a scoped list of changed files, their direct imports, and all auth modules: {file_list}"
+
+3. **Spawn each agent** with a Task that includes:
    - The full diff (`git diff staging...HEAD` or `gh pr diff`)
    - The list of changed files
    - The spec (if one exists) for compliance checking
    - Instructions to produce findings in Conventional Comments format
 
-3. **Each agent reviews** using the checklist from `docs/standards/code-review.mdx` scoped to its domain:
+4. **Each agent reviews** using the checklist from `docs/standards/code-review.mdx` scoped to its domain:
    - Correctness (edge cases, error handling, types)
    - Security (secrets, injection, XSS, auth guards)
    - Performance (N+1 queries, memory leaks, unnecessary memoization)
@@ -101,7 +138,7 @@ Spawn **fresh review agents** via the `Task` tool. Each agent is a new instance 
    - Readability (naming, complexity, comments)
    - Observability (logging, correlation IDs, timeouts)
 
-4. **Output findings in the enriched format.** Every finding produced by a review agent MUST include the full enriched format — Conventional Comment label, root cause analysis, 2-3 concrete solutions with a recommended marker, and a confidence score:
+5. **Output findings in the enriched format.** Every finding produced by a review agent MUST include the full enriched format — Conventional Comment label, root cause analysis, 2-3 concrete solutions with a recommended marker, and a confidence score:
 
    ```
    <label>: <description>
@@ -145,7 +182,7 @@ Spawn **fresh review agents** via the `Task` tool. Each agent is a new instance 
 
    **Malformed confidence values:** If the confidence value is not a valid integer between 0 and 100 (e.g., "high", "120%", "0.85", negative numbers), treat it as 0% and route the finding to 1b1.
 
-5. **Categorize each finding:**
+6. **Categorize each finding:**
 
    | Category | Severity | Label | Blocks merge? |
    |----------|----------|-------|---------------|
