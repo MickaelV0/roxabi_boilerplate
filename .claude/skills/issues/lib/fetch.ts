@@ -86,12 +86,14 @@ export async function fetchIssues(): Promise<Issue[]> {
     .filter((i) => !i.content.parent || i.content.parent.state === 'CLOSED')
     .map(toIssue)
 
-  // Sort: blocking first, then ready, then blocked; within that by priority
-  const priorityOrder: Record<string, number> = {
-    'P0 - Urgent': 0,
-    'P1 - High': 1,
-    'P2 - Medium': 2,
-    'P3 - Low': 3,
+  // Sort: status first (Review > In Progress > Specs > Analysis > Backlog),
+  // then block status, then priority
+  const statusOrder: Record<string, number> = {
+    Review: 0,
+    'In Progress': 1,
+    Specs: 2,
+    Analysis: 3,
+    Backlog: 4,
     '-': 99,
   }
   const blockOrder: Record<string, number> = {
@@ -99,8 +101,17 @@ export async function fetchIssues(): Promise<Issue[]> {
     ready: 1,
     blocked: 2,
   }
+  const priorityOrder: Record<string, number> = {
+    'P0 - Urgent': 0,
+    'P1 - High': 1,
+    'P2 - Medium': 2,
+    'P3 - Low': 3,
+    '-': 99,
+  }
 
   roots.sort((a, b) => {
+    const sd = (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99)
+    if (sd !== 0) return sd
     const bd = (blockOrder[a.blockStatus] ?? 9) - (blockOrder[b.blockStatus] ?? 9)
     if (bd !== 0) return bd
     return (priorityOrder[a.priority] ?? 99) - (priorityOrder[b.priority] ?? 99)

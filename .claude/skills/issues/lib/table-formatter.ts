@@ -105,15 +105,15 @@ export interface FormatOptions {
 
 export function sortIssues(items: RawItem[]): RawItem[] {
   return [...items].sort((a, b) => {
-    const aBlock = computeBlockStatus(a)
-    const bBlock = computeBlockStatus(b)
-    const bd = (BLOCK_ORDER[aBlock] ?? 9) - (BLOCK_ORDER[bBlock] ?? 9)
-    if (bd !== 0) return bd
-
     const aStatus = fieldValue(a, 'Status')
     const bStatus = fieldValue(b, 'Status')
     const sd = (STATUS_ORDER[aStatus] ?? 99) - (STATUS_ORDER[bStatus] ?? 99)
     if (sd !== 0) return sd
+
+    const aBlock = computeBlockStatus(a)
+    const bBlock = computeBlockStatus(b)
+    const bd = (BLOCK_ORDER[aBlock] ?? 9) - (BLOCK_ORDER[bBlock] ?? 9)
+    if (bd !== 0) return bd
 
     const aPri = fieldValue(a, 'Priority')
     const bPri = fieldValue(b, 'Priority')
