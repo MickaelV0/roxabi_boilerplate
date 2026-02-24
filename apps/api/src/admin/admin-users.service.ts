@@ -22,16 +22,20 @@ import {
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { auditLogs } from '../database/schema/audit.schema.js'
 import { members, organizations, users } from '../database/schema/auth.schema.js'
+import { findUserSnapshotOrThrow } from './admin-users.shared.js'
 import { EmailConflictException } from './exceptions/email-conflict.exception.js'
-import { NotDeletedException } from './exceptions/not-deleted.exception.js'
 import { SelfActionException } from './exceptions/self-action.exception.js'
 import { SuperadminProtectionException } from './exceptions/superadmin-protection.exception.js'
-import { UserAlreadyBannedException } from './exceptions/user-already-banned.exception.js'
 import { AdminUserNotFoundException } from './exceptions/user-not-found.exception.js'
 import { redactSensitiveFields } from './utils/redact-sensitive-fields.js'
 
 /**
  * AdminUsersService — cross-tenant user management for super admins.
+ *
+ * Handles: listUsers, getUserDetail, updateUser.
+ *
+ * Lifecycle state transitions (ban / unban / delete / restore) are in
+ * AdminUsersLifecycleService.
  *
  * Uses raw DRIZZLE connection (not TenantService) because admin operations
  * require cross-tenant access. No organizationId scoping on user queries.
@@ -323,7 +327,7 @@ export class AdminUsersService {
     data: { name?: string; email?: string; role?: string },
     actorId: string
   ) {
-    const beforeUser = await this.findUserSnapshotOrThrow(userId)
+    const beforeUser = await findUserSnapshotOrThrow(this.db, userId)
     this.validateUpdatePermissions(data, actorId, userId, beforeUser.role ?? 'user')
 
     const updatedUser = await this.executeUserUpdate(userId, data)
@@ -364,139 +368,6 @@ export class AdminUsersService {
       }
       throw err
     }
-  }
-
-  /**
-   * Ban a user.
-   */
-  async banUser(userId: string, reason: string, expires: Date | null, actorId: string) {
-    if (actorId === userId) {
-      throw new SelfActionException()
-    }
-
-    const user = await this.findUserSnapshotOrThrow(userId)
-    this.validateBanEligibility(user, userId)
-
-    const [updatedUser] = await this.db
-      .update(users)
-      .set({ banned: true, banReason: reason, banExpires: expires })
-      .where(eq(users.id, userId))
-      .returning()
-
-    this.logUserAudit('user.banned', userId, actorId, user, updatedUser)
-
-    return updatedUser
-  }
-
-  private validateBanEligibility(
-    user: { role: string | null; banned: boolean | null },
-    userId: string
-  ) {
-    if (user.role === 'superadmin') {
-      throw new SuperadminProtectionException()
-    }
-    if (user.banned) {
-      throw new UserAlreadyBannedException(userId)
-    }
-  }
-
-  /**
-   * Unban a user -- set banned=false, clear banReason and banExpires.
-   */
-  async unbanUser(userId: string, actorId: string) {
-    const user = await this.findUserSnapshotOrThrow(userId)
-
-    const [updatedUser] = await this.db
-      .update(users)
-      .set({ banned: false, banReason: null, banExpires: null })
-      .where(eq(users.id, userId))
-      .returning()
-
-    this.logUserAudit('user.unbanned', userId, actorId, user, updatedUser)
-
-    return updatedUser
-  }
-
-  /**
-   * Soft-delete a user -- set deletedAt and deleteScheduledFor (now + 30 days).
-   */
-  async deleteUser(userId: string, actorId: string) {
-    if (actorId === userId) {
-      throw new SelfActionException()
-    }
-
-    const user = await this.findUserSnapshotOrThrow(userId)
-    this.validateDeleteEligibility(user, userId)
-
-    const now = new Date()
-    const scheduledFor = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-
-    const [updatedUser] = await this.db
-      .update(users)
-      .set({ deletedAt: now, deleteScheduledFor: scheduledFor })
-      .where(eq(users.id, userId))
-      .returning()
-
-    this.logUserAudit('user.deleted', userId, actorId, user, updatedUser)
-
-    return updatedUser
-  }
-
-  private validateDeleteEligibility(
-    user: { role: string | null; deletedAt: Date | null },
-    userId: string
-  ) {
-    if (user.role === 'superadmin') {
-      throw new SuperadminProtectionException()
-    }
-    if (user.deletedAt) {
-      throw new NotDeletedException('User', userId)
-    }
-  }
-
-  /**
-   * Restore a soft-deleted user -- clear deletedAt and deleteScheduledFor.
-   */
-  async restoreUser(userId: string, actorId: string) {
-    const user = await this.findUserSnapshotOrThrow(userId)
-
-    if (!user.deletedAt) {
-      throw new NotDeletedException('User', userId)
-    }
-
-    const [updatedUser] = await this.db
-      .update(users)
-      .set({ deletedAt: null, deleteScheduledFor: null })
-      .where(eq(users.id, userId))
-      .returning()
-
-    this.logUserAudit('user.restored', userId, actorId, user, updatedUser)
-
-    return updatedUser
-  }
-
-  private async findUserSnapshotOrThrow(userId: string) {
-    const [user] = await this.db
-      .select({
-        id: users.id,
-        name: users.name,
-        email: users.email,
-        role: users.role,
-        banned: users.banned,
-        banReason: users.banReason,
-        banExpires: users.banExpires,
-        deletedAt: users.deletedAt,
-        deleteScheduledFor: users.deleteScheduledFor,
-        createdAt: users.createdAt,
-      })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1)
-
-    if (!user) {
-      throw new AdminUserNotFoundException(userId)
-    }
-    return user
   }
 
   private logUserAudit(

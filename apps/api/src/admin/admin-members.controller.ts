@@ -21,6 +21,7 @@ import { Permissions } from '../auth/decorators/permissions.decorator.js'
 import { Session } from '../auth/decorators/session.decorator.js'
 import type { AdminSession } from '../auth/types.js'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
+import { AdminInvitationsService } from './admin-invitations.service.js'
 import { AdminMembersService } from './admin-members.service.js'
 import { AdminExceptionFilter } from './filters/admin-exception.filter.js'
 
@@ -44,7 +45,10 @@ const MAX_PAGE_LIMIT = 100
 @Throttle({ global: { ttl: 60_000, limit: 30 } })
 @Controller('api/admin/members')
 export class AdminMembersController {
-  constructor(private readonly adminMembersService: AdminMembersService) {}
+  constructor(
+    private readonly adminMembersService: AdminMembersService,
+    private readonly adminInvitationsService: AdminInvitationsService
+  ) {}
 
   @Get()
   @Permissions('members:read')
@@ -76,7 +80,7 @@ export class AdminMembersController {
     @Session() session: AdminSession,
     @Body(new ZodValidationPipe(inviteMemberSchema)) body: InviteMemberDto
   ) {
-    return this.adminMembersService.inviteMember(
+    return this.adminInvitationsService.inviteMember(
       session.session.activeOrganizationId,
       body,
       session.user.id

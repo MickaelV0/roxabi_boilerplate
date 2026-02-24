@@ -21,6 +21,7 @@ import { Session } from '../auth/decorators/session.decorator.js'
 import type { AuthenticatedSession } from '../auth/types.js'
 import { SkipOrg } from '../common/decorators/skip-org.decorator.js'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
+import { AdminUsersLifecycleService } from './admin-users.lifecycle.js'
 import { AdminUsersService } from './admin-users.service.js'
 import { AdminExceptionFilter } from './filters/admin-exception.filter.js'
 
@@ -59,7 +60,10 @@ type BanUserDto = z.infer<typeof banUserSchema>
 @SkipOrg()
 @Controller('api/admin/users')
 export class AdminUsersController {
-  constructor(private readonly adminUsersService: AdminUsersService) {}
+  constructor(
+    private readonly adminUsersService: AdminUsersService,
+    private readonly adminUsersLifecycleService: AdminUsersLifecycleService
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'List all platform users (cross-tenant, cursor-paginated)' })
@@ -123,7 +127,7 @@ export class AdminUsersController {
     if (expires && Number.isNaN(expires.getTime())) {
       throw new BadRequestException('Invalid expiry date')
     }
-    return this.adminUsersService.banUser(userId, body.reason, expires, session.user.id)
+    return this.adminUsersLifecycleService.banUser(userId, body.reason, expires, session.user.id)
   }
 
   @Post(':userId/unban')
@@ -134,7 +138,7 @@ export class AdminUsersController {
     @Param('userId', new ParseUUIDPipe({ version: '4' })) userId: string,
     @Session() session: AuthenticatedSession
   ) {
-    return this.adminUsersService.unbanUser(userId, session.user.id)
+    return this.adminUsersLifecycleService.unbanUser(userId, session.user.id)
   }
 
   @Delete(':userId')
@@ -146,7 +150,7 @@ export class AdminUsersController {
     @Param('userId', new ParseUUIDPipe({ version: '4' })) userId: string,
     @Session() session: AuthenticatedSession
   ) {
-    await this.adminUsersService.deleteUser(userId, session.user.id)
+    await this.adminUsersLifecycleService.deleteUser(userId, session.user.id)
   }
 
   @Post(':userId/restore')
@@ -157,6 +161,6 @@ export class AdminUsersController {
     @Param('userId', new ParseUUIDPipe({ version: '4' })) userId: string,
     @Session() session: AuthenticatedSession
   ) {
-    return this.adminUsersService.restoreUser(userId, session.user.id)
+    return this.adminUsersLifecycleService.restoreUser(userId, session.user.id)
   }
 }

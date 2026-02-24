@@ -2,9 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuditService } from '../audit/audit.service.js'
 import { createChainMock } from './__test-utils__/create-chain-mock.js'
 import { AdminMembersService } from './admin-members.service.js'
-import { InvitationAlreadyPendingException } from './exceptions/invitation-already-pending.exception.js'
 import { LastOwnerConstraintException } from './exceptions/last-owner-constraint.exception.js'
-import { MemberAlreadyExistsException } from './exceptions/member-already-exists.exception.js'
 import { AdminMemberNotFoundException } from './exceptions/member-not-found.exception.js'
 import { AdminRoleNotFoundException } from './exceptions/role-not-found.exception.js'
 import { SelfRemovalException } from './exceptions/self-removal.exception.js'
@@ -25,7 +23,7 @@ function createMockDb() {
 }
 
 /**
- * Helper to mock db.transaction() — executes the callback with a tx mock
+ * Helper to mock db.transaction() -- executes the callback with a tx mock
  * that has its own select/update chain mocks. Returns the tx so tests
  * can configure per-call return values on tx.select / tx.update.
  */
@@ -185,167 +183,8 @@ describe('AdminMembersService', () => {
       // Act
       await service.listMembers('org-1', { page: 3, limit: 10 })
 
-      // Assert — offset should be (3-1)*10 = 20
+      // Assert -- offset should be (3-1)*10 = 20
       expect(memberChain.offset).toHaveBeenCalledWith(20)
-    })
-  })
-
-  // -----------------------------------------------------------------------
-  // inviteMember
-  // -----------------------------------------------------------------------
-  describe('inviteMember', () => {
-    it('should create invitation when role exists and no conflicts', async () => {
-      // Arrange
-      const roleChain = createChainMock([{ id: 'r-member', slug: 'member' }])
-      const existingMemberChain = createChainMock([])
-      const existingInvitationChain = createChainMock([])
-      const invitation = {
-        id: 'inv-1',
-        email: 'new@example.com',
-        role: 'member',
-        status: 'pending',
-      }
-      const insertChain = createChainMock([invitation])
-
-      db.select
-        .mockReturnValueOnce(roleChain) // role lookup
-        .mockReturnValueOnce(existingMemberChain) // existing member check
-        .mockReturnValueOnce(existingInvitationChain) // existing invitation check
-      db.insert.mockReturnValueOnce(insertChain)
-
-      // Act
-      const result = await service.inviteMember(
-        'org-1',
-        { email: 'new@example.com', roleId: 'r-member' },
-        'actor-1'
-      )
-
-      // Assert
-      expect(result).toEqual(invitation)
-      expect(db.insert).toHaveBeenCalled()
-    })
-
-    it('should throw AdminRoleNotFoundException when role does not exist', async () => {
-      // Arrange
-      db.select.mockReturnValueOnce(createChainMock([]))
-
-      // Act & Assert
-      await expect(
-        service.inviteMember('org-1', { email: 'new@example.com', roleId: 'r-invalid' }, 'actor-1')
-      ).rejects.toThrow(AdminRoleNotFoundException)
-    })
-
-    it('should throw MemberAlreadyExistsException when member already in org', async () => {
-      // Arrange
-      db.select
-        .mockReturnValueOnce(createChainMock([{ id: 'r-member', slug: 'member' }])) // role exists
-        .mockReturnValueOnce(createChainMock([{ id: 'm-existing' }])) // member exists
-
-      // Act & Assert
-      await expect(
-        service.inviteMember(
-          'org-1',
-          { email: 'existing@example.com', roleId: 'r-member' },
-          'actor-1'
-        )
-      ).rejects.toThrow(MemberAlreadyExistsException)
-    })
-
-    it('should throw InvitationAlreadyPendingException when pending invitation exists', async () => {
-      // Arrange
-      db.select
-        .mockReturnValueOnce(createChainMock([{ id: 'r-member', slug: 'member' }])) // role exists
-        .mockReturnValueOnce(createChainMock([])) // no existing member
-        .mockReturnValueOnce(createChainMock([{ id: 'inv-existing' }])) // pending invitation
-
-      // Act & Assert
-      await expect(
-        service.inviteMember(
-          'org-1',
-          { email: 'pending@example.com', roleId: 'r-member' },
-          'actor-1'
-        )
-      ).rejects.toThrow(InvitationAlreadyPendingException)
-    })
-
-    it('should use empty string as resourceId when insert returns no rows', async () => {
-      // Arrange — insert returns empty array so `invitation` is undefined
-      db.select
-        .mockReturnValueOnce(createChainMock([{ id: 'r-member', slug: 'member' }]))
-        .mockReturnValueOnce(createChainMock([]))
-        .mockReturnValueOnce(createChainMock([]))
-      db.insert.mockReturnValueOnce(createChainMock([]))
-
-      // Act
-      await service.inviteMember(
-        'org-1',
-        { email: 'new@example.com', roleId: 'r-member' },
-        'actor-1'
-      )
-
-      // Assert — resourceId falls back to ''
-      expect(auditService.log).toHaveBeenCalledWith(expect.objectContaining({ resourceId: '' }))
-    })
-
-    it('should not throw when auditService.log rejects (fire-and-forget)', async () => {
-      // Arrange
-      const invitation = {
-        id: 'inv-1',
-        email: 'new@example.com',
-        role: 'member',
-        status: 'pending',
-      }
-      db.select
-        .mockReturnValueOnce(createChainMock([{ id: 'r-member', slug: 'member' }]))
-        .mockReturnValueOnce(createChainMock([]))
-        .mockReturnValueOnce(createChainMock([]))
-      db.insert.mockReturnValueOnce(createChainMock([invitation]))
-      vi.mocked(auditService.log).mockRejectedValue(new Error('audit down'))
-
-      // Act & Assert -- should resolve without throwing
-      await expect(
-        service.inviteMember('org-1', { email: 'new@example.com', roleId: 'r-member' }, 'actor-1')
-      ).resolves.toBeDefined()
-
-      // Flush microtasks so the .catch() handler runs
-      await new Promise<void>((resolve) => queueMicrotask(resolve))
-    })
-
-    it('should call auditService.log after creating invitation', async () => {
-      // Arrange
-      const invitation = {
-        id: 'inv-1',
-        email: 'new@example.com',
-        role: 'member',
-        status: 'pending',
-      }
-      db.select
-        .mockReturnValueOnce(createChainMock([{ id: 'r-member', slug: 'member' }]))
-        .mockReturnValueOnce(createChainMock([]))
-        .mockReturnValueOnce(createChainMock([]))
-      db.insert.mockReturnValueOnce(createChainMock([invitation]))
-
-      // Act
-      await service.inviteMember(
-        'org-1',
-        { email: 'new@example.com', roleId: 'r-member' },
-        'actor-1'
-      )
-
-      // Assert
-      expect(auditService.log).toHaveBeenCalledWith({
-        actorId: 'actor-1',
-        actorType: 'user',
-        organizationId: 'org-1',
-        action: 'member.invited',
-        resource: 'invitation',
-        resourceId: 'inv-1',
-        after: {
-          email: 'new@example.com',
-          roleId: 'r-member',
-          roleSlug: 'member',
-        },
-      })
     })
   })
 
@@ -354,7 +193,7 @@ describe('AdminMembersService', () => {
   // -----------------------------------------------------------------------
   describe('changeMemberRole', () => {
     it('should update role and legacy role field successfully', async () => {
-      // Arrange — single joined query returns member with current role info
+      // Arrange -- single joined query returns member with current role info
       const newRole = { id: 'r-admin', slug: 'admin', name: 'Admin' }
       const memberWithRole = {
         id: 'm-1',
@@ -452,7 +291,7 @@ describe('AdminMembersService', () => {
     })
 
     it('should set null before role info when left join returns no role', async () => {
-      // Arrange — member has roleId but role row is missing from DB (left join returns null)
+      // Arrange -- member has roleId but role row is missing from DB (left join returns null)
       const newRole = { id: 'r-admin', slug: 'admin', name: 'Admin' }
       const memberWithRole = {
         id: 'm-1',
@@ -472,7 +311,7 @@ describe('AdminMembersService', () => {
       // Act
       await service.changeMemberRole('m-1', 'org-1', { roleId: 'r-admin' }, 'actor-1')
 
-      // Assert — before role slug/name are null from the left join
+      // Assert -- before role slug/name are null from the left join
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({
           before: {
@@ -518,7 +357,7 @@ describe('AdminMembersService', () => {
     })
 
     it('should throw SelfRoleChangeException when actor changes their own role', async () => {
-      // Arrange — member.userId matches actorId
+      // Arrange -- member.userId matches actorId
       const newRole = { id: 'r-admin', slug: 'admin', name: 'Admin' }
       const memberWithRole = {
         id: 'm-1',
@@ -543,7 +382,7 @@ describe('AdminMembersService', () => {
     })
 
     it('should short-circuit when new roleId equals current roleId', async () => {
-      // Arrange — member already has the target role
+      // Arrange -- member already has the target role
       const newRole = { id: 'r-member', slug: 'member', name: 'Member' }
       const memberWithRole = {
         id: 'm-1',
@@ -566,7 +405,7 @@ describe('AdminMembersService', () => {
         'actor-1'
       )
 
-      // Assert — returns early without UPDATE or audit log
+      // Assert -- returns early without UPDATE or audit log
       expect(result).toEqual({ updated: true })
       expect(db.update).not.toHaveBeenCalled()
       expect(auditService.log).not.toHaveBeenCalled()
@@ -579,7 +418,7 @@ describe('AdminMembersService', () => {
   // biome-ignore lint/complexity/noExcessiveLinesPerFunction: test describe block with multiple test cases
   describe('removeMember', () => {
     it('should remove member successfully when not last owner', async () => {
-      // Arrange — joined query returns member with role slug
+      // Arrange -- joined query returns member with role slug
       const member = {
         id: 'm-1',
         userId: 'u-1',
@@ -630,7 +469,7 @@ describe('AdminMembersService', () => {
     })
 
     it('should throw SelfRemovalException when actor removes themselves', async () => {
-      // Arrange — member.userId matches actorId
+      // Arrange -- member.userId matches actorId
       const member = {
         id: 'm-1',
         userId: 'actor-1',
@@ -669,7 +508,7 @@ describe('AdminMembersService', () => {
     })
 
     it('should throw LastOwnerConstraintException when owner count query returns empty', async () => {
-      // Arrange — count query returns [] so ownerCount is undefined -> fallback 0 <= 1
+      // Arrange -- count query returns [] so ownerCount is undefined -> fallback 0 <= 1
       const member = {
         id: 'm-1',
         userId: 'u-1',
