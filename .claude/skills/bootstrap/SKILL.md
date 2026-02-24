@@ -41,20 +41,9 @@ Glob `analyses/*`, `specs/*` — match issue# ∨ slug keywords.
 
 ## Step 1a — Complexity Score
 
-Skip if `--spec`.
+Skip if `--spec`. Use `/issue-triage` [Complexity Scoring](../issue-triage/SKILL.md#complexity-scoring) rubric (factors, formula, tier mapping).
 
-Score 1–10: `round(files×0.20 + risk×0.25 + arch×0.25 + unknowns×0.15 + domains×0.15)`
-
-Each factor scored 1–10: files touched, technical risk, architectural impact, unknowns count, domain breadth.
-
-| Score | Tier | Process |
-|-------|------|---------|
-| 1–3 | S | Worktree + direct impl + PR |
-| 4–6 | F-lite | Worktree + subagents + /review |
-| 7–10 | F-full | Bootstrap + worktree + agent team + /review |
-
-Score = guide, ¬gate. AskUserQuestion: Confirm {tier} | Override S | Override F-lite | Override F-full.
-Ref: [analyses/280-token-consumption.mdx](../../../analyses/280-token-consumption.mdx).
+AskUserQuestion: Confirm {tier} | Override S | Override F-lite | Override F-full.
 
 ---
 

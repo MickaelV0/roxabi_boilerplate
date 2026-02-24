@@ -29,10 +29,10 @@ Apply accepted review comments. ¬new features, ¬over-refactoring.
 ∀ finding (severity order, blockers first):
 1. Read file + context
 2. ∃ `Chosen solution:` → apply directly. ¬∃ → derive from description.
-3. Minimal fix → `bun run lint && bun run typecheck && bun run test`
-4. ✗ → revert + report | ✓ → next
+3. Apply minimal fix → next finding
 
-After all: full quality check → summary to lead (fixed + cannot-auto-fix).
+After all fixes: `bun run lint && bun run typecheck && bun run test`
+✗ → fix failures + re-run | ✓ → summary to lead (fixed + cannot-auto-fix).
 
 ### Enriched Fields
 
