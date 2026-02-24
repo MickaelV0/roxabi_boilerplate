@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
 
 function getClosestAncestor(element: Element, selector: string): Element {
@@ -165,6 +165,10 @@ function setupWithOrgs({ includeMembers = false }: { includeMembers?: boolean } 
 }
 
 describe('OrgSwitcher', () => {
+  beforeEach(() => {
+    mockUseCanAccess.mockReturnValue(false)
+  })
+
   it('should render nothing while loading', () => {
     const { container } = render(
       <OrgSwitcher orgState={buildOrgState({ data: undefined, isLoading: true })} />
@@ -305,9 +309,6 @@ describe('OrgSwitcher', () => {
     // Assert
     expect(screen.getByText('user_menu_org_settings')).toBeInTheDocument()
     expect(screen.getByText('user_menu_org_members')).toBeInTheDocument()
-
-    // Cleanup
-    mockUseCanAccess.mockReturnValue(false)
   })
 
   it('should hide org settings and members links when useCanAccess returns false', () => {

@@ -28,10 +28,12 @@ import { PendingInvitations } from '@/components/admin/PendingInvitations'
 import type { MembersResponse, OrgRole } from '@/components/admin/types'
 import { authClient } from '@/lib/auth-client'
 import { parseErrorMessage } from '@/lib/error-utils'
+import { enforceRoutePermission } from '@/lib/route-permissions'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/admin/members')({
   staticData: { permission: 'members:write' },
+  beforeLoad: enforceRoutePermission,
   component: AdminMembersPage,
   head: () => ({
     meta: [{ title: `${m.org_members_title()} | Roxabi` }],

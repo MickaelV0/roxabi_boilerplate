@@ -21,7 +21,7 @@ vi.mock('@tanstack/react-query', () => ({
 }))
 
 // Import after mocks are set up
-import { enforceRoutePermission, useCanAccess } from '../route-permissions'
+import { enforceRoutePermission, useCanAccess } from './route-permissions'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -165,6 +165,24 @@ describe('enforceRoutePermission', () => {
 
     // Act & Assert
     await expect(enforceRoutePermission(ctx)).resolves.toBeUndefined()
+  })
+
+  it('should throw redirect to /login when response body fails type guard', async () => {
+    // Arrange
+    const ctx = createBeforeLoadCtx('role:superadmin')
+    mockFetch.mockReturnValueOnce(jsonResponse({ invalid: true }))
+
+    // Act & Assert
+    await expect(enforceRoutePermission(ctx)).rejects.toThrow('REDIRECT:/login')
+  })
+
+  it('should throw redirect to /login when fetch throws a network error', async () => {
+    // Arrange
+    const ctx = createBeforeLoadCtx('role:superadmin')
+    mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    // Act & Assert
+    await expect(enforceRoutePermission(ctx)).rejects.toThrow('REDIRECT:/login')
   })
 
   it('should throw redirect to /dashboard when user lacks org permission', async () => {

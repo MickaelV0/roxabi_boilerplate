@@ -8,6 +8,7 @@
  * - `useCanAccess(to)` — a client-side hook that checks whether the current
  *   user can access a given route path based on its `staticData.permission`
  */
+import type { PermissionString } from '@repo/types'
 import { useQuery } from '@tanstack/react-query'
 import { redirect, useRouter } from '@tanstack/react-router'
 import type { StaticDataRouteOption } from '@tanstack/router-core'
@@ -26,12 +27,12 @@ declare module '@tanstack/router-core' {
      *
      * When omitted the route is unrestricted.
      */
-    permission?: string
+    permission?: PermissionString | `role:${string}`
   }
 }
 
 // ---------------------------------------------------------------------------
-// Enriched session fetcher (mirrors admin-guards.ts — see note there)
+// Enriched session fetcher
 // ---------------------------------------------------------------------------
 
 type EnrichedSession = {
@@ -44,15 +45,13 @@ function isEnrichedSession(data: unknown): data is EnrichedSession {
   if (data == null || typeof data !== 'object') return false
   const obj = data as Record<string, unknown>
   if (obj.user == null || typeof obj.user !== 'object') return false
+  if (!Array.isArray(obj.permissions)) return false
   return true
 }
 
 /**
  * Fetch the enriched session (with RBAC permissions) from the NestJS backend.
  * Returns `null` when the user is not authenticated.
- *
- * Duplicated from `admin-guards.ts` because that module does not export the
- * function. If it becomes exported in the future, prefer importing it instead.
  */
 async function fetchEnrichedSession(): Promise<EnrichedSession | null> {
   try {
@@ -65,10 +64,6 @@ async function fetchEnrichedSession(): Promise<EnrichedSession | null> {
     return null
   }
 }
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // enforceRoutePermission — beforeLoad guard
@@ -112,7 +107,6 @@ export async function enforceRoutePermission(ctx: any): Promise<void> {
 
   // SSR: no browser cookies available — return early.
   // The guard re-runs on hydration with cookies, enforcing the real redirect.
-  // See admin-guards.ts for the full security rationale.
   if (typeof window === 'undefined') return
 
   const session = await fetchEnrichedSession()
