@@ -30,6 +30,14 @@
       },
       "security": {
         "noDangerouslySetInnerHtml": "warn"
+      },
+      "nursery": {
+        "noExcessiveLinesPerFile": {
+          "level": "error",
+          "options": {
+            "maxLines": 500
+          }
+        }
       }
     }
   },
@@ -83,6 +91,9 @@
           "complexity": {
             "noExcessiveLinesPerFunction": "info",
             "noExcessiveCognitiveComplexity": "info"
+          },
+          "nursery": {
+            "noExcessiveLinesPerFile": "off"
           }
         }
       }
