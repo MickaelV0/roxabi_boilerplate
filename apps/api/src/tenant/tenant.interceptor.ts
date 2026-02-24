@@ -99,63 +99,68 @@ export class TenantInterceptor implements NestInterceptor {
     }
 
     try {
-      const orgs = await this.db
-        .select({
-          id: schema.organizations.id,
-          name: schema.organizations.name,
-          slug: schema.organizations.slug,
-          logo: schema.organizations.logo,
-          metadata: schema.organizations.metadata,
-          deletedAt: schema.organizations.deletedAt,
-          deleteScheduledFor: schema.organizations.deleteScheduledFor,
-          createdAt: schema.organizations.createdAt,
-          updatedAt: schema.organizations.updatedAt,
-        })
-        .from(schema.organizations)
-        .where(eq(schema.organizations.id, orgId))
-        .limit(1)
-
-      const org = orgs[0]
+      const org = await this.lookupOrganization(orgId)
 
       if (!org) {
         this.logger.warn(`Organization ${orgId} not found during tenant resolution`)
         return orgId
       }
 
-      // Check if org is soft-deleted
       if (org.deletedAt) {
-        const method = request.method.toUpperCase()
-        const path = request.url?.split('?')[0]
-
-        const isAllowed = ORG_DELETED_ALLOWED_PATTERNS.some(
-          (route) => route.method === method && path && route.pattern.test(path)
-        )
-
-        if (!isAllowed) {
-          throw new ForbiddenException({
-            message: 'Organization is scheduled for deletion',
-            errorCode: ErrorCode.ORG_SCHEDULED_FOR_DELETION,
-            deleteScheduledFor: org.deleteScheduledFor?.toISOString(),
-          })
-        }
+        this.enforceDeletedOrgRestriction(org, request)
       }
 
       // TODO: re-enable in Phase 3 when parent tenant resolution is designed.
       // parentOrganizationId is present in the schema but the resolution
       // strategy (which context should inherit which tenant) is not yet defined.
-      // if (org.parentOrganizationId) {
-      //   return org.parentOrganizationId
-      // }
 
       return orgId
     } catch (error) {
-      // Re-throw ForbiddenException (soft-delete check)
       if (error instanceof ForbiddenException) {
         throw error
       }
-      // On any other DB error, fall back to using the org ID directly
       this.logger.error(`Failed to resolve parent org for ${orgId}`, error)
       return orgId
+    }
+  }
+
+  private async lookupOrganization(orgId: string) {
+    // biome-ignore lint/style/noNonNullAssertion: caller guards against null db before invoking
+    const orgs = await this.db!.select({
+      id: schema.organizations.id,
+      name: schema.organizations.name,
+      slug: schema.organizations.slug,
+      logo: schema.organizations.logo,
+      metadata: schema.organizations.metadata,
+      deletedAt: schema.organizations.deletedAt,
+      deleteScheduledFor: schema.organizations.deleteScheduledFor,
+      createdAt: schema.organizations.createdAt,
+      updatedAt: schema.organizations.updatedAt,
+    })
+      .from(schema.organizations)
+      .where(eq(schema.organizations.id, orgId))
+      .limit(1)
+
+    return orgs[0] ?? null
+  }
+
+  private enforceDeletedOrgRestriction(
+    org: { deleteScheduledFor: Date | null },
+    request: AuthenticatedRequest
+  ) {
+    const method = request.method.toUpperCase()
+    const path = request.url?.split('?')[0]
+
+    const isAllowed = ORG_DELETED_ALLOWED_PATTERNS.some(
+      (route) => route.method === method && path && route.pattern.test(path)
+    )
+
+    if (!isAllowed) {
+      throw new ForbiddenException({
+        message: 'Organization is scheduled for deletion',
+        errorCode: ErrorCode.ORG_SCHEDULED_FOR_DELETION,
+        deleteScheduledFor: org.deleteScheduledFor?.toISOString(),
+      })
     }
   }
 

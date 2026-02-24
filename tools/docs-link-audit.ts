@@ -204,6 +204,27 @@ export function resolveLink(target: string, sourceFile: string): string | null {
 }
 
 // ---------------------------------------------------------------------------
+// Reporting
+// ---------------------------------------------------------------------------
+
+/**
+ * Print broken link details and exit with code 2 (lychee convention).
+ */
+function reportBrokenLinks(brokenLinks: BrokenLink[]): never {
+  console.log('BROKEN LINKS')
+  console.log('------------\n')
+
+  for (const { file, line, target, reason } of brokenLinks) {
+    console.log(`  ${file}:${line}`)
+    console.log(`    -> ${target}`)
+    console.log(`    ${reason}\n`)
+  }
+
+  // Exit code 2 matches lychee convention for broken links
+  process.exit(2)
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -251,17 +272,7 @@ async function main(): Promise<void> {
   console.log(`Broken links:           ${brokenLinks.length}\n`)
 
   if (brokenLinks.length > 0) {
-    console.log('BROKEN LINKS')
-    console.log('------------\n')
-
-    for (const { file, line, target, reason } of brokenLinks) {
-      console.log(`  ${file}:${line}`)
-      console.log(`    -> ${target}`)
-      console.log(`    ${reason}\n`)
-    }
-
-    // Exit code 2 matches lychee convention for broken links
-    process.exit(2)
+    reportBrokenLinks(brokenLinks)
   }
 
   console.log('All internal links are valid.')

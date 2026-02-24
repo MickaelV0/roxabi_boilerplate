@@ -243,6 +243,94 @@ function ActionButtons({
  * Renders contextual action buttons: Ban/Unban, Delete/Restore.
  * Each destructive action shows a confirmation dialog.
  */
+type UserActionDialogsProps = {
+  userName: string
+  showBanDialog: boolean
+  setShowBanDialog: (open: boolean) => void
+  showUnbanDialog: boolean
+  setShowUnbanDialog: (open: boolean) => void
+  showDeleteDialog: boolean
+  setShowDeleteDialog: (open: boolean) => void
+  showRestoreDialog: boolean
+  setShowRestoreDialog: (open: boolean) => void
+  banMutation: ReturnType<typeof useUserMutations>['banMutation']
+  unbanMutation: ReturnType<typeof useUserMutations>['unbanMutation']
+  deleteMutation: ReturnType<typeof useUserMutations>['deleteMutation']
+  restoreMutation: ReturnType<typeof useUserMutations>['restoreMutation']
+}
+
+function UserActionDialogs({
+  userName,
+  showBanDialog,
+  setShowBanDialog,
+  showUnbanDialog,
+  setShowUnbanDialog,
+  showDeleteDialog,
+  setShowDeleteDialog,
+  showRestoreDialog,
+  setShowRestoreDialog,
+  banMutation,
+  unbanMutation,
+  deleteMutation,
+  restoreMutation,
+}: UserActionDialogsProps) {
+  return (
+    <>
+      <BanDialog
+        open={showBanDialog}
+        onOpenChange={setShowBanDialog}
+        userName={userName}
+        isPending={banMutation.isPending}
+        onSubmit={(reason, expires) =>
+          banMutation.mutate({ reason, expires }, { onSuccess: () => setShowBanDialog(false) })
+        }
+      />
+      <ConfirmDialog
+        open={showUnbanDialog}
+        onOpenChange={setShowUnbanDialog}
+        title={`Unban ${userName}`}
+        description={`Are you sure you want to unban ${userName}? They will regain access to their account.`}
+        variant="info"
+        confirmText="Unban"
+        onConfirm={() =>
+          unbanMutation.mutate(undefined, { onSuccess: () => setShowUnbanDialog(false) })
+        }
+        loading={unbanMutation.isPending}
+      />
+      <DestructiveConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title={`Delete ${userName}`}
+        description="This action will soft-delete (archive) the user. It can be reversed by restoring."
+        confirmText={userName}
+        confirmLabel={`Type "${userName}" to confirm deletion`}
+        onConfirm={() =>
+          deleteMutation.mutate(undefined, { onSuccess: () => setShowDeleteDialog(false) })
+        }
+        isLoading={deleteMutation.isPending}
+      />
+      <ConfirmDialog
+        open={showRestoreDialog}
+        onOpenChange={setShowRestoreDialog}
+        title={`Restore ${userName}`}
+        description={`Are you sure you want to restore ${userName}? The user account will be reactivated.`}
+        variant="info"
+        confirmText="Restore"
+        onConfirm={() =>
+          restoreMutation.mutate(undefined, { onSuccess: () => setShowRestoreDialog(false) })
+        }
+        loading={restoreMutation.isPending}
+      />
+    </>
+  )
+}
+
+/**
+ * UserActions -- action buttons and dialogs for user detail page.
+ *
+ * Renders contextual action buttons: Ban/Unban, Delete/Restore.
+ * Each destructive action shows a confirmation dialog.
+ */
 export function UserActions({
   userId,
   userName,
@@ -254,15 +342,7 @@ export function UserActions({
   const [showUnbanDialog, setShowUnbanDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showRestoreDialog, setShowRestoreDialog] = useState(false)
-  const { banMutation, unbanMutation, deleteMutation, restoreMutation } = useUserMutations(
-    userId,
-    userName,
-    onActionComplete
-  )
-
-  function handleBan(reason: string, expires?: string) {
-    banMutation.mutate({ reason, expires }, { onSuccess: () => setShowBanDialog(false) })
-  }
+  const mutations = useUserMutations(userId, userName, onActionComplete)
 
   return (
     <div className="space-y-3">
@@ -273,56 +353,21 @@ export function UserActions({
         onUnban={() => setShowUnbanDialog(true)}
         onDelete={() => setShowDeleteDialog(true)}
         onRestore={() => setShowRestoreDialog(true)}
-        unbanPending={unbanMutation.isPending}
-        deletePending={deleteMutation.isPending}
-        restorePending={restoreMutation.isPending}
+        unbanPending={mutations.unbanMutation.isPending}
+        deletePending={mutations.deleteMutation.isPending}
+        restorePending={mutations.restoreMutation.isPending}
       />
-
-      <BanDialog
-        open={showBanDialog}
-        onOpenChange={setShowBanDialog}
+      <UserActionDialogs
         userName={userName}
-        isPending={banMutation.isPending}
-        onSubmit={handleBan}
-      />
-
-      <ConfirmDialog
-        open={showUnbanDialog}
-        onOpenChange={setShowUnbanDialog}
-        title={`Unban ${userName}`}
-        description={`Are you sure you want to unban ${userName}? They will regain access to their account.`}
-        variant="info"
-        confirmText="Unban"
-        onConfirm={() => {
-          unbanMutation.mutate(undefined, { onSuccess: () => setShowUnbanDialog(false) })
-        }}
-        loading={unbanMutation.isPending}
-      />
-
-      <DestructiveConfirmDialog
-        open={showDeleteDialog}
-        onOpenChange={setShowDeleteDialog}
-        title={`Delete ${userName}`}
-        description="This action will soft-delete (archive) the user. It can be reversed by restoring."
-        confirmText={userName}
-        confirmLabel={`Type "${userName}" to confirm deletion`}
-        onConfirm={() => {
-          deleteMutation.mutate(undefined, { onSuccess: () => setShowDeleteDialog(false) })
-        }}
-        isLoading={deleteMutation.isPending}
-      />
-
-      <ConfirmDialog
-        open={showRestoreDialog}
-        onOpenChange={setShowRestoreDialog}
-        title={`Restore ${userName}`}
-        description={`Are you sure you want to restore ${userName}? The user account will be reactivated.`}
-        variant="info"
-        confirmText="Restore"
-        onConfirm={() => {
-          restoreMutation.mutate(undefined, { onSuccess: () => setShowRestoreDialog(false) })
-        }}
-        loading={restoreMutation.isPending}
+        showBanDialog={showBanDialog}
+        setShowBanDialog={setShowBanDialog}
+        showUnbanDialog={showUnbanDialog}
+        setShowUnbanDialog={setShowUnbanDialog}
+        showDeleteDialog={showDeleteDialog}
+        setShowDeleteDialog={setShowDeleteDialog}
+        showRestoreDialog={showRestoreDialog}
+        setShowRestoreDialog={setShowRestoreDialog}
+        {...mutations}
       />
     </div>
   )

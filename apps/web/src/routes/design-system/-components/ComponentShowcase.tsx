@@ -69,6 +69,66 @@ function generateCodeString(name: string, props: Record<string, unknown>): strin
  * For Wave 1 components: renders preview + prop controls + code snippet.
  * For Wave 2 components: renders default preview only (no interactive controls).
  */
+type PropControlFieldProps = {
+  control: PropControl
+  componentName: string
+  value: unknown
+  onUpdate: (value: unknown) => void
+}
+
+function PropControlField({ control, componentName, value, onUpdate }: PropControlFieldProps) {
+  const id = `${componentName}-${control.name}`
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{control.name}</Label>
+      {control.type === 'select' && control.options && (
+        <Select value={String(value ?? '')} onValueChange={onUpdate}>
+          <SelectTrigger id={id}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {control.options.map((opt) => (
+              <SelectItem key={opt} value={opt}>
+                {opt}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+      {control.type === 'boolean' && (
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id={id}
+            checked={Boolean(value)}
+            onCheckedChange={(checked) => onUpdate(Boolean(checked))}
+          />
+          <Label htmlFor={id} className="text-sm font-normal">
+            {String(value)}
+          </Label>
+        </div>
+      )}
+      {control.type === 'text' && (
+        <Input id={id} value={String(value ?? '')} onChange={(e) => onUpdate(e.target.value)} />
+      )}
+      {control.type === 'number' && (
+        <Input
+          id={id}
+          type="number"
+          value={String(value ?? '')}
+          onChange={(e) => onUpdate(Number(e.target.value))}
+        />
+      )}
+    </div>
+  )
+}
+
+/**
+ * Interactive component showcase wrapper.
+ *
+ * For Wave 1 components: renders preview + prop controls + code snippet.
+ * For Wave 2 components: renders default preview only (no interactive controls).
+ */
 export function ComponentShowcase({
   name,
   category,
@@ -82,15 +142,11 @@ export function ComponentShowcase({
     }
     return initial
   })
-
   const [showCode, setShowCode] = useState(false)
 
   function updateProp(propName: string, value: unknown) {
     setCurrentProps((prev) => ({ ...prev, [propName]: value }))
   }
-
-  const hasControls = propControls.length > 0
-  const codeString = generateCodeString(name, currentProps)
 
   return (
     <Card>
@@ -100,9 +156,7 @@ export function ComponentShowcase({
           <Badge variant="secondary">{category}</Badge>
         </div>
       </CardHeader>
-
       <CardContent className="space-y-6">
-        {/* Preview area */}
         <div
           className={cn(
             'flex min-h-[120px] items-center justify-center rounded-lg border border-dashed p-6'
@@ -110,66 +164,22 @@ export function ComponentShowcase({
         >
           {children(currentProps)}
         </div>
-
-        {/* Controls area */}
-        {hasControls && (
+        {propControls.length > 0 && (
           <div className="space-y-4">
             <h4 className="text-sm font-medium">{m.ds_showcase_props()}</h4>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {propControls.map((control) => (
-                <div key={control.name} className="space-y-2">
-                  <Label htmlFor={`${name}-${control.name}`}>{control.name}</Label>
-                  {control.type === 'select' && control.options && (
-                    <Select
-                      value={String(currentProps[control.name] ?? '')}
-                      onValueChange={(value) => updateProp(control.name, value)}
-                    >
-                      <SelectTrigger id={`${name}-${control.name}`}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {control.options.map((opt) => (
-                          <SelectItem key={opt} value={opt}>
-                            {opt}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  {control.type === 'boolean' && (
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id={`${name}-${control.name}`}
-                        checked={Boolean(currentProps[control.name])}
-                        onCheckedChange={(checked) => updateProp(control.name, Boolean(checked))}
-                      />
-                      <Label htmlFor={`${name}-${control.name}`} className="text-sm font-normal">
-                        {String(currentProps[control.name])}
-                      </Label>
-                    </div>
-                  )}
-                  {control.type === 'text' && (
-                    <Input
-                      id={`${name}-${control.name}`}
-                      value={String(currentProps[control.name] ?? '')}
-                      onChange={(e) => updateProp(control.name, e.target.value)}
-                    />
-                  )}
-                  {control.type === 'number' && (
-                    <Input
-                      id={`${name}-${control.name}`}
-                      type="number"
-                      value={String(currentProps[control.name] ?? '')}
-                      onChange={(e) => updateProp(control.name, Number(e.target.value))}
-                    />
-                  )}
-                </div>
+                <PropControlField
+                  key={control.name}
+                  control={control}
+                  componentName={name}
+                  value={currentProps[control.name]}
+                  onUpdate={(value) => updateProp(control.name, value)}
+                />
               ))}
             </div>
           </div>
         )}
-
-        {/* Code section toggle */}
         <div>
           <button
             type="button"
@@ -183,7 +193,7 @@ export function ComponentShowcase({
           </button>
           {showCode && (
             <div className="mt-3">
-              <CodeSnippet code={codeString} language="tsx" />
+              <CodeSnippet code={generateCodeString(name, currentProps)} language="tsx" />
             </div>
           )}
         </div>

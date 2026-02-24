@@ -42,16 +42,30 @@ export class AdminOrganizationsService {
     cursor?: string,
     limit = 20
   ) {
+    const conditions = this.buildOrgFilterConditions(filters, cursor)
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+    const rows = await this.queryOrgRows(whereClause, limit)
+
+    return buildCursorResponse(
+      rows,
+      limit,
+      (row) => row.createdAt,
+      (row) => row.id
+    )
+  }
+
+  private buildOrgFilterConditions(
+    filters: { status?: string; search?: string },
+    cursor?: string
+  ): SQL[] {
     const conditions: SQL[] = []
 
-    // Status filter
     if (filters.status === 'active') {
       conditions.push(isNull(organizations.deletedAt))
     } else if (filters.status === 'archived') {
       conditions.push(isNotNull(organizations.deletedAt))
     }
 
-    // Search filter — ILIKE on name or slug
     if (filters.search) {
       const escaped = filters.search
         .replace(/\\/g, '\\\\')
@@ -65,14 +79,15 @@ export class AdminOrganizationsService {
       if (searchCondition) conditions.push(searchCondition)
     }
 
-    // Cursor condition
     if (cursor) {
       conditions.push(buildCursorCondition(cursor, organizations.createdAt, organizations.id))
     }
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+    return conditions
+  }
 
-    const rows = await this.db
+  private queryOrgRows(whereClause: SQL | undefined, limit: number) {
+    return this.db
       .select({
         id: organizations.id,
         name: organizations.name,
@@ -92,13 +107,6 @@ export class AdminOrganizationsService {
       .groupBy(organizations.id)
       .orderBy(desc(organizations.createdAt), desc(organizations.id))
       .limit(limit + 1)
-
-    return buildCursorResponse(
-      rows,
-      limit,
-      (row) => row.createdAt,
-      (row) => row.id
-    )
   }
 
   /**
@@ -146,7 +154,25 @@ export class AdminOrganizationsService {
    * Get detailed org info with members and child organizations.
    */
   async getOrganizationDetail(orgId: string) {
-    // 1. Org lookup
+    const organization = await this.findOrgOrThrow(orgId)
+
+    const [parentOrganization, orgMembers, childOrgs] = await Promise.all([
+      this.fetchParentOrg(organization.parentOrganizationId),
+      this.fetchOrgMembers(orgId),
+      this.fetchChildOrgs(orgId),
+    ])
+
+    return {
+      ...organization,
+      memberCount: orgMembers.length,
+      childCount: childOrgs.length,
+      parentOrganization,
+      members: orgMembers,
+      children: childOrgs,
+    }
+  }
+
+  private async findOrgOrThrow(orgId: string) {
     const [organization] = await this.db
       .select({
         id: organizations.id,
@@ -167,24 +193,27 @@ export class AdminOrganizationsService {
     if (!organization) {
       throw new AdminOrgNotFoundException(orgId)
     }
+    return organization
+  }
 
-    // 2. Parent organization (if exists)
-    let parentOrganization: { id: string; name: string; slug: string | null } | null = null
-    if (organization.parentOrganizationId) {
-      const [parent] = await this.db
-        .select({
-          id: organizations.id,
-          name: organizations.name,
-          slug: organizations.slug,
-        })
-        .from(organizations)
-        .where(eq(organizations.id, organization.parentOrganizationId))
-        .limit(1)
-      parentOrganization = parent ?? null
-    }
+  private async fetchParentOrg(
+    parentId: string | null
+  ): Promise<{ id: string; name: string; slug: string | null } | null> {
+    if (!parentId) return null
+    const [parent] = await this.db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        slug: organizations.slug,
+      })
+      .from(organizations)
+      .where(eq(organizations.id, parentId))
+      .limit(1)
+    return parent ?? null
+  }
 
-    // 3. Members (join members + users)
-    const orgMembers = await this.db
+  private fetchOrgMembers(orgId: string) {
+    return this.db
       .select({
         id: members.id,
         name: users.name,
@@ -195,9 +224,10 @@ export class AdminOrganizationsService {
       .from(members)
       .innerJoin(users, eq(members.userId, users.id))
       .where(eq(members.organizationId, orgId))
+  }
 
-    // 4. Children (orgs where parentOrganizationId = orgId)
-    const childOrgs = await this.db
+  private fetchChildOrgs(orgId: string) {
+    return this.db
       .select({
         id: organizations.id,
         name: organizations.name,
@@ -209,15 +239,6 @@ export class AdminOrganizationsService {
       .leftJoin(members, eq(organizations.id, members.organizationId))
       .where(eq(organizations.parentOrganizationId, orgId))
       .groupBy(organizations.id)
-
-    return {
-      ...organization,
-      memberCount: orgMembers.length,
-      childCount: childOrgs.length,
-      parentOrganization,
-      members: orgMembers,
-      children: childOrgs,
-    }
   }
 
   /**
@@ -282,8 +303,27 @@ export class AdminOrganizationsService {
     data: { name?: string; slug?: string; parentOrganizationId?: string | null },
     actorId: string
   ) {
-    // Read before-state
-    const [beforeOrg] = await this.db
+    const beforeOrg = await this.findOrgSnapshotOrThrow(orgId)
+
+    if (data.parentOrganizationId !== undefined && data.parentOrganizationId !== null) {
+      await this.validateHierarchy(orgId, data.parentOrganizationId)
+    }
+
+    const updatedOrg = await this.executeOrgUpdate(orgId, data)
+
+    const auditAction =
+      data.parentOrganizationId !== undefined &&
+      data.parentOrganizationId !== beforeOrg.parentOrganizationId
+        ? 'org.parent_changed'
+        : 'org.updated'
+
+    this.logOrgAudit(auditAction, orgId, actorId, beforeOrg, updatedOrg)
+
+    return updatedOrg
+  }
+
+  private async findOrgSnapshotOrThrow(orgId: string) {
+    const [org] = await this.db
       .select({
         id: organizations.id,
         name: organizations.name,
@@ -299,17 +339,16 @@ export class AdminOrganizationsService {
       .where(eq(organizations.id, orgId))
       .limit(1)
 
-    if (!beforeOrg) {
+    if (!org) {
       throw new AdminOrgNotFoundException(orgId)
     }
+    return org
+  }
 
-    // If parentOrganizationId is being changed, validate hierarchy
-    if (data.parentOrganizationId !== undefined && data.parentOrganizationId !== null) {
-      await this.validateHierarchy(orgId, data.parentOrganizationId)
-    }
-
-    // Perform the update
-    let updatedOrg: typeof organizations.$inferSelect
+  private async executeOrgUpdate(
+    orgId: string,
+    data: { name?: string; slug?: string; parentOrganizationId?: string | null }
+  ) {
     try {
       const [result] = await this.db
         .update(organizations)
@@ -317,7 +356,7 @@ export class AdminOrganizationsService {
         .where(eq(organizations.id, orgId))
         .returning()
       if (!result) throw new AdminOrgNotFoundException(orgId)
-      updatedOrg = result
+      return result
     } catch (err) {
       const pgErr = err as { code?: string }
       if (pgErr.code === '23505') {
@@ -325,31 +364,29 @@ export class AdminOrganizationsService {
       }
       throw err
     }
+  }
 
-    // Determine audit action: use 'org.parent_changed' for reparent, 'org.updated' otherwise
-    const auditAction =
-      data.parentOrganizationId !== undefined &&
-      data.parentOrganizationId !== beforeOrg.parentOrganizationId
-        ? 'org.parent_changed'
-        : 'org.updated'
-
-    // Fire-and-forget audit log
+  private logOrgAudit(
+    action: string,
+    orgId: string,
+    actorId: string,
+    before: Record<string, unknown>,
+    after: Record<string, unknown>
+  ) {
     this.auditService
       .log({
         actorId,
         actorType: 'user',
-        action: auditAction,
+        action,
         resource: 'organization',
         resourceId: orgId,
         organizationId: orgId,
-        before: { ...beforeOrg },
-        after: { ...updatedOrg },
+        before: { ...before },
+        after: { ...after },
       })
       .catch((err) => {
-        this.logger.error(`[${this.cls.getId()}][audit] Failed to log ${auditAction}`, err)
+        this.logger.error(`[${this.cls.getId()}][audit] Failed to log ${action}`, err)
       })
-
-    return updatedOrg
   }
 
   /**
@@ -413,29 +450,10 @@ export class AdminOrganizationsService {
   }
 
   /**
-   * Soft-delete an organization — set deletedAt and deleteScheduledFor.
+   * Soft-delete an organization -- set deletedAt and deleteScheduledFor.
    */
   async deleteOrganization(orgId: string, actorId: string) {
-    // Read current org
-    const [org] = await this.db
-      .select({
-        id: organizations.id,
-        name: organizations.name,
-        slug: organizations.slug,
-        logo: organizations.logo,
-        metadata: organizations.metadata,
-        parentOrganizationId: organizations.parentOrganizationId,
-        deletedAt: organizations.deletedAt,
-        deleteScheduledFor: organizations.deleteScheduledFor,
-        createdAt: organizations.createdAt,
-      })
-      .from(organizations)
-      .where(eq(organizations.id, orgId))
-      .limit(1)
-
-    if (!org) {
-      throw new AdminOrgNotFoundException(orgId)
-    }
+    const org = await this.findOrgSnapshotOrThrow(orgId)
 
     if (org.deletedAt) {
       throw new NotDeletedException('Organization', orgId)
@@ -444,90 +462,34 @@ export class AdminOrganizationsService {
     const now = new Date()
     const scheduledFor = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-    // Update deletion fields
     const [updatedOrg] = await this.db
       .update(organizations)
-      .set({
-        deletedAt: now,
-        deleteScheduledFor: scheduledFor,
-      })
+      .set({ deletedAt: now, deleteScheduledFor: scheduledFor })
       .where(eq(organizations.id, orgId))
       .returning()
 
-    // Fire-and-forget audit log
-    this.auditService
-      .log({
-        actorId,
-        actorType: 'user',
-        action: 'org.deleted',
-        resource: 'organization',
-        resourceId: orgId,
-        organizationId: orgId,
-        before: { ...org },
-        after: { ...updatedOrg },
-      })
-      .catch((err) => {
-        this.logger.error(`[${this.cls.getId()}][audit] Failed to log org.deleted`, err)
-      })
+    this.logOrgAudit('org.deleted', orgId, actorId, org, updatedOrg)
 
     return updatedOrg
   }
 
   /**
-   * Restore a soft-deleted organization — clear deletedAt and deleteScheduledFor.
+   * Restore a soft-deleted organization -- clear deletedAt and deleteScheduledFor.
    */
   async restoreOrganization(orgId: string, actorId: string) {
-    // Read current org
-    const [org] = await this.db
-      .select({
-        id: organizations.id,
-        name: organizations.name,
-        slug: organizations.slug,
-        logo: organizations.logo,
-        metadata: organizations.metadata,
-        parentOrganizationId: organizations.parentOrganizationId,
-        deletedAt: organizations.deletedAt,
-        deleteScheduledFor: organizations.deleteScheduledFor,
-        createdAt: organizations.createdAt,
-      })
-      .from(organizations)
-      .where(eq(organizations.id, orgId))
-      .limit(1)
+    const org = await this.findOrgSnapshotOrThrow(orgId)
 
-    if (!org) {
-      throw new AdminOrgNotFoundException(orgId)
-    }
-
-    // Verify org is actually deleted
     if (!org.deletedAt) {
       throw new NotDeletedException('Organization', orgId)
     }
 
-    // Clear deletion fields
     const [updatedOrg] = await this.db
       .update(organizations)
-      .set({
-        deletedAt: null,
-        deleteScheduledFor: null,
-      })
+      .set({ deletedAt: null, deleteScheduledFor: null })
       .where(eq(organizations.id, orgId))
       .returning()
 
-    // Fire-and-forget audit log
-    this.auditService
-      .log({
-        actorId,
-        actorType: 'user',
-        action: 'org.restored',
-        resource: 'organization',
-        resourceId: orgId,
-        organizationId: orgId,
-        before: { ...org },
-        after: { ...updatedOrg },
-      })
-      .catch((err) => {
-        this.logger.error(`[${this.cls.getId()}][audit] Failed to log org.restored`, err)
-      })
+    this.logOrgAudit('org.restored', orgId, actorId, org, updatedOrg)
 
     return updatedOrg
   }
@@ -559,44 +521,53 @@ export class AdminOrganizationsService {
    * Walks up from newParentId, checking each node.
    */
   private async validateHierarchy(orgId: string, newParentId: string): Promise<void> {
-    // Self-parent guard
     if (orgId === newParentId) {
       throw new OrgCycleDetectedException()
     }
 
     await this.db.transaction(async (tx) => {
-      let depth = 0
-      let iterations = 0
-      let currentId: string | null = newParentId
-      while (currentId) {
-        if (iterations++ >= MAX_PARENT_WALK_ITERATIONS) break
-        const [org] = await tx
-          .select({
-            id: organizations.id,
-            parentOrganizationId: organizations.parentOrganizationId,
-          })
-          .from(organizations)
-          .where(eq(organizations.id, currentId))
-          .limit(1)
-        if (!org) break
-
-        currentId = org.parentOrganizationId
-        if (currentId) depth++
-
-        // Check for cycle: if we encounter the org being updated in the chain
-        if (currentId === orgId) {
-          throw new OrgCycleDetectedException()
-        }
-      }
-
-      // Also compute subtree depth of the org being moved
+      const { depth } = await this.walkParentChain(tx, orgId, newParentId)
       const subtreeDepth = await this.getSubtreeDepth(orgId)
 
-      // Check depth: parent chain depth + 1 (for orgId itself) + subtree depth
       if (depth + 1 + subtreeDepth >= 3) {
         throw new OrgDepthExceededException()
       }
     })
+  }
+
+  /**
+   * Walk up from startId, counting depth and detecting cycles against targetOrgId.
+   */
+  private async walkParentChain(
+    tx: Parameters<Parameters<DrizzleDB['transaction']>[0]>[0],
+    targetOrgId: string,
+    startId: string
+  ): Promise<{ depth: number }> {
+    let depth = 0
+    let iterations = 0
+    let currentId: string | null = startId
+
+    while (currentId) {
+      if (iterations++ >= MAX_PARENT_WALK_ITERATIONS) break
+      const [org] = await tx
+        .select({
+          id: organizations.id,
+          parentOrganizationId: organizations.parentOrganizationId,
+        })
+        .from(organizations)
+        .where(eq(organizations.id, currentId))
+        .limit(1)
+      if (!org) break
+
+      currentId = org.parentOrganizationId
+      if (currentId) depth++
+
+      if (currentId === targetOrgId) {
+        throw new OrgCycleDetectedException()
+      }
+    }
+
+    return { depth }
   }
 
   /**

@@ -35,8 +35,6 @@ export class PurgeService {
   private async purgeUsers(): Promise<number> {
     const now = new Date()
 
-    // Query users where deleteScheduledFor < NOW(), limit 100
-    // Also exclude already-anonymized users (email matches 'deleted-*@anonymized.local')
     const expiredUsers = await this.db
       .select({ id: users.id, email: users.email })
       .from(users)
@@ -45,50 +43,40 @@ export class PurgeService {
 
     let anonymized = 0
     for (const user of expiredUsers) {
-      // Idempotent: skip already-anonymized users
-      if (user.email.endsWith('@anonymized.local')) {
-        continue
-      }
+      if (user.email.endsWith('@anonymized.local')) continue
 
-      await this.db.transaction(async (tx) => {
-        const anonymizedEmail = `deleted-${crypto.randomUUID()}@anonymized.local`
-
-        // Anonymize user record
-        await tx
-          .update(users)
-          .set({
-            firstName: 'Deleted',
-            lastName: 'User',
-            name: 'Deleted User',
-            email: anonymizedEmail,
-            image: null,
-            emailVerified: false,
-            avatarSeed: null,
-            avatarStyle: null,
-            updatedAt: now,
-          })
-          .where(eq(users.id, user.id))
-
-        // Delete sessions
-        await tx.delete(sessions).where(eq(sessions.userId, user.id))
-
-        // Delete accounts
-        await tx.delete(accounts).where(eq(accounts.userId, user.id))
-
-        // Delete verifications (by user's original email)
-        await tx.delete(verifications).where(eq(verifications.identifier, user.email))
-
-        // Delete invitations where inviterId = userId
-        await tx.delete(invitations).where(eq(invitations.inviterId, user.id))
-
-        // Delete invitations where email = user's original email
-        await tx.delete(invitations).where(eq(invitations.email, user.email))
-      })
-
+      await this.anonymizeUser(user, now)
       anonymized++
     }
 
     return anonymized
+  }
+
+  private async anonymizeUser(user: { id: string; email: string }, now: Date) {
+    await this.db.transaction(async (tx) => {
+      const anonymizedEmail = `deleted-${crypto.randomUUID()}@anonymized.local`
+
+      await tx
+        .update(users)
+        .set({
+          firstName: 'Deleted',
+          lastName: 'User',
+          name: 'Deleted User',
+          email: anonymizedEmail,
+          image: null,
+          emailVerified: false,
+          avatarSeed: null,
+          avatarStyle: null,
+          updatedAt: now,
+        })
+        .where(eq(users.id, user.id))
+
+      await tx.delete(sessions).where(eq(sessions.userId, user.id))
+      await tx.delete(accounts).where(eq(accounts.userId, user.id))
+      await tx.delete(verifications).where(eq(verifications.identifier, user.email))
+      await tx.delete(invitations).where(eq(invitations.inviterId, user.id))
+      await tx.delete(invitations).where(eq(invitations.email, user.email))
+    })
   }
 
   private async purgeOrganizations(): Promise<number> {

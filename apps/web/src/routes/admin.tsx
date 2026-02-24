@@ -150,6 +150,80 @@ function isSuperAdmin(session: unknown): boolean {
   return session.user.role === 'superadmin'
 }
 
+function MobileNavLink({ link, pathname }: { link: SidebarLink; pathname: string }) {
+  const Icon = link.icon
+  const isActive = pathname.startsWith(link.to)
+
+  if (link.disabled) {
+    return (
+      <span className="flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-muted-foreground/50 cursor-not-allowed">
+        <Icon className="size-4" />
+        {link.label()}
+      </span>
+    )
+  }
+
+  return (
+    <Link
+      to={link.to}
+      className={cn(
+        'flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+        isActive ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
+      )}
+      aria-current={isActive ? 'page' : undefined}
+    >
+      <Icon className="size-4" />
+      {link.label()}
+    </Link>
+  )
+}
+
+function AdminDesktopSidebar({ pathname, superAdmin }: { pathname: string; superAdmin: boolean }) {
+  return (
+    <aside className="hidden w-60 shrink-0 md:block">
+      <nav className="sticky top-20 space-y-6" aria-label="Admin navigation">
+        <div className="flex items-center gap-2 px-3">
+          <ActivityIcon className="size-5 text-foreground" />
+          <h2 className="text-lg font-semibold">{m.admin_sidebar_title()}</h2>
+        </div>
+        <Separator />
+        <SidebarGroup
+          title={m.admin_sidebar_organization()}
+          links={ORG_LINKS}
+          pathname={pathname}
+        />
+        {superAdmin && (
+          <>
+            <Separator />
+            <SidebarGroup
+              title={m.admin_sidebar_system()}
+              links={SYSTEM_LINKS}
+              pathname={pathname}
+            />
+          </>
+        )}
+      </nav>
+    </aside>
+  )
+}
+
+function AdminMobileNav({ pathname, superAdmin }: { pathname: string; superAdmin: boolean }) {
+  const visibleOrgLinks = ORG_LINKS.filter((l) => !l.disabled)
+
+  return (
+    <nav
+      className="flex gap-2 overflow-x-auto border-b px-4 py-2 md:hidden"
+      aria-label="Admin navigation"
+    >
+      {visibleOrgLinks.map((link) => (
+        <MobileNavLink key={link.to} link={link} pathname={pathname} />
+      ))}
+      {superAdmin &&
+        SYSTEM_LINKS.map((link) => <MobileNavLink key={link.to} link={link} pathname={pathname} />)}
+    </nav>
+  )
+}
+
 function AdminLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const { data: session } = useSession()
@@ -157,94 +231,8 @@ function AdminLayout() {
 
   return (
     <div className="mx-auto flex max-w-7xl gap-0 p-0 md:gap-6 md:p-6">
-      {/* Sidebar */}
-      <aside className="hidden w-60 shrink-0 md:block">
-        <nav className="sticky top-20 space-y-6" aria-label="Admin navigation">
-          <div className="flex items-center gap-2 px-3">
-            <ActivityIcon className="size-5 text-foreground" />
-            <h2 className="text-lg font-semibold">{m.admin_sidebar_title()}</h2>
-          </div>
-          <Separator />
-          <SidebarGroup
-            title={m.admin_sidebar_organization()}
-            links={ORG_LINKS}
-            pathname={pathname}
-          />
-          {superAdmin && (
-            <>
-              <Separator />
-              <SidebarGroup
-                title={m.admin_sidebar_system()}
-                links={SYSTEM_LINKS}
-                pathname={pathname}
-              />
-            </>
-          )}
-        </nav>
-      </aside>
-
-      {/* Mobile navigation */}
-      <nav
-        className="flex gap-2 overflow-x-auto border-b px-4 py-2 md:hidden"
-        aria-label="Admin navigation"
-      >
-        {ORG_LINKS.filter((l) => !l.disabled).map((link) => {
-          const Icon = link.icon
-          const isActive = pathname.startsWith(link.to)
-          return (
-            <Link
-              key={link.to}
-              to={link.to}
-              className={cn(
-                'flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-muted text-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-              aria-current={isActive ? 'page' : undefined}
-            >
-              <Icon className="size-4" />
-              {link.label()}
-            </Link>
-          )
-        })}
-        {superAdmin &&
-          SYSTEM_LINKS.map((link) => {
-            const Icon = link.icon
-            const isActive = pathname.startsWith(link.to)
-
-            if (link.disabled) {
-              return (
-                <span
-                  key={link.to}
-                  className="flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-muted-foreground/50 cursor-not-allowed"
-                >
-                  <Icon className="size-4" />
-                  {link.label()}
-                </span>
-              )
-            }
-
-            return (
-              <Link
-                key={link.to}
-                to={link.to}
-                className={cn(
-                  'flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-muted text-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                <Icon className="size-4" />
-                {link.label()}
-              </Link>
-            )
-          })}
-      </nav>
-
-      {/* Main content */}
+      <AdminDesktopSidebar pathname={pathname} superAdmin={superAdmin} />
+      <AdminMobileNav pathname={pathname} superAdmin={superAdmin} />
       <main className="min-w-0 flex-1 p-4 md:p-0">
         <Outlet />
       </main>

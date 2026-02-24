@@ -41,64 +41,17 @@ export class AdminMembersService {
    */
   async listMembers(orgId: string, options: { page: number; limit: number; search?: string }) {
     const offset = (options.page - 1) * options.limit
-
-    const conditions = [eq(members.organizationId, orgId)]
-    if (options.search) {
-      const pattern = `%${options.search}%`
-      const searchCondition = or(ilike(users.name, pattern), ilike(users.email, pattern))
-      if (searchCondition) conditions.push(searchCondition)
-    }
-    const whereClause = and(...conditions)
+    const whereClause = this.buildMemberSearchClause(orgId, options.search)
 
     const [memberRows, totalResult] = await Promise.all([
-      this.db
-        .select({
-          id: members.id,
-          userId: members.userId,
-          role: members.role,
-          roleId: members.roleId,
-          createdAt: members.createdAt,
-          userName: users.name,
-          userEmail: users.email,
-          userImage: users.image,
-          roleName: roles.name,
-          roleSlug: roles.slug,
-        })
-        .from(members)
-        .innerJoin(users, eq(members.userId, users.id))
-        .leftJoin(roles, eq(members.roleId, roles.id))
-        .where(whereClause)
-        .orderBy(users.name)
-        .limit(options.limit)
-        .offset(offset),
-      this.db
-        .select({ count: count() })
-        .from(members)
-        .innerJoin(users, eq(members.userId, users.id))
-        .where(whereClause),
+      this.queryMemberRows(whereClause, options.limit, offset),
+      this.queryMemberCount(whereClause),
     ])
 
     const total = totalResult[0]?.count ?? 0
 
     return {
-      data: memberRows.map((row) => ({
-        id: row.id,
-        userId: row.userId,
-        role: row.role,
-        roleId: row.roleId,
-        createdAt: row.createdAt,
-        user: {
-          name: row.userName,
-          email: row.userEmail,
-          image: row.userImage,
-        },
-        roleDetails: row.roleName
-          ? {
-              name: row.roleName,
-              slug: row.roleSlug,
-            }
-          : null,
-      })),
+      data: memberRows.map((row) => this.formatMemberRow(row)),
       pagination: {
         page: options.page,
         limit: options.limit,
@@ -108,46 +61,141 @@ export class AdminMembersService {
     }
   }
 
+  private buildMemberSearchClause(orgId: string, search?: string) {
+    const conditions = [eq(members.organizationId, orgId)]
+    if (search) {
+      const pattern = `%${search}%`
+      const searchCondition = or(ilike(users.name, pattern), ilike(users.email, pattern))
+      if (searchCondition) conditions.push(searchCondition)
+    }
+    return and(...conditions)
+  }
+
+  private queryMemberRows(whereClause: ReturnType<typeof and>, limit: number, offset: number) {
+    return this.db
+      .select({
+        id: members.id,
+        userId: members.userId,
+        role: members.role,
+        roleId: members.roleId,
+        createdAt: members.createdAt,
+        userName: users.name,
+        userEmail: users.email,
+        userImage: users.image,
+        roleName: roles.name,
+        roleSlug: roles.slug,
+      })
+      .from(members)
+      .innerJoin(users, eq(members.userId, users.id))
+      .leftJoin(roles, eq(members.roleId, roles.id))
+      .where(whereClause)
+      .orderBy(users.name)
+      .limit(limit)
+      .offset(offset)
+  }
+
+  private queryMemberCount(whereClause: ReturnType<typeof and>) {
+    return this.db
+      .select({ count: count() })
+      .from(members)
+      .innerJoin(users, eq(members.userId, users.id))
+      .where(whereClause)
+  }
+
+  private formatMemberRow(row: {
+    id: string
+    userId: string
+    role: string
+    roleId: string | null
+    createdAt: Date
+    userName: string | null
+    userEmail: string
+    userImage: string | null
+    roleName: string | null
+    roleSlug: string | null
+  }) {
+    return {
+      id: row.id,
+      userId: row.userId,
+      role: row.role,
+      roleId: row.roleId,
+      createdAt: row.createdAt,
+      user: {
+        name: row.userName,
+        email: row.userEmail,
+        image: row.userImage,
+      },
+      roleDetails: row.roleName ? { name: row.roleName, slug: row.roleSlug } : null,
+    }
+  }
+
   /**
    * Invite a new member to the organization.
    * Checks for existing membership and pending invitations.
    */
   async inviteMember(orgId: string, data: { email: string; roleId: string }, actorId: string) {
-    // Look up the role to get its slug for the legacy `role` field
+    const role = await this.findRoleOrThrow(orgId, data.roleId)
+    await this.ensureNoExistingMembership(orgId, data.email)
+    await this.ensureNoPendingInvitation(orgId, data.email)
+
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+    const invitation = await this.insertOrReuseInvitation(
+      orgId,
+      data.email,
+      role.slug,
+      actorId,
+      expiresAt
+    )
+
+    this.logMemberAudit('member.invited', 'invitation', orgId, invitation?.id ?? '', actorId, {
+      after: {
+        email: data.email,
+        roleId: data.roleId,
+        roleSlug: role.slug,
+      },
+    })
+
+    return invitation
+  }
+
+  private async findRoleOrThrow(orgId: string, roleId: string) {
     const [role] = await this.db
       .select({ id: roles.id, slug: roles.slug })
       .from(roles)
-      .where(and(eq(roles.id, data.roleId), eq(roles.tenantId, orgId)))
+      .where(and(eq(roles.id, roleId), eq(roles.tenantId, orgId)))
       .limit(1)
 
     if (!role) {
-      throw new AdminRoleNotFoundException(data.roleId)
+      throw new AdminRoleNotFoundException(roleId)
     }
+    return role
+  }
 
-    // Check if a user with this email is already a member
-    // NOTE (TOCTOU): The sequential SELECT + INSERT is not atomic. A member could be added
-    // between the check and the insert. The unique constraint catch block below handles the
-    // invitation race. The member-exists check is a best-effort guard; a concurrent membership
-    // addition is an acceptable edge case for Phase 1.
+  /**
+   * Best-effort check for existing membership.
+   * NOTE (TOCTOU): Not atomic -- constraint violation handled in insert path.
+   */
+  private async ensureNoExistingMembership(orgId: string, email: string) {
     const [existingMember] = await this.db
       .select({ id: members.id })
       .from(members)
       .innerJoin(users, eq(members.userId, users.id))
-      .where(and(eq(members.organizationId, orgId), eq(users.email, data.email)))
+      .where(and(eq(members.organizationId, orgId), eq(users.email, email)))
       .limit(1)
 
     if (existingMember) {
       throw new MemberAlreadyExistsException()
     }
+  }
 
-    // Check for existing pending invitation
+  private async ensureNoPendingInvitation(orgId: string, email: string) {
     const [existingInvitation] = await this.db
       .select({ id: invitations.id })
       .from(invitations)
       .where(
         and(
           eq(invitations.organizationId, orgId),
-          eq(invitations.email, data.email),
+          eq(invitations.email, email),
           eq(invitations.status, 'pending')
         )
       )
@@ -156,55 +204,31 @@ export class AdminMembersService {
     if (existingInvitation) {
       throw new InvitationAlreadyPendingException()
     }
+  }
 
-    // Create the invitation with both roleId-derived slug and legacy role field
-    // TODO: Add roleId column to invitations schema and store data.roleId here
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
-
-    let invitation: typeof invitations.$inferSelect | undefined
+  private async insertOrReuseInvitation(
+    orgId: string,
+    email: string,
+    roleSlug: string,
+    actorId: string,
+    expiresAt: Date
+  ) {
     try {
-      ;[invitation] = await this.db
+      const [invitation] = await this.db
         .insert(invitations)
         .values({
           organizationId: orgId,
-          email: data.email,
-          role: role.slug,
+          email,
+          role: roleSlug,
           status: 'pending',
           inviterId: actorId,
           expiresAt,
         })
         .returning()
+      return invitation
     } catch (err) {
-      invitation = await this.handleInviteConstraintViolation(
-        err,
-        orgId,
-        data.email,
-        role.slug,
-        actorId,
-        expiresAt
-      )
+      return this.handleInviteConstraintViolation(err, orgId, email, roleSlug, actorId, expiresAt)
     }
-
-    // Audit log (fire-and-forget)
-    this.auditService
-      .log({
-        actorId,
-        actorType: 'user',
-        organizationId: orgId,
-        action: 'member.invited',
-        resource: 'invitation',
-        resourceId: invitation?.id ?? '',
-        after: {
-          email: data.email,
-          roleId: data.roleId,
-          roleSlug: role.slug,
-        },
-      })
-      .catch((err) => {
-        this.logger.error(`[${this.cls.getId()}][audit] Failed to log member.invited`, err)
-      })
-
-    return invitation
   }
 
   /**
@@ -217,18 +241,52 @@ export class AdminMembersService {
     data: { roleId: string },
     actorId: string
   ) {
-    // Verify the target role exists in this org
-    const [newRole] = await this.db
-      .select({ id: roles.id, slug: roles.slug, name: roles.name })
-      .from(roles)
-      .where(and(eq(roles.id, data.roleId), eq(roles.tenantId, orgId)))
-      .limit(1)
+    const newRole = await this.findRoleWithNameOrThrow(orgId, data.roleId)
+    const memberWithRole = await this.findMemberWithRole(memberId, orgId)
 
-    if (!newRole) {
-      throw new AdminRoleNotFoundException(data.roleId)
+    if (memberWithRole.userId === actorId) {
+      throw new SelfRoleChangeException()
     }
 
-    // Get the member with their current role info in a single joined query
+    if (memberWithRole.roleId === data.roleId) {
+      return { updated: true }
+    }
+
+    await this.db
+      .update(members)
+      .set({ roleId: data.roleId, role: newRole.slug })
+      .where(eq(members.id, memberId))
+
+    this.logMemberAudit('member.role_changed', 'member', orgId, memberId, actorId, {
+      before: {
+        roleId: memberWithRole.roleId,
+        roleSlug: memberWithRole.currentRoleSlug ?? null,
+        roleName: memberWithRole.currentRoleName ?? null,
+      },
+      after: {
+        roleId: newRole.id,
+        roleSlug: newRole.slug,
+        roleName: newRole.name,
+      },
+    })
+
+    return { updated: true }
+  }
+
+  private async findRoleWithNameOrThrow(orgId: string, roleId: string) {
+    const [role] = await this.db
+      .select({ id: roles.id, slug: roles.slug, name: roles.name })
+      .from(roles)
+      .where(and(eq(roles.id, roleId), eq(roles.tenantId, orgId)))
+      .limit(1)
+
+    if (!role) {
+      throw new AdminRoleNotFoundException(roleId)
+    }
+    return role
+  }
+
+  private async findMemberWithRole(memberId: string, orgId: string) {
     const [memberWithRole] = await this.db
       .select({
         id: members.id,
@@ -246,51 +304,7 @@ export class AdminMembersService {
     if (!memberWithRole) {
       throw new AdminMemberNotFoundException(memberId)
     }
-
-    // Prevent self-role-change (no self-escalation)
-    if (memberWithRole.userId === actorId) {
-      throw new SelfRoleChangeException()
-    }
-
-    // Short-circuit if the role is already the same (S9)
-    if (memberWithRole.roleId === data.roleId) {
-      return { updated: true }
-    }
-
-    const beforeRoleSlug = memberWithRole.currentRoleSlug ?? null
-    const beforeRoleName = memberWithRole.currentRoleName ?? null
-
-    // Update both roleId and legacy role field
-    await this.db
-      .update(members)
-      .set({ roleId: data.roleId, role: newRole.slug })
-      .where(eq(members.id, memberId))
-
-    // Audit log with before/after snapshots (fire-and-forget)
-    this.auditService
-      .log({
-        actorId,
-        actorType: 'user',
-        organizationId: orgId,
-        action: 'member.role_changed',
-        resource: 'member',
-        resourceId: memberId,
-        before: {
-          roleId: memberWithRole.roleId,
-          roleSlug: beforeRoleSlug,
-          roleName: beforeRoleName,
-        },
-        after: {
-          roleId: newRole.id,
-          roleSlug: newRole.slug,
-          roleName: newRole.name,
-        },
-      })
-      .catch((err) => {
-        this.logger.error(`[${this.cls.getId()}][audit] Failed to log member.role_changed`, err)
-      })
-
-    return { updated: true }
+    return memberWithRole
   }
 
   /**
@@ -298,7 +312,28 @@ export class AdminMembersService {
    * Prevents removing the last owner.
    */
   async removeMember(memberId: string, orgId: string, actorId: string) {
-    // Get the member with role info in a single joined query
+    const member = await this.findMemberForRemoval(memberId, orgId)
+
+    if (member.userId === actorId) {
+      throw new SelfRemovalException()
+    }
+
+    await this.ensureNotLastOwner(member, orgId)
+
+    await this.db.delete(members).where(eq(members.id, memberId))
+
+    this.logMemberAudit('member.removed', 'member', orgId, memberId, actorId, {
+      before: {
+        userId: member.userId,
+        role: member.role,
+        roleId: member.roleId,
+      },
+    })
+
+    return { removed: true }
+  }
+
+  private async findMemberForRemoval(memberId: string, orgId: string) {
     const [member] = await this.db
       .select({
         id: members.id,
@@ -315,48 +350,24 @@ export class AdminMembersService {
     if (!member) {
       throw new AdminMemberNotFoundException(memberId)
     }
+    return member
+  }
 
-    // Prevent self-removal
-    if (member.userId === actorId) {
-      throw new SelfRemovalException()
+  private async ensureNotLastOwner(
+    member: { roleSlug: string | null; role: string; roleId: string | null },
+    orgId: string
+  ) {
+    if (member.roleSlug !== 'owner' && member.role !== 'owner') return
+
+    const [ownerCount] = await this.db
+      .select({ count: count() })
+      .from(members)
+      // biome-ignore lint/style/noNonNullAssertion: roleId is guaranteed by the owner role check above
+      .where(and(eq(members.organizationId, orgId), eq(members.roleId, member.roleId!)))
+
+    if ((ownerCount?.count ?? 0) <= 1) {
+      throw new LastOwnerConstraintException()
     }
-
-    // Check if this is the last owner (check both roleSlug and legacy role field for safety)
-    if (member.roleSlug === 'owner' || member.role === 'owner') {
-      const [ownerCount] = await this.db
-        .select({ count: count() })
-        .from(members)
-        // biome-ignore lint/style/noNonNullAssertion: roleId is guaranteed by the owner role check above
-        .where(and(eq(members.organizationId, orgId), eq(members.roleId, member.roleId!)))
-
-      if ((ownerCount?.count ?? 0) <= 1) {
-        throw new LastOwnerConstraintException()
-      }
-    }
-
-    // Delete the member
-    await this.db.delete(members).where(eq(members.id, memberId))
-
-    // Audit log (fire-and-forget)
-    this.auditService
-      .log({
-        actorId,
-        actorType: 'user',
-        organizationId: orgId,
-        action: 'member.removed',
-        resource: 'member',
-        resourceId: memberId,
-        before: {
-          userId: member.userId,
-          role: member.role,
-          roleId: member.roleId,
-        },
-      })
-      .catch((err) => {
-        this.logger.error(`[${this.cls.getId()}][audit] Failed to log member.removed`, err)
-      })
-
-    return { removed: true }
   }
 
   /**
@@ -449,21 +460,34 @@ export class AdminMembersService {
 
     await this.db.delete(invitations).where(eq(invitations.id, invitationId))
 
-    // Audit log (fire-and-forget)
-    this.auditService
-      .log({
-        actorId,
-        actorType: 'user',
-        organizationId: orgId,
-        action: 'invitation.revoked',
-        resource: 'invitation',
-        resourceId: invitationId,
-        before: { email: invitation.email },
-      })
-      .catch((err) => {
-        this.logger.error(`[${this.cls.getId()}][audit] Failed to log invitation.revoked`, err)
-      })
+    this.logMemberAudit('invitation.revoked', 'invitation', orgId, invitationId, actorId, {
+      before: { email: invitation.email },
+    })
 
     return { revoked: true }
+  }
+
+  private logMemberAudit(
+    action: string,
+    resource: string,
+    orgId: string,
+    resourceId: string,
+    actorId: string,
+    data?: { before?: Record<string, unknown>; after?: Record<string, unknown> }
+  ) {
+    const payload: Record<string, unknown> = {
+      actorId,
+      actorType: 'user',
+      organizationId: orgId,
+      action,
+      resource,
+      resourceId,
+    }
+    if (data?.before !== undefined) payload.before = data.before
+    if (data?.after !== undefined) payload.after = data.after
+
+    this.auditService.log(payload as Parameters<AuditService['log']>[0]).catch((err) => {
+      this.logger.error(`[${this.cls.getId()}][audit] Failed to log ${action}`, err)
+    })
   }
 }

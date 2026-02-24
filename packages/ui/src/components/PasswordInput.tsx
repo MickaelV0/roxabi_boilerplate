@@ -95,6 +95,77 @@ const DEFAULT_TOGGLE_LABELS: ToggleLabels = {
   hide: 'Hide password',
 }
 
+function resolveLabels(
+  strengthLabels: StrengthLabels | undefined,
+  ruleLabels: RuleLabels | undefined,
+  toggleLabels: ToggleLabels | undefined
+) {
+  const resolved: Record<PasswordStrength, string> = strengthLabels
+    ? {
+        0: '',
+        1: strengthLabels.weak,
+        2: strengthLabels.fair,
+        3: strengthLabels.good,
+        4: strengthLabels.strong,
+      }
+    : DEFAULT_STRENGTH_LABELS
+  return {
+    strengthLabels: resolved,
+    ruleLabels: ruleLabels ?? DEFAULT_RULE_LABELS,
+    toggleLabels: toggleLabels ?? DEFAULT_TOGGLE_LABELS,
+  }
+}
+
+type StrengthIndicatorProps = {
+  password: string
+  strength: PasswordStrength
+  strengthLabels: Record<PasswordStrength, string>
+  ruleLabels: RuleLabels
+}
+
+function StrengthIndicator({
+  password,
+  strength,
+  strengthLabels,
+  ruleLabels,
+}: StrengthIndicatorProps) {
+  return (
+    <div data-slot="password-strength" data-strength={strength} className="space-y-2">
+      <div className="flex gap-1">
+        {([1, 2, 3, 4] as const).map((segment) => (
+          <div
+            key={segment}
+            className={cn(
+              'h-1 flex-1 rounded-full transition-colors',
+              strength >= segment ? strengthColors[strength] : 'bg-muted'
+            )}
+          />
+        ))}
+      </div>
+      {strength > 0 && <p className="text-xs text-muted-foreground">{strengthLabels[strength]}</p>}
+      <ul className="space-y-1">
+        {PASSWORD_RULES.map((rule) => {
+          const passed = rule.test(password)
+          return (
+            <li
+              key={rule.key}
+              className={cn(
+                'flex items-center gap-1.5 text-xs',
+                passed ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
+              )}
+            >
+              <span className="inline-block size-1.5 rounded-full" aria-hidden="true">
+                {passed ? '\u2713' : '\u2022'}
+              </span>
+              {ruleLabels[rule.key]}
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 function PasswordInput({
   className,
   showStrength = false,
@@ -107,17 +178,7 @@ function PasswordInput({
   const [visible, setVisible] = useState(false)
   const password = typeof value === 'string' ? value : ''
   const strength = showStrength ? calculateStrength(password) : 0
-  const resolvedStrengthLabels: Record<PasswordStrength, string> = strengthLabels
-    ? {
-        0: '',
-        1: strengthLabels.weak,
-        2: strengthLabels.fair,
-        3: strengthLabels.good,
-        4: strengthLabels.strong,
-      }
-    : DEFAULT_STRENGTH_LABELS
-  const resolvedRuleLabels: RuleLabels = ruleLabels ?? DEFAULT_RULE_LABELS
-  const resolvedToggleLabels: ToggleLabels = toggleLabels ?? DEFAULT_TOGGLE_LABELS
+  const labels = resolveLabels(strengthLabels, ruleLabels, toggleLabels)
 
   return (
     <div data-slot="password-input" className="space-y-2">
@@ -138,48 +199,18 @@ function PasswordInput({
           tabIndex={-1}
           className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
           onClick={() => setVisible((v) => !v)}
-          aria-label={visible ? resolvedToggleLabels.hide : resolvedToggleLabels.show}
+          aria-label={visible ? labels.toggleLabels.hide : labels.toggleLabels.show}
         >
           {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
         </button>
       </div>
       {showStrength && password.length > 0 && (
-        <div data-slot="password-strength" data-strength={strength} className="space-y-2">
-          <div className="flex gap-1">
-            {([1, 2, 3, 4] as const).map((segment) => (
-              <div
-                key={segment}
-                className={cn(
-                  'h-1 flex-1 rounded-full transition-colors',
-                  strength >= segment ? strengthColors[strength] : 'bg-muted'
-                )}
-              />
-            ))}
-          </div>
-          {strength > 0 && (
-            <p className="text-xs text-muted-foreground">{resolvedStrengthLabels[strength]}</p>
-          )}
-          <ul className="space-y-1">
-            {PASSWORD_RULES.map((rule) => {
-              const passed = rule.test(password)
-              const label = resolvedRuleLabels[rule.key]
-              return (
-                <li
-                  key={rule.key}
-                  className={cn(
-                    'flex items-center gap-1.5 text-xs',
-                    passed ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
-                  )}
-                >
-                  <span className="inline-block size-1.5 rounded-full" aria-hidden="true">
-                    {passed ? '\u2713' : '\u2022'}
-                  </span>
-                  {label}
-                </li>
-              )
-            })}
-          </ul>
-        </div>
+        <StrengthIndicator
+          password={password}
+          strength={strength}
+          strengthLabels={labels.strengthLabels}
+          ruleLabels={labels.ruleLabels}
+        />
       )}
     </div>
   )

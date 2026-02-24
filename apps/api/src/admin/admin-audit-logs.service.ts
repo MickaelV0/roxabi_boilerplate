@@ -35,37 +35,48 @@ export class AdminAuditLogsService {
     cursor?: string,
     limit = 20
   ) {
+    const conditions = this.buildAuditFilterConditions(filters, cursor)
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+    const rows = await this.queryAuditLogRows(whereClause, limit)
+
+    const mapped = rows.map((row) => ({
+      ...row,
+      actorName: row.actorName ?? '[Deleted User]',
+      before: redactSensitiveFields(row.before ?? null),
+      after: redactSensitiveFields(row.after ?? null),
+    }))
+
+    return buildCursorResponse(
+      mapped,
+      limit,
+      (row) => row.timestamp,
+      (row) => row.id
+    )
+  }
+
+  private buildAuditFilterConditions(
+    filters: {
+      from?: Date
+      to?: Date
+      actorId?: string
+      action?: string
+      resource?: string
+      organizationId?: string
+      search?: string
+    },
+    cursor?: string
+  ): SQL[] {
     const conditions: SQL[] = []
 
-    // Date range filters
-    if (filters.from) {
-      conditions.push(gte(auditLogs.timestamp, filters.from))
-    }
-    if (filters.to) {
-      conditions.push(lte(auditLogs.timestamp, filters.to))
-    }
-
-    // Actor filter
-    if (filters.actorId) {
-      conditions.push(eq(auditLogs.actorId, filters.actorId))
-    }
-
-    // Action filter
-    if (filters.action) {
-      conditions.push(eq(auditLogs.action, filters.action))
-    }
-
-    // Resource filter
-    if (filters.resource) {
-      conditions.push(eq(auditLogs.resource, filters.resource))
-    }
-
-    // Organization filter
+    if (filters.from) conditions.push(gte(auditLogs.timestamp, filters.from))
+    if (filters.to) conditions.push(lte(auditLogs.timestamp, filters.to))
+    if (filters.actorId) conditions.push(eq(auditLogs.actorId, filters.actorId))
+    if (filters.action) conditions.push(eq(auditLogs.action, filters.action))
+    if (filters.resource) conditions.push(eq(auditLogs.resource, filters.resource))
     if (filters.organizationId) {
       conditions.push(eq(auditLogs.organizationId, filters.organizationId))
     }
 
-    // Search filter -- ILIKE on action, resource, resourceId
     if (filters.search) {
       const escaped = filters.search
         .replace(/\\/g, '\\\\')
@@ -80,14 +91,15 @@ export class AdminAuditLogsService {
       if (searchCondition) conditions.push(searchCondition)
     }
 
-    // Cursor condition
     if (cursor) {
       conditions.push(buildCursorCondition(cursor, auditLogs.timestamp, auditLogs.id))
     }
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+    return conditions
+  }
 
-    const rows = await this.db
+  private queryAuditLogRows(whereClause: SQL | undefined, limit: number) {
+    return this.db
       .select({
         id: auditLogs.id,
         timestamp: auditLogs.timestamp,
@@ -108,21 +120,6 @@ export class AdminAuditLogsService {
       .where(whereClause)
       .orderBy(desc(auditLogs.timestamp), desc(auditLogs.id))
       .limit(limit + 1)
-
-    // Map results: fallback actor name + redact sensitive fields
-    const mapped = rows.map((row) => ({
-      ...row,
-      actorName: row.actorName ?? '[Deleted User]',
-      before: redactSensitiveFields(row.before ?? null),
-      after: redactSensitiveFields(row.after ?? null),
-    }))
-
-    return buildCursorResponse(
-      mapped,
-      limit,
-      (row) => row.timestamp,
-      (row) => row.id
-    )
   }
 
   /**

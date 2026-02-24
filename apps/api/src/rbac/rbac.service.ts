@@ -224,60 +224,78 @@ export class RbacService {
     const tenantId = this.cls.get('tenantId') as string
 
     return this.tenantService.query(async (tx) => {
-      // Find Owner and Admin roles
-      const defaultRoles = await tx
-        .select()
-        .from(roles)
-        .where(and(eq(roles.tenantId, tenantId), eq(roles.isDefault, true)))
+      const { ownerRole, adminRole } = await this.findOwnerAdminRoles(tx, tenantId)
+      const currentMember = await this.verifyCurrentOwner(tx, currentUserId, tenantId, ownerRole.id)
+      const targetMember = await this.verifyTargetAdmin(tx, targetMemberId, tenantId, adminRole.id)
 
-      const ownerRole = defaultRoles.find((r) => r.slug === 'owner')
-      const adminRole = defaultRoles.find((r) => r.slug === 'admin')
-
-      if (!(ownerRole && adminRole)) {
-        throw new OwnershipConstraintException('Default roles not found')
-      }
-
-      // Verify current user is Owner
-      const [currentMember] = await tx
-        .select()
-        .from(members)
-        .where(
-          and(
-            eq(members.userId, currentUserId),
-            eq(members.organizationId, tenantId),
-            eq(members.roleId, ownerRole.id)
-          )
-        )
-        .limit(1)
-
-      if (!currentMember) {
-        throw new OwnershipConstraintException('Only the Owner can transfer ownership')
-      }
-
-      // Verify target is an Admin
-      const [targetMember] = await tx
-        .select()
-        .from(members)
-        .where(
-          and(
-            eq(members.id, targetMemberId),
-            eq(members.organizationId, tenantId),
-            eq(members.roleId, adminRole.id)
-          )
-        )
-        .limit(1)
-
-      if (!targetMember) {
-        throw new OwnershipConstraintException('Target must be an Admin in the same organization')
-      }
-
-      // Swap: current Owner → Admin, target Admin → Owner (atomic via tenant tx)
       await tx.update(members).set({ roleId: adminRole.id }).where(eq(members.id, currentMember.id))
-
       await tx.update(members).set({ roleId: ownerRole.id }).where(eq(members.id, targetMember.id))
 
       return { transferred: true }
     })
+  }
+
+  private async findOwnerAdminRoles(tx: DrizzleTx, tenantId: string) {
+    const defaultRoles = await tx
+      .select()
+      .from(roles)
+      .where(and(eq(roles.tenantId, tenantId), eq(roles.isDefault, true)))
+
+    const ownerRole = defaultRoles.find((r) => r.slug === 'owner')
+    const adminRole = defaultRoles.find((r) => r.slug === 'admin')
+
+    if (!(ownerRole && adminRole)) {
+      throw new OwnershipConstraintException('Default roles not found')
+    }
+    return { ownerRole, adminRole }
+  }
+
+  private async verifyCurrentOwner(
+    tx: DrizzleTx,
+    userId: string,
+    tenantId: string,
+    ownerRoleId: string
+  ) {
+    const [member] = await tx
+      .select()
+      .from(members)
+      .where(
+        and(
+          eq(members.userId, userId),
+          eq(members.organizationId, tenantId),
+          eq(members.roleId, ownerRoleId)
+        )
+      )
+      .limit(1)
+
+    if (!member) {
+      throw new OwnershipConstraintException('Only the Owner can transfer ownership')
+    }
+    return member
+  }
+
+  private async verifyTargetAdmin(
+    tx: DrizzleTx,
+    memberId: string,
+    tenantId: string,
+    adminRoleId: string
+  ) {
+    const [member] = await tx
+      .select()
+      .from(members)
+      .where(
+        and(
+          eq(members.id, memberId),
+          eq(members.organizationId, tenantId),
+          eq(members.roleId, adminRoleId)
+        )
+      )
+      .limit(1)
+
+    if (!member) {
+      throw new OwnershipConstraintException('Target must be an Admin in the same organization')
+    }
+    return member
   }
 
   /**

@@ -47,14 +47,43 @@ export class AdminUsersService {
     cursor?: string,
     limit = 20
   ) {
+    const conditions = this.buildUserFilterConditions(filters, cursor)
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+
+    // Query 1: Users only (no joins) — correct pagination without duplicates
+    const userRows = await this.queryUserRows(whereClause, limit)
+
+    // Build cursor response before fetching memberships (uses limit+1 logic)
+    const paginatedResult = buildCursorResponse(
+      userRows,
+      limit,
+      (row) => row.createdAt,
+      (row) => row.id
+    )
+
+    // Query 2: Batch-fetch memberships for the page of users
+    const userIds = paginatedResult.data.map((u) => u.id)
+    const membershipsByUserId = await this.fetchMembershipsByUserIds(userIds)
+
+    // Merge organizations onto each user
+    const data = paginatedResult.data.map((user) => ({
+      ...user,
+      organizations: membershipsByUserId.get(user.id) ?? [],
+    }))
+
+    return { data, cursor: paginatedResult.cursor }
+  }
+
+  private buildUserFilterConditions(
+    filters: { role?: string; status?: string; organizationId?: string; search?: string },
+    cursor?: string
+  ): SQL[] {
     const conditions: SQL[] = []
 
-    // Role filter
     if (filters.role) {
       conditions.push(eq(users.role, filters.role))
     }
 
-    // Status filter
     if (filters.status === 'active') {
       conditions.push(eq(users.banned, false))
       conditions.push(isNull(users.deletedAt))
@@ -64,7 +93,6 @@ export class AdminUsersService {
       conditions.push(isNotNull(users.deletedAt))
     }
 
-    // Organization filter — EXISTS subquery on members table
     if (filters.organizationId) {
       conditions.push(
         exists(
@@ -78,7 +106,6 @@ export class AdminUsersService {
       )
     }
 
-    // Search filter — ILIKE on name and email with escaping
     if (filters.search) {
       const escaped = filters.search
         .replace(/\\/g, '\\\\')
@@ -89,15 +116,15 @@ export class AdminUsersService {
       if (searchCondition) conditions.push(searchCondition)
     }
 
-    // Cursor condition
     if (cursor) {
       conditions.push(buildCursorCondition(cursor, users.createdAt, users.id))
     }
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+    return conditions
+  }
 
-    // Query 1: Users only (no joins) — correct pagination without duplicates
-    const userRows = await this.db
+  private queryUserRows(whereClause: SQL | undefined, limit: number) {
+    return this.db
       .select({
         id: users.id,
         name: users.name,
@@ -115,57 +142,63 @@ export class AdminUsersService {
       .where(whereClause)
       .orderBy(desc(users.createdAt), desc(users.id))
       .limit(limit + 1)
+  }
 
-    // Build cursor response before fetching memberships (uses limit+1 logic)
-    const paginatedResult = buildCursorResponse(
-      userRows,
-      limit,
-      (row) => row.createdAt,
-      (row) => row.id
-    )
+  private async fetchMembershipsByUserIds(
+    userIds: string[]
+  ): Promise<Map<string, { id: string; name: string; slug: string | null; role: string }[]>> {
+    if (userIds.length === 0) return new Map()
 
-    // Query 2: Batch-fetch memberships for the page of users
-    const userIds = paginatedResult.data.map((u) => u.id)
-    let membershipsByUserId: Map<
-      string,
-      { id: string; name: string; slug: string | null; role: string }[]
-    > = new Map()
+    const membershipRows = await this.db
+      .select({
+        userId: members.userId,
+        orgId: organizations.id,
+        orgName: organizations.name,
+        orgSlug: organizations.slug,
+        role: members.role,
+      })
+      .from(members)
+      .innerJoin(organizations, eq(members.organizationId, organizations.id))
+      .where(inArray(members.userId, userIds))
 
-    if (userIds.length > 0) {
-      const membershipRows = await this.db
-        .select({
-          userId: members.userId,
-          orgId: organizations.id,
-          orgName: organizations.name,
-          orgSlug: organizations.slug,
-          role: members.role,
-        })
-        .from(members)
-        .innerJoin(organizations, eq(members.organizationId, organizations.id))
-        .where(inArray(members.userId, userIds))
-
-      membershipsByUserId = new Map()
-      for (const row of membershipRows) {
-        const list = membershipsByUserId.get(row.userId) ?? []
-        list.push({ id: row.orgId, name: row.orgName, slug: row.orgSlug, role: row.role })
-        membershipsByUserId.set(row.userId, list)
-      }
+    const map = new Map<string, { id: string; name: string; slug: string | null; role: string }[]>()
+    for (const row of membershipRows) {
+      const list = map.get(row.userId) ?? []
+      list.push({ id: row.orgId, name: row.orgName, slug: row.orgSlug, role: row.role })
+      map.set(row.userId, list)
     }
-
-    // Merge organizations onto each user
-    const data = paginatedResult.data.map((user) => ({
-      ...user,
-      organizations: membershipsByUserId.get(user.id) ?? [],
-    }))
-
-    return { data, cursor: paginatedResult.cursor }
+    return map
   }
 
   /**
    * Get detailed user info with org memberships and recent audit entries.
    */
   async getUserDetail(userId: string) {
-    // 1. User lookup
+    const user = await this.findUserDetailById(userId)
+
+    if (!user) {
+      throw new AdminUserNotFoundException(userId)
+    }
+
+    const [memberships, redactedEntries] = await Promise.all([
+      this.fetchUserMemberships(userId),
+      this.fetchUserAuditEntries(userId),
+    ])
+
+    return {
+      ...user,
+      lastActive: redactedEntries[0]?.timestamp ?? null,
+      organizations: memberships.map((m) => ({
+        id: m.orgId,
+        name: m.orgName,
+        slug: m.orgSlug,
+        role: m.role,
+      })),
+      activitySummary: redactedEntries,
+    }
+  }
+
+  private async findUserDetailById(userId: string) {
     const [user] = await this.db
       .select({
         id: users.id,
@@ -184,13 +217,11 @@ export class AdminUsersService {
       .from(users)
       .where(eq(users.id, userId))
       .limit(1)
+    return user
+  }
 
-    if (!user) {
-      throw new AdminUserNotFoundException(userId)
-    }
-
-    // 2. Memberships (join members + organizations)
-    const memberships = await this.db
+  private fetchUserMemberships(userId: string) {
+    return this.db
       .select({
         memberId: members.id,
         orgId: organizations.id,
@@ -202,8 +233,9 @@ export class AdminUsersService {
       .from(members)
       .innerJoin(organizations, eq(members.organizationId, organizations.id))
       .where(eq(members.userId, userId))
+  }
 
-    // 3. Audit entries (last 10 where resourceId=userId AND resource='user' OR actorId=userId)
+  private async fetchUserAuditEntries(userId: string) {
     const auditEntries = await this.db
       .select({
         id: auditLogs.id,
@@ -227,24 +259,11 @@ export class AdminUsersService {
       .orderBy(desc(auditLogs.timestamp))
       .limit(10)
 
-    // Redact sensitive fields from audit log before/after data
-    const redactedEntries = auditEntries.map((entry) => ({
+    return auditEntries.map((entry) => ({
       ...entry,
       before: redactSensitiveFields(entry.before),
       after: redactSensitiveFields(entry.after),
     }))
-
-    return {
-      ...user,
-      lastActive: redactedEntries[0]?.timestamp ?? null,
-      organizations: memberships.map((m) => ({
-        id: m.orgId,
-        name: m.orgName,
-        slug: m.orgSlug,
-        role: m.role,
-      })),
-      activitySummary: redactedEntries,
-    }
   }
 
   /**
@@ -256,44 +275,40 @@ export class AdminUsersService {
     data: { name?: string; email?: string; role?: string },
     actorId: string
   ) {
-    // Read before-state
-    const [beforeUser] = await this.db
-      .select({
-        id: users.id,
-        name: users.name,
-        email: users.email,
-        role: users.role,
-        banned: users.banned,
-        banReason: users.banReason,
-        banExpires: users.banExpires,
-        deletedAt: users.deletedAt,
-        deleteScheduledFor: users.deleteScheduledFor,
-        createdAt: users.createdAt,
-      })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1)
+    const beforeUser = await this.findUserSnapshotOrThrow(userId)
+    this.validateUpdatePermissions(data, actorId, userId, beforeUser.role)
 
-    if (!beforeUser) {
-      throw new AdminUserNotFoundException(userId)
-    }
+    const updatedUser = await this.executeUserUpdate(userId, data)
+    const auditAction =
+      data.role && data.role !== beforeUser.role ? 'user.role_changed' : 'user.updated'
 
-    // Prevent self role change
+    this.logUserAudit(auditAction, userId, actorId, beforeUser, updatedUser)
+
+    return updatedUser
+  }
+
+  private validateUpdatePermissions(
+    data: { role?: string },
+    actorId: string,
+    userId: string,
+    currentRole: string
+  ) {
     if (data.role && actorId === userId) {
       throw new SelfActionException()
     }
-
-    // Prevent demotion of other superadmins
-    if (data.role && data.role !== 'superadmin' && beforeUser.role === 'superadmin') {
+    if (data.role && data.role !== 'superadmin' && currentRole === 'superadmin') {
       throw new SuperadminProtectionException()
     }
+  }
 
-    // Perform the update
-    let updatedUser: typeof users.$inferSelect
+  private async executeUserUpdate(
+    userId: string,
+    data: { name?: string; email?: string; role?: string }
+  ) {
     try {
       const [result] = await this.db.update(users).set(data).where(eq(users.id, userId)).returning()
       if (!result) throw new AdminUserNotFoundException(userId)
-      updatedUser = result
+      return result
     } catch (err) {
       const pgErr = err as { code?: string }
       if (pgErr.code === '23505') {
@@ -301,31 +316,6 @@ export class AdminUsersService {
       }
       throw err
     }
-
-    // Determine audit action: use 'user.role_changed' for role changes
-    const auditAction =
-      data.role && data.role !== beforeUser.role ? 'user.role_changed' : 'user.updated'
-
-    // Fire-and-forget audit log
-    this.auditService
-      .log({
-        actorId,
-        actorType: 'user',
-        action: auditAction,
-        resource: 'user',
-        resourceId: userId,
-        before: { ...beforeUser },
-        after: { ...updatedUser },
-      })
-      .catch((err) => {
-        this.logger.error(
-          { correlationId: this.cls.getId(), action: auditAction, error: err.message },
-          'Audit log write failed'
-        )
-        // TODO: Add metrics counter for audit failures (Phase 3)
-      })
-
-    return updatedUser
   }
 
   /**
@@ -336,206 +326,105 @@ export class AdminUsersService {
       throw new SelfActionException()
     }
 
-    // Read current user
-    const [user] = await this.db
-      .select({
-        id: users.id,
-        name: users.name,
-        email: users.email,
-        role: users.role,
-        banned: users.banned,
-        banReason: users.banReason,
-        banExpires: users.banExpires,
-        deletedAt: users.deletedAt,
-        deleteScheduledFor: users.deleteScheduledFor,
-        createdAt: users.createdAt,
-      })
-      .from(users)
+    const user = await this.findUserSnapshotOrThrow(userId)
+    this.validateBanEligibility(user, userId)
+
+    const [updatedUser] = await this.db
+      .update(users)
+      .set({ banned: true, banReason: reason, banExpires: expires })
       .where(eq(users.id, userId))
-      .limit(1)
+      .returning()
 
-    if (!user) {
-      throw new AdminUserNotFoundException(userId)
-    }
+    this.logUserAudit('user.banned', userId, actorId, user, updatedUser)
 
+    return updatedUser
+  }
+
+  private validateBanEligibility(user: { role: string; banned: boolean }, userId: string) {
     if (user.role === 'superadmin') {
       throw new SuperadminProtectionException()
     }
-
     if (user.banned) {
       throw new UserAlreadyBannedException(userId)
     }
-
-    // Update ban fields
-    const [updatedUser] = await this.db
-      .update(users)
-      .set({
-        banned: true,
-        banReason: reason,
-        banExpires: expires,
-      })
-      .where(eq(users.id, userId))
-      .returning()
-
-    // Fire-and-forget audit log
-    this.auditService
-      .log({
-        actorId,
-        actorType: 'user',
-        action: 'user.banned',
-        resource: 'user',
-        resourceId: userId,
-        before: { ...user },
-        after: { ...updatedUser },
-      })
-      .catch((err) => {
-        this.logger.error(
-          { correlationId: this.cls.getId(), action: 'user.banned', error: err.message },
-          'Audit log write failed'
-        )
-        // TODO: Add metrics counter for audit failures (Phase 3)
-      })
-
-    return updatedUser
   }
 
   /**
-   * Unban a user — set banned=false, clear banReason and banExpires.
+   * Unban a user -- set banned=false, clear banReason and banExpires.
    */
   async unbanUser(userId: string, actorId: string) {
-    // Read current user
-    const [user] = await this.db
-      .select({
-        id: users.id,
-        name: users.name,
-        email: users.email,
-        role: users.role,
-        banned: users.banned,
-        banReason: users.banReason,
-        banExpires: users.banExpires,
-        deletedAt: users.deletedAt,
-        deleteScheduledFor: users.deleteScheduledFor,
-        createdAt: users.createdAt,
-      })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1)
+    const user = await this.findUserSnapshotOrThrow(userId)
 
-    if (!user) {
-      throw new AdminUserNotFoundException(userId)
-    }
-
-    // Update ban fields
     const [updatedUser] = await this.db
       .update(users)
-      .set({
-        banned: false,
-        banReason: null,
-        banExpires: null,
-      })
+      .set({ banned: false, banReason: null, banExpires: null })
       .where(eq(users.id, userId))
       .returning()
 
-    // Fire-and-forget audit log
-    this.auditService
-      .log({
-        actorId,
-        actorType: 'user',
-        action: 'user.unbanned',
-        resource: 'user',
-        resourceId: userId,
-        before: { ...user },
-        after: { ...updatedUser },
-      })
-      .catch((err) => {
-        this.logger.error(
-          { correlationId: this.cls.getId(), action: 'user.unbanned', error: err.message },
-          'Audit log write failed'
-        )
-        // TODO: Add metrics counter for audit failures (Phase 3)
-      })
+    this.logUserAudit('user.unbanned', userId, actorId, user, updatedUser)
 
     return updatedUser
   }
 
   /**
-   * Soft-delete a user — set deletedAt and deleteScheduledFor (now + 30 days).
+   * Soft-delete a user -- set deletedAt and deleteScheduledFor (now + 30 days).
    */
   async deleteUser(userId: string, actorId: string) {
     if (actorId === userId) {
       throw new SelfActionException()
     }
 
-    // Read current user
-    const [user] = await this.db
-      .select({
-        id: users.id,
-        name: users.name,
-        email: users.email,
-        role: users.role,
-        banned: users.banned,
-        banReason: users.banReason,
-        banExpires: users.banExpires,
-        deletedAt: users.deletedAt,
-        deleteScheduledFor: users.deleteScheduledFor,
-        createdAt: users.createdAt,
-      })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1)
-
-    if (!user) {
-      throw new AdminUserNotFoundException(userId)
-    }
-
-    if (user.role === 'superadmin') {
-      throw new SuperadminProtectionException()
-    }
-
-    if (user.deletedAt) {
-      throw new NotDeletedException('User', userId)
-    }
+    const user = await this.findUserSnapshotOrThrow(userId)
+    this.validateDeleteEligibility(user, userId)
 
     const now = new Date()
     const scheduledFor = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-    // Update deletion fields
     const [updatedUser] = await this.db
       .update(users)
-      .set({
-        deletedAt: now,
-        deleteScheduledFor: scheduledFor,
-      })
+      .set({ deletedAt: now, deleteScheduledFor: scheduledFor })
       .where(eq(users.id, userId))
       .returning()
 
-    // Fire-and-forget audit log
-    this.auditService
-      .log({
-        actorId,
-        actorType: 'user',
-        action: 'user.deleted',
-        resource: 'user',
-        resourceId: userId,
-        before: { ...user },
-        after: { ...updatedUser },
-      })
-      .catch((err) => {
-        this.logger.error(
-          { correlationId: this.cls.getId(), action: 'user.deleted', error: err.message },
-          'Audit log write failed'
-        )
-        // TODO: Add metrics counter for audit failures (Phase 3)
-      })
+    this.logUserAudit('user.deleted', userId, actorId, user, updatedUser)
 
     return updatedUser
   }
 
+  private validateDeleteEligibility(
+    user: { role: string; deletedAt: Date | null },
+    userId: string
+  ) {
+    if (user.role === 'superadmin') {
+      throw new SuperadminProtectionException()
+    }
+    if (user.deletedAt) {
+      throw new NotDeletedException('User', userId)
+    }
+  }
+
   /**
-   * Restore a soft-deleted user — clear deletedAt and deleteScheduledFor.
+   * Restore a soft-deleted user -- clear deletedAt and deleteScheduledFor.
    */
   async restoreUser(userId: string, actorId: string) {
-    // Read current user
+    const user = await this.findUserSnapshotOrThrow(userId)
+
+    if (!user.deletedAt) {
+      throw new NotDeletedException('User', userId)
+    }
+
+    const [updatedUser] = await this.db
+      .update(users)
+      .set({ deletedAt: null, deleteScheduledFor: null })
+      .where(eq(users.id, userId))
+      .returning()
+
+    this.logUserAudit('user.restored', userId, actorId, user, updatedUser)
+
+    return updatedUser
+  }
+
+  private async findUserSnapshotOrThrow(userId: string) {
     const [user] = await this.db
       .select({
         id: users.id,
@@ -556,41 +445,32 @@ export class AdminUsersService {
     if (!user) {
       throw new AdminUserNotFoundException(userId)
     }
+    return user
+  }
 
-    // Verify user is actually deleted
-    if (!user.deletedAt) {
-      throw new NotDeletedException('User', userId)
-    }
-
-    // Clear deletion fields
-    const [updatedUser] = await this.db
-      .update(users)
-      .set({
-        deletedAt: null,
-        deleteScheduledFor: null,
-      })
-      .where(eq(users.id, userId))
-      .returning()
-
-    // Fire-and-forget audit log
+  private logUserAudit(
+    action: string,
+    userId: string,
+    actorId: string,
+    before: Record<string, unknown>,
+    after: Record<string, unknown>
+  ) {
     this.auditService
       .log({
         actorId,
         actorType: 'user',
-        action: 'user.restored',
+        action,
         resource: 'user',
         resourceId: userId,
-        before: { ...user },
-        after: { ...updatedUser },
+        before: { ...before },
+        after: { ...after },
       })
       .catch((err) => {
         this.logger.error(
-          { correlationId: this.cls.getId(), action: 'user.restored', error: err.message },
+          { correlationId: this.cls.getId(), action, error: err.message },
           'Audit log write failed'
         )
         // TODO: Add metrics counter for audit failures (Phase 3)
       })
-
-    return updatedUser
   }
 }

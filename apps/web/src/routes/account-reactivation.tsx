@@ -33,29 +33,18 @@ export const Route = createFileRoute('/account-reactivation')({
   }),
 })
 
-function AccountReactivationPage() {
-  const navigate = useNavigate()
-  const { data: session } = useSession()
-  const { deleteScheduledFor } = useSearch({ from: '/account-reactivation' })
+function useReactivation(navigate: ReturnType<typeof useNavigate>) {
   const [reactivating, setReactivating] = useState(false)
-  const [purgeOpen, setPurgeOpen] = useState(false)
-  const [purging, setPurging] = useState(false)
-
-  const formattedDate = deleteScheduledFor
-    ? new Date(deleteScheduledFor).toLocaleDateString()
-    : null
 
   async function handleReactivate() {
     setReactivating(true)
     try {
       const res = await reactivateAccount()
-
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as { message?: string } | null
         toast.error(data?.message ?? m.account_reactivation_error())
         return
       }
-
       toast.success(m.account_reactivation_success())
       navigate({ to: '/dashboard' })
     } catch {
@@ -65,17 +54,22 @@ function AccountReactivationPage() {
     }
   }
 
+  return { reactivating, handleReactivate }
+}
+
+function usePurge(navigate: ReturnType<typeof useNavigate>, email: string) {
+  const [purgeOpen, setPurgeOpen] = useState(false)
+  const [purging, setPurging] = useState(false)
+
   async function handlePurge() {
     setPurging(true)
     try {
-      const res = await purgeAccount(session?.user?.email ?? '')
-
+      const res = await purgeAccount(email)
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as { message?: string } | null
         toast.error(data?.message ?? m.account_purge_error())
         return
       }
-
       await authClient.signOut()
       navigate({ to: '/account-deleted', search: { purged: 'true' } })
     } catch {
@@ -84,6 +78,23 @@ function AccountReactivationPage() {
       setPurging(false)
     }
   }
+
+  return { purgeOpen, setPurgeOpen, purging, handlePurge }
+}
+
+function AccountReactivationPage() {
+  const navigate = useNavigate()
+  const { data: session } = useSession()
+  const { deleteScheduledFor } = useSearch({ from: '/account-reactivation' })
+  const { reactivating, handleReactivate } = useReactivation(navigate)
+  const { purgeOpen, setPurgeOpen, purging, handlePurge } = usePurge(
+    navigate,
+    session?.user?.email ?? ''
+  )
+
+  const formattedDate = deleteScheduledFor
+    ? new Date(deleteScheduledFor).toLocaleDateString()
+    : null
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6">
@@ -101,26 +112,20 @@ function AccountReactivationPage() {
                 : m.account_reactivation_scheduled()}
             </AlertDescription>
           </Alert>
-
           <p className="text-muted-foreground">{m.account_reactivation_description()}</p>
-
           {session?.user && (
             <p className="text-sm text-muted-foreground">
               {m.account_reactivation_signed_in_as()}{' '}
               <span className="font-medium">{session.user.email}</span>
             </p>
           )}
-
           <Button onClick={handleReactivate} disabled={reactivating} className="w-full">
             {reactivating ? m.account_reactivation_reactivating() : m.account_reactivation_button()}
           </Button>
-
           <p className="text-xs text-muted-foreground text-center">
             {m.account_reactivation_org_note()}
           </p>
-
           <Separator />
-
           <div className="space-y-2">
             <p className="text-sm font-medium text-destructive">
               {m.account_reactivation_permanent_title()}
@@ -132,7 +137,6 @@ function AccountReactivationPage() {
               {m.account_reactivation_delete_permanently()}
             </Button>
           </div>
-
           <DestructiveConfirmDialog
             open={purgeOpen}
             onOpenChange={(open: boolean) => {

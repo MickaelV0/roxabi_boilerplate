@@ -195,19 +195,15 @@ function useDebouncedValue(value: string, delayMs: number) {
 // Main page component
 // ---------------------------------------------------------------------------
 
-function AdminMembersPage() {
-  const { data: activeOrg } = authClient.useActiveOrganization()
-  const queryClient = useQueryClient()
-  const orgId = activeOrg?.id
+// ---------------------------------------------------------------------------
+// Custom hook: members page data and mutations
+// ---------------------------------------------------------------------------
 
-  // Search state with debounce (W13)
+function useMembersSearch() {
   const [searchInput, setSearchInput] = useState('')
   const debouncedSearch = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS)
-
-  // Pagination state
   const [page, setPage] = useState(1)
 
-  // Reset page to 1 when search changes
   const prevSearchRef = useRef(debouncedSearch)
   useEffect(() => {
     if (prevSearchRef.current !== debouncedSearch) {
@@ -216,25 +212,13 @@ function AdminMembersPage() {
     }
   }, [debouncedSearch])
 
-  // S8: Track member details for remove dialog
-  const [memberToRemove, setMemberToRemove] = useState<MemberToRemove | null>(null)
+  return { searchInput, setSearchInput, debouncedSearch, page, setPage }
+}
 
-  // B6: TanStack Query for members
-  const membersQuery = useQuery({
-    queryKey: ['admin-members', orgId, page, PAGE_LIMIT, debouncedSearch || undefined],
-    queryFn: ({ signal }) => fetchMembers(page, debouncedSearch || undefined, signal),
-    enabled: Boolean(orgId),
-  })
-
-  // B6: TanStack Query for roles
-  const rolesQuery = useQuery({
-    queryKey: ['org-roles', orgId],
-    queryFn: ({ signal }) => fetchRoles(signal),
-    staleTime: 60_000,
-    enabled: Boolean(orgId),
-  })
-
-  // B6: useMutation for role change
+function useMembersMutations(
+  queryClient: ReturnType<typeof useQueryClient>,
+  setMemberToRemove: (m: MemberToRemove | null) => void
+) {
   const roleChangeMutation = useMutation({
     mutationFn: ({ memberId, roleId }: { memberId: string; roleId: string }) =>
       updateMemberRole(memberId, roleId),
@@ -247,7 +231,6 @@ function AdminMembersPage() {
     },
   })
 
-  // B6: useMutation for member removal
   const removeMemberMutation = useMutation({
     mutationFn: (memberId: string) => removeMemberApi(memberId),
     onSuccess: () => {
@@ -263,33 +246,127 @@ function AdminMembersPage() {
     },
   })
 
-  function handleRoleChange(memberId: string, roleId: string) {
-    roleChangeMutation.mutate({ memberId, roleId })
-  }
+  return { roleChangeMutation, removeMemberMutation }
+}
 
-  function handleRemoveMember() {
-    if (!memberToRemove) return
-    removeMemberMutation.mutate(memberToRemove.id)
-  }
+function useMembersPageQueries(orgId: string | undefined, page: number, debouncedSearch: string) {
+  return useQuery({
+    queryKey: ['admin-members', orgId, page, PAGE_LIMIT, debouncedSearch || undefined],
+    queryFn: ({ signal }) => fetchMembers(page, debouncedSearch || undefined, signal),
+    enabled: Boolean(orgId),
+  })
+}
 
-  function handleInviteSuccess() {
-    queryClient.invalidateQueries({ queryKey: ['admin-members'] })
-    queryClient.invalidateQueries({ queryKey: ['admin-invitations'] })
-  }
+// ---------------------------------------------------------------------------
+// Sub-components for the members page layout
+// ---------------------------------------------------------------------------
 
-  function handlePageChange(newPage: number) {
-    setPage(newPage)
-  }
+type MembersSearchBarProps = {
+  searchInput: string
+  onSearchChange: (value: string) => void
+}
 
-  // S8: Build the onRemove handler that captures member identity
+function MembersSearchBar({ searchInput, onSearchChange }: MembersSearchBarProps) {
+  return (
+    <div className="relative max-w-sm">
+      <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        placeholder={m.org_members_search_placeholder()}
+        aria-label={m.org_members_search_placeholder()}
+        value={searchInput}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
+        className="pl-9"
+      />
+    </div>
+  )
+}
+
+function MembersLoadingCard() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{m.org_members_active()}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <MembersTableSkeleton />
+      </CardContent>
+    </Card>
+  )
+}
+
+type MembersContentCardProps = {
+  membersList: MembersResponse['data']
+  pagination: MembersResponse['pagination']
+  roles: OrgRole[]
+  searchInput: string
+  onRoleChange: (memberId: string, roleId: string) => void
+  onRemove: (memberId: string) => void
+  onPageChange: (page: number) => void
+}
+
+function MembersContentCard({
+  membersList,
+  pagination,
+  roles,
+  searchInput,
+  onRoleChange,
+  onRemove,
+  onPageChange,
+}: MembersContentCardProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{m.org_members_active()}</CardTitle>
+        <CardDescription>{m.admin_members_count({ count: pagination.total })}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {membersList.length === 0 ? (
+          searchInput ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              {m.org_members_no_results()}
+            </p>
+          ) : (
+            <EmptyState />
+          )
+        ) : (
+          <MembersTable
+            members={membersList}
+            roles={roles}
+            onRoleChange={onRoleChange}
+            onRemove={onRemove}
+          />
+        )}
+
+        <PaginationControls pagination={pagination} onPageChange={onPageChange} />
+      </CardContent>
+    </Card>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Main page component
+// ---------------------------------------------------------------------------
+
+function useAdminMembersPage() {
+  const { data: activeOrg } = authClient.useActiveOrganization()
+  const queryClient = useQueryClient()
+  const orgId = activeOrg?.id
+  const search = useMembersSearch()
+  const [memberToRemove, setMemberToRemove] = useState<MemberToRemove | null>(null)
+
+  const membersQuery = useMembersPageQueries(orgId, search.page, search.debouncedSearch)
+  const rolesQuery = useQuery({
+    queryKey: ['org-roles', orgId],
+    queryFn: ({ signal }) => fetchRoles(signal),
+    staleTime: 60_000,
+    enabled: Boolean(orgId),
+  })
+  const mutations = useMembersMutations(queryClient, setMemberToRemove)
+
   function handleRemoveClick(memberId: string) {
     const found = membersQuery.data?.data.find((mem) => mem.id === memberId)
     if (found) {
-      setMemberToRemove({
-        id: found.id,
-        name: found.user.name,
-        email: found.user.email,
-      })
+      setMemberToRemove({ id: found.id, name: found.user.name, email: found.user.email })
     }
   }
 
@@ -308,87 +385,84 @@ function AdminMembersPage() {
       : m.auth_toast_error()
     : null
 
-  if (!activeOrg) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">{m.org_members_title()}</h1>
-        <p className="text-muted-foreground">{m.org_switcher_no_org()}</p>
-      </div>
-    )
+  return {
+    activeOrg,
+    queryClient,
+    search,
+    memberToRemove,
+    setMemberToRemove,
+    membersQuery,
+    mutations,
+    handleRemoveClick,
+    membersList,
+    pagination,
+    roles,
+    isLoading,
+    error,
   }
+}
+
+function NoOrgView() {
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">{m.org_members_title()}</h1>
+      <p className="text-muted-foreground">{m.org_switcher_no_org()}</p>
+    </div>
+  )
+}
+
+function AdminMembersPage() {
+  const state = useAdminMembersPage()
+  const {
+    activeOrg,
+    queryClient,
+    search,
+    memberToRemove,
+    setMemberToRemove,
+    membersQuery,
+    mutations,
+    handleRemoveClick,
+    membersList,
+    pagination,
+    roles,
+    isLoading,
+    error,
+  } = state
+
+  if (!activeOrg) return <NoOrgView />
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{m.org_members_title()}</h1>
-        <InviteDialog roles={roles} onSuccess={handleInviteSuccess} />
-      </div>
-
-      {/* Search -- W13: server-side search with debounce */}
-      <div className="relative max-w-sm">
-        <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder={m.org_members_search_placeholder()}
-          aria-label={m.org_members_search_placeholder()}
-          value={searchInput}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}
-          className="pl-9"
+        <InviteDialog
+          roles={roles}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['admin-members'] })
+            queryClient.invalidateQueries({ queryKey: ['admin-invitations'] })
+          }}
         />
       </div>
-
-      {/* Error state */}
+      <MembersSearchBar searchInput={search.searchInput} onSearchChange={search.setSearchInput} />
       {error && <ErrorCard message={error} onRetry={() => membersQuery.refetch()} />}
-
-      {/* Loading state */}
-      {isLoading && !error && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{m.org_members_active()}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MembersTableSkeleton />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Members table */}
+      {isLoading && !error && <MembersLoadingCard />}
       {!(isLoading || error) && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{m.org_members_active()}</CardTitle>
-            <CardDescription>{m.admin_members_count({ count: pagination.total })}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {membersList.length === 0 ? (
-              searchInput ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">
-                  {m.org_members_no_results()}
-                </p>
-              ) : (
-                <EmptyState />
-              )
-            ) : (
-              <MembersTable
-                members={membersList}
-                roles={roles}
-                onRoleChange={handleRoleChange}
-                onRemove={handleRemoveClick}
-              />
-            )}
-
-            <PaginationControls pagination={pagination} onPageChange={handlePageChange} />
-          </CardContent>
-        </Card>
+        <MembersContentCard
+          membersList={membersList}
+          pagination={pagination}
+          roles={roles}
+          searchInput={search.searchInput}
+          onRoleChange={(memberId, roleId) =>
+            mutations.roleChangeMutation.mutate({ memberId, roleId })
+          }
+          onRemove={handleRemoveClick}
+          onPageChange={search.setPage}
+        />
       )}
-
-      {/* Pending invitations */}
       <PendingInvitations />
-
-      {/* S8: Remove member confirmation dialog with member identity */}
       <RemoveMemberDialog
         member={memberToRemove}
-        onConfirm={handleRemoveMember}
+        onConfirm={() => memberToRemove && mutations.removeMemberMutation.mutate(memberToRemove.id)}
         onCancel={() => setMemberToRemove(null)}
       />
     </div>

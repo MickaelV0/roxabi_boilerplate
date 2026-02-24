@@ -17,71 +17,68 @@ export class UpstashThrottlerStorage implements ThrottlerStorage {
     blockDuration: number,
     throttlerName: string
   ) {
-    const ttlSeconds = Math.ceil(ttl / 1000)
     const blockKey = `${key}:blocked`
 
     try {
-      // Check if currently blocked
-      const blockTtl = await this.redis.ttl(blockKey)
-      if (blockTtl > 0) {
-        return {
-          totalHits: limit + 1,
-          timeToExpire: blockTtl * 1000,
-          isBlocked: true,
-          timeToBlockExpire: blockTtl * 1000,
-        }
-      }
+      const blockedResult = await this.checkBlocked(blockKey, limit)
+      if (blockedResult) return blockedResult
 
-      // Atomic INCR + EXPIRE + TTL via single pipeline to prevent orphaned keys without TTL
-      const pipeline = this.redis.pipeline()
-      pipeline.incr(key)
-      pipeline.expire(key, ttlSeconds)
-      pipeline.ttl(key)
-      const results = await pipeline.exec<[number, number, number]>()
+      const { totalHits, timeToExpire } = await this.atomicIncrement(key, ttl)
 
-      const totalHits = results[0]
-      // results[1] is EXPIRE result (0 or 1), not needed
-      const currentTtl = results[2]
-
-      const timeToExpire = currentTtl * 1000
-
-      // If over limit and blockDuration is configured, set the block key
       if (totalHits > limit && blockDuration > 0) {
-        const blockDurationSeconds = Math.ceil(blockDuration / 1000)
-        await this.redis.set(blockKey, 1, { ex: blockDurationSeconds })
-        return {
-          totalHits,
-          timeToExpire,
-          isBlocked: true,
-          timeToBlockExpire: blockDuration,
-        }
+        await this.setBlockKey(blockKey, blockDuration)
+        return { totalHits, timeToExpire, isBlocked: true, timeToBlockExpire: blockDuration }
       }
 
-      return {
-        totalHits,
-        timeToExpire,
-        isBlocked: false,
-        timeToBlockExpire: 0,
-      }
+      return { totalHits, timeToExpire, isBlocked: false, timeToBlockExpire: 0 }
     } catch (error) {
-      // Tier-aware fail strategy
-      if (throttlerName === 'global') {
-        this.logger.warn(
-          `Redis unavailable for global tier, failing open: ${error instanceof Error ? error.message : String(error)}`
-        )
-        return {
-          totalHits: 0,
-          timeToExpire: 0,
-          isBlocked: false,
-          timeToBlockExpire: 0,
-        }
-      }
-
-      // Auth tier: fail closed
-      this.logger.error(
-        `Redis unavailable for auth tier, failing closed: ${error instanceof Error ? error.message : String(error)}`
-      )
-      throw new ServiceUnavailableException('Rate limiting service temporarily unavailable')
+      return this.handleRedisError(error, throttlerName)
     }
+  }
+
+  private async checkBlocked(blockKey: string, limit: number) {
+    const blockTtl = await this.redis.ttl(blockKey)
+    if (blockTtl <= 0) return null
+    return {
+      totalHits: limit + 1,
+      timeToExpire: blockTtl * 1000,
+      isBlocked: true,
+      timeToBlockExpire: blockTtl * 1000,
+    }
+  }
+
+  private async atomicIncrement(key: string, ttl: number) {
+    const ttlSeconds = Math.ceil(ttl / 1000)
+    const pipeline = this.redis.pipeline()
+    pipeline.incr(key)
+    pipeline.expire(key, ttlSeconds)
+    pipeline.ttl(key)
+    const results = await pipeline.exec<[number, number, number]>()
+    return { totalHits: results[0], timeToExpire: results[2] * 1000 }
+  }
+
+  private async setBlockKey(blockKey: string, blockDuration: number) {
+    const blockDurationSeconds = Math.ceil(blockDuration / 1000)
+    await this.redis.set(blockKey, 1, { ex: blockDurationSeconds })
+  }
+
+  private handleRedisError(
+    error: unknown,
+    throttlerName: string
+  ): {
+    totalHits: number
+    timeToExpire: number
+    isBlocked: boolean
+    timeToBlockExpire: number
+  } {
+    const message = error instanceof Error ? error.message : String(error)
+
+    if (throttlerName === 'global') {
+      this.logger.warn(`Redis unavailable for global tier, failing open: ${message}`)
+      return { totalHits: 0, timeToExpire: 0, isBlocked: false, timeToBlockExpire: 0 }
+    }
+
+    this.logger.error(`Redis unavailable for auth tier, failing closed: ${message}`)
+    throw new ServiceUnavailableException('Rate limiting service temporarily unavailable')
   }
 }
