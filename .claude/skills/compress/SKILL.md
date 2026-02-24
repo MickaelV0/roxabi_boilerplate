@@ -25,12 +25,12 @@ Formal notation rewrite → reduce tokens, preserve semantics.
 **2 — Analyze:** Read target. Identify: repeated nouns (≥3×) | verbose conditionals | iteration prose | magic numbers | redundant examples | filler. L_before := line count (excl. frontmatter).
 
 **3 — Transform (R1–R8):**
-- **R1** Definitions: concept ≥ 3× → variable in `## Definitions` (after title). UPPER = primary, lower = instance, subscript = variant. Template:
+- **R1** Definitions: concept ≥ 3× → Greek letter variable in `Let:` block (after title). Convention: lowercase Greek (α, β, γ, δ, σ, ρ, τ, φ, ψ, ω…) — mnemonic when possible (e.g. α = analysis, σ = spec). Template:
   ```
   Let:
-    F    = set of all findings
-    C(f) ∈ [0,100] ∩ ℤ  — confidence
-    T    = 80             — threshold
+    φ := set of all findings
+    γ(f) ∈ [0,100] ∩ ℤ  — confidence
+    τ := 80               — threshold
   ```
 - **R2** Predicates: multi-bullet conditions → `pred(x) ⟺ A ∧ B ∧ C`
 - **R3** Quantifiers: "for each" → `∀ x ∈ Y:` | "if any" → `∃ x:` | "exists" → `X ∃ →`
