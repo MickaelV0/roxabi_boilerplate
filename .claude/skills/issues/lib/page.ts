@@ -412,6 +412,11 @@ export function buildHtml(
     </tbody>
   </table>
 
+  <div class="section">
+    <h2>Pull Requests</h2>
+    ${prsHtml}
+  </div>
+
   <div class="legend">
     <span>\u26d4 blocked</span>
     <span>\ud83d\udd13 blocking</span>
@@ -423,11 +428,6 @@ export function buildHtml(
     <div class="graph-container">
       ${depGraphHtml}
     </div>
-  </div>
-
-  <div class="section">
-    <h2>Pull Requests</h2>
-    ${prsHtml}
   </div>
 
   <div class="section">

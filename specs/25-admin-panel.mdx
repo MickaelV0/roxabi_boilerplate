@@ -9,14 +9,26 @@ Issue [#25](https://github.com/roxabi/roxabi_boilerplate/issues/25) — one of t
 
 **Promoted from:** [Admin Panel Analysis](../analyses/25-admin-panel.mdx)
 
-**Current state:**
+**Current state (updated 2026-02-24):**
 
-- Org members (`/org/members`) and org settings (`/org/settings`) exist but are basic — no pagination, no custom RBAC role support, limited to active org.
-- Two-tier role system in place: global `users.role` (`user | admin | superadmin`) and org-scoped RBAC (`roles` table with `owner | admin | member | viewer` + custom roles).
-- `@Roles()` and `@Permissions()` decorators/guards are implemented. `@Roles('superadmin')` is ready but unused.
-- Better Auth admin plugin loaded at `/api/auth/admin/*` — bypasses NestJS guards (must be disabled/restricted in Phase 1).
-- `TenantInterceptor` already supports `parentOrganizationId` on organizations (dynamic field check) — the schema column just needs to be added.
-- No `/admin` routes on frontend. No admin-scoped API endpoints in NestJS.
+- **Phase 1 (#268) — Completed.** Admin layout, sidebar, guards, member management with offset pagination, `AuditService` scaffolding, Better Auth admin plugin restricted, dual `role`/`roleId` sync resolved.
+- **Phase 2 (#269) — Completed.** Cross-tenant user/org management with cursor pagination, org hierarchy (tree view, depth/cycle validation), audit log viewer with diff view and sensitive field redaction. See [Phase 2 spec](./269-admin-phase2.mdx).
+- **Phase 3 (#270) — Open.** System settings + feature flags. Next in sequence.
+- **Phase 4 (#271) — Open.** Impersonation + health dashboard.
+
+**Remaining child issues (execution order):**
+
+| Order | # | Title | Size | Priority | Blocked by |
+|:-----:|---|-------|:----:|:--------:|:----------:|
+| 1 | [#311](https://github.com/MickaelV0/roxabi_boilerplate/issues/311) | Self-role-change with confirmation + sole-owner guard | S | P2 | — |
+| 2 | [#314](https://github.com/MickaelV0/roxabi_boilerplate/issues/314) | Centralized route permission map + useCanAccess hook | M | P2 | — |
+| 3 | [#270](https://github.com/MickaelV0/roxabi_boilerplate/issues/270) | Phase 3: System Settings + Feature Flags | M | P2 | #314 |
+| 4 | [#271](https://github.com/MickaelV0/roxabi_boilerplate/issues/271) | Phase 4: Impersonation + Health Dashboard | L | P2 | #270 |
+| — | [#312](https://github.com/MickaelV0/roxabi_boilerplate/issues/312) | Orgs count + last active columns in users list | S | P3 | — |
+| — | [#313](https://github.com/MickaelV0/roxabi_boilerplate/issues/313) | Superadmin inline-edit org memberships | M | P3 | — |
+| ~~—~~ | ~~[#293](https://github.com/MickaelV0/roxabi_boilerplate/issues/293)~~ | ~~Sub-org hierarchy~~ | — | — | Closed |
+
+**Rationale:** #311 is a quick standalone fix. #314 refactors route guards to a single-source-of-truth pattern — doing it before Phase 3 means new routes use the clean pattern from the start. #270 and #271 follow the phase sequence. P3 items (#312, #313) can slot in anytime.
 
 ## Goal
 
@@ -280,37 +292,41 @@ sessions
 
 ## Implementation Phases
 
-### Phase 1: Admin Layout + Page Migration + Foundation
+### Phase 1: Admin Layout + Page Migration + Foundation — ✅ Completed (#268)
 
-**Scope:** Admin route tree, layout, guards, migration of existing org pages, `AuditService` scaffolding, Better Auth plugin restriction, and `members.role` sync resolution.
+**Delivered:**
 
-- Create `/admin` route tree with admin layout (sidebar + content area)
-- Implement `requireAdmin` and `requireSuperAdmin` route guards
+- `/admin` route tree with admin layout (sidebar + content area)
+- `requireAdmin()` and `requireSuperAdmin()` route guards (SSR-safe)
 - Sidebar with nav groups (Organization + System) — System group hidden for org admins
-- Migrate `/org/members` → `/admin/members` with server-side pagination and full RBAC role support
-- Migrate `/org/settings` → `/admin/settings`
-- Add client-side redirects from old `/org/*` routes
-- Backend: new `AdminModule` shell with member management endpoints (paginated list, role change, invite, remove)
-- **Resolve `members.role` / `invitations.role` sync**: ensure role changes via admin API write both `roleId` and legacy `role` field (or migrate to `roleId` only if Better Auth allows)
-- **Scaffold `AuditService`** with `audit_logs` table + migration. Wire into member management controllers from day one.
-- **Disable/restrict Better Auth admin plugin** (`/api/auth/admin/*`) to close the unguarded endpoint security gap
+- `/admin/members` with offset pagination, full RBAC role support, invite, role change, remove
+- `/admin/settings` (org settings migration)
+- `AdminModule` with `AdminMembersController`, `AdminInvitationsController`, `AdminMembersService`
+- `AuditService` with `audit_logs` table (fire-and-forget `log()` method)
+- `AdminExceptionFilter` for standardized error responses
+- Better Auth admin plugin restricted
+- Dual `role`/`roleId` sync resolved (write both fields on role change)
 
-### Phase 2: User &amp; Org Management
+### Phase 2: User &amp; Org Management — ✅ Completed (#269, PR #308)
 
-**Scope:** Cross-tenant user and organization management for super admins.
+**Delivered (see [Phase 2 spec](./269-admin-phase2.mdx) for full details):**
 
-- `/admin/users`: cross-tenant user list with cursor pagination, search, filters
-- User detail view: profile, org memberships, activity summary (last 10 audit log entries)
-- User actions: edit details, change global role, ban/unban, soft-delete, restore
-- `/admin/organizations`: cross-tenant org list with cursor pagination
-- Org actions: create, edit, soft-delete (with impact preview), restore
-- Org hierarchy: add `parentOrganizationId` to organizations schema (aligns with existing `TenantInterceptor`), tree view in UI, max depth 3 validation (application + DB check constraint)
-- Backend: `AdminUsersController`, `AdminOrganizationsController` with `@Roles('superadmin')`
-- Wire `AuditService.log()` into all new controllers
+- `/admin/users`: cross-tenant user list with cursor pagination, search, filters (role, status, org, text)
+- `/admin/users/:id`: user detail with profile, org memberships, activity summary (last 10 audit entries)
+- User actions: edit details, change global role, ban/unban (with reason + optional expiry), soft-delete, restore
+- `/admin/organizations`: cross-tenant org list with cursor pagination, flat + tree view toggle
+- `/admin/organizations/:id`: org detail with members, child orgs, edit form
+- Org actions: create (with parent), edit, soft-delete (with impact preview), restore
+- `parentOrganizationId` column on organizations, depth validation (max 3), cycle detection
+- `/admin/audit-logs`: cursor-paginated audit log viewer with filters, expandable diff view, sensitive field redaction
+- `@SkipOrg()` decorator for cross-tenant endpoints
+- Cursor pagination utilities (backend + `useCursorPagination` hook + `LoadMoreButton`)
+- New components: `FilterBar`, `TreeView`, `DiffViewer`, `UserActions`, `OrgActions`
+- Comprehensive test coverage across all controllers and services
 
-### Phase 3: System Settings + Feature Flags
+### Phase 3: System Settings + Feature Flags — Open (#270)
 
-**Scope:** Global configuration and feature flag management.
+**Scope:** Global configuration and feature flag management. Needs standalone spec.
 
 - `system_settings` and `feature_flags` DB tables + migrations
 - `/admin/system-settings`: grouped settings cards with explicit save per card
@@ -319,36 +335,40 @@ sessions
 - `SystemSettingsService` for CRUD operations
 - Backend: `AdminSettingsController`, `AdminFeatureFlagsController`
 - Wire `AuditService.log()` into all new controllers
+- Enable "System Settings" and "Feature Flags" sidebar nav items (currently `disabled: true`)
 
-### Phase 4: Impersonation + Health Dashboard
+### Phase 4: Impersonation + Health Dashboard — Open (#271)
 
-**Scope:** User impersonation and system monitoring.
+**Scope:** User impersonation and system monitoring. Needs standalone spec.
 
 - `impersonatorId` column on `sessions` table
 - Impersonation: `ImpersonationService`, session management, persistent banner in root layout
 - `/admin/health`: service status cards + key metrics, auto-refresh (30s)
 - Wire `AuditService.log()` into impersonation start/stop
 - Verify Better Auth impersonation API compatibility (fallback: direct session manipulation)
+- Enable "Health" sidebar nav item (currently `disabled: true`)
 
 ## Success Criteria
 
-- [ ] **Member management**: Given an org admin session, `GET /api/admin/members` returns only members of the admin's org, paginated. Invite, role-change, and remove operations work and create audit log entries.
-- [ ] **Permission-based UI**: Org admins see only the Organization nav group. Super admins see both groups. Non-admin users navigating to `/admin` are redirected to `/dashboard`. Org admins navigating to `/admin/users` are redirected to `/admin`.
-- [ ] **Page migration**: Navigating to `/org/members` redirects to `/admin/members`. Navigating to `/org/settings` redirects to `/admin/settings`. All existing functionality is preserved and enhanced (pagination, all RBAC roles in invite/change dialogs).
-- [ ] **Cross-tenant CRUD**: Given a super admin session, `GET /api/admin/users` returns users from all organizations. Ban, unban, soft-delete, and restore operations work and create audit log entries. Same for `GET /api/admin/organizations`.
-- [ ] **Impersonation**: Super admin can start an impersonation session for a non-superadmin user. Persistent banner is visible on all pages. "Stop Impersonating" restores the original session. Attempting to impersonate a superadmin returns 403. Impersonation start and stop are audit logged.
-- [ ] **Audit trail**: Every admin action listed in the action vocabulary table produces an audit log entry with correct `before`/`after` data. The audit log viewer at `/admin/audit-logs` displays entries with filters, search, and expandable diff view. Verified by integration tests.
-- [ ] **Feature flags**: Super admin can create, toggle, and delete boolean feature flags. `FeatureFlagService.isEnabled(key)` returns the correct value. Duplicate key creation returns 400.
-- [ ] **System settings**: Super admin can view and edit typed system settings grouped by category. Changes persist and are audit logged.
-- [ ] **Health dashboard**: `/admin/health` displays API status (up/down based on health check), DB status, active users (24h), total users, total orgs, and DB pool stats. Deferred metrics show "Not configured" cards.
-- [ ] **Org hierarchy**: Setting `parentOrganizationId` on an organization works. Setting a 4th-level parent returns 400. Tree view renders with correct indentation and expand/collapse. `TenantInterceptor` correctly resolves child orgs to parent tenant.
-- [ ] **Soft delete**: Soft-deleted users and orgs appear when filtering by "Archived" status. Super admins can restore them via the admin panel.
-- [ ] **Better Auth plugin**: `/api/auth/admin/*` endpoints are disabled or restricted. Admin actions go through NestJS controllers exclusively.
+- [x] **Member management** (Phase 1): Given an org admin session, `GET /api/admin/members` returns only members of the admin's org, paginated. Invite, role-change, and remove operations work and create audit log entries.
+- [x] **Permission-based UI** (Phase 1): Org admins see only the Organization nav group. Super admins see both groups. Non-admin users navigating to `/admin` are redirected to `/dashboard`. Org admins navigating to `/admin/users` are redirected to `/admin`.
+- [x] **Page migration** (Phase 1): Navigating to `/org/members` redirects to `/admin/members`. Navigating to `/org/settings` redirects to `/admin/settings`. All existing functionality is preserved and enhanced (pagination, all RBAC roles in invite/change dialogs).
+- [x] **Cross-tenant CRUD** (Phase 2): Given a super admin session, `GET /api/admin/users` returns users from all organizations. Ban, unban, soft-delete, and restore operations work and create audit log entries. Same for `GET /api/admin/organizations`.
+- [ ] **Impersonation** (Phase 4, #271): Super admin can start an impersonation session for a non-superadmin user. Persistent banner is visible on all pages. "Stop Impersonating" restores the original session. Attempting to impersonate a superadmin returns 403. Impersonation start and stop are audit logged.
+- [x] **Audit trail** (Phase 2): Every admin action listed in the action vocabulary table produces an audit log entry with correct `before`/`after` data. The audit log viewer at `/admin/audit-logs` displays entries with filters, search, and expandable diff view. Verified by integration tests.
+- [ ] **Feature flags** (Phase 3, #270): Super admin can create, toggle, and delete boolean feature flags. `FeatureFlagService.isEnabled(key)` returns the correct value. Duplicate key creation returns 400.
+- [ ] **System settings** (Phase 3, #270): Super admin can view and edit typed system settings grouped by category. Changes persist and are audit logged.
+- [ ] **Health dashboard** (Phase 4, #271): `/admin/health` displays API status (up/down based on health check), DB status, active users (24h), total users, total orgs, and DB pool stats. Deferred metrics show "Not configured" cards.
+- [x] **Org hierarchy** (Phase 2): Setting `parentOrganizationId` on an organization works. Setting a 4th-level parent returns 400. Tree view renders with correct indentation and expand/collapse. Parent/child is display-only grouping (TenantInterceptor parent resolution deferred — guarded with opt-in check).
+- [x] **Soft delete** (Phase 2): Soft-deleted users and orgs appear when filtering by "Archived" status. Super admins can restore them via the admin panel.
+- [x] **Better Auth plugin** (Phase 1): `/api/auth/admin/*` endpoints are disabled or restricted. Admin actions go through NestJS controllers exclusively.
 
 ## Open Questions
 
-- **Impersonation via Better Auth**: Does the current Better Auth version support the `impersonate-user` admin API with custom session fields? If not, impersonation session must be created via direct session manipulation. Investigate during Phase 4.
+- **Impersonation via Better Auth**: Does the current Better Auth version support the `impersonate-user` admin API with custom session fields? If not, impersonation session must be created via direct session manipulation. Investigate during Phase 4 (#271).
 - **Audit log retention**: Indefinite for MVP. Configurable retention policy may be needed at scale — defer to follow-up issue. Audit logs are not subject to RLS; future org-admin audit visibility would require adding tenant scoping.
-- **`members.role` migration path**: Phase 1 must resolve whether to write both fields on every change (safe, compatible) or migrate to `roleId` only (cleaner, may break Better Auth SDK calls). Investigate Better Auth internals before deciding.
-- **Initial system settings**: What settings should exist at launch? The schema and UI are defined, but the initial settings catalog needs to be determined during Phase 3 implementation.
-- **Rate limiting for admin endpoints**: The existing rate limiter has `global` (60 req/min) and `auth` (5 req/min) tiers. Consider whether admin endpoints need a separate tier or exemption for bulk operations.
+- ~~**`members.role` migration path**~~: **Resolved in Phase 1.** Both `roleId` and legacy `role` field are written on every role change (safe, compatible approach).
+- **Initial system settings**: What settings should exist at launch? The schema and UI are defined, but the initial settings catalog needs to be determined during Phase 3 implementation (#270).
+- **Rate limiting for admin endpoints**: Phase 2 uses `@Throttle({ global: { ttl: 60_000, limit: 30 } })` on all cross-tenant controllers. Consider whether bulk operations need a higher limit or batch endpoints in a follow-up.
+- **Write-time audit redaction**: `AuditService.log()` currently does not strip sensitive keys before writing to DB. Phase 2 redacts at read time (API response) only. A follow-up should add write-time stripping.
+- **Ban auto-enforcement**: Ban takes effect on next API request only (no session invalidation). A fast-follow middleware to check `banned` on every request would close this gap. Auto-unban on `banExpires` is also deferred.
