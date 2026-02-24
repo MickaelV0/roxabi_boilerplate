@@ -20,11 +20,7 @@ import { LoadMoreButton } from '@/components/admin/load-more-button'
 import { TreeView } from '@/components/admin/tree-view'
 import { useCursorPagination } from '@/hooks/use-cursor-pagination'
 import { formatDate } from '@/lib/format-date'
-
-type OrgFilters = {
-  status: string
-  search: string
-}
+import type { OrgFilters } from './-organizations-types'
 
 type TreeApiResponse = {
   data: AdminOrganization[]
@@ -254,4 +250,3 @@ function TreeModeView() {
 }
 
 export { FlatListView, TreeModeView }
-export type { OrgFilters }

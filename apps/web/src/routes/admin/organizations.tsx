@@ -6,7 +6,7 @@ import type { FilterConfig } from '@/components/admin/filter-bar'
 import { FilterBar } from '@/components/admin/filter-bar'
 import { enforceRoutePermission } from '@/lib/route-permissions'
 import { CreateOrganizationDialog } from './-organizations-create-dialog'
-import type { OrgFilters } from './-organizations-views'
+import type { OrgFilters } from './-organizations-types'
 import { FlatListView, TreeModeView } from './-organizations-views'
 
 export const Route = createFileRoute('/admin/organizations')({

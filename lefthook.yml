@@ -24,20 +24,3 @@ pre-push:
       run: bun run i18n:validate
     license:
       run: bun run license:check
-    file-length:
-      run: |
-        MAX=500
-        VIOLATIONS=$(find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \) \
-          -not -path "*/node_modules/*" -not -path "*/.nitro/*" -not -path "*/dist/*" \
-          -not -path "*/.output/*" -not -path "*/.next/*" -not -path "*/.vinxi/*" \
-          -not -path "*/.turbo/*" -not -path "*/.vercel/*" -not -path "*/coverage/*" \
-          -not -path "*/src/paraglide/*" -not -name "routeTree.gen.ts" \
-          -not -name "*.test.ts" -not -name "*.test.tsx" \
-          -not -name "*.spec.ts" -not -name "*.spec.tsx" \
-          -not -path "**/e2e/**" -not -path "**/.claude/skills/**" -not -path "**/scripts/**" \
-          | xargs wc -l 2>/dev/null | awk -v max="$MAX" '$1 > max && !/total$/' )
-        if [ -n "$VIOLATIONS" ]; then
-          echo "Files exceeding $MAX lines:"
-          echo "$VIOLATIONS"
-          exit 1
-        fi

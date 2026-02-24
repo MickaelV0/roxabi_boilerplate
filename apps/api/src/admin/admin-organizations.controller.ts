@@ -21,6 +21,7 @@ import type { AuthenticatedSession } from '../auth/types.js'
 import { SkipOrg } from '../common/decorators/skip-org.decorator.js'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
 import { AdminMembersService } from './admin-members.service.js'
+import { AdminOrganizationsDeletionService } from './admin-organizations.deletion.js'
 import { AdminOrganizationsService } from './admin-organizations.service.js'
 import { AdminExceptionFilter } from './filters/admin-exception.filter.js'
 
@@ -64,7 +65,8 @@ type UpdateOrgDto = z.infer<typeof updateOrgSchema>
 export class AdminOrganizationsController {
   constructor(
     private readonly adminOrganizationsService: AdminOrganizationsService,
-    private readonly adminMembersService: AdminMembersService
+    private readonly adminMembersService: AdminMembersService,
+    private readonly adminOrganizationsDeletionService: AdminOrganizationsDeletionService
   ) {}
 
   @Get()
@@ -149,7 +151,7 @@ export class AdminOrganizationsController {
   @ApiResponse({ status: 200, description: 'Deletion impact preview' })
   @ApiResponse({ status: 404, description: 'Organization not found' })
   async getDeletionImpact(@Param('orgId', new ParseUUIDPipe({ version: '4' })) orgId: string) {
-    return this.adminOrganizationsService.getDeletionImpact(orgId)
+    return this.adminOrganizationsDeletionService.getDeletionImpact(orgId)
   }
 
   @Delete(':orgId')
@@ -161,7 +163,7 @@ export class AdminOrganizationsController {
     @Param('orgId', new ParseUUIDPipe({ version: '4' })) orgId: string,
     @Session() session: AuthenticatedSession
   ) {
-    await this.adminOrganizationsService.deleteOrganization(orgId, session.user.id)
+    await this.adminOrganizationsDeletionService.deleteOrganization(orgId, session.user.id)
   }
 
   @Post(':orgId/restore')
@@ -172,6 +174,6 @@ export class AdminOrganizationsController {
     @Param('orgId', new ParseUUIDPipe({ version: '4' })) orgId: string,
     @Session() session: AuthenticatedSession
   ) {
-    return this.adminOrganizationsService.restoreOrganization(orgId, session.user.id)
+    return this.adminOrganizationsDeletionService.restoreOrganization(orgId, session.user.id)
   }
 }

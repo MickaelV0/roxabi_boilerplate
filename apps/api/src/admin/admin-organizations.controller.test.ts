@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import type { AdminMembersService } from './admin-members.service.js'
 import { AdminOrganizationsController } from './admin-organizations.controller.js'
+import type { AdminOrganizationsDeletionService } from './admin-organizations.deletion.js'
 import type { AdminOrganizationsService } from './admin-organizations.service.js'
 import { OrgCycleDetectedException } from './exceptions/org-cycle-detected.exception.js'
 import { OrgDepthExceededException } from './exceptions/org-depth-exceeded.exception.js'
@@ -19,10 +20,13 @@ const mockAdminOrganizationsService: AdminOrganizationsService = {
   getOrganizationDetail: vi.fn(),
   createOrganization: vi.fn(),
   updateOrganization: vi.fn(),
+} as unknown as AdminOrganizationsService
+
+const mockAdminOrganizationsDeletionService: AdminOrganizationsDeletionService = {
   getDeletionImpact: vi.fn(),
   deleteOrganization: vi.fn(),
   restoreOrganization: vi.fn(),
-} as unknown as AdminOrganizationsService
+} as unknown as AdminOrganizationsDeletionService
 
 const mockAdminMembersService: AdminMembersService = {
   changeMemberRole: vi.fn(),
@@ -58,7 +62,8 @@ const updateOrgSchema = z.object({
 describe('AdminOrganizationsController', () => {
   const controller = new AdminOrganizationsController(
     mockAdminOrganizationsService,
-    mockAdminMembersService
+    mockAdminMembersService,
+    mockAdminOrganizationsDeletionService
   )
 
   beforeEach(() => {
@@ -438,19 +443,19 @@ describe('AdminOrganizationsController', () => {
     it('should delegate to service.getDeletionImpact', async () => {
       // Arrange
       const impact = { memberCount: 5, activeMembers: 3, childOrgCount: 2, childMemberCount: 10 }
-      vi.mocked(mockAdminOrganizationsService.getDeletionImpact).mockResolvedValue(impact)
+      vi.mocked(mockAdminOrganizationsDeletionService.getDeletionImpact).mockResolvedValue(impact)
 
       // Act
       const result = await controller.getDeletionImpact('org-1')
 
       // Assert
       expect(result).toEqual(impact)
-      expect(mockAdminOrganizationsService.getDeletionImpact).toHaveBeenCalledWith('org-1')
+      expect(mockAdminOrganizationsDeletionService.getDeletionImpact).toHaveBeenCalledWith('org-1')
     })
 
     it('should propagate AdminOrgNotFoundException when org not found', async () => {
       // Arrange
-      vi.mocked(mockAdminOrganizationsService.getDeletionImpact).mockRejectedValue(
+      vi.mocked(mockAdminOrganizationsDeletionService.getDeletionImpact).mockRejectedValue(
         new AdminOrgNotFoundException('org-missing')
       )
 
@@ -467,7 +472,7 @@ describe('AdminOrganizationsController', () => {
   describe('DELETE /api/admin/organizations/:orgId', () => {
     it('should delegate to service.deleteOrganization and return void (204)', async () => {
       // Arrange
-      vi.mocked(mockAdminOrganizationsService.deleteOrganization).mockResolvedValue({
+      vi.mocked(mockAdminOrganizationsDeletionService.deleteOrganization).mockResolvedValue({
         id: 'org-1',
       } as never)
 
@@ -476,7 +481,7 @@ describe('AdminOrganizationsController', () => {
 
       // Assert — controller returns void (204 No Content)
       expect(result).toBeUndefined()
-      expect(mockAdminOrganizationsService.deleteOrganization).toHaveBeenCalledWith(
+      expect(mockAdminOrganizationsDeletionService.deleteOrganization).toHaveBeenCalledWith(
         'org-1',
         'superadmin-1'
       )
@@ -484,7 +489,7 @@ describe('AdminOrganizationsController', () => {
 
     it('should propagate AdminOrgNotFoundException from service', async () => {
       // Arrange
-      vi.mocked(mockAdminOrganizationsService.deleteOrganization).mockRejectedValue(
+      vi.mocked(mockAdminOrganizationsDeletionService.deleteOrganization).mockRejectedValue(
         new AdminOrgNotFoundException('org-missing')
       )
 
@@ -502,7 +507,7 @@ describe('AdminOrganizationsController', () => {
     it('should delegate to service.restoreOrganization', async () => {
       // Arrange
       const restoredOrg = { id: 'org-1', deletedAt: null }
-      vi.mocked(mockAdminOrganizationsService.restoreOrganization).mockResolvedValue(
+      vi.mocked(mockAdminOrganizationsDeletionService.restoreOrganization).mockResolvedValue(
         restoredOrg as never
       )
 
@@ -511,7 +516,7 @@ describe('AdminOrganizationsController', () => {
 
       // Assert
       expect(result).toEqual(restoredOrg)
-      expect(mockAdminOrganizationsService.restoreOrganization).toHaveBeenCalledWith(
+      expect(mockAdminOrganizationsDeletionService.restoreOrganization).toHaveBeenCalledWith(
         'org-1',
         'superadmin-1'
       )
@@ -519,7 +524,7 @@ describe('AdminOrganizationsController', () => {
 
     it('should propagate AdminOrgNotFoundException from service', async () => {
       // Arrange
-      vi.mocked(mockAdminOrganizationsService.restoreOrganization).mockRejectedValue(
+      vi.mocked(mockAdminOrganizationsDeletionService.restoreOrganization).mockRejectedValue(
         new AdminOrgNotFoundException('org-missing')
       )
 
