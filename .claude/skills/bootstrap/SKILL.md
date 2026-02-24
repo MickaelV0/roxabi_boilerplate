@@ -75,7 +75,9 @@ Incorporate feedback → note unresolved concerns.
 
 ### 1c. User Approval
 
-AskUserQuestion: **Approve** → Gate 2 | **Reject** → revise + re-review, loop.
+Open the analysis for review: `code analyses/{slug}.mdx`
+Present a concise summary of the document: key shapes/approaches explored, main trade-offs, and recommendation.
+AskUserQuestion: **Approve** → commit `analyses/{slug}.mdx` + Gate 2 | **Reject** → revise + re-review, loop.
 
 ---
 
@@ -125,7 +127,9 @@ Spawn parallel reviewers → incorporate feedback.
 
 ### 2c. User Approval
 
-AskUserQuestion: **Approve** → Gate 2.5 | **Reject** → revise + re-review, loop.
+Open the spec for review: `code specs/{issue}-{slug}.mdx`
+Present a concise summary of the document: scope, key slices, acceptance criteria count, and any `[NEEDS CLARIFICATION]` markers.
+AskUserQuestion: **Approve** → commit `specs/{issue}-{slug}.mdx` + Gate 2.5 | **Reject** → revise + re-review, loop.
 
 ---
 
@@ -149,21 +153,9 @@ bun .claude/skills/issue-triage/triage.ts set <N> --status Specs
 
 ## Completion
 
-1. Commit (only files created/modified):
+> Analysis and spec are committed incrementally at each approval gate (1c, 2c). No final bulk commit needed.
 
-```bash
-git add analyses/<slug>.mdx specs/<issue>-<slug>.mdx
-git commit -m "$(cat <<'EOF'
-docs(<scope>): add analysis and spec for <feature>
-
-Refs #<issue_number>
-
-Co-Authored-By: Claude <model> <noreply@anthropic.com>
-EOF
-)"
-```
-
-2. Inform: "Bootstrap complete. Run `/scaffold --spec <N>` to execute."
+1. Inform: "Bootstrap complete. Run `/scaffold --spec <N>` to execute."
    Gate 2.5 sub-issues ⇒ "Run `/scaffold --issue <N>` for each sub-issue in dependency order."
 
 > Scaffold guard: unresolved `[NEEDS CLARIFICATION]` markers block scaffold. Remind user.
