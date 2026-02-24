@@ -72,7 +72,7 @@ When `/scaffold` Step 4f generates micro-tasks, agents receive structured work u
 
 **Claiming tasks:**
 
-Tasks are delivered via spawn prompts (Task tool description or TeamCreate instructions). The orchestrator manages assignment and sequencing.
+Tasks are delivered via spawn prompts (Task tool description). The orchestrator manages assignment and sequencing.
 
 1. Receive your assigned micro-tasks in the spawn prompt
 2. Execute tasks in the order provided (lowest ID first within your assigned slice)

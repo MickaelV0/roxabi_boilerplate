@@ -176,17 +176,17 @@ git worktree remove ../roxabi-XXX
 
 ## Agent Coordination
 
-Two modes are available depending on task complexity. See the [Agent Teams Guide](../guides/agent-teams) for full setup and playbooks.
+Agents are spawned as subagents via the `Task` tool. See the [Agent Teams Guide](../guides/agent-teams) for full setup and playbooks.
 
 | Mode | Mechanism | When | Overhead |
 |------|-----------|------|----------|
-| **Subagents** | `Task` tool (single session) | Tier S or Tier F single-domain | Low — results return to your context |
-| **Agent Teams** | `TeamCreate` (multi-process swarm) | Tier F multi-domain or large scope | High — each agent is a separate Claude instance |
+| **Single session** | Direct implementation | Tier S (simple fixes) | Minimal |
+| **Subagents** | `Task` tool | Tier S optional + all Tier F | Low — results return to your context |
 
 **Quick decision:**
 - Tier S: single session, optionally delegate to **tester** subagent
 - Tier F single-domain: subagents via `Task` tool
-- Tier F multi-domain: agent teams via `TeamCreate`
+- Tier F multi-domain: parallel subagents via `Task` tool
 
 **Intra-domain parallelization (Tier F-full):** When a single domain has 4+ tasks on independent file groups, spawn multiple agents of the same type. Each agent receives a distinct task subset with no shared files. Example: 2 `backend-dev` agents — one for auth service, one for user service.
 
@@ -460,7 +460,7 @@ After features have been validated on staging:
 **Before creating PR:**
 - [ ] All impacted artifacts included (code, tests, docs, config)
 - [ ] Code follows conventions (Biome)
-- [ ] Tests pass (`bun test`)
+- [ ] Tests pass (`bun run test`)
 - [ ] Linting passes (`bun lint`)
 - [ ] Types check (`bun typecheck`)
 - [ ] No console.log or debug code
