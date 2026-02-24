@@ -10,13 +10,15 @@ import {
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { members, organizations, users } from '../database/schema/auth.schema.js'
 import { roles } from '../database/schema/rbac.schema.js'
+import {
+  getDepth,
+  getDescendantOrgIds,
+  validateHierarchy,
+} from './admin-organizations.hierarchy.js'
 import { NotDeletedException } from './exceptions/not-deleted.exception.js'
-import { OrgCycleDetectedException } from './exceptions/org-cycle-detected.exception.js'
 import { OrgDepthExceededException } from './exceptions/org-depth-exceeded.exception.js'
 import { AdminOrgNotFoundException } from './exceptions/org-not-found.exception.js'
 import { OrgSlugConflictException } from './exceptions/org-slug-conflict.exception.js'
-
-const MAX_PARENT_WALK_ITERATIONS = 10
 
 /**
  * AdminOrganizationsService — cross-tenant org management for super admins.
@@ -273,7 +275,7 @@ export class AdminOrganizationsService {
   ) {
     // Validate parent depth if parentOrganizationId is provided
     if (data.parentOrganizationId) {
-      const depth = await this.getDepth(data.parentOrganizationId)
+      const depth = await getDepth(this.db, data.parentOrganizationId)
       if (depth + 1 >= 3) {
         throw new OrgDepthExceededException()
       }
@@ -329,7 +331,7 @@ export class AdminOrganizationsService {
     const beforeOrg = await this.findOrgSnapshotOrThrow(orgId)
 
     if (data.parentOrganizationId !== undefined && data.parentOrganizationId !== null) {
-      await this.validateHierarchy(orgId, data.parentOrganizationId)
+      await validateHierarchy(this.db, orgId, data.parentOrganizationId)
     }
 
     const updatedOrg = await this.executeOrgUpdate(orgId, data)
@@ -452,7 +454,7 @@ export class AdminOrganizationsService {
       .where(eq(organizations.parentOrganizationId, orgId))
 
     // Collect all descendant org IDs recursively for child member count
-    const descendantIds = await this.getDescendantOrgIds(orgId)
+    const descendantIds = await getDescendantOrgIds(this.db, orgId)
 
     // Child member count (members in ALL descendant orgs)
     let childMemberCount = 0
@@ -515,123 +517,5 @@ export class AdminOrganizationsService {
     this.logOrgAudit('org.restored', orgId, actorId, org, updatedOrg)
 
     return updatedOrg
-  }
-
-  /**
-   * Get the depth of an org by walking up the parent chain.
-   * Depth = number of ancestors (edges to root).
-   */
-  private async getDepth(orgId: string): Promise<number> {
-    let depth = 0
-    let iterations = 0
-    let currentId: string | null = orgId
-    while (currentId) {
-      if (iterations++ >= MAX_PARENT_WALK_ITERATIONS) break
-      const [org] = await this.db
-        .select({ parentOrganizationId: organizations.parentOrganizationId })
-        .from(organizations)
-        .where(eq(organizations.id, currentId))
-        .limit(1)
-      if (!org) break
-      currentId = org.parentOrganizationId
-      if (currentId) depth++
-    }
-    return depth
-  }
-
-  /**
-   * Validate hierarchy when reparenting: check for cycles and max depth.
-   * Walks up from newParentId, checking each node.
-   */
-  private async validateHierarchy(orgId: string, newParentId: string): Promise<void> {
-    if (orgId === newParentId) {
-      throw new OrgCycleDetectedException()
-    }
-
-    await this.db.transaction(async (tx) => {
-      const { depth } = await this.walkParentChain(tx, orgId, newParentId)
-      const subtreeDepth = await this.getSubtreeDepth(orgId)
-
-      if (depth + 1 + subtreeDepth >= 3) {
-        throw new OrgDepthExceededException()
-      }
-    })
-  }
-
-  /**
-   * Walk up from startId, counting depth and detecting cycles against targetOrgId.
-   */
-  private async walkParentChain(
-    tx: Parameters<Parameters<DrizzleDB['transaction']>[0]>[0],
-    targetOrgId: string,
-    startId: string
-  ): Promise<{ depth: number }> {
-    let depth = 0
-    let iterations = 0
-    let currentId: string | null = startId
-
-    while (currentId) {
-      if (iterations++ >= MAX_PARENT_WALK_ITERATIONS) break
-      const [org] = await tx
-        .select({
-          id: organizations.id,
-          parentOrganizationId: organizations.parentOrganizationId,
-        })
-        .from(organizations)
-        .where(eq(organizations.id, currentId))
-        .limit(1)
-      if (!org) break
-
-      currentId = org.parentOrganizationId
-      if (currentId) depth++
-
-      if (currentId === targetOrgId) {
-        throw new OrgCycleDetectedException()
-      }
-    }
-
-    return { depth }
-  }
-
-  /**
-   * Get the depth of the deepest descendant below orgId.
-   * Returns 0 if orgId has no children.
-   */
-  private async getSubtreeDepth(orgId: string): Promise<number> {
-    const children = await this.db
-      .select({ id: organizations.id })
-      .from(organizations)
-      .where(eq(organizations.parentOrganizationId, orgId))
-
-    if (children.length === 0) return 0
-
-    let maxChildDepth = 0
-    for (const child of children) {
-      const childDepth = await this.getSubtreeDepth(child.id)
-      if (childDepth + 1 > maxChildDepth) {
-        maxChildDepth = childDepth + 1
-      }
-      if (maxChildDepth >= MAX_PARENT_WALK_ITERATIONS) break
-    }
-    return maxChildDepth
-  }
-
-  /**
-   * Collect all descendant org IDs recursively (for deletion impact).
-   */
-  private async getDescendantOrgIds(orgId: string): Promise<string[]> {
-    const children = await this.db
-      .select({ id: organizations.id })
-      .from(organizations)
-      .where(eq(organizations.parentOrganizationId, orgId))
-
-    const ids: string[] = []
-    for (const child of children) {
-      ids.push(child.id)
-      const grandchildren = await this.getDescendantOrgIds(child.id)
-      ids.push(...grandchildren)
-      if (ids.length >= 1000) break // safety cap
-    }
-    return ids
   }
 }
