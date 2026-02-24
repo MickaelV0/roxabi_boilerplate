@@ -71,9 +71,7 @@ test.describe('Authentication', () => {
     // Assert
     expect(page.url()).not.toContain('/dashboard')
     // Should be on home or login page
-    expect(
-      page.url().endsWith('/') || page.url().includes('/login')
-    ).toBeTruthy()
+    expect(page.url().endsWith('/') || page.url().includes('/login')).toBeTruthy()
   })
 
   test('should verify OAuth button is present and redirects (Google)', async ({ page }) => {

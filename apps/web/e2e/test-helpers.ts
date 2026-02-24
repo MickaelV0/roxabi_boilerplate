@@ -75,9 +75,7 @@ export async function clearSession(page: Page) {
  * @param pathPattern - Path pattern to match (regex or string)
  */
 export async function waitForNavigation(page: Page, pathPattern: string | RegExp) {
-  await page.waitForURL(
-    typeof pathPattern === 'string' ? new RegExp(pathPattern) : pathPattern
-  )
+  await page.waitForURL(typeof pathPattern === 'string' ? new RegExp(pathPattern) : pathPattern)
 }
 
 /**

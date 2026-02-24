@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
-import { DashboardPage } from './dashboard.page'
 import { AuthPage } from './auth.page'
+import { DashboardPage } from './dashboard.page'
 
 test.describe('Dashboard Navigation', () => {
   test.beforeEach(async ({ page }) => {
