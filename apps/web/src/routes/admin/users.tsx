@@ -20,6 +20,7 @@ import { useMemo, useState } from 'react'
 import type { FilterConfig } from '@/components/admin/filter-bar'
 import { FilterBar } from '@/components/admin/filter-bar'
 import { LoadMoreButton } from '@/components/admin/load-more-button'
+import { UserContextMenu, UserKebabButton } from '@/components/admin/user-context-menu'
 import { useCursorPagination } from '@/hooks/use-cursor-pagination'
 import { formatDate } from '@/lib/format-date'
 import { formatRelativeTime } from '@/lib/format-relative-time'
@@ -142,6 +143,7 @@ function AdminUsersList() {
     hasMore,
     isLoading,
     isLoadingMore,
+    refetch,
   } = useCursorPagination<AdminUser>({
     queryKey: ['admin', 'users', filters],
     fetchFn: async (cursor) => {
@@ -213,39 +215,45 @@ function AdminUsersList() {
                   <TableHead>Last Active</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.map((user) => (
-                  <TableRow key={user.id} className="cursor-pointer hover:bg-muted/50">
-                    <TableCell>
-                      <Link
-                        to="/admin/users/$userId"
-                        params={{ userId: user.id }}
-                        className="font-medium text-foreground hover:underline"
-                      >
-                        {user.name || 'Unnamed'}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize">
-                        {user.role ?? 'user'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{user.organizationCount ?? 0}</Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {user.lastActive ? formatRelativeTime(user.lastActive) : 'Never'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={statusVariant(user)}>{statusLabel(user)}</Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {formatDate(user.createdAt)}
-                    </TableCell>
-                  </TableRow>
+                  <UserContextMenu key={user.id} user={user} onActionComplete={() => refetch()}>
+                    <TableRow className="cursor-pointer hover:bg-muted/50">
+                      <TableCell>
+                        <Link
+                          to="/admin/users/$userId"
+                          params={{ userId: user.id }}
+                          className="font-medium text-foreground hover:underline"
+                        >
+                          {user.name || 'Unnamed'}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize">
+                          {user.role ?? 'user'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{user.organizationCount ?? 0}</Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {user.lastActive ? formatRelativeTime(user.lastActive) : 'Never'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={statusVariant(user)}>{statusLabel(user)}</Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(user.createdAt)}
+                      </TableCell>
+                      <TableCell>
+                        <UserKebabButton user={user} onActionComplete={() => refetch()} />
+                      </TableCell>
+                    </TableRow>
+                  </UserContextMenu>
                 ))}
               </TableBody>
             </Table>

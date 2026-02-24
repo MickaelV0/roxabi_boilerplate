@@ -29,7 +29,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@repo/ui'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import {
   ExternalLinkIcon,
@@ -87,7 +87,7 @@ function useOrgRoles(orgId: string) {
   return useQuery<{ data: OrgRole[] }>({
     queryKey: ['admin', 'organizations', orgId, 'roles'],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/organizations/${orgId}/roles`)
+      const res = await fetch(`/api/admin/organizations/${orgId}/roles`, { credentials: 'include' })
       if (!res.ok) throw new Error('Failed to load roles')
       return res.json()
     },
@@ -95,13 +95,12 @@ function useOrgRoles(orgId: string) {
 }
 
 function useChangeRoleMutation(orgId: string, memberId: string, onActionComplete: () => void) {
-  const queryClient = useQueryClient()
-
   return useMutation({
     mutationFn: async (roleId: string) => {
       const res = await fetch(`/api/admin/organizations/${orgId}/members/${memberId}/role`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ roleId }),
       })
       if (!res.ok) {
@@ -117,9 +116,6 @@ function useChangeRoleMutation(orgId: string, memberId: string, onActionComplete
     },
     onSuccess: () => {
       toast.success('Role updated successfully')
-      queryClient.invalidateQueries({
-        queryKey: ['admin', 'organizations', orgId],
-      })
       onActionComplete()
     },
     onError: (err: unknown) => {
@@ -133,13 +129,12 @@ function useEditProfileMutation(
   onSuccess: () => void,
   setError: (e: string | null) => void
 ) {
-  const queryClient = useQueryClient()
-
   return useMutation({
     mutationFn: async (payload: { name: string; email: string }) => {
       const res = await fetch(`/api/admin/users/${userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(payload),
       })
       if (!res.ok) {
@@ -156,7 +151,6 @@ function useEditProfileMutation(
     },
     onSuccess: () => {
       toast.success('Profile updated successfully')
-      queryClient.invalidateQueries({ queryKey: ['admin'] })
       onSuccess()
     },
     onError: (err: unknown) => {
@@ -461,7 +455,7 @@ export function MemberKebabButton({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" aria-label="More actions">
           <MoreHorizontalIcon className="size-4" />
         </Button>
       </DropdownMenuTrigger>

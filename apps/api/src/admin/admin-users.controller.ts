@@ -32,7 +32,7 @@ export const updateUserSchema = z.object({
 })
 
 export const banUserSchema = z.object({
-  reason: z.string().min(5).max(500),
+  reason: z.string().trim().min(5).max(500),
   expires: z.string().datetime().nullable().optional(),
 })
 

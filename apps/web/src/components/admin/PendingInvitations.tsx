@@ -8,7 +8,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   Badge,
-  Button,
   Card,
   CardContent,
   CardHeader,
@@ -28,6 +27,7 @@ import { toast } from 'sonner'
 import { roleLabel } from '@/lib/org-utils'
 import { m } from '@/paraglide/messages'
 import { getLocale } from '@/paraglide/runtime'
+import { InvitationContextMenu, InvitationKebabButton } from './invitation-context-menu'
 
 type Invitation = {
   id: string
@@ -138,33 +138,35 @@ function InvitationsTable({ invitations, locale, onRevoke }: InvitationsTablePro
             <TableHead className="pb-2 pr-4 font-medium">{m.org_invitations_role()}</TableHead>
             <TableHead className="pb-2 pr-4 font-medium">{m.org_invitations_status()}</TableHead>
             <TableHead className="pb-2 pr-4 font-medium">{m.admin_invitations_expires()}</TableHead>
-            <TableHead className="pb-2 font-medium">{m.org_members_actions()}</TableHead>
+            <TableHead className="w-10" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {invitations.map((invitation) => (
-            <TableRow key={invitation.id} className="border-b last:border-0">
-              <TableCell className="py-3 pr-4">{invitation.email}</TableCell>
-              <TableCell className="py-3 pr-4">
-                <Badge variant="outline">{roleLabel(invitation.role)}</Badge>
-              </TableCell>
-              <TableCell className="py-3 pr-4">
-                <Badge variant="secondary">{invitation.status}</Badge>
-              </TableCell>
-              <TableCell className="py-3 pr-4 text-muted-foreground">
-                {new Date(invitation.expiresAt).toLocaleDateString(locale)}
-              </TableCell>
-              <TableCell className="py-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => onRevoke({ id: invitation.id, email: invitation.email })}
-                >
-                  {m.admin_invitations_revoke()}
-                </Button>
-              </TableCell>
-            </TableRow>
+            <InvitationContextMenu
+              key={invitation.id}
+              invitation={{ id: invitation.id, email: invitation.email }}
+              onRevoke={onRevoke}
+            >
+              <TableRow className="border-b last:border-0">
+                <TableCell className="py-3 pr-4">{invitation.email}</TableCell>
+                <TableCell className="py-3 pr-4">
+                  <Badge variant="outline">{roleLabel(invitation.role)}</Badge>
+                </TableCell>
+                <TableCell className="py-3 pr-4">
+                  <Badge variant="secondary">{invitation.status}</Badge>
+                </TableCell>
+                <TableCell className="py-3 pr-4 text-muted-foreground">
+                  {new Date(invitation.expiresAt).toLocaleDateString(locale)}
+                </TableCell>
+                <TableCell className="py-3">
+                  <InvitationKebabButton
+                    invitation={{ id: invitation.id, email: invitation.email }}
+                    onRevoke={onRevoke}
+                  />
+                </TableCell>
+              </TableRow>
+            </InvitationContextMenu>
           ))}
         </TableBody>
       </Table>
