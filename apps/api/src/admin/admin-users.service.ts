@@ -85,7 +85,8 @@ export class AdminUsersService {
         .replace(/%/g, '\\%')
         .replace(/_/g, '\\_')
       const pattern = `%${escaped}%`
-      conditions.push(or(ilike(users.name, pattern), ilike(users.email, pattern))!)
+      const searchCondition = or(ilike(users.name, pattern), ilike(users.email, pattern))
+      if (searchCondition) conditions.push(searchCondition)
     }
 
     // Cursor condition
@@ -291,7 +292,8 @@ export class AdminUsersService {
     let updatedUser: typeof users.$inferSelect
     try {
       const [result] = await this.db.update(users).set(data).where(eq(users.id, userId)).returning()
-      updatedUser = result!
+      if (!result) throw new AdminUserNotFoundException(userId)
+      updatedUser = result
     } catch (err) {
       const pgErr = err as { code?: string }
       if (pgErr.code === '23505') {

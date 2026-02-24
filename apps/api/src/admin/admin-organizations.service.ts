@@ -58,7 +58,11 @@ export class AdminOrganizationsService {
         .replace(/%/g, '\\%')
         .replace(/_/g, '\\_')
       const pattern = `%${escaped}%`
-      conditions.push(or(ilike(organizations.name, pattern), ilike(organizations.slug, pattern))!)
+      const searchCondition = or(
+        ilike(organizations.name, pattern),
+        ilike(organizations.slug, pattern)
+      )
+      if (searchCondition) conditions.push(searchCondition)
     }
 
     // Cursor condition
@@ -242,7 +246,8 @@ export class AdminOrganizationsService {
           parentOrganizationId: data.parentOrganizationId ?? null,
         })
         .returning()
-      createdOrg = result!
+      if (!result) throw new AdminOrgNotFoundException('insert returned no rows')
+      createdOrg = result
     } catch (err) {
       const pgErr = err as { code?: string }
       if (pgErr.code === '23505') {
@@ -311,7 +316,8 @@ export class AdminOrganizationsService {
         .set(data)
         .where(eq(organizations.id, orgId))
         .returning()
-      updatedOrg = result!
+      if (!result) throw new AdminOrgNotFoundException(orgId)
+      updatedOrg = result
     } catch (err) {
       const pgErr = err as { code?: string }
       if (pgErr.code === '23505') {

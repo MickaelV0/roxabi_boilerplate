@@ -45,7 +45,8 @@ export class AdminMembersService {
     const conditions = [eq(members.organizationId, orgId)]
     if (options.search) {
       const pattern = `%${options.search}%`
-      conditions.push(or(ilike(users.name, pattern), ilike(users.email, pattern))!)
+      const searchCondition = or(ilike(users.name, pattern), ilike(users.email, pattern))
+      if (searchCondition) conditions.push(searchCondition)
     }
     const whereClause = and(...conditions)
 
