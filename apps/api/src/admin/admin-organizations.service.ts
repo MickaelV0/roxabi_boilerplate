@@ -112,7 +112,7 @@ export class AdminOrganizationsService {
       .from(organizations)
       .where(isNull(organizations.deletedAt))
 
-    if (countResult?.count > 1000) {
+    if ((countResult?.count ?? 0) > 1000) {
       return {
         treeViewAvailable: false,
         data: [] as {
@@ -401,7 +401,7 @@ export class AdminOrganizationsService {
         .select({ count: count() })
         .from(members)
         .where(inArray(members.organizationId, descendantIds))
-      childMemberCount = childMemberCountResult?.count
+      childMemberCount = childMemberCountResult?.count ?? 0
     }
 
     return {
