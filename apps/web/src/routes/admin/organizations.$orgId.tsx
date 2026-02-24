@@ -26,6 +26,7 @@ import { BuildingIcon, CalendarIcon, NetworkIcon, PencilIcon, UsersIcon, XIcon }
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { BackLink, DetailSkeleton } from '@/components/admin/detail-shared'
+import { MemberKebabButton } from '@/components/admin/member-context-menu'
 import { OrgActions } from '@/components/admin/org-actions'
 import { requireSuperAdmin } from '@/lib/admin-guards'
 import { formatDate } from '@/lib/format-date'
@@ -101,7 +102,17 @@ function ProfileCard({ data }: { data: AdminOrgDetail }) {
   )
 }
 
-function MembersCard({ members }: { members: AdminOrgDetail['members'] }) {
+function MembersCard({
+  members,
+  orgId,
+  currentUserId,
+  onActionComplete,
+}: {
+  members: AdminOrgDetail['members']
+  orgId: string
+  currentUserId: string
+  onActionComplete: () => void
+}) {
   return (
     <Card>
       <CardHeader>
@@ -121,9 +132,11 @@ function MembersCard({ members }: { members: AdminOrgDetail['members'] }) {
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Joined</TableHead>
+                <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
             <TableBody>
+              {/* TODO: wrap TableRow in MemberContextMenu for right-click (#313) */}
               {members.map((member) => (
                 <TableRow key={member.id}>
                   <TableCell className="font-medium">{member.name || 'Unnamed'}</TableCell>
@@ -135,6 +148,22 @@ function MembersCard({ members }: { members: AdminOrgDetail['members'] }) {
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {formatDate(member.createdAt)}
+                  </TableCell>
+                  <TableCell>
+                    {/* TODO: implement kebab button (#313) */}
+                    <MemberKebabButton
+                      member={{
+                        id: member.id,
+                        userId: member.userId,
+                        name: member.name,
+                        email: member.email,
+                        role: member.role,
+                        roleId: member.roleId,
+                      }}
+                      orgId={orgId}
+                      currentUserId={currentUserId}
+                      onActionComplete={onActionComplete}
+                    />
                   </TableCell>
                 </TableRow>
               ))}
@@ -447,7 +476,13 @@ function AdminOrgDetailPage() {
         <EditOrgForm org={data} onSave={handleEditSave} onCancel={() => setIsEditing(false)} />
       )}
       <ProfileCard data={data} />
-      <MembersCard members={data.members} />
+      {/* TODO: derive currentUserId from session (#313) */}
+      <MembersCard
+        members={data.members}
+        orgId={data.id}
+        currentUserId=""
+        onActionComplete={handleActionComplete}
+      />
       <ChildOrgsCard childOrgs={data.children} />
     </div>
   )

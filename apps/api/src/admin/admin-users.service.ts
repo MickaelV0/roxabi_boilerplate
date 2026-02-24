@@ -1,6 +1,18 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import type { AuditAction } from '@repo/types'
-import { and, desc, eq, exists, ilike, inArray, isNotNull, isNull, or, type SQL } from 'drizzle-orm'
+import {
+  and,
+  desc,
+  eq,
+  exists,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  max,
+  or,
+  type SQL,
+} from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import { AuditService } from '../audit/audit.service.js'
 import {
@@ -64,13 +76,21 @@ export class AdminUsersService {
 
     // Query 2: Batch-fetch memberships for the page of users
     const userIds = paginatedResult.data.map((u) => u.id)
-    const membershipsByUserId = await this.fetchMembershipsByUserIds(userIds)
+    const [membershipsByUserId, lastActiveByUserId] = await Promise.all([
+      this.fetchMembershipsByUserIds(userIds),
+      this.fetchLastActiveByUserIds(userIds),
+    ])
 
-    // Merge organizations onto each user
-    const data = paginatedResult.data.map((user) => ({
-      ...user,
-      organizations: membershipsByUserId.get(user.id) ?? [],
-    }))
+    // Merge organizations, organizationCount, and lastActive onto each user
+    const data = paginatedResult.data.map((user) => {
+      const orgs = membershipsByUserId.get(user.id) ?? []
+      return {
+        ...user,
+        organizations: orgs,
+        organizationCount: orgs.length,
+        lastActive: lastActiveByUserId.get(user.id) ?? null,
+      }
+    })
 
     return { data, cursor: paginatedResult.cursor }
   }
@@ -167,6 +187,34 @@ export class AdminUsersService {
       const list = map.get(row.userId) ?? []
       list.push({ id: row.orgId, name: row.orgName, slug: row.orgSlug, role: row.role })
       map.set(row.userId, list)
+    }
+    return map
+  }
+
+  /**
+   * Batch-fetch the most recent audit log timestamp per user (#312).
+   * Returns a Map of userId → ISO timestamp string.
+   *
+   * Query: SELECT actorId, MAX(timestamp) FROM audit_logs WHERE actorId IN (:ids) GROUP BY actorId
+   */
+  private async fetchLastActiveByUserIds(userIds: string[]): Promise<Map<string, string>> {
+    if (userIds.length === 0) return new Map()
+
+    // TODO: implement — batch audit query for lastActive
+    const rows = await this.db
+      .select({
+        actorId: auditLogs.actorId,
+        lastActive: max(auditLogs.timestamp),
+      })
+      .from(auditLogs)
+      .where(inArray(auditLogs.actorId, userIds))
+      .groupBy(auditLogs.actorId)
+
+    const map = new Map<string, string>()
+    for (const row of rows) {
+      if (row.lastActive) {
+        map.set(row.actorId, row.lastActive.toISOString())
+      }
     }
     return map
   }

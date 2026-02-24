@@ -47,6 +47,22 @@ export {
 export { Checkbox } from './components/Checkbox'
 export { ConfirmDialog } from './components/ConfirmDialog'
 export {
+  ContextMenu,
+  ContextMenuCheckboxItem,
+  ContextMenuContent,
+  ContextMenuGroup,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuPortal,
+  ContextMenuRadioGroup,
+  ContextMenuRadioItem,
+  ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from './components/ContextMenu'
+export {
   DestructiveConfirmDialog,
   type DestructiveConfirmDialogProps,
 } from './components/DestructiveConfirmDialog'

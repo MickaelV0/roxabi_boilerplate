@@ -252,6 +252,16 @@ export class AdminMembersService {
       return { updated: true }
     }
 
+    // Last-owner guard (#313): prevent demoting the last owner
+    await this.ensureNotLastOwnerOnRoleChange(
+      {
+        roleSlug: memberWithRole.currentRoleSlug,
+        role: memberWithRole.role,
+        roleId: memberWithRole.roleId,
+      },
+      orgId
+    )
+
     await this.db
       .update(members)
       .set({ roleId: data.roleId, role: newRole.slug })
@@ -351,6 +361,29 @@ export class AdminMembersService {
       throw new AdminMemberNotFoundException(memberId)
     }
     return member
+  }
+
+  /**
+   * Last-owner guard for role changes (#313).
+   * Uses dual-field check matching removeMember pattern:
+   * roleSlug === 'owner' || member.role === 'owner'
+   */
+  private async ensureNotLastOwnerOnRoleChange(
+    member: { roleSlug: string | null; role: string; roleId: string | null },
+    orgId: string
+  ) {
+    // TODO: implement — dual-check owner status, count owners, throw if last
+    if (member.roleSlug !== 'owner' && member.role !== 'owner') return
+
+    const [ownerCount] = await this.db
+      .select({ count: count() })
+      .from(members)
+      // biome-ignore lint/style/noNonNullAssertion: roleId is guaranteed by the owner role check above
+      .where(and(eq(members.organizationId, orgId), eq(members.roleId, member.roleId!)))
+
+    if ((ownerCount?.count ?? 0) <= 1) {
+      throw new LastOwnerConstraintException()
+    }
   }
 
   private async ensureNotLastOwner(

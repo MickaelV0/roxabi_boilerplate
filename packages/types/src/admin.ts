@@ -41,6 +41,10 @@ export type AdminUser = {
   createdAt: string
   updatedAt: string
   organizations: { id: string; name: string; slug: string | null; role: string }[]
+  /** Number of organizations the user belongs to (#312) */
+  organizationCount: number
+  /** ISO timestamp of last audit log entry, or null if never active (#312) */
+  lastActive: string | null
 }
 
 /** Extended user detail with activity summary */
@@ -74,7 +78,15 @@ export type AdminOrganization = {
 /** Extended organization detail with members and children */
 export type AdminOrgDetail = AdminOrganization & {
   parentOrganization: { id: string; name: string; slug: string | null } | null
-  members: { id: string; name: string; email: string; role: string; createdAt: string }[]
+  members: {
+    id: string
+    userId: string
+    name: string
+    email: string
+    role: string
+    roleId: string | null
+    createdAt: string
+  }[]
   children: { id: string; name: string; slug: string | null; memberCount: number }[]
 }
 
