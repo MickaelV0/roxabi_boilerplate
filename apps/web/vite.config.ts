@@ -65,8 +65,13 @@ const config = defineConfig(async () => ({
       },
     }),
     // this is the plugin that enables path aliases
+    // Include all packages with @ aliases for proper monorepo resolution
     viteTsConfigPaths({
-      projects: ['./tsconfig.json'],
+      projects: [
+        './tsconfig.json',
+        '../../packages/ui/tsconfig.json',
+        '../../packages/email/tsconfig.json',
+      ],
     }),
     tailwindcss(),
     tanstackStart(),
