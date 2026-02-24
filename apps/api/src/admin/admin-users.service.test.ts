@@ -144,11 +144,11 @@ describe('AdminUsersService', () => {
 
     it('should filter users by role', async () => {
       // Arrange
-      const adminRow = { ...baseUser, id: 'u-admin', role: 'admin' }
+      const adminRow = { ...baseUser, id: 'u-admin', role: 'superadmin' }
       const { usersChain } = mockListUsersQueries([adminRow], [])
 
       // Act
-      const result = await service.listUsers({ role: 'admin' }, undefined, 20)
+      const result = await service.listUsers({ role: 'superadmin' }, undefined, 20)
 
       // Assert
       expect(result.data).toBeDefined()
@@ -422,7 +422,7 @@ describe('AdminUsersService', () => {
         ...baseUser,
         name: 'Alice Updated',
         email: 'alice-new@example.com',
-        role: 'admin',
+        role: 'superadmin',
       }
 
       db.select.mockReturnValueOnce(createChainMock([beforeUser]))
@@ -431,7 +431,7 @@ describe('AdminUsersService', () => {
       // Act
       const result = await service.updateUser(
         'user-1',
-        { name: 'Alice Updated', email: 'alice-new@example.com', role: 'admin' },
+        { name: 'Alice Updated', email: 'alice-new@example.com', role: 'superadmin' },
         'actor-super'
       )
 
@@ -521,7 +521,7 @@ describe('AdminUsersService', () => {
       db.select.mockReturnValueOnce(createChainMock([superadminUser]))
 
       // Act & Assert
-      await expect(service.updateUser('user-1', { role: 'admin' }, 'actor-super')).rejects.toThrow(
+      await expect(service.updateUser('user-1', { role: 'user' }, 'actor-super')).rejects.toThrow(
         SuperadminProtectionException
       )
     })
@@ -529,13 +529,13 @@ describe('AdminUsersService', () => {
     it('should use audit action user.role_changed when role is changed', async () => {
       // Arrange
       const beforeUser = { ...baseUser, role: 'user' }
-      const updatedUser = { ...baseUser, role: 'admin' }
+      const updatedUser = { ...baseUser, role: 'superadmin' }
 
       db.select.mockReturnValueOnce(createChainMock([beforeUser]))
       db.update.mockReturnValueOnce(createChainMock([updatedUser]))
 
       // Act
-      await service.updateUser('user-1', { role: 'admin' }, 'actor-super')
+      await service.updateUser('user-1', { role: 'superadmin' }, 'actor-super')
 
       // Assert
       expect(auditService.log).toHaveBeenCalledWith(

@@ -108,6 +108,7 @@ export class AdminUsersService {
         deletedAt: users.deletedAt,
         deleteScheduledFor: users.deleteScheduledFor,
         createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
       })
       .from(users)
       .where(whereClause)
@@ -169,6 +170,7 @@ export class AdminUsersService {
         id: users.id,
         name: users.name,
         email: users.email,
+        image: users.image,
         role: users.role,
         banned: users.banned,
         banReason: users.banReason,
@@ -176,6 +178,7 @@ export class AdminUsersService {
         deletedAt: users.deletedAt,
         deleteScheduledFor: users.deleteScheduledFor,
         createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -232,6 +235,7 @@ export class AdminUsersService {
 
     return {
       ...user,
+      lastActive: redactedEntries[0]?.timestamp ?? null,
       organizations: memberships.map((m) => ({
         id: m.orgId,
         name: m.orgName,

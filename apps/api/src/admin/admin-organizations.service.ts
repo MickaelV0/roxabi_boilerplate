@@ -79,6 +79,7 @@ export class AdminOrganizationsService {
         deletedAt: organizations.deletedAt,
         deleteScheduledFor: organizations.deleteScheduledFor,
         createdAt: organizations.createdAt,
+        updatedAt: organizations.updatedAt,
         memberCount: count(members.id),
       })
       .from(organizations)
@@ -153,6 +154,7 @@ export class AdminOrganizationsService {
         deletedAt: organizations.deletedAt,
         deleteScheduledFor: organizations.deleteScheduledFor,
         createdAt: organizations.createdAt,
+        updatedAt: organizations.updatedAt,
       })
       .from(organizations)
       .where(eq(organizations.id, orgId))
@@ -162,22 +164,36 @@ export class AdminOrganizationsService {
       throw new AdminOrgNotFoundException(orgId)
     }
 
-    // 2. Members (join members + users)
+    // 2. Parent organization (if exists)
+    let parentOrganization: { id: string; name: string; slug: string | null } | null = null
+    if (organization.parentOrganizationId) {
+      const [parent] = await this.db
+        .select({
+          id: organizations.id,
+          name: organizations.name,
+          slug: organizations.slug,
+        })
+        .from(organizations)
+        .where(eq(organizations.id, organization.parentOrganizationId))
+        .limit(1)
+      parentOrganization = parent ?? null
+    }
+
+    // 3. Members (join members + users)
     const orgMembers = await this.db
       .select({
-        memberId: members.id,
-        userId: users.id,
-        userName: users.name,
+        id: members.id,
+        name: users.name,
         email: users.email,
         role: members.role,
-        joinedAt: members.createdAt,
+        createdAt: members.createdAt,
       })
       .from(members)
       .innerJoin(users, eq(members.userId, users.id))
       .where(eq(members.organizationId, orgId))
 
-    // 3. Children (orgs where parentOrganizationId = orgId)
-    const children = await this.db
+    // 4. Children (orgs where parentOrganizationId = orgId)
+    const childOrgs = await this.db
       .select({
         id: organizations.id,
         name: organizations.name,
@@ -190,7 +206,14 @@ export class AdminOrganizationsService {
       .where(eq(organizations.parentOrganizationId, orgId))
       .groupBy(organizations.id)
 
-    return { organization, members: orgMembers, children }
+    return {
+      ...organization,
+      memberCount: orgMembers.length,
+      childCount: childOrgs.length,
+      parentOrganization,
+      members: orgMembers,
+      children: childOrgs,
+    }
   }
 
   /**

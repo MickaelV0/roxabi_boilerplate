@@ -14,7 +14,7 @@ import {
   TableRow,
 } from '@repo/ui'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet, useMatch } from '@tanstack/react-router'
 import { ShieldIcon, UsersIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { FilterConfig } from '@/components/admin/filter-bar'
@@ -52,7 +52,6 @@ const FILTER_CONFIGS: FilterConfig[] = [
     type: 'select',
     options: [
       { value: 'user', label: 'User' },
-      { value: 'admin', label: 'Admin' },
       { value: 'superadmin', label: 'Super Admin' },
     ],
   },
@@ -125,6 +124,13 @@ function useOrgFilterConfigs(): FilterConfig[] {
 }
 
 function AdminUsersPage() {
+  const childMatch = useMatch({ from: '/admin/users/$userId', shouldThrow: false })
+  if (childMatch) return <Outlet />
+
+  return <AdminUsersList />
+}
+
+function AdminUsersList() {
   const [filters, setFilters] = useState<UserFilters>(INITIAL_FILTERS)
   const filterConfigs = useOrgFilterConfigs()
 

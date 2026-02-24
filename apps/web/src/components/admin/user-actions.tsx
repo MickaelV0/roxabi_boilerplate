@@ -1,7 +1,22 @@
-import { Button, ConfirmDialog, DestructiveConfirmDialog, Input, Label, Textarea } from '@repo/ui'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  Button,
+  ConfirmDialog,
+  DestructiveConfirmDialog,
+  Input,
+  Label,
+  Textarea,
+} from '@repo/ui'
 import { useMutation } from '@tanstack/react-query'
 import { BanIcon, RotateCcwIcon, ShieldCheckIcon, Trash2Icon } from 'lucide-react'
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { toast } from 'sonner'
 
 type UserActionsProps = {
@@ -76,69 +91,78 @@ function useUserMutations(userId: string, userName: string, onActionComplete: ()
   return { banMutation, unbanMutation, deleteMutation, restoreMutation }
 }
 
-type BanFormProps = {
+type BanDialogProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  userName: string
   isPending: boolean
   onSubmit: (reason: string, expires?: string) => void
-  onCancel: () => void
 }
 
-function BanForm({ isPending, onSubmit, onCancel }: BanFormProps) {
+function BanDialog({ open, onOpenChange, userName, isPending, onSubmit }: BanDialogProps) {
   const [reason, setReason] = useState('')
   const [expiry, setExpiry] = useState('')
   const isValid = reason.length >= 5 && reason.length <= 500
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!isValid) return
-    onSubmit(reason, expiry || undefined)
-  }
+  // Reset form when dialog closes
+  React.useEffect(() => {
+    if (!open) {
+      setReason('')
+      setExpiry('')
+    }
+  }, [open])
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="rounded-md border border-destructive/20 bg-destructive/5 p-4 space-y-3"
-    >
-      <div className="space-y-1.5">
-        <Label htmlFor="ban-reason" className="text-sm font-medium">
-          Ban reason (5-500 characters)
-        </Label>
-        <Textarea
-          id="ban-reason"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          placeholder="Reason for banning this user..."
-          rows={3}
-          className="resize-none"
-        />
-        <p className="text-xs text-muted-foreground">{reason.length}/500 characters</p>
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="ban-expiry" className="text-sm font-medium">
-          Expiry date (optional)
-        </Label>
-        <Input
-          id="ban-expiry"
-          type="date"
-          value={expiry}
-          onChange={(e) => setExpiry(e.target.value)}
-          className="w-48"
-        />
-      </div>
-      <div className="flex gap-2">
-        <Button
-          type="submit"
-          variant="destructive"
-          size="sm"
-          disabled={!isValid}
-          loading={isPending}
-        >
-          Confirm Ban
-        </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
-    </form>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Ban {userName}</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will revoke access for {userName}. You can unban them later.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="space-y-3 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="ban-reason" className="text-sm font-medium">
+              Reason (5-500 characters)
+            </Label>
+            <Textarea
+              id="ban-reason"
+              value={reason}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReason(e.target.value)}
+              placeholder="Reason for banning this user..."
+              rows={3}
+              className="resize-none"
+            />
+            <p className="text-xs text-muted-foreground">{reason.length}/500 characters</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ban-expiry" className="text-sm font-medium">
+              Expiry date (optional)
+            </Label>
+            <Input
+              id="ban-expiry"
+              type="date"
+              value={expiry}
+              onChange={(e) => setExpiry(e.target.value)}
+              className="w-48"
+            />
+          </div>
+        </div>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => onSubmit(reason, expiry ? new Date(expiry).toISOString() : undefined)}
+            disabled={!isValid || isPending}
+            className="bg-destructive text-white hover:bg-destructive/90"
+          >
+            {isPending ? 'Banning...' : 'Confirm Ban'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
 
@@ -226,7 +250,7 @@ export function UserActions({
   isArchived,
   onActionComplete,
 }: UserActionsProps) {
-  const [showBanForm, setShowBanForm] = useState(false)
+  const [showBanDialog, setShowBanDialog] = useState(false)
   const [showUnbanDialog, setShowUnbanDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showRestoreDialog, setShowRestoreDialog] = useState(false)
@@ -237,7 +261,7 @@ export function UserActions({
   )
 
   function handleBan(reason: string, expires?: string) {
-    banMutation.mutate({ reason, expires }, { onSuccess: () => setShowBanForm(false) })
+    banMutation.mutate({ reason, expires }, { onSuccess: () => setShowBanDialog(false) })
   }
 
   return (
@@ -245,7 +269,7 @@ export function UserActions({
       <ActionButtons
         isBanned={isBanned}
         isArchived={isArchived}
-        onBanClick={() => setShowBanForm(!showBanForm)}
+        onBanClick={() => setShowBanDialog(true)}
         onUnban={() => setShowUnbanDialog(true)}
         onDelete={() => setShowDeleteDialog(true)}
         onRestore={() => setShowRestoreDialog(true)}
@@ -253,13 +277,14 @@ export function UserActions({
         deletePending={deleteMutation.isPending}
         restorePending={restoreMutation.isPending}
       />
-      {showBanForm && !isBanned && !isArchived && (
-        <BanForm
-          isPending={banMutation.isPending}
-          onSubmit={handleBan}
-          onCancel={() => setShowBanForm(false)}
-        />
-      )}
+
+      <BanDialog
+        open={showBanDialog}
+        onOpenChange={setShowBanDialog}
+        userName={userName}
+        isPending={banMutation.isPending}
+        onSubmit={handleBan}
+      />
 
       <ConfirmDialog
         open={showUnbanDialog}

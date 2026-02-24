@@ -122,7 +122,7 @@ describe('AuthGuard', () => {
       session: { id: 'sess-1', activeOrganizationId: null },
       permissions: [],
     }
-    const { guard } = createGuard(session, { ROLES: ['admin'] })
+    const { guard } = createGuard(session, { ROLES: ['superadmin'] })
     const { context } = createMockContext()
 
     // Act & Assert
@@ -132,11 +132,11 @@ describe('AuthGuard', () => {
   it('should return true when role matches required roles', async () => {
     // Arrange
     const session = {
-      user: { id: 'user-1', role: 'admin' },
+      user: { id: 'user-1', role: 'superadmin' },
       session: { id: 'sess-1', activeOrganizationId: null },
       permissions: [],
     }
-    const { guard } = createGuard(session, { ROLES: ['admin', 'superadmin'] })
+    const { guard } = createGuard(session, { ROLES: ['superadmin'] })
     const { context } = createMockContext()
 
     // Act

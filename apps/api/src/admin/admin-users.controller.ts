@@ -27,7 +27,7 @@ import { AdminExceptionFilter } from './filters/admin-exception.filter.js'
 export const updateUserSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   email: z.string().email().optional(),
-  role: z.enum(['user', 'admin', 'superadmin']).optional(),
+  role: z.enum(['user', 'superadmin']).optional(),
 })
 
 export const banUserSchema = z.object({
@@ -42,7 +42,7 @@ const listUsersQuerySchema = z.object({
     const n = Number(val)
     return Number.isNaN(n) ? 20 : Math.min(Math.max(Math.floor(n), 1), 100)
   }, z.number().int()),
-  role: z.enum(['user', 'admin', 'superadmin']).optional(),
+  role: z.enum(['user', 'superadmin']).optional(),
   status: z.enum(['active', 'banned', 'archived']).optional(),
   organizationId: z.string().uuid().optional(),
   search: z.string().max(255).optional(),

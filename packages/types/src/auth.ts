@@ -11,4 +11,4 @@ export type User = {
   updatedAt: Date
 }
 
-export type Role = 'user' | 'admin' | 'superadmin'
+export type Role = 'user' | 'superadmin'

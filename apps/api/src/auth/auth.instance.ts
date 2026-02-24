@@ -191,6 +191,7 @@ export function createBetterAuth(
     user: {
       additionalFields: {
         locale: { type: 'string', required: false, defaultValue: 'en', input: true },
+        role: { type: 'string', required: false, defaultValue: 'user', input: false },
       },
     },
     databaseHooks: {

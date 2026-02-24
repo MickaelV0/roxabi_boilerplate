@@ -297,11 +297,13 @@ describe('AdminOrganizationsService', () => {
       // Act
       const result = await service.getOrganizationDetail('org-1')
 
-      // Assert
+      // Assert — response is flat (org fields spread at top level)
       expect(result).toBeDefined()
-      expect(result.organization).toBeDefined()
+      expect(result.id).toBe('org-1')
+      expect(result.name).toBe('Acme Corp')
       expect(result.members).toBeDefined()
       expect(result.children).toBeDefined()
+      expect(result.parentOrganization).toBeNull()
     })
 
     it('should throw AdminOrgNotFoundException when org not found', async () => {

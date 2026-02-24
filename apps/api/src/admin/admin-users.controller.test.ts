@@ -83,7 +83,7 @@ describe('AdminUsersController', () => {
       await controller.listUsers(
         'cursor-abc',
         '10',
-        'admin',
+        'superadmin',
         'active',
         '00000000-0000-4000-8000-000000000001',
         'alice'
@@ -92,7 +92,7 @@ describe('AdminUsersController', () => {
       // Assert
       expect(mockAdminUsersService.listUsers).toHaveBeenCalledWith(
         {
-          role: 'admin',
+          role: 'superadmin',
           status: 'active',
           organizationId: '00000000-0000-4000-8000-000000000001',
           search: 'alice',
@@ -230,7 +230,7 @@ describe('AdminUsersController', () => {
   describe('updateUserSchema validation', () => {
     it('should accept valid update body with name, email, and role', () => {
       // Arrange
-      const input = { name: 'Alice', email: 'alice@example.com', role: 'admin' }
+      const input = { name: 'Alice', email: 'alice@example.com', role: 'superadmin' }
 
       // Act
       const result = updateUserSchema.safeParse(input)

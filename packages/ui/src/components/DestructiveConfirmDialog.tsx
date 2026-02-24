@@ -40,7 +40,8 @@ export function DestructiveConfirmDialog({
   isLoading,
 }: DestructiveConfirmDialogProps) {
   const [input, setInput] = React.useState('')
-  const isMatch = input.toLowerCase() === confirmText.toLowerCase()
+  const safeConfirmText = confirmText ?? ''
+  const isMatch = safeConfirmText !== '' && input.toLowerCase() === safeConfirmText.toLowerCase()
 
   // Reset input when dialog closes
   React.useEffect(() => {
@@ -62,7 +63,7 @@ export function DestructiveConfirmDialog({
           <Input
             value={input}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
-            placeholder={confirmText}
+            placeholder={safeConfirmText}
             autoComplete="off"
           />
         </div>

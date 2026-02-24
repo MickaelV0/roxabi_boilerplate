@@ -289,9 +289,9 @@ describe('OrgSwitcher', () => {
     })
   })
 
-  it('should show org settings and members links when active org exists', () => {
-    // Arrange
-    const orgState = setupWithOrgs()
+  it('should show org settings and members links when active org exists and user is admin', () => {
+    // Arrange — includeMembers gives the user an 'admin' org role, enabling canAccessAdmin
+    const orgState = setupWithOrgs({ includeMembers: true })
 
     // Act
     render(<OrgSwitcher orgState={orgState} />)
@@ -299,6 +299,18 @@ describe('OrgSwitcher', () => {
     // Assert
     expect(screen.getByText('user_menu_org_settings')).toBeInTheDocument()
     expect(screen.getByText('user_menu_org_members')).toBeInTheDocument()
+  })
+
+  it('should hide org settings and members links when user is not an admin', () => {
+    // Arrange — no members data means activeMember is undefined, canAccessAdmin is false
+    const orgState = setupWithOrgs()
+
+    // Act
+    render(<OrgSwitcher orgState={orgState} />)
+
+    // Assert
+    expect(screen.queryByText('user_menu_org_settings')).not.toBeInTheDocument()
+    expect(screen.queryByText('user_menu_org_members')).not.toBeInTheDocument()
   })
 })
 

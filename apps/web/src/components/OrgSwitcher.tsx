@@ -54,6 +54,13 @@ export function OrgSwitcher({ orgState }: OrgSwitcherProps) {
     (member: { userId: string }) => member.userId === session?.user?.id
   )
 
+  // Only show Members/Settings links for users who can access /admin
+  // (superadmins or org-level admin/owner with members:write permission)
+  const canAccessAdmin =
+    session?.user?.role === 'superadmin' ||
+    activeMember?.role === 'owner' ||
+    activeMember?.role === 'admin'
+
   // Still loading — render nothing to avoid flashing the "Create" button
   if (orgsLoading || orgs === undefined) {
     return null
@@ -120,7 +127,7 @@ export function OrgSwitcher({ orgState }: OrgSwitcherProps) {
               </span>
             </DropdownMenuItem>
           ))}
-          {activeOrg && (
+          {activeOrg && canAccessAdmin && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>

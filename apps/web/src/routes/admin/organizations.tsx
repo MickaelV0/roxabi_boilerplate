@@ -23,7 +23,7 @@ import {
   TableRow,
 } from '@repo/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet, useMatch, useNavigate } from '@tanstack/react-router'
 import { BuildingIcon, ListIcon, NetworkIcon, PlusIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -527,6 +527,13 @@ function CreateOrganizationDialog({ open, onOpenChange }: CreateOrgDialogProps) 
 }
 
 function AdminOrganizationsPage() {
+  const childMatch = useMatch({ from: '/admin/organizations/$orgId', shouldThrow: false })
+  if (childMatch) return <Outlet />
+
+  return <AdminOrganizationsList />
+}
+
+function AdminOrganizationsList() {
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [filters, setFilters] = useState<OrgFilters>(INITIAL_FILTERS)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
