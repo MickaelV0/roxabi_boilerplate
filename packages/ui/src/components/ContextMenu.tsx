@@ -1,3 +1,4 @@
+/* v8 ignore start -- thin Radix UI wrapper, no business logic */
 'use client'
 
 import { CheckIcon, ChevronRightIcon, CircleIcon } from 'lucide-react'
@@ -206,3 +207,4 @@ export {
   ContextMenuSubContent,
   ContextMenuRadioGroup,
 }
+/* v8 ignore stop */
