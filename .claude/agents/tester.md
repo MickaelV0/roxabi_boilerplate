@@ -9,7 +9,7 @@ description: |
   user: "Write tests for the auth service"
   assistant: "I'll use the tester agent to generate test coverage."
   </example>
-model: inherit
+model: sonnet
 color: white
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Task", "SendMessage"]
 permissionMode: bypassPermissions

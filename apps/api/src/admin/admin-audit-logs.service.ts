@@ -72,13 +72,12 @@ export class AdminAuditLogsService {
         .replace(/%/g, '\\%')
         .replace(/_/g, '\\_')
       const pattern = `%${escaped}%`
-      conditions.push(
-        or(
-          ilike(auditLogs.action, pattern),
-          ilike(auditLogs.resource, pattern),
-          ilike(auditLogs.resourceId, pattern)
-        )!
+      const searchCondition = or(
+        ilike(auditLogs.action, pattern),
+        ilike(auditLogs.resource, pattern),
+        ilike(auditLogs.resourceId, pattern)
       )
+      if (searchCondition) conditions.push(searchCondition)
     }
 
     // Cursor condition

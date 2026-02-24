@@ -9,7 +9,6 @@ description: |
   user: "Audit the authentication module for vulnerabilities"
   assistant: "I'll use the security-auditor agent to perform a security audit."
   </example>
-model: inherit
 color: white
 tools: ["Read", "Glob", "Grep", "Bash", "WebSearch", "Task", "SendMessage"]
 permissionMode: plan

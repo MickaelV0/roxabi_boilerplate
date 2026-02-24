@@ -9,7 +9,7 @@ description: |
   user: "Fix these accepted review comments: [list of findings]"
   assistant: "I'll use the fixer agent to apply the fixes across the stack."
   </example>
-model: inherit
+model: sonnet
 color: white
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "SendMessage"]
 permissionMode: bypassPermissions

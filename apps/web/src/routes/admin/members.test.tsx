@@ -786,7 +786,7 @@ describe('InviteDialog', () => {
     fireEvent.change(emailInput, { target: { value: 'newuser@acme.com' } })
 
     // Submit the form directly
-    const form = emailInput.closest('form')!
+    const form = emailInput.closest('form') as HTMLFormElement
     fireEvent.submit(form)
 
     // Assert

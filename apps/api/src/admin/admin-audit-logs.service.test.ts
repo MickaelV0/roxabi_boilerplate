@@ -195,7 +195,7 @@ describe('AdminAuditLogsService', () => {
 
       // Assert -- leftJoin must have been called for users table
       expect(chain.leftJoin).toHaveBeenCalled()
-      expect(result.data[0]!.actorName).toBe('Alice Admin')
+      expect(result.data[0]?.actorName).toBe('Alice Admin')
     })
 
     it('should show [Deleted User] when actor user record is missing', async () => {
@@ -208,7 +208,7 @@ describe('AdminAuditLogsService', () => {
       const result = await service.listAuditLogs({}, undefined, 20)
 
       // Assert
-      expect(result.data[0]!.actorName).toBe('[Deleted User]')
+      expect(result.data[0]?.actorName).toBe('[Deleted User]')
     })
 
     it('should apply cursor condition when cursor is provided', async () => {
@@ -251,8 +251,8 @@ describe('AdminAuditLogsService', () => {
       const result = await service.listAuditLogs({}, undefined, 20)
 
       // Assert -- password should be redacted
-      expect(result.data[0]!.before).toEqual({ password: '[REDACTED]', name: 'Old Name' })
-      expect(result.data[0]!.after).toEqual({ password: '[REDACTED]', name: 'New Name' })
+      expect(result.data[0]?.before).toEqual({ password: '[REDACTED]', name: 'Old Name' })
+      expect(result.data[0]?.after).toEqual({ password: '[REDACTED]', name: 'New Name' })
     })
   })
 

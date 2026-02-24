@@ -104,7 +104,7 @@ describe('AdminUsersService', () => {
       expect(result).toBeDefined()
       expect(result.data).toBeDefined()
       expect(result.data).toHaveLength(1)
-      expect(result.data[0]!.organizations).toEqual([
+      expect(result.data[0]?.organizations).toEqual([
         { id: 'org-1', name: 'Acme Corp', slug: 'acme', role: 'admin' },
       ])
       expect(result.cursor).toBeDefined()
@@ -271,7 +271,7 @@ describe('AdminUsersService', () => {
 
       // Assert
       expect(result.data).toHaveLength(1)
-      expect(result.data[0]!.organizations).toEqual([])
+      expect(result.data[0]?.organizations).toEqual([])
     })
 
     it('should merge multiple organizations per user', async () => {
@@ -300,8 +300,8 @@ describe('AdminUsersService', () => {
       const result = await service.listUsers({}, undefined, 20)
 
       // Assert
-      expect(result.data[0]!.organizations).toHaveLength(2)
-      expect(result.data[0]!.organizations).toEqual([
+      expect(result.data[0]?.organizations).toHaveLength(2)
+      expect(result.data[0]?.organizations).toEqual([
         { id: 'org-1', name: 'Acme Corp', slug: 'acme', role: 'admin' },
         { id: 'org-2', name: 'Beta Inc', slug: 'beta', role: 'member' },
       ])

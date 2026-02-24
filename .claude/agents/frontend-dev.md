@@ -9,7 +9,6 @@ description: |
   user: "Implement the user profile page"
   assistant: "I'll use the frontend-dev agent to implement the UI."
   </example>
-model: inherit
 color: white
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Task", "SendMessage"]
 permissionMode: bypassPermissions

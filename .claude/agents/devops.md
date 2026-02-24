@@ -9,7 +9,7 @@ description: |
   user: "GitHub Actions is failing on the typecheck step"
   assistant: "I'll use the devops agent to debug the CI pipeline."
   </example>
-model: inherit
+model: sonnet
 color: white
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Task", "SendMessage"]
 permissionMode: bypassPermissions

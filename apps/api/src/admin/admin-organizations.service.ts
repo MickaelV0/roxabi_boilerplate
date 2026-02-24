@@ -58,7 +58,11 @@ export class AdminOrganizationsService {
         .replace(/%/g, '\\%')
         .replace(/_/g, '\\_')
       const pattern = `%${escaped}%`
-      conditions.push(or(ilike(organizations.name, pattern), ilike(organizations.slug, pattern))!)
+      const searchCondition = or(
+        ilike(organizations.name, pattern),
+        ilike(organizations.slug, pattern)
+      )
+      if (searchCondition) conditions.push(searchCondition)
     }
 
     // Cursor condition
@@ -108,7 +112,7 @@ export class AdminOrganizationsService {
       .from(organizations)
       .where(isNull(organizations.deletedAt))
 
-    if (countResult!.count > 1000) {
+    if ((countResult?.count ?? 0) > 1000) {
       return {
         treeViewAvailable: false,
         data: [] as {
@@ -242,7 +246,8 @@ export class AdminOrganizationsService {
           parentOrganizationId: data.parentOrganizationId ?? null,
         })
         .returning()
-      createdOrg = result!
+      if (!result) throw new AdminOrgNotFoundException('insert returned no rows')
+      createdOrg = result
     } catch (err) {
       const pgErr = err as { code?: string }
       if (pgErr.code === '23505') {
@@ -311,7 +316,8 @@ export class AdminOrganizationsService {
         .set(data)
         .where(eq(organizations.id, orgId))
         .returning()
-      updatedOrg = result!
+      if (!result) throw new AdminOrgNotFoundException(orgId)
+      updatedOrg = result
     } catch (err) {
       const pgErr = err as { code?: string }
       if (pgErr.code === '23505') {
@@ -395,13 +401,13 @@ export class AdminOrganizationsService {
         .select({ count: count() })
         .from(members)
         .where(inArray(members.organizationId, descendantIds))
-      childMemberCount = childMemberCountResult!.count
+      childMemberCount = childMemberCountResult?.count ?? 0
     }
 
     return {
-      memberCount: memberCountResult!.count,
-      activeMembers: activeMembersResult!.count,
-      childOrgCount: childOrgCountResult!.count,
+      memberCount: memberCountResult?.count,
+      activeMembers: activeMembersResult?.count,
+      childOrgCount: childOrgCountResult?.count,
       childMemberCount,
     }
   }

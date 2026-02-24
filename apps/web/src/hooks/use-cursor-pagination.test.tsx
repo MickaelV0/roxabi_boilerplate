@@ -224,14 +224,14 @@ describe('useCursorPagination', () => {
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
     })
-    expect(result.current.data[0]!.name).toBe('Alice')
+    expect(result.current.data[0]?.name).toBe('Alice')
 
     // Act — trigger refetch
     result.current.refetch()
 
     // Assert
     await waitFor(() => {
-      expect(result.current.data[0]!.name).toBe('Alice Updated')
+      expect(result.current.data[0]?.name).toBe('Alice Updated')
     })
     expect(fetchFn).toHaveBeenCalledTimes(2)
   })

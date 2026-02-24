@@ -9,7 +9,7 @@ description: |
   user: "Document the new auth module"
   assistant: "I'll use the doc-writer agent to create the documentation."
   </example>
-model: inherit
+model: sonnet
 color: white
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Task", "SendMessage"]
 permissionMode: bypassPermissions

@@ -210,7 +210,7 @@ describe('AdminOrganizationsService', () => {
 
       // Assert
       expect(result.data[0]).toBeDefined()
-      expect(result.data[0]!.memberCount).toBe(42)
+      expect(result.data[0]?.memberCount).toBe(42)
     })
   })
 

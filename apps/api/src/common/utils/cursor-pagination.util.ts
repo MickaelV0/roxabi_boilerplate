@@ -62,7 +62,9 @@ export function decodeCursor(cursor: string): { timestamp: Date; id: string } {
  */
 export function buildCursorCondition(cursor: string, tsColumn: PgColumn, idColumn: PgColumn): SQL {
   const { timestamp, id } = decodeCursor(cursor)
-  return or(lt(tsColumn, timestamp), and(eq(tsColumn, timestamp), lt(idColumn, id)))!
+  const condition = or(lt(tsColumn, timestamp), and(eq(tsColumn, timestamp), lt(idColumn, id)))
+  if (!condition) throw new Error('Failed to build cursor condition')
+  return condition
 }
 
 /**
