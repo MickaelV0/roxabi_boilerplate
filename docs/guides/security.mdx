@@ -39,7 +39,7 @@ Better Auth issues **cookie-based sessions** signed with `BETTER_AUTH_SECRET`.
 | `cookieCache.enabled` | `true` | Caches session in a short-lived cookie to reduce database round-trips. |
 | `cookieCache.maxAge` | 5 minutes | Maximum age of the cookie cache entry. |
 
-The `BETTER_AUTH_SECRET` must be a random string of at least 32 characters. The API **throws on startup** if this is set to a known default (`dev-secret-do-not-use-in-production`) in any non-development environment, or on any Vercel deployment regardless of `NODE_ENV`.
+The `BETTER_AUTH_SECRET` must be a random string of at least 32 characters. The API **throws on startup** if this is set to a known insecure default (`dev-secret-do-not-use-in-production` or `change-me-to-a-random-32-char-string`) in any non-development environment, or on any Vercel deployment regardless of `NODE_ENV`.
 
 ### Guard model
 

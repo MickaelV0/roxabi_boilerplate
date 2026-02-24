@@ -16,6 +16,8 @@ title = 'Gitleaks — Roxabi Boilerplate'
   ]
 
   regexes = [
+    # Default BETTER_AUTH_SECRET in development (validated and rejected in non-dev)
+    'dev-secret-do-not-use-in-production',
     # Fake BETTER_AUTH_SECRET used in CI test environment
     'test-secret-minimum-32-characters-long',
     # Placeholder values in .env.example and documentation

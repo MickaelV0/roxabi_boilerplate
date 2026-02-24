@@ -45,6 +45,7 @@ jobs:
               - 'biome.json'
               - 'tsconfig*.json'
               - 'lefthook.yml'
+              - '.gitleaks.toml'
               - '.github/workflows/**'
             e2e:
               - 'apps/web/src/**'
