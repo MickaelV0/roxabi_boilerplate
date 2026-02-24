@@ -223,7 +223,7 @@ function AdminMembersPage() {
   const membersQuery = useQuery({
     queryKey: ['admin-members', orgId, page, PAGE_LIMIT, debouncedSearch || undefined],
     queryFn: ({ signal }) => fetchMembers(page, debouncedSearch || undefined, signal),
-    enabled: !!orgId,
+    enabled: Boolean(orgId),
   })
 
   // B6: TanStack Query for roles
@@ -231,7 +231,7 @@ function AdminMembersPage() {
     queryKey: ['org-roles', orgId],
     queryFn: ({ signal }) => fetchRoles(signal),
     staleTime: 60_000,
-    enabled: !!orgId,
+    enabled: Boolean(orgId),
   })
 
   // B6: useMutation for role change
