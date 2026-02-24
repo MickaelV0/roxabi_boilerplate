@@ -1139,5 +1139,6 @@
   "api_keys_no_permission_title": "Insufficient Permissions",
   "api_keys_no_permission_description": "You do not have permission to manage API keys in this organization.",
   "api_keys_no_org_title": "No Organization Selected",
-  "api_keys_no_org_description": "Select an organization to manage its API keys."
+  "api_keys_no_org_description": "Select an organization to manage its API keys.",
+  "api_keys_never": "Never"
 }

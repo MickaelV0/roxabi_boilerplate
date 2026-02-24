@@ -280,6 +280,36 @@ describe('ApiKeyService', () => {
       ).rejects.toThrow(ApiKeyExpiryInPastException)
     })
 
+    it('should allow creating a key with empty scopes', async () => {
+      // Arrange
+      const { db, chains } = createMockDb()
+      chains.insert.returning.mockResolvedValue([
+        {
+          id: 'key-1',
+          name: 'Empty Scopes Key',
+          keyPrefix: 'sk_live_',
+          lastFour: 'abcd',
+          scopes: [],
+          expiresAt: null,
+          createdAt: new Date(),
+        },
+      ])
+      const service = createService(db)
+
+      // Act
+      const result = await service.create(createSession(), {
+        name: 'Empty Scopes Key',
+        scopes: [],
+        expiresAt: null,
+      })
+
+      // Assert
+      expect(result).toBeDefined()
+      expect(result.key).toMatch(/^sk_live_/)
+      const insertedValues = chains.insert.values.mock.calls[0]?.[0] as Record<string, unknown>
+      expect(insertedValues.scopes).toEqual([])
+    })
+
     it('should throw ApiKeyScopesExceededException when scopes exceed permissions', async () => {
       // Arrange
       const service = createService()
@@ -385,7 +415,7 @@ describe('ApiKeyService', () => {
       const service = createService(db)
 
       // Act
-      const result = await service.list('org-1')
+      const result = await service.list(createSession())
 
       // Assert
       expect(result).toEqual({ data: rows })
@@ -398,7 +428,7 @@ describe('ApiKeyService', () => {
       const service = createService(db)
 
       // Act
-      const result = await service.list('org-1')
+      const result = await service.list(createSession())
 
       // Assert
       expect(result).toEqual({ data: [] })
@@ -411,11 +441,24 @@ describe('ApiKeyService', () => {
       const service = createService(db)
 
       // Act
-      await service.list('org-42')
+      await service.list(
+        createSession({ session: { id: 'sess-1', activeOrganizationId: 'org-42' } })
+      )
 
       // Assert
       expect(db.select).toHaveBeenCalledOnce()
       expect(chains.select.where).toHaveBeenCalledOnce()
+    })
+
+    it('should throw Error when session has no activeOrganizationId', async () => {
+      // Arrange
+      const service = createService()
+      const session = createSession({
+        session: { id: 'sess-1', activeOrganizationId: null },
+      })
+
+      // Act & Assert
+      await expect(service.list(session)).rejects.toThrow('Active organization required')
     })
   })
 
@@ -432,7 +475,7 @@ describe('ApiKeyService', () => {
       const service = createService(db, audit)
 
       // Act
-      const result = await service.revoke('key-1', 'org-1', 'user-1')
+      const result = await service.revoke('key-1', createSession())
 
       // Assert
       expect(result.id).toBe('key-1')
@@ -449,7 +492,7 @@ describe('ApiKeyService', () => {
       const service = createService(db)
 
       // Act
-      await service.revoke('key-1', 'org-1', 'user-1')
+      await service.revoke('key-1', createSession())
 
       // Assert
       expect(db.update).toHaveBeenCalledOnce()
@@ -466,7 +509,7 @@ describe('ApiKeyService', () => {
       const service = createService(db, audit)
 
       // Act
-      await service.revoke('key-1', 'org-1', 'user-1')
+      await service.revoke('key-1', createSession())
 
       // Assert
       expect(audit.log).toHaveBeenCalledWith(
@@ -489,7 +532,7 @@ describe('ApiKeyService', () => {
       const service = createService(db, audit)
 
       // Act
-      const result = await service.revoke('key-1', 'org-1', 'user-1')
+      const result = await service.revoke('key-1', createSession())
 
       // Assert
       expect(result).toEqual({ id: 'key-1', revokedAt: revokedAt.toISOString() })
@@ -505,7 +548,7 @@ describe('ApiKeyService', () => {
       const service = createService(db)
 
       // Act & Assert
-      await expect(service.revoke('nonexistent', 'org-1', 'user-1')).rejects.toThrow(
+      await expect(service.revoke('nonexistent', createSession())).rejects.toThrow(
         ApiKeyNotFoundException
       )
     })
@@ -517,9 +560,20 @@ describe('ApiKeyService', () => {
       const service = createService(db)
 
       // Act & Assert
-      await expect(service.revoke('key-xyz', 'org-1', 'user-1')).rejects.toThrow(
+      await expect(service.revoke('key-xyz', createSession())).rejects.toThrow(
         'API key "key-xyz" not found'
       )
+    })
+
+    it('should throw Error when session has no activeOrganizationId', async () => {
+      // Arrange
+      const service = createService()
+      const session = createSession({
+        session: { id: 'sess-1', activeOrganizationId: null },
+      })
+
+      // Act & Assert
+      await expect(service.revoke('key-1', session)).rejects.toThrow('Active organization required')
     })
   })
 

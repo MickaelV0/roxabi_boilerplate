@@ -21,7 +21,7 @@ function SettingsLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const { data: session } = useSession()
 
-  const canReadApiKeys = hasPermission(session, 'api_keys:read' as never)
+  const canReadApiKeys = hasPermission(session, 'api_keys:read')
 
   const tabs: SettingsTab[] = [
     {

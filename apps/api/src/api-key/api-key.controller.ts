@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Post,
   UseFilters,
 } from '@nestjs/common'
@@ -20,7 +21,7 @@ import { ApiKeyExceptionFilter } from './filters/api-key-exception.filter.js'
 
 const createApiKeySchema = z.object({
   name: z.string().min(1).max(100),
-  scopes: z.array(z.string()),
+  scopes: z.array(z.string().regex(/^[a-z_]+:[a-z_]+$/, 'Scopes must use resource:action format')),
   expiresAt: z.string().datetime().nullish(),
 })
 
@@ -50,8 +51,7 @@ export class ApiKeyController {
   @ApiOperation({ summary: 'List API keys for the current organization' })
   @ApiResponse({ status: 200, description: 'List of API keys' })
   async list(@Session() session: AuthenticatedSession) {
-    // @Permissions implies @RequireOrg, so activeOrganizationId is guaranteed
-    return this.apiKeyService.list(session.session.activeOrganizationId as string)
+    return this.apiKeyService.list(session)
   }
 
   @Delete(':id')
@@ -59,11 +59,7 @@ export class ApiKeyController {
   @ApiOperation({ summary: 'Revoke an API key' })
   @ApiResponse({ status: 200, description: 'API key revoked' })
   @ApiResponse({ status: 404, description: 'API key not found' })
-  async revoke(@Param('id') id: string, @Session() session: AuthenticatedSession) {
-    return this.apiKeyService.revoke(
-      id,
-      session.session.activeOrganizationId as string,
-      session.user.id
-    )
+  async revoke(@Param('id', ParseUUIDPipe) id: string, @Session() session: AuthenticatedSession) {
+    return this.apiKeyService.revoke(id, session)
   }
 }

@@ -1139,5 +1139,6 @@
   "api_keys_no_permission_title": "Permissions insuffisantes",
   "api_keys_no_permission_description": "Vous n'avez pas la permission de g\u00e9rer les cl\u00e9s API de cette organisation.",
   "api_keys_no_org_title": "Aucune organisation s\u00e9lectionn\u00e9e",
-  "api_keys_no_org_description": "S\u00e9lectionnez une organisation pour g\u00e9rer ses cl\u00e9s API."
+  "api_keys_no_org_description": "S\u00e9lectionnez une organisation pour g\u00e9rer ses cl\u00e9s API.",
+  "api_keys_never": "Jamais"
 }

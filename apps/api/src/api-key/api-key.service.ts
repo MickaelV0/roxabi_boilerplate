@@ -1,5 +1,5 @@
 import { createHmac, randomBytes } from 'node:crypto'
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { and, eq, isNull } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import { AuditService } from '../audit/audit.service.js'
@@ -83,7 +83,7 @@ export class ApiKeyService {
 
   private requireOrgId(session: AuthenticatedSession): string {
     const orgId = session.session.activeOrganizationId
-    if (!orgId) throw new Error('Active organization required')
+    if (!orgId) throw new BadRequestException('Active organization required')
     return orgId
   }
 
@@ -131,7 +131,9 @@ export class ApiKeyService {
       })
   }
 
-  async list(orgId: string) {
+  async list(session: AuthenticatedSession) {
+    const orgId = this.requireOrgId(session)
+
     const rows = await this.db
       .select({
         id: apiKeys.id,
@@ -152,7 +154,10 @@ export class ApiKeyService {
     return { data: rows }
   }
 
-  async revoke(id: string, orgId: string, userId: string) {
+  async revoke(id: string, session: AuthenticatedSession) {
+    const orgId = this.requireOrgId(session)
+    const userId = session.user.id
+
     // Fetch the key and validate it belongs to this org
     const [existing] = await this.db
       .select({
