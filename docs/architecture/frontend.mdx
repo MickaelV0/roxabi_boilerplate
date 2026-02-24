@@ -209,18 +209,14 @@ These files use the `.ts` extension (not `.tsx`) and run exclusively on the serv
 
 The frontend uses a layered approach to state, matching each concern to the right tool:
 
-```txt
-+---------------------------+----------------------------------+
-|  Layer                    |  Tool                            |
-+---------------------------+----------------------------------+
-|  Server/async state       |  TanStack Query                  |
-|  Form state               |  TanStack Form                   |
-|  Client-side global state |  TanStack Store                  |
-|  Route-level data         |  Route loaders (SSR)             |
-|  Server mutations         |  Server functions (createServerFn)|
-|  Local component state    |  React useState                  |
-+---------------------------+----------------------------------+
-```
+| Layer | Tool |
+|-------|------|
+| Server/async state | TanStack Query |
+| Form state | TanStack Form |
+| Client-side global state | TanStack Store |
+| Route-level data | Route loaders (SSR) |
+| Server mutations | Server functions (createServerFn) |
+| Local component state | React useState |
 
 ### TanStack Query
 

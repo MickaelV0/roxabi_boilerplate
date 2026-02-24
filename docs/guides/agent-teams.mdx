@@ -55,32 +55,33 @@ F-lite vs F-full is **judgment-based**, not file-count-based. Human always valid
 
 Use the routing decision tree:
 
-```
-Is this a code change?
-├── No (docs only) → doc-writer subagent
-└── Yes
-    ├── Tier S (<=3 files, no arch risk)
-    │   └── Single session + optional tester subagent
-    │
-    ├── Tier F-lite (clear scope, documented requirements)
-    │   ├── /scaffold (spec → PR, skip bootstrap):
-    │   │   └── Subagents via `Task` tool (parallel for multi-domain)
-    │   │   ├── Frontend? → frontend-dev + tester
-    │   │   ├── Backend?  → backend-dev + tester
-    │   │   ├── Full-stack? → frontend-dev + backend-dev + tester
-    │   │   └── Security-sensitive? → + security-auditor
-    │   └── Then /review (spawns fresh domain reviewers + 1b1 + fixer)
-    │
-    └── Tier F-full (new arch, unclear requirements, >2 domains)
-        ├── /bootstrap (idea → spec): direct orchestration + expert review (architect, doc-writer, devops, product-lead — configurable)
-        ├── /scaffold (spec → PR):
-        │   └── Subagents via `Task` tool (parallel for multi-domain)
-        │   ├── Frontend? → frontend-dev + tester
-        │   ├── Backend?  → backend-dev + tester
-        │   ├── Full-stack? → frontend-dev + backend-dev + tester
-        │   ├── Large scope? → + architect + doc-writer
-        │   └── Security-sensitive? → + security-auditor
-        └── Then /review (spawns fresh domain reviewers + 1b1 + fixer)
+```mermaid
+flowchart TD
+    Start{"Code change?"} -- No --> DocOnly["doc-writer subagent"]
+    Start -- Yes --> Tier{"Tier?"}
+
+    Tier --> S["Tier S"]
+    S --> SSingle["Single session + optional tester"]
+
+    Tier --> FL["Tier F-lite"]
+    FL --> FLScaffold["/scaffold: Task subagents"]
+    FLScaffold --> FLAgents{"Domain?"}
+    FLAgents -->|Frontend| FE1["frontend-dev + tester"]
+    FLAgents -->|Backend| BE1["backend-dev + tester"]
+    FLAgents -->|Full-stack| FS1["FE + BE + tester"]
+    FLAgents -->|Security| SEC1["+ security-auditor"]
+    FLScaffold --> FLReview["/review + /1b1 + fixer"]
+
+    Tier --> FF["Tier F-full"]
+    FF --> FFBoot["/bootstrap: expert review"]
+    FF --> FFScaffold["/scaffold: Task subagents"]
+    FFScaffold --> FFAgents{"Domain?"}
+    FFAgents -->|Frontend| FE2["frontend-dev + tester"]
+    FFAgents -->|Backend| BE2["backend-dev + tester"]
+    FFAgents -->|Full-stack| FS2["FE + BE + tester"]
+    FFAgents -->|Large scope| LS["+ architect + doc-writer"]
+    FFAgents -->|Security| SEC2["+ security-auditor"]
+    FFScaffold --> FFReview["/review + /1b1 + fixer"]
 ```
 
 ### 3. Start a session
@@ -417,20 +418,13 @@ Spawn subagents via `Task` tool: `architect` + `frontend-dev` + `backend-dev` + 
 
 **Task flow:**
 
-```
-[architect: Design + break into tasks]
-        |
-[tester: Write failing tests from spec (RED)]
-        |
-   +----+--------+
-[front] [back] [infra]     <- parallel implementation (GREEN)
-   +----+--------+
-        |
-[tester: Verify coverage + edge cases]
-        |
-[doc-writer: Update docs]
-        |
-Commit & PR
+```mermaid
+flowchart TD
+    Arch["architect: Design + tasks"] --> RED["tester: Failing tests (RED)"]
+    RED --> FE["frontend-dev"] & BE["backend-dev"] & Inf["devops"]
+    FE & BE & Inf --> Verify["tester: Verify coverage"]
+    Verify --> Doc["doc-writer: Update docs"]
+    Doc --> PR["Commit & PR"]
 ```
 
 **Phase 3 — Review:**
@@ -443,17 +437,13 @@ Commit & PR
 
 **Phase 4 — Fix and Merge:**
 
-```
-[parallel fixers by domain]
-   +--------+--------+
-[BE fixer] [FE fixer] [Infra fixer]   ← parallel (one per affected domain)
-   +--------+--------+
-        |
-Combined commit & push
-        |
-CI runs (loop until green)
-        |
-Human approves merge
+```mermaid
+flowchart TD
+    Start["Parallel fixers by domain"] --> BEF["BE fixer"] & FEF["FE fixer"] & InfF["Infra fixer"]
+    BEF & FEF & InfF --> Commit["Combined commit & push"]
+    Commit --> CI{"CI green?"}
+    CI -- No --> Fix["Fix + re-push"] --> CI
+    CI -- Yes --> Merge{{"Human approves merge"}}
 ```
 
 **As the lead, you:**

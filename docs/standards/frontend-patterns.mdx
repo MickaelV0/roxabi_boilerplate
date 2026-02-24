@@ -42,14 +42,14 @@ or is derived from the codebase.
 
 **Decision tree:**
 
-```
-Is it a generic UI primitive with no business logic?
-  └─ YES → packages/ui
-  └─ NO → Does it need app-specific context (i18n, auth, routing)?
-           └─ YES → apps/web/src/components
-           └─ NO → Could other apps in the monorepo use it?
-                    └─ YES → packages/ui
-                    └─ NO → apps/web/src/components
+```mermaid
+flowchart TD
+    Q1{"Generic UI primitive,\nno business logic?"} -- Yes --> UI["packages/ui"]
+    Q1 -- No --> Q2{"Needs app context?\n(i18n, auth, routing)"}
+    Q2 -- Yes --> Web["apps/web/src/components"]
+    Q2 -- No --> Q3{"Other monorepo apps\ncould use it?"}
+    Q3 -- Yes --> UI
+    Q3 -- No --> Web
 ```
 
 **Rules:**

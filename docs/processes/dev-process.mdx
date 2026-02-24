@@ -7,10 +7,11 @@ Adapts to task complexity through tiered tracks. **Determine tier before startin
 
 ## Step 0: Determine Tier
 
-```
-≤3 files, no arch risk, no regression risk? ────────► Tier S
-Clear scope, documented requirements, single domain? ► Tier F-lite
-New arch, unclear requirements, or >2 domains? ─────► Tier F-full
+```mermaid
+flowchart LR
+    Q{"Task assessment"} -->|"≤3 files, no arch/risk"| S["Tier S"]
+    Q -->|"Clear scope, single domain"| FL["Tier F-lite"]
+    Q -->|"New arch, unclear reqs, >2 domains"| FF["Tier F-full"]
 ```
 
 | Tier | Name | Criteria | Process |
@@ -208,103 +209,53 @@ Agents are spawned as subagents via the `Task` tool. See the [Agent Teams Guide]
 
 Tier F follows four phases: **Assess, Implement, Review, Fix/Merge**. The human is the decision-maker at every gate. Main Claude is the orchestrator.
 
-```
-Human: "develop #XXX"
-        |
-        v
-========================================
-  PHASE 1 — ASSESSMENT
-========================================
-        |
-  Main Claude: fetch issue, check docs
-        |
-  Spec exists? ---- Yes --+
-        |                  |
-        No                 |
-        |                  |
-  /bootstrap: interview    |
-  + expert reviewers       |
-        |                  |
-  Write analysis           |
-        |                  |
-  * Human approves *       |
-        |                  |
-  Write spec               |
-        |                  |
-  * Human approves *       |
-        |                  |
-        +------------------+
-        |
-        v
-========================================
-  PHASE 2 — SCAFFOLD & IMPLEMENTATION
-  /scaffold (spec → PR)
-========================================
-        |
-  Plan: analyze scope, pick agents
-        |
-  * Human approves plan *
-        |
-  Create issue + worktree + stubs
-        |
-  Spawn agents (test-first):
-        |
-  tester: write failing tests (RED)
-        |
-     +--+--+--+
-     |  |  |  |
-    FE BE infra doc-writer   <-- parallel (GREEN)
-     |  |  |  |
-     +--+--+--+
-        |
-  tester: verify coverage + edge cases
-        |
-  All tests pass? --- No --> team fixes, loop
-        |
-       Yes
-        |
-  Commit + create PR
-        |
-        v
-========================================
-  PHASE 3 — REVIEW
-========================================
-        |
-  Main Claude: /review
-        |
-  Fresh agents (never the authors):
-  +- security-auditor
-  +- architect
-  +- product-lead
-  +- tester
-  +- frontend-dev  (if FE changes)
-  +- backend-dev   (if BE changes)
-        |
-  Conventional Comments collected
-        |
-  Main Claude: /1b1
-        |
-  Human decides per comment:
-  accept / reject / defer
-        |
-        v
-========================================
-  PHASE 4 — FIX & MERGE
-========================================
-        |
-  fixer: fix accepted comments
-        |
-  Push + CI runs
-        |
-  CI green? --- No --> fixer fixes, loop
-        |
-       Yes
-        |
-  * Human approves merge *
-        |
-  Cleanup worktree
-        |
-       DONE
+```mermaid
+flowchart TD
+    Start["Human: develop #XXX"] --> Fetch
+
+    subgraph P1[" Phase 1 — Assessment "]
+        Fetch["Fetch issue, check docs"] --> SpecQ{"Spec exists?"}
+        SpecQ -- Yes --> P1End((" "))
+        SpecQ -- No --> Boot["/bootstrap: interview + review"]
+        Boot --> Analysis["Write analysis"]
+        Analysis --> G1{{"Human approves"}}
+        G1 --> Spec["Write spec"]
+        Spec --> G2{{"Human approves"}}
+        G2 --> P1End
+    end
+
+    P1End --> Plan
+
+    subgraph P2[" Phase 2 — Scaffold & Implementation "]
+        Plan["Plan: scope + agents"] --> G3{{"Human approves plan"}}
+        G3 --> Setup["Issue + worktree + stubs"]
+        Setup --> RED["tester: failing tests (RED)"]
+        RED --> FE["frontend-dev"] & BE["backend-dev"] & Inf["devops"] & DW["doc-writer"]
+        FE & BE & Inf & DW --> Verify["tester: verify coverage"]
+        Verify --> TestQ{"Tests pass?"}
+        TestQ -- No --> FixT["Fix + re-test"] --> Verify
+        TestQ -- Yes --> PR["Commit + PR"]
+    end
+
+    PR --> Review
+
+    subgraph P3[" Phase 3 — Review "]
+        Review["/review: fresh agents"] --> Agents["security, architect, product, tester, domain"]
+        Agents --> Comments["Conventional Comments"]
+        Comments --> Walk["/1b1 walkthrough"]
+        Walk --> G4{{"Human: accept / reject / defer"}}
+    end
+
+    G4 --> Fix
+
+    subgraph P4[" Phase 4 — Fix & Merge "]
+        Fix["fixer: apply accepted"] --> Push["Push + CI"]
+        Push --> CIQ{"CI green?"}
+        CIQ -- No --> FixCI["Fix + re-push"] --> Push
+        CIQ -- Yes --> G5{{"Human approves merge"}}
+        G5 --> Clean["Cleanup worktree"]
+        Clean --> Done(["DONE"])
+    end
 ```
 
 ### Phase 1 — Assessment
