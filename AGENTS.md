@@ -52,7 +52,7 @@ Intra-domain parallel: multiple same-type agents on non-overlapping files OK. Sh
 
 ## Micro-Task Protocol
 
-When `/scaffold` 4f generates micro-tasks, agents receive structured work units via TaskCreate.
+When `/scaffold` 4b generates micro-tasks, agents receive structured work units via TaskCreate.
 
 **Claim:** Spawn-prompt assignment = authoritative. Also check TaskList for unassigned tasks (lowest ID first).
 

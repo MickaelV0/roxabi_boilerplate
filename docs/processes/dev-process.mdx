@@ -228,7 +228,7 @@ flowchart TD
 
     subgraph P2[" Phase 2 — Scaffold & Implementation "]
         Plan["Plan: scope + agents"] --> G3{{"Human approves plan"}}
-        G3 --> Setup["Issue + worktree + stubs"]
+        G3 --> Setup["Issue + worktree"]
         Setup --> RED["tester: failing tests (RED)"]
         RED --> FE["frontend-dev"] & BE["backend-dev"] & Inf["devops"] & DW["doc-writer"]
         FE & BE & Inf & DW --> Verify["tester: verify coverage"]
@@ -291,9 +291,7 @@ flowchart TD
    cd apps/api && bun run db:branch:create --force XXX
    ```
 
-7. **Scaffold** — Creates boilerplate stubs (types, API, UI, test shells) from the spec. Commits.
-
-8. **Implement** — Spawns agents based on the plan:
+7. **Implement** — Spawns agents based on the plan (agents create files from scratch):
 
    | Change type | Agent |
    |-------------|-------|
@@ -310,11 +308,11 @@ flowchart TD
    3. **REFACTOR** — Domain agents refactor while keeping tests green
    4. Tester verifies coverage and adds edge cases
 
-9. **Quality gate** — `bun lint && bun typecheck && bun run test`
+8. **Quality gate** — `bun lint && bun typecheck && bun run test`
    - **Pass** — proceed to PR
    - **Fail** — agents fix, re-test, loop until green
 
-10. **PR** — `/scaffold` commits and creates the PR:
+9. **PR** — `/scaffold` commits and creates the PR:
     ```bash
     gh pr create --title "feat: description" --body "Closes #XXX"
     ```

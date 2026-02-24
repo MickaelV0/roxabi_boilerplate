@@ -4,7 +4,7 @@
 |----------|----------|
 | No spec found | Suggest `/bootstrap`. Stop. |
 | Size XS confirmed by lead | Skip worktree, direct branch |
-| Typecheck fails after scaffold | Report errors, user: fix / proceed / abort |
+| Typecheck fails during impl | Agents fix in-loop. 3✗ → escalate to lead |
 | Issue already exists | Use existing, inform user |
 | Branch already exists | Warn, ask: reuse ∨ recreate |
 | Worktree dir exists | Warn, ask: reuse ∨ cleanup |

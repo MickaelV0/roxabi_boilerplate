@@ -6,7 +6,7 @@ allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Edit, Task, Skill
 
 # Scaffold
 
-Spec → plan → worktree → stubs → agents (test-first) → PR.
+Spec → plan → worktree → micro-tasks → agents (test-first) → PR.
 
 ```
 /scaffold --spec 42     Execute from spec
@@ -97,52 +97,21 @@ cd apps/api && bun run db:branch:create --force <N>
 
 XS exception: AskUserQuestion → if approved, `git checkout -b feat/<N>-<slug> staging`.
 
-## Step 4 — Scaffold Stubs
+## Step 4 — Prepare Tasks
 
-### 4a. Reference
+### 4a. Reference Patterns
 
 Find similar feature → read 1-2 files for conventions (naming, exports, test placement).
+Store reference paths + patterns → inject into agent prompts (Step 5a).
 
-### 4b. Stubs
-
-| Order | Category | Content |
-|-------|----------|---------|
-| 1 | Types | Interfaces, enums, exports |
-| 2 | API | Controller, service, module + TODOs |
-| 3 | UI | Components + TODOs |
-| 4 | Tests | Shells from acceptance criteria |
-
-Follow reference patterns. `// TODO: implement`. Valid TypeScript.
-
-### 4c. Test Stubs
-
-∀ success criterion → `it()` block with spec reference comment.
-
-### 4d. Confirm
-
-AskUserQuestion: **Create all** | **Edit list** | **Cancel**
-
-### 4e. Verify + Commit
-
-```bash
-bun lint && bun typecheck
-git add <files>
-git commit -m "$(cat <<'EOF'
-feat(<scope>): scaffold <feature> boilerplate
-
-Refs #<N>
-
-Co-Authored-By: Claude <model> <noreply@anthropic.com>
-EOF
-)"
-```
-
-### 4f. Micro-Tasks (Tier F only)
+### 4b. Micro-Tasks (Tier F only)
 
 Tier S ⇒ skip → Step 5.
 Read [references/micro-tasks.md](references/micro-tasks.md) for full procedure.
 
 **Summary:** Parse spec (Breadboard+Slices ∨ Success Criteria) → generate micro-tasks with verification commands → detect parallelization → consistency check → write plan artifact to `plans/{issue}-{slug}.mdx` → AskUserQuestion approval → commit plan → dispatch TaskCreate entries.
+
+Micro-tasks include file creation — agents create files from scratch during implementation (¬orchestrator stubs). Each task description specifies: target file path, expected shape/skeleton, reference pattern file to follow.
 
 ## Step 5 — Implement
 
@@ -150,23 +119,25 @@ Read [references/micro-tasks.md](references/micro-tasks.md) for full procedure.
 
 Tier S ⇒ skip this sub-step.
 
-For each agent to spawn, include domain-specific read instructions in the Task prompt. Use section header text only (no numeric prefixes) — robust against section renumbering:
+For each agent to spawn, include domain-specific read instructions in the Task prompt. Use section header text only (no numeric prefixes) — robust against section renumbering.
+
+**Reference patterns:** Include reference file paths from Step 4a in each agent prompt: "Read `{ref_file}` for naming/export/test conventions before creating files."
 
 | Agent | Read instructions to inject |
 |-------|----------------------------|
-| **frontend-dev** | "Before implementing, read `docs/standards/frontend-patterns.mdx` sections: Component Patterns, AI Quick Reference. Read `docs/standards/testing.mdx` section: Frontend Testing Patterns." |
-| **backend-dev** | "Before implementing, read `docs/standards/backend-patterns.mdx` sections: Design Patterns, Error Handling, AI Quick Reference. Read `docs/standards/testing.mdx` section: Backend Testing Patterns." |
-| **tester** | "Before writing tests, read `docs/standards/testing.mdx` sections: Test Structure (AAA Pattern), Coverage Guidelines, Mocking Strategies, AI-Assisted TDD Workflow." |
+| **frontend-dev** | "Before implementing, read `docs/standards/frontend-patterns.mdx` sections: Component Patterns, AI Quick Reference. Read `docs/standards/testing.mdx` section: Frontend Testing Patterns. Read `{ref_file}` for conventions." |
+| **backend-dev** | "Before implementing, read `docs/standards/backend-patterns.mdx` sections: Design Patterns, Error Handling, AI Quick Reference. Read `docs/standards/testing.mdx` section: Backend Testing Patterns. Read `{ref_file}` for conventions." |
+| **tester** | "Before writing tests, read `docs/standards/testing.mdx` sections: Test Structure (AAA Pattern), Coverage Guidelines, Mocking Strategies, AI-Assisted TDD Workflow. Read `{ref_file}` for test placement conventions." |
 | **architect** | "Before reviewing architecture, read `docs/standards/frontend-patterns.mdx` section: AI Quick Reference. Read `docs/standards/backend-patterns.mdx` section: AI Quick Reference." |
 | **devops** | No standards doc injection (devops reads config files, not standards docs) |
 | **security-auditor** | No standards doc injection (uses built-in OWASP checklist) |
 | **doc-writer** | No standards doc injection (reads API definitions and spec files, not standards docs) |
 
-Agents receive these instructions as part of their Task prompt and read the specified sections instead of discovering and reading full docs.
+Agents receive these instructions as part of their Task prompt and read the specified sections instead of discovering and reading full docs. Agents create all files from scratch — no pre-existing stubs.
 
 ### Tier S — Direct
 
-Read stubs + criteria → implement → tests → `bun lint && bun typecheck && bun run test` → loop until ✓.
+Read spec criteria + reference patterns (4a) → create files + implement → tests → `bun lint && bun typecheck && bun run test` → loop until ✓.
 
 ### Tier F — Agent-Driven (test-first)
 
