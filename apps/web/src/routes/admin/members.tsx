@@ -31,6 +31,7 @@ import { parseErrorMessage } from '@/lib/error-utils'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/admin/members')({
+  staticData: { permission: 'members:write' },
   component: AdminMembersPage,
   head: () => ({
     meta: [{ title: `${m.org_members_title()} | Roxabi` }],

@@ -24,6 +24,7 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/auth-client'
 import { roleBadgeVariant, roleLabel } from '@/lib/org-utils'
+import { useCanAccess } from '@/lib/route-permissions'
 import type { useOrganizations } from '@/lib/use-organizations'
 import { m } from '@/paraglide/messages'
 
@@ -50,9 +51,7 @@ function useOrgSwitcherState(orgState: OrgSwitcherProps['orgState']) {
   const activeMember = activeOrg?.members?.find(
     (member: { userId: string }) => member.userId === session?.user?.id
   )
-  const user = session?.user as { role?: string } | undefined
-  const canAccessAdmin =
-    user?.role === 'superadmin' || activeMember?.role === 'owner' || activeMember?.role === 'admin'
+  const canAccessAdmin = useCanAccess('/admin/members')
 
   async function handleSwitch(orgId: string, orgName: string) {
     if (activeOrg?.id === orgId) return

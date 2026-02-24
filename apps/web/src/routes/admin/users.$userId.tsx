@@ -36,12 +36,13 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { BackLink, DetailSkeleton } from '@/components/admin/detail-shared'
 import { UserActions } from '@/components/admin/user-actions'
-import { requireSuperAdmin } from '@/lib/admin-guards'
 import { formatDate, formatTimestamp } from '@/lib/format-date'
+import { enforceRoutePermission } from '@/lib/route-permissions'
 import { statusLabel, statusVariant } from '@/lib/user-status'
 
 export const Route = createFileRoute('/admin/users/$userId')({
-  beforeLoad: requireSuperAdmin,
+  staticData: { permission: 'role:superadmin' },
+  beforeLoad: enforceRoutePermission,
   component: AdminUserDetailPage,
   head: () => ({ meta: [{ title: 'User Detail | Admin | Roxabi' }] }),
 })

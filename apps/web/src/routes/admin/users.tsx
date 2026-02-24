@@ -21,13 +21,14 @@ import type { FilterConfig } from '@/components/admin/filter-bar'
 import { FilterBar } from '@/components/admin/filter-bar'
 import { LoadMoreButton } from '@/components/admin/load-more-button'
 import { useCursorPagination } from '@/hooks/use-cursor-pagination'
-import { requireSuperAdmin } from '@/lib/admin-guards'
 import { formatDate } from '@/lib/format-date'
 import { formatRelativeTime } from '@/lib/format-relative-time'
+import { enforceRoutePermission } from '@/lib/route-permissions'
 import { statusLabel, statusVariant } from '@/lib/user-status'
 
 export const Route = createFileRoute('/admin/users')({
-  beforeLoad: requireSuperAdmin,
+  staticData: { permission: 'role:superadmin' },
+  beforeLoad: enforceRoutePermission,
   component: AdminUsersPage,
   head: () => ({ meta: [{ title: 'Users | Admin | Roxabi' }] }),
 })

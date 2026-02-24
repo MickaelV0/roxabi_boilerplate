@@ -124,6 +124,11 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
+const mockUseCanAccess = vi.hoisted(() => vi.fn(() => false))
+vi.mock('@/lib/route-permissions', () => ({
+  useCanAccess: mockUseCanAccess,
+}))
+
 mockParaglideMessages()
 
 import { toast } from 'sonner'
@@ -289,8 +294,9 @@ describe('OrgSwitcher', () => {
     })
   })
 
-  it('should show org settings and members links when active org exists and user is admin', () => {
-    // Arrange — includeMembers gives the user an 'admin' org role, enabling canAccessAdmin
+  it('should show org settings and members links when useCanAccess returns true', () => {
+    // Arrange — useCanAccess returns true for admin routes
+    mockUseCanAccess.mockReturnValue(true)
     const orgState = setupWithOrgs({ includeMembers: true })
 
     // Act
@@ -299,10 +305,14 @@ describe('OrgSwitcher', () => {
     // Assert
     expect(screen.getByText('user_menu_org_settings')).toBeInTheDocument()
     expect(screen.getByText('user_menu_org_members')).toBeInTheDocument()
+
+    // Cleanup
+    mockUseCanAccess.mockReturnValue(false)
   })
 
-  it('should hide org settings and members links when user is not an admin', () => {
-    // Arrange — no members data means activeMember is undefined, canAccessAdmin is false
+  it('should hide org settings and members links when useCanAccess returns false', () => {
+    // Arrange — useCanAccess returns false (default)
+    mockUseCanAccess.mockReturnValue(false)
     const orgState = setupWithOrgs()
 
     // Act

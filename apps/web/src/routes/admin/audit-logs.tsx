@@ -22,11 +22,12 @@ import type { FilterConfig } from '@/components/admin/filter-bar'
 import { FilterBar } from '@/components/admin/filter-bar'
 import { LoadMoreButton } from '@/components/admin/load-more-button'
 import { useCursorPagination } from '@/hooks/use-cursor-pagination'
-import { requireSuperAdmin } from '@/lib/admin-guards'
 import { formatTimestamp } from '@/lib/format-date'
+import { enforceRoutePermission } from '@/lib/route-permissions'
 
 export const Route = createFileRoute('/admin/audit-logs')({
-  beforeLoad: requireSuperAdmin,
+  staticData: { permission: 'role:superadmin' },
+  beforeLoad: enforceRoutePermission,
   component: AdminAuditLogsPage,
   head: () => ({ meta: [{ title: 'Audit Logs | Admin | Roxabi' }] }),
 })

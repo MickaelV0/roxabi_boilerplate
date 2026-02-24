@@ -36,6 +36,7 @@ function hasSoftDeleteFields(org: unknown): org is SoftDeletableOrg {
 }
 
 export const Route = createFileRoute('/admin/settings')({
+  staticData: { permission: 'members:write' },
   component: AdminSettingsPage,
   head: () => ({
     meta: [{ title: `${m.org_settings_title()} | Roxabi` }],
