@@ -80,6 +80,7 @@ export const TEST_PERMISSIONS = {
  * @returns Compiled TestingModule
  */
 export async function createTestModule(
+  // biome-ignore lint/suspicious/noExplicitAny: NestJS module imports are not uniformly typed
   imports: any[]
 ): Promise<TestingModule> {
   return Test.createTestingModule({
@@ -98,7 +99,6 @@ export async function createModuleFromPath(
   moduleName: string
 ): Promise<TestingModule | null> {
   try {
-    // @ts-expect-error - Dynamic import may fail
     const moduleImport = await import(modulePath).catch(() => null)
     if (moduleImport?.[moduleName]) {
       return await Test.createTestingModule({
@@ -117,8 +117,10 @@ export async function createModuleFromPath(
  * @param serviceName - Service name or class
  * @returns Service instance or null
  */
+// biome-ignore lint/suspicious/noExplicitAny: Generic default needed for flexible service retrieval
 export function getService<T = any>(
   module: TestingModule,
+  // biome-ignore lint/complexity/noBannedTypes: NestJS module.get() accepts Function
   serviceName: string | Function
 ): T | null {
   try {
@@ -134,6 +136,7 @@ export function getService<T = any>(
  * @param methodName - Method name
  * @returns true if method exists and is callable
  */
+// biome-ignore lint/suspicious/noExplicitAny: Test introspection helper requires any
 export function hasMethod(service: any, methodName: string): boolean {
   return service && typeof service[methodName] === 'function'
 }
@@ -144,6 +147,7 @@ export function hasMethod(service: any, methodName: string): boolean {
  * @param methodNames - Array of method names
  * @returns true if all methods exist
  */
+// biome-ignore lint/suspicious/noExplicitAny: Test introspection helper requires any
 export function hasMethods(service: any, methodNames: string[]): boolean {
   return methodNames.every((method) => hasMethod(service, method))
 }

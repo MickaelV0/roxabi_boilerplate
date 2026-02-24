@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 /**
  * Integration tests for RBAC module.
@@ -13,14 +13,14 @@ describe('RBAC Module Integration', () => {
   beforeAll(async () => {
     // Arrange: Dynamically import RBAC module if it exists
     try {
-      // @ts-ignore - Module may not be fully typed yet
+      // @ts-expect-error - Module may not be fully typed yet
       const rbacModuleImport = await import('../rbac.module').catch(() => null)
       if (rbacModuleImport?.RBACModule) {
         module = await Test.createTestingModule({
           imports: [rbacModuleImport.RBACModule],
         }).compile()
       }
-    } catch (error) {
+    } catch (_error) {
       // RBACModule may not exist yet - that's ok during development
       console.debug('RBACModule not found during test setup')
     }
@@ -45,7 +45,7 @@ describe('RBAC Module Integration', () => {
       try {
         const roleService = module.get('RoleService', { strict: false })
         expect(typeof roleService === 'object' || roleService === undefined).toBe(true)
-      } catch (error) {
+      } catch (_error) {
         expect(true).toBe(true)
       }
     } else {
@@ -58,7 +58,7 @@ describe('RBAC Module Integration', () => {
       try {
         const permissionService = module.get('PermissionService', { strict: false })
         expect(typeof permissionService === 'object' || permissionService === undefined).toBe(true)
-      } catch (error) {
+      } catch (_error) {
         expect(true).toBe(true)
       }
     } else {
@@ -71,14 +71,16 @@ describe('RBAC Module Integration', () => {
       try {
         const roleService = module.get('RoleService', { strict: false })
         if (roleService && typeof roleService === 'object') {
+          // biome-ignore lint/suspicious/noExplicitAny: Test code needs introspection
+          const roleServiceAny = roleService as any
           const hasChainMethods =
-            typeof (roleService as any).getPermissions === 'function' ||
-            typeof (roleService as any).findById === 'function'
+            typeof roleServiceAny.getPermissions === 'function' ||
+            typeof roleServiceAny.findById === 'function'
           expect(hasChainMethods).toBe(true)
         } else {
           expect(true).toBe(true)
         }
-      } catch (error) {
+      } catch (_error) {
         expect(true).toBe(true)
       }
     } else {
@@ -91,15 +93,17 @@ describe('RBAC Module Integration', () => {
       try {
         const roleService = module.get('RoleService', { strict: false })
         if (roleService && typeof roleService === 'object') {
+          // biome-ignore lint/suspicious/noExplicitAny: Test code needs introspection
+          const roleServiceAny = roleService as any
           const hasCRUD =
-            typeof (roleService as any).findAll === 'function' ||
-            typeof (roleService as any).findById === 'function' ||
-            typeof (roleService as any).create === 'function'
+            typeof roleServiceAny.findAll === 'function' ||
+            typeof roleServiceAny.findById === 'function' ||
+            typeof roleServiceAny.create === 'function'
           expect(hasCRUD).toBe(true)
         } else {
           expect(true).toBe(true)
         }
-      } catch (error) {
+      } catch (_error) {
         expect(true).toBe(true)
       }
     } else {
@@ -112,14 +116,16 @@ describe('RBAC Module Integration', () => {
       try {
         const rbacService = module.get('RBACService', { strict: false })
         if (rbacService && typeof rbacService === 'object') {
+          // biome-ignore lint/suspicious/noExplicitAny: Test code needs introspection
+          const rbacServiceAny = rbacService as any
           const hasChecking =
-            typeof (rbacService as any).hasPermission === 'function' ||
-            typeof (rbacService as any).checkPermission === 'function'
+            typeof rbacServiceAny.hasPermission === 'function' ||
+            typeof rbacServiceAny.checkPermission === 'function'
           expect(hasChecking).toBe(true)
         } else {
           expect(true).toBe(true)
         }
-      } catch (error) {
+      } catch (_error) {
         expect(true).toBe(true)
       }
     } else {

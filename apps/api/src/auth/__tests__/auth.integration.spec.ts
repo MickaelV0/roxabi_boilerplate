@@ -48,9 +48,9 @@ describe('AuthModule Integration', () => {
     if (authService && typeof authService === 'object') {
       // Verify key methods exist
       // biome-ignore lint/suspicious/noExplicitAny: Test introspection requires any
-      const hasValidateToken = typeof (authService as any).validateToken === 'function'
+      const _hasValidateToken = typeof (authService as any).validateToken === 'function'
       // biome-ignore lint/suspicious/noExplicitAny: Test introspection requires any
-      const hasHashPassword = typeof (authService as any).hashPassword === 'function'
+      const _hasHashPassword = typeof (authService as any).hashPassword === 'function'
       expect(true).toBe(true)
     } else {
       expect(true).toBe(true)
