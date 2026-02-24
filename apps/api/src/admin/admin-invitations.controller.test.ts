@@ -1,18 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AdminInvitationsController } from './admin-invitations.controller.js'
-import type { AdminMembersService } from './admin-members.service.js'
+import type { AdminInvitationsService } from './admin-invitations.service.js'
 
-const mockAdminMembersService: AdminMembersService = {
+const mockAdminInvitationsService: AdminInvitationsService = {
   listPendingInvitations: vi.fn(),
   revokeInvitation: vi.fn(),
-  listMembers: vi.fn(),
   inviteMember: vi.fn(),
-  changeMemberRole: vi.fn(),
-  removeMember: vi.fn(),
-} as unknown as AdminMembersService
+} as unknown as AdminInvitationsService
 
 describe('AdminInvitationsController', () => {
-  const controller = new AdminInvitationsController(mockAdminMembersService)
+  const controller = new AdminInvitationsController(mockAdminInvitationsService)
 
   beforeEach(() => {
     vi.restoreAllMocks()
@@ -24,7 +21,7 @@ describe('AdminInvitationsController', () => {
   }
 
   describe('listPendingInvitations', () => {
-    it('should delegate to adminMembersService.listPendingInvitations with orgId', async () => {
+    it('should delegate to adminInvitationsService.listPendingInvitations with orgId', async () => {
       // Arrange
       const expected = {
         data: [
@@ -37,19 +34,21 @@ describe('AdminInvitationsController', () => {
           },
         ],
       }
-      vi.mocked(mockAdminMembersService.listPendingInvitations).mockResolvedValue(expected as never)
+      vi.mocked(mockAdminInvitationsService.listPendingInvitations).mockResolvedValue(
+        expected as never
+      )
 
       // Act
       const result = await controller.listPendingInvitations(mockSession)
 
       // Assert
       expect(result).toEqual(expected)
-      expect(mockAdminMembersService.listPendingInvitations).toHaveBeenCalledWith('org-1')
+      expect(mockAdminInvitationsService.listPendingInvitations).toHaveBeenCalledWith('org-1')
     })
 
     it('should return empty data when no invitations exist', async () => {
       // Arrange
-      vi.mocked(mockAdminMembersService.listPendingInvitations).mockResolvedValue({
+      vi.mocked(mockAdminInvitationsService.listPendingInvitations).mockResolvedValue({
         data: [],
       } as never)
 
@@ -62,9 +61,9 @@ describe('AdminInvitationsController', () => {
   })
 
   describe('revokeInvitation', () => {
-    it('should delegate to adminMembersService.revokeInvitation with correct args', async () => {
+    it('should delegate to adminInvitationsService.revokeInvitation with correct args', async () => {
       // Arrange
-      vi.mocked(mockAdminMembersService.revokeInvitation).mockResolvedValue({
+      vi.mocked(mockAdminInvitationsService.revokeInvitation).mockResolvedValue({
         revoked: true,
       } as never)
 
@@ -73,7 +72,7 @@ describe('AdminInvitationsController', () => {
 
       // Assert -- controller returns void (204 No Content)
       expect(result).toBeUndefined()
-      expect(mockAdminMembersService.revokeInvitation).toHaveBeenCalledWith(
+      expect(mockAdminInvitationsService.revokeInvitation).toHaveBeenCalledWith(
         'inv-1',
         'org-1',
         'user-1'
@@ -85,7 +84,7 @@ describe('AdminInvitationsController', () => {
       const { InvitationNotFoundException } = await import(
         './exceptions/invitation-not-found.exception.js'
       )
-      vi.mocked(mockAdminMembersService.revokeInvitation).mockRejectedValue(
+      vi.mocked(mockAdminInvitationsService.revokeInvitation).mockRejectedValue(
         new InvitationNotFoundException('inv-missing')
       )
 

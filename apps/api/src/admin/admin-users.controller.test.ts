@@ -1,6 +1,7 @@
 import { Reflector } from '@nestjs/core'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AdminUsersController, banUserSchema, updateUserSchema } from './admin-users.controller.js'
+import type { AdminUsersLifecycleService } from './admin-users.lifecycle.js'
 import type { AdminUsersService } from './admin-users.service.js'
 import { EmailConflictException } from './exceptions/email-conflict.exception.js'
 import { UserAlreadyBannedException } from './exceptions/user-already-banned.exception.js'
@@ -14,18 +15,21 @@ const mockAdminUsersService: AdminUsersService = {
   listUsers: vi.fn(),
   getUserDetail: vi.fn(),
   updateUser: vi.fn(),
+} as unknown as AdminUsersService
+
+const mockAdminUsersLifecycleService: AdminUsersLifecycleService = {
   banUser: vi.fn(),
   unbanUser: vi.fn(),
   deleteUser: vi.fn(),
   restoreUser: vi.fn(),
-} as unknown as AdminUsersService
+} as unknown as AdminUsersLifecycleService
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 describe('AdminUsersController', () => {
-  const controller = new AdminUsersController(mockAdminUsersService)
+  const controller = new AdminUsersController(mockAdminUsersService, mockAdminUsersLifecycleService)
 
   beforeEach(() => {
     vi.restoreAllMocks()
@@ -403,7 +407,7 @@ describe('AdminUsersController', () => {
     it('should delegate to service.banUser with parsed body', async () => {
       // Arrange
       const bannedUser = { id: 'user-1', banned: true }
-      vi.mocked(mockAdminUsersService.banUser).mockResolvedValue(bannedUser as never)
+      vi.mocked(mockAdminUsersLifecycleService.banUser).mockResolvedValue(bannedUser as never)
       const body = { reason: 'Spam activity', expires: null }
 
       // Act
@@ -411,7 +415,7 @@ describe('AdminUsersController', () => {
 
       // Assert
       expect(result).toEqual(bannedUser)
-      expect(mockAdminUsersService.banUser).toHaveBeenCalledWith(
+      expect(mockAdminUsersLifecycleService.banUser).toHaveBeenCalledWith(
         'user-1',
         'Spam activity',
         null,
@@ -421,14 +425,14 @@ describe('AdminUsersController', () => {
 
     it('should convert expires string to Date when provided', async () => {
       // Arrange
-      vi.mocked(mockAdminUsersService.banUser).mockResolvedValue({ id: 'user-1' } as never)
+      vi.mocked(mockAdminUsersLifecycleService.banUser).mockResolvedValue({ id: 'user-1' } as never)
       const body = { reason: 'Temporary ban', expires: '2026-12-31T23:59:59.000Z' }
 
       // Act
       await controller.banUser('user-1', mockSession as never, body)
 
       // Assert
-      expect(mockAdminUsersService.banUser).toHaveBeenCalledWith(
+      expect(mockAdminUsersLifecycleService.banUser).toHaveBeenCalledWith(
         'user-1',
         'Temporary ban',
         new Date('2026-12-31T23:59:59.000Z'),
@@ -438,7 +442,7 @@ describe('AdminUsersController', () => {
 
     it('should propagate UserAlreadyBannedException from service', async () => {
       // Arrange
-      vi.mocked(mockAdminUsersService.banUser).mockRejectedValue(
+      vi.mocked(mockAdminUsersLifecycleService.banUser).mockRejectedValue(
         new UserAlreadyBannedException('user-1')
       )
 
@@ -450,7 +454,7 @@ describe('AdminUsersController', () => {
 
     it('should propagate AdminUserNotFoundException from service', async () => {
       // Arrange
-      vi.mocked(mockAdminUsersService.banUser).mockRejectedValue(
+      vi.mocked(mockAdminUsersLifecycleService.banUser).mockRejectedValue(
         new AdminUserNotFoundException('user-missing')
       )
 
@@ -471,19 +475,22 @@ describe('AdminUsersController', () => {
     it('should delegate to service.unbanUser', async () => {
       // Arrange
       const unbannedUser = { id: 'user-1', banned: false }
-      vi.mocked(mockAdminUsersService.unbanUser).mockResolvedValue(unbannedUser as never)
+      vi.mocked(mockAdminUsersLifecycleService.unbanUser).mockResolvedValue(unbannedUser as never)
 
       // Act
       const result = await controller.unbanUser('user-1', mockSession as never)
 
       // Assert
       expect(result).toEqual(unbannedUser)
-      expect(mockAdminUsersService.unbanUser).toHaveBeenCalledWith('user-1', 'superadmin-1')
+      expect(mockAdminUsersLifecycleService.unbanUser).toHaveBeenCalledWith(
+        'user-1',
+        'superadmin-1'
+      )
     })
 
     it('should propagate AdminUserNotFoundException from service', async () => {
       // Arrange
-      vi.mocked(mockAdminUsersService.unbanUser).mockRejectedValue(
+      vi.mocked(mockAdminUsersLifecycleService.unbanUser).mockRejectedValue(
         new AdminUserNotFoundException('user-missing')
       )
 
@@ -500,19 +507,24 @@ describe('AdminUsersController', () => {
   describe('DELETE /api/admin/users/:userId', () => {
     it('should delegate to service.deleteUser and return void (204)', async () => {
       // Arrange
-      vi.mocked(mockAdminUsersService.deleteUser).mockResolvedValue({ id: 'user-1' } as never)
+      vi.mocked(mockAdminUsersLifecycleService.deleteUser).mockResolvedValue({
+        id: 'user-1',
+      } as never)
 
       // Act
       const result = await controller.deleteUser('user-1', mockSession as never)
 
       // Assert — controller returns void (204 No Content)
       expect(result).toBeUndefined()
-      expect(mockAdminUsersService.deleteUser).toHaveBeenCalledWith('user-1', 'superadmin-1')
+      expect(mockAdminUsersLifecycleService.deleteUser).toHaveBeenCalledWith(
+        'user-1',
+        'superadmin-1'
+      )
     })
 
     it('should propagate AdminUserNotFoundException from service', async () => {
       // Arrange
-      vi.mocked(mockAdminUsersService.deleteUser).mockRejectedValue(
+      vi.mocked(mockAdminUsersLifecycleService.deleteUser).mockRejectedValue(
         new AdminUserNotFoundException('user-missing')
       )
 
@@ -530,19 +542,22 @@ describe('AdminUsersController', () => {
     it('should delegate to service.restoreUser', async () => {
       // Arrange
       const restoredUser = { id: 'user-1', deletedAt: null }
-      vi.mocked(mockAdminUsersService.restoreUser).mockResolvedValue(restoredUser as never)
+      vi.mocked(mockAdminUsersLifecycleService.restoreUser).mockResolvedValue(restoredUser as never)
 
       // Act
       const result = await controller.restoreUser('user-1', mockSession as never)
 
       // Assert
       expect(result).toEqual(restoredUser)
-      expect(mockAdminUsersService.restoreUser).toHaveBeenCalledWith('user-1', 'superadmin-1')
+      expect(mockAdminUsersLifecycleService.restoreUser).toHaveBeenCalledWith(
+        'user-1',
+        'superadmin-1'
+      )
     })
 
     it('should propagate AdminUserNotFoundException from service', async () => {
       // Arrange
-      vi.mocked(mockAdminUsersService.restoreUser).mockRejectedValue(
+      vi.mocked(mockAdminUsersLifecycleService.restoreUser).mockRejectedValue(
         new AdminUserNotFoundException('user-missing')
       )
 

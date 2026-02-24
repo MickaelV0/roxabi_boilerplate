@@ -30,6 +30,14 @@
       },
       "security": {
         "noDangerouslySetInnerHtml": "warn"
+      },
+      "nursery": {
+        "noExcessiveLinesPerFile": {
+          "level": "error",
+          "options": {
+            "maxLines": 500
+          }
+        }
       }
     }
   },
@@ -75,7 +83,7 @@
         "**/*.spec.ts",
         "**/*.spec.tsx",
         "**/e2e/**",
-        ".claude/skills/**",
+        "**/.claude/skills/**",
         "**/scripts/**"
       ],
       "linter": {
@@ -83,6 +91,9 @@
           "complexity": {
             "noExcessiveLinesPerFunction": "info",
             "noExcessiveCognitiveComplexity": "info"
+          },
+          "nursery": {
+            "noExcessiveLinesPerFile": "off"
           }
         }
       }

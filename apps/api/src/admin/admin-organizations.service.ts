@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import type { AuditAction } from '@repo/types'
-import { and, count, desc, eq, ilike, inArray, isNotNull, isNull, or, type SQL } from 'drizzle-orm'
+import { and, count, desc, eq, ilike, isNotNull, isNull, or, type SQL } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import { AuditService } from '../audit/audit.service.js'
 import {
@@ -10,13 +10,11 @@ import {
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { members, organizations, users } from '../database/schema/auth.schema.js'
 import { roles } from '../database/schema/rbac.schema.js'
-import { NotDeletedException } from './exceptions/not-deleted.exception.js'
-import { OrgCycleDetectedException } from './exceptions/org-cycle-detected.exception.js'
+import { getDepth, validateHierarchy } from './admin-organizations.hierarchy.js'
+import { findOrgSnapshotOrThrow } from './admin-organizations.shared.js'
 import { OrgDepthExceededException } from './exceptions/org-depth-exceeded.exception.js'
 import { AdminOrgNotFoundException } from './exceptions/org-not-found.exception.js'
 import { OrgSlugConflictException } from './exceptions/org-slug-conflict.exception.js'
-
-const MAX_PARENT_WALK_ITERATIONS = 10
 
 /**
  * AdminOrganizationsService — cross-tenant org management for super admins.
@@ -273,7 +271,7 @@ export class AdminOrganizationsService {
   ) {
     // Validate parent depth if parentOrganizationId is provided
     if (data.parentOrganizationId) {
-      const depth = await this.getDepth(data.parentOrganizationId)
+      const depth = await getDepth(this.db, data.parentOrganizationId)
       if (depth + 1 >= 3) {
         throw new OrgDepthExceededException()
       }
@@ -326,10 +324,10 @@ export class AdminOrganizationsService {
     data: { name?: string; slug?: string; parentOrganizationId?: string | null },
     actorId: string
   ) {
-    const beforeOrg = await this.findOrgSnapshotOrThrow(orgId)
+    const beforeOrg = await findOrgSnapshotOrThrow(this.db, orgId)
 
     if (data.parentOrganizationId !== undefined && data.parentOrganizationId !== null) {
-      await this.validateHierarchy(orgId, data.parentOrganizationId)
+      await validateHierarchy(this.db, orgId, data.parentOrganizationId)
     }
 
     const updatedOrg = await this.executeOrgUpdate(orgId, data)
@@ -343,29 +341,6 @@ export class AdminOrganizationsService {
     this.logOrgAudit(auditAction, orgId, actorId, beforeOrg, updatedOrg)
 
     return updatedOrg
-  }
-
-  private async findOrgSnapshotOrThrow(orgId: string) {
-    const [org] = await this.db
-      .select({
-        id: organizations.id,
-        name: organizations.name,
-        slug: organizations.slug,
-        logo: organizations.logo,
-        metadata: organizations.metadata,
-        parentOrganizationId: organizations.parentOrganizationId,
-        deletedAt: organizations.deletedAt,
-        deleteScheduledFor: organizations.deleteScheduledFor,
-        createdAt: organizations.createdAt,
-      })
-      .from(organizations)
-      .where(eq(organizations.id, orgId))
-      .limit(1)
-
-    if (!org) {
-      throw new AdminOrgNotFoundException(orgId)
-    }
-    return org
   }
 
   private async executeOrgUpdate(
@@ -410,228 +385,5 @@ export class AdminOrganizationsService {
       .catch((err) => {
         this.logger.error(`[${this.cls.getId()}][audit] Failed to log ${action}`, err)
       })
-  }
-
-  /**
-   * Preview the impact of deleting an organization.
-   */
-  async getDeletionImpact(orgId: string) {
-    // Org lookup
-    const [org] = await this.db
-      .select({
-        id: organizations.id,
-        name: organizations.name,
-      })
-      .from(organizations)
-      .where(eq(organizations.id, orgId))
-      .limit(1)
-
-    if (!org) {
-      throw new AdminOrgNotFoundException(orgId)
-    }
-
-    // Member count
-    const [memberCountResult] = await this.db
-      .select({ count: count() })
-      .from(members)
-      .where(eq(members.organizationId, orgId))
-
-    // Active members: not deleted and not banned
-    const [activeMembersResult] = await this.db
-      .select({ count: count() })
-      .from(members)
-      .innerJoin(users, eq(members.userId, users.id))
-      .where(
-        and(eq(members.organizationId, orgId), isNull(users.deletedAt), eq(users.banned, false))
-      )
-
-    // Child org count (direct children only)
-    const [childOrgCountResult] = await this.db
-      .select({ count: count() })
-      .from(organizations)
-      .where(eq(organizations.parentOrganizationId, orgId))
-
-    // Collect all descendant org IDs recursively for child member count
-    const descendantIds = await this.getDescendantOrgIds(orgId)
-
-    // Child member count (members in ALL descendant orgs)
-    let childMemberCount = 0
-    if (descendantIds.length > 0) {
-      const [childMemberCountResult] = await this.db
-        .select({ count: count() })
-        .from(members)
-        .where(inArray(members.organizationId, descendantIds))
-      childMemberCount = childMemberCountResult?.count ?? 0
-    }
-
-    return {
-      memberCount: memberCountResult?.count,
-      activeMembers: activeMembersResult?.count,
-      childOrgCount: childOrgCountResult?.count,
-      childMemberCount,
-    }
-  }
-
-  /**
-   * Soft-delete an organization -- set deletedAt and deleteScheduledFor.
-   */
-  async deleteOrganization(orgId: string, actorId: string) {
-    const org = await this.findOrgSnapshotOrThrow(orgId)
-
-    if (org.deletedAt) {
-      throw new NotDeletedException('Organization', orgId)
-    }
-
-    const now = new Date()
-    const scheduledFor = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-
-    const [updatedOrg] = await this.db
-      .update(organizations)
-      .set({ deletedAt: now, deleteScheduledFor: scheduledFor })
-      .where(eq(organizations.id, orgId))
-      .returning()
-
-    this.logOrgAudit('org.deleted', orgId, actorId, org, updatedOrg)
-
-    return updatedOrg
-  }
-
-  /**
-   * Restore a soft-deleted organization -- clear deletedAt and deleteScheduledFor.
-   */
-  async restoreOrganization(orgId: string, actorId: string) {
-    const org = await this.findOrgSnapshotOrThrow(orgId)
-
-    if (!org.deletedAt) {
-      throw new NotDeletedException('Organization', orgId)
-    }
-
-    const [updatedOrg] = await this.db
-      .update(organizations)
-      .set({ deletedAt: null, deleteScheduledFor: null })
-      .where(eq(organizations.id, orgId))
-      .returning()
-
-    this.logOrgAudit('org.restored', orgId, actorId, org, updatedOrg)
-
-    return updatedOrg
-  }
-
-  /**
-   * Get the depth of an org by walking up the parent chain.
-   * Depth = number of ancestors (edges to root).
-   */
-  private async getDepth(orgId: string): Promise<number> {
-    let depth = 0
-    let iterations = 0
-    let currentId: string | null = orgId
-    while (currentId) {
-      if (iterations++ >= MAX_PARENT_WALK_ITERATIONS) break
-      const [org] = await this.db
-        .select({ parentOrganizationId: organizations.parentOrganizationId })
-        .from(organizations)
-        .where(eq(organizations.id, currentId))
-        .limit(1)
-      if (!org) break
-      currentId = org.parentOrganizationId
-      if (currentId) depth++
-    }
-    return depth
-  }
-
-  /**
-   * Validate hierarchy when reparenting: check for cycles and max depth.
-   * Walks up from newParentId, checking each node.
-   */
-  private async validateHierarchy(orgId: string, newParentId: string): Promise<void> {
-    if (orgId === newParentId) {
-      throw new OrgCycleDetectedException()
-    }
-
-    await this.db.transaction(async (tx) => {
-      const { depth } = await this.walkParentChain(tx, orgId, newParentId)
-      const subtreeDepth = await this.getSubtreeDepth(orgId)
-
-      if (depth + 1 + subtreeDepth >= 3) {
-        throw new OrgDepthExceededException()
-      }
-    })
-  }
-
-  /**
-   * Walk up from startId, counting depth and detecting cycles against targetOrgId.
-   */
-  private async walkParentChain(
-    tx: Parameters<Parameters<DrizzleDB['transaction']>[0]>[0],
-    targetOrgId: string,
-    startId: string
-  ): Promise<{ depth: number }> {
-    let depth = 0
-    let iterations = 0
-    let currentId: string | null = startId
-
-    while (currentId) {
-      if (iterations++ >= MAX_PARENT_WALK_ITERATIONS) break
-      const [org] = await tx
-        .select({
-          id: organizations.id,
-          parentOrganizationId: organizations.parentOrganizationId,
-        })
-        .from(organizations)
-        .where(eq(organizations.id, currentId))
-        .limit(1)
-      if (!org) break
-
-      currentId = org.parentOrganizationId
-      if (currentId) depth++
-
-      if (currentId === targetOrgId) {
-        throw new OrgCycleDetectedException()
-      }
-    }
-
-    return { depth }
-  }
-
-  /**
-   * Get the depth of the deepest descendant below orgId.
-   * Returns 0 if orgId has no children.
-   */
-  private async getSubtreeDepth(orgId: string): Promise<number> {
-    const children = await this.db
-      .select({ id: organizations.id })
-      .from(organizations)
-      .where(eq(organizations.parentOrganizationId, orgId))
-
-    if (children.length === 0) return 0
-
-    let maxChildDepth = 0
-    for (const child of children) {
-      const childDepth = await this.getSubtreeDepth(child.id)
-      if (childDepth + 1 > maxChildDepth) {
-        maxChildDepth = childDepth + 1
-      }
-      if (maxChildDepth >= MAX_PARENT_WALK_ITERATIONS) break
-    }
-    return maxChildDepth
-  }
-
-  /**
-   * Collect all descendant org IDs recursively (for deletion impact).
-   */
-  private async getDescendantOrgIds(orgId: string): Promise<string[]> {
-    const children = await this.db
-      .select({ id: organizations.id })
-      .from(organizations)
-      .where(eq(organizations.parentOrganizationId, orgId))
-
-    const ids: string[] = []
-    for (const child of children) {
-      ids.push(child.id)
-      const grandchildren = await this.getDescendantOrgIds(child.id)
-      ids.push(...grandchildren)
-      if (ids.length >= 1000) break // safety cap
-    }
-    return ids
   }
 }

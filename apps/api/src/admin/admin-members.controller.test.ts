@@ -1,16 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { AdminInvitationsService } from './admin-invitations.service.js'
 import { AdminMembersController } from './admin-members.controller.js'
 import type { AdminMembersService } from './admin-members.service.js'
 
 const mockAdminMembersService: AdminMembersService = {
   listMembers: vi.fn(),
-  inviteMember: vi.fn(),
   changeMemberRole: vi.fn(),
   removeMember: vi.fn(),
 } as unknown as AdminMembersService
 
+const mockAdminInvitationsService: AdminInvitationsService = {
+  inviteMember: vi.fn(),
+} as unknown as AdminInvitationsService
+
 describe('AdminMembersController', () => {
-  const controller = new AdminMembersController(mockAdminMembersService)
+  const controller = new AdminMembersController(
+    mockAdminMembersService,
+    mockAdminInvitationsService
+  )
 
   beforeEach(() => {
     vi.restoreAllMocks()
@@ -114,18 +121,18 @@ describe('AdminMembersController', () => {
   })
 
   describe('inviteMember', () => {
-    it('should delegate to adminMembersService.inviteMember with correct args', async () => {
+    it('should delegate to adminInvitationsService.inviteMember with correct args', async () => {
       // Arrange
       const body = { email: 'new@acme.com', roleId: 'r-member' }
       const invitation = { id: 'inv-1', email: 'new@acme.com', role: 'member', status: 'pending' }
-      vi.mocked(mockAdminMembersService.inviteMember).mockResolvedValue(invitation as never)
+      vi.mocked(mockAdminInvitationsService.inviteMember).mockResolvedValue(invitation as never)
 
       // Act
       const result = await controller.inviteMember(mockSession, body)
 
       // Assert
       expect(result).toEqual(invitation)
-      expect(mockAdminMembersService.inviteMember).toHaveBeenCalledWith('org-1', body, 'user-1')
+      expect(mockAdminInvitationsService.inviteMember).toHaveBeenCalledWith('org-1', body, 'user-1')
     })
 
     it('should propagate MemberAlreadyExistsException from service', async () => {
@@ -133,7 +140,7 @@ describe('AdminMembersController', () => {
       const { MemberAlreadyExistsException } = await import(
         './exceptions/member-already-exists.exception.js'
       )
-      vi.mocked(mockAdminMembersService.inviteMember).mockRejectedValue(
+      vi.mocked(mockAdminInvitationsService.inviteMember).mockRejectedValue(
         new MemberAlreadyExistsException()
       )
 
@@ -148,7 +155,7 @@ describe('AdminMembersController', () => {
       const { InvitationAlreadyPendingException } = await import(
         './exceptions/invitation-already-pending.exception.js'
       )
-      vi.mocked(mockAdminMembersService.inviteMember).mockRejectedValue(
+      vi.mocked(mockAdminInvitationsService.inviteMember).mockRejectedValue(
         new InvitationAlreadyPendingException()
       )
 
@@ -217,7 +224,7 @@ describe('AdminMembersController', () => {
       // Act
       const result = await controller.removeMember('member-1', mockSession)
 
-      // Assert — controller returns void (204 No Content)
+      // Assert -- controller returns void (204 No Content)
       expect(result).toBeUndefined()
       expect(mockAdminMembersService.removeMember).toHaveBeenCalledWith(
         'member-1',
