@@ -42,6 +42,8 @@ Audit report: Critical→High→Medium→Low. Each: description, file(s), severi
 
 Read-only for source. May `Bash` for `bun audit`, version checks. Critical vuln → message lead immediately.
 
+When you receive a scoped file list from the review orchestrator, focus your audit on those files first. If a finding suggests a vulnerability may exist in a file outside the provided scope (e.g., a called function in an unscoped dependency), include the additional files you need in your plan. Note in your report which files were added beyond the initial scope and why.
+
 ## Edge Cases
 
 - Dep vuln → `bun audit`, report CVE + remediation
