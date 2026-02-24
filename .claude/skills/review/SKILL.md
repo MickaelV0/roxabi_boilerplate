@@ -6,462 +6,261 @@ allowed-tools: Bash, AskUserQuestion, Read, Grep, Task
 
 # Code Review
 
-Review current branch changes (or a specific PR) using fresh domain-specific review agents. Each agent reviews from its area of expertise (security, architecture, product, tests, domain code). Findings are presented to the human one-by-one for accept/reject decisions.
-
-## Usage
+Review branch/PR changes via fresh domain-specific agents → Conventional Comments → /1b1.
 
 ```
-/review                    → Review current branch changes vs staging
-/review #42                → Review a specific PR by number
+/review          → diff staging...HEAD
+/review #42      → gh pr diff 42
 ```
 
-## Instructions
-
-### Phase 1 — Gather Changes
-
-1. **Determine the target:**
-   - No PR number: use `git diff staging...HEAD` to get all changes on the current branch
-   - PR number provided: use `gh pr diff <number>` to get the PR diff
-
-2. **List changed files:**
-   ```bash
-   # Branch mode
-   git diff --name-only staging...HEAD
-
-   # PR mode
-   gh pr diff <number> --name-only
-   ```
-
-3. **Read all changed files in full** (not just the diff hunks) to understand surrounding context. Skip binary files and note them in the report.
-
-4. **Early exit if no changes:** If the diff is empty, inform the user there is nothing to review and stop.
-
-5. **Large PR warning:** If more than 50 files changed, warn that review quality may degrade and suggest splitting the PR.
-
-### Phase 1.5 — Spec Compliance Check
-
-Check if a spec exists for the linked issue and verify acceptance criteria are met.
-
-1. **Detect the issue number** from the branch name or PR:
-   ```bash
-   # Extract issue number from branch: feat/42-slug → 42
-   git branch --show-current | grep -oP '\d+' | head -1
-   ```
-
-2. **Look for a matching spec:**
-   ```bash
-   ls specs/<issue_number>-*.mdx 2>/dev/null
-   ```
-
-3. **If a spec exists:**
-   - Read the spec file
-   - Extract the **Success Criteria** section (checklist items)
-   - For each criterion, check whether the changed files and diff evidence that it has been implemented
-   - Flag unmet criteria as `issue(blocking):` findings with the criterion text
-   - If all criteria are met, add a `praise:` noting spec compliance
-
-4. **If no spec exists:** skip this phase silently. Not all changes require a spec (Tier S fixes, docs, chores).
-
-### Phase 2 — Multi-Domain Review (Fresh Agents)
-
-Spawn **fresh review agents** via the `Task` tool. Each agent is a new instance with no implementation context (prevents bias). Each agent reviews the diff from its domain of expertise.
-
-1. **Determine which agents to spawn** based on changed files:
-
-   | Agent | When to spawn | Focus area |
-   |-------|---------------|------------|
-   | **security-auditor** | Always | OWASP vulnerabilities, secrets, injection, auth |
-   | **architect** | Always | Design patterns, module structure, circular deps |
-   | **product-lead** | Always | Spec compliance, acceptance criteria, product fit |
-   | **tester** | Always | Test coverage, AAA structure, edge cases |
-   | **frontend-dev** | If `apps/web/` or `packages/ui/` changed | Frontend patterns, component structure, hooks |
-   | **backend-dev** | If `apps/api/` or `packages/types/` changed | Backend patterns, API design, error handling |
-   | **devops** | If config files or CI changed | Configuration, deployment, infrastructure |
-
-   **Subdomain splitting for large PRs:** When a domain agent's scope covers 8+ changed files spanning distinct modules (e.g., `apps/api/src/auth/` + `apps/api/src/users/` + `apps/api/src/notifications/`), split into multiple reviewers of the same type, each scoped to a module group. This improves review depth by reducing context per agent.
-
-   Example: A PR touching 15 backend files across 3 services → spawn 2 `backend-dev` reviewers:
-   - `backend-dev` (auth + users) — files in `apps/api/src/auth/`, `apps/api/src/users/`
-   - `backend-dev` (notifications) — files in `apps/api/src/notifications/`
-
-   Default to 1 agent per domain for PRs under 8 files in that domain.
-
-2. **Build scoped file list for security-auditor** before spawning it:
-
-   This step runs only for the security-auditor spawn — other agents are unaffected.
-
-   ```bash
-   # Step 1: Get changed files
-   # Branch mode:
-   CHANGED=$(git diff --name-only staging...HEAD)
-   # PR mode:
-   CHANGED=$(gh pr diff <number> --name-only)
-   ```
-
-   For each changed file, extract import paths. The codebase uses ESM (`"type": "module"`) — static `from '...'` clauses and dynamic `import()` calls are matched:
-
-   > **Note:** If a changed file contains dynamic imports (`import('...')`), also extract those paths with: `grep -ohE "import\(['\"][^'\"]+['\"]" <file> | grep -oE "['\"][^'\"]+['\"]" | tr -d "'\""` and union the results with the static imports.
-
-   ```bash
-   # Step 2: Extract import paths from each changed file
-   # Matches 'from ...' clause on ANY line (handles both single and double quotes and multi-line imports)
-   grep -ohE "from ['\"][^'\"]+['\"]" <file> | grep -oE "['\"][^'\"]+['\"]" | tr -d "'\""
-   ```
-
-   Resolve imports to file paths using the alias mapping table:
-
-   | Import Pattern | Resolution Rule |
-   |---------------|----------------|
-   | `./foo`, `../bar` | Resolve relative to importing file's directory, try `.ts` and `/index.ts` extensions |
-   | `@repo/types` | → `packages/types/src/index.ts` |
-   | `@repo/ui` | → `packages/ui/src/index.ts` |
-   | `@repo/config` | → `packages/config/src/index.ts` |
-   | `@repo/email` | → `packages/email/src/index.ts` |
-   | `@repo/vitest-config` | Skip (test config only, no security-relevant source) |
-   | `@repo/playwright-config` | Skip (test config only, no security-relevant source) |
-   | `@/*` (web files only) | → `apps/web/src/` + remainder, try `.ts`, `.tsx`, `/index.ts`, `/index.tsx` |
-   | External packages | Skip (not local files) |
-
-   Add always-include paths: `apps/api/src/auth/**`
-
-   Deduplicate and pass combined list to security-auditor prompt:
-   "Audit the following files for OWASP Top 10 vulnerabilities. This is a scoped list of changed files, their direct imports, and all auth modules: {file_list}"
-
-3. **Spawn each agent** with a Task that includes:
-   - The full diff (`git diff staging...HEAD` or `gh pr diff`)
-   - The list of changed files
-   - The spec (if one exists) for compliance checking
-   - Instructions to produce findings in Conventional Comments format
-
-4. **Each agent reviews** using the checklist from `docs/standards/code-review.mdx` scoped to its domain:
-   - Correctness (edge cases, error handling, types)
-   - Security (secrets, injection, XSS, auth guards)
-   - Performance (N+1 queries, memory leaks, unnecessary memoization)
-   - Architecture (module structure, circular deps, shared types)
-   - Tests (coverage, AAA structure, selectors)
-   - Readability (naming, complexity, comments)
-   - Observability (logging, correlation IDs, timeouts)
-
-5. **Output findings in the enriched format.** Every finding produced by a review agent MUST include the full enriched format — Conventional Comment label, root cause analysis, 2-3 concrete solutions with a recommended marker, and a confidence score:
-
-   ```
-   <label>: <description>
-     <file_path>:<line_number>
-     -- <reviewer_agent>
-     Root cause: <why this issue exists -- not just what it is>
-     Solutions:
-       1. <primary recommendation> (recommended)
-       2. <alternative approach>
-       3. <alternative approach> [optional]
-     Confidence: <0-100>%
-   ```
-
-   **Confidence scoring criteria:** The confidence score reflects both **diagnostic certainty** (is the finding correct?) and **fix certainty** (is the recommended fix correct?). Both must be high for a high overall score. A finding where the diagnosis is clear but the fix is uncertain should score lower than one where both are well-understood.
-
-   **Calibration anchors** (review agents should use these bands consistently):
-
-   | Band | Score | When to use |
-   |------|-------|-------------|
-   | **Certain** | 90-100% | Both diagnosis and fix are unambiguous. Single obvious cause, single obvious fix. Examples: unused import, missing null check with clear guard, typo in variable name. |
-   | **High** | 70-89% | Diagnosis is clear, fix has 1-2 viable approaches requiring minor judgment. Examples: missing error handling with standard pattern, naming convention violation. |
-   | **Moderate** | 40-69% | Diagnosis is probable but context-dependent. Fix requires understanding broader system behavior. Examples: potential performance issue, possible race condition. |
-   | **Low** | 0-39% | Speculative or uncertain diagnosis. Root cause unclear or multiple competing explanations. Examples: architectural concern, design trade-off. |
-
-   **Example:**
-
-   ```
-   issue(blocking): This sql.raw() call with user input is a SQL injection vector.
-     apps/api/src/users/users.service.ts:42
-     -- security-auditor
-     Root cause: The raw SQL call was introduced during the Knex-to-Drizzle migration
-       without converting to parameterized queries.
-     Solutions:
-       1. Replace sql.raw(input) with sql.param(input) using Drizzle's parameterized API (recommended)
-       2. Use prepared statements with explicit parameter binding
-       3. Add input validation + escaping as a defense-in-depth layer
-     Confidence: 92%
-   ```
-
-   **Missing enrichment fields:** If any enrichment field (root cause, solutions, confidence) is missing from an agent's output, default the finding's confidence to 0% and route it to 1b1. Do not attempt to infer missing fields.
-
-   **Malformed confidence values:** If the confidence value is not a valid integer between 0 and 100 (e.g., "high", "120%", "0.85", negative numbers), treat it as 0% and route the finding to 1b1.
-
-6. **Categorize each finding:**
-
-   | Category | Severity | Label | Blocks merge? |
-   |----------|----------|-------|---------------|
-   | **Bug** | Blocker | `issue:` / `todo:` | Yes |
-   | **Security** | Blocker | `issue:` / `todo:` | Yes |
-   | **Spec gap** | Blocker | `issue:` / `todo:` | Yes |
-   | **Standard violation** | Warning | `suggestion(blocking):` | Yes |
-   | **Style** | Suggestion | `suggestion(non-blocking):` / `nitpick:` | No |
-   | **Architecture** | Discussion | `thought:` / `question:` | No |
-   | **Good work** | Praise | `praise:` | No |
-
-### Phase 3 — Merge and Present Findings
-
-Collect findings from all review agents and merge them into a single report. Deduplicate any overlapping findings (e.g., if both security-auditor and backend-dev flag the same SQL injection). Attribute each finding to the agent that raised it. After deduplication, **sort findings by confidence (descending) within each category group** so the highest-confidence findings appear first in each section.
-
-Format every finding as a **Conventional Comment** with file path, line number, and reviewer attribution:
+## Definitions
 
 ```
-issue(blocking): This `sql.raw()` call with user input is a SQL injection vector.
+F         = set of all findings
+f ∈ F     = a single finding
+C(f)      ∈ [0,100] ∩ ℤ        — confidence score
+A(f)      = {agents that flagged f}
+cat(f)    ∈ {issue, suggestion, todo, nitpick, thought, question, praise}
+src(f)    = originating agent
+Δ         = set of changed files
+actionable = {issue, suggestion, todo}
+T         = 80                   — auto-apply threshold
+```
+
+## Phase 1 — Gather Changes
+
+1. target = PR# provided → `gh pr diff <#>` | else → `git diff staging...HEAD`
+2. Δ = `git diff --name-only staging...HEAD` (or `gh pr diff <#> --name-only`)
+3. Read all files ∈ Δ in full (skip binaries, note in report)
+4. |Δ| = 0 → inform user, halt
+5. |Δ| > 50 → warn quality degradation, suggest split
+
+## Phase 1.5 — Spec Compliance
+
+1. issue_num ← `git branch --show-current | grep -oP '\d+' | head -1`
+2. spec ← `ls specs/<issue_num>-*.mdx 2>/dev/null`
+3. spec ∃ → ∀ criterion ∈ spec.success_criteria:
+   - met by diff → ∅
+   - ¬met → emit `issue(blocking):` with criterion text
+   - ∀ met → emit `praise:` (spec compliance)
+4. spec ∄ → skip silently
+
+## Phase 2 — Multi-Domain Review (Fresh Agents)
+
+Spawn fresh agents via Task (¬implementation context → ¬bias).
+
+### Agent dispatch
+
+| Agent | Condition | Focus |
+|-------|-----------|-------|
+| **security-auditor** | always | OWASP, secrets, injection, auth |
+| **architect** | always | patterns, structure, circular deps |
+| **product-lead** | always | spec compliance, product fit |
+| **tester** | always | coverage, AAA, edge cases |
+| **frontend-dev** | Δ ∩ {`apps/web/`, `packages/ui/`} ≠ ∅ | FE patterns, components, hooks |
+| **backend-dev** | Δ ∩ {`apps/api/`, `packages/types/`} ≠ ∅ | BE patterns, API, errors |
+| **devops** | Δ ∩ {configs, CI} ≠ ∅ | config, deploy, infra |
+
+**Subdomain split:** |files_domain| ≥ 8 ∧ files span distinct modules → split into N agents of same type, each scoped to a module group. Default: 1 agent/domain when < 8 files.
+
+### Security-auditor scoping (this agent only)
+
+1. ∀ f ∈ Δ: extract imports(f) = static `from '...'` ∪ dynamic `import('...')` paths
+2. Resolve aliases:
+
+   | Pattern | Resolution |
+   |---------|-----------|
+   | `./`, `../` | relative, try `.ts`, `/index.ts` |
+   | `@repo/<pkg>` | → `packages/<pkg>/src/index.ts` (skip vitest-config, playwright-config) |
+   | `@/*` (web only) | → `apps/web/src/` + rest, try `.ts`, `.tsx`, `/index.{ts,tsx}` |
+   | External | skip |
+
+3. scope = Δ ∪ ⋃{resolve(imports(f)) | f ∈ Δ} ∪ `apps/api/src/auth/**` — deduplicate
+
+### Agent payload
+
+Each agent receives: full diff + Δ + spec (if ∃) + "output Conventional Comments"
+
+### Review dimensions (scoped per domain)
+
+correctness | security | performance | architecture | tests | readability | observability
+
+### Finding format (ALL fields mandatory)
+
+```
+<label>: <description>
+  <file>:<line>
+  -- <agent>
+  Root cause: <why, not what>
+  Solutions:
+    1. <primary> (recommended)
+    2. <alternative>
+    3. <alternative> [optional]
+  Confidence: <0-100>%
+```
+
+**C(f) = min(diagnostic_certainty, fix_certainty)**
+
+| Band | C | Criteria |
+|------|---|----------|
+| Certain | 90-100 | Unambiguous diagnosis + fix |
+| High | 70-89 | Clear diagnosis, 1-2 fix approaches |
+| Moderate | 40-69 | Probable, context-dependent |
+| Low | 0-39 | Speculative, competing explanations |
+
+**Example:**
+```
+issue(blocking): This sql.raw() call with user input is a SQL injection vector.
   apps/api/src/users/users.service.ts:42
-
-suggestion(non-blocking): Consider extracting this into a shared helper.
-  apps/web/src/components/auth/login-form.tsx:88
-
-praise: Great use of discriminated unions for the API response type.
-  packages/types/src/api.ts:15
+  -- security-auditor
+  Root cause: Raw SQL from Knex-to-Drizzle migration, not converted to parameterized queries.
+  Solutions:
+    1. Replace sql.raw(input) with sql.param(input) via Drizzle parameterized API (recommended)
+    2. Use prepared statements with explicit parameter binding
+    3. Add input validation + escaping as defense-in-depth
+  Confidence: 92%
 ```
 
-**Group findings by category**, blockers first:
+**Validation:** missing enrichment fields ∨ C ∉ ℤ ∩ [0,100] → C(f) := 0, route to Q_1b1.
 
-```
-Review: feat/42-user-profile
-═══════════════════════════
+### Finding categories
 
-Blockers (2)
-────────────
-  issue(blocking): ...
-  issue(blocking): ...
+| Category | Label | Blocks merge? |
+|----------|-------|:---:|
+| Bug / Security / Spec gap | `issue:` / `todo:` | ✓ |
+| Standard violation | `suggestion(blocking):` | ✓ |
+| Style | `suggestion(non-blocking):` / `nitpick:` | ✗ |
+| Architecture | `thought:` / `question:` | ✗ |
+| Good work | `praise:` | ✗ |
 
-Warnings (1)
-────────────
-  suggestion(blocking): ...
+## Phase 3 — Merge & Present
 
-Suggestions (3)
-───────────────
-  suggestion(non-blocking): ...
-  nitpick: ...
-  thought: ...
+1. Collect F from all agents
+2. Deduplicate (same file:line + same issue → keep highest C, attribute to original agent)
+3. Sort by C desc within each category group
+4. Group: Blockers → Warnings → Suggestions → Praise
 
-Praise (1)
-──────────
-  praise: ...
-
-Summary: 2 blockers, 1 warning, 3 suggestions, 1 praise
-Verdict: Request changes (blockers must be resolved)
-```
-
-**Verdict logic:**
+**Verdict:**
 
 | Condition | Verdict |
 |-----------|---------|
-| Any blockers | Request changes |
-| Warnings only (no blockers) | Approve with comments |
-| Suggestions/praise only | Approve |
-| No findings | Approve (clean) |
+| ∃f: blocks(f) | Request changes |
+| ∃f: warns(f) ∧ ¬∃f: blocks(f) | Approve with comments |
+| suggestions/praise only | Approve |
+| F = ∅ | Approve (clean) |
 
-### Phase 3.5 — Confidence-Gated Auto-Apply
+## Phase 3.5 — Confidence-Gated Auto-Apply
 
-After presenting findings locally, split findings based on confidence and category for automated fixing. This phase runs **before** posting to the PR so that the PR comment can accurately reflect auto-apply outcomes.
+Runs **before** PR posting so `[auto-applied]` markers reflect actual outcomes.
 
-1. **Split findings into two queues:**
-   - **Auto-apply queue:** Findings that meet **all** of the following criteria:
-     - Confidence **>= 80%**
-     - Category in [`issue`, `suggestion`, `todo`] (actionable categories)
-     - **At least two independent review agents** confirmed it with confidence >= 80% (see verification step below)
-     - **Not a security finding.** Findings originating from `security-auditor` or categorized as security issues are **excluded from auto-apply** regardless of confidence score — they always route to 1b1. Security fixes require human judgment due to their risk profile.
-   - **1b1 queue:** All other findings — those with confidence **< 80%**, non-actionable categories (`praise`, `thought`, `question`), unconfirmed single-agent findings, or security findings. Praise findings are exempt from auto-apply entirely. `thought` and `question` findings always go to 1b1 regardless of confidence.
-   - Confidence exactly 80% is inclusive (treated as >= 80%) for the threshold check.
+### 1. Queue split
 
-   **Single-agent verification:** When a finding is flagged by only one agent at >= 80% confidence (and meets the other auto-apply criteria), spawn a **fresh verification agent** of a different domain type to confirm:
-   - The verification agent receives the finding, the relevant file(s), and the diff
-   - If the verifier confirms the finding at >= 80% confidence → the finding now has 2-agent consensus and qualifies for auto-apply
-   - If the verifier rejects or scores < 80% → the finding goes to 1b1
-   - Batch all single-agent verifications in parallel to minimize overhead
+```
+auto_apply(f) ⟺ C(f) ≥ T  ∧  cat(f) ∈ actionable  ∧  src(f) ≠ security-auditor  ∧  |A(f)| ≥ 2
 
-2. **Confirmation prompt for large auto-apply queues:** If the auto-apply queue contains **more than 5 findings**, present the user with an `AskUserQuestion` before proceeding: "N findings qualify for auto-apply (confidence >= 80%, consensus from 2+ agents). Proceed with auto-apply, or review all individually via 1b1?" Options: "Auto-apply all N" / "Review individually via 1b1". If the user chooses to review individually, move all auto-apply queue findings to the 1b1 queue and skip the rest of Phase 3.5.
+Q_auto = {f ∈ F | auto_apply(f)}
+Q_1b1  = F \ Q_auto
 
-3. **If the auto-apply queue is empty**, skip this phase entirely and proceed to Phase 3.6.
+∀f: cat(f) ∈ {thought, question, praise} → f ∈ Q_1b1  (unconditional)
+```
 
-4. **Serial application:** Pass auto-apply queue findings to fixer agents **one at a time** (serial, not batched). Each finding is applied and validated before moving to the next.
+### 2. Verify single-agent findings
 
-5. **On success:** Mark the finding as `[applied]` in the post-apply summary.
+∀ f ∈ Q_auto where |A(f)| = 1: spawn fresh verification agent (different domain type). Verifier receives f + file(s) + diff.
+- Verifier C(f) ≥ T → f stays in Q_auto (|A(f)| := 2)
+- Verifier C(f) < T ∨ rejects → f → Q_1b1
+- Batch all verifications ∥
 
-6. **On failure** (test failure, lint error, or any validation issue):
-   - The fixer restores the pre-fix snapshot via `git stash pop` (see fixer agent Auto-Apply Failure Protocol for stash details).
-   - The finding is demoted to the 1b1 queue with a note: "Auto-apply attempted but failed: {reason}."
-   - **All remaining unapplied findings in the auto-apply queue are also demoted to 1b1.** Do not continue applying after a failure.
+### 3. Large queue gate
 
-7. **On fixer timeout or crash:** The finding is demoted to the 1b1 queue with a note: "Auto-apply failed: fixer agent did not respond." No partial changes should remain — the fixer must restore the stash before erroring.
+|Q_auto| > 5 → AskUserQuestion: "Auto-apply all N?" / "Review via 1b1"
+User picks 1b1 → Q_1b1 := Q_1b1 ∪ Q_auto; Q_auto := ∅; skip to Phase 3.6
 
-8. **On fixer "cannot auto-fix" report:** The finding is demoted to the 1b1 queue with the fixer's explanation attached.
+### 4. Early exit
 
-9. **Note:** Previously successful auto-applies are NOT rolled back when the queue halts. The changes from applied findings remain in the working tree.
+Q_auto = ∅ → skip to Phase 3.6
 
-10. **Post-apply summary:** After all auto-apply attempts complete (or halt on failure), display a summary before posting to the PR:
+### 5. Serial application
 
-   ```
-   -- Auto-Applied Fixes (confidence >= 80%, 2+ agent consensus) --
+∀ f ∈ Q_auto (sequential, one at a time):
+- fixer(f) **succeeds** → mark `[applied]`
+- fixer(f) **fails** (test / lint / timeout / crash / cannot-fix) → `git stash pop` restore → demote f + all remaining Q_auto to Q_1b1 with failure note → **halt loop**
+- Previously applied fixes ¬rolled back on halt
 
-   Applied N finding(s) automatically:
-     1. [applied] issue(blocking): SQL injection in users.service.ts:42 (92%)
-     2. [applied] suggestion(blocking): Missing null check in auth.guard.ts:18 (88%)
-     3. [failed -> 1b1] nitpick: Unused import in dashboard.tsx:3 (85%) -- test failure after fix
+### 6. Post-apply summary
 
-   Remaining M finding(s) (confidence <80%, single-agent, security, or non-actionable) will be presented one-by-one.
-   ```
+Display before PR posting:
+```
+-- Auto-Applied Fixes (C ≥ 80%, 2+ agent consensus) --
 
----
+Applied N finding(s):
+  1. [applied] issue(blocking): SQL injection in users.service.ts:42 (92%)
+  2. [failed -> 1b1] nitpick: Unused import in dashboard.tsx:3 (85%) -- test failure
 
-### Phase 3.6 — Post Findings to PR
+Remaining M finding(s) → 1b1.
+```
 
-After auto-apply completes (or is skipped), **post the full review as a PR comment** so there is a trace on GitHub. Because this phase runs after Phase 3.5, the `[auto-applied]` markers reflect actual outcomes.
+## Phase 3.6 — Post to PR
 
-1. **Resolve the PR number:**
-   - If a PR number was provided (`/review #42`), use it directly.
-   - If reviewing a branch (`/review`), detect the PR for the current branch:
-     ```bash
-     gh pr list --head "$(git branch --show-current)" --json number --jq '.[0].number'
-     ```
-   - If no PR exists for the branch, **skip this phase** (no comment to post).
+1. PR# = provided ∨ `gh pr list --head "$(git branch --show-current)" --json number --jq '.[0].number'`; ¬∃ PR → skip phase
+2. Write to `/tmp/review-comment.md` → `gh pr comment <#> --body-file /tmp/review-comment.md`
+3. Format: `## Code Review` header, grouped findings (Blockers→Warnings→Suggestions→Praise) + summary + verdict. Auto-applied → `[auto-applied]` prefix. All findings included ∀C.
 
-2. **Post the review comment:**
+## Phase 4 — 1b1 Walkthrough
 
-   Write the review body to a temp file, then post:
+∀ f ∈ Q_1b1 (via `/1b1`): show → trade-offs → recommend → human decides {accept, reject, defer}
 
-   ```bash
-   # Write review to temp file (avoids shell escaping issues with backticks in findings)
-   cat > /tmp/review-comment.md << 'REVIEW_EOF'
-   ## Code Review
+Post-walkthrough, spawn ∥ fixers by domain:
 
-   <full review output from Phase 3: all findings grouped by category + summary + verdict>
+| Fixer | Condition | Scope |
+|-------|-----------|-------|
+| Backend | accepted ∩ {`apps/api/`, `packages/types/`} ≠ ∅ | BE only |
+| Frontend | accepted ∩ {`apps/web/`, `packages/ui/`} ≠ ∅ | FE only |
+| Infra | accepted ∩ {`packages/config/`, root, CI} ≠ ∅ | Config only |
 
-   ---
-   _Review by Claude Code via `/review`_
-   REVIEW_EOF
+**Split rule:**
+- 1 domain ∧ |findings| ≤ 5 → 1 fixer
+- 1 domain ∧ |findings| ≥ 6 across modules → N fixers (disjoint file sets)
+- Multi-domain → 1 fixer/domain ∥ + apply split rule within each
 
-   gh pr comment <number> --body-file /tmp/review-comment.md
-   ```
+All fixers use `.claude/agents/fixer.md`. After completion → stage + commit + push (single commit). CI fail → respawn domain fixer until green. Post follow-up PR comment (`## Review Fixes Applied`) with fix table via `/tmp/review-fixes.md`.
 
-3. **Format rules:**
-   - Use the same grouped format as Phase 3 (Blockers → Warnings → Suggestions → Praise)
-   - Include the summary line and verdict
-   - Wrap finding labels in backticks for readability (e.g., `` `issue(blocking):` ``)
-   - Use a `## Code Review` header so comments are easy to find
-   - **All findings are included in the PR comment regardless of confidence level.** Auto-applied findings (those processed in Phase 3.5) are marked with an `[auto-applied]` prefix in the PR comment so reviewers can see what was fixed automatically. The grouped format and verdict logic remain unchanged.
+## Phase 5 — Auto-Merge Gate
 
----
+1. AskUserQuestion: "Add `reviewed` label for auto-merge?" → Yes/No
+2. Yes → `gh pr edit <#> --add-label "reviewed"` → `auto-merge.yml` → squash merge on green CI
+3. No → inform manual option
 
-### Phase 4 — 1b1 Walkthrough
-
-After the review report is posted to the PR, Main Claude walks the human through each actionable finding one-by-one using `/1b1`. This is the critical human decision gate.
-
-For each finding:
-
-1. **Show** the comment, severity, file path, line number, and reviewer attribution
-2. **Present trade-offs** — explain what the fix would involve and any risks
-3. **Recommend** — suggest accept or reject based on severity and impact
-4. **Human decides**: accept, reject, or defer
-
-After the walkthrough:
-
-- **Accepted findings** are collected into a fix list
-- **Spawn parallel fixer agents by domain** to maximize speed:
-
-  | Fixer | When to spawn | Scope |
-  |-------|---------------|-------|
-  | **Backend fixer** | If accepted findings touch `apps/api/` or `packages/types/` | Backend test/source fixes only |
-  | **Frontend fixer** | If accepted findings touch `apps/web/` or `packages/ui/` | Frontend test/source fixes only |
-  | **Infra fixer** | If accepted findings touch `packages/config/`, root configs, or CI | Config/infra fixes only |
-
-  **Spawning logic:**
-  - **Single domain, ≤5 findings:** spawn one fixer
-  - **Single domain, 6+ findings across distinct modules:** spawn multiple fixers, each scoped to a module group (e.g., one for `apps/api/src/auth/`, another for `apps/api/src/users/`). Fixers in the same domain must NOT share files.
-  - **Multi-domain:** spawn one fixer per domain in parallel. Apply the 6+ splitting rule within each domain.
-
-  Each fixer receives only the findings relevant to its domain. All fixers use the `fixer` agent definition (`.claude/agents/fixer.md`) with their domain scope specified in the prompt.
-
-- After all fixers complete, **stage, commit, and push** the combined fixes in a single commit
-- CI runs; if it fails, spawn the relevant domain fixer to investigate and fix until green
-- **Post a follow-up comment** on the PR confirming the fixes:
-
-  Write the fixes summary to a temp file, then post:
-
-  ```bash
-  cat > /tmp/review-fixes.md << 'FIXES_EOF'
-  ## Review Fixes Applied
-
-  All **N** accepted findings from the review have been addressed in <commit_sha>.
-
-  | # | Finding | Status |
-  |---|---------|--------|
-  | 1 | `issue(blocking):` <short description> | Fixed |
-  | 2 | `suggestion(blocking):` <short description> | Fixed |
-  | … | … | … |
-
-  Rejected/deferred findings (if any):
-  - `<label>:` <short description> — <reason>
-
-  ---
-  _Fixes by Claude Code via `/review` fixer agents_
-  FIXES_EOF
-
-  gh pr comment <number> --body-file /tmp/review-fixes.md
-  ```
-
-### Phase 5 — Auto-Merge Gate
-
-After all fixes are committed, pushed, and the follow-up PR comment is posted:
-
-1. **Ask the human** via `AskUserQuestion` whether to add the `reviewed` label:
-
-   ```
-   AskUserQuestion:
-     question: "All review findings are fixed and pushed. Add the 'reviewed' label to enable auto-merge?"
-     options:
-       - label: "Yes, add label"
-         description: "Adds the 'reviewed' label. The auto-merge workflow will merge the PR once CI is green."
-       - label: "No, I'll review first"
-         description: "Skip labeling. You can add the label manually later with: gh pr edit <number> --add-label reviewed"
-   ```
-
-2. **If approved**, add the label:
-   ```bash
-   gh pr edit <number> --add-label "reviewed"
-   ```
-
-3. The `auto-merge.yml` workflow picks up the label and enables `gh pr merge --auto --squash`. GitHub merges once all required checks pass.
-
-4. **If declined**, inform the human they can add the label manually later:
-   ```bash
-   gh pr edit <number> --add-label "reviewed"
-   ```
-
-> **Note:** The `/review` skill no longer includes a `--fix` flag. Fixing is handled separately by the fixer agent(s) after the human validates findings via `/1b1`.
+> `/review` ¬includes `--fix` flag. Fixing = fixer agents after /1b1.
 
 ## Edge Cases
 
 | Scenario | Behavior |
 |----------|----------|
-| No changes on branch | Inform user, nothing to review. Stop. |
-| Binary files in diff | Skip, note in report as "binary file, skipped" |
-| Large PR (>50 files) | Warn about review quality, suggest splitting |
-| No findings | Report clean review, approve. Still post comment (clean verdict). |
-| All findings are non-blocking | Human can batch-accept without full 1b1 walkthrough |
-| Critical security finding | Escalate immediately to human, do not wait for 1b1 |
-| Review agents disagree | Present both perspectives in 1b1, human decides |
-| No PR for current branch | Skip PR comment (Phase 3.6), findings stay local only |
-| All findings >= 80% with consensus | All auto-applied. Post-apply summary shown. 1b1 is skipped (no items). |
-| All findings < 80% | Phase 3.5 is skipped. All go through enriched 1b1. |
-| Single-agent finding at 80%+ | Verification agent spawned. If confirmed → auto-apply. If rejected → 1b1. |
-| Auto-apply breaks tests | Fixer restores via `git stash pop`. Finding demoted to 1b1 with failure note. |
-| Auto-apply causes lint error | Same as test failure — stash restore, demote to 1b1. |
-| Fixer agent times out | Finding demoted to 1b1 with note: "Auto-apply failed: fixer agent did not respond." |
-| Fixer reports "cannot auto-fix" | Finding demoted to 1b1 with fixer's explanation. |
-| Praise/thought/question finding | Exempt from auto-apply. Praise in summary, thought/question always to 1b1. |
-| Confidence exactly 80% | Treated as >= 80% (inclusive threshold). |
-| Review agent outputs confidence without root cause | Invalid — default confidence to 0%, force to 1b1. |
-| Phase 3.5 modifies files that 1b1 findings also target | Phase 4 fixer re-reads files before applying. Stale findings reported, not silently applied. |
+| |Δ| = 0 | Inform, halt |
+| Binary ∈ Δ | Skip, note |
+| |Δ| > 50 | Warn, suggest split |
+| F = ∅ | Clean approve, post comment |
+| ∀f: ¬blocks(f) | Batch-accept option in 1b1 |
+| Critical security | Escalate immediately, ¬wait for 1b1 |
+| Agents disagree | Present both in 1b1, human decides |
+| ¬∃ PR | Skip Phase 3.6, local only |
+| ∀f: auto_apply(f) | All auto-applied, 1b1 skipped |
+| ∀f: C(f) < T | Phase 3.5 skipped, all → 1b1 |
+| |A(f)| = 1 ∧ C(f) ≥ T | Verification agent → auto-apply ∨ 1b1 |
+| Auto-apply breaks tests/lint | Stash restore, demote to 1b1 |
+| Fixer timeout/crash/cannot-fix | Demote to 1b1, stash restore |
+| cat(f) ∈ {praise, thought, question} | Exempt from auto-apply |
+| C(f) = T | Inclusive (≥ T) |
+| Missing root cause/solutions | C(f) := 0, → Q_1b1 |
+| Phase 3.5 edits ∩ Phase 4 targets | Phase 4 fixer re-reads files first |
 
 ## Safety Rules
 
-1. **Fresh agents only** — review agents must be new instances with no implementation context
-2. **Never auto-merge** or approve PRs on GitHub
-3. **Human decides on every finding except high-confidence consensus findings.** The human gate is only bypassed when **at least two agents** (original reviewers or original + verification agent) confirmed the same finding with confidence >= 80% AND it is an actionable category (`issue`, `suggestion`, `todo`) AND it is not a security finding. Single-agent 80%+ findings get a fresh verification agent before auto-apply. All other findings go through the 1b1 walkthrough. The human can review auto-applied changes via `git diff` at any time.
-4. **Always post review to PR** — if a PR exists, findings must be posted as a comment for traceability. After fixes are applied, post a follow-up comment confirming which findings were addressed.
-5. **Fixer handles fixes** — the review skill does not fix code; that is the fixer agent's responsibility after 1b1
+1. Fresh agents only — ¬implementation context
+2. ¬auto-merge, ¬approve PRs on GitHub
+3. Human gate bypassed ⟺ |A(f)| ≥ 2 ∧ C(f) ≥ T ∧ cat(f) ∈ actionable ∧ src(f) ≠ security-auditor. |A(f)| = 1 ∧ C(f) ≥ T → verification first. All else → 1b1. Human can `git diff` anytime.
+4. ∃ PR → must post comment + post-fix follow-up
+5. Review ¬fix code — fixer agents handle after 1b1
 
 $ARGUMENTS
