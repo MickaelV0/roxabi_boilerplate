@@ -79,8 +79,8 @@ export async function addToProject(nodeId: string): Promise<string> {
   const data = (await ghGraphQL(ADD_TO_PROJECT_MUTATION, {
     projectId: PROJECT_ID,
     contentId: nodeId,
-  })) as { data: { addProjectV2Item: { item: { id: string } } } }
-  return data.data.addProjectV2Item.item.id
+  })) as { data: { addProjectV2ItemById: { item: { id: string } } } }
+  return data.data.addProjectV2ItemById.item.id
 }
 
 /** Update a single-select project field value. */

@@ -92,7 +92,7 @@ mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
 
 export const ADD_TO_PROJECT_MUTATION = `
 mutation($projectId: ID!, $contentId: ID!) {
-  addProjectV2Item(input: { projectId: $projectId, contentId: $contentId }) {
+  addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
     item { id }
   }
 }`
