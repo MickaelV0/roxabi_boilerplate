@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
+import type { AuditAction } from '@repo/types'
 import { and, desc, eq, exists, ilike, inArray, isNotNull, isNull, or, type SQL } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import { AuditService } from '../audit/audit.service.js'
@@ -276,7 +277,7 @@ export class AdminUsersService {
     actorId: string
   ) {
     const beforeUser = await this.findUserSnapshotOrThrow(userId)
-    this.validateUpdatePermissions(data, actorId, userId, beforeUser.role)
+    this.validateUpdatePermissions(data, actorId, userId, beforeUser.role ?? 'user')
 
     const updatedUser = await this.executeUserUpdate(userId, data)
     const auditAction =
@@ -340,7 +341,10 @@ export class AdminUsersService {
     return updatedUser
   }
 
-  private validateBanEligibility(user: { role: string; banned: boolean }, userId: string) {
+  private validateBanEligibility(
+    user: { role: string | null; banned: boolean | null },
+    userId: string
+  ) {
     if (user.role === 'superadmin') {
       throw new SuperadminProtectionException()
     }
@@ -392,7 +396,7 @@ export class AdminUsersService {
   }
 
   private validateDeleteEligibility(
-    user: { role: string; deletedAt: Date | null },
+    user: { role: string | null; deletedAt: Date | null },
     userId: string
   ) {
     if (user.role === 'superadmin') {
@@ -449,11 +453,11 @@ export class AdminUsersService {
   }
 
   private logUserAudit(
-    action: string,
+    action: AuditAction,
     userId: string,
     actorId: string,
-    before: Record<string, unknown>,
-    after: Record<string, unknown>
+    before: Record<string, unknown> | undefined,
+    after: Record<string, unknown> | undefined
   ) {
     this.auditService
       .log({
@@ -462,8 +466,8 @@ export class AdminUsersService {
         action,
         resource: 'user',
         resourceId: userId,
-        before: { ...before },
-        after: { ...after },
+        before: before ? { ...before } : null,
+        after: after ? { ...after } : null,
       })
       .catch((err) => {
         this.logger.error(

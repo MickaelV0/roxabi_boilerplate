@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
+import type { AuditAction } from '@repo/types'
 import { and, count, desc, eq, ilike, inArray, isNotNull, isNull, or, type SQL } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import { AuditService } from '../audit/audit.service.js'
@@ -367,11 +368,11 @@ export class AdminOrganizationsService {
   }
 
   private logOrgAudit(
-    action: string,
+    action: AuditAction,
     orgId: string,
     actorId: string,
-    before: Record<string, unknown>,
-    after: Record<string, unknown>
+    before: Record<string, unknown> | undefined,
+    after: Record<string, unknown> | undefined
   ) {
     this.auditService
       .log({
@@ -381,8 +382,8 @@ export class AdminOrganizationsService {
         resource: 'organization',
         resourceId: orgId,
         organizationId: orgId,
-        before: { ...before },
-        after: { ...after },
+        before: before ? { ...before } : null,
+        after: after ? { ...after } : null,
       })
       .catch((err) => {
         this.logger.error(`[${this.cls.getId()}][audit] Failed to log ${action}`, err)
