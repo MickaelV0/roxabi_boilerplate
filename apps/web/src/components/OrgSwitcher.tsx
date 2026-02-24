@@ -56,10 +56,9 @@ export function OrgSwitcher({ orgState }: OrgSwitcherProps) {
 
   // Only show Members/Settings links for users who can access /admin
   // (superadmins or org-level admin/owner with members:write permission)
+  const user = session?.user as { role?: string } | undefined
   const canAccessAdmin =
-    session?.user?.role === 'superadmin' ||
-    activeMember?.role === 'owner' ||
-    activeMember?.role === 'admin'
+    user?.role === 'superadmin' || activeMember?.role === 'owner' || activeMember?.role === 'admin'
 
   // Still loading — render nothing to avoid flashing the "Create" button
   if (orgsLoading || orgs === undefined) {
