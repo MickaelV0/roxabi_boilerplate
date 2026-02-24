@@ -221,7 +221,7 @@ jobs:
         run: bun run build --filter=@repo/types --filter=@repo/config --filter=@repo/email --filter=@repo/ui
 
       - name: Apply RLS migration for integration tests
-        run: psql "$DATABASE_URL" -f apps/api/drizzle/migrations/0000_rls_infrastructure.sql
+        run: psql "$DATABASE_URL" -f apps/api/drizzle/migrations/0000_baseline.sql
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
