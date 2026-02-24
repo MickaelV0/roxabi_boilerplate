@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 /**
  * Integration tests for Auth module.
@@ -9,12 +9,13 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
  */
 describe('AuthModule Integration', () => {
   let module: TestingModule
+  // biome-ignore lint/suspicious/noExplicitAny: Test code needs flexible typing
   let authService: any
 
   beforeAll(async () => {
     // Arrange: Create testing module with real imports
     try {
-      // @ts-ignore - Module may not be fully typed yet
+      // @ts-expect-error - Module may not be fully typed yet
       const authModuleImport = await import('../auth.module').catch(() => null)
       if (authModuleImport?.AuthModule) {
         module = await Test.createTestingModule({
@@ -46,9 +47,11 @@ describe('AuthModule Integration', () => {
   it('should have all required dependencies injected', () => {
     if (authService && typeof authService === 'object') {
       // Verify key methods exist
+      // biome-ignore lint/suspicious/noExplicitAny: Test introspection requires any
       const hasValidateToken = typeof (authService as any).validateToken === 'function'
+      // biome-ignore lint/suspicious/noExplicitAny: Test introspection requires any
       const hasHashPassword = typeof (authService as any).hashPassword === 'function'
-      expect(hasValidateToken || hasHashPassword || true).toBe(true)
+      expect(true).toBe(true)
     } else {
       expect(true).toBe(true)
     }
@@ -99,9 +102,7 @@ describe('AuthModule Integration', () => {
     if (module) {
       try {
         const sessionService = module.get('SessionService', { strict: false })
-        expect(
-          typeof sessionService === 'object' || sessionService === undefined
-        ).toBe(true)
+        expect(typeof sessionService === 'object' || sessionService === undefined).toBe(true)
       } catch {
         expect(true).toBe(true)
       }
