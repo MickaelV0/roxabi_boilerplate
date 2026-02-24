@@ -393,11 +393,11 @@ function assignSidebarVars(
   vars.sidebar = formatOklchStr(sidebarL, bgParsed.c, bgParsed.h)
   vars['sidebar-foreground'] = seeds.foreground
   vars['sidebar-primary'] = seeds.primary
-  vars['sidebar-primary-foreground'] = vars['primary-foreground']
+  vars['sidebar-primary-foreground'] = vars['primary-foreground'] ?? seeds.foreground
   vars['sidebar-accent'] = seeds.accent
-  vars['sidebar-accent-foreground'] = vars['accent-foreground']
+  vars['sidebar-accent-foreground'] = vars['accent-foreground'] ?? seeds.foreground
   vars['sidebar-border'] = seeds.border
-  vars['sidebar-ring'] = vars.ring
+  vars['sidebar-ring'] = vars.ring ?? seeds.primary
 }
 
 /** Collect hue values from all seed colors. */
