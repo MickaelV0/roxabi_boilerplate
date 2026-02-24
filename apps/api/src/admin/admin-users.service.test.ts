@@ -79,15 +79,24 @@ describe('AdminUsersService', () => {
   // -----------------------------------------------------------------------
   describe('listUsers', () => {
     /**
-     * Helper: mock db.select for the two-query listUsers pattern.
-     * Query 1 returns user rows, Query 2 returns membership rows.
+     * Helper: mock db.select for the three-query listUsers pattern.
+     * Query 1 returns user rows, Query 2 returns membership rows,
+     * Query 3 returns lastActive rows (actorId + lastActive timestamp).
      * Returns the first chain mock for assertion on where/orderBy/limit.
      */
-    function mockListUsersQueries(userRows: unknown[] = [], membershipRows: unknown[] = []) {
+    function mockListUsersQueries(
+      userRows: unknown[] = [],
+      membershipRows: unknown[] = [],
+      lastActiveRows: unknown[] = []
+    ) {
       const usersChain = createChainMock(userRows)
       const membershipsChain = createChainMock(membershipRows)
-      db.select.mockReturnValueOnce(usersChain).mockReturnValueOnce(membershipsChain)
-      return { usersChain, membershipsChain }
+      const lastActiveChain = createChainMock(lastActiveRows)
+      db.select
+        .mockReturnValueOnce(usersChain)
+        .mockReturnValueOnce(membershipsChain)
+        .mockReturnValueOnce(lastActiveChain)
+      return { usersChain, membershipsChain, lastActiveChain }
     }
 
     it('should return cursor-paginated users with organizations array', async () => {

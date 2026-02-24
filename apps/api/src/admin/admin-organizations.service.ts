@@ -9,6 +9,7 @@ import {
 } from '../common/utils/cursor-pagination.util.js'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { members, organizations, users } from '../database/schema/auth.schema.js'
+import { roles } from '../database/schema/rbac.schema.js'
 import { NotDeletedException } from './exceptions/not-deleted.exception.js'
 import { OrgCycleDetectedException } from './exceptions/org-cycle-detected.exception.js'
 import { OrgDepthExceededException } from './exceptions/org-depth-exceeded.exception.js'
@@ -213,13 +214,34 @@ export class AdminOrganizationsService {
     return parent ?? null
   }
 
+  /**
+   * List available RBAC roles for an organization (#313).
+   * Returns { data: { id, name, slug }[] }.
+   */
+  async listOrgRoles(orgId: string) {
+    await this.findOrgOrThrow(orgId)
+
+    const roleRows = await this.db
+      .select({
+        id: roles.id,
+        name: roles.name,
+        slug: roles.slug,
+      })
+      .from(roles)
+      .where(eq(roles.tenantId, orgId))
+
+    return { data: roleRows }
+  }
+
   private fetchOrgMembers(orgId: string) {
     return this.db
       .select({
         id: members.id,
+        userId: members.userId,
         name: users.name,
         email: users.email,
         role: members.role,
+        roleId: members.roleId,
         createdAt: members.createdAt,
       })
       .from(members)

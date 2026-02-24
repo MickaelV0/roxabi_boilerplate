@@ -20,8 +20,15 @@ import { Session } from '../auth/decorators/session.decorator.js'
 import type { AuthenticatedSession } from '../auth/types.js'
 import { SkipOrg } from '../common/decorators/skip-org.decorator.js'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
+import { AdminMembersService } from './admin-members.service.js'
 import { AdminOrganizationsService } from './admin-organizations.service.js'
 import { AdminExceptionFilter } from './filters/admin-exception.filter.js'
+
+const changeMemberRoleSchema = z.object({
+  roleId: z.string().uuid(),
+})
+
+type ChangeMemberRoleDto = z.infer<typeof changeMemberRoleSchema>
 
 const createOrgSchema = z.object({
   name: z.string().min(1).max(255),
@@ -55,7 +62,10 @@ type UpdateOrgDto = z.infer<typeof updateOrgSchema>
 @SkipOrg()
 @Controller('api/admin/organizations')
 export class AdminOrganizationsController {
-  constructor(private readonly adminOrganizationsService: AdminOrganizationsService) {}
+  constructor(
+    private readonly adminOrganizationsService: AdminOrganizationsService,
+    private readonly adminMembersService: AdminMembersService
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'List all organizations (flat or tree view)' })
@@ -110,6 +120,28 @@ export class AdminOrganizationsController {
     @Body(new ZodValidationPipe(updateOrgSchema)) body: UpdateOrgDto
   ) {
     return this.adminOrganizationsService.updateOrganization(orgId, body, session.user.id)
+  }
+
+  @Get(':orgId/roles')
+  @ApiOperation({ summary: 'List available RBAC roles for an organization (#313)' })
+  @ApiResponse({ status: 200, description: 'Roles list' })
+  @ApiResponse({ status: 404, description: 'Organization not found' })
+  async listOrgRoles(@Param('orgId', new ParseUUIDPipe({ version: '4' })) orgId: string) {
+    return this.adminOrganizationsService.listOrgRoles(orgId)
+  }
+
+  @Patch(':orgId/members/:memberId/role')
+  @ApiOperation({ summary: 'Change a member role within the organization (#313)' })
+  @ApiResponse({ status: 200, description: 'Role changed' })
+  @ApiResponse({ status: 400, description: 'Last owner constraint' })
+  @ApiResponse({ status: 404, description: 'Member or role not found' })
+  async changeMemberRole(
+    @Param('orgId', new ParseUUIDPipe({ version: '4' })) orgId: string,
+    @Param('memberId', new ParseUUIDPipe({ version: '4' })) memberId: string,
+    @Session() session: AuthenticatedSession,
+    @Body(new ZodValidationPipe(changeMemberRoleSchema)) body: ChangeMemberRoleDto
+  ) {
+    return this.adminMembersService.changeMemberRole(memberId, orgId, body, session.user.id)
   }
 
   @Get(':orgId/deletion-impact')

@@ -50,6 +50,8 @@ export default defineConfig({
         // Component files need integration/e2e tests
         '**/components/LanguageSwitcher.tsx',
         '**/components/admin/**',
+        // Pure Radix UI re-export wrappers (no business logic)
+        '**/components/ContextMenu.tsx',
         '**/vite-env.d.ts',
         // Type declaration files (including pure-type .ts files)
         '**/*.d.ts',

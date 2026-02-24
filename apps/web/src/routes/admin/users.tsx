@@ -23,6 +23,7 @@ import { LoadMoreButton } from '@/components/admin/load-more-button'
 import { useCursorPagination } from '@/hooks/use-cursor-pagination'
 import { requireSuperAdmin } from '@/lib/admin-guards'
 import { formatDate } from '@/lib/format-date'
+import { formatRelativeTime } from '@/lib/format-relative-time'
 import { statusLabel, statusVariant } from '@/lib/user-status'
 
 export const Route = createFileRoute('/admin/users')({
@@ -207,6 +208,8 @@ function AdminUsersList() {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Orgs</TableHead>
+                  <TableHead>Last Active</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
                 </TableRow>
@@ -228,6 +231,12 @@ function AdminUsersList() {
                       <Badge variant="outline" className="capitalize">
                         {user.role ?? 'user'}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{user.organizationCount ?? 0}</Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {user.lastActive ? formatRelativeTime(user.lastActive) : 'Never'}
                     </TableCell>
                     <TableCell>
                       <Badge variant={statusVariant(user)}>{statusLabel(user)}</Badge>

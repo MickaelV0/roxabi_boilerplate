@@ -1,6 +1,7 @@
 import { Reflector } from '@nestjs/core'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
+import type { AdminMembersService } from './admin-members.service.js'
 import { AdminOrganizationsController } from './admin-organizations.controller.js'
 import type { AdminOrganizationsService } from './admin-organizations.service.js'
 import { OrgCycleDetectedException } from './exceptions/org-cycle-detected.exception.js'
@@ -22,6 +23,10 @@ const mockAdminOrganizationsService: AdminOrganizationsService = {
   deleteOrganization: vi.fn(),
   restoreOrganization: vi.fn(),
 } as unknown as AdminOrganizationsService
+
+const mockAdminMembersService: AdminMembersService = {
+  changeMemberRole: vi.fn(),
+} as unknown as AdminMembersService
 
 // Reconstruct Zod schemas from admin-organizations.controller.ts for validation testing.
 // The source schemas are module-private and cannot be imported.
@@ -51,7 +56,10 @@ const updateOrgSchema = z.object({
 // ---------------------------------------------------------------------------
 
 describe('AdminOrganizationsController', () => {
-  const controller = new AdminOrganizationsController(mockAdminOrganizationsService)
+  const controller = new AdminOrganizationsController(
+    mockAdminOrganizationsService,
+    mockAdminMembersService
+  )
 
   beforeEach(() => {
     vi.restoreAllMocks()

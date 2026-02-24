@@ -20,7 +20,28 @@ function createMockDb() {
     insert: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    transaction: vi.fn(),
   }
+}
+
+/**
+ * Helper to mock db.transaction() — executes the callback with a tx mock
+ * that has its own select/update chain mocks. Returns the tx so tests
+ * can configure per-call return values on tx.select / tx.update.
+ */
+function mockTransaction(db: ReturnType<typeof createMockDb>) {
+  const txSelect = vi.fn()
+  const txUpdate = vi.fn()
+  const tx = {
+    select: txSelect,
+    insert: vi.fn(),
+    update: txUpdate,
+    delete: vi.fn(),
+  }
+  db.transaction.mockImplementationOnce(async (fn: (tx: Record<string, unknown>) => unknown) =>
+    fn(tx)
+  )
+  return tx
 }
 
 function createMockAuditService(): AuditService {
@@ -347,7 +368,10 @@ describe('AdminMembersService', () => {
       db.select
         .mockReturnValueOnce(createChainMock([newRole])) // target role
         .mockReturnValueOnce(createChainMock([memberWithRole])) // member + current role (joined)
-      db.update.mockReturnValueOnce(createChainMock(undefined))
+
+      // Guard + update run inside a transaction
+      const tx = mockTransaction(db)
+      tx.update.mockReturnValueOnce(createChainMock(undefined))
 
       // Act
       const result = await service.changeMemberRole(
@@ -359,7 +383,8 @@ describe('AdminMembersService', () => {
 
       // Assert
       expect(result).toEqual({ updated: true })
-      expect(db.update).toHaveBeenCalled()
+      expect(db.transaction).toHaveBeenCalled()
+      expect(tx.update).toHaveBeenCalled()
     })
 
     it('should throw AdminRoleNotFoundException when target role does not exist', async () => {
@@ -399,7 +424,8 @@ describe('AdminMembersService', () => {
       db.select
         .mockReturnValueOnce(createChainMock([newRole]))
         .mockReturnValueOnce(createChainMock([memberWithRole]))
-      db.update.mockReturnValueOnce(createChainMock(undefined))
+      const tx = mockTransaction(db)
+      tx.update.mockReturnValueOnce(createChainMock(undefined))
 
       // Act
       await service.changeMemberRole('m-1', 'org-1', { roleId: 'r-admin' }, 'actor-1')
@@ -440,7 +466,8 @@ describe('AdminMembersService', () => {
       db.select
         .mockReturnValueOnce(createChainMock([newRole]))
         .mockReturnValueOnce(createChainMock([memberWithRole]))
-      db.update.mockReturnValueOnce(createChainMock(undefined))
+      const tx = mockTransaction(db)
+      tx.update.mockReturnValueOnce(createChainMock(undefined))
 
       // Act
       await service.changeMemberRole('m-1', 'org-1', { roleId: 'r-admin' }, 'actor-1')
@@ -472,7 +499,8 @@ describe('AdminMembersService', () => {
       db.select
         .mockReturnValueOnce(createChainMock([newRole]))
         .mockReturnValueOnce(createChainMock([memberWithRole]))
-      db.update.mockReturnValueOnce(createChainMock(undefined))
+      const tx = mockTransaction(db)
+      tx.update.mockReturnValueOnce(createChainMock(undefined))
 
       // Act
       await service.changeMemberRole('m-1', 'org-1', { roleId: 'r-admin' }, 'actor-1')
@@ -548,6 +576,7 @@ describe('AdminMembersService', () => {
   // -----------------------------------------------------------------------
   // removeMember
   // -----------------------------------------------------------------------
+  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: test describe block with multiple test cases
   describe('removeMember', () => {
     it('should remove member successfully when not last owner', async () => {
       // Arrange — joined query returns member with role slug
