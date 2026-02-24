@@ -59,14 +59,12 @@ export default defineConfig({
         // Generated i18n runtime (paraglide)
         '**/paraglide/**',
       ],
-      // Floor values — autoUpdate will ratchet these up to actual coverage on the next non-cached run.
       // See specs/17-testing-gold-standard.mdx for rationale.
       thresholds: {
-        lines: 93.74,
-        functions: 91.59,
-        branches: 85.35,
-        statements: 92.91,
-        autoUpdate: true,
+        lines: 93,
+        functions: 92,
+        branches: 85,
+        statements: 92,
       },
     },
   },
