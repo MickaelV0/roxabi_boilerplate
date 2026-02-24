@@ -54,6 +54,25 @@ jobs:
               - '.github/workflows/ci.yml'
               - 'turbo.jsonc'
 
+  secrets:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [detect-changes]
+    if: |
+      !cancelled() && !failure() &&
+      (github.event_name != 'pull_request' || needs.detect-changes.outputs.code == 'true')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -497,10 +516,11 @@ jobs:
     name: CI Success
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, typecheck, test, build, e2e, e2e-matrix, merge-reports, docs-links]
+    needs: [secrets, lint, typecheck, test, build, e2e, e2e-matrix, merge-reports, docs-links]
     steps:
       - name: Check job outcomes
         env:
+          SECRETS_RESULT: ${{ needs.secrets.result }}
           LINT_RESULT: ${{ needs.lint.result }}
           TYPECHECK_RESULT: ${{ needs.typecheck.result }}
           TEST_RESULT: ${{ needs.test.result }}
@@ -511,6 +531,7 @@ jobs:
           DOCS_LINKS_RESULT: ${{ needs.docs-links.result }}
         run: |
           results=( \
+            "$SECRETS_RESULT" \
             "$LINT_RESULT" \
             "$TYPECHECK_RESULT" \
             "$TEST_RESULT" \

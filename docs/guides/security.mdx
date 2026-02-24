@@ -1,0 +1,302 @@
+---
+title: Security Guide
+description: Threat model, authentication, API key management, rate limiting, security headers, secrets, and CI security checks for Roxabi.
+---
+
+## Overview
+
+Roxabi is designed with a **layered defence** approach: authentication and authorisation are enforced at the NestJS guard layer, network-level protection is handled by Helmet and CORS, brute-force protection is enforced by rate limiting, and secrets are validated at startup before any traffic is served.
+
+The guiding principles are:
+
+- **Deny by default** — every API route requires authentication unless explicitly opted out.
+- **Fail fast on misconfiguration** — the API refuses to start if critical secrets are missing or insecure.
+- **Minimal exposure** — security headers restrict what browsers can do with API responses even when consumed directly.
+
+---
+
+## Authentication
+
+Authentication is powered by [Better Auth](https://better-auth.com) with a Drizzle ORM adapter. See [Authentication Guide](./authentication.mdx) for full integration details.
+
+### Supported flows
+
+| Flow | Notes |
+|------|-------|
+| Email + password | Requires email verification before first sign-in. |
+| Magic link | One-time link sent to the user's email address. |
+| Google OAuth | Conditionally enabled when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set. |
+| GitHub OAuth | Conditionally enabled when `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` are set. |
+
+### Session management
+
+Better Auth issues **cookie-based sessions** signed with `BETTER_AUTH_SECRET`.
+
+| Setting | Value | Notes |
+|---------|-------|-------|
+| `expiresIn` | 7 days | Absolute session lifetime. |
+| `updateAge` | 1 day | Session is refreshed after this much inactivity. |
+| `cookieCache.enabled` | `true` | Caches session in a short-lived cookie to reduce database round-trips. |
+| `cookieCache.maxAge` | 5 minutes | Maximum age of the cookie cache entry. |
+
+The `BETTER_AUTH_SECRET` must be a random string of at least 32 characters. The API **throws on startup** if this is set to a known default (`dev-secret-do-not-use-in-production`) in any non-development environment, or on any Vercel deployment regardless of `NODE_ENV`.
+
+### Guard model
+
+The `AuthGuard` is registered as a **global NestJS guard**. All routes require a valid session unless decorated with `@AllowAnonymous()` or `@OptionalAuth()`. The guard evaluation order is:
+
+1. `@AllowAnonymous()` — allow immediately, no session required.
+2. Fetch session from Better Auth.
+3. `@OptionalAuth()` — allow if no session exists, attach session if one does.
+4. No session → `401 Unauthorized`.
+5. `@Roles(...)` — check user role → `403 Forbidden` if mismatch.
+6. `@RequireOrg()` — check active organization → `403 Forbidden` if missing.
+7. `@Permissions(...)` — check resolved organization permissions → `403 Forbidden` if insufficient.
+
+Permissions are resolved at session-fetch time by `PermissionService` and attached to the session object; they are not re-queried on every guard check.
+
+### Soft-deleted account enforcement
+
+If a user's account is scheduled for deletion (`deletedAt` is set), most routes return `403 Forbidden` with error code `ACCOUNT_SCHEDULED_FOR_DELETION`. A small allowlist of routes remains accessible (GDPR export, reactivation, profile read, purge confirmation).
+
+### Trusted origins
+
+Better Auth is configured with a `trustedOrigins` list derived from `APP_URL`. Cross-origin auth requests from untrusted origins are rejected by Better Auth's own CSRF protection.
+
+### Admin plugin status
+
+The Better Auth admin plugin (`/api/auth/admin/*`) is **disabled** (see issue #268). All admin actions go through NestJS `AdminModule` endpoints protected by NestJS guards and audit logging. This prevents the admin plugin from bypassing NestJS-level security controls.
+
+---
+
+## API Key Management
+
+API keys allow programmatic access to the API on behalf of an organization. Key material is generated and stored securely.
+
+### Key format
+
+```
+sk_live_<32 base-62 chars>
+```
+
+Keys are prefixed `sk_live_` followed by 32 cryptographically random base-62 characters generated with `crypto.randomBytes`.
+
+### Storage
+
+The **plaintext key is never stored**. Only the following are persisted:
+
+| Field | Value |
+|-------|-------|
+| `keyHash` | HMAC-SHA256 of the full key, keyed by a per-key random salt. |
+| `keySalt` | 16-byte random salt (hex-encoded). |
+| `lastFour` | Last 4 characters of the key, for display purposes only. |
+| `keyPrefix` | Literal string `sk_live_`. |
+
+The full key is returned once at creation time and never retrievable again.
+
+### Scope enforcement
+
+When creating an API key, the caller supplies a list of scopes (e.g. `api_keys:read`). The service validates that all requested scopes are a subset of the caller's own organization permissions. A user cannot grant an API key more permissions than they hold.
+
+Scopes follow the `resource:action` format enforced by Zod regex validation at the controller layer.
+
+### Revocation
+
+Keys can be revoked individually via `DELETE /api/api-keys/:id`. Revocation is idempotent — revoking an already-revoked key is a no-op (no duplicate audit log entry). All keys for a user are automatically revoked when the user is deleted. All keys for an organization are revoked when the organization is deleted.
+
+### Audit logging
+
+`api_key.created` and `api_key.revoked` events are written to the audit log with actor ID, organization ID, and key metadata (name, scopes, expiry — never the key value itself).
+
+### Required permission
+
+Creating and revoking keys requires the `api_keys:write` permission. Listing keys requires `api_keys:read`.
+
+---
+
+## Rate Limiting
+
+Rate limiting is implemented with `@nestjs/throttler` and a custom Upstash Redis storage adapter. It is enabled by default (`RATE_LIMIT_ENABLED=true`).
+
+### Tiers
+
+Two throttler tiers are configured:
+
+| Tier | Default TTL | Default limit | Block duration | Applied to |
+|------|-------------|---------------|----------------|-----------|
+| `global` | 60 s | 60 req | — | All routes |
+| `auth` | 60 s | 5 req | 5 min | Auth-sensitive paths only |
+
+Auth-sensitive paths subject to the `auth` tier:
+
+```
+/api/auth/sign-in
+/api/auth/sign-up
+/api/auth/request-password-reset
+/api/auth/reset-password
+/api/auth/magic-link
+/api/auth/change-password
+/api/auth/verify-email
+/api/auth/send-verification-email
+/api/users/me/purge
+```
+
+### Tracker identity
+
+- Authenticated requests are tracked by **user ID** (`user:<id>`).
+- Unauthenticated requests are tracked by **IP address** (`ip:<address>`).
+
+The Fastify adapter is configured with `trustProxy: 1` to read the correct client IP from `x-forwarded-for` when running behind Vercel's single-hop proxy.
+
+### Storage backend
+
+In production, rate limit counters are stored in **Upstash Redis** (`KV_REST_API_URL` / `KV_REST_API_TOKEN`). In development or preview environments without these variables configured, an in-memory store is used with a logged warning.
+
+The API **throws on startup** in production if `RATE_LIMIT_ENABLED=true` and Upstash credentials are not present — preventing silent degradation to a non-persistent store.
+
+### Disabling rate limiting
+
+`RATE_LIMIT_ENABLED=false` bypasses all rate limiting. This is intended for emergency use only. The API logs a security warning at the `error` level when this is set in production.
+
+### Response headers
+
+Rate limit metadata (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`) is set by the `AllExceptionsFilter` on 429 responses. Headers are not emitted on successful responses.
+
+---
+
+## CORS &amp; Security Headers
+
+### CORS
+
+CORS is configured via the `CORS_ORIGIN` environment variable (default: `http://localhost:3000`). Multiple origins can be supplied as a comma-separated list.
+
+In **production** (`NODE_ENV=production`), the wildcard `*` is rejected:
+- If `CORS_ORIGIN=*` in production, CORS is disabled entirely (`origin: false`) and a warning is logged.
+- If a list contains `*` alongside explicit origins in production, the wildcard is silently stripped and only the explicit origins are used.
+
+Credentials (`credentials: true`) are always enabled to support cookie-based sessions.
+
+### Security headers (Helmet)
+
+The following headers are set globally by `@fastify/helmet`:
+
+| Header | Value | Notes |
+|--------|-------|-------|
+| `Content-Security-Policy` | See below | Custom directives for the API. |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | 1-year HSTS. |
+| `X-Frame-Options` | `DENY` | Prevents framing. |
+| `Referrer-Policy` | `no-referrer` | No referrer leakage. |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` | Added via a custom Fastify `onSend` hook (not included in Helmet v8). |
+| `Cross-Origin-Embedder-Policy` | disabled | Disabled to allow cross-origin fonts and images. |
+
+**Content-Security-Policy directives:**
+
+```
+default-src 'none'
+script-src  'self' 'unsafe-inline' https://unpkg.com
+style-src   'self' 'unsafe-inline' https://unpkg.com
+img-src     'self' data: https://api.dicebear.com
+font-src    'self'
+connect-src 'self'
+```
+
+`'unsafe-inline'` and `https://unpkg.com` are permitted in `script-src` and `style-src` for the Swagger UI served at `/api/docs` in non-production environments.
+
+### Known limitation — CSP refinement
+
+The current CSP includes `'unsafe-inline'` and external CDN sources (`unpkg.com`) primarily for Swagger UI. In production, Swagger UI is disabled by default (`SWAGGER_ENABLED` defaults to `false` in production). Future work could tighten the CSP for production by conditionally applying stricter directives when Swagger is disabled.
+
+### Request body limit
+
+The Fastify adapter is configured with a **1 MiB body limit** (`bodyLimit: 1_048_576`). Requests exceeding this are rejected with `413 Payload Too Large` before reaching any controller.
+
+### Input validation
+
+The global `ValidationPipe` is configured with:
+
+```ts
+{ whitelist: true, forbidNonWhitelisted: true, transform: true }
+```
+
+Unrecognised fields are stripped (`whitelist`) and requests containing them are rejected (`forbidNonWhitelisted`). DTOs validated with Zod use a custom `ZodValidationPipe`.
+
+---
+
+## Secrets Management
+
+### Environment variable validation
+
+All environment variables are validated at startup by a Zod schema in `apps/api/src/config/env.validation.ts`. The API crashes immediately if:
+
+- Required variables are missing or have wrong types.
+- `BETTER_AUTH_SECRET` is set to a known insecure default value in any non-development environment.
+- `KV_REST_API_URL` / `KV_REST_API_TOKEN` are absent in production when `RATE_LIMIT_ENABLED=true`.
+
+### Key variables
+
+| Variable | Required | Notes |
+|----------|----------|-------|
+| `BETTER_AUTH_SECRET` | Yes (non-dev) | Must be 32+ characters. Generate with `openssl rand -base64 32`. |
+| `DATABASE_URL` | Yes | PostgreSQL connection string. |
+| `CORS_ORIGIN` | Yes | Comma-separated list of allowed web origins. |
+| `KV_REST_API_URL` | Yes (prod) | Upstash Redis REST URL for rate limiting. |
+| `KV_REST_API_TOKEN` | Yes (prod) | Upstash Redis REST token. |
+| `RESEND_API_KEY` | No | Required for email verification, password reset, and magic link flows. |
+| `CRON_SECRET` | No | Secures scheduled job endpoints. A warning is logged at startup if absent in non-development environments. |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | No | Google OAuth. Provider is silently skipped if either is absent. |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | No | GitHub OAuth. Provider is silently skipped if either is absent. |
+
+### Vercel environment variable management
+
+Secrets are stored as Vercel environment variables and are never committed to the repository. See [Deployment Guide](./deployment.mdx) for provisioning steps. For Neon, Resend, and Upstash, Vercel Marketplace integrations auto-inject the relevant variables.
+
+### Secret rotation
+
+| Secret | Rotation method |
+|--------|-----------------|
+| `BETTER_AUTH_SECRET` | Manual via Vercel CLI. Rotation invalidates all active sessions — plan during a maintenance window. |
+| `DATABASE_URL` | Auto-managed by Neon Marketplace integration. |
+| `RESEND_API_KEY` | Auto-managed by Resend Marketplace integration. |
+| `KV_REST_API_URL` / `KV_REST_API_TOKEN` | Auto-managed by Upstash Marketplace integration. |
+| `NEON_API_KEY` (GitHub Actions) | Manual rotation in GitHub repository secrets. |
+
+---
+
+## CI Security Checks
+
+The CI pipeline (`.github/workflows/ci.yml`) includes the following security-relevant jobs on every pull request targeting `main` or `staging`:
+
+### Secret scanning
+
+The `secrets` job runs [Gitleaks](https://github.com/gitleaks/gitleaks) against the full git history (`fetch-depth: 0`). It uses the default Gitleaks ruleset extended by `.gitleaks.toml`.
+
+Known-safe placeholder values (e.g. `dev-secret-do-not-use-in-production`, CI test secrets) are explicitly allowlisted in `.gitleaks.toml`. `.env.example` is excluded from scanning as it contains only placeholder values.
+
+### Lint and type checking
+
+Biome lint (`bun lint`) and TypeScript typecheck (`bun typecheck`) run on every PR with code changes. These catch common security anti-patterns caught by static analysis rules.
+
+### Dependency license check
+
+`bun run license:check` verifies that all dependency licenses are permissive. This runs on every PR.
+
+### Schema drift detection
+
+The `typecheck` job runs `db:generate` and fails if uncommitted migration files are produced, preventing schema changes from being deployed without a matching migration.
+
+### Docs link audit
+
+A `docs-links` job runs on every push to validate that all internal documentation links resolve correctly.
+
+---
+
+## Known Limitations &amp; Future Work
+
+| Area | Current state | Planned / deferred |
+|------|--------------|-------------------|
+| **SSRF protection** | No outbound request filtering. | Deferred — no user-controlled URLs are fetched today. Will be needed if webhook or integration features are added. |
+| **CSP in production** | `'unsafe-inline'` and `unpkg.com` permitted due to Swagger UI. | Tighten CSP when Swagger is disabled in production (already disabled by default). |
+| **Dependency auditing** | License check only; no CVE scanning. | Add `bun audit` or `npm audit` to CI when Bun supports it natively. |
+| **API key authentication** | Keys are created and stored; authentication via key (i.e. validating `sk_live_*` on incoming requests) is not yet implemented. | Authentication path to be implemented in a future issue. |
+| **API key rate limiting** | A reserved `RATE_LIMIT_API_TTL` / `RATE_LIMIT_API_LIMIT` tier exists in env validation but is not yet wired up. | Will be applied per API key once key-based authentication is live. |
+| **Audit log retention** | Audit events are written to the database but no retention or purge policy is defined. | Define a retention policy appropriate for compliance requirements. |
