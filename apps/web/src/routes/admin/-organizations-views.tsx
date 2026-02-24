@@ -17,6 +17,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { BuildingIcon } from 'lucide-react'
 import { LoadMoreButton } from '@/components/admin/load-more-button'
+import { OrgListContextMenu, OrgListKebabButton } from '@/components/admin/org-list-context-menu'
 import { TreeView } from '@/components/admin/tree-view'
 import { useCursorPagination } from '@/hooks/use-cursor-pagination'
 import { formatDate } from '@/lib/format-date'
@@ -71,6 +72,7 @@ function FlatListView({ filters }: { filters: OrgFilters }) {
     hasMore,
     isLoading,
     isLoadingMore,
+    refetch,
   } = useCursorPagination<AdminOrganization>({
     queryKey: ['admin', 'organizations', 'list', filters],
     fetchFn: async (cursor) => {
@@ -117,44 +119,50 @@ function FlatListView({ filters }: { filters: OrgFilters }) {
                 <TableHead>Members</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
+                <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {organizations.map((org) => (
-                <TableRow key={org.id} className="cursor-pointer hover:bg-muted/50">
-                  <TableCell>
-                    <Link
-                      to="/admin/organizations/$orgId"
-                      params={{ orgId: org.id }}
-                      className="font-medium text-foreground hover:underline"
-                    >
-                      {org.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{org.slug ?? '-'}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {org.parentOrganizationId ? (
+                <OrgListContextMenu key={org.id} org={org} onActionComplete={() => refetch()}>
+                  <TableRow className="cursor-pointer hover:bg-muted/50">
+                    <TableCell>
                       <Link
                         to="/admin/organizations/$orgId"
-                        params={{ orgId: org.parentOrganizationId }}
-                        className="hover:underline"
+                        params={{ orgId: org.id }}
+                        className="font-medium text-foreground hover:underline"
                       >
-                        View parent
+                        {org.name}
                       </Link>
-                    ) : (
-                      '-'
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{org.memberCount}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariant(org)}>{statusLabel(org)}</Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {formatDate(org.createdAt)}
-                  </TableCell>
-                </TableRow>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{org.slug ?? '-'}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {org.parentOrganizationId ? (
+                        <Link
+                          to="/admin/organizations/$orgId"
+                          params={{ orgId: org.parentOrganizationId }}
+                          className="hover:underline"
+                        >
+                          View parent
+                        </Link>
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{org.memberCount}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant(org)}>{statusLabel(org)}</Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(org.createdAt)}
+                    </TableCell>
+                    <TableCell>
+                      <OrgListKebabButton org={org} onActionComplete={() => refetch()} />
+                    </TableCell>
+                  </TableRow>
+                </OrgListContextMenu>
               ))}
             </TableBody>
           </Table>
