@@ -18,6 +18,7 @@ export class AuditService {
     before?: Record<string, unknown> | null
     after?: Record<string, unknown> | null
     metadata?: Record<string, unknown> | null
+    apiKeyId?: string
   }): Promise<void> {
     await this.db.insert(auditLogs).values({
       actorId: entry.actorId,
@@ -30,6 +31,7 @@ export class AuditService {
       before: entry.before ?? null,
       after: entry.after ?? null,
       metadata: entry.metadata ?? null,
+      apiKeyId: entry.apiKeyId ?? null,
     })
   }
 }

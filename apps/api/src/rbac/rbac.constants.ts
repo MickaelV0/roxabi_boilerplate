@@ -26,6 +26,8 @@ export const DEFAULT_ROLES: DefaultRoleDefinition[] = [
       'roles:read',
       'roles:write',
       'roles:delete',
+      'api_keys:read',
+      'api_keys:write',
     ],
   },
   {
@@ -46,6 +48,8 @@ export const DEFAULT_ROLES: DefaultRoleDefinition[] = [
       'roles:read',
       'roles:write',
       'roles:delete',
+      'api_keys:read',
+      'api_keys:write',
     ],
   },
   {

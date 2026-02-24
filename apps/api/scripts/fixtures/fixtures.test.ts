@@ -253,8 +253,8 @@ describe('tenant fixture data — invitations', () => {
 // ---------------------------------------------------------------------------
 
 describe('permissions fixture data', () => {
-  it('should have exactly 15 default permissions', () => {
-    expect(DEFAULT_PERMISSIONS).toHaveLength(15)
+  it('should have exactly 17 default permissions', () => {
+    expect(DEFAULT_PERMISSIONS).toHaveLength(17)
   })
 
   it('should have unique resource:action pairs', () => {
@@ -318,7 +318,7 @@ describe('rbac fixture data', () => {
   it('should have all role permission keys in resource:action format', () => {
     for (const role of DEFAULT_ROLES) {
       for (const permKey of role.permissions) {
-        expect(permKey).toMatch(/^[a-z]+:[a-z]+$/)
+        expect(permKey).toMatch(/^[a-z_]+:[a-z]+$/)
       }
     }
   })

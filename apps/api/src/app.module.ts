@@ -7,6 +7,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter'
 import type { FastifyRequest } from 'fastify'
 import { ClsModule } from 'nestjs-cls'
 import { AdminModule } from './admin/admin.module.js'
+import { ApiKeyModule } from './api-key/api-key.module.js'
 import { AppController } from './app.controller.js'
 import { AuditModule } from './audit/audit.module.js'
 import { AuthModule } from './auth/auth.module.js'
@@ -56,6 +57,7 @@ import { UserModule } from './user/user.module.js'
     ConsentModule,
     GdprModule,
     AdminModule,
+    ApiKeyModule,
     ThrottlerConfigModule,
   ],
   controllers: [AppController],
