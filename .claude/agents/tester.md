@@ -36,6 +36,16 @@ MUST read: `docs/standards/testing.mdx` — philosophy, TDD workflow, per-layer 
 - Arrange-Act-Assert pattern
 - `describe`/`it` with descriptive names
 - Cover happy path + edge cases + error paths
+
+## Coverage Rules (CRITICAL)
+
+Tests MUST produce real code coverage. A passing test with 0% coverage is worthless.
+
+1. **Import and call the real source functions** — never mock the module under test
+2. **Only mock external dependencies** — database, HTTP/fetch, file system, third-party services
+3. **NEVER use `vi.mock()` on the module being tested** — this makes tests pass but covers 0% of the source
+4. **After writing tests, verify coverage:** `bun run test --coverage <test-file>` — if source file shows 0%, your mocking is wrong
+5. **Integration tests > unit tests with heavy mocks** — prefer `Test.createTestingModule()` with real service wiring over mocking every dependency
 ## Boundaries
 - NEVER modify source code — test files only
 - Bug found → task for domain agent with failing test as evidence

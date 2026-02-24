@@ -1,7 +1,7 @@
 ---
 argument-hint: [--spec <number> | --issue <number>]
 description: Spec→PR execution engine — plan, scaffold, spawn agents, open PR. Triggers: "scaffold from spec" | "implement feature" | "execute spec" | "build from spec".
-allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Edit, Task, Skill, TeamCreate, TeamDelete, SendMessage
+allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Edit, Task, Skill
 ---
 
 # Scaffold
@@ -437,7 +437,7 @@ generated: {ISO timestamp}
 - **Verify:** All test tasks for V1 marked complete
 - **Phase:** RED-GATE
 
-> **Pre-#283:** The orchestrator manages RED-GATE ordering by spawning GREEN agents only after the tester completes RED tasks for each slice. Post-#283: Agents check the sentinel task status directly via TaskList.
+> The orchestrator manages RED-GATE ordering by spawning GREEN `Task` agents only after the tester completes RED tasks for each slice.
 ```
 
 **Bootstrap context:** If an analysis exists at `analyses/{issue}-*.mdx`, include its Conclusions and selected Shape sections under `## Bootstrap Context`. This gives domain agents architectural rationale without re-reading the analysis.
@@ -535,12 +535,11 @@ Implement directly (no agents):
 
 #### Tier F — Agent-Driven (test-first)
 
-Spawn agents based on the plan from Step 2.
+Spawn agents using the `Task` tool based on the plan from Step 2. Each `Task` call creates a stateless subagent that does its job and exits — no persistent teams, no coordination overhead, no zombie risk.
 
-**Single-domain:** use `Task` tool (subagents within the session).
-**Multi-domain:** use `TeamCreate` (independent agent sessions).
+**All domains:** use `Task` tool with the appropriate `subagent_type` (backend-dev, frontend-dev, tester, etc.). Spawn sequentially or in small parallel batches (2-3 max). Each agent gets a focused, self-contained task with all necessary context in the prompt.
 
-**Intra-domain parallelization:** When the plan from Step 2 recommends multiple agents in the same domain, spawn them as separate `Task` calls (subagents) or as separate team members (TeamCreate). Each agent receives only its assigned task subset. Agents in the same domain must NOT share files — if file conflicts are detected during planning, merge those tasks into a single agent.
+**Intra-domain parallelization:** When the plan from Step 2 recommends multiple agents in the same domain, spawn them as separate parallel `Task` calls. Each agent receives only its assigned task subset. Agents in the same domain must NOT share files — if file conflicts are detected during planning, merge those tasks into a single agent.
 
 **Implementation order (RED → GREEN → REFACTOR):**
 
