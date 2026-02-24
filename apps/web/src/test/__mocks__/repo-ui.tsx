@@ -315,6 +315,44 @@ export const AlertDialogHeader = ({ children }: React.PropsWithChildren) => <div
 export const AlertDialogTitle = ({ children }: React.PropsWithChildren) => <h2>{children}</h2>
 
 // ---------------------------------------------------------------------------
+// ContextMenu
+// ---------------------------------------------------------------------------
+
+export const ContextMenu = ({ children }: React.PropsWithChildren) => <div>{children}</div>
+
+export const ContextMenuTrigger = ({
+  children,
+}: React.PropsWithChildren<Record<string, unknown>>) => <div>{children}</div>
+
+export const ContextMenuContent = ({ children }: React.PropsWithChildren) => <div>{children}</div>
+
+export const ContextMenuItem = ({
+  children,
+  ...props
+}: React.PropsWithChildren<Record<string, unknown>>) => (
+  <button type="button" role="menuitem" {...props}>
+    {children}
+  </button>
+)
+
+export const ContextMenuSeparator = () => <hr />
+
+export const ContextMenuSub = ({ children }: React.PropsWithChildren) => <div>{children}</div>
+
+export const ContextMenuSubTrigger = ({
+  children,
+  ...props
+}: React.PropsWithChildren<Record<string, unknown>>) => (
+  <button type="button" {...props}>
+    {children}
+  </button>
+)
+
+export const ContextMenuSubContent = ({ children }: React.PropsWithChildren) => (
+  <div>{children}</div>
+)
+
+// ---------------------------------------------------------------------------
 // DropdownMenu
 // ---------------------------------------------------------------------------
 
@@ -339,6 +377,21 @@ export const DropdownMenuItem = ({
 export const DropdownMenuSeparator = () => <hr />
 
 export const DropdownMenuLabel = ({ children }: React.PropsWithChildren) => <div>{children}</div>
+
+export const DropdownMenuSub = ({ children }: React.PropsWithChildren) => <div>{children}</div>
+
+export const DropdownMenuSubTrigger = ({
+  children,
+  ...props
+}: React.PropsWithChildren<Record<string, unknown>>) => (
+  <button type="button" {...props}>
+    {children}
+  </button>
+)
+
+export const DropdownMenuSubContent = ({ children }: React.PropsWithChildren) => (
+  <div>{children}</div>
+)
 
 // ---------------------------------------------------------------------------
 // Hooks
@@ -490,3 +543,40 @@ export const DestructiveConfirmDialog = ({
       </button>
     </div>
   ) : null
+
+// ---------------------------------------------------------------------------
+// ConfirmDialog
+// ---------------------------------------------------------------------------
+
+export const ConfirmDialog = ({
+  open,
+  title,
+  description,
+  confirmText,
+  onConfirm,
+  loading,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: string
+  description: string
+  variant?: string
+  confirmText: string
+  onConfirm: () => void
+  loading?: boolean
+}) =>
+  open ? (
+    <div data-testid="confirm-dialog">
+      <h2>{title}</h2>
+      <p>{description}</p>
+      <button type="button" onClick={onConfirm} disabled={loading}>
+        {confirmText}
+      </button>
+    </div>
+  ) : null
+
+// ---------------------------------------------------------------------------
+// Textarea
+// ---------------------------------------------------------------------------
+
+export const Textarea = (props: Record<string, unknown>) => <textarea {...props} />
