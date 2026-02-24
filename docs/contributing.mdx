@@ -121,7 +121,7 @@ ci: add coverage reporting to pipeline
 ### Before Opening a PR
 
 - [ ] Branch is up-to-date with `staging` (or `main` for hotfixes)
-- [ ] All tests pass locally (`bun test`)
+- [ ] All tests pass locally (`bun run test`)
 - [ ] Linting passes (`bun lint`)
 - [ ] Types check (`bun typecheck`)
 - [ ] Commit messages follow conventions
@@ -153,7 +153,7 @@ All PRs must pass before merge:
 |------|---------|-------------|
 | Lint | `bun lint` | Biome linting |
 | Types | `bun typecheck` | TypeScript strict mode |
-| Tests | `bun test` | All tests pass |
+| Tests | `bun run test` | All tests pass |
 | Coverage | - | Minimum threshold met |
 | Review | - | At least 1 approval |
 

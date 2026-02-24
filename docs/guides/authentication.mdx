@@ -168,12 +168,14 @@ The frontend uses Better Auth's React client SDK:
 
 ```ts
 // apps/web/src/lib/auth-client.ts
+import { magicLinkClient, organizationClient } from 'better-auth/client/plugins'
 import { createAuthClient } from 'better-auth/react'
-import { adminClient, magicLinkClient, organizationClient } from 'better-auth/client/plugins'
 
 export const authClient = createAuthClient({
   baseURL: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
-  plugins: [organizationClient(), adminClient(), magicLinkClient()],
+  // Better Auth admin client plugin removed in Phase 1 (#268)
+  // All admin actions go through NestJS AdminModule with guards + audit logging
+  plugins: [organizationClient(), magicLinkClient()],
 })
 
 export const { useSession, signIn, signUp, signOut } = authClient
@@ -183,7 +185,8 @@ export const { useSession, signIn, signUp, signOut } = authClient
 
 - `baseURL` uses `window.location.origin` in the browser, so requests go through the Vite proxy
 - Server-side falls back to `http://localhost:3000`
-- Plugins must mirror the server-side plugins (organization, admin, magic link)
+- Plugins must mirror the server-side plugins (organization, magic link)
+- Admin actions go through NestJS AdminModule (not Better Auth's admin client plugin)
 
 ### Usage in components
 
