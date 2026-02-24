@@ -146,7 +146,7 @@ Read [references/micro-tasks.md](references/micro-tasks.md) for full procedure.
 
 ## Step 5 — Implement
 
-### 5a. Context Injection (Tier F only)
+### 5a. Context Injection (Tier F-lite / F-full only)
 
 Tier S ⇒ skip this sub-step.
 
@@ -159,6 +159,8 @@ For each agent to spawn, include domain-specific read instructions in the Task p
 | **tester** | "Before writing tests, read `docs/standards/testing.mdx` sections: Test Structure (AAA Pattern), Coverage Guidelines, Mocking Strategies, AI-Assisted TDD Workflow." |
 | **architect** | "Before reviewing architecture, read `docs/standards/frontend-patterns.mdx` section: AI Quick Reference. Read `docs/standards/backend-patterns.mdx` section: AI Quick Reference." |
 | **devops** | No standards doc injection (devops reads config files, not standards docs) |
+| **security-auditor** | No standards doc injection (uses built-in OWASP checklist) |
+| **doc-writer** | No standards doc injection (reads API definitions and spec files, not standards docs) |
 
 Agents receive these instructions as part of their Task prompt and read the specified sections instead of discovering and reading full docs.
 
