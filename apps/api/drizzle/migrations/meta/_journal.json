@@ -5,78 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1739145600000,
-      "tag": "0000_rls_infrastructure",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1770805128340,
-      "tag": "0001_tech-debt-timestamps-indexes",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1770980756085,
-      "tag": "0002_rbac-tables-and-members-role-id",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1771335244726,
-      "tag": "0003_spicy_ikaris",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1771345595386,
-      "tag": "0004_watery_secret_warriors",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1771434690897,
-      "tag": "0005_minor_sandman",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1771444283942,
-      "tag": "0006_tearful_arclight",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1771761834273,
-      "tag": "0007_cheerful_sunspot",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1771762000000,
-      "tag": "0008_lush_marvex",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1771828342887,
-      "tag": "0009_grant-app-user-role",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1771843269325,
-      "tag": "0010_zippy_madripoor",
+      "when": 1771926000000,
+      "tag": "0000_baseline",
       "breakpoints": true
     }
   ]

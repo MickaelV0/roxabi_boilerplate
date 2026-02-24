@@ -1,1 +1,0 @@
-ALTER TABLE "audit_logs" DROP COLUMN "created_at";
