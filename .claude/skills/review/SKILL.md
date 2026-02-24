@@ -32,7 +32,7 @@ T         = 80                   — auto-apply threshold
 1. target = PR# provided → `gh pr diff <#>` | else → `git diff staging...HEAD`
 2. Δ = `git diff --name-only staging...HEAD` (or `gh pr diff <#> --name-only`)
 3. Read all files ∈ Δ in full (skip binaries, note in report)
-4. |Δ| = 0 → inform user, halt
+4. |Δ| = 0 → inform, halt
 5. |Δ| > 50 → warn quality degradation, suggest split
 
 ## Phase 1.5 — Spec Compliance
@@ -61,7 +61,7 @@ Spawn fresh agents via Task (¬implementation context → ¬bias).
 | **backend-dev** | Δ ∩ {`apps/api/`, `packages/types/`} ≠ ∅ | BE patterns, API, errors |
 | **devops** | Δ ∩ {configs, CI} ≠ ∅ | config, deploy, infra |
 
-**Subdomain split:** |files_domain| ≥ 8 ∧ files span distinct modules → split into N agents of same type, each scoped to a module group. Default: 1 agent/domain when < 8 files.
+**Subdomain split:** |files_domain| ≥ 8 ∧ distinct modules → N same-type agents, 1/module group. Default: 1 agent/domain.
 
 ### Security-auditor scoping (this agent only)
 
@@ -108,20 +108,7 @@ correctness | security | performance | architecture | tests | readability | obse
 | Moderate | 40-69 | Probable, context-dependent |
 | Low | 0-39 | Speculative, competing explanations |
 
-**Example:**
-```
-issue(blocking): This sql.raw() call with user input is a SQL injection vector.
-  apps/api/src/users/users.service.ts:42
-  -- security-auditor
-  Root cause: Raw SQL from Knex-to-Drizzle migration, not converted to parameterized queries.
-  Solutions:
-    1. Replace sql.raw(input) with sql.param(input) via Drizzle parameterized API (recommended)
-    2. Use prepared statements with explicit parameter binding
-    3. Add input validation + escaping as defense-in-depth
-  Confidence: 92%
-```
-
-**Validation:** missing enrichment fields ∨ C ∉ ℤ ∩ [0,100] → C(f) := 0, route to Q_1b1.
+**Validation:** missing fields ∨ C ∉ ℤ ∩ [0,100] → C(f) := 0, → Q_1b1.
 
 ### Finding categories
 
@@ -136,8 +123,8 @@ issue(blocking): This sql.raw() call with user input is a SQL injection vector.
 ## Phase 3 — Merge & Present
 
 1. Collect F from all agents
-2. Deduplicate (same file:line + same issue → keep highest C, attribute to original agent)
-3. Sort by C desc within each category group
+2. Dedup: same file:line + issue → keep max C, original agent
+3. Sort: C desc within category
 4. Group: Blockers → Warnings → Suggestions → Praise
 
 **Verdict:**
@@ -151,85 +138,68 @@ issue(blocking): This sql.raw() call with user input is a SQL injection vector.
 
 ## Phase 3.5 — Confidence-Gated Auto-Apply
 
-Runs **before** PR posting so `[auto-applied]` markers reflect actual outcomes.
+Runs **before** PR posting — `[auto-applied]` markers reflect outcomes.
 
-### 1. Queue split
+**1. Queue split:**
 
 ```
 auto_apply(f) ⟺ C(f) ≥ T  ∧  cat(f) ∈ actionable  ∧  src(f) ≠ security-auditor  ∧  |A(f)| ≥ 2
-
 Q_auto = {f ∈ F | auto_apply(f)}
 Q_1b1  = F \ Q_auto
-
 ∀f: cat(f) ∈ {thought, question, praise} → f ∈ Q_1b1  (unconditional)
 ```
 
-### 2. Verify single-agent findings
+**2. Verify single-agent:** ∀ f ∈ Q_auto ∧ |A(f)| = 1 → spawn fresh verifier (different domain).
+- C(f) ≥ T → stays, |A(f)| := 2
+- C(f) < T ∨ rejects → Q_1b1
+- Batch ∥
 
-∀ f ∈ Q_auto where |A(f)| = 1: spawn fresh verification agent (different domain type). Verifier receives f + file(s) + diff.
-- Verifier C(f) ≥ T → f stays in Q_auto (|A(f)| := 2)
-- Verifier C(f) < T ∨ rejects → f → Q_1b1
-- Batch all verifications ∥
+**3. Large queue:** |Q_auto| > 5 → AskUserQuestion: "Auto-apply all N?" / "Review via 1b1".
+1b1 → Q_1b1 ∪= Q_auto; Q_auto := ∅; skip to 3.6.
 
-### 3. Large queue gate
+**4. Early exit:** Q_auto = ∅ → skip to 3.6.
 
-|Q_auto| > 5 → AskUserQuestion: "Auto-apply all N?" / "Review via 1b1"
-User picks 1b1 → Q_1b1 := Q_1b1 ∪ Q_auto; Q_auto := ∅; skip to Phase 3.6
+**5. Serial apply:** ∀ f ∈ Q_auto (sequential):
+- succeeds → `[applied]`
+- fails (test / lint / timeout / crash) → stash restore → demote f + remaining → Q_1b1 + note → **halt**
+- Prior fixes ¬rolled back
 
-### 4. Early exit
-
-Q_auto = ∅ → skip to Phase 3.6
-
-### 5. Serial application
-
-∀ f ∈ Q_auto (sequential, one at a time):
-- fixer(f) **succeeds** → mark `[applied]`
-- fixer(f) **fails** (test / lint / timeout / crash / cannot-fix) → `git stash pop` restore → demote f + all remaining Q_auto to Q_1b1 with failure note → **halt loop**
-- Previously applied fixes ¬rolled back on halt
-
-### 6. Post-apply summary
-
-Display before PR posting:
+**6. Summary:** Display before PR:
 ```
--- Auto-Applied Fixes (C ≥ 80%, 2+ agent consensus) --
-
+-- Auto-Applied Fixes (C ≥ 80%, 2+ consensus) --
 Applied N finding(s):
   1. [applied] issue(blocking): SQL injection in users.service.ts:42 (92%)
   2. [failed -> 1b1] nitpick: Unused import in dashboard.tsx:3 (85%) -- test failure
-
 Remaining M finding(s) → 1b1.
 ```
 
 ## Phase 3.6 — Post to PR
 
-1. PR# = provided ∨ `gh pr list --head "$(git branch --show-current)" --json number --jq '.[0].number'`; ¬∃ PR → skip phase
-2. Write to `/tmp/review-comment.md` → `gh pr comment <#> --body-file /tmp/review-comment.md`
-3. Format: `## Code Review` header, grouped findings (Blockers→Warnings→Suggestions→Praise) + summary + verdict. Auto-applied → `[auto-applied]` prefix. All findings included ∀C.
+1. PR# = provided ∨ `gh pr list --head "$(git branch --show-current)" --json number --jq '.[0].number'`; ¬∃ → skip
+2. `/tmp/review-comment.md` → `gh pr comment <#> --body-file /tmp/review-comment.md`
+3. `## Code Review` header, grouped findings + summary + verdict. Auto-applied → `[auto-applied]` prefix. ∀C included.
 
 ## Phase 4 — 1b1 Walkthrough
 
 ∀ f ∈ Q_1b1 (via `/1b1`): show → trade-offs → recommend → human decides {accept, reject, defer}
 
-Post-walkthrough, spawn ∥ fixers by domain:
+Post-walkthrough → spawn ∥ fixers:
 
 | Fixer | Condition | Scope |
 |-------|-----------|-------|
-| Backend | accepted ∩ {`apps/api/`, `packages/types/`} ≠ ∅ | BE only |
-| Frontend | accepted ∩ {`apps/web/`, `packages/ui/`} ≠ ∅ | FE only |
-| Infra | accepted ∩ {`packages/config/`, root, CI} ≠ ∅ | Config only |
+| Backend | accepted ∩ {`apps/api/`, `packages/types/`} ≠ ∅ | BE |
+| Frontend | accepted ∩ {`apps/web/`, `packages/ui/`} ≠ ∅ | FE |
+| Infra | accepted ∩ {`packages/config/`, root, CI} ≠ ∅ | Config |
 
-**Split rule:**
-- 1 domain ∧ |findings| ≤ 5 → 1 fixer
-- 1 domain ∧ |findings| ≥ 6 across modules → N fixers (disjoint file sets)
-- Multi-domain → 1 fixer/domain ∥ + apply split rule within each
+**Split:** ≤5 → 1 fixer | ≥6 across modules → N fixers (disjoint) | multi-domain → 1/domain ∥ + split within.
 
-All fixers use `.claude/agents/fixer.md`. After completion → stage + commit + push (single commit). CI fail → respawn domain fixer until green. Post follow-up PR comment (`## Review Fixes Applied`) with fix table via `/tmp/review-fixes.md`.
+All use `.claude/agents/fixer.md`. Done → stage + commit + push (1 commit). CI fail → respawn until green. Post `## Review Fixes Applied` via `/tmp/review-fixes.md`.
 
 ## Phase 5 — Auto-Merge Gate
 
-1. AskUserQuestion: "Add `reviewed` label for auto-merge?" → Yes/No
-2. Yes → `gh pr edit <#> --add-label "reviewed"` → `auto-merge.yml` → squash merge on green CI
-3. No → inform manual option
+1. AskUserQuestion: "Add `reviewed` label?" → Yes/No
+2. Yes → `gh pr edit <#> --add-label "reviewed"` → squash merge on green CI
+3. No → inform manual
 
 > `/review` ¬includes `--fix` flag. Fixing = fixer agents after /1b1.
 
