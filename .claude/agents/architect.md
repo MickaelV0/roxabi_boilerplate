@@ -9,7 +9,6 @@ description: |
   user: "Design the caching strategy for the API"
   assistant: "I'll use the architect agent to design the architecture."
   </example>
-model: inherit
 color: white
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Task", "TeamCreate", "TeamDelete", "SendMessage"]
 permissionMode: bypassPermissions

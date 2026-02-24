@@ -10,7 +10,6 @@ description: |
   user: "Gather requirements for the notification system"
   assistant: "I'll use the product-lead agent to define requirements."
   </example>
-model: inherit
 color: white
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Task", "TeamCreate", "TeamDelete", "SendMessage"]
 permissionMode: bypassPermissions
