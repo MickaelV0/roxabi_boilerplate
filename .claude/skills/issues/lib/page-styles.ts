@@ -20,7 +20,7 @@ export const PAGE_STYLES = `
     background: var(--bg);
     color: var(--text);
     line-height: 1.5;
-    padding: 24px;
+    padding: 10px 6px;
   }
 
   header {
