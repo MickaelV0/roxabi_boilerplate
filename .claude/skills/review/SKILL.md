@@ -35,7 +35,7 @@ T         = 80                   — auto-apply threshold
 4. |Δ| = 0 → inform, halt
 5. |Δ| > 50 → warn quality degradation, suggest split
 
-## Phase 1.5 — Spec Compliance
+## Phase 2 — Spec Compliance
 
 1. issue_num ← `git branch --show-current | grep -oP '\d+' | head -1`
 2. spec ← `ls specs/<issue_num>-*.mdx 2>/dev/null`
@@ -45,7 +45,7 @@ T         = 80                   — auto-apply threshold
    - ∀ met → emit `praise:` (spec compliance)
 4. spec ∄ → skip silently
 
-## Phase 2 — Multi-Domain Review (Fresh Agents)
+## Phase 3 — Multi-Domain Review (Fresh Agents)
 
 Spawn fresh agents via Task (¬implementation context → ¬bias).
 
@@ -63,7 +63,7 @@ Spawn fresh agents via Task (¬implementation context → ¬bias).
 
 **Notes:**
 - **architect skip:** XS changes (≤5 files) ∧ no arch keywords → faster feedback
-- **product-lead skip:** phase 1.5 auto-detects spec; if missing, skip entirely
+- **product-lead skip:** Phase 2 auto-detects spec; if missing, skip entirely
 - **tester skip:** config/docs/infra only → skip (test reviewers handled by domain-specific agents)
 
 **Subdomain split:** |files_domain| ≥ 8 ∧ distinct modules → N same-type agents, 1/module group. Default: 1 agent/domain.
@@ -125,7 +125,7 @@ correctness | security | performance | architecture | tests | readability | obse
 | Architecture | `thought:` / `question:` | ✗ |
 | Good work | `praise:` | ✗ |
 
-## Phase 3 — Merge & Present
+## Phase 4 — Merge & Present
 
 1. Collect F from all agents
 2. Dedup: same file:line + issue → keep max C, original agent
@@ -141,7 +141,7 @@ correctness | security | performance | architecture | tests | readability | obse
 | suggestions/praise only | Approve |
 | F = ∅ | Approve (clean) |
 
-## Phase 3.5 — Confidence-Gated Auto-Apply
+## Phase 5 — Confidence-Gated Auto-Apply
 
 Runs **before** PR posting — `[auto-applied]` markers reflect outcomes.
 
@@ -160,9 +160,9 @@ Q_1b1  = F \ Q_auto
 - Batch ∥
 
 **3. Large queue:** |Q_auto| > 5 → AskUserQuestion: "Auto-apply all N?" / "Review via 1b1".
-1b1 → Q_1b1 ∪= Q_auto; Q_auto := ∅; skip to 3.6.
+1b1 → Q_1b1 ∪= Q_auto; Q_auto := ∅; skip to Phase 6.
 
-**4. Early exit:** Q_auto = ∅ → skip to 3.6.
+**4. Early exit:** Q_auto = ∅ → skip to Phase 6.
 
 **5. Serial apply:** ∀ f ∈ Q_auto (sequential):
 - succeeds → `[applied]`
@@ -178,13 +178,13 @@ Applied N finding(s):
 Remaining M finding(s) → 1b1.
 ```
 
-## Phase 3.6 — Post to PR
+## Phase 6 — Post to PR
 
 1. PR# = provided ∨ `gh pr list --head "$(git branch --show-current)" --json number --jq '.[0].number'`; ¬∃ → skip
 2. `/tmp/review-comment.md` → `gh pr comment <#> --body-file /tmp/review-comment.md`
 3. `## Code Review` header, grouped findings + summary + verdict. Auto-applied → `[auto-applied]` prefix. ∀C included.
 
-## Phase 4 — 1b1 Walkthrough
+## Phase 7 — 1b1 Walkthrough
 
 ∀ f ∈ Q_1b1 (via `/1b1`): show → trade-offs → recommend → human decides {accept, reject, defer}
 
@@ -200,7 +200,7 @@ Post-walkthrough → spawn ∥ fixers:
 
 All use `.claude/agents/fixer.md`. Done → stage + commit + push (1 commit). CI fail → respawn until green. Post `## Review Fixes Applied` via `/tmp/review-fixes.md`.
 
-## Phase 5 — Auto-Merge Gate
+## Phase 8 — Auto-Merge Gate
 
 1. AskUserQuestion: "Add `reviewed` label?" → Yes/No
 2. Yes → `gh pr edit <#> --add-label "reviewed"` → squash merge on green CI
@@ -219,18 +219,18 @@ All use `.claude/agents/fixer.md`. Done → stage + commit + push (1 commit). CI
 | ∀f: ¬blocks(f) | Batch-accept option in 1b1 |
 | Critical security | Escalate immediately, ¬wait for 1b1 |
 | Agents disagree | Present both in 1b1, human decides |
-| ¬∃ PR | Skip Phase 3.6, local only |
+| ¬∃ PR | Skip Phase 6, local only |
 | ∀f: auto_apply(f) | All auto-applied, 1b1 skipped |
-| ∀f: C(f) < T | Phase 3.5 skipped, all → 1b1 |
+| ∀f: C(f) < T | Phase 5 skipped, all → 1b1 |
 | |A(f)| = 1 ∧ C(f) ≥ T | Verification agent → auto-apply ∨ 1b1 |
 | Auto-apply breaks tests/lint | Stash restore, demote to 1b1 |
 | Fixer timeout/crash/cannot-fix | Demote to 1b1, stash restore |
 | cat(f) ∈ {praise, thought, question} | Exempt from auto-apply |
 | C(f) = T | Inclusive (≥ T) |
 | Missing root cause/solutions | C(f) := 0, → Q_1b1 |
-| Phase 3.5 edits ∩ Phase 4 targets | Phase 4 fixer re-reads files first |
+| Phase 5 edits ∩ Phase 7 targets | Phase 7 fixer re-reads files first |
 | architect skipped (|Δ| ≤ 5 + no arch keywords) | No arch review → faster, still security/spec/test |
-| product-lead skipped (no spec) | Skip compliance check → Phase 1.5 validation skipped |
+| product-lead skipped (no spec) | Skip compliance check → Phase 2 validation skipped |
 | tester skipped (pure config/docs) | No test coverage review → focus on security/devops |
 
 ## Safety Rules
