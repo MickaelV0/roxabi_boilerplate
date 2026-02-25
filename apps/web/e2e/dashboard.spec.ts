@@ -1,14 +1,15 @@
 import { expect, test } from '@playwright/test'
 import { AuthPage } from './auth.page'
 import { DashboardPage } from './dashboard.page'
+import { TEST_USER } from './testHelpers'
 
 test.describe('Dashboard Navigation', () => {
   test.beforeEach(async ({ page }) => {
     // Arrange: Login before each test
     const auth = new AuthPage(page)
     await auth.gotoLogin()
-    await auth.loginWithPassword('test@example.com', 'TestPassword123!')
-    await page.waitForLoadState('networkidle')
+    await auth.loginWithPassword(TEST_USER.email, TEST_USER.password)
+    await page.waitForURL(/\/(dashboard|org)/, { timeout: 15000 })
   })
 
   test('should display dashboard sidebar with navigation links', async ({ page }) => {
@@ -34,7 +35,7 @@ test.describe('Dashboard Navigation', () => {
 
     if (href) {
       await firstLink.click()
-      await page.waitForLoadState('networkidle')
+      await page.waitForURL(new RegExp(href), { timeout: 10000 })
     }
 
     // Assert
@@ -49,12 +50,10 @@ test.describe('Dashboard Navigation', () => {
 
     // Act
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
 
-    // Assert
-    const newUrl = page.url()
-    // Should still be on dashboard, not redirected to login
-    expect(newUrl.includes('/dashboard') || !newUrl.includes('/login')).toBe(true)
+    // Assert — should still be on dashboard, not redirected to login
+    expect(page.url()).not.toContain('/login')
   })
 
   test('should display user information in authenticated session', async ({ page }) => {
@@ -80,7 +79,7 @@ test.describe('Dashboard Navigation', () => {
     if (links && links.length > 0 && links[0]) {
       // Click first link and verify navigation
       await links[0].click()
-      await page.waitForLoadState('networkidle')
+      await page.waitForLoadState('domcontentloaded')
     }
 
     // Assert

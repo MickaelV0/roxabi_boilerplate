@@ -9,15 +9,39 @@ export class AuthPage {
   constructor(private page: Page) {}
 
   // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Wait for React hydration to complete.
+   * TanStack Start SSR renders the HTML, but event handlers (e.g. e.preventDefault())
+   * are only attached after React hydrates. Interacting before hydration causes
+   * plain HTML form submits instead of JS-handled ones.
+   */
+  private async waitForHydration() {
+    await this.page.waitForFunction(
+      () => {
+        const btn = document.querySelector('button[type="submit"]')
+        if (!btn) return false
+        // React attaches __reactFiber$ / __reactProps$ to DOM nodes during hydration
+        return Object.keys(btn).some((k) => k.startsWith('__react'))
+      },
+      { timeout: 15000 }
+    )
+  }
+
+  // ---------------------------------------------------------------------------
   // Navigation
   // ---------------------------------------------------------------------------
 
   async gotoLogin() {
     await this.page.goto('/login')
+    await this.waitForHydration()
   }
 
   async gotoSignup() {
     await this.page.goto('/signup')
+    await this.waitForHydration()
   }
 
   // ---------------------------------------------------------------------------
@@ -29,7 +53,7 @@ export class AuthPage {
   }
 
   get loginPasswordInput(): Locator {
-    return this.page.getByLabel(/password/i).first()
+    return this.page.locator('input#password')
   }
 
   get loginSubmitButton(): Locator {
@@ -51,7 +75,7 @@ export class AuthPage {
   }
 
   get signupPasswordInput(): Locator {
-    return this.page.getByLabel(/password/i).first()
+    return this.page.locator('input#password')
   }
 
   get signupNameInput(): Locator {
@@ -87,11 +111,16 @@ export class AuthPage {
   // Logout
   // ---------------------------------------------------------------------------
 
+  get userMenuTrigger(): Locator {
+    return this.page.getByRole('button', { name: /user menu/i })
+  }
+
   get logoutButton(): Locator {
-    return this.page.getByRole('button', { name: /logout|sign out/i }).first()
+    return this.page.getByRole('menuitem', { name: /sign out/i })
   }
 
   async logout() {
+    await this.userMenuTrigger.click()
     await this.logoutButton.click()
   }
 

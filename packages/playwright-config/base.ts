@@ -13,6 +13,7 @@ import { devices } from '@playwright/test'
  * - CI: Built web app + API server run separately
  */
 export const basePlaywrightConfig: PlaywrightTestConfig = {
+  globalSetup: './apps/web/e2e/globalSetup.ts',
   testDir: './apps/web/e2e',
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
@@ -54,7 +55,7 @@ export const basePlaywrightConfig: PlaywrightTestConfig = {
       // API server (backend) — for full-stack E2E tests
       // Only start in CI or if explicitly requested (local dev uses 'bun run dev')
       command: process.env.CI ? 'node apps/api/dist/index.js' : 'bun run --cwd apps/api dev',
-      url: 'http://localhost:4000',
+      url: 'http://localhost:4000/health',
       reuseExistingServer: !process.env.CI,
       timeout: 120000,
       env: {

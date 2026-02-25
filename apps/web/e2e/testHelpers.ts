@@ -9,16 +9,17 @@ import { AuthPage } from './auth.page'
 /**
  * Test user credentials for E2E tests
  */
+/** Credentials matching apps/api/scripts/fixtures/auth.fixture.ts */
 export const TEST_USER = {
-  email: 'test@example.com',
-  password: 'TestPassword123!',
-  name: 'Test User',
+  email: 'dev@roxabi.local',
+  password: 'password123',
+  name: 'Dev User',
 }
 
 export const TEST_USER_2 = {
-  email: 'test2@example.com',
-  password: 'TestPassword456!',
-  name: 'Another User',
+  email: 'admin@roxabi.local',
+  password: 'password123',
+  name: 'Admin User',
 }
 
 /**
@@ -35,7 +36,7 @@ export async function loginUser(
   const auth = new AuthPage(page)
   await auth.gotoLogin()
   await auth.loginWithPassword(email, password)
-  await page.waitForLoadState('networkidle')
+  await page.waitForURL(/\/(dashboard|org)/, { timeout: 15000 })
   return auth
 }
 
@@ -46,7 +47,7 @@ export async function loginUser(
 export async function logoutUser(page: Page) {
   const auth = new AuthPage(page)
   await auth.logout()
-  await page.waitForLoadState('networkidle')
+  await page.waitForURL(/\/(login|$)/, { timeout: 15000 })
 }
 
 /**
