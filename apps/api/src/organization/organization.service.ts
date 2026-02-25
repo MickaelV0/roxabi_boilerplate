@@ -1,17 +1,25 @@
 import { Inject, Injectable } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { and, count, eq } from 'drizzle-orm'
+import {
+  ORGANIZATION_SOFT_DELETED,
+  OrganizationSoftDeletedEvent,
+} from '../common/events/organizationSoftDeleted.event.js'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
-import { whereActive } from '../database/helpers/where-active.js'
+import { whereActive } from '../database/helpers/whereActive.js'
 import { invitations, members, organizations, sessions } from '../database/schema/auth.schema.js'
 import { roles } from '../database/schema/rbac.schema.js'
-import { OrgNameConfirmationMismatchException } from './exceptions/org-name-confirmation-mismatch.exception.js'
-import { OrgNotDeletedException } from './exceptions/org-not-deleted.exception.js'
-import { OrgNotFoundException } from './exceptions/org-not-found.exception.js'
-import { OrgNotOwnerException } from './exceptions/org-not-owner.exception.js'
+import { OrgNameConfirmationMismatchException } from './exceptions/orgNameConfirmationMismatch.exception.js'
+import { OrgNotDeletedException } from './exceptions/orgNotDeleted.exception.js'
+import { OrgNotFoundException } from './exceptions/orgNotFound.exception.js'
+import { OrgNotOwnerException } from './exceptions/orgNotOwner.exception.js'
 
 @Injectable()
 export class OrganizationService {
-  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: DrizzleDB,
+    private readonly eventEmitter: EventEmitter2
+  ) {}
 
   async listForUser(userId: string) {
     return this.db
@@ -29,35 +37,17 @@ export class OrganizationService {
   }
 
   async softDelete(orgId: string, userId: string, confirmName: string) {
-    // Validate org exists and is active
-    const [org] = await this.db
-      .select({ id: organizations.id, name: organizations.name })
-      .from(organizations)
-      .where(and(eq(organizations.id, orgId), whereActive(organizations)))
-      .limit(1)
-    if (!org) throw new OrgNotFoundException(orgId)
-
-    // Validate confirmName matches
+    const org = await this.findActiveOrgOrThrow(orgId)
     if (org.name.toLowerCase() !== confirmName.toLowerCase()) {
       throw new OrgNameConfirmationMismatchException()
     }
-
-    // Validate user is owner
-    const [membership] = await this.db
-      .select({ role: members.role })
-      .from(members)
-      .where(and(eq(members.organizationId, orgId), eq(members.userId, userId)))
-      .limit(1)
-    if (!membership || membership.role !== 'owner') {
-      throw new OrgNotOwnerException(orgId)
-    }
+    await this.requireOwnership(orgId, userId)
 
     const now = new Date()
     const deleteScheduledFor = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-    return await this.db.transaction(async (tx) => {
-      // Set deletedAt + deleteScheduledFor on the organization
-      const [updated] = await tx
+    const updated = await this.db.transaction(async (tx) => {
+      const [result] = await tx
         .update(organizations)
         .set({ deletedAt: now, deleteScheduledFor, updatedAt: now })
         .where(eq(organizations.id, orgId))
@@ -69,44 +59,37 @@ export class OrganizationService {
           deleteScheduledFor: organizations.deleteScheduledFor,
         })
 
-      // Clear activeOrganizationId on all sessions referencing this org
       await tx
         .update(sessions)
         .set({ activeOrganizationId: null })
         .where(eq(sessions.activeOrganizationId, orgId))
 
-      // Invalidate pending invitations (set status = 'expired')
       await tx
         .update(invitations)
         .set({ status: 'expired' })
         .where(and(eq(invitations.organizationId, orgId), eq(invitations.status, 'pending')))
 
-      return updated
+      return result
     })
+
+    await this.eventEmitter.emitAsync(
+      ORGANIZATION_SOFT_DELETED,
+      new OrganizationSoftDeletedEvent(orgId)
+    )
+
+    return updated
   }
 
   async reactivate(orgId: string, userId: string) {
-    // Validate org exists and is actually deleted
     const [org] = await this.db
-      .select({
-        id: organizations.id,
-        deletedAt: organizations.deletedAt,
-      })
+      .select({ id: organizations.id, deletedAt: organizations.deletedAt })
       .from(organizations)
       .where(eq(organizations.id, orgId))
       .limit(1)
     if (!org) throw new OrgNotFoundException(orgId)
     if (!org.deletedAt) throw new OrgNotDeletedException(orgId)
 
-    // Verify user is owner via members table
-    const [membership] = await this.db
-      .select({ role: members.role })
-      .from(members)
-      .where(and(eq(members.organizationId, orgId), eq(members.userId, userId)))
-      .limit(1)
-    if (!membership || membership.role !== 'owner') {
-      throw new OrgNotOwnerException(orgId)
-    }
+    await this.requireOwnership(orgId, userId)
 
     const [updated] = await this.db
       .update(organizations)
@@ -123,14 +106,29 @@ export class OrganizationService {
     return updated
   }
 
-  async getDeletionImpact(orgId: string) {
-    // Validate org exists and is active
+  private async findActiveOrgOrThrow(orgId: string) {
     const [org] = await this.db
-      .select({ id: organizations.id })
+      .select({ id: organizations.id, name: organizations.name })
       .from(organizations)
       .where(and(eq(organizations.id, orgId), whereActive(organizations)))
       .limit(1)
     if (!org) throw new OrgNotFoundException(orgId)
+    return org
+  }
+
+  private async requireOwnership(orgId: string, userId: string) {
+    const [membership] = await this.db
+      .select({ role: members.role })
+      .from(members)
+      .where(and(eq(members.organizationId, orgId), eq(members.userId, userId)))
+      .limit(1)
+    if (!membership || membership.role !== 'owner') {
+      throw new OrgNotOwnerException(orgId)
+    }
+  }
+
+  async getDeletionImpact(orgId: string) {
+    await this.findActiveOrgOrThrow(orgId)
 
     // Count members
     const [memberResult] = await this.db

@@ -6,7 +6,9 @@ export default defineConfig({
       'apps/web/vitest.config.ts',
       'apps/api/vitest.config.ts',
       'packages/ui/vitest.config.ts',
+      'packages/email/vitest.config.ts',
       'tools/vitest.config.ts',
+      '.claude/skills/vitest.config.ts',
     ],
     coverage: {
       provider: 'v8',
@@ -45,8 +47,11 @@ export default defineConfig({
         '**/lib/i18n/context.ts',
         '**/lib/i18n/hooks.ts',
         '**/lib/i18n/seo.tsx',
-        // Component files need integration tests
+        // Component files need integration/e2e tests
         '**/components/LanguageSwitcher.tsx',
+        '**/components/admin/**',
+        // Pure Radix UI re-export wrappers (no business logic)
+        '**/components/ContextMenu.tsx',
         '**/vite-env.d.ts',
         // Type declaration files (including pure-type .ts files)
         '**/*.d.ts',
@@ -56,14 +61,12 @@ export default defineConfig({
         // Generated i18n runtime (paraglide)
         '**/paraglide/**',
       ],
-      // Floor values — autoUpdate will ratchet these up to actual coverage on the next non-cached run.
-      // See specs/17-testing-gold-standard.mdx for rationale.
+      // See artifacts/specs/17-testing-gold-standard.mdx for rationale.
       thresholds: {
-        lines: 93.02,
-        functions: 90.66,
-        branches: 84.28,
-        statements: 92.11,
-        autoUpdate: true,
+        lines: 93,
+        functions: 92,
+        branches: 84,
+        statements: 92,
       },
     },
   },

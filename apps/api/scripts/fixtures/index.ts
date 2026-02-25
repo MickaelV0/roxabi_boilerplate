@@ -2,6 +2,7 @@ import * as authFixture from './auth.fixture.js'
 import * as consentFixture from './consent.fixture.js'
 import * as permissionsFixture from './permissions.fixture.js'
 import * as rbacFixture from './rbac.fixture.js'
+import * as systemSettingsFixture from './systemSettings.fixture.js'
 import * as tenantFixture from './tenant.fixture.js'
 import type { DbInstance, FixtureContext, Preset } from './types.js'
 
@@ -30,6 +31,9 @@ export async function runFixtures(db: DbInstance, preset: Preset): Promise<void>
     // 5. Consent records
     const { consentCount } = await consentFixture.seed(tx, preset, ctx)
 
+    // 6. System settings (idempotent)
+    const { settingCount } = await systemSettingsFixture.seed(tx, preset, ctx)
+
     // Summary
     const parts = [
       `${userCount} users`,
@@ -39,6 +43,7 @@ export async function runFixtures(db: DbInstance, preset: Preset): Promise<void>
       `${roleCount} roles`,
       `${rolePermissionCount} role_permissions`,
       `${consentCount} consent_records`,
+      `${settingCount} settings`,
     ]
     if (invitationCount > 0) {
       parts.push(`${invitationCount} invitations`)

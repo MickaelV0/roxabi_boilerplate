@@ -16,7 +16,7 @@ The system has two layers:
 
 Platform `superadmin` users bypass all permission checks. Tenant-level roles are resolved from the user's membership in the active organization.
 
-For the full design rationale, see the RBAC analysis at `analyses/24-rbac.mdx`.
+For the full design rationale, see the RBAC analysis at `artifacts/analyses/24-rbac.mdx`.
 
 ## Default Roles
 
@@ -53,6 +53,8 @@ export const DEFAULT_ROLES: DefaultRoleDefinition[] = [
       'roles:read',
       'roles:write',
       'roles:delete',
+      'api_keys:read',
+      'api_keys:write',
     ],
   },
   // Admin, Member, Viewer follow the same pattern...
@@ -64,7 +66,7 @@ export const DEFAULT_ROLES: DefaultRoleDefinition[] = [
 Permissions follow the `resource:action` pattern. The valid combinations are defined in `packages/types/src/rbac.ts`:
 
 ```ts
-export type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles'
+export type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles' | 'api_keys'
 export type PermissionAction = 'read' | 'write' | 'delete'
 export type PermissionString = `${PermissionResource}:${PermissionAction}`
 ```
@@ -209,7 +211,7 @@ export function hasAnyPermission(
 Use `hasPermission()` with the session from `useSession()` to conditionally render UI elements:
 
 ```tsx
-import { useSession } from '@/lib/auth-client'
+import { useSession } from '@/lib/authClient'
 import { hasPermission } from '@/lib/permissions'
 
 function OrgMembersPage() {
@@ -275,7 +277,7 @@ Use TanStack Router's `beforeLoad` guard to redirect users who lack the required
 ```ts
 import { redirect } from '@tanstack/react-router'
 import { createFileRoute } from '@tanstack/react-router'
-import { authClient } from '@/lib/auth-client'
+import { authClient } from '@/lib/authClient'
 import { hasPermission } from '@/lib/permissions'
 
 export const Route = createFileRoute('/org/billing')({
@@ -303,11 +305,11 @@ To add a new resource or action to the permission system, follow these steps:
 Add the new resource or action to the union types in `packages/types/src/rbac.ts`:
 
 ```ts
-// Before
-export type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles'
+// Before (current state includes api_keys)
+export type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles' | 'api_keys'
 
 // After (adding a "billing" resource)
-export type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles' | 'billing'
+export type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles' | 'api_keys' | 'billing'
 ```
 
 ### Step 2: Create a Database Migration
@@ -563,7 +565,7 @@ describe('hasAllPermissions', () => {
 
 ## Related Documentation
 
-- RBAC analysis (`analyses/24-rbac.mdx`) -- Full design rationale and architectural decisions
+- RBAC analysis (`artifacts/analyses/24-rbac.mdx`) -- Full design rationale and architectural decisions
 - [RBAC architecture](../architecture/rbac) -- System architecture and module boundaries
 - [Authentication guide](./authentication) -- Auth guard, session management, and decorators
 - [Multi-tenant guide](./multi-tenant) -- How tenant context and RLS interact with RBAC

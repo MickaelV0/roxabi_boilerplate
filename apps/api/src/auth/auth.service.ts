@@ -5,12 +5,12 @@ import type { FastifyRequest } from 'fastify'
 import {
   ORGANIZATION_CREATED,
   OrganizationCreatedEvent,
-} from '../common/events/organization-created.event.js'
+} from '../common/events/organizationCreated.event.js'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { PermissionService } from '../rbac/permission.service.js'
 import { type BetterAuthInstance, createBetterAuth } from './auth.instance.js'
 import { EMAIL_PROVIDER, type EmailProvider } from './email/email.provider.js'
-import { toFetchHeaders } from './fastify-headers.js'
+import { toFetchHeaders } from './fastifyHeaders.js'
 
 @Injectable()
 export class AuthService {
@@ -31,8 +31,8 @@ export class AuthService {
     const githubClientSecret = config.get<string>('GITHUB_CLIENT_SECRET')
 
     this.enabledProviders = {
-      google: !!(googleClientId && googleClientSecret),
-      github: !!(githubClientId && githubClientSecret),
+      google: Boolean(googleClientId && googleClientSecret),
+      github: Boolean(githubClientId && githubClientSecret),
     }
 
     this.auth = createBetterAuth(

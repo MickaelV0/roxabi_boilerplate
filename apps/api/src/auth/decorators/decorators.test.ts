@@ -1,10 +1,10 @@
 import 'reflect-metadata'
 import { describe, expect, it } from 'vitest'
 
-import { AllowAnonymous } from './allow-anonymous.js'
-import { OptionalAuth } from './optional-auth.js'
+import { AllowAnonymous } from './allowAnonymous.js'
+import { OptionalAuth } from './optionalAuth.js'
 import { Permissions } from './permissions.decorator.js'
-import { RequireOrg } from './require-org.decorator.js'
+import { RequireOrg } from './requireOrg.decorator.js'
 import { Roles } from './roles.decorator.js'
 import { Session } from './session.decorator.js'
 
@@ -67,26 +67,26 @@ describe('OptionalAuth', () => {
 describe('Roles', () => {
   it('should set ROLES metadata with provided roles array', () => {
     // Arrange
-    @Roles('admin', 'user')
+    @Roles('superadmin', 'user')
     class TestTarget {}
 
     // Act
     const result = Reflect.getMetadata('ROLES', TestTarget)
 
     // Assert
-    expect(result).toEqual(['admin', 'user'])
+    expect(result).toEqual(['superadmin', 'user'])
   })
 
   it('should set ROLES metadata with a single role', () => {
     // Arrange
-    @Roles('admin')
+    @Roles('superadmin')
     class TestTarget {}
 
     // Act
     const result = Reflect.getMetadata('ROLES', TestTarget)
 
     // Assert
-    expect(result).toEqual(['admin'])
+    expect(result).toEqual(['superadmin'])
   })
 
   it('should set ROLES metadata with an empty roles array', () => {

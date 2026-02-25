@@ -1,12 +1,16 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.2/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
   "assist": { "enabled": true },
   "linter": {
     "enabled": true,
     "rules": {
       "recommended": true,
       "complexity": {
-        "noExcessiveCognitiveComplexity": "warn"
+        "noExcessiveCognitiveComplexity": "warn",
+        "noExcessiveLinesPerFunction": "warn",
+        "useSimplifiedLogicExpression": "warn",
+        "noImplicitCoercions": "warn",
+        "noUselessUndefined": "warn"
       },
       "correctness": {
         "noUnusedImports": "error",
@@ -15,7 +19,11 @@
       "style": {
         "noNonNullAssertion": "warn",
         "useConst": "error",
-        "useImportType": "error"
+        "useImportType": "error",
+        "useFilenamingConvention": {
+          "level": "error",
+          "options": { "filenameCases": ["camelCase"] }
+        }
       },
       "suspicious": {
         "noExplicitAny": "warn",
@@ -26,6 +34,14 @@
       },
       "security": {
         "noDangerouslySetInnerHtml": "warn"
+      },
+      "nursery": {
+        "noExcessiveLinesPerFile": {
+          "level": "error",
+          "options": {
+            "maxLines": 500
+          }
+        }
       }
     }
   },
@@ -61,6 +77,58 @@
           "style": {
             "useImportType": "off"
           }
+        }
+      }
+    },
+    {
+      "includes": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "**/e2e/**",
+        "**/.claude/skills/**",
+        "**/scripts/**",
+        "**/tools/**"
+      ],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveLinesPerFunction": "info",
+            "noExcessiveCognitiveComplexity": "info"
+          },
+          "nursery": {
+            "noExcessiveLinesPerFile": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/components/**/*.tsx"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useFilenamingConvention": {
+              "level": "error",
+              "options": { "filenameCases": ["PascalCase"], "strictCase": false }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/routes/**"],
+      "linter": {
+        "rules": {
+          "style": { "useFilenamingConvention": "off" }
+        }
+      }
+    },
+    {
+      "includes": [".claude/**"],
+      "linter": {
+        "rules": {
+          "style": { "useFilenamingConvention": "off" }
         }
       }
     }

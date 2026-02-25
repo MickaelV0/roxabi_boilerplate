@@ -5,50 +5,43 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1739145600000,
-      "tag": "0000_rls_infrastructure",
+      "when": 1771926000000,
+      "tag": "0000_baseline",
       "breakpoints": true
     },
     {
-      "idx": 1,
+      "idx": 11,
       "version": "7",
-      "when": 1770805128340,
-      "tag": "0001_tech-debt-timestamps-indexes",
+      "when": 1771930000000,
+      "tag": "0011_fast_magus",
       "breakpoints": true
     },
     {
-      "idx": 2,
+      "idx": 12,
       "version": "7",
-      "when": 1770980756085,
-      "tag": "0002_rbac-tables-and-members-role-id",
+      "when": 1771940585893,
+      "tag": "0012_gigantic_morph",
       "breakpoints": true
     },
     {
-      "idx": 3,
+      "idx": 13,
       "version": "7",
-      "when": 1771335244726,
-      "tag": "0003_spicy_ikaris",
+      "when": 1771952815892,
+      "tag": "0013_fair_korg",
       "breakpoints": true
     },
     {
-      "idx": 4,
+      "idx": 14,
       "version": "7",
-      "when": 1771345595386,
-      "tag": "0004_watery_secret_warriors",
+      "when": 1772021744378,
+      "tag": "0014_exotic_the_enforcers",
       "breakpoints": true
     },
     {
-      "idx": 5,
+      "idx": 15,
       "version": "7",
-      "when": 1771434690897,
-      "tag": "0005_minor_sandman",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1771444283942,
-      "tag": "0006_tearful_arclight",
+      "when": 1772021800000,
+      "tag": "0015_seed_system_settings",
       "breakpoints": true
     }
   ]

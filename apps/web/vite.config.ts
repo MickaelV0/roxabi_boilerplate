@@ -6,7 +6,7 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import mdx from 'fumadocs-mdx/vite'
 import { nitro } from 'nitro/vite'
-import { defineConfig, loadEnv, type ResolvedConfig } from 'vite'
+import { defineConfig, loadEnv, type PluginOption, type ResolvedConfig } from 'vite'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
 import { z } from 'zod'
 
@@ -65,13 +65,18 @@ const config = defineConfig(async () => ({
       },
     }),
     // this is the plugin that enables path aliases
+    // Include all packages with @ aliases for proper monorepo resolution
     viteTsConfigPaths({
-      projects: ['./tsconfig.json'],
+      projects: [
+        './tsconfig.json',
+        '../../packages/ui/tsconfig.json',
+        '../../packages/email/tsconfig.json',
+      ],
     }),
     tailwindcss(),
     tanstackStart(),
     viteReact(),
-  ],
+  ] as PluginOption[],
 }))
 
 export default config

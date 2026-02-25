@@ -73,7 +73,7 @@ List open GitHub issues from the project board with their Status, Size, Priority
 
 1. **Run the script** to fetch issues:
    ```bash
-   .claude/skills/issues/fetch_issues.sh
+   bun .claude/skills/issues/fetch-issues.ts
    ```
 
 2. **Present the output in a code block**: Wrap the script output in triple backticks (```). Do NOT reformat or interpret the data - the script already produces a well-formatted table.

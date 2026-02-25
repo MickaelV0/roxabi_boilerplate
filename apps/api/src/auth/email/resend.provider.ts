@@ -5,9 +5,9 @@ import { Resend } from 'resend'
 import {
   EMAIL_SEND_FAILED,
   EmailSendFailedEvent,
-} from '../../common/events/email-send-failed.event.js'
+} from '../../common/events/emailSendFailed.event.js'
 import type { EmailProvider } from './email.provider.js'
-import { EmailSendException } from './email-send.exception.js'
+import { EmailSendException } from './emailSend.exception.js'
 
 @Injectable()
 export class ResendEmailProvider implements EmailProvider {

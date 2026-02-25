@@ -1,1 +1,0 @@
-ALTER TABLE "users" ALTER COLUMN "avatar_options" SET NOT NULL;

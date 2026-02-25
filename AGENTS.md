@@ -1,84 +1,97 @@
-# Agent Teams — Roxabi Boilerplate
+# Agent Teams
 
-Team-wide coordination rules. Loaded by orchestrator, not auto-loaded by agents (shared rules are in CLAUDE.md).
+Coordination rules for orchestrator. Agents get shared rules from CLAUDE.md.
 
-## Orchestration Model
+## Model
 
-**Main Claude = orchestrator.** Assesses issues, spawns agents, runs skills, coordinates 4-phase workflow. Human decides at every gate.
+Main Claude = orchestrator. Assesses issues, spawns agents, runs skills, coordinates workflow.
+Human approves at every gate.
 
-| Actor | Role |
-|-------|------|
-| **Human** | Approves specs, validates reviews, merges |
-| **Main Claude** | Fetches issues, spawns agents, coordinates flow |
-| **Agents** | Execute within domain boundaries |
-
-## Team Structure
+## Team
 
 | Tier | Agents | Role |
 |------|--------|------|
-| **Domain** | frontend-dev, backend-dev, devops | Write code in their packages |
-| **Quality** | fixer, tester, security-auditor | Fix accepted review comments, write tests, audit security |
-| **Strategy** | architect, product-lead, doc-writer | Plan, analyze, document |
+| Domain | frontend-dev, backend-dev, devops | Write code in their packages |
+| Quality | fixer, tester, security-auditor | Fix findings, write tests, audit |
+| Strategy | architect, product-lead, doc-writer | Plan, analyze, document |
 
-## Coordination Protocol
+## 4-Phase Workflow
 
-### 4-Phase Workflow
+1. **Assessment:** Fetch issue → check analysis/spec → spawn product-lead (+architect) → human approves
+2. **Implementation:** Domain agents + tester. RED→GREEN→REFACTOR → tests ✓ → PR
+3. **Review:** Fresh agents (security, architect, product, tester + domain). Conventional Comments → `/1b1`
+4. **Fix & Merge:** Fixer(s) apply accepted comments → CI → human merges. ≥6 findings spanning distinct modules → multiple fixers.
 
-1. **Assessment**: Fetch issue → check analysis/spec → spawn product-lead (+architect if needed) → human approves spec
-2. **Implementation**: Spawn domain agents + tester. RED → GREEN → REFACTOR → all tests pass → PR
-3. **Review**: Fresh review agents (security, architect, product, tester + domain). Conventional Comments → `/1b1` walkthrough
-4. **Fix & Merge**: Fixer applies accepted comments → CI → human merges
+## Task Lifecycle
 
-### Task Lifecycle
+Lead creates tasks → agents claim by domain → execute → mark complete + follow-ups → human reviews at gates.
 
-1. Lead creates tasks with descriptions, assignments, deps
-2. Agents claim tasks matching their domain
-3. Agent executes within boundaries (see `.claude/agents/*.md`)
-4. Agent marks complete + creates follow-up tasks
-5. Human reviews at each gate
+## Communication
 
-### Communication
+"Message the lead" = `SendMessage` with concise status, key info upfront.
+Blocker → lead. Cross-domain → create task + message lead. Security → lead + security-auditor.
+Task handoff via `blockedBy` deps.
 
-> "Message the lead" = `SendMessage` with concise status update, key info upfront.
+### Handoff Format
 
-- **Task handoff**: `blockedBy` deps — your completion unblocks next agent
-- **Blocker**: Message lead with description
-- **Cross-domain**: Create task for other agent + message lead
-- **Security finding**: Message lead + security-auditor immediately
+When completing a task that feeds into another agent's work, include a structured handoff in your completion message to the lead. This prevents context loss between agents.
 
-### Domain Boundaries
+```
+Handoff: <short description>
+  Files: <files created/modified, one per line>
+  Migrations: <DB migration files, if any>
+  Routes: <new/changed API routes, if any>
+  Types: <new/changed shared types in @repo/types, if any>
+  Auth: <auth requirements for new endpoints>
+  Decisions: <key choices made and why>
+  Caveats: <known limitations, TODOs, or risks>
+  Depends on: <task IDs this work depends on>
+```
 
-**Never modify files outside your domain.**
+Omit empty fields. The lead forwards relevant sections to the next agent's spawn prompt.
 
-| Agent | Owns | Does NOT touch |
-|-------|------|----------------|
-| frontend-dev | `apps/web/`, `packages/ui/` | `apps/api/`, `packages/config/`, `docs/` |
-| backend-dev | `apps/api/`, `packages/types/` | `apps/web/`, `packages/config/`, `docs/` |
-| devops | `packages/config/`, root configs, `.github/` | `apps/*/src/`, `docs/` |
-| fixer | All packages (fix accepted review comments) | Only fixes identified findings, no new features |
-| tester | Test files in all packages | Never modifies source files |
-| security-auditor | Read-only + `Bash` for auditing | Never modifies source files |
-| architect | `docs/architecture/`, ADR files | Never writes application code |
-| product-lead | `analyses/`, `specs/`, GitHub issues via `gh` | Never writes application code |
-| doc-writer | `docs/`, `CLAUDE.md` | Never writes application code |
+**Examples:**
+- backend-dev → tester: Files, Routes, Auth, Caveats (so tester knows what to test + what's unguarded)
+- frontend-dev → tester: Files, Routes consumed, Decisions (component structure, state management)
+- architect → backend-dev: Decisions, Caveats (so implementer respects design constraints)
+- any agent → fixer: Files, Caveats (so fixer has full context on accepted findings)
 
-### Standards
+## Domain Boundaries
 
-All agents must follow:
+¬modify files outside your domain.
 
-- **Conventional Commits**: `<type>(<scope>): <description>` — see [Contributing](docs/contributing.mdx)
-- **Domain standards**: Read relevant standards before coding (see agent `.md`)
-- **No `git add -A`** — stage specific files only
-- **No force push** — never `--force` or `--hard`
+| Agent | Owns | ¬Touch |
+|-------|------|--------|
+| frontend-dev | `apps/web/`, `packages/ui/` | api, config, docs |
+| backend-dev | `apps/api/`, `packages/types/` | web, config, docs |
+| devops | `packages/config/`, root configs, `.github/` | `apps/*/src/`, docs |
+| fixer | All packages (accepted findings only) | ¬new features |
+| tester | Test files in all packages | ¬source files |
+| security-auditor | Read-only + Bash | ¬source files |
+| architect | `docs/architecture/`, ADRs | ¬app code |
+| product-lead | `artifacts/analyses/`, `artifacts/specs/`, `gh` CLI | ¬app code |
+| doc-writer | `docs/`, `CLAUDE.md` | ¬app code |
 
-## Configuration
+Intra-domain parallel: multiple same-type agents on non-overlapping files OK. Shared files → merge into single agent.
 
-Agent behavior defined via YAML frontmatter in `.claude/agents/*.md`:
+## Micro-Task Protocol
 
-- **`permissionMode`** — `bypassPermissions` (free execution) | `plan` (propose only)
-- **`maxTurns`** — Max API round-trips (20–50 by role)
-- **`memory: project`** — Persistent learnings in `.claude/agent-memory/`. For *emergent* knowledge (workarounds, gotchas) — not prescribed rules.
-- **`skills`** — Preloaded skill per agent (e.g., `commit`, `test`, `context7`)
-- **`disallowedTools`** — Tool deny list (defense-in-depth)
+When `/scaffold` 4b generates micro-tasks, agents receive structured work units via TaskCreate.
 
-Full details → [Agent Teams Guide](docs/guides/agent-teams.mdx).
+**Claim:** Spawn-prompt assignment = authoritative. Also check TaskList for unassigned tasks (lowest ID first).
+
+**Verify:** After each task, check `verificationStatus`:
+- `ready` → run command now
+- `deferred` → GREEN agents only spawned after RED-GATE complete. Unexpected deferred → skip verify, continue.
+- `manual` → inspect file/code, mark complete
+
+**Fail loop:** verify ✗ → fix + re-verify (max 3) → 3✗ → escalate to lead (task ID, error, fixes tried, files).
+
+**RED-GATE:** Sentinel per slice assigned to tester (`phase: RED-GATE`). Tester marks complete after all RED tasks done → orchestrator spawns GREEN agents.
+
+## Config
+
+Agent behavior via YAML frontmatter in `.claude/agents/*.md`:
+`permissionMode` (bypassPermissions|plan) | `maxTurns` (20-50) | `memory: project` (.claude/agent-memory/) | `skills` (preloaded) | `disallowedTools` (deny list)
+
+Full → [agent-teams.mdx](docs/guides/agent-teams.mdx).

@@ -2,7 +2,7 @@ import type { ConsentRecord } from '@repo/types'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ConsentController } from './consent.controller.js'
 import type { ConsentService } from './consent.service.js'
-import { ConsentNotFoundException } from './exceptions/consent-not-found.exception.js'
+import { ConsentNotFoundException } from './exceptions/consentNotFound.exception.js'
 
 const mockConsentService = {
   saveConsent: vi.fn(),

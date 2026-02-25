@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { toast } from 'sonner'
 import { describe, expect, it, vi } from 'vitest'
-import { authClient } from '@/lib/auth-client'
-import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
+import { authClient } from '@/lib/authClient'
+import { mockParaglideMessages } from '@/test/__mocks__/mockMessages'
 
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
@@ -14,6 +15,7 @@ vi.mock('@tanstack/react-router', () => ({
     return {
       component: config.component,
       useLoaderData: () => captured.loaderData,
+      useSearch: () => ({}),
     }
   },
   Link: ({
@@ -28,15 +30,16 @@ vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => vi.fn(),
 }))
 
-vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repoUi'))
 
-vi.mock('@/lib/auth-client', () => ({
+vi.mock('@/lib/authClient', () => ({
   authClient: {
     signIn: {
       email: vi.fn(),
       magicLink: vi.fn(),
       social: vi.fn(),
     },
+    sendVerificationEmail: vi.fn(),
   },
   fetchEnabledProviders: vi.fn(),
 }))
@@ -237,6 +240,148 @@ describe('LoginPage', () => {
     // Assert -- should show the email not verified message, not generic credentials error
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('auth_login_email_not_verified')
+    })
+  })
+
+  it('should call sendVerificationEmail with correct email when resend button is clicked after 403', async () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
+    vi.mocked(authClient.signIn.email).mockResolvedValueOnce({
+      error: { message: 'Email not verified', status: 403 },
+      data: null,
+    } as never)
+    vi.mocked(authClient.sendVerificationEmail).mockResolvedValueOnce({} as never)
+
+    const LoginPage = captured.Component
+    render(<LoginPage />)
+
+    const panels = screen.getAllByRole('tabpanel')
+    const passwordPanel = panels[0] as HTMLElement
+    fireEvent.change(within(passwordPanel).getByLabelText('auth_email'), {
+      target: { value: 'unverified@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('auth_password'), {
+      target: { value: 'password123' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'auth_sign_in_button' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument()
+    })
+
+    // Act -- click resend button
+    fireEvent.click(screen.getByRole('button', { name: 'auth_resend_verification' }))
+
+    // Assert
+    await waitFor(() => {
+      expect(authClient.sendVerificationEmail).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'unverified@example.com' })
+      )
+    })
+  })
+
+  it('should show toast.success after successful resend of verification email', async () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
+    vi.mocked(authClient.signIn.email).mockResolvedValueOnce({
+      error: { message: 'Email not verified', status: 403 },
+      data: null,
+    } as never)
+    vi.mocked(authClient.sendVerificationEmail).mockResolvedValueOnce({} as never)
+
+    const LoginPage = captured.Component
+    render(<LoginPage />)
+
+    const panels = screen.getAllByRole('tabpanel')
+    const passwordPanel = panels[0] as HTMLElement
+    fireEvent.change(within(passwordPanel).getByLabelText('auth_email'), {
+      target: { value: 'unverified@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('auth_password'), {
+      target: { value: 'password123' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'auth_sign_in_button' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument()
+    })
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'auth_resend_verification' }))
+
+    // Assert
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith('auth_toast_verification_resent')
+    })
+  })
+
+  it('should show cooldown text on resend button after successful resend', async () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
+    vi.mocked(authClient.signIn.email).mockResolvedValueOnce({
+      error: { message: 'Email not verified', status: 403 },
+      data: null,
+    } as never)
+    vi.mocked(authClient.sendVerificationEmail).mockResolvedValueOnce({} as never)
+
+    const LoginPage = captured.Component
+    render(<LoginPage />)
+
+    const panels = screen.getAllByRole('tabpanel')
+    const passwordPanel = panels[0] as HTMLElement
+    fireEvent.change(within(passwordPanel).getByLabelText('auth_email'), {
+      target: { value: 'unverified@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('auth_password'), {
+      target: { value: 'password123' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'auth_sign_in_button' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument()
+    })
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'auth_resend_verification' }))
+
+    // Assert -- button should show cooldown text
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /auth_resend_in/ })).toBeInTheDocument()
+    })
+  })
+
+  it('should show toast.error when resend verification email fails', async () => {
+    // Arrange
+    captured.loaderData = createDefaultLoaderData()
+    vi.mocked(authClient.signIn.email).mockResolvedValueOnce({
+      error: { message: 'Email not verified', status: 403 },
+      data: null,
+    } as never)
+    vi.mocked(authClient.sendVerificationEmail).mockRejectedValueOnce(new Error('Network error'))
+
+    const LoginPage = captured.Component
+    render(<LoginPage />)
+
+    const panels = screen.getAllByRole('tabpanel')
+    const passwordPanel = panels[0] as HTMLElement
+    fireEvent.change(within(passwordPanel).getByLabelText('auth_email'), {
+      target: { value: 'unverified@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('auth_password'), {
+      target: { value: 'password123' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'auth_sign_in_button' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument()
+    })
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'auth_resend_verification' }))
+
+    // Assert
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('auth_toast_error')
     })
   })
 })

@@ -210,20 +210,17 @@ jobs:
       - name: Install Vercel CLI and Turbo
         run: npm install -g vercel@latest turbo
 
-      - name: Initialize database if empty
-        working-directory: apps/api
+      - name: Reset database for clean migrations
         env:
           DATABASE_URL: ${{ steps.db.outputs.url }}
         run: |
           set -euo pipefail
-          TABLE_COUNT=$(bun run scripts/check-db-schema.ts)
-          echo "Found $TABLE_COUNT tables in database"
-          if [ "$TABLE_COUNT" = "0" ] || [ -z "$TABLE_COUNT" ]; then
-            echo "::notice::Database is empty — running drizzle-kit push to create schema"
-            bunx drizzle-kit push --force
-          else
-            echo "Database has $TABLE_COUNT table(s) — skipping initialization"
-          fi
+          # Neon branches fork from production, so the schema already exists
+          # but the Drizzle migration journal is empty.  Drop and recreate the
+          # public schema so that db:migrate in the Vercel build can bootstrap
+          # from the baseline migration.
+          psql "$DATABASE_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+          echo "Schema reset for clean migration"
 
       - name: Deploy API preview
         id: deploy
@@ -233,10 +230,11 @@ jobs:
         # Rate limiting uses in-memory storage in previews (no Upstash) — resets on cold start.
         run: |
           for attempt in 1 2 3; do
-            # --env overrides are intentional: DATABASE_URL points to an isolated Neon
-            # preview branch (not production), even when the Neon Marketplace integration
-            # injects a production DATABASE_URL into the project's environment variables.
+            # --build-env overrides the Neon Marketplace integration's production
+            # DATABASE_URL during the Vercel build step (db:migrate).
+            # --env sets the same value for runtime (serverless functions).
             if URL=$(vercel deploy --token "$VERCEL_TOKEN" \
+              --build-env "DATABASE_URL=$DATABASE_URL" \
               --env "DATABASE_URL=$DATABASE_URL" \
               --env "SWAGGER_ENABLED=true" \
               --env "RATE_LIMIT_ENABLED=false"); then break; fi

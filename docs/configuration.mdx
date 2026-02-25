@@ -131,6 +131,7 @@ Agent definitions are in `.claude/agents/*.md`. See the [Agent Teams Guide](./gu
 | `NODE_ENV` | API, Web | No | `development` | Server | Environment mode |
 | `PORT` | API | No | `4000` | Server | API server port |
 | `WEB_PORT` | Web | No | `3000` | Server | Web dev server port |
+| `EMAIL_PORT` | Email | No | `3001` | Server | Email preview server port |
 | `API_URL` | Web | Dev: No, Prod: Yes | `http://localhost:4000` | Server | Backend API URL |
 | `APP_URL` | API, Web | No | — | Server | Frontend URL |
 | `CORS_ORIGIN` | API | No | `http://localhost:3000` | Server | Allowed CORS origin |
@@ -170,6 +171,12 @@ Agent definitions are in `.claude/agents/*.md`. See the [Agent Teams Guide](./gu
 | `RATE_LIMIT_AUTH_BLOCK_DURATION` | API | No | `300000` | Server | Auth block (ms) |
 | `RATE_LIMIT_API_TTL` | API | No | `60000` | Server | API key window (ms) |
 | `RATE_LIMIT_API_LIMIT` | API | No | `100` | Server | API key max requests |
+
+### Scheduled Tasks
+
+| Variable | App | Required | Default | Scope | Description |
+|----------|-----|----------|---------|-------|-------------|
+| `CRON_SECRET` | API | No | — | Server | Shared secret for authenticating cron job requests |
 
 ### Deployment
 

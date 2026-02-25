@@ -7,6 +7,7 @@
         "BETTER_AUTH_SECRET",
         "BETTER_AUTH_URL",
         "CORS_ORIGIN",
+        "DATABASE_APP_URL",
         "DATABASE_URL",
         "DATABASE_URL_UNPOOLED",
         "EMAIL_FROM",
@@ -35,7 +36,9 @@
         "RATE_LIMIT_API_TTL",
         "RATE_LIMIT_API_LIMIT",
         "RESEND_API_KEY",
-        "SWAGGER_ENABLED"
+        "SWAGGER_ENABLED",
+        "PORT",
+        "LOG_LEVEL"
       ]
     }
   }

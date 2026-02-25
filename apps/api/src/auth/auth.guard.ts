@@ -10,17 +10,12 @@ import {
 import { Reflector } from '@nestjs/core'
 import type { Role } from '@repo/types'
 import type { FastifyRequest } from 'fastify'
-import { ErrorCode } from '../common/error-codes.js'
+import { ErrorCode } from '../common/errorCodes.js'
 import { UserService } from '../user/user.service.js'
 import { AuthService } from './auth.service.js'
+import type { AuthenticatedSession } from './types.js'
 
-type AuthSession = {
-  user: { id: string; role?: Role }
-  session: { id: string; activeOrganizationId?: string | null }
-  permissions: string[]
-}
-
-function isAuthSession(value: unknown): value is AuthSession {
+function isAuthenticatedSession(value: unknown): value is AuthenticatedSession {
   if (value === null || value === undefined) return false
   const v = value as Record<string, unknown>
   if (typeof v.user !== 'object' || v.user === null) return false
@@ -33,14 +28,15 @@ function isAuthSession(value: unknown): value is AuthSession {
 }
 
 type AuthenticatedRequest = FastifyRequest & {
-  session: AuthSession | null
-  user: AuthSession['user'] | null
+  session: AuthenticatedSession | null
+  user: AuthenticatedSession['user'] | null
 }
 
 // Routes accessible to soft-deleted users
 const SOFT_DELETED_ALLOWED_ROUTES = [
   { method: 'POST', path: '/api/users/me/reactivate' },
   { method: 'GET', path: '/api/users/me' },
+  { method: 'GET', path: '/api/session' },
   { method: 'GET', path: '/api/gdpr/export' },
   { method: 'POST', path: '/api/users/me/purge' },
   { method: 'GET', path: '/api/organizations' },
@@ -64,7 +60,7 @@ export class AuthGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>()
     const raw = await this.authService.getSession(request)
-    const session = isAuthSession(raw) ? raw : null
+    const session = isAuthenticatedSession(raw) ? raw : null
 
     request.session = session
     request.user = session?.user ?? null
@@ -86,7 +82,7 @@ export class AuthGuard implements CanActivate {
     return true
   }
 
-  private async checkSoftDeleted(request: AuthenticatedRequest, session: AuthSession) {
+  private async checkSoftDeleted(request: AuthenticatedRequest, session: AuthenticatedSession) {
     const user = await this.userService.getSoftDeleteStatus(session.user.id)
 
     if (!user?.deletedAt) return
@@ -107,7 +103,7 @@ export class AuthGuard implements CanActivate {
     }
   }
 
-  private checkRoles(context: ExecutionContext, session: AuthSession) {
+  private checkRoles(context: ExecutionContext, session: AuthenticatedSession) {
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>('ROLES', [
       context.getHandler(),
       context.getClass(),
@@ -118,7 +114,7 @@ export class AuthGuard implements CanActivate {
     }
   }
 
-  private checkOrgRequired(context: ExecutionContext, session: AuthSession) {
+  private checkOrgRequired(context: ExecutionContext, session: AuthenticatedSession) {
     const requireOrg = this.reflector.getAllAndOverride<boolean>('REQUIRE_ORG', [
       context.getHandler(),
       context.getClass(),
@@ -128,7 +124,7 @@ export class AuthGuard implements CanActivate {
     }
   }
 
-  private checkPermissions(context: ExecutionContext, session: AuthSession) {
+  private checkPermissions(context: ExecutionContext, session: AuthenticatedSession) {
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>('PERMISSIONS', [
       context.getHandler(),
       context.getClass(),

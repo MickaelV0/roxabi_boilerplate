@@ -1,4 +1,4 @@
-export { mockParaglideMessages } from './mock-messages'
-export { createMockSession, type MockSession } from './mock-session'
-export { createMockUser, type MockUser } from './mock-user'
-export * as repoUiMocks from './repo-ui'
+export { mockParaglideMessages } from './mockMessages'
+export { createMockSession, type MockSession } from './mockSession'
+export { createMockUser, type MockUser } from './mockUser'
+export * as repoUiMocks from './repoUi'

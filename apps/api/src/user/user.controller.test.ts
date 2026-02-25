@@ -1,24 +1,21 @@
-import { DICEBEAR_CDN_BASE } from '@repo/types'
+import { AVATAR_STYLES, DICEBEAR_CDN_DOMAIN } from '@repo/types'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
-import { AccountNotDeletedException } from './exceptions/account-not-deleted.exception.js'
-import { UserNotFoundException } from './exceptions/user-not-found.exception.js'
+import { AccountNotDeletedException } from './exceptions/accountNotDeleted.exception.js'
+import { UserNotFoundException } from './exceptions/userNotFound.exception.js'
 import { UserController } from './user.controller.js'
 import type { UserService } from './user.service.js'
 
 // Reconstruct the schema from user.controller.ts for validation testing.
 // The source schema is module-private and cannot be imported.
-const DICEBEAR_URL_PREFIX = `${DICEBEAR_CDN_BASE.split('/9.x')[0]}/`
+const DICEBEAR_URL_PREFIX = `${DICEBEAR_CDN_DOMAIN}/`
 const avatarOptionValue = z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])
 const updateProfileSchema = z.object({
   firstName: z.string().min(1).max(100).optional(),
   lastName: z.string().max(100).optional(),
   fullName: z.string().min(1).max(200).optional(),
   avatarSeed: z.string().max(200).nullable().optional(),
-  avatarStyle: z
-    .enum(['lorelei', 'bottts', 'pixel-art', 'thumbs', 'avataaars', 'adventurer', 'toon-head'])
-    .nullable()
-    .optional(),
+  avatarStyle: z.enum(AVATAR_STYLES).nullable().optional(),
   avatarOptions: z
     .record(z.string(), avatarOptionValue)
     .refine((val) => JSON.stringify(val).length <= 4096, 'avatarOptions too large')

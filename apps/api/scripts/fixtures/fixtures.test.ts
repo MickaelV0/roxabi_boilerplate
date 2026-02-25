@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { DEFAULT_ROLES } from '../../src/rbac/rbac.constants.js'
-import { parsePreset, VALID_PRESETS } from '../db-seed.js'
+import { parsePreset, VALID_PRESETS } from '../dbSeed.js'
 import { seed as authSeed, FULL_EXTRA_USERS, MINIMAL_USERS } from './auth.fixture.js'
 import { seed as consentSeed } from './consent.fixture.js'
 import { runFixtures } from './index.js'
@@ -23,9 +23,9 @@ const VALID_ROLES = DEFAULT_ROLES.map((r) => r.slug)
 // ---------------------------------------------------------------------------
 
 describe('auth fixture data', () => {
-  it('should have exactly 3 minimal users', () => {
+  it('should have exactly 4 minimal users', () => {
     // Arrange / Act / Assert
-    expect(MINIMAL_USERS).toHaveLength(3)
+    expect(MINIMAL_USERS).toHaveLength(4)
   })
 
   it('should have exactly 9 full extra users', () => {
@@ -253,8 +253,8 @@ describe('tenant fixture data — invitations', () => {
 // ---------------------------------------------------------------------------
 
 describe('permissions fixture data', () => {
-  it('should have exactly 15 default permissions', () => {
-    expect(DEFAULT_PERMISSIONS).toHaveLength(15)
+  it('should have exactly 17 default permissions', () => {
+    expect(DEFAULT_PERMISSIONS).toHaveLength(17)
   })
 
   it('should have unique resource:action pairs', () => {
@@ -318,7 +318,7 @@ describe('rbac fixture data', () => {
   it('should have all role permission keys in resource:action format', () => {
     for (const role of DEFAULT_ROLES) {
       for (const permKey of role.permissions) {
-        expect(permKey).toMatch(/^[a-z]+:[a-z]+$/)
+        expect(permKey).toMatch(/^[a-z_]+:[a-z]+$/)
       }
     }
   })

@@ -57,7 +57,6 @@ The Vite configuration (`vite.config.ts`) chains several plugins in order:
 | `@tanstack/devtools-vite` | Unified TanStack devtools panel (dev only) |
 | `@inlang/paraglide-js` | Compile-time i18n with URL-based locale strategy |
 | `nitro/vite` | SSR runtime, API proxy, and production build |
-| `@content-collections/vite` | Content collections for structured data (jobs, education) |
 | `vite-tsconfig-paths` | Path alias resolution (`@/` maps to `src/`) |
 | `@tailwindcss/vite` | Tailwind CSS v4 JIT compilation |
 | `@tanstack/react-start/plugin/vite` | TanStack Start framework integration |
@@ -209,18 +208,14 @@ These files use the `.ts` extension (not `.tsx`) and run exclusively on the serv
 
 The frontend uses a layered approach to state, matching each concern to the right tool:
 
-```txt
-+---------------------------+----------------------------------+
-|  Layer                    |  Tool                            |
-+---------------------------+----------------------------------+
-|  Server/async state       |  TanStack Query                  |
-|  Form state               |  TanStack Form                   |
-|  Client-side global state |  TanStack Store                  |
-|  Route-level data         |  Route loaders (SSR)             |
-|  Server mutations         |  Server functions (createServerFn)|
-|  Local component state    |  React useState                  |
-+---------------------------+----------------------------------+
-```
+| Layer | Tool |
+|-------|------|
+| Server/async state | TanStack Query |
+| Form state | TanStack Form |
+| Client-side global state | TanStack Store |
+| Route-level data | Route loaders (SSR) |
+| Server mutations | Server functions (createServerFn) |
+| Local component state | React useState |
 
 ### TanStack Query
 
@@ -545,7 +540,7 @@ The architecture maintains a clear separation between server-side and client-sid
 | Location | Purpose |
 |----------|---------|
 | `src/server.ts` | Server entry point, Paraglide middleware |
-| `src/lib/api-client.server.ts` | Server-side API client (ofetch with correlation IDs) |
+| `src/lib/apiClient.server.ts` | Server-side API client (ofetch with correlation IDs) |
 | `src/lib/source.ts` | Fumadocs page tree resolution |
 | `src/data/*.ts` | Server functions (`createServerFn`) |
 | `routes/**/api.*.ts` | Server-only API route handlers |
@@ -557,7 +552,7 @@ The architecture maintains a clear separation between server-side and client-sid
 | Location | Purpose |
 |----------|---------|
 | `src/components/*.tsx` | React UI components |
-| `src/lib/auth-client.ts` | Better Auth client (browser-side session) |
+| `src/lib/authClient.ts` | Better Auth client (browser-side session) |
 | `src/lib/demo-store.ts` | TanStack Store instances |
 | `src/hooks/*.ts` | Form hooks, custom React hooks |
 | `src/integrations/tanstack-query/` | Query client setup and devtools |

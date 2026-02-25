@@ -49,7 +49,7 @@ Better Auth was chosen for three reasons:
 
 1. **Framework-agnostic.** It exposes a standard `Request/Response` handler, which maps cleanly onto Fastify via a thin adapter. No tight coupling to Next.js or any other meta-framework.
 2. **Drizzle-native.** The `drizzleAdapter` reads schema definitions directly, with `usePlural: true` matching the project's plural table naming convention. No ORM mismatch.
-3. **Plugin system.** Organization management, admin capabilities, and magic links are added as plugins rather than custom code. Each plugin extends both server routes and the client SDK.
+3. **Plugin system.** Organization management and magic links are added as plugins rather than custom code. Each plugin extends both server routes and the client SDK. (The admin plugin was removed in Phase 1 (#268); admin actions now go through NestJS.)
 
 ### Why a global guard instead of per-route middleware?
 
@@ -191,7 +191,7 @@ The frontend discovers which providers are available at runtime by calling `GET 
 1. Add the provider's client ID/secret to the env schema (`apps/api/src/config/env.validation.ts`)
 2. Add the conditional block in `createBetterAuth()` (`apps/api/src/auth/auth.instance.ts`)
 3. Update `enabledProviders` in `AuthService` (`apps/api/src/auth/auth.service.ts`)
-4. Update the frontend `EnabledProviders` type (`apps/web/src/lib/auth-client.ts`)
+4. Update the frontend `EnabledProviders` type (`apps/web/src/lib/authClient.ts`)
 
 No new routes or controllers are needed — Better Auth handles the OAuth callback flow at `/api/auth/callback/{provider}`.
 
@@ -285,7 +285,7 @@ Credentials are always enabled (`credentials: true`) because authentication reli
 
 ### Same-Origin Cookie Strategy
 
-In development, the frontend (port 3000) and API (port 3001) run on different ports. Cross-port cookies would require `SameSite=None` and HTTPS, which is impractical for local development. Instead, the frontend uses a **Nitro dev proxy**:
+In development, the frontend (port 3000) and API (port 4000) run on different ports. Cross-port cookies would require `SameSite=None` and HTTPS, which is impractical for local development. Instead, the frontend uses a **Nitro dev proxy**:
 
 ```ts
 // apps/web/vite.config.ts
@@ -361,15 +361,17 @@ The env validation (`apps/api/src/config/env.validation.ts`) enforces that `KV_R
 
 ## Frontend Auth Client
 
-The frontend uses Better Auth's React SDK, configured in `apps/web/src/lib/auth-client.ts`:
+The frontend uses Better Auth's React SDK, configured in `apps/web/src/lib/authClient.ts`:
 
 ```ts
-import { adminClient, magicLinkClient, organizationClient } from 'better-auth/client/plugins'
+import { magicLinkClient, organizationClient } from 'better-auth/client/plugins'
 import { createAuthClient } from 'better-auth/react'
 
 export const authClient = createAuthClient({
   baseURL: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
-  plugins: [organizationClient(), adminClient(), magicLinkClient()],
+  // Better Auth admin client plugin removed in Phase 1 (#268)
+  // All admin actions go through NestJS AdminModule with guards + audit logging
+  plugins: [organizationClient(), magicLinkClient()],
 })
 
 export const { useSession, signIn, signUp, signOut } = authClient
@@ -378,7 +380,7 @@ export const { useSession, signIn, signUp, signOut } = authClient
 ### Key Design Choices
 
 - **`baseURL` uses `window.location.origin`** in the browser, so requests go through the Nitro proxy in development and hit the same domain in production. Server-side rendering falls back to `http://localhost:3000`.
-- **Plugins mirror the server** — `organizationClient()`, `adminClient()`, and `magicLinkClient()` match the server-side `organization()`, `admin()`, and `magicLink()` plugins. Mismatched plugins cause runtime errors.
+- **Plugins mirror the server** — `organizationClient()` and `magicLinkClient()` match the server-side `organization()` and `magicLink()` plugins. Mismatched plugins cause runtime errors. The `admin()` plugin was removed in Phase 1 (#268); admin actions now go through the NestJS AdminModule.
 - **Provider discovery** — `fetchEnabledProviders()` calls `GET /api/auth/providers` to discover which OAuth buttons to render, rather than hardcoding them.
 
 ### Frontend Permission Helpers
@@ -426,7 +428,7 @@ The env validation schema (`apps/api/src/config/env.validation.ts`) enforces tha
 | Auth guard | `apps/api/src/auth/auth.guard.ts` |
 | Auth controller | `apps/api/src/auth/auth.controller.ts` |
 | Auth module | `apps/api/src/auth/auth.module.ts` |
-| Fastify header conversion | `apps/api/src/auth/fastify-headers.ts` |
+| Fastify header conversion | `apps/api/src/auth/fastifyHeaders.ts` |
 | Decorators | `apps/api/src/auth/decorators/` |
 | Email provider interface | `apps/api/src/auth/email/email.provider.ts` |
 | Resend implementation | `apps/api/src/auth/email/resend.provider.ts` |
@@ -436,7 +438,7 @@ The env validation schema (`apps/api/src/config/env.validation.ts`) enforces tha
 | CORS parser | `apps/api/src/cors.ts` |
 | Bootstrap (headers, CORS) | `apps/api/src/index.ts` |
 | Env validation | `apps/api/src/config/env.validation.ts` |
-| Frontend auth client | `apps/web/src/lib/auth-client.ts` |
+| Frontend auth client | `apps/web/src/lib/authClient.ts` |
 | Frontend permissions | `apps/web/src/lib/permissions.ts` |
 | Vite proxy config | `apps/web/vite.config.ts` |
 

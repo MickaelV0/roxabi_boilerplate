@@ -1,23 +1,25 @@
 import { AnimatedSection, Badge, Card, cn } from '@repo/ui'
 import { Blocks, FileText, Users, Zap } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { m } from '@/paraglide/messages'
 
 const skills = [
-  'commit',
   'review',
   'bootstrap',
   'scaffold',
   'pr',
   'promote',
   'test',
+  'interview',
   'issues',
   'issue-triage',
-  'interview',
-  'cleanup',
   '1b1',
   'adr',
+  'cleanup',
+  'retro',
+  'validate',
+  'compress',
   'agent-browser',
-  'context7',
 ] as const
 
 const agentFiles = [
@@ -46,66 +48,130 @@ const agentColors: Record<string, string> = {
 
 const blockIcons = [FileText, Zap, Users] as const
 
-export function BuildingBlocksSection() {
-  const blocks = [
+function ClaudeVisual() {
+  return (
+    <div className="mt-4 rounded-lg border border-border/30 bg-muted/20 p-3 font-mono text-xs leading-relaxed text-muted-foreground">
+      <p className="text-foreground/80"># Claude Configuration</p>
+      <p className="mt-1">## TL;DR</p>
+      <p>- Before any work: Read dev-process.mdx</p>
+      <p>- All code changes require a worktree</p>
+      <p>- Always use Conventional Commits</p>
+    </div>
+  )
+}
+
+function SkillsVisual() {
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      {skills.slice(0, 6).map((skill) => (
+        <Badge key={skill} variant="outline" className="font-mono text-xs">
+          /{skill}
+        </Badge>
+      ))}
+      <Badge variant="outline" className="font-mono text-xs text-muted-foreground">
+        {m.talk_blocks_skills_more({ count: String(skills.length - 6) })}
+      </Badge>
+    </div>
+  )
+}
+
+function AgentsVisual() {
+  return (
+    <div className="mt-4 grid grid-cols-3 gap-2">
+      {agentFiles.map((file) => {
+        const name = file.replace('.md', '')
+        return (
+          <span
+            key={name}
+            className={cn(
+              'rounded-md px-2 py-1.5 font-mono text-xs font-medium text-center',
+              agentColors[name] ?? 'text-muted-foreground bg-muted/20'
+            )}
+          >
+            {name}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
+type BlockData = {
+  icon: (typeof blockIcons)[number]
+  title: string
+  subtitle: string
+  description: string
+  visual: ReactNode
+}
+
+function useBlocksData(): BlockData[] {
+  return [
     {
       icon: blockIcons[0],
       title: 'CLAUDE.md',
       subtitle: m.talk_blocks_claude_subtitle(),
       description: m.talk_blocks_claude_desc(),
-      visual: (
-        <div className="mt-4 rounded-lg border border-border/30 bg-muted/20 p-3 font-mono text-xs leading-relaxed text-muted-foreground">
-          <p className="text-foreground/80"># Claude Configuration</p>
-          <p className="mt-1">## TL;DR</p>
-          <p>- Before any work: Read dev-process.mdx</p>
-          <p>- All code changes require a worktree</p>
-          <p>- Always use Conventional Commits</p>
-        </div>
-      ),
+      visual: <ClaudeVisual />,
     },
     {
       icon: blockIcons[1],
       title: m.talk_blocks_skills_title(),
       subtitle: m.talk_blocks_skills_subtitle(),
       description: m.talk_blocks_skills_desc(),
-      visual: (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {skills.slice(0, 6).map((skill) => (
-            <Badge key={skill} variant="outline" className="font-mono text-xs">
-              /{skill}
-            </Badge>
-          ))}
-          <Badge variant="outline" className="font-mono text-xs text-muted-foreground">
-            {m.talk_blocks_skills_more({ count: String(skills.length - 6) })}
-          </Badge>
-        </div>
-      ),
+      visual: <SkillsVisual />,
     },
     {
       icon: blockIcons[2],
       title: m.talk_blocks_agents_title(),
       subtitle: m.talk_blocks_agents_subtitle(),
       description: m.talk_blocks_agents_desc(),
-      visual: (
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          {agentFiles.map((file) => {
-            const name = file.replace('.md', '')
-            return (
-              <span
-                key={name}
-                className={cn(
-                  'rounded-md px-2 py-1.5 font-mono text-xs font-medium text-center',
-                  agentColors[name] ?? 'text-muted-foreground bg-muted/20'
-                )}
-              >
-                {name}
-              </span>
-            )
-          })}
-        </div>
-      ),
+      visual: <AgentsVisual />,
     },
   ]
+}
+
+type BlockCardProps = {
+  block: BlockData
+  index: number
+}
+
+function BlockCard({ block, index }: BlockCardProps) {
+  return (
+    <AnimatedSection
+      className={cn(
+        index === 0 && 'md:col-span-6',
+        index === 1 && 'md:col-span-3',
+        index === 2 && 'md:col-span-3',
+        index > 0 && 'md:delay-150'
+      )}
+    >
+      <Card
+        variant="subtle"
+        className={cn(
+          'h-full p-6 lg:p-8',
+          index === 0 && 'md:flex md:flex-row md:items-start md:gap-8'
+        )}
+      >
+        <div className={cn(index === 0 && 'md:flex-1')}>
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-primary/10 p-2">
+              <block.icon className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold">{block.title}</h3>
+              <p className="text-sm text-muted-foreground">{block.subtitle}</p>
+            </div>
+          </div>
+          <p className="mt-4 text-muted-foreground">{block.description}</p>
+        </div>
+        <div className={cn(index === 0 && 'md:flex-1')}>{block.visual}</div>
+      </Card>
+    </AnimatedSection>
+  )
+}
+
+export function BuildingBlocksSection() {
+  const blocks = useBlocksData()
 
   return (
     <div className="mx-auto max-w-7xl w-full">
@@ -119,47 +185,9 @@ export function BuildingBlocksSection() {
         <p className="mt-4 text-lg text-muted-foreground">{m.talk_blocks_subtitle()}</p>
       </AnimatedSection>
 
-      {/* Bento grid: featured card spans full width, remaining 2 below in equal sizes */}
       <div className="mt-12 grid gap-6 md:grid-cols-6">
         {blocks.map((block, index) => (
-          <AnimatedSection
-            key={block.title}
-            className={cn(
-              // Featured card (CLAUDE.md) spans full width
-              index === 0 && 'md:col-span-6',
-              // Skills card takes 3 columns
-              index === 1 && 'md:col-span-3',
-              // Agent definitions takes 3 columns
-              index === 2 && 'md:col-span-3',
-              // Stagger animation for rows below the first
-              index > 0 && 'md:delay-150'
-            )}
-          >
-            <Card
-              variant="subtle"
-              className={cn(
-                'h-full p-6 lg:p-8',
-                // Featured card gets a horizontal layout on desktop
-                index === 0 && 'md:flex md:flex-row md:items-start md:gap-8'
-              )}
-            >
-              {/* Text content */}
-              <div className={cn(index === 0 && 'md:flex-1')}>
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-primary/10 p-2">
-                    <block.icon className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold">{block.title}</h3>
-                    <p className="text-sm text-muted-foreground">{block.subtitle}</p>
-                  </div>
-                </div>
-                <p className="mt-4 text-muted-foreground">{block.description}</p>
-              </div>
-              {/* Visual content — for featured card, sits beside text on desktop */}
-              <div className={cn(index === 0 && 'md:flex-1')}>{block.visual}</div>
-            </Card>
-          </AnimatedSection>
+          <BlockCard key={block.title} block={block} index={index} />
         ))}
       </div>
 

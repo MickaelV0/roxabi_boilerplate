@@ -65,7 +65,9 @@ export const timestamps = {
 
 // Tenant column for Row-Level Security
 export const tenantColumn = {
-  tenantId: text('tenant_id').notNull(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
 }
 ```
 
@@ -135,10 +137,10 @@ Each organization gets four default roles seeded automatically via `RbacListener
 
 | Role | Slug | Permissions |
 |------|------|-------------|
-| Owner | `owner` | All 15 permissions |
-| Admin | `admin` | All except `organizations:delete` |
+| Owner | `owner` | All 17 permissions (6 resources x 3 actions, minus `api_keys:delete`) |
+| Admin | `admin` | All except `organizations:delete` and `users:delete` |
 | Member | `member` | Read-only: `users`, `organizations`, `members`, `invitations`, `roles` |
-| Viewer | `viewer` | Read-only: `users`, `organizations`, `members`, `roles` |
+| Viewer | `viewer` | Read-only: `users`, `organizations`, `members`, `invitations`, `roles` |
 
 ## Drizzle Kit Configuration
 

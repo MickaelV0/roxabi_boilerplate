@@ -3,7 +3,7 @@ import { APP_FILTER } from '@nestjs/core'
 import { AuthModule } from '../auth/auth.module.js'
 import { ConsentController } from './consent.controller.js'
 import { ConsentService } from './consent.service.js'
-import { ConsentExceptionFilter } from './filters/consent-exception.filter.js'
+import { ConsentExceptionFilter } from './filters/consentException.filter.js'
 
 @Module({
   imports: [AuthModule],

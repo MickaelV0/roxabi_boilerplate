@@ -13,6 +13,7 @@ export const envSchema = z.object({
   PORT: z.coerce.number().default(4000),
   VERCEL_ENV: z.enum(['production', 'preview', 'development']).optional(),
   DATABASE_URL: z.string().optional(),
+  DATABASE_APP_URL: z.string().optional(),
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
   LOG_LEVEL: z.string().default('debug'),
   BETTER_AUTH_SECRET: z.string().min(32).default('dev-secret-do-not-use-in-production'),
@@ -58,13 +59,17 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
   }
 
   const validatedConfig = result.data
+  validateAuthSecret(validatedConfig)
+  validateSecurityWarnings(validatedConfig)
+  validateRateLimitRedis(validatedConfig)
 
+  return validatedConfig
+}
+
+function validateAuthSecret(config: EnvironmentVariables) {
   // Guard uses !== 'development' (not === 'production') to cover preview, staging, and test
-  // environments — any non-local context must use a real secret.
-  if (
-    validatedConfig.NODE_ENV !== 'development' &&
-    INSECURE_SECRETS.includes(validatedConfig.BETTER_AUTH_SECRET)
-  ) {
+  // environments -- any non-local context must use a real secret.
+  if (config.NODE_ENV !== 'development' && INSECURE_SECRETS.includes(config.BETTER_AUTH_SECRET)) {
     throw new Error(
       'BETTER_AUTH_SECRET must be set to a secure value in non-development environments. ' +
         'Generate one with: openssl rand -base64 32'
@@ -73,14 +78,16 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
 
   // Secondary guard: catches Vercel preview deployments where NODE_ENV may still be
   // 'development' but the app is running in a cloud environment that requires a real secret.
-  if (validatedConfig.VERCEL_ENV && INSECURE_SECRETS.includes(validatedConfig.BETTER_AUTH_SECRET)) {
+  if (config.VERCEL_ENV && INSECURE_SECRETS.includes(config.BETTER_AUTH_SECRET)) {
     throw new Error(
       'BETTER_AUTH_SECRET must be set to a secure value on Vercel deployments. ' +
         'Generate one with: openssl rand -base64 32'
     )
   }
+}
 
-  if (validatedConfig.NODE_ENV === 'production' && validatedConfig.RATE_LIMIT_ENABLED === false) {
+function validateSecurityWarnings(config: EnvironmentVariables) {
+  if (config.NODE_ENV === 'production' && config.RATE_LIMIT_ENABLED === false) {
     console.error(
       '[SECURITY] RATE_LIMIT_ENABLED=false in production — auth brute-force protection is DISABLED. ' +
         'Set RATE_LIMIT_ENABLED=true and configure KV_REST_API_URL/TOKEN.'
@@ -90,24 +97,24 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
   // Warn when CRON_SECRET is unset in non-development environments.
   // The purge endpoint degrades gracefully (rejects unauthenticated requests),
   // so this is a warning, not a hard failure.
-  if (validatedConfig.NODE_ENV !== 'development' && !validatedConfig.CRON_SECRET) {
+  if (config.NODE_ENV !== 'development' && !config.CRON_SECRET) {
     console.warn(
       '[SECURITY] CRON_SECRET is not set in a non-development environment. ' +
         'Scheduled job endpoints (e.g., purge) will reject all requests. ' +
         'Set CRON_SECRET to a secure value: openssl rand -base64 32'
     )
   }
+}
 
+function validateRateLimitRedis(config: EnvironmentVariables) {
   if (
-    validatedConfig.NODE_ENV === 'production' &&
-    validatedConfig.RATE_LIMIT_ENABLED === true &&
-    (!validatedConfig.KV_REST_API_URL || !validatedConfig.KV_REST_API_TOKEN)
+    config.NODE_ENV === 'production' &&
+    config.RATE_LIMIT_ENABLED === true &&
+    !(config.KV_REST_API_URL && config.KV_REST_API_TOKEN)
   ) {
     throw new Error(
       'KV_REST_API_URL and KV_REST_API_TOKEN are required in production when rate limiting is enabled. ' +
         'Provision Upstash Redis via Vercel Marketplace, set them manually, or set RATE_LIMIT_ENABLED=false for previews.'
     )
   }
-
-  return validatedConfig
 }

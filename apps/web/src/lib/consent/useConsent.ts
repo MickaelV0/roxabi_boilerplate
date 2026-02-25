@@ -1,6 +1,6 @@
 import { useContext } from 'react'
-import type { ConsentContextValue } from './ConsentProvider'
-import { ConsentContext } from './ConsentProvider'
+import type { ConsentContextValue } from './consentProvider'
+import { ConsentContext } from './consentProvider'
 
 export function useConsent(): ConsentContextValue {
   const context = useContext(ConsentContext)

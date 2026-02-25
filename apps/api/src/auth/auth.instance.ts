@@ -1,23 +1,30 @@
+import { Logger } from '@nestjs/common'
+import {
+  escapeHtml,
+  renderMagicLinkEmail,
+  renderResetEmail,
+  renderVerificationEmail,
+} from '@repo/email'
+import { DICEBEAR_CDN_BASE } from '@repo/types'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { admin } from 'better-auth/plugins/admin'
 import { magicLink } from 'better-auth/plugins/magic-link'
 import { organization } from 'better-auth/plugins/organization'
 import { eq } from 'drizzle-orm'
+import { rewriteCallbackUrl } from '../common/url.util.js'
 import type { DrizzleDB } from '../database/drizzle.provider.js'
 import { users } from '../database/schema/auth.schema.js'
 import type { EmailProvider } from './email/email.provider.js'
 
-const DICEBEAR_CDN_BASE = 'https://api.dicebear.com/9.x'
+const logger = new Logger('AuthInstance')
 
-export function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
+const SUPPORTED_LOCALES = ['en', 'fr']
+
+// Better Auth does not infer additionalFields on callback user parameters.
+// The locale field is declared in user.additionalFields above but the callback
+// type only includes core fields. This assertion is necessary until Better Auth
+// improves its type inference.
+type UserWithLocale = { locale?: string }
 
 export type AuthInstanceConfig = {
   secret: string
@@ -34,28 +41,146 @@ export type OrganizationCreatedCallback = (data: {
   creatorUserId: string
 }) => void | Promise<void>
 
-export function createBetterAuth(
-  db: DrizzleDB,
-  emailProvider: EmailProvider,
-  config: AuthInstanceConfig,
-  onOrganizationCreated?: OrganizationCreatedCallback
-) {
+function buildSocialProviders(config: AuthInstanceConfig): Record<string, unknown> {
   const socialProviders: Record<string, unknown> = {}
-
   if (config.googleClientId && config.googleClientSecret) {
     socialProviders.google = {
       clientId: config.googleClientId,
       clientSecret: config.googleClientSecret,
     }
   }
-
   if (config.githubClientId && config.githubClientSecret) {
     socialProviders.github = {
       clientId: config.githubClientId,
       clientSecret: config.githubClientSecret,
     }
   }
+  return socialProviders
+}
 
+function buildEmailAndPasswordConfig(emailProvider: EmailProvider, config: AuthInstanceConfig) {
+  return {
+    enabled: true,
+    requireEmailVerification: true,
+    async sendResetPassword({
+      user,
+      url,
+    }: {
+      user: { email: string } & UserWithLocale
+      url: string
+    }) {
+      const emailUrl = rewriteCallbackUrl(url, config.appURL)
+      try {
+        const locale = (user as UserWithLocale).locale ?? 'en'
+        const { html, text, subject } = await renderResetEmail(emailUrl, locale, config.appURL)
+        await emailProvider.send({ to: user.email, subject, html, text })
+      } catch (error) {
+        logger.error('Failed to render reset password email, using fallback', error)
+        await emailProvider.send({
+          to: user.email,
+          subject: 'Reset your password',
+          html: `<p>Click <a href="${escapeHtml(emailUrl)}">here</a> to reset your password.</p>`,
+          text: `Reset your password: ${emailUrl}`,
+        })
+      }
+    },
+  }
+}
+
+function buildEmailVerificationConfig(emailProvider: EmailProvider, config: AuthInstanceConfig) {
+  return {
+    // Better Auth applies server-side rate limiting on verification email sends
+    // (rateLimit plugin). Client-side cooldown (60s) is UX guidance only.
+    // Server-side rate limiting is the hard limit. See issue #53 for additional
+    // rate limiting.
+    sendOnSignIn: true,
+    async sendVerificationEmail({
+      user,
+      url,
+    }: {
+      user: { email: string } & UserWithLocale
+      url: string
+    }) {
+      const emailUrl = rewriteCallbackUrl(url, config.appURL)
+      try {
+        const locale = (user as UserWithLocale).locale ?? 'en'
+        const { html, text, subject } = await renderVerificationEmail(
+          emailUrl,
+          locale,
+          config.appURL
+        )
+        await emailProvider.send({ to: user.email, subject, html, text })
+      } catch (error) {
+        logger.error('Failed to render verification email, using fallback', error)
+        await emailProvider.send({
+          to: user.email,
+          subject: 'Verify your email',
+          html: `<p>Click <a href="${escapeHtml(emailUrl)}">here</a> to verify your email.</p>`,
+          text: `Verify your email: ${emailUrl}`,
+        })
+      }
+    },
+  }
+}
+
+function buildMagicLinkPlugin(
+  db: DrizzleDB,
+  emailProvider: EmailProvider,
+  config: AuthInstanceConfig
+) {
+  return magicLink({
+    async sendMagicLink({ email, url }) {
+      const emailUrl = rewriteCallbackUrl(url, config.appURL)
+      try {
+        const [userData] = await db
+          .select({ locale: users.locale })
+          .from(users)
+          .where(eq(users.email, email))
+        const locale = userData?.locale ?? 'en'
+        const { html, text, subject } = await renderMagicLinkEmail(emailUrl, locale, config.appURL)
+        await emailProvider.send({ to: email, subject, html, text })
+      } catch (error) {
+        logger.error('Failed to render magic link email, using fallback', error)
+        await emailProvider.send({
+          to: email,
+          subject: 'Sign in to Roxabi',
+          html: `<p>Click <a href="${escapeHtml(emailUrl)}">here</a> to sign in.</p>`,
+          text: `Sign in to Roxabi: ${emailUrl}`,
+        })
+      }
+    },
+  })
+}
+
+function buildOrganizationPlugin(onOrganizationCreated?: OrganizationCreatedCallback) {
+  return organization({
+    schema: {
+      organization: {
+        additionalFields: {
+          deletedAt: { type: 'date', required: false, input: false },
+          deleteScheduledFor: { type: 'date', required: false, input: false },
+        },
+      },
+    },
+    organizationHooks: onOrganizationCreated
+      ? {
+          afterCreateOrganization: async ({ organization: org, member }) => {
+            onOrganizationCreated({
+              organizationId: org.id,
+              creatorUserId: member.userId,
+            })
+          },
+        }
+      : undefined,
+  })
+}
+
+export function createBetterAuth(
+  db: DrizzleDB,
+  emailProvider: EmailProvider,
+  config: AuthInstanceConfig,
+  onOrganizationCreated?: OrganizationCreatedCallback
+) {
   const trustedOrigins = config.appURL ? [config.appURL] : []
 
   return betterAuth({
@@ -63,6 +188,12 @@ export function createBetterAuth(
     secret: config.secret,
     baseURL: config.baseURL,
     trustedOrigins,
+    user: {
+      additionalFields: {
+        locale: { type: 'string', required: false, defaultValue: 'en', input: true },
+        role: { type: 'string', required: false, defaultValue: 'user', input: false },
+      },
+    },
     databaseHooks: {
       user: {
         create: {
@@ -76,87 +207,36 @@ export function createBetterAuth(
               if (!user.image) {
                 updateFields.image = `${DICEBEAR_CDN_BASE}/lorelei/svg?seed=${user.id}`
               }
+              // Sanitize locale: only allow supported locales, default to 'en'.
+              // The `input: true` on additionalFields allows arbitrary strings from
+              // the client, so we enforce valid values server-side.
+              const userLocale = (user as UserWithLocale).locale
+              if (userLocale && !SUPPORTED_LOCALES.includes(userLocale)) {
+                updateFields.locale = 'en'
+              }
               await db.update(users).set(updateFields).where(eq(users.id, user.id))
             } catch (error) {
-              console.warn('Failed to set default avatar for user', user.id, error)
+              logger.warn('Failed to set default avatar for user', { userId: user.id, error })
             }
           },
         },
       },
     },
-    database: drizzleAdapter(db, {
-      provider: 'pg',
-      usePlural: true,
-    }),
-    emailAndPassword: {
-      enabled: true,
-      requireEmailVerification: true,
-      async sendResetPassword({ user, url }) {
-        await emailProvider.send({
-          to: user.email,
-          subject: 'Reset your password',
-          html: `<p>Click <a href="${escapeHtml(url)}">here</a> to reset your password.</p>`,
-        })
-      },
-    },
-    emailVerification: {
-      sendOnSignIn: true,
-      async sendVerificationEmail({ user, url }) {
-        await emailProvider.send({
-          to: user.email,
-          subject: 'Verify your email',
-          html: `<p>Click <a href="${escapeHtml(url)}">here</a> to verify your email.</p>`,
-        })
-      },
-    },
-    socialProviders,
+    database: drizzleAdapter(db, { provider: 'pg', usePlural: true }),
+    emailAndPassword: buildEmailAndPasswordConfig(emailProvider, config),
+    emailVerification: buildEmailVerificationConfig(emailProvider, config),
+    socialProviders: buildSocialProviders(config),
     session: {
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,
-      cookieCache: {
-        enabled: true,
-        maxAge: 5 * 60,
-      },
+      cookieCache: { enabled: true, maxAge: 5 * 60 },
     },
     plugins: [
-      organization({
-        schema: {
-          organization: {
-            additionalFields: {
-              deletedAt: {
-                type: 'date',
-                required: false,
-                input: false,
-              },
-              deleteScheduledFor: {
-                type: 'date',
-                required: false,
-                input: false,
-              },
-            },
-          },
-        },
-        organizationHooks: onOrganizationCreated
-          ? {
-              afterCreateOrganization: async ({ organization: org, member }) => {
-                onOrganizationCreated({
-                  organizationId: org.id,
-                  creatorUserId: member.userId,
-                })
-              },
-            }
-          : undefined,
-      }),
-      admin(),
-      magicLink({
-        async sendMagicLink({ email, url }) {
-          await emailProvider.send({
-            to: email,
-            subject: 'Sign in to Roxabi',
-            html: `<p>Click <a href="${escapeHtml(url)}">here</a> to sign in.</p>`,
-          })
-        },
-      }),
+      buildOrganizationPlugin(onOrganizationCreated),
+      // Better Auth admin plugin disabled in Phase 1 (#268)
+      // All admin actions go through NestJS AdminModule with guards + audit logging.
+      // The plugin exposed /api/auth/admin/* endpoints that bypassed NestJS guards entirely.
+      buildMagicLinkPlugin(db, emailProvider, config),
     ],
   })
 }

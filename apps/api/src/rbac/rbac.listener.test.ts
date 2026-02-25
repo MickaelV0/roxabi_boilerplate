@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { OrganizationCreatedEvent } from '../common/events/organization-created.event.js'
+import { OrganizationCreatedEvent } from '../common/events/organizationCreated.event.js'
 import { RbacListener } from './rbac.listener.js'
 
 function chain(terminal: string, value: unknown) {

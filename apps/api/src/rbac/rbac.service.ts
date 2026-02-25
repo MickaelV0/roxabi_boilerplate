@@ -1,15 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { and, eq } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
-import type { DrizzleDB } from '../database/drizzle.provider.js'
+import type { DrizzleTx } from '../database/drizzle.provider.js'
 import { members } from '../database/schema/auth.schema.js'
 import { permissions, rolePermissions, roles } from '../database/schema/rbac.schema.js'
 import { TenantService } from '../tenant/tenant.service.js'
-import { DefaultRoleException } from './exceptions/default-role.exception.js'
-import { MemberNotFoundException } from './exceptions/member-not-found.exception.js'
-import { OwnershipConstraintException } from './exceptions/ownership-constraint.exception.js'
-import { RoleNotFoundException } from './exceptions/role-not-found.exception.js'
-import { RoleSlugConflictException } from './exceptions/role-slug-conflict.exception.js'
+import { DefaultRoleException } from './exceptions/defaultRole.exception.js'
+import { MemberNotFoundException } from './exceptions/memberNotFound.exception.js'
+import { OwnershipConstraintException } from './exceptions/ownershipConstraint.exception.js'
+import { RoleNotFoundException } from './exceptions/roleNotFound.exception.js'
+import { RoleSlugConflictException } from './exceptions/roleSlugConflict.exception.js'
 import { DEFAULT_ROLES } from './rbac.constants.js'
 
 function slugify(name: string): string {
@@ -32,11 +32,7 @@ export class RbacService {
    * Resolve permission strings to IDs and insert into role_permissions.
    * Shared by createRole, updateRole, and seedDefaultRoles.
    */
-  private async syncPermissions(
-    tx: { select: DrizzleDB['select']; insert: DrizzleDB['insert'] },
-    roleId: string,
-    permissionStrings: string[]
-  ) {
+  private async syncPermissions(tx: DrizzleTx, roleId: string, permissionStrings: string[]) {
     if (permissionStrings.length === 0) return
 
     const allPerms = await tx.select().from(permissions)
@@ -101,7 +97,7 @@ export class RbacService {
    * Ensure the new slug doesn't collide with an existing role in the tenant.
    */
   private async ensureUniqueSlug(
-    tx: { select: DrizzleDB['select'] },
+    tx: DrizzleTx,
     tenantId: string,
     newSlug: string,
     currentSlug: string | undefined
@@ -228,60 +224,78 @@ export class RbacService {
     const tenantId = this.cls.get('tenantId') as string
 
     return this.tenantService.query(async (tx) => {
-      // Find Owner and Admin roles
-      const defaultRoles = await tx
-        .select()
-        .from(roles)
-        .where(and(eq(roles.tenantId, tenantId), eq(roles.isDefault, true)))
+      const { ownerRole, adminRole } = await this.findOwnerAdminRoles(tx, tenantId)
+      const currentMember = await this.verifyCurrentOwner(tx, currentUserId, tenantId, ownerRole.id)
+      const targetMember = await this.verifyTargetAdmin(tx, targetMemberId, tenantId, adminRole.id)
 
-      const ownerRole = defaultRoles.find((r) => r.slug === 'owner')
-      const adminRole = defaultRoles.find((r) => r.slug === 'admin')
-
-      if (!ownerRole || !adminRole) {
-        throw new OwnershipConstraintException('Default roles not found')
-      }
-
-      // Verify current user is Owner
-      const [currentMember] = await tx
-        .select()
-        .from(members)
-        .where(
-          and(
-            eq(members.userId, currentUserId),
-            eq(members.organizationId, tenantId),
-            eq(members.roleId, ownerRole.id)
-          )
-        )
-        .limit(1)
-
-      if (!currentMember) {
-        throw new OwnershipConstraintException('Only the Owner can transfer ownership')
-      }
-
-      // Verify target is an Admin
-      const [targetMember] = await tx
-        .select()
-        .from(members)
-        .where(
-          and(
-            eq(members.id, targetMemberId),
-            eq(members.organizationId, tenantId),
-            eq(members.roleId, adminRole.id)
-          )
-        )
-        .limit(1)
-
-      if (!targetMember) {
-        throw new OwnershipConstraintException('Target must be an Admin in the same organization')
-      }
-
-      // Swap: current Owner → Admin, target Admin → Owner (atomic via tenant tx)
       await tx.update(members).set({ roleId: adminRole.id }).where(eq(members.id, currentMember.id))
-
       await tx.update(members).set({ roleId: ownerRole.id }).where(eq(members.id, targetMember.id))
 
       return { transferred: true }
     })
+  }
+
+  private async findOwnerAdminRoles(tx: DrizzleTx, tenantId: string) {
+    const defaultRoles = await tx
+      .select()
+      .from(roles)
+      .where(and(eq(roles.tenantId, tenantId), eq(roles.isDefault, true)))
+
+    const ownerRole = defaultRoles.find((r) => r.slug === 'owner')
+    const adminRole = defaultRoles.find((r) => r.slug === 'admin')
+
+    if (!(ownerRole && adminRole)) {
+      throw new OwnershipConstraintException('Default roles not found')
+    }
+    return { ownerRole, adminRole }
+  }
+
+  private async verifyCurrentOwner(
+    tx: DrizzleTx,
+    userId: string,
+    tenantId: string,
+    ownerRoleId: string
+  ) {
+    const [member] = await tx
+      .select()
+      .from(members)
+      .where(
+        and(
+          eq(members.userId, userId),
+          eq(members.organizationId, tenantId),
+          eq(members.roleId, ownerRoleId)
+        )
+      )
+      .limit(1)
+
+    if (!member) {
+      throw new OwnershipConstraintException('Only the Owner can transfer ownership')
+    }
+    return member
+  }
+
+  private async verifyTargetAdmin(
+    tx: DrizzleTx,
+    memberId: string,
+    tenantId: string,
+    adminRoleId: string
+  ) {
+    const [member] = await tx
+      .select()
+      .from(members)
+      .where(
+        and(
+          eq(members.id, memberId),
+          eq(members.organizationId, tenantId),
+          eq(members.roleId, adminRoleId)
+        )
+      )
+      .limit(1)
+
+    if (!member) {
+      throw new OwnershipConstraintException('Target must be an Admin in the same organization')
+    }
+    return member
   }
 
   /**

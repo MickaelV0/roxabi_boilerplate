@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
+import { mockParaglideMessages } from '@/test/__mocks__/mockMessages'
 
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
@@ -41,11 +41,11 @@ vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => vi.fn(),
 }))
 
-vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repoUi'))
 
 const mockSetActive = vi.fn().mockResolvedValue({})
 
-vi.mock('@/lib/auth-client', () => ({
+vi.mock('@/lib/authClient', () => ({
   authClient: {
     getSession: vi.fn(),
     useActiveOrganization: vi.fn(() => ({ data: null })),
@@ -58,7 +58,7 @@ vi.mock('@/lib/auth-client', () => ({
   })),
 }))
 
-vi.mock('@/lib/use-organizations', () => ({
+vi.mock('@/lib/useOrganizations', () => ({
   useOrganizations: mockUseOrganizations,
 }))
 
@@ -77,7 +77,7 @@ mockParaglideMessages()
 
 // Import to trigger createFileRoute and capture the component
 import './dashboard'
-import { authClient, useSession } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/authClient'
 
 describe('DashboardPage', () => {
   beforeEach(() => {
@@ -179,10 +179,10 @@ describe('DashboardPage', () => {
 
     // Check link targets
     const settingsLink = screen.getByText('dashboard_open_settings').closest('a')
-    expect(settingsLink).toHaveAttribute('href', '/org/settings')
+    expect(settingsLink).toHaveAttribute('href', '/admin/settings')
 
     const membersLink = screen.getByText('dashboard_view_members').closest('a')
-    expect(membersLink).toHaveAttribute('href', '/org/members')
+    expect(membersLink).toHaveAttribute('href', '/admin/members')
   })
 
   it('should show loading skeleton when orgs are loading', () => {

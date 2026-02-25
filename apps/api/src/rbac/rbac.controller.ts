@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { z } from 'zod'
 import { Permissions } from '../auth/decorators/permissions.decorator.js'
 import { Session } from '../auth/decorators/session.decorator.js'
-import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
+import { ZodValidationPipe } from '../common/pipes/zodValidation.pipe.js'
 import { PermissionService } from './permission.service.js'
 import { RbacService } from './rbac.service.js'
 
@@ -112,7 +112,12 @@ export class RbacController {
 
   @Patch('members/:id/role')
   @Permissions('members:write')
-  @ApiOperation({ summary: "Change a member's role" })
+  @ApiOperation({
+    summary: "Change a member's role",
+    deprecated: true,
+    description:
+      'Deprecated: use PATCH /api/admin/members/:memberId instead. This endpoint will be removed in a future version.',
+  })
   @ApiResponse({ status: 200, description: 'Member role updated' })
   async changeMemberRole(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,

@@ -17,9 +17,11 @@ export const DEFAULT_PERMISSIONS = [
   { resource: 'roles', action: 'read', description: 'View roles and permissions' },
   { resource: 'roles', action: 'write', description: 'Create and edit roles' },
   { resource: 'roles', action: 'delete', description: 'Delete custom roles' },
+  { resource: 'api_keys', action: 'read', description: 'View API keys' },
+  { resource: 'api_keys', action: 'write', description: 'Create and revoke API keys' },
 ] as const
 
-/** Insert the 15 global permissions (idempotent — uses ON CONFLICT DO NOTHING). */
+/** Insert the 17 global permissions (idempotent — uses ON CONFLICT DO NOTHING). */
 export async function seed(tx: Tx, _preset: Preset, _ctx: FixtureContext): Promise<SeedResult> {
   const result = await tx
     .insert(schema.permissions)

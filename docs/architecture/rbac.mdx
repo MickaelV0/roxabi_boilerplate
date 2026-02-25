@@ -22,12 +22,12 @@ All RBAC code lives in `apps/api/src/rbac/`. Shared TypeScript types are in `pac
 Permissions use a `resource:action` string format, type-checked at compile time via the `PermissionString` type from `@repo/types`:
 
 ```ts
-type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles'
+type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles' | 'api_keys'
 type PermissionAction = 'read' | 'write' | 'delete'
 type PermissionString = `${PermissionResource}:${PermissionAction}`
 ```
 
-This produces 15 possible permissions (5 resources x 3 actions). Permissions are **global** -- they are seeded via database migration and are not editable by tenants. The `permissions` table has a unique constraint on `(resource, action)`.
+This produces 18 possible permissions (6 resources x 3 actions). Permissions are **global** -- they are seeded via database migration and are not editable by tenants. The `permissions` table has a unique constraint on `(resource, action)`.
 
 ### Why resource:action instead of flat strings
 
@@ -42,8 +42,8 @@ Each organization gets four default roles, seeded automatically on creation:
 
 | Role | Slug | Permissions | Purpose |
 |------|------|-------------|---------|
-| Owner | `owner` | All 15 permissions | Full organization control, including deletion |
-| Admin | `admin` | All except `organizations:delete` | Day-to-day management |
+| Owner | `owner` | All 17 permissions (all except `api_keys:delete`) | Full organization control, including deletion |
+| Admin | `admin` | All except `organizations:delete` and `users:delete` | Day-to-day management |
 | Member | `member` | Read-only on `users`, `organizations`, `members`, `invitations`, `roles` | Standard member access |
 | Viewer | `viewer` | Read-only on `users`, `organizations`, `members`, `invitations`, `roles` | Minimal read access |
 
@@ -133,6 +133,17 @@ The `PermissionService` intentionally uses the raw `DRIZZLE` connection (not `Te
 
 > **Warning:** The raw DRIZZLE connection bypasses all RLS policies. Any new queries added to this service must include explicit `WHERE` clauses for user/org isolation. Changes to this file should be flagged in code review.
 
+### Sanctioned RLS Bypass Services
+
+Two services intentionally use the raw `DRIZZLE` connection instead of `TenantService`. Both are documented in-code with a block comment explaining the justification and security constraints.
+
+| Service | Location | Justification | Isolation mechanism |
+|---------|----------|---------------|---------------------|
+| `PermissionService` | `apps/api/src/rbac/permission.service.ts` | Runs during authentication, before tenant context is established | Explicit `WHERE` on `userId` and `organizationId` |
+| `AdminMembersService` | `apps/api/src/admin/adminMembers.service.ts` | Admin operations require organization-scoped access derived from the session's `activeOrganizationId`, not from RLS policies | Explicit `WHERE` on `organizationId` in every query |
+
+> **Adding a new RLS bypass:** If a new service needs raw DRIZZLE access, it must (1) document the justification in a block comment at the top of the service class, (2) include explicit `WHERE` clauses for tenant isolation in every query, and (3) be added to this table. Changes to RLS bypass services should always be flagged in code review.
+
 ## Schema Design
 
 Three tables implement the RBAC model, defined in `apps/api/src/database/schema/rbac.schema.ts`. For the full schema conventions (naming, timestamps, primary keys), see the [Database Architecture](./database).
@@ -205,7 +216,7 @@ The FK uses `ON DELETE SET NULL` so that deleting a custom role does not cascade
 When an organization is created, the `RbacListener` handles automatic setup via the NestJS event emitter:
 
 ```ts
-// organization-created.event.ts
+// organizationCreated.event.ts
 export const ORGANIZATION_CREATED = 'organization.created'
 
 export class OrganizationCreatedEvent {
@@ -272,6 +283,8 @@ The permission assignments are defined in `rbac.constants.ts`:
 | `roles:read` | x | x | x | x |
 | `roles:write` | x | x | | |
 | `roles:delete` | x | x | | |
+| `api_keys:read` | x | x | | |
+| `api_keys:write` | x | x | | |
 
 ## Custom Decorators
 
@@ -390,13 +403,13 @@ apps/api/src/rbac/
 ├── rbac.listener.ts            # Event listener for org creation seeding
 ├── rbac.constants.ts           # Default role definitions and permission mappings
 ├── exceptions/                 # Domain exceptions
-│   ├── default-role.exception.ts
-│   ├── member-not-found.exception.ts
-│   ├── ownership-constraint.exception.ts
-│   ├── role-not-found.exception.ts
-│   └── role-slug-conflict.exception.ts
+│   ├── defaultRole.exception.ts
+│   ├── memberNotFound.exception.ts
+│   ├── ownershipConstraint.exception.ts
+│   ├── roleNotFound.exception.ts
+│   └── roleSlugConflict.exception.ts
 └── filters/
-    └── rbac-exception.filter.ts  # Maps domain exceptions to HTTP responses
+    └── rbacException.filter.ts  # Maps domain exceptions to HTTP responses
 ```
 
 The `RbacModule` imports `AuthModule` (via `forwardRef` to resolve the circular dependency with `PermissionService`) and `TenantModule`. It exports `RbacService` and `PermissionService` for use by other modules.

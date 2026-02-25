@@ -7,11 +7,16 @@ import { devices } from '@playwright/test'
  * IMPORTANT: This config uses paths relative to the repository root.
  * It must be consumed from a config file at the repo root (e.g., playwright.config.ts).
  * Importing from a non-root config file will cause path resolution errors.
+ *
+ * Full-stack E2E: Both web (3000) and API (4000) servers are started.
+ * - Local dev: `bun run dev` starts both services
+ * - CI: Built web app + API server run separately
  */
 export const basePlaywrightConfig: PlaywrightTestConfig = {
+  globalSetup: './apps/web/e2e/globalSetup.ts',
   testDir: './apps/web/e2e',
   fullyParallel: true,
-  forbidOnly: !!process.env.CI,
+  forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [['blob'], ['list']] : 'html',
@@ -38,10 +43,24 @@ export const basePlaywrightConfig: PlaywrightTestConfig = {
       use: { ...devices['Pixel 5'] },
     },
   ],
-  webServer: {
-    command: process.env.CI ? 'node apps/web/.output/server/index.mjs' : 'bun run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  webServer: [
+    {
+      // Web server (frontend)
+      command: process.env.CI ? 'node apps/web/.output/server/index.mjs' : 'bun run dev',
+      url: 'http://localhost:3000',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+    },
+    {
+      // API server (backend) — for full-stack E2E tests
+      // Only start in CI or if explicitly requested (local dev uses 'bun run dev')
+      command: process.env.CI ? 'node apps/api/dist/index.js' : 'bun run --cwd apps/api dev',
+      url: 'http://localhost:4000/health',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+      env: {
+        NODE_ENV: process.env.CI ? 'production' : 'development',
+      },
+    },
+  ],
 }

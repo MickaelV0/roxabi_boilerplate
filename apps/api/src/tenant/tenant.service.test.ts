@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { DatabaseUnavailableException } from './exceptions/database-unavailable.exception.js'
-import { TenantContextMissingException } from './exceptions/tenant-context-missing.exception.js'
+import { DatabaseUnavailableException } from './exceptions/databaseUnavailable.exception.js'
+import { TenantContextMissingException } from './exceptions/tenantContextMissing.exception.js'
 import { TenantService } from './tenant.service.js'
 
 function createMockCls(tenantId: string | null = null) {
@@ -144,7 +144,8 @@ describe('TenantService', () => {
       await service.queryAs('explicit-tenant-99', callback)
 
       // Assert — the SQL queryChunks contain the tenant ID as a plain string
-      const sqlArg = db._executeFn.mock.calls[0]?.[0]
+      // First call is SET LOCAL ROLE, second is set_config
+      const sqlArg = db._executeFn.mock.calls[1]?.[0]
       const stringChunks = sqlArg.queryChunks.filter((chunk: unknown) => typeof chunk === 'string')
       expect(stringChunks).toContain('explicit-tenant-99')
     })
@@ -160,11 +161,30 @@ describe('TenantService', () => {
       // Act
       await service.query(vi.fn().mockResolvedValue(undefined))
 
-      // Assert
-      expect(db._executeFn).toHaveBeenCalledOnce()
-      const sqlArg = db._executeFn.mock.calls[0]?.[0]
+      // Assert — first call is SET LOCAL ROLE, second is set_config
+      expect(db._executeFn).toHaveBeenCalledTimes(2)
+      const sqlArg = db._executeFn.mock.calls[1]?.[0]
       const stringChunks = sqlArg.queryChunks.filter((chunk: unknown) => typeof chunk === 'string')
       expect(stringChunks).toContain('tenant-abc-123')
+    })
+
+    it('should call SET LOCAL ROLE app_user before set_config', async () => {
+      // Arrange
+      const cls = createMockCls('org-1')
+      const db = createMockDb()
+      const service = new TenantService(cls as never, db as never)
+
+      // Act
+      await service.query(vi.fn().mockResolvedValue(undefined))
+
+      // Assert — first call is SET LOCAL ROLE, second is set_config
+      expect(db._executeFn).toHaveBeenCalledTimes(2)
+      const roleCall = db._executeFn.mock.calls[0]?.[0]
+      // drizzle-orm sql`` wraps template parts in StringChunk objects with a .value string[]
+      const chunkValues = roleCall.queryChunks
+        .filter((chunk: unknown) => typeof chunk === 'object' && chunk !== null && 'value' in chunk)
+        .flatMap((chunk: { value: string[] }) => chunk.value)
+      expect(chunkValues.some((s: string) => s.includes('SET LOCAL ROLE app_user'))).toBe(true)
     })
 
     it('should call set_config before executing the callback', async () => {
@@ -172,9 +192,21 @@ describe('TenantService', () => {
       const callOrder: string[] = []
       const cls = createMockCls('org-1')
       const db = createMockDb()
-      db._executeFn.mockImplementation(async () => {
-        callOrder.push('set_config')
-      })
+      db._executeFn.mockImplementation(
+        async (sqlObj: { queryChunks: Array<{ value?: string[] } | unknown> }) => {
+          // Extract text from StringChunk objects (.value string[]) and plain strings
+          const allText = sqlObj.queryChunks
+            .filter(
+              (chunk: unknown) => typeof chunk === 'object' && chunk !== null && 'value' in chunk
+            )
+            .flatMap((chunk) => (chunk as { value: string[] }).value)
+          if (allText.some((s: string) => s.includes('SET LOCAL ROLE'))) {
+            callOrder.push('set_role')
+          } else {
+            callOrder.push('set_config')
+          }
+        }
+      )
       const service = new TenantService(cls as never, db as never)
       const callback = vi.fn().mockImplementation(async () => {
         callOrder.push('callback')
@@ -185,7 +217,7 @@ describe('TenantService', () => {
       await service.query(callback)
 
       // Assert
-      expect(callOrder).toEqual(['set_config', 'callback'])
+      expect(callOrder).toEqual(['set_role', 'set_config', 'callback'])
     })
   })
 

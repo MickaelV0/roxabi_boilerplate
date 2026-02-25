@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { OrgNameConfirmationMismatchException } from './exceptions/org-name-confirmation-mismatch.exception.js'
-import { OrgNotDeletedException } from './exceptions/org-not-deleted.exception.js'
-import { OrgNotFoundException } from './exceptions/org-not-found.exception.js'
-import { OrgNotOwnerException } from './exceptions/org-not-owner.exception.js'
+import { OrgNameConfirmationMismatchException } from './exceptions/orgNameConfirmationMismatch.exception.js'
+import { OrgNotDeletedException } from './exceptions/orgNotDeleted.exception.js'
+import { OrgNotFoundException } from './exceptions/orgNotFound.exception.js'
+import { OrgNotOwnerException } from './exceptions/orgNotOwner.exception.js'
 import { OrganizationService } from './organization.service.js'
 
 function createMockDb() {
@@ -52,7 +52,7 @@ describe('OrganizationService', () => {
           }),
         }),
       })
-      const service = new OrganizationService(db as never)
+      const service = new OrganizationService(db as never, { emitAsync: vi.fn() } as never)
 
       // Act
       const result = await service.listForUser('user-1')
@@ -74,7 +74,7 @@ describe('OrganizationService', () => {
           }),
         }),
       })
-      const service = new OrganizationService(db as never)
+      const service = new OrganizationService(db as never, { emitAsync: vi.fn() } as never)
 
       // Act
       const result = await service.listForUser('user-no-orgs')
@@ -100,7 +100,7 @@ describe('OrganizationService', () => {
           }),
         }),
       })
-      const service = new OrganizationService(db as never)
+      const service = new OrganizationService(db as never, { emitAsync: vi.fn() } as never)
 
       // Act
       const result = await service.listForUser('user-1')
@@ -126,7 +126,7 @@ describe('OrganizationService', () => {
           }),
         }),
       })
-      const service = new OrganizationService(db as never)
+      const service = new OrganizationService(db as never, { emitAsync: vi.fn() } as never)
 
       // Act
       const result = await service.listForUser('user-1')
@@ -169,7 +169,7 @@ describe('OrganizationService', () => {
         return cb(tx)
       })
 
-      const service = new OrganizationService(db as never)
+      const service = new OrganizationService(db as never, { emitAsync: vi.fn() } as never)
       const result = await service.softDelete('org-1', 'user-1', 'Test Org')
 
       expect(result).toEqual(updatedOrg)
@@ -223,7 +223,7 @@ describe('OrganizationService', () => {
         return cb(tx)
       })
 
-      const service = new OrganizationService(db as never)
+      const service = new OrganizationService(db as never, { emitAsync: vi.fn() } as never)
       await service.softDelete('org-1', 'user-1', 'My Org')
 
       expect(db.transaction).toHaveBeenCalled()
@@ -255,7 +255,7 @@ describe('OrganizationService', () => {
         return cb(tx)
       })
 
-      const service = new OrganizationService(db as never)
+      const service = new OrganizationService(db as never, { emitAsync: vi.fn() } as never)
       const result = await service.softDelete('org-1', 'user-1', 'Org')
 
       expect(result).toBeDefined()
@@ -267,7 +267,7 @@ describe('OrganizationService', () => {
       chains.select.limit.mockResolvedValueOnce([{ id: 'org-1', name: 'Org' }])
       chains.select.limit.mockResolvedValueOnce([{ role: 'member' }])
 
-      const service = new OrganizationService(db as never)
+      const service = new OrganizationService(db as never, { emitAsync: vi.fn() } as never)
 
       await expect(service.softDelete('org-1', 'user-1', 'Org')).rejects.toThrow(
         OrgNotOwnerException
@@ -278,7 +278,7 @@ describe('OrganizationService', () => {
       const { db, chains } = createMockDb()
       chains.select.limit.mockResolvedValue([])
 
-      const service = new OrganizationService(db as never)
+      const service = new OrganizationService(db as never, { emitAsync: vi.fn() } as never)
 
       await expect(service.softDelete('nonexistent', 'user-1', 'X')).rejects.toThrow(
         OrgNotFoundException
@@ -289,7 +289,7 @@ describe('OrganizationService', () => {
       const { db, chains } = createMockDb()
       chains.select.limit.mockResolvedValueOnce([{ id: 'org-1', name: 'Real Org' }])
 
-      const service = new OrganizationService(db as never)
+      const service = new OrganizationService(db as never, { emitAsync: vi.fn() } as never)
 
       await expect(service.softDelete('org-1', 'user-1', 'Wrong Name')).rejects.toThrow(
         OrgNameConfirmationMismatchException
@@ -312,7 +312,7 @@ describe('OrganizationService', () => {
       }
       chains.update.returning.mockResolvedValue([reactivatedOrg])
 
-      const service = new OrganizationService(db as never)
+      const service = new OrganizationService(db as never, { emitAsync: vi.fn() } as never)
       const result = await service.reactivate('org-1', 'user-1')
 
       expect(result?.deletedAt).toBeNull()
@@ -324,7 +324,7 @@ describe('OrganizationService', () => {
       chains.select.limit.mockResolvedValueOnce([{ id: 'org-1', deletedAt: new Date() }])
       chains.select.limit.mockResolvedValueOnce([{ role: 'member' }])
 
-      const service = new OrganizationService(db as never)
+      const service = new OrganizationService(db as never, { emitAsync: vi.fn() } as never)
 
       await expect(service.reactivate('org-1', 'user-1')).rejects.toThrow(OrgNotOwnerException)
     })
@@ -333,7 +333,7 @@ describe('OrganizationService', () => {
       const { db, chains } = createMockDb()
       chains.select.limit.mockResolvedValueOnce([{ id: 'org-1', deletedAt: null }])
 
-      const service = new OrganizationService(db as never)
+      const service = new OrganizationService(db as never, { emitAsync: vi.fn() } as never)
 
       await expect(service.reactivate('org-1', 'user-1')).rejects.toThrow(OrgNotDeletedException)
     })
@@ -370,7 +370,7 @@ describe('OrganizationService', () => {
         return originalSelectFn(cols)
       })
 
-      const service = new OrganizationService(db as never)
+      const service = new OrganizationService(db as never, { emitAsync: vi.fn() } as never)
       const result = await service.getDeletionImpact('org-1')
 
       expect(result).toEqual({

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
-import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { mockParaglideMessages } from '@/test/__mocks__/mockMessages'
 
 function getClosestAncestor(element: Element, selector: string): Element {
   const result = element.closest(selector)
@@ -17,13 +17,17 @@ function findOrThrow<T>(items: T[], predicate: (item: T) => boolean): T {
 const mockRefetch = vi.hoisted(() => vi.fn())
 const mockUseOrganizations = vi.hoisted(() =>
   vi.fn(() => ({
-    data: null as Array<{
-      id: string
-      name: string
-      slug: string
-      logo: string | null
-      createdAt: string
-    }> | null,
+    data: undefined as
+      | Array<{
+          id: string
+          name: string
+          slug: string
+          logo: string | null
+          createdAt: string
+        }>
+      | undefined,
+    isLoading: false,
+    error: null as Error | null,
     refetch: mockRefetch,
   }))
 )
@@ -92,7 +96,7 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }))
 
-vi.mock('@/lib/auth-client', () => ({
+vi.mock('@/lib/authClient', () => ({
   useSession: vi.fn(() => ({ data: { user: { id: 'user-1' } } })),
   authClient: {
     useActiveOrganization: vi.fn(() => ({ data: null })),
@@ -103,11 +107,11 @@ vi.mock('@/lib/auth-client', () => ({
   },
 }))
 
-vi.mock('@/lib/use-organizations', () => ({
+vi.mock('@/lib/useOrganizations', () => ({
   useOrganizations: mockUseOrganizations,
 }))
 
-vi.mock('@/lib/org-utils', () => ({
+vi.mock('@/lib/orgUtils', () => ({
   roleLabel: (role: string) => `org_role_${role}`,
   roleBadgeVariant: (role: string) => {
     if (role === 'owner') return 'default'
@@ -120,20 +124,35 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
+const mockUseCanAccess = vi.hoisted(() => vi.fn(() => false))
+vi.mock('@/lib/routePermissions', () => ({
+  useCanAccess: mockUseCanAccess,
+}))
+
 mockParaglideMessages()
 
 import { toast } from 'sonner'
-import { authClient } from '@/lib/auth-client'
+import { authClient } from '@/lib/authClient'
 import { OrgSwitcher } from './OrgSwitcher'
 
-function setupWithOrgs({ includeMembers = false }: { includeMembers?: boolean } = {}) {
-  mockUseOrganizations.mockReturnValue({
-    data: [
-      { id: 'org-1', name: 'Acme Corp', slug: 'acme-corp', logo: null, createdAt: '2024-01-01' },
-      { id: 'org-2', name: 'Beta Inc', slug: 'beta-inc', logo: null, createdAt: '2024-01-01' },
-    ],
+function buildOrgState(
+  overrides: Partial<ReturnType<typeof mockUseOrganizations>> = {}
+): ReturnType<typeof mockUseOrganizations> {
+  return {
+    data: null,
+    isLoading: false,
+    error: null,
     refetch: mockRefetch,
-  })
+    ...overrides,
+  } as ReturnType<typeof mockUseOrganizations>
+}
+
+const orgsFixture = [
+  { id: 'org-1', name: 'Acme Corp', slug: 'acme-corp', logo: null, createdAt: '2024-01-01' },
+  { id: 'org-2', name: 'Beta Inc', slug: 'beta-inc', logo: null, createdAt: '2024-01-01' },
+]
+
+function setupWithOrgs({ includeMembers = false }: { includeMembers?: boolean } = {}) {
   vi.mocked(authClient.useActiveOrganization).mockReturnValue({
     data: {
       id: 'org-1',
@@ -142,27 +161,39 @@ function setupWithOrgs({ includeMembers = false }: { includeMembers?: boolean } 
       ...(includeMembers ? { members: [{ userId: 'user-1', role: 'admin', id: 'member-1' }] } : {}),
     },
   } as ReturnType<typeof authClient.useActiveOrganization>)
+  return buildOrgState({ data: orgsFixture })
 }
 
 describe('OrgSwitcher', () => {
+  beforeEach(() => {
+    mockUseCanAccess.mockReturnValue(false)
+  })
+
+  it('should render nothing while loading', () => {
+    const { container } = render(
+      <OrgSwitcher orgState={buildOrgState({ data: undefined, isLoading: true })} />
+    )
+    expect(container.innerHTML).toBe('')
+  })
+
   it('should show create organization button when user has no orgs', () => {
-    render(<OrgSwitcher />)
+    render(<OrgSwitcher orgState={buildOrgState({ data: [] })} />)
 
     expect(screen.getAllByText('org_create').length).toBeGreaterThanOrEqual(1)
   })
 
   it('should show org name in trigger when orgs exist', () => {
-    setupWithOrgs()
+    const orgState = setupWithOrgs()
 
-    render(<OrgSwitcher />)
+    render(<OrgSwitcher orgState={orgState} />)
 
     expect(screen.getAllByText('Acme Corp').length).toBeGreaterThanOrEqual(1)
   })
 
   it('should show org list items when orgs exist', () => {
-    setupWithOrgs()
+    const orgState = setupWithOrgs()
 
-    render(<OrgSwitcher />)
+    render(<OrgSwitcher orgState={orgState} />)
 
     const menuItems = screen.getAllByRole('menuitem')
     // 2 org items + org settings + members + "Create organization" item
@@ -172,9 +203,9 @@ describe('OrgSwitcher', () => {
   })
 
   it('should show check icon next to active org', () => {
-    setupWithOrgs()
+    const orgState = setupWithOrgs()
 
-    render(<OrgSwitcher />)
+    render(<OrgSwitcher orgState={orgState} />)
 
     // The Check icon should be rendered for the active org
     expect(screen.getByTestId('check-icon')).toBeInTheDocument()
@@ -182,10 +213,10 @@ describe('OrgSwitcher', () => {
 
   it('should show role badge when active org includes members data', () => {
     // Arrange
-    setupWithOrgs({ includeMembers: true })
+    const orgState = setupWithOrgs({ includeMembers: true })
 
     // Act
-    render(<OrgSwitcher />)
+    render(<OrgSwitcher orgState={orgState} />)
 
     // Assert
     const badge = screen.getByTestId('badge')
@@ -195,10 +226,10 @@ describe('OrgSwitcher', () => {
 
   it('should call setActive when clicking a non-active org', async () => {
     // Arrange
-    setupWithOrgs()
+    const orgState = setupWithOrgs()
     vi.mocked(authClient.organization.setActive).mockResolvedValue({} as never)
 
-    render(<OrgSwitcher />)
+    render(<OrgSwitcher orgState={orgState} />)
 
     // Act - click the non-active org (Beta Inc)
     const betaItem = getClosestAncestor(screen.getByText('Beta Inc'), 'button')
@@ -214,10 +245,10 @@ describe('OrgSwitcher', () => {
 
   it('should show success toast after switching org', async () => {
     // Arrange
-    setupWithOrgs()
+    const orgState = setupWithOrgs()
     vi.mocked(authClient.organization.setActive).mockResolvedValue({} as never)
 
-    render(<OrgSwitcher />)
+    render(<OrgSwitcher orgState={orgState} />)
 
     // Act
     const betaItem = getClosestAncestor(screen.getByText('Beta Inc'), 'button')
@@ -233,10 +264,10 @@ describe('OrgSwitcher', () => {
 
   it('should not call setActive when clicking the active org', () => {
     // Arrange
-    setupWithOrgs()
+    const orgState = setupWithOrgs()
     vi.mocked(authClient.organization.setActive).mockClear()
 
-    render(<OrgSwitcher />)
+    render(<OrgSwitcher orgState={orgState} />)
 
     // Act - click the active org (Acme Corp) via its menuitem
     const menuItems = screen.getAllByRole('menuitem')
@@ -252,10 +283,10 @@ describe('OrgSwitcher', () => {
 
   it('should show error toast when switching org fails', async () => {
     // Arrange
-    setupWithOrgs()
+    const orgState = setupWithOrgs()
     vi.mocked(authClient.organization.setActive).mockRejectedValue(new Error('fail'))
 
-    render(<OrgSwitcher />)
+    render(<OrgSwitcher orgState={orgState} />)
 
     // Act
     const betaItem = getClosestAncestor(screen.getByText('Beta Inc'), 'button')
@@ -267,31 +298,39 @@ describe('OrgSwitcher', () => {
     })
   })
 
-  it('should show org settings and members links when active org exists', () => {
-    // Arrange
-    setupWithOrgs()
+  it('should show org settings and members links when useCanAccess returns true', () => {
+    // Arrange — useCanAccess returns true for admin routes
+    mockUseCanAccess.mockReturnValue(true)
+    const orgState = setupWithOrgs({ includeMembers: true })
 
     // Act
-    render(<OrgSwitcher />)
+    render(<OrgSwitcher orgState={orgState} />)
 
     // Assert
     expect(screen.getByText('user_menu_org_settings')).toBeInTheDocument()
     expect(screen.getByText('user_menu_org_members')).toBeInTheDocument()
   })
+
+  it('should hide org settings and members links when useCanAccess returns false', () => {
+    // Arrange — useCanAccess returns false (default)
+    mockUseCanAccess.mockReturnValue(false)
+    const orgState = setupWithOrgs()
+
+    // Act
+    render(<OrgSwitcher orgState={orgState} />)
+
+    // Assert
+    expect(screen.queryByText('user_menu_org_settings')).not.toBeInTheDocument()
+    expect(screen.queryByText('user_menu_org_members')).not.toBeInTheDocument()
+  })
 })
 
 describe('CreateOrgDialogContent', () => {
+  const noOrgsState = buildOrgState({ data: [] })
+
   it('should render form fields with labels', () => {
-    // Arrange - render with no orgs so the create dialog is shown
-    mockUseOrganizations.mockReturnValue({
-      data: null,
-      refetch: mockRefetch,
-    })
+    render(<OrgSwitcher orgState={noOrgsState} />)
 
-    // Act
-    render(<OrgSwitcher />)
-
-    // Assert
     expect(screen.getByText('org_create_title')).toBeInTheDocument()
     expect(screen.getByText('org_create_desc')).toBeInTheDocument()
     expect(screen.getByLabelText('org_name')).toBeInTheDocument()
@@ -299,24 +338,17 @@ describe('CreateOrgDialogContent', () => {
   })
 
   it('should call organization.create with name and slug on form submit', async () => {
-    // Arrange
-    mockUseOrganizations.mockReturnValue({
-      data: null,
-      refetch: mockRefetch,
-    })
     vi.mocked(authClient.organization.create).mockResolvedValue({ error: null } as never)
 
-    render(<OrgSwitcher />)
+    render(<OrgSwitcher orgState={noOrgsState} />)
 
     const nameInput = screen.getByLabelText('org_name')
     const slugInput = screen.getByLabelText('org_slug')
 
-    // Act
     fireEvent.change(nameInput, { target: { value: 'New Org' } })
     fireEvent.change(slugInput, { target: { value: 'new-org' } })
     fireEvent.submit(getClosestAncestor(nameInput, 'form'))
 
-    // Assert
     await waitFor(() => {
       expect(authClient.organization.create).toHaveBeenCalledWith({
         name: 'New Org',
@@ -326,74 +358,53 @@ describe('CreateOrgDialogContent', () => {
   })
 
   it('should show success toast on successful org creation', async () => {
-    // Arrange
-    mockUseOrganizations.mockReturnValue({
-      data: null,
-      refetch: mockRefetch,
-    })
     vi.mocked(authClient.organization.create).mockResolvedValue({ error: null } as never)
 
-    render(<OrgSwitcher />)
+    render(<OrgSwitcher orgState={noOrgsState} />)
 
     const nameInput = screen.getByLabelText('org_name')
     const slugInput = screen.getByLabelText('org_slug')
 
-    // Act
     fireEvent.change(nameInput, { target: { value: 'New Org' } })
     fireEvent.change(slugInput, { target: { value: 'new-org' } })
     fireEvent.submit(getClosestAncestor(nameInput, 'form'))
 
-    // Assert
     await waitFor(() => {
       expect(vi.mocked(toast.success)).toHaveBeenCalledWith('org_toast_created')
     })
   })
 
   it('should show error toast when create returns an error', async () => {
-    // Arrange
-    mockUseOrganizations.mockReturnValue({
-      data: null,
-      refetch: mockRefetch,
-    })
     vi.mocked(authClient.organization.create).mockResolvedValue({
       error: { message: 'Slug taken' },
     } as never)
 
-    render(<OrgSwitcher />)
+    render(<OrgSwitcher orgState={noOrgsState} />)
 
     const nameInput = screen.getByLabelText('org_name')
     const slugInput = screen.getByLabelText('org_slug')
 
-    // Act
     fireEvent.change(nameInput, { target: { value: 'New Org' } })
     fireEvent.change(slugInput, { target: { value: 'new-org' } })
     fireEvent.submit(getClosestAncestor(nameInput, 'form'))
 
-    // Assert
     await waitFor(() => {
       expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Slug taken')
     })
   })
 
   it('should show generic error toast when create throws', async () => {
-    // Arrange
-    mockUseOrganizations.mockReturnValue({
-      data: null,
-      refetch: mockRefetch,
-    })
     vi.mocked(authClient.organization.create).mockRejectedValue(new Error('network'))
 
-    render(<OrgSwitcher />)
+    render(<OrgSwitcher orgState={noOrgsState} />)
 
     const nameInput = screen.getByLabelText('org_name')
     const slugInput = screen.getByLabelText('org_slug')
 
-    // Act
     fireEvent.change(nameInput, { target: { value: 'New Org' } })
     fireEvent.change(slugInput, { target: { value: 'new-org' } })
     fireEvent.submit(getClosestAncestor(nameInput, 'form'))
 
-    // Assert
     await waitFor(() => {
       expect(vi.mocked(toast.error)).toHaveBeenCalledWith('auth_toast_error')
     })

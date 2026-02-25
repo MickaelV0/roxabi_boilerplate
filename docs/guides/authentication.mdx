@@ -11,7 +11,7 @@ Authentication is powered by **Better Auth** with the Drizzle adapter. It suppor
 - **OAuth** providers (Google, GitHub) — conditionally enabled when credentials are configured
 - **Magic link** sign-in via email
 - **Organizations** with role-based membership and invitations
-- **Admin** plugin for user management (ban, role assignment)
+- **Admin** actions via NestJS AdminModule (Better Auth admin plugin removed in Phase 1 #268)
 
 The auth system follows a **deny-by-default** model: every endpoint requires authentication unless explicitly marked otherwise.
 
@@ -110,6 +110,7 @@ The guard checks metadata in this order:
 4. No session → `401 Unauthorized`
 5. `ROLES` — check user role → `403 Forbidden` if mismatch
 6. `REQUIRE_ORG` — check active org → `403 Forbidden` if missing
+7. `PERMISSIONS` — check tenant-scoped permissions → `403 Forbidden` if insufficient
 
 ## Session Management
 
@@ -167,13 +168,15 @@ To swap email providers, create a new class implementing `EmailProvider` and reg
 The frontend uses Better Auth's React client SDK:
 
 ```ts
-// apps/web/src/lib/auth-client.ts
+// apps/web/src/lib/authClient.ts
+import { magicLinkClient, organizationClient } from 'better-auth/client/plugins'
 import { createAuthClient } from 'better-auth/react'
-import { adminClient, magicLinkClient, organizationClient } from 'better-auth/client/plugins'
 
 export const authClient = createAuthClient({
   baseURL: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
-  plugins: [organizationClient(), adminClient(), magicLinkClient()],
+  // Better Auth admin client plugin removed in Phase 1 (#268)
+  // All admin actions go through NestJS AdminModule with guards + audit logging
+  plugins: [organizationClient(), magicLinkClient()],
 })
 
 export const { useSession, signIn, signUp, signOut } = authClient
@@ -183,12 +186,13 @@ export const { useSession, signIn, signUp, signOut } = authClient
 
 - `baseURL` uses `window.location.origin` in the browser, so requests go through the Vite proxy
 - Server-side falls back to `http://localhost:3000`
-- Plugins must mirror the server-side plugins (organization, admin, magic link)
+- Plugins must mirror the server-side plugins (organization, magic link)
+- Admin actions go through NestJS AdminModule (not Better Auth's admin client plugin)
 
 ### Usage in components
 
 ```tsx
-import { useSession, signOut } from '~/lib/auth-client'
+import { useSession, signOut } from '~/lib/authClient'
 
 function UserMenu() {
   const { data: session } = useSession()

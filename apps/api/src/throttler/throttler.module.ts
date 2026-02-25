@@ -2,8 +2,8 @@ import { Logger, Module } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { APP_GUARD } from '@nestjs/core'
 import { ThrottlerModule } from '@nestjs/throttler'
-import { CustomThrottlerGuard } from './custom-throttler.guard.js'
-import { UpstashThrottlerStorage } from './upstash-throttler-storage.js'
+import { CustomThrottlerGuard } from './customThrottler.guard.js'
+import { UpstashThrottlerStorage } from './upstashThrottlerStorage.js'
 
 @Module({
   imports: [

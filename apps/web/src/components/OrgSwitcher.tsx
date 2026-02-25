@@ -20,24 +20,131 @@ import {
 } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
 import { Check, ChevronDown, Plus, Settings, Users } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { authClient, useSession } from '@/lib/auth-client'
-import { roleBadgeVariant, roleLabel } from '@/lib/org-utils'
-import { useOrganizations } from '@/lib/use-organizations'
+import { authClient, useSession } from '@/lib/authClient'
+import { roleBadgeVariant, roleLabel } from '@/lib/orgUtils'
+import { useCanAccess } from '@/lib/routePermissions'
+import type { useOrganizations } from '@/lib/useOrganizations'
 import { m } from '@/paraglide/messages'
 
-export function OrgSwitcher() {
+type OrgSwitcherProps = {
+  orgState: ReturnType<typeof useOrganizations>
+}
+
+function useOrgSwitcherState(orgState: OrgSwitcherProps['orgState']) {
   const { data: session } = useSession()
-  const { data: orgs, isLoading: orgsLoading, refetch: refetchOrgs } = useOrganizations()
+  const { data: orgs, isLoading: orgsLoading, refetch: refetchOrgs } = orgState
   const { data: activeOrg } = authClient.useActiveOrganization()
   const [createOpen, setCreateOpen] = useState(false)
+  const [optimisticOrgName, setOptimisticOrgName] = useState<string | null>(null)
+  const prevActiveOrgId = useRef(activeOrg?.id)
 
+  useEffect(() => {
+    if (activeOrg?.id !== prevActiveOrgId.current) {
+      prevActiveOrgId.current = activeOrg?.id
+      setOptimisticOrgName(null)
+    }
+  }, [activeOrg?.id])
+
+  const displayedOrgName = optimisticOrgName ?? activeOrg?.name ?? orgs?.[0]?.name
   const activeMember = activeOrg?.members?.find(
     (member: { userId: string }) => member.userId === session?.user?.id
   )
+  const canAccessAdmin = useCanAccess('/admin/members')
 
-  if (orgsLoading || !orgs || orgs.length === 0) {
+  async function handleSwitch(orgId: string, orgName: string) {
+    if (activeOrg?.id === orgId) return
+    setOptimisticOrgName(orgName)
+    try {
+      await authClient.organization.setActive({ organizationId: orgId })
+      toast.success(m.org_toast_switched({ name: orgName }))
+      refetchOrgs()
+    } catch {
+      toast.error(m.auth_toast_error())
+      setOptimisticOrgName(null)
+    }
+  }
+
+  return {
+    orgs,
+    orgsLoading,
+    refetchOrgs,
+    activeOrg,
+    activeMember,
+    createOpen,
+    setCreateOpen,
+    displayedOrgName,
+    canAccessAdmin,
+    handleSwitch,
+  }
+}
+
+type OrgDropdownItemsProps = {
+  orgs: Array<{ id: string; name: string }>
+  activeOrg: { id: string } | null | undefined
+  activeMember: { role?: string; userId: string } | undefined
+  canAccessAdmin: boolean
+  onSwitch: (orgId: string, orgName: string) => void
+}
+
+function OrgDropdownItems({
+  orgs,
+  activeOrg,
+  activeMember,
+  canAccessAdmin,
+  onSwitch,
+}: OrgDropdownItemsProps) {
+  return (
+    <>
+      {orgs.map((org) => (
+        <DropdownMenuItem
+          key={org.id}
+          onClick={() => onSwitch(org.id, org.name)}
+          className="flex items-center justify-between"
+        >
+          <span className="truncate">{org.name}</span>
+          <span className="flex items-center gap-1.5">
+            {activeOrg?.id === org.id && activeMember?.role && (
+              <Badge
+                variant={roleBadgeVariant(activeMember.role)}
+                className="text-[10px] px-1 py-0"
+              >
+                {roleLabel(activeMember.role)}
+              </Badge>
+            )}
+            {activeOrg?.id === org.id && <Check className="size-3 text-primary" />}
+          </span>
+        </DropdownMenuItem>
+      ))}
+      {activeOrg && canAccessAdmin && (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link to="/admin/members">
+              <Users className="mr-2 size-4" />
+              {m.user_menu_org_members()}
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link to="/admin/settings">
+              <Settings className="mr-2 size-4" />
+              {m.user_menu_org_settings()}
+            </Link>
+          </DropdownMenuItem>
+        </>
+      )}
+    </>
+  )
+}
+
+export function OrgSwitcher({ orgState }: OrgSwitcherProps) {
+  const state = useOrgSwitcherState(orgState)
+  const { orgs, orgsLoading, refetchOrgs, createOpen, setCreateOpen } = state
+
+  if (orgsLoading || orgs === undefined) return null
+
+  if (orgs.length === 0) {
     return (
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogTrigger asChild>
@@ -51,68 +158,25 @@ export function OrgSwitcher() {
     )
   }
 
-  async function handleSwitch(orgId: string, orgName: string) {
-    if (activeOrg?.id === orgId) return
-    try {
-      await authClient.organization.setActive({ organizationId: orgId })
-      toast.success(m.org_toast_switched({ name: orgName }))
-      refetchOrgs()
-    } catch {
-      toast.error(m.auth_toast_error())
-    }
-  }
-
   return (
     <Dialog open={createOpen} onOpenChange={setCreateOpen}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm">
-            {activeOrg?.name ?? m.org_switcher_no_org()}
+            {state.displayedOrgName ?? m.org_switcher_no_org()}
             <ChevronDown className="ml-1 size-3" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
           <DropdownMenuLabel>{m.org_switcher_label()}</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {orgs.map((org) => (
-            <DropdownMenuItem
-              key={org.id}
-              onClick={() => handleSwitch(org.id, org.name)}
-              className="flex items-center justify-between"
-            >
-              <span className="truncate">{org.name}</span>
-              <span className="flex items-center gap-1.5">
-                {/* Role badge only shows for the active org because the session
-                    only provides membership info for the active organization. */}
-                {activeOrg?.id === org.id && activeMember?.role && (
-                  <Badge
-                    variant={roleBadgeVariant(activeMember.role)}
-                    className="text-[10px] px-1 py-0"
-                  >
-                    {roleLabel(activeMember.role)}
-                  </Badge>
-                )}
-                {activeOrg?.id === org.id && <Check className="size-3 text-primary" />}
-              </span>
-            </DropdownMenuItem>
-          ))}
-          {activeOrg && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link to="/org/settings">
-                  <Settings className="mr-2 size-4" />
-                  {m.user_menu_org_settings()}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/org/members">
-                  <Users className="mr-2 size-4" />
-                  {m.user_menu_org_members()}
-                </Link>
-              </DropdownMenuItem>
-            </>
-          )}
+          <OrgDropdownItems
+            orgs={orgs}
+            activeOrg={state.activeOrg}
+            activeMember={state.activeMember}
+            canAccessAdmin={state.canAccessAdmin}
+            onSwitch={state.handleSwitch}
+          />
           <DropdownMenuSeparator />
           <DialogTrigger asChild>
             <DropdownMenuItem>

@@ -2,11 +2,11 @@ import type { ClsService } from 'nestjs-cls'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { TenantService } from '../tenant/tenant.service.js'
-import { DefaultRoleException } from './exceptions/default-role.exception.js'
-import { MemberNotFoundException } from './exceptions/member-not-found.exception.js'
-import { OwnershipConstraintException } from './exceptions/ownership-constraint.exception.js'
-import { RoleNotFoundException } from './exceptions/role-not-found.exception.js'
-import { RoleSlugConflictException } from './exceptions/role-slug-conflict.exception.js'
+import { DefaultRoleException } from './exceptions/defaultRole.exception.js'
+import { MemberNotFoundException } from './exceptions/memberNotFound.exception.js'
+import { OwnershipConstraintException } from './exceptions/ownershipConstraint.exception.js'
+import { RoleNotFoundException } from './exceptions/roleNotFound.exception.js'
+import { RoleSlugConflictException } from './exceptions/roleSlugConflict.exception.js'
 import { RbacService } from './rbac.service.js'
 
 type MockFn = ReturnType<typeof vi.fn>

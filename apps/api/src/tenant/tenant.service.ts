@@ -2,8 +2,8 @@ import { Inject, Injectable } from '@nestjs/common'
 import { sql } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
-import { DatabaseUnavailableException } from './exceptions/database-unavailable.exception.js'
-import { TenantContextMissingException } from './exceptions/tenant-context-missing.exception.js'
+import { DatabaseUnavailableException } from './exceptions/databaseUnavailable.exception.js'
+import { TenantContextMissingException } from './exceptions/tenantContextMissing.exception.js'
 
 /** Transaction context passed to tenant-scoped callbacks. */
 type TenantTx = Parameters<NonNullable<DrizzleDB>['transaction']>[0] extends (
@@ -54,6 +54,8 @@ export class TenantService {
     }
 
     return this.db.transaction(async (tx) => {
+      // Switch to app_user role — RLS policies are enforced for this role
+      await tx.execute(sql`SET LOCAL ROLE app_user`)
       // Set tenant context for this transaction — RLS policies read this value
       await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`)
 

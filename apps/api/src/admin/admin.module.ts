@@ -1,0 +1,45 @@
+import { Module } from '@nestjs/common'
+import { AuditModule } from '../audit/audit.module.js'
+import { AuthModule } from '../auth/auth.module.js'
+import { AdminAuditLogsController } from './adminAuditLogs.controller.js'
+import { AdminAuditLogsService } from './adminAuditLogs.service.js'
+import { AdminInvitationsController } from './adminInvitations.controller.js'
+import { AdminInvitationsService } from './adminInvitations.service.js'
+import { AdminMembersController } from './adminMembers.controller.js'
+import { AdminMembersService } from './adminMembers.service.js'
+import { AdminOrganizationsController } from './adminOrganizations.controller.js'
+import { AdminOrganizationsDeletionService } from './adminOrganizations.deletion.js'
+import { AdminOrganizationsService } from './adminOrganizations.service.js'
+import { AdminUsersController } from './adminUsers.controller.js'
+import { AdminUsersLifecycleService } from './adminUsers.lifecycle.js'
+import { AdminUsersService } from './adminUsers.service.js'
+
+@Module({
+  imports: [AuthModule, AuditModule],
+  controllers: [
+    AdminMembersController,
+    AdminInvitationsController,
+    AdminUsersController,
+    AdminOrganizationsController,
+    AdminAuditLogsController,
+  ],
+  providers: [
+    AdminMembersService,
+    AdminInvitationsService,
+    AdminUsersService,
+    AdminUsersLifecycleService,
+    AdminOrganizationsService,
+    AdminOrganizationsDeletionService,
+    AdminAuditLogsService,
+  ],
+  exports: [
+    AdminMembersService,
+    AdminInvitationsService,
+    AdminUsersService,
+    AdminUsersLifecycleService,
+    AdminOrganizationsService,
+    AdminOrganizationsDeletionService,
+    AdminAuditLogsService,
+  ],
+})
+export class AdminModule {}

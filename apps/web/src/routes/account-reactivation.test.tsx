@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
+import { mockParaglideMessages } from '@/test/__mocks__/mockMessages'
 
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
@@ -18,7 +18,7 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 
 vi.mock('@repo/ui', async () => {
-  const repoUi = await import('@/test/__mocks__/repo-ui')
+  const repoUi = await import('@/test/__mocks__/repoUi')
   return {
     ...repoUi,
     DestructiveConfirmDialog: ({
@@ -52,7 +52,7 @@ vi.mock('@repo/ui', async () => {
   }
 })
 
-vi.mock('@/lib/auth-client', () => ({
+vi.mock('@/lib/authClient', () => ({
   authClient: {
     signOut: vi.fn().mockResolvedValue({}),
   },

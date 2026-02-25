@@ -8,13 +8,8 @@ Run specialized AI agents in parallel to implement features faster. Each agent h
 ## Prerequisites
 
 - Claude Code CLI installed
-- Agent Teams enabled (experimental):
-
-```bash
-export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
-```
-
-Add this to your shell profile (`.bashrc`, `.zshrc`) to persist across sessions.
+- Subagents work out of the box — no flags needed
+- _(Optional)_ For experimental Agent Teams (multi-process swarm), enable: `export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
 
 ## How It Works
 
@@ -60,34 +55,33 @@ F-lite vs F-full is **judgment-based**, not file-count-based. Human always valid
 
 Use the routing decision tree:
 
-```
-Is this a code change?
-├── No (docs only) → doc-writer subagent
-└── Yes
-    ├── Tier S (<=3 files, no arch risk)
-    │   └── Single session + optional tester subagent
-    │
-    ├── Tier F-lite (clear scope, documented requirements)
-    │   ├── /scaffold (spec → PR, skip bootstrap):
-    │   │   ├── Single-domain → subagents (Task tool)
-    │   │   └── Multi-domain  → Agent Teams (TeamCreate)
-    │   │   ├── Frontend? → frontend-dev + tester
-    │   │   ├── Backend?  → backend-dev + tester
-    │   │   ├── Full-stack? → frontend-dev + backend-dev + tester
-    │   │   └── Security-sensitive? → + security-auditor
-    │   └── Then /review (spawns fresh domain reviewers + 1b1 + fixer)
-    │
-    └── Tier F-full (new arch, unclear requirements, >2 domains)
-        ├── /bootstrap (idea → spec): direct orchestration + expert review (architect, doc-writer, devops, product-lead — configurable)
-        ├── /scaffold (spec → PR):
-        │   ├── Single-domain → subagents (Task tool)
-        │   └── Multi-domain  → Agent Teams (TeamCreate)
-        │   ├── Frontend? → frontend-dev + tester
-        │   ├── Backend?  → backend-dev + tester
-        │   ├── Full-stack? → frontend-dev + backend-dev + tester
-        │   ├── Large scope? → + architect + doc-writer
-        │   └── Security-sensitive? → + security-auditor
-        └── Then /review (spawns fresh domain reviewers + 1b1 + fixer)
+```mermaid
+flowchart TD
+    Start{"Code change?"} -- No --> DocOnly["doc-writer subagent"]
+    Start -- Yes --> Tier{"Tier?"}
+
+    Tier --> S["Tier S"]
+    S --> SSingle["Single session + optional tester"]
+
+    Tier --> FL["Tier F-lite"]
+    FL --> FLScaffold["/scaffold: Task subagents"]
+    FLScaffold --> FLAgents{"Domain?"}
+    FLAgents -->|Frontend| FE1["frontend-dev + tester"]
+    FLAgents -->|Backend| BE1["backend-dev + tester"]
+    FLAgents -->|Full-stack| FS1["FE + BE + tester"]
+    FLAgents -->|Security| SEC1["+ security-auditor"]
+    FLScaffold --> FLReview["/review + /1b1 + fixer"]
+
+    Tier --> FF["Tier F-full"]
+    FF --> FFBoot["/bootstrap: expert review"]
+    FF --> FFScaffold["/scaffold: Task subagents"]
+    FFScaffold --> FFAgents{"Domain?"}
+    FFAgents -->|Frontend| FE2["frontend-dev + tester"]
+    FFAgents -->|Backend| BE2["backend-dev + tester"]
+    FFAgents -->|Full-stack| FS2["FE + BE + tester"]
+    FFAgents -->|Large scope| LS["+ architect + doc-writer"]
+    FFAgents -->|Security| SEC2["+ security-auditor"]
+    FFScaffold --> FFReview["/review + /1b1 + fixer"]
 ```
 
 ### 3. Start a session
@@ -129,32 +123,17 @@ claude --agents '{
 
 The `--agents` (plural) flag accepts JSON with the same fields as agent `.md` frontmatter: `description`, `prompt`, `tools`, `disallowedTools`, `model`, `permissionMode`, `maxTurns`, `skills`, `hooks`, and `memory`. These agents exist only for the current session.
 
-**Agent Teams (experimental — multiple independent sessions):**
+### 4. Delegate to subagents
 
-```bash
-# Enable agent teams
-export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
-
-# Start Claude Code as the lead
-claude
-
-# Spawn teammates as independent sessions
-/teammates add frontend-dev backend-dev tester
-```
-
-### 4. Create tasks and assign
-
-As the lead, you create tasks and set dependencies:
+As the lead, you spawn subagents via the `Task` tool to delegate work:
 
 ```
-Create a task list for implementing the user profile page:
-1. "Implement GET /api/users/:id endpoint" → assign to backend-dev
-2. "Create UserProfile component" → assign to frontend-dev, blocked by task 1
-3. "Write tests for user profile" → assign to tester, blocked by tasks 1 and 2
-4. Create PR, then run /review
+> "Use the backend-dev agent to implement GET /api/users/:id endpoint"
+> "Use the frontend-dev agent to create the UserProfile component"
+> "Use the tester agent to write tests for user profile"
 ```
 
-Agents will claim tasks matching their domain and execute within their boundaries.
+For multi-domain work, spawn agents in parallel (multiple `Task` calls in one message). Each agent receives a focused, self-contained task with all necessary context in the prompt.
 
 ### 5. Review and merge
 
@@ -168,25 +147,25 @@ Once all tasks are complete, review the deliverables and create the PR.
 
 | Agent | Color | Domain | Standards |
 |-------|-------|--------|-----------|
-| **frontend-dev** | cyan | `apps/web/`, `packages/ui/` | [Frontend Patterns](../standards/frontend-patterns) |
-| **backend-dev** | green | `apps/api/`, `packages/types/` | [Backend Patterns](../standards/backend-patterns) |
-| **devops** | yellow | `packages/config/`, root configs | [Configuration](../configuration) |
+| **frontend-dev** | white | `apps/web/`, `packages/ui/` | [Frontend Patterns](../standards/frontend-patterns) |
+| **backend-dev** | white | `apps/api/`, `packages/types/` | [Backend Patterns](../standards/backend-patterns) |
+| **devops** | white | `packages/config/`, root configs | [Configuration](../configuration) |
 
 ### Quality Agents (verification and fixing)
 
 | Agent | Color | Role | Standards |
 |-------|-------|------|-----------|
-| **fixer** | magenta | Fullstack quick fixer — applies accepted review comments. Spawned in parallel (one per domain) when fixes span multiple domains. | [Code Review](../standards/code-review) |
-| **tester** | blue | Test generation &amp; validation | [Testing](../standards/testing) |
-| **security-auditor** | red | Vulnerability detection | OWASP Top 10 |
+| **fixer** | white | Fullstack quick fixer — applies accepted review comments. Spawned in parallel (one per domain) when fixes span multiple domains. | [Code Review](../standards/code-review) |
+| **tester** | white | Test generation &amp; validation | [Testing](../standards/testing) |
+| **security-auditor** | white | Vulnerability detection | OWASP Top 10 |
 
 ### Strategy Agents (planning &amp; alignment)
 
 | Agent | Color | Role | Standards |
 |-------|-------|------|-----------|
 | **architect** | white | System design, tier classification | [Architecture](../architecture/) |
-| **product-lead** | purple | Product ownership, requirements, triage | [Issue Management](../processes/issue-management) |
-| **doc-writer** | gray | Documentation maintenance | [Contributing](../contributing) |
+| **product-lead** | white | Product ownership, requirements, triage | [Issue Management](../processes/issue-management) |
+| **doc-writer** | white | Documentation maintenance | [Contributing](../contributing) |
 
 ---
 
@@ -209,10 +188,8 @@ Maximum number of agentic turns (API round-trips) before the agent stops. Preven
 
 | Value | Used by |
 |-------|---------|
-| `50` | Domain agents, tester, and fixer (may need many iterations) |
+| `50` | Domain agents, tester, fixer, architect, and product-lead |
 | `30` | Security-auditor, doc-writer |
-| `20` | Architect (analysis-focused) |
-| none | Product-lead (unbounded — owns the full pipeline) |
 
 ### `memory: project`
 
@@ -220,17 +197,18 @@ All agents use `memory: project`, which enables persistent learnings stored in `
 
 ### `skills`
 
-Each agent has a core skill preloaded, matching its primary function:
+Some agents have skills preloaded, matching their primary function:
 
 | Agent | Skill | Purpose |
 |-------|-------|---------|
-| frontend-dev | `commit`, `context7`, `frontend-design` | Conventional Commits + library docs + UI design |
-| backend-dev, devops | `commit`, `context7` | Conventional Commits + library docs |
-| doc-writer | `commit`, `context7` | Conventional Commits + library docs |
-| fixer | `commit`, `context7` | Fix accepted review comments + commit |
-| tester | `test`, `context7` | Test generation + library docs |
-| architect | `adr`, `commit`, `context7` | ADRs, commits, library docs |
-| product-lead | `interview`, `issue-triage`, `issues`, `adr`, `commit`, `pr`, `scaffold`, `agent-browser`, `context7`, `1b1`, `bootstrap` | Full product ownership toolkit |
+| frontend-dev | `frontend-design`, `ui-ux-pro-max` | UI design guardrails + design system |
+| backend-dev | — | No preloaded skill |
+| devops | — | No preloaded skill |
+| doc-writer | — | No preloaded skill |
+| fixer | — | No preloaded skill |
+| tester | `test` | Test generation |
+| architect | `adr` | Architecture Decision Records |
+| product-lead | `interview`, `issue-triage`, `issues`, `1b1` | Product ownership toolkit |
 | security-auditor | — | No skill (pure analysis) |
 
 ### `disallowedTools`
@@ -309,13 +287,12 @@ Single-domain fixes still use one fixer that commits and pushes directly.
 **Scenario:** Add a new page with components, no API changes. Clear requirements.
 
 ```bash
-# Phase 2 — Create worktree and spawn agents
+# Phase 2 — Create worktree and start working
 git worktree add ../roxabi-XXX -b feat/XXX-slug staging
 cd ../roxabi-XXX && bun install
-
-claude
-/teammates add frontend-dev tester
 ```
+
+Spawn subagents via `Task` tool: `frontend-dev` + `tester`.
 
 **Task flow (test-first):**
 
@@ -353,9 +330,7 @@ Merge
 
 **Scenario:** New API endpoint + frontend page that consumes it. Requirements documented.
 
-```bash
-/teammates add frontend-dev backend-dev tester
-```
+Spawn subagents via `Task` tool: `frontend-dev` + `backend-dev` + `tester`.
 
 **Task flow (test-first):**
 
@@ -394,9 +369,7 @@ Merge
 
 **Scenario:** Backend bug that needs a fix and regression test.
 
-```bash
-/teammates add backend-dev tester
-```
+Spawn subagents via `Task` tool: `backend-dev` + `tester`.
 
 **Task flow (test-first):**
 
@@ -441,27 +414,17 @@ Merge
 
 **Phase 2 — Implementation (test-first):**
 
-```bash
-/teammates add architect frontend-dev backend-dev devops tester doc-writer
-# Add security-auditor if security-sensitive
-```
+Spawn subagents via `Task` tool: `architect` + `frontend-dev` + `backend-dev` + `devops` + `tester` + `doc-writer` (+ `security-auditor` if security-sensitive).
 
 **Task flow:**
 
-```
-[architect: Design + break into tasks]
-        |
-[tester: Write failing tests from spec (RED)]
-        |
-   +----+--------+
-[front] [back] [infra]     <- parallel implementation (GREEN)
-   +----+--------+
-        |
-[tester: Verify coverage + edge cases]
-        |
-[doc-writer: Update docs]
-        |
-Commit & PR
+```mermaid
+flowchart TD
+    Arch["architect: Design + tasks"] --> RED["tester: Failing tests (RED)"]
+    RED --> FE["frontend-dev"] & BE["backend-dev"] & Inf["devops"]
+    FE & BE & Inf --> Verify["tester: Verify coverage"]
+    Verify --> Doc["doc-writer: Update docs"]
+    Doc --> PR["Commit & PR"]
 ```
 
 **Phase 3 — Review:**
@@ -474,17 +437,13 @@ Commit & PR
 
 **Phase 4 — Fix and Merge:**
 
-```
-[parallel fixers by domain]
-   +--------+--------+
-[BE fixer] [FE fixer] [Infra fixer]   ← parallel (one per affected domain)
-   +--------+--------+
-        |
-Combined commit & push
-        |
-CI runs (loop until green)
-        |
-Human approves merge
+```mermaid
+flowchart TD
+    Start["Parallel fixers by domain"] --> BEF["BE fixer"] & FEF["FE fixer"] & InfF["Infra fixer"]
+    BEF & FEF & InfF --> Commit["Combined commit & push"]
+    Commit --> CI{"CI green?"}
+    CI -- No --> Fix["Fix + re-push"] --> CI
+    CI -- Yes --> Merge{{"Human approves merge"}}
 ```
 
 **As the lead, you:**
@@ -549,7 +508,7 @@ This tiering will be applied when cost optimization becomes a priority. For now,
 | Context window exhausted | Restart the agent. The task list persists across sessions. |
 | Agent teams feature not working | Verify `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` is set. Check Claude Code version. |
 | Two agents conflict on a file | Add a `blockedBy` dependency to serialize access. |
-| Too expensive for small tasks | Use subagents (Task tool) for Tier S. Reserve full Agent Teams for Tier F multi-domain. |
+| Too expensive for small tasks | Use a single session for Tier S. Reserve parallel subagents for Tier F multi-domain. |
 
 ## Fallback: Single Agent Mode
 

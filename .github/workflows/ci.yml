@@ -45,6 +45,7 @@ jobs:
               - 'biome.json'
               - 'tsconfig*.json'
               - 'lefthook.yml'
+              - '.gitleaks.toml'
               - '.github/workflows/**'
             e2e:
               - 'apps/web/src/**'
@@ -53,6 +54,25 @@ jobs:
               - 'playwright.config.ts'
               - '.github/workflows/ci.yml'
               - 'turbo.jsonc'
+
+  secrets:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [detect-changes]
+    if: |
+      !cancelled() && !failure() &&
+      (github.event_name != 'pull_request' || needs.detect-changes.outputs.code == 'true')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   lint:
     name: Lint
@@ -217,8 +237,11 @@ jobs:
       - name: Generate Paraglide & route tree
         run: cd apps/web && bun run codegen
 
+      - name: Build shared packages
+        run: bun run build --filter=@repo/types --filter=@repo/config --filter=@repo/email --filter=@repo/ui
+
       - name: Apply RLS migration for integration tests
-        run: psql "$DATABASE_URL" -f apps/api/drizzle/migrations/0000_rls_infrastructure.sql
+        run: psql "$DATABASE_URL" -f apps/api/drizzle/migrations/0000_baseline.sql
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
@@ -345,8 +368,8 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: bunx playwright install-deps chromium
 
-      - name: Build web app
-        run: bun run build --filter=@repo/web
+      - name: Build apps
+        run: bun run build --filter=@repo/web --filter=@repo/api
 
       - name: Run E2E tests
         run: bun test:e2e --project=chromium --reporter=list --reporter=html
@@ -373,7 +396,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Check internal documentation links
-        run: bun run tools/docs-link-audit.ts
+        run: bun run tools/docsLinkAudit.ts
 
   # Intentionally runs on every push to main/staging regardless of changed paths.
   # Full browser coverage is required on protected branches before release.
@@ -435,8 +458,8 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: bunx playwright install-deps chromium firefox webkit
 
-      - name: Build web app
-        run: bun run build --filter=@repo/web
+      - name: Build apps
+        run: bun run build --filter=@repo/web --filter=@repo/api
 
       - name: Run E2E tests (shard ${{ matrix.shard }})
         run: bun test:e2e --shard=${{ matrix.shard }}
@@ -474,7 +497,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Download blob reports
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           pattern: blob-report-*
           merge-multiple: true
@@ -494,10 +517,11 @@ jobs:
     name: CI Success
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, typecheck, test, build, e2e, e2e-matrix, merge-reports, docs-links]
+    needs: [secrets, lint, typecheck, test, build, e2e, e2e-matrix, merge-reports, docs-links]
     steps:
       - name: Check job outcomes
         env:
+          SECRETS_RESULT: ${{ needs.secrets.result }}
           LINT_RESULT: ${{ needs.lint.result }}
           TYPECHECK_RESULT: ${{ needs.typecheck.result }}
           TEST_RESULT: ${{ needs.test.result }}
@@ -508,6 +532,7 @@ jobs:
           DOCS_LINKS_RESULT: ${{ needs.docs-links.result }}
         run: |
           results=( \
+            "$SECRETS_RESULT" \
             "$LINT_RESULT" \
             "$TYPECHECK_RESULT" \
             "$TEST_RESULT" \

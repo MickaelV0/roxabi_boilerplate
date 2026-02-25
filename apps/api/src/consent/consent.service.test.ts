@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ConsentService, type SaveConsentDto } from './consent.service.js'
-import { ConsentInsertFailedException } from './exceptions/consent-insert-failed.exception.js'
-import { ConsentNotFoundException } from './exceptions/consent-not-found.exception.js'
+import { ConsentInsertFailedException } from './exceptions/consentInsertFailed.exception.js'
+import { ConsentNotFoundException } from './exceptions/consentNotFound.exception.js'
 
 const mockConsentRow = {
   id: 'consent-1',

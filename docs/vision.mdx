@@ -174,11 +174,11 @@ roxabi_boilerplate/
 
 ### Multi-Tenant Model
 
-```
-META Organization (super admin)
-└── Organization
-    └── Child Organization(s)
-        └── Users
+```mermaid
+graph TD
+    META["META Organization (super admin)"] --> Org["Organization"]
+    Org --> Child["Child Organization(s)"]
+    Child --> Users["Users"]
 ```
 
 **Strategy**: Row-Level Security (RLS)
@@ -195,17 +195,12 @@ META Organization (super admin)
 
 ### Data Flow
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Client    │────❯│   Web App   │────❯│   API       │
-│   Browser   │❮────│ (TanStack)  │❮────│  (NestJS)   │
-└─────────────┘     └─────────────┘     └─────────────┘
-                           │                   │
-                           ▼                   ▼
-                    ┌─────────────┐     ┌─────────────┐
-                    │  packages/  │     │  PostgreSQL │
-                    │             │     │   (RLS)     │
-                    └─────────────┘     └─────────────┘
+```mermaid
+flowchart LR
+    Client["Client Browser"] <--> Web["Web App (TanStack)"]
+    Web <--> API["API (NestJS)"]
+    Web --> Pkg["packages/"]
+    API --> DB[("PostgreSQL (RLS)")]
 ```
 
 ---
@@ -222,8 +217,9 @@ META Organization (super admin)
 
 ### Development Workflow
 
-```
-Idea → GitHub Issue → Branch → Dev → PR → Review → Merge → Deploy → Close
+```mermaid
+flowchart LR
+    Idea --> Issue["GitHub Issue"] --> Branch --> Dev --> PR --> Review --> Merge --> Deploy --> Close
 ```
 
 ### Automations (Hooks)

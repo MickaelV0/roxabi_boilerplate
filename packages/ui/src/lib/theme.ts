@@ -309,7 +309,7 @@ function deriveChartColors(
  * - sidebar: background +/- 0.03 lightness
  * - chart-1..5: rotate primary hue by N*60 degrees
  *
- * @see specs/70-design-system.mdx "Derivation rules"
+ * @see artifacts/specs/70-design-system.mdx "Derivation rules"
  */
 export function deriveFullTheme(config: ThemeConfig): DerivedTheme {
   const { colors, radius, typography } = config
@@ -356,10 +356,8 @@ function deriveDarkSeeds(lightSeeds: ThemeColors): ThemeColors {
 /**
  * Derive all CSS variables from a set of seed colors for a single mode.
  */
-function deriveVariableSet(seeds: ThemeColors, mode: 'light' | 'dark'): Record<string, string> {
-  const vars: Record<string, string> = {}
-
-  // --- Direct seed colors ---
+/** Assign direct seed colors and derived foreground variants. */
+function assignSeedAndForegrounds(vars: Record<string, string>, seeds: ThemeColors): void {
   vars.background = seeds.background
   vars.foreground = seeds.foreground
   vars.primary = seeds.primary
@@ -369,42 +367,42 @@ function deriveVariableSet(seeds: ThemeColors, mode: 'light' | 'dark'): Record<s
   vars.muted = seeds.muted
   vars.border = seeds.border
 
-  // --- Derived foreground variants ---
   vars['primary-foreground'] = deriveForeground(seeds.primary)
   vars['secondary-foreground'] = deriveForeground(seeds.secondary)
   vars['accent-foreground'] = deriveForeground(seeds.accent)
   vars['destructive-foreground'] = deriveForeground(seeds.destructive)
   vars['muted-foreground'] = deriveForeground(seeds.muted)
 
-  // --- Card and popover: copy background/foreground ---
   vars.card = seeds.background
   vars['card-foreground'] = seeds.foreground
   vars.popover = seeds.background
   vars['popover-foreground'] = seeds.foreground
-
-  // --- Input: copy border ---
   vars.input = seeds.border
-
-  // --- Ring: same as border ---
   vars.ring = seeds.border
+}
 
-  // --- Sidebar ---
+/** Derive sidebar color variables from seeds and mode. */
+function assignSidebarVars(
+  vars: Record<string, string>,
+  seeds: ThemeColors,
+  mode: 'light' | 'dark'
+): void {
   const bgParsed = parseOklch(seeds.background)
-  // Subtract 0.03 in light mode, add 0.03 in dark mode
   const sidebarL =
     mode === 'light' ? clamp(bgParsed.l - 0.03, 0, 1) : clamp(bgParsed.l + 0.03, 0, 1)
   vars.sidebar = formatOklchStr(sidebarL, bgParsed.c, bgParsed.h)
   vars['sidebar-foreground'] = seeds.foreground
   vars['sidebar-primary'] = seeds.primary
-  vars['sidebar-primary-foreground'] = vars['primary-foreground']
+  vars['sidebar-primary-foreground'] = vars['primary-foreground'] ?? seeds.foreground
   vars['sidebar-accent'] = seeds.accent
-  vars['sidebar-accent-foreground'] = vars['accent-foreground']
+  vars['sidebar-accent-foreground'] = vars['accent-foreground'] ?? seeds.foreground
   vars['sidebar-border'] = seeds.border
-  vars['sidebar-ring'] = vars.ring
+  vars['sidebar-ring'] = vars.ring ?? seeds.primary
+}
 
-  // --- Chart colors: rotate primary hue by N*60 degrees ---
-  const primaryParsed = parseOklch(seeds.primary)
-  const seedHues = [
+/** Collect hue values from all seed colors. */
+function collectSeedHues(seeds: ThemeColors): number[] {
+  return [
     parseOklch(seeds.primary).h,
     parseOklch(seeds.secondary).h,
     parseOklch(seeds.accent).h,
@@ -414,7 +412,19 @@ function deriveVariableSet(seeds: ThemeColors, mode: 'light' | 'dark'): Record<s
     parseOklch(seeds.foreground).h,
     parseOklch(seeds.border).h,
   ]
+}
 
+/**
+ * Derive all CSS variables from a set of seed colors for a single mode.
+ */
+function deriveVariableSet(seeds: ThemeColors, mode: 'light' | 'dark'): Record<string, string> {
+  const vars: Record<string, string> = {}
+
+  assignSeedAndForegrounds(vars, seeds)
+  assignSidebarVars(vars, seeds, mode)
+
+  const primaryParsed = parseOklch(seeds.primary)
+  const seedHues = collectSeedHues(seeds)
   const chartColors = deriveChartColors(primaryParsed, seedHues)
   for (let i = 0; i < 5; i++) {
     const color = chartColors[i]

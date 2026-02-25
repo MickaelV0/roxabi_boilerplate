@@ -1,8 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import type { OrgOwnershipResolution } from '@repo/types'
 import { and, eq, isNotNull } from 'drizzle-orm'
-import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
-import { whereActive } from '../database/helpers/where-active.js'
+import { USER_SOFT_DELETED, UserSoftDeletedEvent } from '../common/events/userSoftDeleted.event.js'
+import { DRIZZLE, type DrizzleDB, type DrizzleTx } from '../database/drizzle.provider.js'
+import { whereActive } from '../database/helpers/whereActive.js'
 import {
   accounts,
   invitations,
@@ -13,12 +15,12 @@ import {
   verifications,
 } from '../database/schema/auth.schema.js'
 import { roles } from '../database/schema/rbac.schema.js'
-import { OrgNotOwnerException } from '../organization/exceptions/org-not-owner.exception.js'
-import { AccountAlreadyDeletedException } from './exceptions/account-already-deleted.exception.js'
-import { AccountNotDeletedException } from './exceptions/account-not-deleted.exception.js'
-import { EmailConfirmationMismatchException } from './exceptions/email-confirmation-mismatch.exception.js'
-import { TransferTargetNotMemberException } from './exceptions/transfer-target-not-member.exception.js'
-import { UserNotFoundException } from './exceptions/user-not-found.exception.js'
+import { OrgNotOwnerException } from '../organization/exceptions/orgNotOwner.exception.js'
+import { AccountAlreadyDeletedException } from './exceptions/accountAlreadyDeleted.exception.js'
+import { AccountNotDeletedException } from './exceptions/accountNotDeleted.exception.js'
+import { EmailConfirmationMismatchException } from './exceptions/emailConfirmationMismatch.exception.js'
+import { TransferTargetNotMemberException } from './exceptions/transferTargetNotMember.exception.js'
+import { UserNotFoundException } from './exceptions/userNotFound.exception.js'
 
 const profileColumns = {
   id: users.id,
@@ -50,7 +52,10 @@ const softDeleteCache = new Map<
 export class UserService {
   private readonly logger = new Logger(UserService.name)
 
-  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: DrizzleDB,
+    private readonly eventEmitter: EventEmitter2
+  ) {}
 
   async getSoftDeleteStatus(userId: string) {
     const cached = softDeleteCache.get(userId)
@@ -149,8 +154,7 @@ export class UserService {
     return updated
   }
 
-  async softDelete(userId: string, confirmEmail: string, orgResolutions: OrgOwnershipResolution[]) {
-    // Fetch the user to validate email and check deletion status
+  private async validateSoftDeleteRequest(userId: string, confirmEmail: string) {
     const [user] = await this.db
       .select({ id: users.id, email: users.email, deletedAt: users.deletedAt })
       .from(users)
@@ -167,82 +171,110 @@ export class UserService {
       throw new EmailConfirmationMismatchException()
     }
 
+    return user
+  }
+
+  private async processOrgTransfer(
+    tx: DrizzleTx,
+    resolution: Extract<OrgOwnershipResolution, { action: 'transfer' }>,
+    now: Date
+  ) {
+    // Verify transferToUserId is an existing member of the org
+    const [targetMember] = await tx
+      .select({ id: members.id })
+      .from(members)
+      .where(
+        and(
+          eq(members.organizationId, resolution.organizationId),
+          eq(members.userId, resolution.transferToUserId)
+        )
+      )
+      .limit(1)
+    if (!targetMember) {
+      throw new TransferTargetNotMemberException(
+        resolution.transferToUserId,
+        resolution.organizationId
+      )
+    }
+
+    // Transfer ownership: update role on target member
+    await tx
+      .update(members)
+      .set({ role: 'owner', updatedAt: now })
+      .where(
+        and(
+          eq(members.organizationId, resolution.organizationId),
+          eq(members.userId, resolution.transferToUserId)
+        )
+      )
+  }
+
+  private async processOrgDeletion(
+    tx: DrizzleTx,
+    resolution: Extract<OrgOwnershipResolution, { action: 'delete' }>,
+    now: Date,
+    deleteScheduledFor: Date
+  ) {
+    // Soft-delete the organization
+    await tx
+      .update(organizations)
+      .set({ deletedAt: now, deleteScheduledFor, updatedAt: now })
+      .where(eq(organizations.id, resolution.organizationId))
+
+    // Clear activeOrganizationId on sessions referencing this org
+    await tx
+      .update(sessions)
+      .set({ activeOrganizationId: null })
+      .where(eq(sessions.activeOrganizationId, resolution.organizationId))
+
+    // Invalidate pending invitations for this org
+    await tx
+      .update(invitations)
+      .set({ status: 'expired' })
+      .where(
+        and(
+          eq(invitations.organizationId, resolution.organizationId),
+          eq(invitations.status, 'pending')
+        )
+      )
+  }
+
+  private async processOrgResolution(
+    tx: DrizzleTx,
+    resolution: OrgOwnershipResolution,
+    userId: string,
+    context: { now: Date; deleteScheduledFor: Date }
+  ) {
+    // Verify the deleting user is an owner of this organization
+    const [membership] = await tx
+      .select({ role: members.role })
+      .from(members)
+      .where(and(eq(members.organizationId, resolution.organizationId), eq(members.userId, userId)))
+      .limit(1)
+    if (!membership || membership.role !== 'owner') {
+      throw new OrgNotOwnerException(resolution.organizationId)
+    }
+
+    if (resolution.action === 'transfer') {
+      await this.processOrgTransfer(tx, resolution, context.now)
+    } else if (resolution.action === 'delete') {
+      await this.processOrgDeletion(tx, resolution, context.now, context.deleteScheduledFor)
+    }
+  }
+
+  async softDelete(userId: string, confirmEmail: string, orgResolutions: OrgOwnershipResolution[]) {
+    await this.validateSoftDeleteRequest(userId, confirmEmail)
+
     const now = new Date()
     const deleteScheduledFor = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: inherent to multi-resolution transaction logic
-    return await this.db.transaction(async (tx) => {
-      // Process org resolutions
+    const updated = await this.db.transaction(async (tx) => {
       for (const resolution of orgResolutions) {
-        // B1: Verify the deleting user is an owner of this organization
-        const [membership] = await tx
-          .select({ role: members.role })
-          .from(members)
-          .where(
-            and(eq(members.organizationId, resolution.organizationId), eq(members.userId, userId))
-          )
-          .limit(1)
-        if (!membership || membership.role !== 'owner') {
-          throw new OrgNotOwnerException(resolution.organizationId)
-        }
-
-        if (resolution.action === 'transfer') {
-          // B1: Verify transferToUserId is an existing member of the org
-          const [targetMember] = await tx
-            .select({ id: members.id })
-            .from(members)
-            .where(
-              and(
-                eq(members.organizationId, resolution.organizationId),
-                eq(members.userId, resolution.transferToUserId)
-              )
-            )
-            .limit(1)
-          if (!targetMember) {
-            throw new TransferTargetNotMemberException(
-              resolution.transferToUserId,
-              resolution.organizationId
-            )
-          }
-
-          // Transfer ownership: update role on target member
-          await tx
-            .update(members)
-            .set({ role: 'owner', updatedAt: now })
-            .where(
-              and(
-                eq(members.organizationId, resolution.organizationId),
-                eq(members.userId, resolution.transferToUserId)
-              )
-            )
-        } else if (resolution.action === 'delete') {
-          // Soft-delete the organization
-          await tx
-            .update(organizations)
-            .set({ deletedAt: now, deleteScheduledFor, updatedAt: now })
-            .where(eq(organizations.id, resolution.organizationId))
-
-          // Clear activeOrganizationId on sessions referencing this org
-          await tx
-            .update(sessions)
-            .set({ activeOrganizationId: null })
-            .where(eq(sessions.activeOrganizationId, resolution.organizationId))
-
-          // Invalidate pending invitations for this org
-          await tx
-            .update(invitations)
-            .set({ status: 'expired' })
-            .where(
-              and(
-                eq(invitations.organizationId, resolution.organizationId),
-                eq(invitations.status, 'pending')
-              )
-            )
-        }
+        await this.processOrgResolution(tx, resolution, userId, { now, deleteScheduledFor })
       }
 
       // Soft-delete the user
-      const [updated] = await tx
+      const [result] = await tx
         .update(users)
         .set({ deletedAt: now, deleteScheduledFor, updatedAt: now })
         .where(eq(users.id, userId))
@@ -254,8 +286,13 @@ export class UserService {
       // Invalidate cached soft-delete status after successful deletion
       this.invalidateSoftDeleteCache(userId)
 
-      return updated
+      return result
     })
+
+    // Emit after transaction commits to prevent listeners from running on partial state
+    await this.eventEmitter.emitAsync(USER_SOFT_DELETED, new UserSoftDeletedEvent(userId))
+
+    return updated
   }
 
   async reactivate(userId: string) {
@@ -286,8 +323,7 @@ export class UserService {
     return ownedOrgs
   }
 
-  async purge(userId: string, confirmEmail: string) {
-    // Fetch the user to validate soft-delete status and email
+  private async validatePurgeEligibility(userId: string, confirmEmail: string) {
     const [user] = await this.db
       .select({ id: users.id, email: users.email, deletedAt: users.deletedAt })
       .from(users)
@@ -306,90 +342,92 @@ export class UserService {
       throw new EmailConfirmationMismatchException()
     }
 
+    return user
+  }
+
+  private async anonymizeUserRecords(
+    tx: DrizzleTx,
+    userId: string,
+    originalEmail: string,
+    now: Date
+  ) {
+    const anonymizedEmail = `deleted-${crypto.randomUUID()}@anonymized.local`
+
+    // Anonymize user record
+    await tx
+      .update(users)
+      .set({
+        firstName: 'Deleted',
+        lastName: 'User',
+        name: 'Deleted User',
+        email: anonymizedEmail,
+        image: null,
+        emailVerified: false,
+        avatarSeed: null,
+        avatarStyle: null,
+        avatarOptions: {},
+        updatedAt: now,
+      })
+      .where(eq(users.id, userId))
+
+    // Delete sessions, accounts, verifications, and invitations
+    await tx.delete(sessions).where(eq(sessions.userId, userId))
+    await tx.delete(accounts).where(eq(accounts.userId, userId))
+    await tx.delete(verifications).where(eq(verifications.identifier, originalEmail))
+    await tx.delete(invitations).where(eq(invitations.inviterId, userId))
+    await tx.delete(invitations).where(eq(invitations.email, originalEmail))
+  }
+
+  private async purgeOwnedOrganizations(tx: DrizzleTx, userId: string, now: Date) {
+    const ownedDeletedOrgs = await tx
+      .select({ orgId: organizations.id })
+      .from(members)
+      .innerJoin(organizations, eq(members.organizationId, organizations.id))
+      .where(
+        and(
+          eq(members.userId, userId),
+          eq(members.role, 'owner'),
+          isNotNull(organizations.deletedAt)
+        )
+      )
+
+    // TODO: Optimize with inArray() batch operations instead of sequential loop.
+    // Blocked because each org needs a unique anonymized slug (crypto.randomUUID()),
+    // which requires per-row UPDATE. Consider a SQL-level random slug generation
+    // or a two-pass approach (batch delete members/invitations/roles, then loop for slugs).
+    for (const { orgId } of ownedDeletedOrgs) {
+      const anonymizedSlug = `deleted-${crypto.randomUUID()}`
+
+      await tx
+        .update(organizations)
+        .set({
+          name: 'Deleted Organization',
+          slug: anonymizedSlug,
+          logo: null,
+          metadata: null,
+          updatedAt: now,
+        })
+        .where(eq(organizations.id, orgId))
+
+      await tx.delete(members).where(eq(members.organizationId, orgId))
+      await tx.delete(invitations).where(eq(invitations.organizationId, orgId))
+      await tx.delete(roles).where(eq(roles.tenantId, orgId))
+    }
+
+    // Remove user's membership from all remaining organizations
+    await tx.delete(members).where(eq(members.userId, userId))
+  }
+
+  async purge(userId: string, confirmEmail: string) {
+    const user = await this.validatePurgeEligibility(userId, confirmEmail)
     const originalEmail = user.email
 
     this.logger.warn('Purging account', { userId })
 
     await this.db.transaction(async (tx) => {
       const now = new Date()
-      const anonymizedEmail = `deleted-${crypto.randomUUID()}@anonymized.local`
-
-      // Anonymize user record
-      await tx
-        .update(users)
-        .set({
-          firstName: 'Deleted',
-          lastName: 'User',
-          name: 'Deleted User',
-          email: anonymizedEmail,
-          image: null,
-          emailVerified: false,
-          avatarSeed: null,
-          avatarStyle: null,
-          avatarOptions: {},
-          updatedAt: now,
-        })
-        .where(eq(users.id, userId))
-
-      // Delete sessions
-      await tx.delete(sessions).where(eq(sessions.userId, userId))
-
-      // Delete accounts
-      await tx.delete(accounts).where(eq(accounts.userId, userId))
-
-      // Delete verifications (by user's original email)
-      await tx.delete(verifications).where(eq(verifications.identifier, originalEmail))
-
-      // Delete invitations where inviterId = userId
-      await tx.delete(invitations).where(eq(invitations.inviterId, userId))
-
-      // Delete invitations where email = user's original email
-      await tx.delete(invitations).where(eq(invitations.email, originalEmail))
-
-      // Purge soft-deleted organizations owned by this user
-      const ownedDeletedOrgs = await tx
-        .select({ orgId: organizations.id })
-        .from(members)
-        .innerJoin(organizations, eq(members.organizationId, organizations.id))
-        .where(
-          and(
-            eq(members.userId, userId),
-            eq(members.role, 'owner'),
-            isNotNull(organizations.deletedAt)
-          )
-        )
-
-      // TODO: Optimize with inArray() batch operations instead of sequential loop.
-      // Blocked because each org needs a unique anonymized slug (crypto.randomUUID()),
-      // which requires per-row UPDATE. Consider a SQL-level random slug generation
-      // or a two-pass approach (batch delete members/invitations/roles, then loop for slugs).
-      for (const { orgId } of ownedDeletedOrgs) {
-        const anonymizedSlug = `deleted-${crypto.randomUUID()}`
-
-        // Anonymize organization record
-        await tx
-          .update(organizations)
-          .set({
-            name: 'Deleted Organization',
-            slug: anonymizedSlug,
-            logo: null,
-            metadata: null,
-            updatedAt: now,
-          })
-          .where(eq(organizations.id, orgId))
-
-        // Delete all members for this org
-        await tx.delete(members).where(eq(members.organizationId, orgId))
-
-        // Delete all invitations for this org
-        await tx.delete(invitations).where(eq(invitations.organizationId, orgId))
-
-        // Delete tenant-scoped roles (cascade handles role_permissions)
-        await tx.delete(roles).where(eq(roles.tenantId, orgId))
-      }
-
-      // Remove user's membership from all remaining organizations
-      await tx.delete(members).where(eq(members.userId, userId))
+      await this.anonymizeUserRecords(tx, userId, originalEmail, now)
+      await this.purgeOwnedOrganizations(tx, userId, now)
     })
 
     this.logger.log('Account purged successfully', { userId })

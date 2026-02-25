@@ -3,12 +3,13 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { ExternalLink } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { authClient } from '@/lib/auth-client'
+import { authClient } from '@/lib/authClient'
 import { m } from '@/paraglide/messages'
 import { AuthLayout } from '../components/AuthLayout'
 
 type MagicLinkSearch = {
   email?: string
+  redirect?: string
 }
 
 type EmailProvider = {
@@ -37,6 +38,7 @@ const COOLDOWN_SECONDS = 60
 export const Route = createFileRoute('/magic-link-sent')({
   validateSearch: (search: Record<string, unknown>): MagicLinkSearch => ({
     email: typeof search.email === 'string' ? search.email : undefined,
+    redirect: typeof search.redirect === 'string' ? search.redirect : undefined,
   }),
   component: MagicLinkSentPage,
   head: () => ({
@@ -45,7 +47,7 @@ export const Route = createFileRoute('/magic-link-sent')({
 })
 
 function MagicLinkSentPage() {
-  const { email } = Route.useSearch()
+  const { email, redirect } = Route.useSearch()
   const [loading, setLoading] = useState(false)
   const [cooldown, setCooldown] = useState(0)
 
@@ -112,7 +114,11 @@ function MagicLinkSentPage() {
         )}
 
         <p className="text-sm text-muted-foreground">
-          <Link to="/login" className="underline hover:text-foreground">
+          <Link
+            to="/login"
+            search={redirect ? { redirect } : undefined}
+            className="underline hover:text-foreground"
+          >
             {m.auth_back_to_sign_in()}
           </Link>
         </p>

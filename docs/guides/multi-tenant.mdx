@@ -9,7 +9,7 @@ Roxabi uses **PostgreSQL Row-Level Security (RLS)** for tenant data isolation. E
 
 The system follows a simple principle: **the organization IS the tenant**. There is no separate `tenants` table. The `activeOrganizationId` from the user's session determines which tenant's data is visible.
 
-For the full design rationale, see the Multi-tenant RLS analysis at `analyses/21-multi-tenant-rls.mdx`.
+For the full design rationale, see the Multi-tenant RLS analysis at `artifacts/analyses/21-multi-tenant-rls.mdx`.
 
 ## How Tenant Context Flows
 
@@ -369,7 +369,7 @@ The tenant integration tests require a running PostgreSQL database with the RLS 
 cd apps/api && bun run db:migrate
 
 # Run tenant integration tests
-bun test apps/api/src/tenant/tenant.integration.test.ts
+bun run test apps/api/src/tenant/tenant.integration.test.ts
 ```
 
 The tests are automatically skipped (not executed) when `DATABASE_URL` is not set, so they will not break CI environments without a database.
@@ -473,7 +473,7 @@ This is already set by the `TenantInterceptor` before your service code runs.
 
 ## Related Documentation
 
-- Multi-tenant RLS analysis (`analyses/21-multi-tenant-rls.mdx`) -- Full design rationale and architectural decisions
+- Multi-tenant RLS analysis (`artifacts/analyses/21-multi-tenant-rls.mdx`) -- Full design rationale and architectural decisions
 - [Multi-tenant architecture](../architecture/multi-tenant) -- System architecture and module boundaries
 - [RBAC guide](./rbac) -- How roles and permissions interact with tenant context
 - [Authentication guide](./authentication) -- Auth guard, session management, and `@RequireOrg()` decorator

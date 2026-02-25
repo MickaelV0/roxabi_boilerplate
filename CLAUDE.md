@@ -3,262 +3,147 @@
 ## TL;DR
 
 - **Project:** Roxabi Boilerplate — SaaS framework (Bun, TurboRepo, TypeScript, TanStack Start, NestJS, Vercel)
-- **Before any work:** Read [dev-process.mdx](docs/processes/dev-process.mdx) to determine tier (S / F-lite / F-full)
-- **All code changes** require a worktree — `git worktree add ../roxabi-XXX -b feat/XXX-slug staging`
-- **Always** use `AskUserQuestion` for multiple-choice questions — never ask in plain text
-- **Never** commit without asking, push without explicit request, or use `--force`/`--hard`/`--amend`
-- **Always** use the appropriate skill (see [Skills & Agents](#skills--agents)) even without a slash command
-- **Before writing code:** Read the relevant standards doc (see [Rule 8](#8-coding-standards-critical))
-- **Orchestrator** delegates all code/docs/deploy changes to agents — only minor fixes directly
-
----
+- **Before work:** Read [dev-process.mdx](docs/processes/dev-process.mdx) → determine tier (S / F-lite / F-full)
+- **All code changes** → worktree: `git worktree add ../roxabi-XXX -b feat/XXX-slug staging`
+- **Always** `AskUserQuestion` for choices — ¬plain-text questions
+- **¬commit** without asking, **¬push** without request, **¬**`--force`/`--hard`/`--amend`
+- **Always** use appropriate skill even without slash command
+- **Before code:** Read relevant standards doc (see [Rule 8](#8-coding-standards))
+- **Orchestrator** delegates to agents — only minor fixes directly
 
 ## Project Overview
 
-Roxabi Boilerplate - SaaS framework with integrated AI team.
+SaaS framework with integrated AI team. Vision → [docs/vision.mdx](docs/vision.mdx).
 
-Vision, principles, roadmap → [docs/vision.mdx](docs/vision.mdx).
-
-### Tech Stack
-
-- **Runtime**: Bun
-- **Monorepo**: TurboRepo
-- **Language**: TypeScript 5.x (strict mode)
-- **Linting/Formatting**: Biome
-- **Frontend**: TanStack Start
-- **Backend**: NestJS + Fastify
-- **Deployment**: Vercel (both web + API)
-- **Code Style**: Biome — single quotes, no semicolons, 2-space indent, 100-char line width
-- **DB/ORM**: Drizzle ORM + PostgreSQL 16 (Docker local, Neon on Vercel)
-
-### Quick Start
+**Stack:** Bun | TurboRepo | TypeScript 5.x strict | Biome | TanStack Start | NestJS + Fastify | Vercel | Drizzle ORM + PostgreSQL 16
+**Style:** single quotes, no semicolons, trailing commas (es5), 2-space indent, 100-char width
 
 ```bash
-cp .env.example .env && bun install      # first-time setup
-bun run dev                               # start all apps (web :3000, API :4000)
+cp .env.example .env && bun install && bun run db:up && bun run dev  # web:3000 api:4000 email:3001
 ```
 
-Full config → [docs/configuration.mdx](docs/configuration.mdx).
-
-### Monorepo Structure
-
 ```
-apps/
-  web/          @repo/web         TanStack Start + Vite + Tailwind v4
-  api/          @repo/api         NestJS + Fastify + Drizzle ORM
-packages/
-  ui/           @repo/ui          Shared React components (Radix + CVA)
-  types/        @repo/types       Shared TypeScript types/interfaces
-  config/       @repo/config      Shared Biome/TS/Tailwind config
-  vitest-config/ @repo/vitest-config  Shared Vitest configuration
-  playwright-config/ @repo/playwright-config  Shared Playwright configuration
+apps/web   @repo/web    TanStack Start + Vite + Tailwind v4
+apps/api   @repo/api    NestJS + Fastify + Drizzle ORM
+packages/  ui(@repo/ui) types(@repo/types) config(@repo/config) email vitest-config playwright-config
 ```
-
----
 
 ## Commands
 
 | Task | Command | Notes |
 |------|---------|-------|
-| Dev server | `bun run dev` | Web :3000, API :4000, Nitro :42069 |
+| Dev | `bun run dev` | web:3000, api:4000, email:3001, nitro:42069 |
 | Build | `bun run build` | TurboRepo-cached |
-| Lint | `bun run lint` | Biome check |
-| Lint + fix | `bun run lint:fix` | Auto-fix safe issues |
-| Format | `bun run format` | Biome format |
-| Typecheck | `bun run typecheck` | All packages via TurboRepo |
-| Test (unit) | `bun run test` | Vitest across all packages |
-| Test (watch) | `bun run test:watch` | Vitest watch mode |
-| Test (coverage) | `bun run test:coverage` | With v8 coverage |
-| Test (e2e) | `bun run test:e2e` | Playwright |
-| Kill orphaned ports | `bun run dev:clean` | After Ctrl+C leaves zombies |
-| DB start | `bun run db:up` | Docker Postgres 16 |
-| DB stop | `bun run db:down` | Stop Docker container |
-| DB generate | `bun run db:generate` | Drizzle schema → migration |
-| DB migrate | `bun run db:migrate` | Apply migrations |
-| DB reset | `bun run db:reset` | Drop + re-migrate + seed |
-| DB seed | `bun run db:seed` | Seed dev data |
-| DB branch (worktree) | `cd apps/api && bun run db:branch:create --force XXX` | Isolated DB per worktree |
-| Clean | `bun run clean` | Remove all build artifacts + node_modules |
-| Clean cache | `bun run clean:cache` | Vite + Turbo caches only |
-| i18n validate | `bun run i18n:validate` | Check translation completeness |
-| Env sync check | `bun run check:env` | Verify .env matches .env.example |
-
----
+| Lint / fix | `bun run lint` / `lint:fix` | Biome |
+| Format | `bun run format` | Biome |
+| Typecheck | `bun run typecheck` | All packages |
+| Test | `bun run test` | Vitest (¬`bun test`) |
+| Test watch / coverage / e2e | `test:watch` / `test:coverage` / `test:e2e` | |
+| Affected only | `typecheck:affected` / `test:affected` | Changed vs main |
+| Kill ports | `bun run dev:clean` | Orphaned 42069/4000/3000/3001 |
+| DB up/down | `db:up` / `db:down` | Docker Postgres 16 |
+| DB generate/migrate/reset/seed | `db:generate` / `db:migrate` / `db:reset` / `db:seed` | |
+| DB branch | `cd apps/api && bun run db:branch:create --force XXX` | Per-worktree |
+| Clean | `bun run clean` / `clean:cache` | Artifacts / caches |
+| i18n | `bun run i18n:validate` | Translation completeness |
+| Env check | `bun run check:env` | .env ↔ .env.example |
+| License | `bun run license:check` | Dependency licenses |
+| Docs / Dashboard | `bun run docs` / `bun run dashboard` | Preview / :3333 |
 
 ## Critical Rules
 
-### 1. Development Process (CRITICAL)
+### 1. Dev Process
 
-**BEFORE ANY SPEC, CODE CHANGE, OR PR REVIEW: MUST read [dev-process.mdx](docs/processes/dev-process.mdx) in full.**
+**MUST read [dev-process.mdx](docs/processes/dev-process.mdx) before any work.** No exceptions.
 
-Applies to ALL work: specs, features, fixes, refactoring, docs, tests, reviews. **No exceptions.**
+| Tier | Criteria | Process |
+|------|----------|---------|
+| **S** | ≤3 files, no arch, no risk | Worktree + PR |
+| **F-lite** | Clear scope, single domain | Worktree + agents + /review |
+| **F-full** | New arch, unclear reqs, >2 domains | Bootstrap + worktree + agents + /review |
 
-**Tier determination (judgment-based):**
+### 2. AskUserQuestion
 
-| Tier | Name | Criteria | Process |
-|------|------|----------|---------|
-| **S** | Quick Fix | <=3 files, no arch, no risk | Worktree + PR |
-| **F-lite** | Feature (lite) | Clear scope, documented reqs, single domain | Worktree + agents + /review (skip bootstrap) |
-| **F-full** | Feature (full) | New arch, unclear reqs, or >2 domains | Bootstrap + worktree + agents + /review |
+Always `AskUserQuestion` for: decisions, choices (≥2 options), approach proposals.
+**¬** plain-text "Do you want..." / "Should I..." → use the tool.
 
----
+### 3. Orchestrator Delegation
 
-### 2. AskUserQuestion (CRITICAL)
+Orchestrator ¬modify code/docs. Delegate: FE→`frontend-dev` | BE→`backend-dev` | Infra→`devops` | Docs→`doc-writer` | Tests→`tester` | Fixes→`fixer`. Exception: typo/single-line. Deploy→`devops` only.
 
-**ALWAYS use `AskUserQuestion` for:** decisions, multiple-choice (≥2 options), approach proposals, preference questions.
+### 4. Parallel Execution
 
-**FORBIDDEN: plain-text questions with choices.** Writing "Do you want...", "Should I...", "Do you prefer..." → **STOP** and use `AskUserQuestion`.
+≥3 complex tasks → AskUserQuestion: Sequential | Parallel (Recommended).
+F-full + ≥4 independent tasks in 1 domain → multiple same-type agents on separate file groups.
 
----
+### 5. Git
 
-### 3. Orchestrator Delegation (CRITICAL)
+Format: `<type>(<scope>): <desc>` + `Co-Authored-By: Claude <model> <noreply@anthropic.com>`
+Types: feat|fix|refactor|docs|style|test|chore|ci|perf
+¬push without request. ¬force/hard/amend. Hook fail → fix + NEW commit.
+Full spec → [docs/contributing.mdx](docs/contributing.mdx)
 
-**Orchestrator must NOT modify code/docs directly.** Delegate:
-
-Frontend → `frontend-dev` | Backend → `backend-dev` | Config/infra/deploy → `devops`
-Docs → `doc-writer` | Tests → `tester` | Review fixes → `fixer`
-
-**Exception:** truly minor changes (typo, single-line tweak) — if in doubt, delegate.
-**Deployment** → `devops` only, never orchestrator.
-
----
-
-### 4. Parallel Execution for Large Tasks
-
-≥3 complex tasks → **propose execution mode** via `AskUserQuestion`:
-- **Sequential**: one at a time, better control
-- **Parallel (Recommended)**: multiple sub-agents, faster
-
----
-
-### 5. Git Commits
-
-- Ask before committing unless explicitly requested
-- Format: `<type>(<scope>): <description>` + `Co-Authored-By: Claude <model> <noreply@anthropic.com>`
-- Types: `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`, `ci`, `perf`
-- NEVER push without explicit request
-- NEVER use `--force`, `--hard`, `--amend` (unless explicitly requested)
-- Pre-commit hook fails → fix + NEW commit (never amend)
-- Full spec → [docs/contributing.mdx](docs/contributing.mdx)
-
----
-
-### 6. Mandatory Worktree (All Tiers) (CRITICAL)
-
-**ALL code changes require a worktree. Create worktree BEFORE coding:**
+### 6. Mandatory Worktree
 
 ```bash
 git worktree add ../roxabi-XXX -b feat/XXX-slug staging
-cd ../roxabi-XXX
-cp .env.example .env && bun install
+cd ../roxabi-XXX && cp .env.example .env && bun install
 cd apps/api && bun run db:branch:create --force XXX
 ```
 
-> XXX = GitHub issue number (e.g., 123), slug = short description
+Exceptions: XS (confirm via AskUserQuestion) | /bootstrap (doc artifacts) | /promote (release artifacts).
+**¬code on main/staging without worktree.**
 
-**XS exception:** single file, <1h, zero risk → confirm via `AskUserQuestion`. If approved, direct branch OK.
+### 7. Code Review
 
-**Bootstrap exception:** `/bootstrap` commits analyses/specs to staging (doc artifacts, not code).
+MUST read [code-review.mdx](docs/standards/code-review.mdx). Conventional Comments. Block only: security, correctness, standard violations.
 
-**Promote exception:** `/promote` commits changelog/release notes to staging (release artifacts, not code).
+### 8. Coding Standards
 
-**FORBIDDEN: Modifying code files on main/staging without a worktree.**
-
----
-
-### 7. Code Review (CRITICAL)
-
-**When reviewing PRs or code: MUST read [docs/standards/code-review.mdx](docs/standards/code-review.mdx).**
-
-- Use **Conventional Comments** format
-- Block only for: security, correctness bugs, standard violations
-
----
-
-### 8. Coding Standards (CRITICAL)
-
-**Writing code → read relevant standards:**
-
-| Context | MUST read |
-|---------|-----------|
-| React / TanStack components | [docs/standards/frontend-patterns.mdx](docs/standards/frontend-patterns.mdx) |
-| NestJS / API code | [docs/standards/backend-patterns.mdx](docs/standards/backend-patterns.mdx) |
-| Tests | [docs/standards/testing.mdx](docs/standards/testing.mdx) |
-| Documentation | [docs/contributing.mdx](docs/contributing.mdx) |
-| Issues / blockers | [docs/processes/issue-management.mdx](docs/processes/issue-management.mdx) |
-
----
+| Context | Read |
+|---------|------|
+| React / TanStack | [frontend-patterns.mdx](docs/standards/frontend-patterns.mdx) |
+| NestJS / API | [backend-patterns.mdx](docs/standards/backend-patterns.mdx) |
+| Tests | [testing.mdx](docs/standards/testing.mdx) |
+| Docs | [contributing.mdx](docs/contributing.mdx) |
+| Issues | [issue-management.mdx](docs/processes/issue-management.mdx) |
 
 ## Skills & Agents
 
-- **Skills:** ALWAYS use appropriate skill even without slash command. Details → `.claude/skills/*/SKILL.md`.
-- **Agents:** Rules → [AGENTS.md](AGENTS.md). Definitions → `.claude/agents/*.md`. Guide → [docs/guides/agent-teams.mdx](docs/guides/agent-teams.mdx).
+Skills: always use appropriate skill. Defs → `.claude/skills/*/SKILL.md`.
+Agents: rules → [AGENTS.md](AGENTS.md). Defs → `.claude/agents/*.md`. Guide → [agent-teams.mdx](docs/guides/agent-teams.mdx).
 
-### Shared Agent Rules (all agents)
-
-- **NEVER commit or push** — the lead handles all git operations
-- **NEVER use** `--force`, `--hard`, or `--amend`
-- **Stage specific files** — never `git add -A` or `git add .`
-- **Escalate blockers** — message the lead with a clear description
-- **Claim tasks** from the shared task list matching your domain, mark complete when done
-- **Create follow-up tasks** for cross-domain needs or next-stage work
-- **Security concerns** — message the lead + security-auditor immediately
-- **Message the lead** when all assigned work is complete
-
----
+**Shared agent rules:** ¬commit/push (lead handles git) | ¬force/hard/amend | stage specific files only | escalate blockers → lead | claim tasks from shared list | create follow-up tasks | security → lead + security-auditor | message lead on completion.
 
 ## Gotchas
 
-- **`bun test` ≠ `bun run test`**: `bun test` → Bun's built-in runner (infinite CPU spin). Use `bun run test` (Vitest). Hook blocks it, but know why.
-- **`turbo.jsonc`** not `turbo.json`: JSONC with comments. Tools expecting `.json` miss it.
-- **`useImportType: off` for `apps/api/`**: NestJS needs runtime imports for DI. Biome override disables for API only.
-- **Node ≥24**: Set in `package.json` engines. Bun 1.3.9 = package manager.
-- **Orphaned dev ports**: Ctrl+C may leave zombies. `bun run dev:clean` kills ports 42069/4000/3000.
-- **DB branches**: Each worktree → own Postgres schema via `db:branch:create --force XXX`.
-- **Paraglide i18n**: Translations compiled during `codegen` task — `src/paraglide/` is gitignored.
-
----
+- `bun test` ≠ `bun run test` — former = Bun runner (CPU spin), latter = Vitest. Hook blocks it.
+- `turbo.jsonc` ¬`turbo.json` — JSONC with comments.
+- `useImportType: off` for `apps/api/` — NestJS DI needs runtime imports.
+- Node ≥24, Bun 1.3.9 = pkg manager.
+- Orphaned ports → `bun run dev:clean`.
+- DB branches: worktree → own schema via `db:branch:create --force XXX`.
+- Paraglide i18n: compiled during codegen, `src/paraglide/` gitignored.
+- Biome upgrade → sync `$schema` version in `biome.json`.
+- Sub-issues: `addSubIssue` GraphQL mutation, ¬markdown checklists. Use `/issue-triage --parent`.
+- Post-rebase: `bun install` before push if new build steps added.
 
 ## Reference
 
-### Documentation
-
 | Topic | Path |
 |-------|------|
-| **Getting started** | [docs/getting-started.mdx](docs/getting-started.mdx) |
-| **Configuration & setup** | [docs/configuration.mdx](docs/configuration.mdx) |
-| **Development process** | [docs/processes/dev-process.mdx](docs/processes/dev-process.mdx) |
-| **Issue management** | [docs/processes/issue-management.mdx](docs/processes/issue-management.mdx) |
-| **Architecture** | [docs/architecture/](docs/architecture/) |
-| **Frontend patterns** | [docs/standards/frontend-patterns.mdx](docs/standards/frontend-patterns.mdx) |
-| **Backend patterns** | [docs/standards/backend-patterns.mdx](docs/standards/backend-patterns.mdx) |
-| **Testing standards** | [docs/standards/testing.mdx](docs/standards/testing.mdx) |
-| **Code review** | [docs/standards/code-review.mdx](docs/standards/code-review.mdx) |
-| **Contributing & MDX** | [docs/contributing.mdx](docs/contributing.mdx) |
-| **Deployment** | [docs/guides/deployment.mdx](docs/guides/deployment.mdx) |
-| **Authentication** | [docs/guides/authentication.mdx](docs/guides/authentication.mdx) |
-| **Agent Teams** | [docs/guides/agent-teams.mdx](docs/guides/agent-teams.mdx) + [AGENTS.md](AGENTS.md) |
-| **Vision & roadmap** | [docs/vision.mdx](docs/vision.mdx) |
-| **Specs & analyses** | [specs/](specs/) + [analyses/](analyses/) |
+| Getting started | [getting-started.mdx](docs/getting-started.mdx) |
+| Config | [configuration.mdx](docs/configuration.mdx) |
+| Dev process | [dev-process.mdx](docs/processes/dev-process.mdx) |
+| Issues | [issue-management.mdx](docs/processes/issue-management.mdx) |
+| Architecture | [docs/architecture/](docs/architecture/) |
+| FE / BE / Test / Review | [frontend-patterns](docs/standards/frontend-patterns.mdx) / [backend-patterns](docs/standards/backend-patterns.mdx) / [testing](docs/standards/testing.mdx) / [code-review](docs/standards/code-review.mdx) |
+| Contributing | [contributing.mdx](docs/contributing.mdx) |
+| Deploy / Auth / Agents | [deployment](docs/guides/deployment.mdx) / [authentication](docs/guides/authentication.mdx) / [agent-teams](docs/guides/agent-teams.mdx) |
+| Vision | [vision.mdx](docs/vision.mdx) |
+| Specs / Analyses | [artifacts/specs/](artifacts/specs/) / [artifacts/analyses/](artifacts/analyses/) |
 
-### Deployment
+**Deploy:** `main` → Vercel prod. `staging` → preview. Web=`apps/web` (TanStack/Nitro). API=`apps/api` (NestJS).
 
-Push `main` → Vercel production. Push `staging` → preview deploy via CD. Details → [docs/guides/deployment.mdx](docs/guides/deployment.mdx).
-
-| Project | Root Directory | Framework |
-|---------|---------------|-----------|
-| Web | `apps/web` | TanStack Start / Nitro |
-| API | `apps/api` | NestJS (zero-config) |
-
-### Hooks
-
-#### Claude Code Hooks (`.claude/settings.json`)
-
-- **Biome** (PostToolUse): Auto-format + lint on every file Edit/Write (`.ts/.tsx/.js/.jsx/.json`)
-- **Security** (PreToolUse): Warn about dangerous patterns before file changes
-
-#### Git Hooks (Lefthook — `lefthook.yml`)
-
-- **pre-commit**: Biome check + auto-fix on staged files
-- **commit-msg**: Commitlint validates Conventional Commits format
-- **pre-push**: Full lint, typecheck (`bun run typecheck`), and test coverage
+**Hooks (Claude Code):** Biome auto-format (PostToolUse) | Security warn (PreToolUse) | `bun test` blocker (PreToolUse)
+**Hooks (Git/Lefthook):** pre-commit (Biome) | commit-msg (Commitlint) | pre-push (lint+typecheck+tests+i18n+license)

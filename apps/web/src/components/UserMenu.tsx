@@ -13,7 +13,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { LogOut, User, UserCog } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { authClient, useSession } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/authClient'
 import { m } from '@/paraglide/messages'
 
 function getInitials(name?: string | null, email?: string | null): string {

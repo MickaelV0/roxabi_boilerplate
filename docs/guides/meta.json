@@ -6,6 +6,7 @@
     "agent-teams",
     "deployment",
     "authentication",
+    "security",
     "rbac",
     "multi-tenant",
     "troubleshooting"

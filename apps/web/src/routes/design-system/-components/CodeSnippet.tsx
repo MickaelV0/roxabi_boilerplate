@@ -15,8 +15,7 @@ type CodeSnippetProps = {
  * Lazily loads Shiki on the client for dual-theme (light/dark) highlighting.
  * Falls back to a plain `<pre><code>` block while loading or on error.
  */
-export function CodeSnippet({ code, language }: CodeSnippetProps) {
-  const [copied, setCopied] = useState(false)
+function useShikiHighlight(code: string, language: string | undefined) {
   const [html, setHtml] = useState('')
 
   useEffect(() => {
@@ -32,20 +31,23 @@ export function CodeSnippet({ code, language }: CodeSnippetProps) {
           themes: { light: 'github-light', dark: 'github-dark' },
           defaultColor: false,
         })
-        if (!cancelled) {
-          setHtml(result)
-        }
+        if (!cancelled) setHtml(result)
       } catch {
         // Shiki failed (e.g. unsupported language) -- keep fallback
       }
     }
 
     highlight()
-
     return () => {
       cancelled = true
     }
   }, [code, language])
+
+  return html
+}
+
+function CopyButton({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false)
 
   function handleCopy() {
     navigator.clipboard.writeText(code).then(() => {
@@ -55,24 +57,38 @@ export function CodeSnippet({ code, language }: CodeSnippetProps) {
   }
 
   return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className={cn(
+        'absolute top-2 right-2 rounded-md border px-2 py-1 text-xs transition-colors z-10',
+        'bg-background hover:bg-accent text-muted-foreground hover:text-foreground',
+        copied && 'text-green-600 hover:text-green-600'
+      )}
+      aria-label={copied ? m.ds_code_copied_aria() : m.ds_code_copy_aria()}
+    >
+      {copied ? `\u2713 ${m.ds_code_copied()}` : m.ds_code_copy()}
+    </button>
+  )
+}
+
+/**
+ * Code snippet with Shiki syntax highlighting and copy button.
+ *
+ * Lazily loads Shiki on the client for dual-theme (light/dark) highlighting.
+ * Falls back to a plain `<pre><code>` block while loading or on error.
+ */
+export function CodeSnippet({ code, language }: CodeSnippetProps) {
+  const html = useShikiHighlight(code, language)
+
+  return (
     <div className="relative">
       {language && (
         <span className="text-muted-foreground absolute top-2 left-4 text-xs select-none z-10">
           {language}
         </span>
       )}
-      <button
-        type="button"
-        onClick={handleCopy}
-        className={cn(
-          'absolute top-2 right-2 rounded-md border px-2 py-1 text-xs transition-colors z-10',
-          'bg-background hover:bg-accent text-muted-foreground hover:text-foreground',
-          copied && 'text-green-600 hover:text-green-600'
-        )}
-        aria-label={copied ? m.ds_code_copied_aria() : m.ds_code_copy_aria()}
-      >
-        {copied ? `\u2713 ${m.ds_code_copied()}` : m.ds_code_copy()}
-      </button>
+      <CopyButton code={code} />
       {html ? (
         <div
           className={cn(

@@ -7,10 +7,11 @@ Adapts to task complexity through tiered tracks. **Determine tier before startin
 
 ## Step 0: Determine Tier
 
-```
-≤3 files, no arch risk, no regression risk? ────────► Tier S
-Clear scope, documented requirements, single domain? ► Tier F-lite
-New arch, unclear requirements, or >2 domains? ─────► Tier F-full
+```mermaid
+flowchart LR
+    Q{"Task assessment"} -->|"≤3 files, no arch/risk"| S["Tier S"]
+    Q -->|"Clear scope, single domain"| FL["Tier F-lite"]
+    Q -->|"New arch, unclear reqs, >2 domains"| FF["Tier F-full"]
 ```
 
 | Tier | Name | Criteria | Process |
@@ -72,8 +73,8 @@ Single domain, clear scope?                          -> F-lite
 
 | Artifact | When | Files |
 |----------|------|-------|
-| Feature spec | New feature | `specs/*.mdx` |
-| Analysis (pre-spec) | Before writing a spec | `analyses/*.mdx` |
+| Feature spec | New feature | `artifacts/specs/*.mdx` |
+| Analysis (pre-spec) | Before writing a spec | `artifacts/analyses/*.mdx` |
 | Architecture | Structure change | `docs/architecture/*.mdx` |
 | CLAUDE.md | Critical change | `CLAUDE.md` |
 
@@ -116,7 +117,7 @@ Follow this order:
 1. **Read** existing files before modifying
 2. **Implement** business logic
 3. **Update tests**
-4. **Run quality checks**: `bun lint && bun typecheck && bun test`
+4. **Run quality checks**: `bun lint && bun typecheck && bun run test`
 5. **Verify** all checks pass
 6. *(Optional)* Delegate to **tester** subagent for a quick quality check
 
@@ -124,7 +125,7 @@ Follow this order:
 
 Before creating the PR, verify **all applicable items** from the [Quality Checklist](#quality-checklist):
 - All impacted artifacts are included (code, tests, docs, config)
-- `bun lint && bun typecheck && bun test` pass locally
+- `bun lint && bun typecheck && bun run test` pass locally
 - No debug code or console.log left behind
 
 ```bash
@@ -176,17 +177,19 @@ git worktree remove ../roxabi-XXX
 
 ## Agent Coordination
 
-Two modes are available depending on task complexity. See the [Agent Teams Guide](../guides/agent-teams) for full setup and playbooks.
+Agents are spawned as subagents via the `Task` tool. See the [Agent Teams Guide](../guides/agent-teams) for full setup and playbooks.
 
 | Mode | Mechanism | When | Overhead |
 |------|-----------|------|----------|
-| **Subagents** | `Task` tool (single session) | Tier S or Tier F single-domain | Low — results return to your context |
-| **Agent Teams** | `TeamCreate` (multi-process swarm) | Tier F multi-domain or large scope | High — each agent is a separate Claude instance |
+| **Single session** | Direct implementation | Tier S (simple fixes) | Minimal |
+| **Subagents** | `Task` tool | Tier S optional + all Tier F | Low — results return to your context |
 
 **Quick decision:**
 - Tier S: single session, optionally delegate to **tester** subagent
 - Tier F single-domain: subagents via `Task` tool
-- Tier F multi-domain: agent teams via `TeamCreate`
+- Tier F multi-domain: parallel subagents via `Task` tool
+
+**Intra-domain parallelization (Tier F-full):** When a single domain has 4+ tasks on independent file groups, spawn multiple agents of the same type. Each agent receives a distinct task subset with no shared files. Example: 2 `backend-dev` agents — one for auth service, one for user service.
 
 ### Roles
 
@@ -206,120 +209,70 @@ Two modes are available depending on task complexity. See the [Agent Teams Guide
 
 Tier F follows four phases: **Assess, Implement, Review, Fix/Merge**. The human is the decision-maker at every gate. Main Claude is the orchestrator.
 
-```
-Human: "develop #XXX"
-        |
-        v
-========================================
-  PHASE 1 — ASSESSMENT
-========================================
-        |
-  Main Claude: fetch issue, check docs
-        |
-  Spec exists? ---- Yes --+
-        |                  |
-        No                 |
-        |                  |
-  product-lead: interview  |
-  (+ architect if needed)  |
-        |                  |
-  Write analysis           |
-        |                  |
-  * Human approves *       |
-        |                  |
-  Write spec               |
-        |                  |
-  * Human approves *       |
-        |                  |
-        +------------------+
-        |
-        v
-========================================
-  PHASE 2 — SCAFFOLD & IMPLEMENTATION
-  /scaffold (spec → PR)
-========================================
-        |
-  Plan: analyze scope, pick agents
-        |
-  * Human approves plan *
-        |
-  Create issue + worktree + stubs
-        |
-  Spawn agents (test-first):
-        |
-  tester: write failing tests (RED)
-        |
-     +--+--+--+
-     |  |  |  |
-    FE BE infra doc-writer   <-- parallel (GREEN)
-     |  |  |  |
-     +--+--+--+
-        |
-  tester: verify coverage + edge cases
-        |
-  All tests pass? --- No --> team fixes, loop
-        |
-       Yes
-        |
-  Commit + create PR
-        |
-        v
-========================================
-  PHASE 3 — REVIEW
-========================================
-        |
-  Main Claude: /review
-        |
-  Fresh agents (never the authors):
-  +- security-auditor
-  +- architect
-  +- product-lead
-  +- tester
-  +- frontend-dev  (if FE changes)
-  +- backend-dev   (if BE changes)
-        |
-  Conventional Comments collected
-        |
-  Main Claude: /1b1
-        |
-  Human decides per comment:
-  accept / reject / defer
-        |
-        v
-========================================
-  PHASE 4 — FIX & MERGE
-========================================
-        |
-  fixer: fix accepted comments
-        |
-  Push + CI runs
-        |
-  CI green? --- No --> fixer fixes, loop
-        |
-       Yes
-        |
-  * Human approves merge *
-        |
-  Cleanup worktree
-        |
-       DONE
+```mermaid
+flowchart TD
+    Start["Human: develop #XXX"] --> Fetch
+
+    subgraph P1[" Phase 1 — Assessment "]
+        Fetch["Fetch issue, check docs"] --> SpecQ{"Spec exists?"}
+        SpecQ -- Yes --> P1End((" "))
+        SpecQ -- No --> Boot["/bootstrap: interview + review"]
+        Boot --> Analysis["Write analysis"]
+        Analysis --> G1{{"Human approves"}}
+        G1 --> Spec["Write spec"]
+        Spec --> G2{{"Human approves"}}
+        G2 --> P1End
+    end
+
+    P1End --> Plan
+
+    subgraph P2[" Phase 2 — Scaffold & Implementation "]
+        Plan["Plan: scope + agents"] --> G3{{"Human approves plan"}}
+        G3 --> Setup["Issue + worktree"]
+        Setup --> RED["tester: failing tests (RED)"]
+        RED --> FE["frontend-dev"] & BE["backend-dev"] & Inf["devops"] & DW["doc-writer"]
+        FE & BE & Inf & DW --> Verify["tester: verify coverage"]
+        Verify --> TestQ{"Tests pass?"}
+        TestQ -- No --> FixT["Fix + re-test"] --> Verify
+        TestQ -- Yes --> PR["Commit + PR"]
+    end
+
+    PR --> Review
+
+    subgraph P3[" Phase 3 — Review "]
+        Review["/review: fresh agents"] --> Agents["security, architect, product, tester, domain"]
+        Agents --> Comments["Conventional Comments"]
+        Comments --> Walk["/1b1 walkthrough"]
+        Walk --> G4{{"Human: accept / reject / defer"}}
+    end
+
+    G4 --> Fix
+
+    subgraph P4[" Phase 4 — Fix & Merge "]
+        Fix["fixer: apply accepted"] --> Push["Push + CI"]
+        Push --> CIQ{"CI green?"}
+        CIQ -- No --> FixCI["Fix + re-push"] --> Push
+        CIQ -- Yes --> G5{{"Human approves merge"}}
+        G5 --> Clean["Cleanup worktree"]
+        Clean --> Done(["DONE"])
+    end
 ```
 
 ### Phase 1 — Assessment
 
 1. Human says "develop issue #XXX"
 2. Main Claude fetches the GitHub issue, scans for existing documents:
-   - `analyses/*` — matching analysis
-   - `specs/*` — matching spec
+   - `artifacts/analyses/*` — matching analysis
+   - `artifacts/specs/*` — matching spec
 3. **If a sufficient spec exists** — skip to Phase 2
 4. **If gaps exist** (no issue detail, no analysis, no spec):
-   - Main Claude spawns **product-lead** agent
-   - Product-lead interacts directly with the human to:
-     - Clarify and structure the issue if needed
-     - Write the analysis (human approves)
-     - Write the spec (human approves)
-   - If deeper technical analysis is needed, product-lead requests **architect** agent
-   - Once spec is approved, product-lead returns control to Main Claude
+   - Main Claude runs `/bootstrap` which drives the pipeline directly:
+     - Conducts interviews with the human (via `/interview`)
+     - Writes the analysis, spawns expert reviewers (product-lead, doc-writer, architect if needed)
+     - Human approves the analysis
+     - Writes the spec, spawns expert reviewers
+     - Human approves the spec
+   - Once spec is approved, Main Claude proceeds to Phase 2
 
 > **Investigation (optional):** If the analysis reveals technical uncertainty, the orchestrator may suggest spiking a solution before writing the spec. See the bootstrap skill (Gate 1.5) for details.
 
@@ -338,9 +291,7 @@ Human: "develop #XXX"
    cd apps/api && bun run db:branch:create --force XXX
    ```
 
-7. **Scaffold** — Creates boilerplate stubs (types, API, UI, test shells) from the spec. Commits.
-
-8. **Implement** — Spawns agents based on the plan:
+7. **Implement** — Spawns agents based on the plan (agents create files from scratch):
 
    | Change type | Agent |
    |-------------|-------|
@@ -357,11 +308,11 @@ Human: "develop #XXX"
    3. **REFACTOR** — Domain agents refactor while keeping tests green
    4. Tester verifies coverage and adds edge cases
 
-9. **Quality gate** — `bun lint && bun typecheck && bun test`
+8. **Quality gate** — `bun lint && bun typecheck && bun run test`
    - **Pass** — proceed to PR
    - **Fail** — agents fix, re-test, loop until green
 
-10. **PR** — `/scaffold` commits and creates the PR:
+9. **PR** — `/scaffold` commits and creates the PR:
     ```bash
     gh pr create --title "feat: description" --body "Closes #XXX"
     ```
@@ -431,10 +382,29 @@ After features have been validated on staging:
 | Branch | `hotfix/XXX-slug` | `hotfix/99-security-patch` |
 | Branch | `docs/slug` | `docs/api-reference` |
 | Branch | `spike/[XXX-]slug` | `spike/123-sqlite-vec` or `spike/sqlite-vec` |
-| Spec | `specs/XXX-slug.mdx` | `specs/123-user-auth.mdx` |
+| Spec | `artifacts/specs/XXX-slug.mdx` | `artifacts/specs/123-user-auth.mdx` |
 | Worktree | `../roxabi-XXX` | `../roxabi-123` |
 
 > XXX = GitHub issue number
+
+### File Naming
+
+Enforced by Biome `useFilenamingConvention` at `error` level.
+
+| File Type | Convention | Example |
+|-----------|-----------|---------|
+| Component `.tsx` (in `**/components/**`) | PascalCase | `BanDialog.tsx`, `ActionEmail.tsx` |
+| Hooks, utils, lib, config `.ts` | camelCase | `useConsent.ts`, `formatDate.ts` |
+| API modules `.ts` (with suffixes) | camelCase + preserved suffix | `adminUsers.service.ts`, `apiKey.controller.ts` |
+| Route files | TanStack conventions (exempt) | `$postId.tsx`, `__root.tsx`, `index.tsx` |
+| Integration wrappers `.tsx` (not in `components/`) | camelCase | `rootProvider.tsx`, `devtools.tsx` |
+| Email templates `.tsx` (not in `components/`) | camelCase | `magicLink.tsx`, `resetPassword.tsx` |
+| Test files | Match source convention + `.test` suffix | `BanDialog.test.tsx`, `errorUtils.test.ts` |
+| Scripts `.ts` | camelCase | `dbSeed.ts`, `checkEnvSync.ts` |
+
+> **`strictCase: true` (Biome default):** Consecutive uppercase characters are forbidden. Use `apiUrl.ts` not `apiURL.ts`.
+>
+> **NestJS CLI:** `nest generate` outputs kebab-case by default. Rename the file post-scaffold, then run `bun run lint` to verify.
 
 ---
 
@@ -458,7 +428,7 @@ After features have been validated on staging:
 **Before creating PR:**
 - [ ] All impacted artifacts included (code, tests, docs, config)
 - [ ] Code follows conventions (Biome)
-- [ ] Tests pass (`bun test`)
+- [ ] Tests pass (`bun run test`)
 - [ ] Linting passes (`bun lint`)
 - [ ] Types check (`bun typecheck`)
 - [ ] No console.log or debug code
