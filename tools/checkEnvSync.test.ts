@@ -9,7 +9,7 @@ import {
   findLineCommentStart,
   matchesWildcard,
   stripJsoncComments,
-} from '../scripts/check-env-sync'
+} from '../scripts/checkEnvSync'
 
 const execFileAsync = promisify(execFile)
 

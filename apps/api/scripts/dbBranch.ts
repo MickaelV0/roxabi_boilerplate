@@ -7,11 +7,11 @@
  *   list                             — List branch DBs with worktree cross-reference
  *
  * Usage:
- *   tsx scripts/db-branch.ts create          # auto-detect issue from branch name
- *   tsx scripts/db-branch.ts create 150      # explicit issue number
- *   tsx scripts/db-branch.ts create --force  # non-interactive (for /scaffold)
- *   tsx scripts/db-branch.ts drop
- *   tsx scripts/db-branch.ts list
+ *   tsx scripts/dbBranch.ts create          # auto-detect issue from branch name
+ *   tsx scripts/dbBranch.ts create 150      # explicit issue number
+ *   tsx scripts/dbBranch.ts create --force  # non-interactive (for /scaffold)
+ *   tsx scripts/dbBranch.ts drop
+ *   tsx scripts/dbBranch.ts list
  */
 
 import * as path from 'node:path'
@@ -40,7 +40,7 @@ const args = process.argv.slice(2)
 const subcommand = args[0]
 
 if (!(subcommand && ['create', 'drop', 'list'].includes(subcommand))) {
-  console.error('Usage: tsx scripts/db-branch.ts <create|drop|list> [issue_number] [--force]')
+  console.error('Usage: tsx scripts/dbBranch.ts <create|drop|list> [issue_number] [--force]')
   process.exit(1)
 }
 
@@ -78,7 +78,7 @@ function extractIssueNumber(): string {
   if (!match) {
     logError(
       `Cannot extract issue number from branch '${branch}'. ` +
-        'Use an explicit issue number: tsx scripts/db-branch.ts create <number>'
+        'Use an explicit issue number: tsx scripts/dbBranch.ts create <number>'
     )
     process.exit(1)
   }

@@ -9,8 +9,8 @@
  *   full              — 12 users, 4 orgs, invitations, cross-org members
  *
  * Usage:
- *   DATABASE_URL=postgresql://... tsx scripts/db-seed.ts
- *   DATABASE_URL=postgresql://... tsx scripts/db-seed.ts --preset=full
+ *   DATABASE_URL=postgresql://... tsx scripts/dbSeed.ts
+ *   DATABASE_URL=postgresql://... tsx scripts/dbSeed.ts --preset=full
  *   bun run db:seed  (reads DATABASE_URL from .env)
  */
 

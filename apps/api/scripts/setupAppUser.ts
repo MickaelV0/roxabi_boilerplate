@@ -11,7 +11,7 @@
  * - Is used by the NestJS application at runtime (via DATABASE_APP_URL)
  *
  * Usage:
- *   DATABASE_URL=postgresql://roxabi:roxabi@localhost:5432/roxabi tsx scripts/setup-app-user.ts
+ *   DATABASE_URL=postgresql://roxabi:roxabi@localhost:5432/roxabi tsx scripts/setupAppUser.ts
  *   bun run db:setup-app-user  (reads DATABASE_URL from .env)
  */
 

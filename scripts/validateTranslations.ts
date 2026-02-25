@@ -4,7 +4,7 @@
  *
  * Validates that all locale message files have consistent keys.
  * Reads the inlang project settings to discover locales and message paths.
- * Run with: bun run scripts/validate-translations.ts
+ * Run with: bun run scripts/validateTranslations.ts
  *
  * Exit codes:
  * - 0: All translations are valid

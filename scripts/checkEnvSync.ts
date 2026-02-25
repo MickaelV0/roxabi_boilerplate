@@ -7,7 +7,7 @@
  * Also cross-validates schema keys against turbo config declarations
  * (root + app-level env/passThroughEnv) to catch env var drift.
  *
- * Run with: bun run scripts/check-env-sync.ts
+ * Run with: bun run scripts/checkEnvSync.ts
  *
  * Exit codes:
  * - 0: All schemas are in sync with .env.example

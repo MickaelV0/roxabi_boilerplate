@@ -9,7 +9,7 @@
  *   members, sessions, accounts, verifications, organizations, users
  *
  * Usage:
- *   DATABASE_URL=postgresql://... tsx scripts/db-reset.ts
+ *   DATABASE_URL=postgresql://... tsx scripts/dbReset.ts
  *   bun run db:reset  (reads DATABASE_URL from .env)
  */
 

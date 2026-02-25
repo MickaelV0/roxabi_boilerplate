@@ -10,7 +10,7 @@
  *   - ffmpeg: required for .webm → .gif conversion
  *   - gifsicle (optional): for further GIF optimization
  *
- * Run with: bun run scripts/record-demo.ts
+ * Run with: bun run scripts/recordDemo.ts
  *
  * Environment variables:
  *   - APP_URL: Base URL of the running app (default: http://localhost:3000)

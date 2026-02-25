@@ -216,7 +216,7 @@ jobs:
           DATABASE_URL: ${{ steps.db.outputs.url }}
         run: |
           set -euo pipefail
-          TABLE_COUNT=$(bun run scripts/check-db-schema.ts)
+          TABLE_COUNT=$(bun run scripts/checkDbSchema.ts)
           echo "Found $TABLE_COUNT tables in database"
           if [ "$TABLE_COUNT" = "0" ] || [ -z "$TABLE_COUNT" ]; then
             echo "::notice::Database is empty — running drizzle-kit push to create schema"
