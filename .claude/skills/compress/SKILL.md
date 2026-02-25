@@ -16,7 +16,7 @@ Formal notation rewrite → reduce tokens, preserve semantics.
 
 ## Symbols
 
-`∀` all ("for each", "every") | `∃`/`∄` exists ("if X exists", "if no X") | `∈`/`∉` member ("belongs to", "is one of") | `∧`/`∨` and/or | `¬` not ("never", "do not", "without") | `→` then ("if X then Y", "when X") | `⟺` iff ("exactly when") | `∅` empty ("no results") | `∩`/`∪` intersect/union ("overlap", "combined") | `⊂` subset ("part of") | `∥` parallel ("concurrently") | `|X|` count ("number of") | `:=`/`←` assign ("becomes", "is set to")
+`∀` all | `∃`/`∄` exists | `∈`/`∉` member | `∧`/`∨` and/or | `¬` not | `→` then | `⟺` iff | `∅` empty | `∩`/`∪` intersect/union | `⊂` subset | `∥` parallel | `|X|` count | `:=`/`←` assign | `{ }` scoped block | `;` sequence | `()` params | `↦` maps to
 
 ## Phases
 
@@ -24,8 +24,8 @@ Formal notation rewrite → reduce tokens, preserve semantics.
 
 **2 — Analyze:** Read target. Identify: repeated nouns (≥3×) | verbose conditionals | iteration prose | magic numbers | redundant examples | filler. L_before := line count (excl. frontmatter).
 
-**3 — Transform (R1–R8):**
-- **R1** Definitions: concept ≥ 3× → Greek letter variable in `Let:` block (after title). Convention: lowercase Greek (α, β, γ, δ, σ, ρ, τ, φ, ψ, ω…) — mnemonic when possible (e.g. α = analysis, σ = spec). Template:
+**3 — Transform (R1–R10):**
+- **R1** Definitions: concept ≥ 3× → Greek var in `Let:` block (after title). Lowercase, mnemonic when possible. Template:
   ```
   Let:
     φ := set of all findings
@@ -36,9 +36,11 @@ Formal notation rewrite → reduce tokens, preserve semantics.
 - **R3** Quantifiers: "for each" → `∀ x ∈ Y:` | "if any" → `∃ x:` | "exists" → `X ∃ →`
 - **R4** Implications: "if X then Y" → `X → Y`
 - **R5** Terse imperative: multi-sentence → single line + symbols
-- **R6** Tables + lists: keep structure, compress cell/item text, ¬drop rows/items — exhaustivity preserved (compress wording per item, keep every item)
+- **R6** Tables + lists: keep structure, compress text, ¬drop items
 - **R7** Prune examples: keep only when notation ambiguous
 - **R8** Constants: literal ≥ 2× → named constant
+- **R9** Process encapsulation: procedure/workflow → `O_name { step₁; step₂; … } → output`
+- **R10** Parameterized patterns: repeated pattern(varying inputs) → `F(x, y)`
 
 **¬compress:** frontmatter | code blocks | `$ARGUMENTS` | file paths | tool names | safety rules | table structure
 
@@ -53,7 +55,7 @@ Formal notation rewrite → reduce tokens, preserve semantics.
 | Already formal | "already compressed", tweaks only |
 | L < 30 | Warn, proceed if confirmed |
 | Agent (¬skill) | Preserve agent frontmatter |
-| No repeated concepts | Skip R1, apply R2–R8 |
+| No repeated concepts | Skip R1, apply R2–R10 |
 | User rejects | Halt |
 | Mixed prose + code | Prose only |
 
@@ -64,6 +66,6 @@ Formal notation rewrite → reduce tokens, preserve semantics.
 3. ¬delete safety rules
 4. ¬auto-write — preview first
 5. Preserve `$ARGUMENTS` for skills
-6. ¬drop items from enumerated structures (tables, bullet/numbered lists, edge cases, checklists) — compress wording per item, keep every item
+6. ¬drop items from enumerations — compress wording only
 
 $ARGUMENTS
