@@ -15,6 +15,8 @@ Let:
 idea | issue | spec → approved spec. Interview → write docs → expert review → user gates.
 ¬scaffold, ¬PR. Execution → `/scaffold`. ¬TeamCreate — drive interviews + docs directly.
 
+**⚠ Flow: single continuous pipeline. ¬stop between gates. AskUserQuestion response → immediately execute next step. Stop only on: explicit Cancel/Abort, or pipeline completion (all gates done).**
+
 ## Entry
 
 ```
@@ -78,7 +80,7 @@ Incorporate feedback → note unresolved concerns.
 ### 1c. User Approval
 
 Open α: `code artifacts/analyses/{slug}.mdx`. Summary: shapes, trade-offs, recommendation.
-AskUserQuestion: **Approve** → commit α + Gate 2 | **Reject** → revise + re-review, loop.
+AskUserQuestion: **Approve** → commit α, **immediately continue → Gate 1.5 → Gate 2** (¬stop) | **Reject** → revise + re-review, loop.
 
 ---
 
@@ -127,7 +129,7 @@ Spawn ∥ reviewers → incorporate feedback.
 ### 2c. User Approval
 
 Open σ: `code artifacts/specs/{issue}-{slug}.mdx`. Summary: scope, slices, |acceptance criteria|, `[NEEDS CLARIFICATION]` count.
-AskUserQuestion: **Approve** → commit σ + Gate 2.5 | **Reject** → revise + re-review, loop.
+AskUserQuestion: **Approve** → commit σ, **immediately continue → Gate 2.5 → Issue Status → Completion** (¬stop) | **Reject** → revise + re-review, loop.
 
 ---
 

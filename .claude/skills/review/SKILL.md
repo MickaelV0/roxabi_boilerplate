@@ -8,6 +8,8 @@ allowed-tools: Bash, AskUserQuestion, Read, Grep, Task
 
 Review branch/PR changes via fresh domain-specific agents → Conventional Comments → /1b1.
 
+**⚠ Flow: single continuous pipeline (Phases 1→8). ¬stop between phases. AskUserQuestion response → immediately execute next phase. Stop only on: |Δ|=0, explicit Cancel, or Phase 8 completion.**
+
 ```
 /review          → diff staging...HEAD
 /review #42      → gh pr diff 42
@@ -178,17 +180,19 @@ Applied N finding(s):
 Remaining M finding(s) → 1b1.
 ```
 
+**→ immediately continue to Phase 6 (¬stop).**
+
 ## Phase 6 — Post to PR
 
 1. PR# = provided ∨ `gh pr list --head "$(git branch --show-current)" --json number --jq '.[0].number'`; ¬∃ → skip
 2. `/tmp/review-comment.md` → `gh pr comment <#> --body-file /tmp/review-comment.md`
 3. `## Code Review` header, grouped findings + summary + verdict. Auto-applied → `[auto-applied]` prefix. ∀C included.
 
-## Phase 7 — 1b1 Walkthrough
+## Phase 7 — 1b1 Walkthrough (¬stop before this — continue from Phase 6)
 
 ∀ f ∈ Q_1b1 (via `/1b1`): show → trade-offs → recommend → human decides {accept, reject, defer}
 
-Post-walkthrough → spawn ∥ fixers:
+Post-walkthrough → **immediately** spawn ∥ fixers (¬stop):
 
 | Fixer | Condition | Scope |
 |-------|-----------|-------|

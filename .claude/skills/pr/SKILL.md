@@ -8,6 +8,8 @@ allowed-tools: Bash, AskUserQuestion, Read, Grep
 
 Create or update a pull request with a consistent format, proper issue linking, and guard rails. Natural pair with `/commit`.
 
+**⚠ Flow: single continuous pipeline. ¬stop between steps. AskUserQuestion response → immediately execute next step. Stop only on: explicit Cancel, REFUSE condition, or Step 6 completion.**
+
 ## Instructions
 
 ### 1. Gather State

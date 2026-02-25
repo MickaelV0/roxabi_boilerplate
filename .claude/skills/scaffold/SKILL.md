@@ -8,6 +8,8 @@ allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Edit, Task, Skill
 
 Spec → plan → worktree → micro-tasks → agents (test-first) → PR.
 
+**⚠ Flow: single continuous pipeline. ¬stop between steps. AskUserQuestion response → immediately execute next step. Stop only on: explicit Cancel/Abort, or Step 7 completion.**
+
 ```
 /scaffold --spec 42     Execute from spec
 /scaffold --issue 42    Execute from issue (finds linked spec)
@@ -54,6 +56,7 @@ Default: next unimplemented slice. Respect deps. Re-run `/scaffold` for remainin
 
 **2f. Present Plan:** AskUserQuestion: tier, slices, files, agents, tasks with `[parallel-safe: Y/N]`.
 Options: **Approve** | **Modify** | **Cancel**
+**Approve → immediately continue to Step 3 (¬stop).**
 
 ## Step 3 — Setup
 
