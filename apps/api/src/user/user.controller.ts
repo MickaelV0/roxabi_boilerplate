@@ -4,7 +4,7 @@ import { AVATAR_STYLES, DICEBEAR_CDN_DOMAIN } from '@repo/types'
 import type { FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { Session } from '../auth/decorators/session.decorator.js'
-import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
+import { ZodValidationPipe } from '../common/pipes/zodValidation.pipe.js'
 import { UserService } from './user.service.js'
 
 const avatarOptionValue = z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])

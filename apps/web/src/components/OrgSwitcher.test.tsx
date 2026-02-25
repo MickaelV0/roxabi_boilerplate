@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
+import { mockParaglideMessages } from '@/test/__mocks__/mockMessages'
 
 function getClosestAncestor(element: Element, selector: string): Element {
   const result = element.closest(selector)
@@ -96,7 +96,7 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }))
 
-vi.mock('@/lib/auth-client', () => ({
+vi.mock('@/lib/authClient', () => ({
   useSession: vi.fn(() => ({ data: { user: { id: 'user-1' } } })),
   authClient: {
     useActiveOrganization: vi.fn(() => ({ data: null })),
@@ -107,11 +107,11 @@ vi.mock('@/lib/auth-client', () => ({
   },
 }))
 
-vi.mock('@/lib/use-organizations', () => ({
+vi.mock('@/lib/useOrganizations', () => ({
   useOrganizations: mockUseOrganizations,
 }))
 
-vi.mock('@/lib/org-utils', () => ({
+vi.mock('@/lib/orgUtils', () => ({
   roleLabel: (role: string) => `org_role_${role}`,
   roleBadgeVariant: (role: string) => {
     if (role === 'owner') return 'default'
@@ -125,14 +125,14 @@ vi.mock('sonner', () => ({
 }))
 
 const mockUseCanAccess = vi.hoisted(() => vi.fn(() => false))
-vi.mock('@/lib/route-permissions', () => ({
+vi.mock('@/lib/routePermissions', () => ({
   useCanAccess: mockUseCanAccess,
 }))
 
 mockParaglideMessages()
 
 import { toast } from 'sonner'
-import { authClient } from '@/lib/auth-client'
+import { authClient } from '@/lib/authClient'
 import { OrgSwitcher } from './OrgSwitcher'
 
 function buildOrgState(

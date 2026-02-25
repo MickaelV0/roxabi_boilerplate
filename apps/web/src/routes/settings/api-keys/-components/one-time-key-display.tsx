@@ -10,7 +10,7 @@ import {
 import { CheckIcon, CopyIcon, ShieldAlertIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import type { CreateApiKeyResponse } from '@/lib/api-keys'
+import type { CreateApiKeyResponse } from '@/lib/apiKeys'
 import { m } from '@/paraglide/messages'
 
 function OneTimeKeyDisplay({

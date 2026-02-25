@@ -1,5 +1,5 @@
 import { Button, cn, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@repo/ui'
-import type { ApiKey } from '@/lib/api-keys'
+import type { ApiKey } from '@/lib/apiKeys'
 import { m } from '@/paraglide/messages'
 import { deriveStatus, formatDate, formatMaskedKey } from '../-helpers'
 import { ScopeBadges } from './scope-badges'

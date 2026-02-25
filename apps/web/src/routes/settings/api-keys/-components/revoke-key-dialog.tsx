@@ -1,5 +1,5 @@
 import { DestructiveConfirmDialog } from '@repo/ui'
-import type { ApiKey } from '@/lib/api-keys'
+import type { ApiKey } from '@/lib/apiKeys'
 import { m } from '@/paraglide/messages'
 
 function RevokeKeyDialog({

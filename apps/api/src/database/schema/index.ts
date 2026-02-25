@@ -1,4 +1,4 @@
-export * from './api-key.schema.js'
+export * from './apiKey.schema.js'
 export * from './audit.schema.js'
 export * from './auth.schema.js'
 export * from './base.js'

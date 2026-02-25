@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { SkipThrottle } from '@nestjs/throttler'
-import { AllowAnonymous } from './auth/decorators/allow-anonymous.js'
+import { AllowAnonymous } from './auth/decorators/allowAnonymous.js'
 
 @ApiTags('Health')
 @Controller()

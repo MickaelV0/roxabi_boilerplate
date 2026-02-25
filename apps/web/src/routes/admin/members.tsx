@@ -17,9 +17,9 @@ import { MembersTable } from '@/components/admin/MembersTable'
 import { PaginationControls } from '@/components/admin/PaginationControls'
 import { PendingInvitations } from '@/components/admin/PendingInvitations'
 import type { MembersResponse, OrgRole } from '@/components/admin/types'
-import { authClient, useSession } from '@/lib/auth-client'
-import { parseErrorMessage } from '@/lib/error-utils'
-import { enforceRoutePermission } from '@/lib/route-permissions'
+import { authClient, useSession } from '@/lib/authClient'
+import { parseErrorMessage } from '@/lib/errorUtils'
+import { enforceRoutePermission } from '@/lib/routePermissions'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/admin/members')({

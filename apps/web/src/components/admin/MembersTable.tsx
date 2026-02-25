@@ -1,7 +1,7 @@
 import { Badge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@repo/ui'
-import { MemberContextMenu, MemberKebabButton } from '@/components/admin/member-context-menu'
+import { MemberContextMenu, MemberKebabButton } from '@/components/admin/MemberContextMenu'
 import type { Member, OrgRole } from '@/components/admin/types'
-import { roleBadgeVariant, roleLabel } from '@/lib/org-utils'
+import { roleBadgeVariant, roleLabel } from '@/lib/orgUtils'
 import { m } from '@/paraglide/messages'
 import { getLocale } from '@/paraglide/runtime'
 

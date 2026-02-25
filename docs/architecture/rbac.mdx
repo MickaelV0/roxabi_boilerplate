@@ -140,7 +140,7 @@ Two services intentionally use the raw `DRIZZLE` connection instead of `TenantSe
 | Service | Location | Justification | Isolation mechanism |
 |---------|----------|---------------|---------------------|
 | `PermissionService` | `apps/api/src/rbac/permission.service.ts` | Runs during authentication, before tenant context is established | Explicit `WHERE` on `userId` and `organizationId` |
-| `AdminMembersService` | `apps/api/src/admin/admin-members.service.ts` | Admin operations require organization-scoped access derived from the session's `activeOrganizationId`, not from RLS policies | Explicit `WHERE` on `organizationId` in every query |
+| `AdminMembersService` | `apps/api/src/admin/adminMembers.service.ts` | Admin operations require organization-scoped access derived from the session's `activeOrganizationId`, not from RLS policies | Explicit `WHERE` on `organizationId` in every query |
 
 > **Adding a new RLS bypass:** If a new service needs raw DRIZZLE access, it must (1) document the justification in a block comment at the top of the service class, (2) include explicit `WHERE` clauses for tenant isolation in every query, and (3) be added to this table. Changes to RLS bypass services should always be flagged in code review.
 
@@ -216,7 +216,7 @@ The FK uses `ON DELETE SET NULL` so that deleting a custom role does not cascade
 When an organization is created, the `RbacListener` handles automatic setup via the NestJS event emitter:
 
 ```ts
-// organization-created.event.ts
+// organizationCreated.event.ts
 export const ORGANIZATION_CREATED = 'organization.created'
 
 export class OrganizationCreatedEvent {
@@ -401,13 +401,13 @@ apps/api/src/rbac/
 ├── rbac.listener.ts            # Event listener for org creation seeding
 ├── rbac.constants.ts           # Default role definitions and permission mappings
 ├── exceptions/                 # Domain exceptions
-│   ├── default-role.exception.ts
-│   ├── member-not-found.exception.ts
-│   ├── ownership-constraint.exception.ts
-│   ├── role-not-found.exception.ts
-│   └── role-slug-conflict.exception.ts
+│   ├── defaultRole.exception.ts
+│   ├── memberNotFound.exception.ts
+│   ├── ownershipConstraint.exception.ts
+│   ├── roleNotFound.exception.ts
+│   └── roleSlugConflict.exception.ts
 └── filters/
-    └── rbac-exception.filter.ts  # Maps domain exceptions to HTTP responses
+    └── rbacException.filter.ts  # Maps domain exceptions to HTTP responses
 ```
 
 The `RbacModule` imports `AuthModule` (via `forwardRef` to resolve the circular dependency with `PermissionService`) and `TenantModule`. It exports `RbacService` and `PermissionService` for use by other modules.

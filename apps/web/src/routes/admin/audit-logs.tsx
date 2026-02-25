@@ -17,13 +17,13 @@ import {
 import { createFileRoute } from '@tanstack/react-router'
 import { ChevronDownIcon, ChevronRightIcon, ScrollTextIcon } from 'lucide-react'
 import { useState } from 'react'
-import { DiffViewer } from '@/components/admin/diff-viewer'
-import type { FilterConfig } from '@/components/admin/filter-bar'
-import { FilterBar } from '@/components/admin/filter-bar'
-import { LoadMoreButton } from '@/components/admin/load-more-button'
-import { useCursorPagination } from '@/hooks/use-cursor-pagination'
-import { formatTimestamp } from '@/lib/format-date'
-import { enforceRoutePermission } from '@/lib/route-permissions'
+import { DiffViewer } from '@/components/admin/DiffViewer'
+import type { FilterConfig } from '@/components/admin/FilterBar'
+import { FilterBar } from '@/components/admin/FilterBar'
+import { LoadMoreButton } from '@/components/admin/LoadMoreButton'
+import { useCursorPagination } from '@/hooks/useCursorPagination'
+import { formatTimestamp } from '@/lib/formatDate'
+import { enforceRoutePermission } from '@/lib/routePermissions'
 
 export const Route = createFileRoute('/admin/audit-logs')({
   staticData: { permission: 'role:superadmin' },

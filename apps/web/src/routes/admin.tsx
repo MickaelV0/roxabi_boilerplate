@@ -10,7 +10,7 @@ import {
   ShieldIcon,
   UsersIcon,
 } from 'lucide-react'
-import { enforceRoutePermission, useCanAccess } from '@/lib/route-permissions'
+import { enforceRoutePermission, useCanAccess } from '@/lib/routePermissions'
 import { m } from '@/paraglide/messages'
 
 function AdminErrorBoundary({ error }: { error: Error }) {

@@ -1,8 +1,8 @@
 import type { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { fetchUserProfile } from '@/lib/api'
-import { authClient } from '@/lib/auth-client'
-import { safeRedirect } from '@/lib/route-guards'
+import { authClient } from '@/lib/authClient'
+import { safeRedirect } from '@/lib/routeGuards'
 import { m } from '@/paraglide/messages'
 import type { LoginFormState } from './-login-hooks'
 

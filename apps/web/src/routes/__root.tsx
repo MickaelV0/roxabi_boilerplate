@@ -17,7 +17,7 @@ import { getLocale } from '@/paraglide/runtime'
 import { Footer } from '../components/Footer'
 import { Header } from '../components/Header'
 import { TanStackQueryDevtools } from '../integrations/tanstack-query/devtools'
-import { ConsentProvider } from '../lib/consent/ConsentProvider'
+import { ConsentProvider } from '../lib/consent/consentProvider'
 import { getServerConsent } from '../lib/consent/server'
 import appCss from '../styles.css?url'
 

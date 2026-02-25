@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repoUi'))
 
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
@@ -15,7 +15,7 @@ vi.mock('@tanstack/react-router', () => ({
   redirect: vi.fn(),
 }))
 
-vi.mock('@/lib/auth-client', () => ({
+vi.mock('@/lib/authClient', () => ({
   authClient: { getSession: vi.fn().mockResolvedValue({ data: null }) },
 }))
 

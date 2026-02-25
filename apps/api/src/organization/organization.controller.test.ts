@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { OrgNameConfirmationMismatchException } from './exceptions/org-name-confirmation-mismatch.exception.js'
-import { OrgNotFoundException } from './exceptions/org-not-found.exception.js'
+import { OrgNameConfirmationMismatchException } from './exceptions/orgNameConfirmationMismatch.exception.js'
+import { OrgNotFoundException } from './exceptions/orgNotFound.exception.js'
 import { OrganizationController } from './organization.controller.js'
 import type { OrganizationService } from './organization.service.js'
 

@@ -65,7 +65,7 @@ describe('UserService', () => {
 
 ## Test Structure (AAA Pattern)
 
-Use the Arrange-Act-Assert pattern with explicit section comments. This example comes from `apps/api/src/common/filters/all-exceptions.filter.test.ts`:
+Use the Arrange-Act-Assert pattern with explicit section comments. This example comes from `apps/api/src/common/filters/allExceptions.filter.test.ts`:
 
 ```typescript
 import { describe, it, expect } from 'vitest'
@@ -136,7 +136,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 ### Filter / Interceptor / Middleware Testing
 
-From `apps/api/src/common/filters/all-exceptions.filter.test.ts`:
+From `apps/api/src/common/filters/allExceptions.filter.test.ts`:
 
 - Instantiate the class directly — do not use NestJS test modules for unit tests.
 - Build factory helpers like `createMockHost()` and `createMockContext()` to construct mock objects.
@@ -247,7 +247,7 @@ test.describe('Feature Name', () => {
 
 ### Factory Helper Pattern (Preferred)
 
-From `apps/api/src/common/filters/all-exceptions.filter.test.ts`:
+From `apps/api/src/common/filters/allExceptions.filter.test.ts`:
 
 ```typescript
 import { vi } from 'vitest'

@@ -102,7 +102,7 @@ Another common cause is a missing or default `BETTER_AUTH_SECRET` in `.env`. If 
 
 1. Make sure `bun dev` is running for **both** the web and API apps (or use `bun dev` at the monorepo root, which starts both).
 
-2. Confirm the auth client in `apps/web/src/lib/auth-client.ts` uses `window.location.origin` (not the API URL directly) as the `baseURL`. The default configuration does this correctly -- if you've modified it, revert to using `window.location.origin`.
+2. Confirm the auth client in `apps/web/src/lib/authClient.ts` uses `window.location.origin` (not the API URL directly) as the `baseURL`. The default configuration does this correctly -- if you've modified it, revert to using `window.location.origin`.
 
 If the API fails to start with a secret-related error, see [BETTER_AUTH_SECRET Errors on Startup](#better_auth_secret-errors-on-startup) below.
 

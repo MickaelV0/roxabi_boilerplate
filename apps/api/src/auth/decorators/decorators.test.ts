@@ -1,10 +1,10 @@
 import 'reflect-metadata'
 import { describe, expect, it } from 'vitest'
 
-import { AllowAnonymous } from './allow-anonymous.js'
-import { OptionalAuth } from './optional-auth.js'
+import { AllowAnonymous } from './allowAnonymous.js'
+import { OptionalAuth } from './optionalAuth.js'
 import { Permissions } from './permissions.decorator.js'
-import { RequireOrg } from './require-org.decorator.js'
+import { RequireOrg } from './requireOrg.decorator.js'
 import { Roles } from './roles.decorator.js'
 import { Session } from './session.decorator.js'
 

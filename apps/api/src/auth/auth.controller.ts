@@ -2,9 +2,9 @@ import { All, Controller, Get, Req, Res } from '@nestjs/common'
 import { ApiExcludeController } from '@nestjs/swagger'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { AuthService } from './auth.service.js'
-import { AllowAnonymous } from './decorators/allow-anonymous.js'
+import { AllowAnonymous } from './decorators/allowAnonymous.js'
 import { Session } from './decorators/session.decorator.js'
-import { toFetchHeaders } from './fastify-headers.js'
+import { toFetchHeaders } from './fastifyHeaders.js'
 import type { AuthenticatedSession } from './types.js'
 
 @Controller()

@@ -19,7 +19,11 @@
       "style": {
         "noNonNullAssertion": "warn",
         "useConst": "error",
-        "useImportType": "error"
+        "useImportType": "error",
+        "useFilenamingConvention": {
+          "level": "error",
+          "options": { "filenameCases": ["camelCase"] }
+        }
       },
       "suspicious": {
         "noExplicitAny": "warn",
@@ -84,7 +88,8 @@
         "**/*.spec.tsx",
         "**/e2e/**",
         "**/.claude/skills/**",
-        "**/scripts/**"
+        "**/scripts/**",
+        "**/tools/**"
       ],
       "linter": {
         "rules": {
@@ -95,6 +100,35 @@
           "nursery": {
             "noExcessiveLinesPerFile": "off"
           }
+        }
+      }
+    },
+    {
+      "includes": ["**/components/**/*.tsx"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useFilenamingConvention": {
+              "level": "error",
+              "options": { "filenameCases": ["PascalCase"], "strictCase": false }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/routes/**"],
+      "linter": {
+        "rules": {
+          "style": { "useFilenamingConvention": "off" }
+        }
+      }
+    },
+    {
+      "includes": [".claude/**"],
+      "linter": {
+        "rules": {
+          "style": { "useFilenamingConvention": "off" }
         }
       }
     }

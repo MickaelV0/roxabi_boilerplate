@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { OrgNameConfirmationMismatchException } from './exceptions/org-name-confirmation-mismatch.exception.js'
-import { OrgNotDeletedException } from './exceptions/org-not-deleted.exception.js'
-import { OrgNotFoundException } from './exceptions/org-not-found.exception.js'
-import { OrgNotOwnerException } from './exceptions/org-not-owner.exception.js'
+import { OrgNameConfirmationMismatchException } from './exceptions/orgNameConfirmationMismatch.exception.js'
+import { OrgNotDeletedException } from './exceptions/orgNotDeleted.exception.js'
+import { OrgNotFoundException } from './exceptions/orgNotFound.exception.js'
+import { OrgNotOwnerException } from './exceptions/orgNotOwner.exception.js'
 import { OrganizationService } from './organization.service.js'
 
 function createMockDb() {

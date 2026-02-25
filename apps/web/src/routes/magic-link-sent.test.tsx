@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
+import { mockParaglideMessages } from '@/test/__mocks__/mockMessages'
 
 const { captured, useSearchFn } = vi.hoisted(() => ({
   captured: { Component: (() => null) as React.ComponentType },
@@ -23,9 +23,9 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }))
 
-vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repoUi'))
 
-vi.mock('@/lib/auth-client', () => ({
+vi.mock('@/lib/authClient', () => ({
   authClient: {
     signIn: {
       magicLink: vi.fn(),
@@ -58,7 +58,7 @@ vi.mock('lucide-react', () => ({
 mockParaglideMessages()
 
 import { toast } from 'sonner'
-import { authClient } from '@/lib/auth-client'
+import { authClient } from '@/lib/authClient'
 // Import to trigger createFileRoute and capture the component
 import { detectEmailProvider } from './magic-link-sent'
 

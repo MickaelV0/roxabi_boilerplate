@@ -6,10 +6,10 @@ import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page'
 import type { ComponentProps } from 'react'
 import { createContext, Suspense, useContext } from 'react'
-import { DocsErrorBoundary } from '@/components/docs-error-boundary'
+import { DocsErrorBoundary } from '@/components/DocsErrorBoundary'
 import { baseOptions } from '@/lib/layout.shared'
 import { source } from '@/lib/source'
-import { getMDXComponents } from '@/mdx-components'
+import { getMDXComponents } from '@/mdxComponents'
 
 /** Directory URL for the current page, used to resolve relative MDX links. */
 const LinkBaseContext = createContext('')

@@ -1,6 +1,14 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
+  "globalPassThroughEnv": [
+    "CRON_SECRET",
+    "GITHUB_CLIENT_ID",
+    "GITHUB_CLIENT_SECRET",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "VERCEL_AUTOMATION_BYPASS_SECRET"
+  ],
   "tasks": {
     // If orphaned processes hold dev ports after Ctrl+C, run `bun run dev:clean`.
     // See https://github.com/vercel/turborepo/issues/444

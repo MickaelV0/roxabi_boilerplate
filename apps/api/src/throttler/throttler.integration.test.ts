@@ -7,8 +7,8 @@ import { SkipThrottle, ThrottlerModule } from '@nestjs/throttler'
 import { ClsModule } from 'nestjs-cls'
 import { describe, expect, it } from 'vitest'
 
-import { AllExceptionsFilter } from '../common/filters/all-exceptions.filter.js'
-import { CustomThrottlerGuard } from './custom-throttler.guard.js'
+import { AllExceptionsFilter } from '../common/filters/allExceptions.filter.js'
+import { CustomThrottlerGuard } from './customThrottler.guard.js'
 
 /**
  * Minimal test controller for rate limiting integration tests.

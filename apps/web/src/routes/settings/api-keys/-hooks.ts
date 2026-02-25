@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import type { ApiKey, CreateApiKeyResponse } from '@/lib/api-keys'
-import { listApiKeys, revokeApiKey } from '@/lib/api-keys'
+import type { ApiKey, CreateApiKeyResponse } from '@/lib/apiKeys'
+import { listApiKeys, revokeApiKey } from '@/lib/apiKeys'
 import { m } from '@/paraglide/messages'
 import { responseToApiKey } from './-helpers'
 

@@ -10,7 +10,7 @@ import {
 import { Reflector } from '@nestjs/core'
 import type { Role } from '@repo/types'
 import type { FastifyRequest } from 'fastify'
-import { ErrorCode } from '../common/error-codes.js'
+import { ErrorCode } from '../common/errorCodes.js'
 import { UserService } from '../user/user.service.js'
 import { AuthService } from './auth.service.js'
 import type { AuthenticatedSession } from './types.js'

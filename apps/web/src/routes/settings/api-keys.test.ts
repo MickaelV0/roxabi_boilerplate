@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
+import { mockParaglideMessages } from '@/test/__mocks__/mockMessages'
 
 // Mock heavy dependencies so the module can be loaded for pure function testing
 vi.mock('@tanstack/react-router', () => ({
@@ -8,9 +8,9 @@ vi.mock('@tanstack/react-router', () => ({
   }),
 }))
 
-vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
-vi.mock('@/lib/api-keys', () => ({}))
-vi.mock('@/lib/auth-client', () => ({
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repoUi'))
+vi.mock('@/lib/apiKeys', () => ({}))
+vi.mock('@/lib/authClient', () => ({
   authClient: { useActiveOrganization: vi.fn(() => ({ data: null })) },
   useSession: vi.fn(() => ({ data: null })),
 }))
@@ -26,8 +26,8 @@ const { deriveStatus } = await import('./api-keys/-helpers')
 // ---------------------------------------------------------------------------
 
 function makeApiKey(
-  overrides: Partial<import('@/lib/api-keys').ApiKey> = {}
-): import('@/lib/api-keys').ApiKey {
+  overrides: Partial<import('@/lib/apiKeys').ApiKey> = {}
+): import('@/lib/apiKeys').ApiKey {
   return {
     id: 'key-1',
     name: 'Test Key',

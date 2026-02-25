@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   EMAIL_SEND_FAILED,
   EmailSendFailedEvent,
-} from '../../common/events/email-send-failed.event.js'
-import { EmailSendException } from './email-send.exception.js'
+} from '../../common/events/emailSendFailed.event.js'
+import { EmailSendException } from './emailSend.exception.js'
 import { ResendEmailProvider } from './resend.provider.js'
 
 const mockSend = vi.fn().mockResolvedValue({ id: 'mock-id' })

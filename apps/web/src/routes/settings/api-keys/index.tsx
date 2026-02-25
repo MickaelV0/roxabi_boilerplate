@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { authClient, useSession } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/authClient'
 import { hasPermission } from '@/lib/permissions'
 import { ApiKeyListContent } from './-components/api-key-list-content'
 import { CreateKeyDialog } from './-components/create-key-dialog'

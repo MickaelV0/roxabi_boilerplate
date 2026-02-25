@@ -541,7 +541,7 @@ The architecture maintains a clear separation between server-side and client-sid
 | Location | Purpose |
 |----------|---------|
 | `src/server.ts` | Server entry point, Paraglide middleware |
-| `src/lib/api-client.server.ts` | Server-side API client (ofetch with correlation IDs) |
+| `src/lib/apiClient.server.ts` | Server-side API client (ofetch with correlation IDs) |
 | `src/lib/source.ts` | Fumadocs page tree resolution |
 | `src/data/*.ts` | Server functions (`createServerFn`) |
 | `routes/**/api.*.ts` | Server-only API route handlers |
@@ -553,7 +553,7 @@ The architecture maintains a clear separation between server-side and client-sid
 | Location | Purpose |
 |----------|---------|
 | `src/components/*.tsx` | React UI components |
-| `src/lib/auth-client.ts` | Better Auth client (browser-side session) |
+| `src/lib/authClient.ts` | Better Auth client (browser-side session) |
 | `src/lib/demo-store.ts` | TanStack Store instances |
 | `src/hooks/*.ts` | Form hooks, custom React hooks |
 | `src/integrations/tanstack-query/` | Query client setup and devtools |

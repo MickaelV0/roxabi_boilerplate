@@ -1,4 +1,4 @@
-import { ActionEmail } from '../components/action-email'
+import { ActionEmail } from '../components/ActionEmail'
 import type { Translations } from '../translations/types'
 
 type VerificationEmailProps = {

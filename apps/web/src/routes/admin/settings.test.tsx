@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
+import { mockParaglideMessages } from '@/test/__mocks__/mockMessages'
 
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
@@ -16,7 +16,7 @@ vi.mock('@tanstack/react-router', () => ({
   useBlocker: () => ({ status: 'idle', proceed: vi.fn(), reset: vi.fn() }),
 }))
 
-vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repoUi'))
 
 const mockHasPermission = vi.hoisted(() => vi.fn(() => false))
 
@@ -24,7 +24,7 @@ vi.mock('@/lib/permissions', () => ({
   hasPermission: mockHasPermission,
 }))
 
-vi.mock('@/lib/auth-client', () => ({
+vi.mock('@/lib/authClient', () => ({
   authClient: {
     useActiveOrganization: vi.fn(() => ({ data: null })),
     organization: { update: vi.fn(), delete: vi.fn() },
@@ -32,7 +32,7 @@ vi.mock('@/lib/auth-client', () => ({
   useSession: vi.fn(() => ({ data: null })),
 }))
 
-vi.mock('@/lib/use-organizations', () => ({
+vi.mock('@/lib/useOrganizations', () => ({
   useOrganizations: vi.fn(() => ({
     data: [
       { id: 'org-1', name: 'Acme Corp', slug: 'acme-corp', logo: null, createdAt: '2024-01-01' },
@@ -51,7 +51,7 @@ mockParaglideMessages()
 
 // Import after mocks to trigger createFileRoute and capture the component
 import { toast } from 'sonner'
-import { authClient, useSession } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/authClient'
 import { slugify } from './settings'
 
 function setupActiveOrg({ withOwnerMembers = false }: { withOwnerMembers?: boolean } = {}) {

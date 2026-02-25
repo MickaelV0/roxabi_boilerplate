@@ -34,11 +34,11 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { BackLink, DetailSkeleton } from '@/components/admin/detail-shared'
-import { UserActions } from '@/components/admin/user-actions'
-import { formatDate, formatTimestamp } from '@/lib/format-date'
-import { enforceRoutePermission } from '@/lib/route-permissions'
-import { statusLabel, statusVariant } from '@/lib/user-status'
+import { BackLink, DetailSkeleton } from '@/components/admin/DetailShared'
+import { UserActions } from '@/components/admin/UserActions'
+import { formatDate, formatTimestamp } from '@/lib/formatDate'
+import { enforceRoutePermission } from '@/lib/routePermissions'
+import { statusLabel, statusVariant } from '@/lib/userStatus'
 
 export const Route = createFileRoute('/admin/users/$userId')({
   staticData: { permission: 'role:superadmin' },

@@ -21,12 +21,12 @@ import { AlertTriangle, Dices } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react' // useCallback kept for `set` (patch helper)
 import { toast } from 'sonner'
 import { OptionsForm } from '@/components/avatar/OptionsForm'
-import { authClient, useSession } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/authClient'
 import { buildDiceBearUrl } from '@/lib/avatar/buildDiceBearUrl'
 import { AVATAR_STYLE_LABELS } from '@/lib/avatar/constants'
 import { isAvatarStyle } from '@/lib/avatar/helpers'
 import { useAvatarPreview, useStyleSchema } from '@/lib/avatar/hooks'
-import { isErrorWithMessage } from '@/lib/error-utils'
+import { isErrorWithMessage } from '@/lib/errorUtils'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/settings/profile')({

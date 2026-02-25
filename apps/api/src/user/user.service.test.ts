@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { AccountNotDeletedException } from './exceptions/account-not-deleted.exception.js'
-import { EmailConfirmationMismatchException } from './exceptions/email-confirmation-mismatch.exception.js'
-import { TransferTargetNotMemberException } from './exceptions/transfer-target-not-member.exception.js'
-import { UserNotFoundException } from './exceptions/user-not-found.exception.js'
+import { AccountNotDeletedException } from './exceptions/accountNotDeleted.exception.js'
+import { EmailConfirmationMismatchException } from './exceptions/emailConfirmationMismatch.exception.js'
+import { TransferTargetNotMemberException } from './exceptions/transferTargetNotMember.exception.js'
+import { UserNotFoundException } from './exceptions/userNotFound.exception.js'
 import { UserService } from './user.service.js'
 
 const mockEventEmitter = {
