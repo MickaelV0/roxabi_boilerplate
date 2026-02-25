@@ -1,5 +1,5 @@
 import { AnimatedSection, Card, cn, useInView, useReducedMotion } from '@repo/ui'
-import { ArrowRight, GitPullRequest, Globe, Rocket, Workflow } from 'lucide-react'
+import { ArrowRight, GitPullRequest, Globe, Rocket, ShieldCheck, Workflow } from 'lucide-react'
 import { m } from '@/paraglide/messages'
 
 type PipelineStep = {
@@ -13,8 +13,15 @@ type PipelineStep = {
 function getPipelineSteps(): ReadonlyArray<PipelineStep> {
   return [
     {
-      command: '/bootstrap',
+      command: '/interview',
       from: m.talk_e2e_step_idea(),
+      to: m.talk_e2e_step_interview(),
+      description: m.talk_e2e_desc_interview_new(),
+      isGate: false,
+    },
+    {
+      command: '/bootstrap',
+      from: m.talk_e2e_step_interview(),
       to: m.talk_e2e_step_analysis(),
       description: m.talk_e2e_desc_interview(),
       isGate: true,
@@ -100,7 +107,8 @@ function PipelineDesktop({
             </p>
             <p className="mt-1 text-xs text-muted-foreground/70">{step.description}</p>
             {step.isGate && (
-              <p className="mt-1.5 text-xs font-semibold text-yellow-500">
+              <p className="mt-1.5 flex items-center justify-center gap-1 text-xs font-semibold text-yellow-500">
+                <ShieldCheck className="h-3 w-3" />
                 {m.talk_e2e_validation_gate()}
               </p>
             )}
@@ -146,7 +154,10 @@ function PipelineMobile({
                 {step.from} → {step.to}
               </span>
               {step.isGate && (
-                <span className="text-xs font-semibold text-yellow-500">{m.talk_e2e_gate()}</span>
+                <span className="flex items-center gap-1 text-xs font-semibold text-yellow-500">
+                  <ShieldCheck className="h-3 w-3" />
+                  {m.talk_e2e_gate()}
+                </span>
               )}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>

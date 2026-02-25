@@ -4,21 +4,22 @@ import type { ReactNode } from 'react'
 import { m } from '@/paraglide/messages'
 
 const skills = [
-  'commit',
   'review',
   'bootstrap',
   'scaffold',
   'pr',
   'promote',
   'test',
+  'interview',
   'issues',
   'issue-triage',
-  'interview',
-  'cleanup',
   '1b1',
   'adr',
+  'cleanup',
+  'retro',
+  'validate',
+  'compress',
   'agent-browser',
-  'context7',
 ] as const
 
 const agentFiles = [

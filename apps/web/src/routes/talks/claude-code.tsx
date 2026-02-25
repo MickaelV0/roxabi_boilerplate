@@ -8,9 +8,10 @@ import { ClosingSection } from '@/components/presentation/ClosingSection'
 import { DevProcessSection } from '@/components/presentation/DevProcessSection'
 import { EndToEndSection } from '@/components/presentation/EndToEndSection'
 import { IntroSection } from '@/components/presentation/IntroSection'
+import { LessonsLearnedSection } from '@/components/presentation/LessonsLearnedSection'
 import { SectionContainer } from '@/components/presentation/SectionContainer'
 import { SpecializationSection } from '@/components/presentation/SpecializationSection'
-import { TipsSection } from '@/components/presentation/TipsSection'
+import { ToolchainSection } from '@/components/presentation/ToolchainSection'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { m } from '@/paraglide/messages'
 
@@ -29,9 +30,10 @@ export function ClaudeCodePresentation() {
       { id: 'building-blocks', label: m.talk_nav_building_blocks() },
       { id: 'specialization', label: m.talk_nav_specialization() },
       { id: 'dev-process', label: m.talk_nav_dev_process() },
+      { id: 'toolchain', label: m.talk_nav_toolchain() },
       { id: 'agent-teams', label: m.talk_nav_agent_teams() },
       { id: 'end-to-end', label: m.talk_nav_end_to_end() },
-      { id: 'tips', label: m.talk_nav_tips() },
+      { id: 'lessons', label: m.talk_nav_lessons() },
       { id: 'closing', label: m.talk_nav_closing() },
     ],
     []
@@ -83,6 +85,10 @@ export function ClaudeCodePresentation() {
           <DevProcessSection />
         </SectionContainer>
 
+        <SectionContainer id="toolchain">
+          <ToolchainSection />
+        </SectionContainer>
+
         <SectionContainer id="agent-teams">
           <AgentTeamsSection />
         </SectionContainer>
@@ -91,8 +97,8 @@ export function ClaudeCodePresentation() {
           <EndToEndSection />
         </SectionContainer>
 
-        <SectionContainer id="tips">
-          <TipsSection />
+        <SectionContainer id="lessons">
+          <LessonsLearnedSection />
         </SectionContainer>
 
         <SectionContainer id="closing">
