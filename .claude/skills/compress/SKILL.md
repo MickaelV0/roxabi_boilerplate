@@ -16,7 +16,7 @@ Formal notation rewrite → reduce tokens, preserve semantics.
 
 ## Symbols
 
-`∀` all ("for each", "every") | `∃`/`∄` exists ("if X exists", "if no X") | `∈`/`∉` member ("belongs to", "is one of") | `∧`/`∨` and/or | `¬` not ("never", "do not", "without") | `→` then ("if X then Y", "when X") | `⟺` iff ("exactly when") | `∅` empty ("no results") | `∩`/`∪` intersect/union ("overlap", "combined") | `⊂` subset ("part of") | `∥` parallel ("concurrently") | `|X|` count ("number of") | `:=`/`←` assign ("becomes", "is set to") | `{ }` scoped block ("process", "procedure", "workflow") | `;` sequence within block ("then", "next step") | `()` params ("with", "using", "given") | `↦` maps to ("produces", "yields", "transforms into")
+`∀` all | `∃`/`∄` exists | `∈`/`∉` member | `∧`/`∨` and/or | `¬` not | `→` then | `⟺` iff | `∅` empty | `∩`/`∪` intersect/union | `⊂` subset | `∥` parallel | `|X|` count | `:=`/`←` assign | `{ }` scoped block | `;` sequence | `()` params | `↦` maps to
 
 ## Phases
 
@@ -25,7 +25,7 @@ Formal notation rewrite → reduce tokens, preserve semantics.
 **2 — Analyze:** Read target. Identify: repeated nouns (≥3×) | verbose conditionals | iteration prose | magic numbers | redundant examples | filler. L_before := line count (excl. frontmatter).
 
 **3 — Transform (R1–R10):**
-- **R1** Definitions: concept ≥ 3× → Greek letter variable in `Let:` block (after title). Convention: lowercase Greek (α, β, γ, δ, σ, ρ, τ, φ, ψ, ω…) — mnemonic when possible (e.g. α = analysis, σ = spec). Template:
+- **R1** Definitions: concept ≥ 3× → Greek var in `Let:` block (after title). Lowercase, mnemonic when possible. Template:
   ```
   Let:
     φ := set of all findings
@@ -39,8 +39,8 @@ Formal notation rewrite → reduce tokens, preserve semantics.
 - **R6** Tables + lists: keep structure, compress text, ¬drop items
 - **R7** Prune examples: keep only when notation ambiguous
 - **R8** Constants: literal ≥ 2× → named constant
-- **R9** Process encapsulation: multi-step procedure/workflow → `O_name { step₁; step₂; … } → output`. Named operator wraps sequential steps in scoped block. E.g. "First analyze the code, then identify issues, then rank by severity, finally recommend fixes" → `O_review { Analyze(code); φ ← Identify(issues); Rank(φ, severity) → Reco_fixes }`
-- **R10** Parameterized patterns: repeated pattern with varying inputs → functional form `F(x, y)`. E.g. "validate the input against the schema" + "validate the output against the schema" → `Validate(target, σ)` where target ∈ {input, output}
+- **R9** Process encapsulation: procedure/workflow → `O_name { step₁; step₂; … } → output`
+- **R10** Parameterized patterns: repeated pattern(varying inputs) → `F(x, y)`
 
 **¬compress:** frontmatter | code blocks | `$ARGUMENTS` | file paths | tool names | safety rules | table structure
 
