@@ -29,7 +29,7 @@ const ROOT = resolve(import.meta.dirname, '..')
 const SCAN_PATTERNS = ['docs/**/*.mdx', 'docs/**/*.md', '*.md']
 
 /** Directories to skip entirely (internal-only docs). */
-const SKIP_DIRS = ['analyses', 'specs', 'node_modules', '.turbo']
+const SKIP_DIRS = ['artifacts', 'analyses', 'specs', 'node_modules', '.turbo']
 
 // ---------------------------------------------------------------------------
 // Types

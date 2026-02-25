@@ -151,7 +151,7 @@ Options: **Approve** | **Modify** | **Return to spec**
 Standalone commit (¬amend):
 
 ```bash
-mkdir -p plans
+mkdir -p artifacts/plans
 git add artifacts/plans/{issue}-{slug}.mdx
 git commit -m "$(cat <<'EOF'
 docs(<scope>): add scaffold plan for <feature>

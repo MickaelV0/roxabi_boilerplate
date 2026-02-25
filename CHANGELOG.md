@@ -27,7 +27,7 @@ Entries are generated automatically by `/promote` and committed to staging befor
 - fix(docs): fix mermaid diagram text rendering
 
 ### Changed
-- perf(web): fix CI OOM — move artifacts/analyses/specs out of Fumadocs, restrict Shiki (#235)
+- perf(web): fix CI OOM — move analyses/specs out of Fumadocs, restrict Shiki (#235)
 - refactor(web): remove all demo routes, files, and VITE_ENABLE_DEMO env var
 - ci(pipeline): harden CI/CD — PR titles, scope-aware skip, docs links, template (#241)
 - ci(workflow): close linked issues after auto-merge

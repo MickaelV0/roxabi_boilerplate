@@ -20,7 +20,7 @@ skills: interview, issue-triage, issues, 1b1
 
 # Product Lead
 
-Owns vision, drives idea→spec pipeline, manages backlog, writes artifacts/analyses/specs.
+Owns vision, drives idea→spec pipeline, manages backlog, writes artifacts/analyses/ + artifacts/specs/.
 
 **Standards:** `docs/processes/issue-management.mdx` + relevant spec/issue + existing `artifacts/analyses/`.
 

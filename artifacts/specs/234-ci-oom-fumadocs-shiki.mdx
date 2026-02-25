@@ -17,14 +17,14 @@ Two root causes have been identified:
 ## Goal
 
 Reduce CI build memory consumption to eliminate OOM failures by:
-- Moving artifacts/analyses/specs out of `docs/` to root-level directories (`artifacts/analyses/`, `artifacts/specs/`) so they are never touched by Fumadocs
+- Moving analyses/specs out of `docs/` to root-level directories (`artifacts/analyses/`, `artifacts/specs/`) so they are never touched by Fumadocs
 - Restricting Shiki to only the languages used in the codebase
 
 ## Users & Use Cases
 
 - **CI pipeline**: Must build the web app without OOM on standard GitHub Actions runners (7 GB RAM)
-- **Developers**: Continue reading artifacts/analyses/specs as plain files in the repo (IDE, GitHub UI) — no Fumadocs serving needed
-- **Claude/AI agents**: Continue referencing artifacts/analyses/specs by file path — paths change from `docs/artifacts/analyses/` → `artifacts/analyses/` and `docs/artifacts/specs/` → `artifacts/specs/`
+- **Developers**: Continue reading analyses/specs as plain files in the repo (IDE, GitHub UI) — no Fumadocs serving needed
+- **Claude/AI agents**: Continue referencing analyses/specs by file path — paths change from `docs/artifacts/analyses/` → `artifacts/analyses/` and `docs/artifacts/specs/` → `artifacts/specs/`
 
 ## Expected Behavior
 
@@ -37,8 +37,8 @@ Reduce CI build memory consumption to eliminate OOM failures by:
 
 ### Edge cases
 
-- **Code block with unlisted language** (e.g., `lua`, `mermaid`): Fumadocs/Shiki falls back to plain text rendering (no highlighting). Acceptable — each appears only once and only in artifacts/analyses/specs (which are outside `docs/` anyway).
-- **`txt` code fences**: Shiki does not need a grammar for plain text. The 25 `txt` fences in the codebase are all in artifacts/analyses/specs (outside Fumadocs) so this is a non-issue for served docs.
+- **Code block with unlisted language** (e.g., `lua`, `mermaid`): Fumadocs/Shiki falls back to plain text rendering (no highlighting). Acceptable — each appears only once and only in analyses/specs (which are outside `docs/` anyway).
+- **`txt` code fences**: Shiki does not need a grammar for plain text. The 25 `txt` fences in the codebase are all in analyses/specs (outside Fumadocs) so this is a non-issue for served docs.
 - **Future new language needed**: Add it to the `langs` array in `source.config.ts`. Documented inline in the file.
 
 ## Constraints
@@ -49,9 +49,9 @@ Reduce CI build memory consumption to eliminate OOM failures by:
 
 ## Non-goals
 
-- Changing the format of artifacts/analyses/specs (they stay as `.mdx`)
-- Reducing the number of artifacts/analyses/specs files
-- Adding a separate documentation site for artifacts/analyses/specs
+- Changing the format of analyses/specs (they stay as `.mdx`)
+- Reducing the number of analyses/specs files
+- Adding a separate documentation site for analyses/specs
 - Optimizing other aspects of the build pipeline (Vite chunking, TurboRepo caching, etc.)
 
 ## Technical Decisions
@@ -137,7 +137,7 @@ Every reference to `docs/artifacts/analyses/` and `docs/artifacts/specs/` across
 | `docs/contributing.mdx` | Update folder structure diagram |
 | `docs/architecture/index.mdx` | Update folder structure reference |
 
-#### Internal cross-references (within artifacts/analyses/specs)
+#### Internal cross-references (within analyses/specs)
 
 ~45 cross-references between analyses and specs (e.g., "Promoted from: ../analyses/...") must be updated. Since both `artifacts/analyses/` and `artifacts/specs/` are now siblings at root level, relative links change from `../analyses/X` to `../analyses/X` (stays the same) and from `../specs/X` to `../specs/X` (stays the same when referenced from the other directory). Links from specs to analyses using `../analyses/` remain valid since both directories are at root level.
 
@@ -152,7 +152,7 @@ However, any links using paths relative to `docs/` (e.g., `./artifacts/analyses/
 
 ### 5. Delete Fumadocs navigation artifacts
 
-The `meta.json` and `index.mdx` files in artifacts/analyses/specs were Fumadocs navigation artifacts. After the move:
+The `meta.json` and `index.mdx` files in analyses/specs were Fumadocs navigation artifacts. After the move:
 
 - **Delete `artifacts/analyses/meta.json`** and **`artifacts/specs/meta.json`** — Fumadocs-specific, no other consumers
 - **Delete `artifacts/analyses/index.mdx`** and **`artifacts/specs/index.mdx`** — not worth maintaining outside Fumadocs
@@ -187,7 +187,7 @@ The `meta.json` and `index.mdx` files in artifacts/analyses/specs were Fumadocs 
 - [ ] Code blocks render with syntax highlighting for the supported languages
 - [ ] `artifacts/analyses/` and `artifacts/specs/` exist at repo root with all content preserved
 - [ ] All path references updated across CLAUDE.md, AGENTS.md, skills, agents, and served docs
-- [ ] All internal cross-references within artifacts/analyses/specs are valid
+- [ ] All internal cross-references within analyses/specs are valid
 - [ ] Bootstrap and interview skills use new paths and no longer maintain meta.json or index.mdx
 - [ ] No dead links in Fumadocs-served documentation
 - [ ] `artifacts/analyses/meta.json`, `artifacts/analyses/index.mdx`, `artifacts/specs/meta.json`, `artifacts/specs/index.mdx` are deleted
