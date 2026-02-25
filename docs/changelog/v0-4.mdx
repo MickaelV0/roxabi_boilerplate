@@ -1,0 +1,49 @@
+---
+title: v0.4.x
+description: All v0.4 releases
+---
+
+## v0.4.0 — February 25, 2026
+
+### Features
+- feat(web): refresh talks presentation v2 (#362)
+- feat(api): schema + shared modules for system settings & feature flags (#360)
+- feat(ui): add EmptyState component + design system showcases (#356)
+- feat(security): add gitleaks CI scanning and security threat model (#343)
+- feat(web): add kebab + right-click context menus to admin tables (#342)
+- feat(api-key): implement API key CRUD with management UI (#341)
+- feat(dx): enforce 500-line file limit with Biome rule + pre-push hook (#340)
+- feat(web): centralized route permission map + useCanAccess hook (#338)
+- feat(admin): add users list columns and org membership editing (#337)
+- feat(bootstrap): add Gate 2.5 smart issue splitting (#309)
+- feat(admin): Phase 2 cross-tenant user, org, and audit management (#308)
+- feat(review): add root cause analysis, confidence scoring & auto-apply (#307)
+- feat(scaffold): add micro-task planning (#303)
+- feat(skills): enrich bootstrap with shaping patterns (#294)
+- feat(admin): add admin panel layout, member management, and audit foundation (#279)
+- feat(types,config): add tsup build steps and split types into domain files (#250)
+- feat(auth): auth flow production-readiness fixes (#288)
+
+### Fixes
+- fix(ci): build API alongside web app in E2E jobs
+- fix(e2e): correct API entrypoint path in Playwright config (#354)
+- fix(vite): enable multi-project path resolution for @repo/* aliases (#345)
+- fix(ci): revert upload-artifact to v6 (#304)
+
+### Changes
+- refactor: consolidate specs/, analyses/, plans/ into artifacts/ (#355)
+- style(naming): standardize file naming conventions (#346) (#352)
+- test(#135): comprehensive test coverage expansion — E2E, integration, config (#344)
+- refactor: extract sub-functions to fix all noExcessiveLinesPerFunction warnings (#299)
+- perf(scaffold,review): token optimization — context injection + security scoping (#328)
+- perf(agents): set Sonnet defaults for routine sub-agents (#286) (#324)
+- chore(config): add SWAGGER_ENABLED to turbo.jsonc and extend env sync check (#249)
+- chore(deps): batch dependency updates from Dependabot (#301)
+
+### Documentation
+- docs: fix 22 inaccuracies across 13 documentation files
+- docs(spec): add spec for talks presentation v2 refresh (#361)
+- docs(spec): add sub-specs for admin phase 3 slices (#357, #358, #359)
+- docs(spec): add spec for admin phase 3 system settings + feature flags (#270)
+- docs: add admin phase 3 spec and register ADR 002
+- docs(workflow): token consumption analysis + complexity scoring rubric (#289)
