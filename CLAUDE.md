@@ -141,7 +141,7 @@ Agents: rules → [AGENTS.md](AGENTS.md). Defs → `.claude/agents/*.md`. Guide 
 | Contributing | [contributing.mdx](docs/contributing.mdx) |
 | Deploy / Auth / Agents | [deployment](docs/guides/deployment.mdx) / [authentication](docs/guides/authentication.mdx) / [agent-teams](docs/guides/agent-teams.mdx) |
 | Vision | [vision.mdx](docs/vision.mdx) |
-| Specs / Analyses | [specs/](specs/) / [analyses/](analyses/) |
+| Specs / Analyses | [artifacts/specs/](artifacts/specs/) / [artifacts/analyses/](artifacts/analyses/) |
 
 **Deploy:** `main` → Vercel prod. `staging` → preview. Web=`apps/web` (TanStack/Nitro). API=`apps/api` (NestJS).
 

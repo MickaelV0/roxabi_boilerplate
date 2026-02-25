@@ -52,7 +52,7 @@ const baseUser = {
 
 /**
  * Test shells for #312 — Users list columns (Orgs count + Last Active).
- * Spec: specs/312-313-admin-users-columns-org-membership-editing.mdx
+ * Spec: artifacts/specs/312-313-admin-users-columns-org-membership-editing.mdx
  *
  * listUsers uses a three-query approach:
  *   Query 1: user rows

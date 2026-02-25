@@ -38,7 +38,7 @@ T         = 80                   — auto-apply threshold
 ## Phase 2 — Spec Compliance
 
 1. issue_num ← `git branch --show-current | grep -oP '\d+' | head -1`
-2. spec ← `ls specs/<issue_num>-*.mdx 2>/dev/null`
+2. spec ← `ls artifacts/specs/<issue_num>-*.mdx 2>/dev/null`
 3. spec ∃ → ∀ criterion ∈ spec.success_criteria:
    - met by diff → ∅
    - ¬met → emit `issue(blocking):` with criterion text

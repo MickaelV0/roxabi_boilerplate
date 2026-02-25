@@ -520,11 +520,11 @@ describe('collectFiles', () => {
     expect(files).toEqual(['README.md', 'docs/guide.mdx', 'docs/notes.md'])
   })
 
-  it('should exclude files from analyses/ directory', async () => {
+  it('should exclude files from artifacts/analyses/ directory', async () => {
     // Arrange
     const map = getMockMap()
     map['docs/**/*.mdx'] = ['docs/guide.mdx']
-    map['*.md'] = ['analyses/some-analysis.mdx']
+    map['*.md'] = ['artifacts/analyses/some-analysis.mdx']
 
     // Act
     const files = await collectFiles()
@@ -533,11 +533,11 @@ describe('collectFiles', () => {
     expect(files).toEqual(['docs/guide.mdx'])
   })
 
-  it('should exclude files from specs/ directory', async () => {
+  it('should exclude files from artifacts/specs/ directory', async () => {
     // Arrange
     const map = getMockMap()
     map['docs/**/*.mdx'] = ['docs/guide.mdx']
-    map['*.md'] = ['specs/feature-spec.mdx']
+    map['*.md'] = ['artifacts/specs/feature-spec.mdx']
 
     // Act
     const files = await collectFiles()
@@ -560,10 +560,10 @@ describe('collectFiles', () => {
   })
 
   it('should exclude files from nested excluded directories', async () => {
-    // Arrange -- e.g. docs/node_modules/ or some/specs/
+    // Arrange -- e.g. docs/node_modules/ or some/artifacts/specs/
     const map = getMockMap()
     map['docs/**/*.mdx'] = ['docs/guide.mdx']
-    map['docs/**/*.md'] = ['docs/node_modules/pkg/README.md', 'some/specs/thing.md']
+    map['docs/**/*.md'] = ['docs/node_modules/pkg/README.md', 'some/artifacts/specs/thing.md']
 
     // Act
     const files = await collectFiles()

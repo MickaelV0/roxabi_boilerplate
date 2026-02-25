@@ -61,7 +61,7 @@ export default defineConfig({
         // Generated i18n runtime (paraglide)
         '**/paraglide/**',
       ],
-      // See specs/17-testing-gold-standard.mdx for rationale.
+      // See artifacts/specs/17-testing-gold-standard.mdx for rationale.
       thresholds: {
         lines: 93,
         functions: 92,

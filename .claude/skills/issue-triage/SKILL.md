@@ -134,7 +134,7 @@ This machine-parseable marker (`<!-- complexity: N -->`) can be retrieved by dow
 
 The score is advisory. Human judgment overrides. Use `AskUserQuestion` if the score and your intuition disagree.
 
-Reference: [analyses/280-token-consumption.mdx](../../../analyses/280-token-consumption.mdx) for scoring examples.
+Reference: [artifacts/analyses/280-token-consumption.mdx](../../../analyses/280-token-consumption.mdx) for scoring examples.
 
 ## Status Values
 

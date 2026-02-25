@@ -8,8 +8,8 @@ allowed-tools: Bash, AskUserQuestion, Read, Write, Edit, Glob, Grep, Task
 # Bootstrap
 
 Let:
-  α := analyses/{slug}.mdx
-  σ := specs/{issue}-{slug}.mdx
+  α := artifacts/analyses/{slug}.mdx
+  σ := artifacts/specs/{issue}-{slug}.mdx
   ρ := auto-selected expert reviewers
 
 idea | issue | spec → approved spec. Interview → write docs → expert review → user gates.
@@ -38,7 +38,7 @@ gh api repos/:owner/:repo/issues/N/timeline --jq '.[] | select(.event=="cross-re
 
 ## Step 1 — Scan Existing Docs
 
-Glob `analyses/*`, `specs/*` — match issue# ∨ slug keywords.
+Glob `artifacts/analyses/*`, `artifacts/specs/*` — match issue# ∨ slug keywords.
 
 - ∃ σ ∧ entry=Gate1 ⇒ AskUserQuestion: reuse (→Gate2) | fresh
 - ∃ α ∧ entry=Gate1 ⇒ AskUserQuestion: reuse | fresh
@@ -77,7 +77,7 @@ Incorporate feedback → note unresolved concerns.
 
 ### 1c. User Approval
 
-Open α: `code analyses/{slug}.mdx`. Summary: shapes, trade-offs, recommendation.
+Open α: `code artifacts/analyses/{slug}.mdx`. Summary: shapes, trade-offs, recommendation.
 AskUserQuestion: **Approve** → commit α + Gate 2 | **Reject** → revise + re-review, loop.
 
 ---
@@ -102,7 +102,7 @@ Required before spec (naming: `{issue}-{slug}.mdx`).
 ### 2a. Generate
 
 ∃ σ ⇒ read + present.
-¬∃ ⇒ `skill: "interview", args: "--promote analyses/{slug}.mdx"` → σ
+¬∃ ⇒ `skill: "interview", args: "--promote artifacts/analyses/{slug}.mdx"` → σ
 σ includes `## Breadboard` (affordance tables + wiring) + `## Slices` (vertical increments). May contain `[NEEDS CLARIFICATION]` (max 3–5). Tier S may skip Breadboard/Slices.
 
 ### 2b. Expert Review
@@ -126,7 +126,7 @@ Spawn ∥ reviewers → incorporate feedback.
 
 ### 2c. User Approval
 
-Open σ: `code specs/{issue}-{slug}.mdx`. Summary: scope, slices, |acceptance criteria|, `[NEEDS CLARIFICATION]` count.
+Open σ: `code artifacts/specs/{issue}-{slug}.mdx`. Summary: scope, slices, |acceptance criteria|, `[NEEDS CLARIFICATION]` count.
 AskUserQuestion: **Approve** → commit σ + Gate 2.5 | **Reject** → revise + re-review, loop.
 
 ---

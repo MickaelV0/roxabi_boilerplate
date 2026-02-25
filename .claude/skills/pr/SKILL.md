@@ -61,10 +61,10 @@ git diff staging...HEAD --stat
 ISSUE_NUM=$(echo "$BRANCH" | grep -oP '(?<=/)\d+')
 
 # Check for analysis file
-ls analyses/${ISSUE_NUM}-*.mdx 2>/dev/null
+ls artifacts/analyses/${ISSUE_NUM}-*.mdx 2>/dev/null
 
 # Check for spec file
-ls specs/${ISSUE_NUM}-*.mdx 2>/dev/null
+ls artifacts/specs/${ISSUE_NUM}-*.mdx 2>/dev/null
 
 # Get issue title + status (if issue exists)
 gh issue view "$ISSUE_NUM" --json title,state,labels 2>/dev/null
@@ -145,8 +145,8 @@ gh pr edit <number> --title "<title>" --body "<body>"
 | Phase | Artifact | Status |
 |-------|----------|--------|
 | Intent | #{issue_number}: {issue title} | {issue state} |
-| Analysis | [{analysis filename}](analyses/{filename}) | {Present/Absent} |
-| Spec | [{spec filename}](specs/{filename}) | {Present/Absent} |
+| Analysis | [{analysis filename}](artifacts/analyses/{filename}) | {Present/Absent} |
+| Spec | [{spec filename}](artifacts/specs/{filename}) | {Present/Absent} |
 | Implementation | {N} commits on `{branch}` | Complete |
 | Verification | Lint {✅/❌} Typecheck {✅/❌} Tests {✅/❌} ({N} new) | {Passed/Failed} |
 

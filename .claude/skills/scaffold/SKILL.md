@@ -15,13 +15,13 @@ Spec → plan → worktree → micro-tasks → agents (test-first) → PR.
 
 ## Step 1 — Locate Spec
 
-`--spec N` → `ls specs/N-*.mdx` → read full → extract title, criteria, files.
-`--issue N` → `gh issue view N --json title,body,labels` → find `specs/N-*.mdx`.
+`--spec N` → `ls artifacts/specs/N-*.mdx` → read full → extract title, criteria, files.
+`--issue N` → `gh issue view N --json title,body,labels` → find `artifacts/specs/N-*.mdx`.
 ¬found ⇒ suggest `/bootstrap`. **Stop.**
 
 ### Pre-flight: Ambiguity Check
 
-Grep `\[NEEDS CLARIFICATION` in `specs/N-*.mdx` (output_mode: count).
+Grep `\[NEEDS CLARIFICATION` in `artifacts/specs/N-*.mdx` (output_mode: count).
 count > 0 ⇒ AskUserQuestion: **Resolve now** | **Return to bootstrap** | **Proceed anyway**
 
 ## Step 2 — Plan
@@ -93,7 +93,7 @@ XS exception: AskUserQuestion → if approved, `git checkout -b feat/<N>-<slug> 
 
 Tier S ⇒ skip → Step 5. Read [references/micro-tasks.md](references/micro-tasks.md).
 
-**Summary:** spec (Breadboard+Slices ∨ criteria) → micro-tasks + verify commands → parallelization → consistency → `plans/{issue}-{slug}.mdx` → AskUserQuestion → commit → TaskCreate.
+**Summary:** spec (Breadboard+Slices ∨ criteria) → micro-tasks + verify commands → parallelization → consistency → `artifacts/plans/{issue}-{slug}.mdx` → AskUserQuestion → commit → TaskCreate.
 
 Agents create files from scratch (¬stubs). Task desc: target path, shape/skeleton, ref pattern file.
 
