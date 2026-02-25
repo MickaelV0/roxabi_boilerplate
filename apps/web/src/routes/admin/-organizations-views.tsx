@@ -22,6 +22,7 @@ import { OrgListContextMenu, OrgListKebabButton } from '@/components/admin/OrgLi
 import { TreeView } from '@/components/admin/TreeView'
 import { useCursorPagination } from '@/hooks/useCursorPagination'
 import { formatDate } from '@/lib/formatDate'
+import { m } from '@/paraglide/messages'
 import type { OrgFilters } from './-organizations-types'
 
 type TreeApiResponse = {
@@ -93,10 +94,7 @@ function FlatListView({ filters }: { filters: OrgFilters }) {
 
   if (organizations.length === 0) {
     return (
-      <EmptyState
-        icon={<BuildingIcon className="size-10" />}
-        description="No organizations found"
-      />
+      <EmptyState icon={<BuildingIcon className="size-10" />} description={m.admin_orgs_empty()} />
     )
   }
 
@@ -226,10 +224,7 @@ function TreeModeView() {
 
   if (!treeData || treeData.data.length === 0) {
     return (
-      <EmptyState
-        icon={<BuildingIcon className="size-10" />}
-        description="No organizations found"
-      />
+      <EmptyState icon={<BuildingIcon className="size-10" />} description={m.admin_orgs_empty()} />
     )
   }
 

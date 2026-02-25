@@ -1115,6 +1115,7 @@
   "admin_invitations_revoke": "Revoke",
   "admin_owner_role_tooltip": "Owner role cannot be changed",
   "admin_owner_remove_tooltip": "Owner cannot be removed",
+  "admin_orgs_empty": "No organizations found",
 
   "api_keys_status_active": "Active",
   "api_keys_status_expired": "Expired",

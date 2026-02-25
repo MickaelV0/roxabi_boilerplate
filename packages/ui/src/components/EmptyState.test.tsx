@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { EmptyState } from './EmptyState'
+import { EmptyState, emptyStateVariants } from './EmptyState'
 
 describe('EmptyState variants', () => {
   it('should have data-slot attribute when rendered', () => {
@@ -68,10 +68,10 @@ describe('EmptyState props', () => {
 
   it('should render the icon', () => {
     // Arrange & Act
-    render(<EmptyState icon={<span data-testid="test-icon">icon</span>} description="No items." />)
+    const { container } = render(<EmptyState icon={<span>icon</span>} description="No items." />)
 
     // Assert
-    expect(screen.getByTestId('test-icon')).toBeInTheDocument()
+    expect(container.querySelector('[data-slot="empty-state-icon"]')).toBeInTheDocument()
   })
 
   it('should not render title when title is not provided', () => {
@@ -87,9 +87,12 @@ describe('EmptyState props', () => {
     render(<EmptyState icon={<span>icon</span>} title="No items" description="No items found." />)
 
     // Assert
-    expect(screen.getByText('No items')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'No items' })).toBeInTheDocument()
   })
 
+  // Tests for button specifically — action slot accepts any ReactNode but
+  // the common case is a Button component, so absence of <button> is a
+  // reasonable proxy for "no action rendered".
   it('should not render action when action is not provided', () => {
     // Arrange & Act
     const { container } = render(
@@ -126,11 +129,11 @@ describe('EmptyState props', () => {
 })
 
 describe('EmptyState composed', () => {
-  it('should render a full empty state with icon, title, description and action', () => {
+  it('should render without error when all props are provided', () => {
     // Arrange & Act
     const { container } = render(
       <EmptyState
-        icon={<span data-testid="composed-icon">icon</span>}
+        icon={<span>icon</span>}
         title="No organizations"
         description="Create your first organization to get started."
         action={<button type="button">Create organization</button>}
@@ -140,25 +143,42 @@ describe('EmptyState composed', () => {
 
     // Assert
     expect(container.querySelector('[data-slot="empty-state"]')).toBeInTheDocument()
-    expect(screen.getByTestId('composed-icon')).toBeInTheDocument()
-    expect(screen.getByText('No organizations')).toBeInTheDocument()
-    expect(screen.getByText('Create your first organization to get started.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Create organization' })).toBeInTheDocument()
   })
 
-  it('should render a minimal empty state with only required props', () => {
+  it('should render without error when only required props are provided', () => {
     // Arrange & Act
     const { container } = render(
-      <EmptyState
-        icon={<span data-testid="minimal-icon">icon</span>}
-        description="No audit logs yet."
-      />
+      <EmptyState icon={<span>icon</span>} description="No audit logs yet." />
     )
 
     // Assert
     expect(container.querySelector('[data-slot="empty-state"]')).toBeInTheDocument()
-    expect(screen.getByTestId('minimal-icon')).toBeInTheDocument()
-    expect(screen.getByText('No audit logs yet.')).toBeInTheDocument()
-    expect(container.querySelector('button')).not.toBeInTheDocument()
+  })
+})
+
+describe('emptyStateVariants', () => {
+  it('should return default variant classes', () => {
+    // Arrange & Act
+    const result = emptyStateVariants({ variant: 'default' })
+
+    // Assert
+    expect(result).toContain('border-dashed')
+  })
+
+  it('should return error variant classes', () => {
+    // Arrange & Act
+    const result = emptyStateVariants({ variant: 'error' })
+
+    // Assert
+    expect(result).toContain('border-destructive/50')
+  })
+
+  it('should return search variant classes without border', () => {
+    // Arrange & Act
+    const result = emptyStateVariants({ variant: 'search' })
+
+    // Assert
+    expect(result).not.toContain('border-dashed')
+    expect(result).not.toContain('border-destructive')
   })
 })

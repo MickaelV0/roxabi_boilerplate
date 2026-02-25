@@ -1115,6 +1115,7 @@
   "admin_invitations_revoke": "R\u00e9voquer",
   "admin_owner_role_tooltip": "Le r\u00f4le de propri\u00e9taire ne peut pas \u00eatre modifi\u00e9",
   "admin_owner_remove_tooltip": "Le propri\u00e9taire ne peut pas \u00eatre retir\u00e9",
+  "admin_orgs_empty": "Aucune organisation trouv\u00e9e",
 
   "api_keys_status_active": "Actif",
   "api_keys_status_expired": "Expir\u00e9",

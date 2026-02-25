@@ -28,20 +28,24 @@ function EmptyState({
   action,
   variant = 'default',
   className,
-}: {
-  icon: React.ReactNode
-  title?: string
-  description: string
-  action?: React.ReactNode
-  className?: string
-} & VariantProps<typeof emptyStateVariants>) {
+  ...props
+}: React.ComponentProps<'div'> &
+  VariantProps<typeof emptyStateVariants> & {
+    icon: React.ReactNode
+    title?: string
+    description: string
+    action?: React.ReactNode
+  }) {
   return (
     <div
       data-slot="empty-state"
       data-variant={variant}
       className={cn(emptyStateVariants({ variant }), className)}
+      {...props}
     >
-      <div data-slot="empty-state-icon">{icon}</div>
+      <div data-slot="empty-state-icon" aria-hidden="true">
+        {icon}
+      </div>
       {title && <h3 className="text-lg font-semibold">{title}</h3>}
       <p className="text-sm text-muted-foreground">{description}</p>
       {action && <div className="mt-2">{action}</div>}
