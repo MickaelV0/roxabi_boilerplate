@@ -202,9 +202,12 @@ All use `.claude/agents/fixer.md`. Done → stage + commit + push (1 commit). CI
 
 ## Phase 8 — Auto-Merge Gate
 
-1. AskUserQuestion: "Add `reviewed` label?" → Yes/No
-2. Yes → `gh pr edit <#> --add-label "reviewed"` → squash merge on green CI
-3. No → inform manual
+1. `git fetch origin staging && git rev-list HEAD..origin/staging --count`
+   - count > 0 → `git rebase origin/staging` + `git push --force-with-lease`
+   - conflict → inform user, halt (¬label)
+2. AskUserQuestion: "Add `reviewed` label?" → Yes / No
+3. Yes → `gh api repos/:owner/:repo/issues/<#>/labels -f "labels[]=reviewed"` → squash merge on green CI
+4. No → inform manual
 
 > `/review` ¬includes `--fix` flag. Fixing = fixer agents after /1b1.
 
