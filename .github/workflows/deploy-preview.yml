@@ -210,20 +210,17 @@ jobs:
       - name: Install Vercel CLI and Turbo
         run: npm install -g vercel@latest turbo
 
-      - name: Initialize database if empty
-        working-directory: apps/api
+      - name: Reset database for clean migrations
         env:
           DATABASE_URL: ${{ steps.db.outputs.url }}
         run: |
           set -euo pipefail
-          TABLE_COUNT=$(bun run scripts/checkDbSchema.ts)
-          echo "Found $TABLE_COUNT tables in database"
-          if [ "$TABLE_COUNT" = "0" ] || [ -z "$TABLE_COUNT" ]; then
-            echo "::notice::Database is empty — running drizzle-kit push to create schema"
-            bunx drizzle-kit push --force
-          else
-            echo "Database has $TABLE_COUNT table(s) — skipping initialization"
-          fi
+          # Neon branches fork from production, so the schema already exists
+          # but the Drizzle migration journal is empty.  Drop and recreate the
+          # public schema so that db:migrate in the Vercel build can bootstrap
+          # from the baseline migration.
+          psql "$DATABASE_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+          echo "Schema reset for clean migration"
 
       - name: Deploy API preview
         id: deploy
