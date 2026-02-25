@@ -1,33 +1,32 @@
-import { AnimatedSection, Card, cn } from '@repo/ui'
+import { AnimatedSection, Card } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
-import { ArrowRight, CheckCircle2, Lightbulb, Target, XCircle } from 'lucide-react'
+import { BookOpen, GitFork, Terminal } from 'lucide-react'
+import type { ComponentType } from 'react'
 import { m } from '@/paraglide/messages'
 
+type CtaCard = {
+  icon: ComponentType<{ className?: string }>
+  label: () => string
+  href?: string
+  external?: boolean
+}
+
 export function ClosingSection() {
-  const withoutItems = [
-    m.talk_closing_without_1(),
-    m.talk_closing_without_2(),
-    m.talk_closing_without_3(),
-  ]
-
-  const withItems = [m.talk_closing_with_1(), m.talk_closing_with_2(), m.talk_closing_with_3()]
-
-  const takeaways = [
+  const ctas: ReadonlyArray<CtaCard> = [
     {
-      text: m.talk_closing_takeaway_1(),
-      detail: m.talk_closing_takeaway_1_detail(),
+      icon: BookOpen,
+      label: m.talk_closing_cta_docs,
+      href: '/docs/$',
     },
     {
-      text: m.talk_closing_takeaway_2(),
-      detail: m.talk_closing_takeaway_2_detail(),
+      icon: GitFork,
+      label: m.talk_closing_cta_repo,
+      href: 'https://github.com/MickaelV0/roxabi_boilerplate',
+      external: true,
     },
     {
-      text: m.talk_closing_takeaway_3(),
-      detail: m.talk_closing_takeaway_3_detail(),
-    },
-    {
-      text: m.talk_closing_takeaway_4(),
-      detail: m.talk_closing_takeaway_4_detail(),
+      icon: Terminal,
+      label: m.talk_closing_cta_try,
     },
   ]
 
@@ -39,86 +38,56 @@ export function ClosingSection() {
       </div>
 
       <AnimatedSection>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="rounded-lg bg-primary/10 p-2">
-            <Target className="h-5 w-5 text-primary" />
-          </div>
+        <div className="text-center">
           <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">
             {m.talk_closing_title()}
           </h2>
+          <p className="mt-4 text-lg text-muted-foreground">{m.talk_closing_subtitle()}</p>
         </div>
-        <p className="mt-4 text-lg text-muted-foreground">{m.talk_closing_subtitle()}</p>
       </AnimatedSection>
 
-      {/* Main content: 3-column grid */}
-      <div className="mt-12 grid gap-6 lg:grid-cols-3">
-        {/* Column 1: Before / After comparison */}
-        <AnimatedSection>
-          <Card variant="subtle" className="p-5 h-full">
-            <div className="space-y-5">
-              <div>
-                <p className="text-sm font-semibold text-red-500 mb-3">
-                  {m.talk_closing_without()}
-                </p>
-                <div className="space-y-2">
-                  {withoutItems.map((item) => (
-                    <div key={item} className="flex items-start gap-2">
-                      <XCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-                      <span className="text-sm text-muted-foreground">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="border-t border-border/30 pt-5">
-                <p className="text-sm font-semibold text-green-500 mb-3">{m.talk_closing_with()}</p>
-                <div className="space-y-2">
-                  {withItems.map((item) => (
-                    <div key={item} className="flex items-start gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                      <span className="text-sm text-muted-foreground">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </Card>
-        </AnimatedSection>
-
-        {/* Column 2-3: Takeaways 2x2 grid */}
-        <AnimatedSection className="lg:col-span-2 md:delay-150">
-          <div className="grid gap-4 sm:grid-cols-2 h-full">
-            {takeaways.map((takeaway, index) => (
+      {/* CTA cards */}
+      <AnimatedSection className="mt-12">
+        <div className="grid gap-6 sm:grid-cols-3">
+          {ctas.map((cta) => {
+            const content = (
               <Card
-                key={takeaway.text}
                 variant="subtle"
-                className={cn('p-5', index === 0 && 'border-primary/30')}
+                className="group flex flex-col items-center gap-4 p-8 text-center transition-colors hover:border-primary/30 cursor-pointer"
               >
-                <div className="flex items-start gap-3">
-                  <div className="rounded-lg bg-primary/10 p-2 shrink-0">
-                    <Lightbulb className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold">{takeaway.text}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{takeaway.detail}</p>
-                  </div>
+                <div className="rounded-xl bg-primary/10 p-4 transition-colors group-hover:bg-primary/20">
+                  <cta.icon className="h-6 w-6 text-primary" />
                 </div>
+                <p className="text-base font-semibold">{cta.label()}</p>
               </Card>
-            ))}
-          </div>
-        </AnimatedSection>
-      </div>
+            )
 
-      {/* Bottom: tagline + CTA */}
-      <AnimatedSection className="mt-10 flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
-        <p className="text-lg italic text-muted-foreground">{m.talk_closing_tagline()}</p>
-        <Link
-          to="/docs/$"
-          params={{ _splat: 'guides/agent-teams' }}
-          className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-base font-semibold text-primary-foreground transition-colors hover:bg-primary/90 shrink-0"
-        >
-          {m.talk_closing_cta()}
-          <ArrowRight className="h-4 w-4" />
-        </Link>
+            if (cta.external) {
+              return (
+                <a key={cta.label()} href={cta.href} target="_blank" rel="noopener noreferrer">
+                  {content}
+                </a>
+              )
+            }
+
+            if (cta.href) {
+              return (
+                <Link key={cta.label()} to="/docs/$" params={{ _splat: 'getting-started' }}>
+                  {content}
+                </Link>
+              )
+            }
+
+            return <div key={cta.label()}>{content}</div>
+          })}
+        </div>
+      </AnimatedSection>
+
+      {/* Tagline */}
+      <AnimatedSection className="mt-12">
+        <p className="text-center text-lg italic text-muted-foreground">
+          {m.talk_closing_tagline()}
+        </p>
       </AnimatedSection>
     </div>
   )

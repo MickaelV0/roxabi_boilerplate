@@ -27,9 +27,9 @@ export function IntroSection() {
 
         <AnimatedSection className="mt-16">
           <div className="flex flex-col items-center justify-center gap-8 sm:flex-row sm:gap-16">
-            <StatCounter value={1782} label={m.talk_intro_stat_sessions()} />
+            <StatCounter value={1930} label={m.talk_intro_stat_sessions()} />
             <div className="hidden h-16 w-px bg-border sm:block" />
-            <StatCounter value={288} label={m.talk_intro_stat_commits()} />
+            <StatCounter value={519} label={m.talk_intro_stat_commits()} />
             <div className="hidden h-16 w-px bg-border sm:block" />
             <StatCounter value={88} label={m.talk_intro_stat_completion()} suffix="%" />
           </div>
