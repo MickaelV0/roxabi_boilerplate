@@ -53,7 +53,7 @@ export const basePlaywrightConfig: PlaywrightTestConfig = {
     {
       // API server (backend) — for full-stack E2E tests
       // Only start in CI or if explicitly requested (local dev uses 'bun run dev')
-      command: process.env.CI ? 'node apps/api/dist/main.js' : 'bun run --cwd apps/api dev',
+      command: process.env.CI ? 'node apps/api/dist/index.js' : 'bun run --cwd apps/api dev',
       url: 'http://localhost:4000',
       reuseExistingServer: !process.env.CI,
       timeout: 120000,
