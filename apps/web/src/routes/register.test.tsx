@@ -209,11 +209,14 @@ describe('RegisterPage', () => {
     expect(screen.queryByLabelText('auth_password')).not.toBeInTheDocument()
   })
 
-  it('should display email exists message when signUp returns USER_ALREADY_EXISTS', async () => {
+  it('should display email exists message when signUp returns USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL', async () => {
     // Arrange
     captured.loaderData = createDefaultLoaderData()
     vi.mocked(authClient.signUp.email).mockResolvedValueOnce({
-      error: { code: 'USER_ALREADY_EXISTS', message: 'User already exists' },
+      error: {
+        code: 'USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL',
+        message: 'User already exists. Use another email.',
+      },
       data: null,
     } as never)
 

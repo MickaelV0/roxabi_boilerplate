@@ -154,7 +154,7 @@ function StrengthIndicator({
                 passed ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
               )}
             >
-              <span className="inline-block size-1.5 rounded-full" aria-hidden="true">
+              <span className="inline-flex w-3 shrink-0 justify-center" aria-hidden="true">
                 {passed ? '\u2713' : '\u2022'}
               </span>
               {ruleLabels[rule.key]}

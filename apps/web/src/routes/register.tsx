@@ -338,7 +338,7 @@ async function handleRegister(form: RegisterFormState) {
       // Mitigated by rate limiting on sign-up.
       if (signUpError.status === 429) {
         form.setError(m.auth_rate_limit())
-      } else if (signUpError.code === 'USER_ALREADY_EXISTS') {
+      } else if (signUpError.code === 'USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL') {
         form.setError(m.auth_register_email_exists())
       } else {
         form.setError(m.auth_register_unable())
