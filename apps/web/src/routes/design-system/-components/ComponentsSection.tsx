@@ -1,4 +1,7 @@
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Avatar,
   AvatarFallback,
   AvatarImage,
@@ -11,6 +14,14 @@ import {
   CardHeader,
   CardTitle,
   Checkbox,
+  ConfirmDialog,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  EmptyState,
   Input,
   Label,
   Select,
@@ -19,15 +30,28 @@ import {
   SelectTrigger,
   SelectValue,
   Separator,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
   Skeleton,
   Slider,
+  Spinner,
   Switch,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
   Textarea,
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@repo/ui'
+import { InboxIcon } from 'lucide-react'
+import { useState } from 'react'
 import { m } from '@/paraglide/messages'
 
 import { ComponentShowcase } from './ComponentShowcase'
@@ -277,7 +301,164 @@ function FeedbackDemos() {
           </TooltipProvider>
         )}
       </ComponentShowcase>
+
+      <ComponentShowcase
+        name="EmptyState"
+        category={m.ds_category_feedback()}
+        propControls={[
+          {
+            name: 'variant',
+            type: 'select',
+            options: ['default', 'error', 'search'],
+            defaultValue: 'default',
+          },
+        ]}
+      >
+        {(props) => (
+          <EmptyState
+            variant={props.variant as 'default'}
+            icon={<InboxIcon className="size-10" />}
+            title={m.ds_demo_empty_state_title()}
+            description={m.ds_demo_empty_state_desc()}
+            action={<Button size="sm">{m.ds_demo_empty_state_action()}</Button>}
+          />
+        )}
+      </ComponentShowcase>
+
+      <ComponentShowcase
+        name="Alert"
+        category={m.ds_category_feedback()}
+        propControls={[
+          {
+            name: 'variant',
+            type: 'select',
+            options: ['default', 'destructive', 'warning'],
+            defaultValue: 'default',
+          },
+        ]}
+      >
+        {(props) => (
+          <Alert variant={props.variant as 'default'}>
+            <AlertTitle>{m.ds_demo_alert_title()}</AlertTitle>
+            <AlertDescription>{m.ds_demo_alert_desc()}</AlertDescription>
+          </Alert>
+        )}
+      </ComponentShowcase>
+
+      <ComponentShowcase
+        name="Spinner"
+        category={m.ds_category_feedback()}
+        propControls={[
+          {
+            name: 'size',
+            type: 'select',
+            options: ['sm', 'default', 'lg', 'xl'],
+            defaultValue: 'default',
+          },
+        ]}
+      >
+        {(props) => <Spinner size={props.size as 'default'} />}
+      </ComponentShowcase>
     </>
+  )
+}
+
+function OverlayDemos() {
+  return (
+    <>
+      <ComponentShowcase name="Dialog" category={m.ds_category_overlay()} propControls={[]}>
+        {() => (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline">{m.ds_demo_dialog_trigger()}</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{m.ds_demo_dialog_title()}</DialogTitle>
+                <DialogDescription>{m.ds_demo_dialog_desc()}</DialogDescription>
+              </DialogHeader>
+            </DialogContent>
+          </Dialog>
+        )}
+      </ComponentShowcase>
+
+      <ComponentShowcase
+        name="Sheet"
+        category={m.ds_category_overlay()}
+        propControls={[
+          {
+            name: 'side',
+            type: 'select',
+            options: ['top', 'right', 'bottom', 'left'],
+            defaultValue: 'right',
+          },
+        ]}
+      >
+        {(props) => (
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline">{m.ds_demo_sheet_trigger()}</Button>
+            </SheetTrigger>
+            <SheetContent side={props.side as 'right'}>
+              <SheetHeader>
+                <SheetTitle>{m.ds_demo_sheet_title()}</SheetTitle>
+                <SheetDescription>{m.ds_demo_sheet_desc()}</SheetDescription>
+              </SheetHeader>
+            </SheetContent>
+          </Sheet>
+        )}
+      </ComponentShowcase>
+
+      <ConfirmDialogShowcase />
+    </>
+  )
+}
+
+function ConfirmDialogShowcase() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <ComponentShowcase name="ConfirmDialog" category={m.ds_category_overlay()} propControls={[]}>
+      {() => (
+        <>
+          <Button variant="outline" onClick={() => setOpen(true)}>
+            {m.ds_demo_confirm_trigger()}
+          </Button>
+          <ConfirmDialog
+            open={open}
+            onOpenChange={setOpen}
+            title={m.ds_demo_confirm_title()}
+            description={m.ds_demo_confirm_desc()}
+            onConfirm={() => setOpen(false)}
+          />
+        </>
+      )}
+    </ComponentShowcase>
+  )
+}
+
+function NavigationDemos() {
+  return (
+    <ComponentShowcase name="Tabs" category={m.ds_category_navigation()} propControls={[]}>
+      {() => (
+        <Tabs defaultValue="tab1" className="w-full max-w-sm">
+          <TabsList>
+            <TabsTrigger value="tab1">{m.ds_demo_tab_1()}</TabsTrigger>
+            <TabsTrigger value="tab2">{m.ds_demo_tab_2()}</TabsTrigger>
+            <TabsTrigger value="tab3">{m.ds_demo_tab_3()}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="tab1">
+            <p className="text-sm text-muted-foreground">{m.ds_demo_tab_content_1()}</p>
+          </TabsContent>
+          <TabsContent value="tab2">
+            <p className="text-sm text-muted-foreground">{m.ds_demo_tab_content_2()}</p>
+          </TabsContent>
+          <TabsContent value="tab3">
+            <p className="text-sm text-muted-foreground">{m.ds_demo_tab_content_3()}</p>
+          </TabsContent>
+        </Tabs>
+      )}
+    </ComponentShowcase>
   )
 }
 
@@ -293,6 +474,8 @@ export function ComponentsSection() {
         <DataDisplayDemos />
         <LayoutDemos />
         <FeedbackDemos />
+        <OverlayDemos />
+        <NavigationDemos />
       </div>
     </section>
   )

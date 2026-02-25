@@ -95,6 +95,7 @@ export {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from './components/DropdownMenu'
+export { EmptyState, emptyStateVariants } from './components/EmptyState'
 export { FormMessage } from './components/FormMessage'
 export { HoverCard, HoverCardContent, HoverCardTrigger } from './components/HoverCard'
 export { Input } from './components/Input'

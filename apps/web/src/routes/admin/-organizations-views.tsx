@@ -5,6 +5,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  EmptyState,
   Skeleton,
   Table,
   TableBody,
@@ -21,6 +22,7 @@ import { OrgListContextMenu, OrgListKebabButton } from '@/components/admin/OrgLi
 import { TreeView } from '@/components/admin/TreeView'
 import { useCursorPagination } from '@/hooks/useCursorPagination'
 import { formatDate } from '@/lib/formatDate'
+import { m } from '@/paraglide/messages'
 import type { OrgFilters } from './-organizations-types'
 
 type TreeApiResponse = {
@@ -52,15 +54,6 @@ function OrgTableSkeleton() {
           <Skeleton className="h-4 w-24" />
         </div>
       ))}
-    </div>
-  )
-}
-
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center gap-3 py-12 text-center">
-      <BuildingIcon className="size-10 text-muted-foreground/50" />
-      <p className="text-sm text-muted-foreground">No organizations found</p>
     </div>
   )
 }
@@ -100,7 +93,9 @@ function FlatListView({ filters }: { filters: OrgFilters }) {
   }
 
   if (organizations.length === 0) {
-    return <EmptyState />
+    return (
+      <EmptyState icon={<BuildingIcon className="size-10" />} description={m.admin_orgs_empty()} />
+    )
   }
 
   return (
@@ -228,7 +223,9 @@ function TreeModeView() {
   }
 
   if (!treeData || treeData.data.length === 0) {
-    return <EmptyState />
+    return (
+      <EmptyState icon={<BuildingIcon className="size-10" />} description={m.admin_orgs_empty()} />
+    )
   }
 
   function handleSelect(id: string) {
