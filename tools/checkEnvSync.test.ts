@@ -14,7 +14,7 @@ import {
 const execFileAsync = promisify(execFile)
 
 const ROOT = join(import.meta.dirname, '..')
-const SCRIPT_PATH = join(ROOT, 'scripts', 'check-env-sync.ts')
+const SCRIPT_PATH = join(ROOT, 'scripts', 'checkEnvSync.ts')
 
 async function runCheckEnvSync() {
   try {
