@@ -91,7 +91,7 @@ describe('api-keys', () => {
       // Assert
       expect(fetchSpy).toHaveBeenCalledOnce()
       const [url, options] = fetchSpy.mock.calls[0] as [string, RequestInit]
-      expect(url).toBe('/api/apiKeys')
+      expect(url).toBe('/api/api-keys')
       expect(options.credentials).toBe('include')
       expect(options.method).toBeUndefined() // GET is the default
     })
@@ -164,7 +164,7 @@ describe('api-keys', () => {
       // Assert
       expect(fetchSpy).toHaveBeenCalledOnce()
       const [url, options] = fetchSpy.mock.calls[0] as [string, RequestInit]
-      expect(url).toBe('/api/apiKeys')
+      expect(url).toBe('/api/api-keys')
       expect(options.method).toBe('POST')
       expect(options.credentials).toBe('include')
       expect(options.headers).toEqual({ 'Content-Type': 'application/json' })
