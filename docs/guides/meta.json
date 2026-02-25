@@ -8,6 +8,7 @@
     "authentication",
     "security",
     "rbac",
+    "navigation-guards",
     "multi-tenant",
     "troubleshooting"
   ]
