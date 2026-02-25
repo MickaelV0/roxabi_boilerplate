@@ -61,9 +61,17 @@ type PhaseCardProps = {
   index: number
 }
 
+const phaseDelayClasses = [
+  '',
+  'md:delay-150',
+  'md:delay-300',
+  'md:delay-500',
+  'md:delay-700',
+] as const
+
 function PhaseCard({ phase, index }: PhaseCardProps) {
   return (
-    <AnimatedSection className={cn(index > 0 && `md:delay-${index * 150}`)}>
+    <AnimatedSection className={cn(index > 0 && phaseDelayClasses[index])}>
       <Card variant="subtle" className={cn('h-full border-t-2 p-5', phase.borderClass)}>
         <div className="mb-3 flex items-center gap-2">
           <div className={cn('rounded-md px-2 py-1', phase.bgClass)}>
@@ -103,7 +111,7 @@ export function ToolchainSection() {
       {/* Desktop: horizontal pipeline with arrows */}
       <div className="mt-12 hidden lg:flex lg:items-start lg:gap-2">
         {phases.map((phase, index) => (
-          <div key={phase.name} className="flex items-start gap-2">
+          <div key={phase.name} className="flex flex-1 min-w-0 items-start gap-2">
             <div className="flex-1 min-w-0">
               <PhaseCard phase={phase} index={index} />
             </div>

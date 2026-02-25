@@ -1,4 +1,4 @@
-import { AnimatedSection, Card } from '@repo/ui'
+import { AnimatedSection, Card, cn } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
 import { BookOpen, GitFork, Terminal } from 'lucide-react'
 import type { ComponentType } from 'react'
@@ -8,6 +8,7 @@ type CtaCard = {
   icon: ComponentType<{ className?: string }>
   label: () => string
   href?: string
+  splat?: string
   external?: boolean
 }
 
@@ -17,6 +18,7 @@ export function ClosingSection() {
       icon: BookOpen,
       label: m.talk_closing_cta_docs,
       href: '/docs/$',
+      splat: 'getting-started',
     },
     {
       icon: GitFork,
@@ -53,7 +55,10 @@ export function ClosingSection() {
             const content = (
               <Card
                 variant="subtle"
-                className="group flex flex-col items-center gap-4 p-8 text-center transition-colors hover:border-primary/30 cursor-pointer"
+                className={cn(
+                  'group flex flex-col items-center gap-4 p-8 text-center transition-colors',
+                  cta.href && 'cursor-pointer hover:border-primary/30'
+                )}
               >
                 <div className="rounded-xl bg-primary/10 p-4 transition-colors group-hover:bg-primary/20">
                   <cta.icon className="h-6 w-6 text-primary" />
@@ -70,9 +75,9 @@ export function ClosingSection() {
               )
             }
 
-            if (cta.href) {
+            if (cta.href && cta.splat) {
               return (
-                <Link key={cta.label()} to="/docs/$" params={{ _splat: 'getting-started' }}>
+                <Link key={cta.label()} to={cta.href} params={{ _splat: cta.splat }}>
                   {content}
                 </Link>
               )
