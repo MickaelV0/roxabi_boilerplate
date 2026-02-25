@@ -36,11 +36,15 @@ function ResetPasswordPage() {
     setMessage('')
     setLoading(true)
     try {
-      await authClient.requestPasswordReset({ email })
-      // Always show the same message regardless of whether the email exists (security guardrail)
-      toast.success(m.auth_toast_reset_link_sent())
-      setMessage(m.auth_reset_password_sent())
-      setCooldown(COOLDOWN_SECONDS)
+      const { error: resetError } = await authClient.requestPasswordReset({ email })
+      if (resetError?.status === 429) {
+        setError(m.auth_rate_limit())
+      } else {
+        // Always show the same message regardless of whether the email exists (security guardrail)
+        toast.success(m.auth_toast_reset_link_sent())
+        setMessage(m.auth_reset_password_sent())
+        setCooldown(COOLDOWN_SECONDS)
+      }
     } catch {
       toast.error(m.auth_toast_error())
     } finally {

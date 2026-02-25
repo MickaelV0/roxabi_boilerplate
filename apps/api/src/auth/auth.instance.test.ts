@@ -623,7 +623,7 @@ describe('createBetterAuth callbackURL rewrite', () => {
     capturedMagicLinkConfig.config = null
   })
 
-  it('should rewrite callbackURL in verification email URL to appURL', async () => {
+  it('should rewrite callbackURL in verification email URL to appURL/verify-email', async () => {
     // Arrange
     const mockDb = createMockDb()
     const mockEmail = createMockEmailProvider()
@@ -648,15 +648,15 @@ describe('createBetterAuth callbackURL rewrite', () => {
       url: 'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=%2F',
     })
 
-    // Assert — callbackURL should be rewritten to appURL
+    // Assert — callbackURL should be rewritten to appURL/verify-email
     expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
-      'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=http%3A%2F%2Flocalhost%3A3000',
+      'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=http%3A%2F%2Flocalhost%3A3000%2Fverify-email',
       'en',
       'http://localhost:3000'
     )
   })
 
-  it('should rewrite callbackURL in reset password email URL to appURL', async () => {
+  it('should rewrite callbackURL in reset password email URL to appURL/reset-password/confirm', async () => {
     // Arrange
     const mockDb = createMockDb()
     const mockEmail = createMockEmailProvider()
@@ -683,7 +683,7 @@ describe('createBetterAuth callbackURL rewrite', () => {
 
     // Assert
     expect(mockRenderResetEmail).toHaveBeenCalledWith(
-      'http://localhost:4000/api/auth/reset-password?token=xyz&callbackURL=http%3A%2F%2Flocalhost%3A3000',
+      'http://localhost:4000/api/auth/reset-password?token=xyz&callbackURL=http%3A%2F%2Flocalhost%3A3000%2Freset-password%2Fconfirm',
       'en',
       'http://localhost:3000'
     )
@@ -776,9 +776,9 @@ describe('createBetterAuth callbackURL rewrite', () => {
       url: 'http://localhost:4000/api/auth/reset-password?token=xyz&callbackURL=%2F',
     })
 
-    // Assert — fallback should also use rewritten URL
+    // Assert — fallback should also use rewritten URL with path
     const rewrittenUrl =
-      'http://localhost:4000/api/auth/reset-password?token=xyz&callbackURL=http%3A%2F%2Flocalhost%3A3000'
+      'http://localhost:4000/api/auth/reset-password?token=xyz&callbackURL=http%3A%2F%2Flocalhost%3A3000%2Freset-password%2Fconfirm'
     expect(mockEmail.send).toHaveBeenCalledWith({
       to: 'user@example.com',
       subject: 'Reset your password',
@@ -811,9 +811,9 @@ describe('createBetterAuth callbackURL rewrite', () => {
       url: 'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=%2F',
     })
 
-    // Assert — fallback should use rewritten emailUrl, NOT the raw url
+    // Assert — fallback should use rewritten emailUrl with path, NOT the raw url
     const rewrittenUrl =
-      'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=http%3A%2F%2Flocalhost%3A3000'
+      'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=http%3A%2F%2Flocalhost%3A3000%2Fverify-email'
     expect(mockEmail.send).toHaveBeenCalledWith({
       to: 'user@example.com',
       subject: 'Verify your email',
@@ -892,9 +892,9 @@ describe('rewriteCallbackUrl edge cases', () => {
       url: 'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=%2Fdashboard',
     })
 
-    // Assert — callbackURL should be rewritten to appURL
+    // Assert — callbackURL should be rewritten to appURL/verify-email
     expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
-      'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=http%3A%2F%2Flocalhost%3A3000',
+      'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=http%3A%2F%2Flocalhost%3A3000%2Fverify-email',
       'en',
       'http://localhost:3000'
     )

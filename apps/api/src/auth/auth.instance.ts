@@ -69,7 +69,7 @@ function buildEmailAndPasswordConfig(emailProvider: EmailProvider, config: AuthI
       user: { email: string } & UserWithLocale
       url: string
     }) {
-      const emailUrl = rewriteCallbackUrl(url, config.appURL)
+      const emailUrl = rewriteCallbackUrl(url, config.appURL, '/reset-password/confirm')
       try {
         const locale = (user as UserWithLocale).locale ?? 'en'
         const { html, text, subject } = await renderResetEmail(emailUrl, locale, config.appURL)
@@ -101,7 +101,7 @@ function buildEmailVerificationConfig(emailProvider: EmailProvider, config: Auth
       user: { email: string } & UserWithLocale
       url: string
     }) {
-      const emailUrl = rewriteCallbackUrl(url, config.appURL)
+      const emailUrl = rewriteCallbackUrl(url, config.appURL, '/verify-email')
       try {
         const locale = (user as UserWithLocale).locale ?? 'en'
         const { html, text, subject } = await renderVerificationEmail(

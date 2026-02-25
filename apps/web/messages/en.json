@@ -623,6 +623,7 @@
   "auth_verify_email_resend_neutral": "If an account with this email exists and is not yet verified, a verification email has been sent.",
   "auth_login_email_not_verified_sent": "Your email is not verified. A new verification email has been sent. Check your inbox.",
   "auth_magic_link_error": "Unable to send magic link. Please try again.",
+  "auth_rate_limit": "Too many attempts. Please try again later.",
 
   "dashboard_welcome": "Welcome back, {name}",
   "dashboard_org_context": "You are working in the {name} organization.",

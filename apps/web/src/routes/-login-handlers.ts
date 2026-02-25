@@ -27,7 +27,9 @@ async function checkSoftDeletedAccount(navigate: ReturnType<typeof useNavigate>)
 }
 
 function handleSignInError(signInError: { status: number }, email: string, form: LoginFormState) {
-  if (signInError.status === 403) {
+  if (signInError.status === 429) {
+    form.submitError(m.auth_rate_limit())
+  } else if (signInError.status === 403) {
     form.markEmailNotVerified(email)
   } else {
     form.submitError(m.auth_login_invalid_credentials())
@@ -82,7 +84,7 @@ export function createLoginAuthHandlers(deps: AuthHandlerDeps) {
         email: form.magicLinkEmail,
       })
       if (mlError) {
-        form.submitError(m.auth_magic_link_error())
+        form.submitError(mlError.status === 429 ? m.auth_rate_limit() : m.auth_magic_link_error())
       } else {
         toast.success(m.auth_toast_magic_link_sent())
         navigate({

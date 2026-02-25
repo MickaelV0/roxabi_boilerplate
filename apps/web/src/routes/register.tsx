@@ -336,7 +336,9 @@ async function handleRegister(form: RegisterFormState) {
       // Conscious UX trade-off: revealing that an email is already registered enables account
       // enumeration, but provides a significantly better user experience than a generic error.
       // Mitigated by rate limiting on sign-up.
-      if (signUpError.code === 'USER_ALREADY_EXISTS') {
+      if (signUpError.status === 429) {
+        form.setError(m.auth_rate_limit())
+      } else if (signUpError.code === 'USER_ALREADY_EXISTS') {
         form.setError(m.auth_register_email_exists())
       } else {
         form.setError(m.auth_register_unable())
