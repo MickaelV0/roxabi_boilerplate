@@ -4,7 +4,7 @@ import { and, eq } from 'drizzle-orm'
 import {
   ORGANIZATION_CREATED,
   OrganizationCreatedEvent,
-} from '../common/events/organization-created.event.js'
+} from '../common/events/organizationCreated.event.js'
 import { members } from '../database/schema/auth.schema.js'
 import { roles } from '../database/schema/rbac.schema.js'
 import { TenantService } from '../tenant/tenant.service.js'

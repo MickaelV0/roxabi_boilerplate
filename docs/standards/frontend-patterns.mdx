@@ -86,6 +86,15 @@ lib/feature/
 
 Apply this structure when creating new feature directories in `apps/web/src/lib/`.
 
+### File Naming
+
+- **Component files** (`**/components/**/*.tsx`): PascalCase — `BanDialog.tsx`, `FilterBar.tsx`
+- **Everything else** (hooks, utils, lib): camelCase — `useConsent.ts`, `formatDate.ts`
+- **Route files**: exempt (TanStack conventions — `$postId.tsx`, `__root.tsx`)
+- Test files match source convention: `BanDialog.test.tsx`, `formatDate.test.ts`
+
+Enforced by Biome `useFilenamingConvention` at `error` level. `strictCase: true` forbids consecutive uppercase — use `apiUrl.ts` not `apiURL.ts`.
+
 **Rules:**
 
 - **No barrel files in app code.** Import directly from the source file: `@/lib/feature/hooks`, not `@/lib/feature`. Barrel files increase bundle size and create circular dependency risks.

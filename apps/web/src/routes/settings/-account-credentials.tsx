@@ -11,7 +11,7 @@ import {
 } from '@repo/ui'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { authClient } from '@/lib/auth-client'
+import { authClient } from '@/lib/authClient'
 import { m } from '@/paraglide/messages'
 
 function useIsOAuthOnly() {

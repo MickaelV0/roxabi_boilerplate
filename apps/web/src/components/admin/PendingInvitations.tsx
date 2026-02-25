@@ -24,10 +24,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { MailIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { roleLabel } from '@/lib/org-utils'
+import { roleLabel } from '@/lib/orgUtils'
 import { m } from '@/paraglide/messages'
 import { getLocale } from '@/paraglide/runtime'
-import { InvitationContextMenu, InvitationKebabButton } from './invitation-context-menu'
+import { InvitationContextMenu, InvitationKebabButton } from './InvitationContextMenu'
 
 type Invitation = {
   id: string

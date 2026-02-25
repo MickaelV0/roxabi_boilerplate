@@ -2,12 +2,9 @@ import { Inject, Injectable, Logger } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import type { OrgOwnershipResolution } from '@repo/types'
 import { and, eq, isNotNull } from 'drizzle-orm'
-import {
-  USER_SOFT_DELETED,
-  UserSoftDeletedEvent,
-} from '../common/events/user-soft-deleted.event.js'
+import { USER_SOFT_DELETED, UserSoftDeletedEvent } from '../common/events/userSoftDeleted.event.js'
 import { DRIZZLE, type DrizzleDB, type DrizzleTx } from '../database/drizzle.provider.js'
-import { whereActive } from '../database/helpers/where-active.js'
+import { whereActive } from '../database/helpers/whereActive.js'
 import {
   accounts,
   invitations,
@@ -18,12 +15,12 @@ import {
   verifications,
 } from '../database/schema/auth.schema.js'
 import { roles } from '../database/schema/rbac.schema.js'
-import { OrgNotOwnerException } from '../organization/exceptions/org-not-owner.exception.js'
-import { AccountAlreadyDeletedException } from './exceptions/account-already-deleted.exception.js'
-import { AccountNotDeletedException } from './exceptions/account-not-deleted.exception.js'
-import { EmailConfirmationMismatchException } from './exceptions/email-confirmation-mismatch.exception.js'
-import { TransferTargetNotMemberException } from './exceptions/transfer-target-not-member.exception.js'
-import { UserNotFoundException } from './exceptions/user-not-found.exception.js'
+import { OrgNotOwnerException } from '../organization/exceptions/orgNotOwner.exception.js'
+import { AccountAlreadyDeletedException } from './exceptions/accountAlreadyDeleted.exception.js'
+import { AccountNotDeletedException } from './exceptions/accountNotDeleted.exception.js'
+import { EmailConfirmationMismatchException } from './exceptions/emailConfirmationMismatch.exception.js'
+import { TransferTargetNotMemberException } from './exceptions/transferTargetNotMember.exception.js'
+import { UserNotFoundException } from './exceptions/userNotFound.exception.js'
 
 const profileColumns = {
   id: users.id,

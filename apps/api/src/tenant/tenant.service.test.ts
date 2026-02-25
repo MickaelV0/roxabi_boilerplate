@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { DatabaseUnavailableException } from './exceptions/database-unavailable.exception.js'
-import { TenantContextMissingException } from './exceptions/tenant-context-missing.exception.js'
+import { DatabaseUnavailableException } from './exceptions/databaseUnavailable.exception.js'
+import { TenantContextMissingException } from './exceptions/tenantContextMissing.exception.js'
 import { TenantService } from './tenant.service.js'
 
 function createMockCls(tenantId: string | null = null) {

@@ -1,7 +1,7 @@
 import { ForbiddenException } from '@nestjs/common'
 import { lastValueFrom, of } from 'rxjs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ErrorCode } from '../common/error-codes.js'
+import { ErrorCode } from '../common/errorCodes.js'
 import { TenantInterceptor } from './tenant.interceptor.js'
 
 function createMockCls(store: Record<string, unknown> = {}) {

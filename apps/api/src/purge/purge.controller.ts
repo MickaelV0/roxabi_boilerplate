@@ -2,7 +2,7 @@ import { timingSafeEqual } from 'node:crypto'
 import { Controller, Headers, Post, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
-import { AllowAnonymous } from '../auth/decorators/allow-anonymous.js'
+import { AllowAnonymous } from '../auth/decorators/allowAnonymous.js'
 import { PurgeService } from './purge.service.js'
 
 @ApiTags('Internal')

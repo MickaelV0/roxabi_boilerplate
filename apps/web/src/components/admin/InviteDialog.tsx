@@ -19,8 +19,8 @@ import { UserPlusIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { OrgRole } from '@/components/admin/types'
-import { parseErrorMessage } from '@/lib/error-utils'
-import { roleLabel } from '@/lib/org-utils'
+import { parseErrorMessage } from '@/lib/errorUtils'
+import { roleLabel } from '@/lib/orgUtils'
 import { m } from '@/paraglide/messages'
 
 async function inviteMember(email: string, roleId: string): Promise<void> {

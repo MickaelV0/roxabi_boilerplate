@@ -3,8 +3,8 @@ import type { ConsentRecord } from '@repo/types'
 import { desc, eq } from 'drizzle-orm'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { consentRecords } from '../database/schema/consent.schema.js'
-import { ConsentInsertFailedException } from './exceptions/consent-insert-failed.exception.js'
-import { ConsentNotFoundException } from './exceptions/consent-not-found.exception.js'
+import { ConsentInsertFailedException } from './exceptions/consentInsertFailed.exception.js'
+import { ConsentNotFoundException } from './exceptions/consentNotFound.exception.js'
 
 export interface SaveConsentDto {
   categories: { necessary: true; analytics: boolean; marketing: boolean }

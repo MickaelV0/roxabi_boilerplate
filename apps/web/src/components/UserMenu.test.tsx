@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
+import { mockParaglideMessages } from '@/test/__mocks__/mockMessages'
 
 const useSessionFn = vi.hoisted(() =>
   vi.fn(() => ({
@@ -53,7 +53,7 @@ vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => navigateFn,
 }))
 
-vi.mock('@/lib/auth-client', () => ({
+vi.mock('@/lib/authClient', () => ({
   useSession: useSessionFn,
   authClient: {
     signOut: vi.fn(),
@@ -73,7 +73,7 @@ vi.mock('lucide-react', () => ({
 mockParaglideMessages()
 
 import { toast } from 'sonner'
-import { authClient } from '@/lib/auth-client'
+import { authClient } from '@/lib/authClient'
 import { UserMenu } from './UserMenu'
 
 describe('UserMenu', () => {

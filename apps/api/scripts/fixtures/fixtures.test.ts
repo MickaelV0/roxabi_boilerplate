@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { DEFAULT_ROLES } from '../../src/rbac/rbac.constants.js'
-import { parsePreset, VALID_PRESETS } from '../db-seed.js'
+import { parsePreset, VALID_PRESETS } from '../dbSeed.js'
 import { seed as authSeed, FULL_EXTRA_USERS, MINIMAL_USERS } from './auth.fixture.js'
 import { seed as consentSeed } from './consent.fixture.js'
 import { runFixtures } from './index.js'

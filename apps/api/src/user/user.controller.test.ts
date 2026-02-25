@@ -1,8 +1,8 @@
 import { AVATAR_STYLES, DICEBEAR_CDN_DOMAIN } from '@repo/types'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
-import { AccountNotDeletedException } from './exceptions/account-not-deleted.exception.js'
-import { UserNotFoundException } from './exceptions/user-not-found.exception.js'
+import { AccountNotDeletedException } from './exceptions/accountNotDeleted.exception.js'
+import { UserNotFoundException } from './exceptions/userNotFound.exception.js'
 import { UserController } from './user.controller.js'
 import type { UserService } from './user.service.js'
 

@@ -25,12 +25,12 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { BuildingIcon, CalendarIcon, NetworkIcon, PencilIcon, UsersIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { BackLink, DetailSkeleton } from '@/components/admin/detail-shared'
-import { MemberContextMenu, MemberKebabButton } from '@/components/admin/member-context-menu'
-import { OrgActions } from '@/components/admin/org-actions'
-import { useSession } from '@/lib/auth-client'
-import { formatDate } from '@/lib/format-date'
-import { enforceRoutePermission } from '@/lib/route-permissions'
+import { BackLink, DetailSkeleton } from '@/components/admin/DetailShared'
+import { MemberContextMenu, MemberKebabButton } from '@/components/admin/MemberContextMenu'
+import { OrgActions } from '@/components/admin/OrgActions'
+import { useSession } from '@/lib/authClient'
+import { formatDate } from '@/lib/formatDate'
+import { enforceRoutePermission } from '@/lib/routePermissions'
 
 export const Route = createFileRoute('/admin/organizations/$orgId')({
   staticData: { permission: 'role:superadmin' },

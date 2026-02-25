@@ -8,19 +8,19 @@
  * @see https://ui.shadcn.com/themes
  */
 
-import { BASE_PRESETS } from './presets-base'
-import { COLOR_PRESETS } from './presets-color'
-import type { ShadcnPreset } from './presets-types'
+import { BASE_PRESETS } from './presetsBase'
+import { COLOR_PRESETS } from './presetsColor'
+import type { ShadcnPreset } from './presetsTypes'
 
-export { BASE_PRESETS } from './presets-base'
-export { COLOR_PRESETS } from './presets-color'
+export { BASE_PRESETS } from './presetsBase'
+export { COLOR_PRESETS } from './presetsColor'
 export {
   getComposedConfig,
   getComposedDerivedTheme,
   getPresetConfig,
   getPresetDerivedTheme,
-} from './presets-helpers'
-export type { ShadcnPreset } from './presets-types'
-export { ZINC_BASE } from './presets-types'
+} from './presetsHelpers'
+export type { ShadcnPreset } from './presetsTypes'
+export { ZINC_BASE } from './presetsTypes'
 
 export const ALL_PRESETS: ShadcnPreset[] = [...BASE_PRESETS, ...COLOR_PRESETS]

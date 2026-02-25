@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
+import { mockParaglideMessages } from '@/test/__mocks__/mockMessages'
 
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
@@ -13,11 +13,11 @@ vi.mock('@tanstack/react-router', () => ({
   },
 }))
 
-vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repoUi'))
 
 const mockUpdateUser = vi.fn((_data?: Record<string, unknown>) => Promise.resolve({}))
 
-vi.mock('@/lib/auth-client', () => ({
+vi.mock('@/lib/authClient', () => ({
   authClient: {
     updateUser: (data?: Record<string, unknown>) => mockUpdateUser(data),
   },

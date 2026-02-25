@@ -1,7 +1,7 @@
 import { render } from '@react-email/components'
 import { createElement } from 'react'
-import { MagicLinkEmail } from './templates/magic-link'
-import { ResetPasswordEmail } from './templates/reset-password'
+import { MagicLinkEmail } from './templates/magicLink'
+import { ResetPasswordEmail } from './templates/resetPassword'
 import { VerificationEmail } from './templates/verification'
 import { getTranslations } from './translations'
 

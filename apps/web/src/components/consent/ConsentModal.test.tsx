@@ -17,7 +17,7 @@ vi.mock('@/paraglide/messages', () => ({
 }))
 
 vi.mock('@repo/ui', async () => {
-  const mocks = await import('@/test/__mocks__/repo-ui')
+  const mocks = await import('@/test/__mocks__/repoUi')
   return {
     ...mocks,
     // Override Dialog to respect `open` prop

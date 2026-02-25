@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
+import { mockParaglideMessages } from '@/test/__mocks__/mockMessages'
 
 vi.mock('@repo/ui', () => ({
   Button: ({
@@ -58,7 +58,7 @@ vi.mock('@tanstack/react-router', () => ({
 
 mockParaglideMessages()
 
-vi.mock('@/lib/auth-client', () => ({
+vi.mock('@/lib/authClient', () => ({
   useSession: () => ({ data: null }),
   authClient: {
     useActiveOrganization: () => ({ data: null }),
@@ -75,7 +75,7 @@ vi.mock('./OrgSwitcher', () => ({
   OrgSwitcher: () => <div data-testid="org-switcher" />,
 }))
 
-vi.mock('@/lib/use-organizations', () => ({
+vi.mock('@/lib/useOrganizations', () => ({
   useOrganizations: () => ({ data: undefined, isLoading: true, error: null, refetch: vi.fn() }),
 }))
 

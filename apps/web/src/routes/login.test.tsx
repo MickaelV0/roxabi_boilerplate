@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { toast } from 'sonner'
 import { describe, expect, it, vi } from 'vitest'
-import { authClient } from '@/lib/auth-client'
-import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
+import { authClient } from '@/lib/authClient'
+import { mockParaglideMessages } from '@/test/__mocks__/mockMessages'
 
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
@@ -30,9 +30,9 @@ vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => vi.fn(),
 }))
 
-vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repoUi'))
 
-vi.mock('@/lib/auth-client', () => ({
+vi.mock('@/lib/authClient', () => ({
   authClient: {
     signIn: {
       email: vi.fn(),

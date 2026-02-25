@@ -5,8 +5,8 @@ import {
   OrgNameConfirmationMismatchFilter,
   OrgNotDeletedFilter,
   OrgNotOwnerFilter,
-} from './filters/org-forbidden.filter.js'
-import { OrgNotFoundFilter } from './filters/org-not-found.filter.js'
+} from './filters/orgForbidden.filter.js'
+import { OrgNotFoundFilter } from './filters/orgNotFound.filter.js'
 import { OrganizationController } from './organization.controller.js'
 import { OrganizationService } from './organization.service.js'
 

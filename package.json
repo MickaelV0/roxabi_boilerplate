@@ -27,7 +27,7 @@
     "i18n:validate": "bun run scripts/validate-translations.ts",
     "typecheck:affected": "turbo run typecheck --filter=...[origin/main]",
     "test:affected": "turbo run test --filter=...[origin/main]",
-    "license:check": "bun run tools/license-checker.ts",
+    "license:check": "bun run tools/licenseChecker.ts",
     "check:env": "bun run scripts/check-env-sync.ts",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",

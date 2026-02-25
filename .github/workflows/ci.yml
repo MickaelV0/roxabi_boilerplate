@@ -396,7 +396,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Check internal documentation links
-        run: bun run tools/docs-link-audit.ts
+        run: bun run tools/docsLinkAudit.ts
 
   # Intentionally runs on every push to main/staging regardless of changed paths.
   # Full browser coverage is required on protected branches before release.

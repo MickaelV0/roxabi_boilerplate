@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { mockParaglideMessages } from '@/test/__mocks__/mock-messages'
+import { mockParaglideMessages } from '@/test/__mocks__/mockMessages'
 
-vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repo-ui'))
+vi.mock('@repo/ui', async () => await import('@/test/__mocks__/repoUi'))
 
 mockParaglideMessages()
 
@@ -28,7 +28,7 @@ Object.defineProperty(window, 'matchMedia', {
 })
 
 // Mock IntersectionObserver (passive -- no callback needed for page render tests)
-import { setupIntersectionObserverMock } from '@/test/mocks/intersection-observer'
+import { setupIntersectionObserverMock } from '@/test/mocks/intersectionObserver'
 
 setupIntersectionObserverMock('passive')
 

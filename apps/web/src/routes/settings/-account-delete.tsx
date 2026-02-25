@@ -21,7 +21,7 @@ import { AlertTriangleIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { deleteAccount, fetchOrganizations } from '@/lib/api'
-import { authClient, useSession } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/authClient'
 import { m } from '@/paraglide/messages'
 
 type OwnedOrg = {

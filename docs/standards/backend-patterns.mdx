@@ -43,6 +43,20 @@ feature/
 - **No barrel files in app code.** Import directly from source files (`@/common/filters/all-exceptions.filter`, not `@/common`).
 - **Barrel exports allowed only in `common/index.ts`** for cross-cutting concerns shared across modules. See `apps/api/src/common/index.ts` for the existing pattern.
 
+### File Naming
+
+- **API modules:** camelCase base + preserved suffix — `adminUsers.service.ts`, `apiKey.controller.ts`
+- **Exceptions:** camelCase base + `.exception.ts` — `userNotFound.exception.ts`, `orgNotFound.exception.ts`
+- **Filters:** camelCase base + `.filter.ts` — `adminException.filter.ts`, `rbacException.filter.ts`
+- **Guards, pipes, decorators:** camelCase base + suffix — `customThrottler.guard.ts`, `zodValidation.pipe.ts`
+- **Utility/helper files:** camelCase — `escapeIlikePattern.ts`, `testHelpers.ts`
+- **Scripts:** camelCase — `dbSeed.ts`, `dbBranch.ts`
+- Test files match source: `adminUsers.service.test.ts`, `zodValidation.pipe.test.ts`
+
+Enforced by Biome `useFilenamingConvention` at `error` level.
+
+> **NestJS CLI note:** `nest generate` outputs kebab-case by default (e.g., `payments.service.ts`). While single-word names are already valid camelCase, multi-word names like `api-key-rotation.service.ts` need renaming to `apiKeyRotation.service.ts`. Run `bun run lint` after scaffold to catch violations.
+
 ### Anti-patterns
 
 - Putting business logic in controllers.

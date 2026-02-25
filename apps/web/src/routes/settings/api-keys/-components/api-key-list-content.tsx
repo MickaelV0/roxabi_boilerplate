@@ -1,6 +1,6 @@
 import { Button } from '@repo/ui'
 import { PlusIcon } from 'lucide-react'
-import type { ApiKey } from '@/lib/api-keys'
+import type { ApiKey } from '@/lib/apiKeys'
 import { m } from '@/paraglide/messages'
 import { EmptyState } from './empty-state'
 import { KeyListTable } from './key-list-table'

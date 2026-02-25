@@ -3,9 +3,9 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { BookOpenIcon, SettingsIcon, UsersIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { fetchUserProfile } from '@/lib/api'
-import { authClient, useSession } from '@/lib/auth-client'
-import { requireAuth } from '@/lib/route-guards'
-import { useOrganizations } from '@/lib/use-organizations'
+import { authClient, useSession } from '@/lib/authClient'
+import { requireAuth } from '@/lib/routeGuards'
+import { useOrganizations } from '@/lib/useOrganizations'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/dashboard')({

@@ -4,11 +4,11 @@
  * barrel file, which would be forbidden by our backend patterns.
  */
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
-import { AUTH_SENSITIVE_PATHS } from './custom-throttler.guard.js'
+import { AUTH_SENSITIVE_PATHS } from './customThrottler.guard.js'
 
-export { AUTH_SENSITIVE_PATHS, CustomThrottlerGuard } from './custom-throttler.guard.js'
+export { AUTH_SENSITIVE_PATHS, CustomThrottlerGuard } from './customThrottler.guard.js'
 export { ThrottlerConfigModule } from './throttler.module.js'
-export { UpstashThrottlerStorage } from './upstash-throttler-storage.js'
+export { UpstashThrottlerStorage } from './upstashThrottlerStorage.js'
 
 /** Rate limit metadata stored on request by CustomThrottlerGuard, read by onSend hook and AllExceptionsFilter */
 export interface ThrottlerMeta {

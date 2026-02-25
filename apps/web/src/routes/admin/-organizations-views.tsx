@@ -16,11 +16,11 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { BuildingIcon } from 'lucide-react'
-import { LoadMoreButton } from '@/components/admin/load-more-button'
-import { OrgListContextMenu, OrgListKebabButton } from '@/components/admin/org-list-context-menu'
-import { TreeView } from '@/components/admin/tree-view'
-import { useCursorPagination } from '@/hooks/use-cursor-pagination'
-import { formatDate } from '@/lib/format-date'
+import { LoadMoreButton } from '@/components/admin/LoadMoreButton'
+import { OrgListContextMenu, OrgListKebabButton } from '@/components/admin/OrgListContextMenu'
+import { TreeView } from '@/components/admin/TreeView'
+import { useCursorPagination } from '@/hooks/useCursorPagination'
+import { formatDate } from '@/lib/formatDate'
 import type { OrgFilters } from './-organizations-types'
 
 type TreeApiResponse = {

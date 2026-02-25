@@ -1,6 +1,6 @@
 import type { useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { safeRedirect } from '@/lib/route-guards'
+import { safeRedirect } from '@/lib/routeGuards'
 
 function useLoginFormFields() {
   const [email, setEmail] = useState('')

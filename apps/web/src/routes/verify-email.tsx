@@ -3,7 +3,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { authClient, useSession } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/authClient'
 import { m } from '@/paraglide/messages'
 import { AuthLayout } from '../components/AuthLayout'
 

@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { z } from 'zod'
 import { Permissions } from '../auth/decorators/permissions.decorator.js'
 import { Session } from '../auth/decorators/session.decorator.js'
-import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js'
+import { ZodValidationPipe } from '../common/pipes/zodValidation.pipe.js'
 import { PermissionService } from './permission.service.js'
 import { RbacService } from './rbac.service.js'
 

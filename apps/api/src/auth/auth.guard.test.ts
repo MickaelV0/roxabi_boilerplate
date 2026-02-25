@@ -1,6 +1,6 @@
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common'
 import { describe, expect, it, vi } from 'vitest'
-import { ErrorCode } from '../common/error-codes.js'
+import { ErrorCode } from '../common/errorCodes.js'
 import { AuthGuard } from './auth.guard.js'
 
 function createMockAuthService(session: Record<string, unknown> | null = null) {

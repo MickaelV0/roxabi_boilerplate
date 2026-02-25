@@ -1,6 +1,6 @@
 import { relations } from 'drizzle-orm'
 import { index, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
-import { apiKeys } from './api-key.schema.js'
+import { apiKeys } from './apiKey.schema.js'
 import { organizations, users } from './auth.schema.js'
 
 const genId = () => crypto.randomUUID()

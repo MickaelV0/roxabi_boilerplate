@@ -1,4 +1,4 @@
-import type { ApiKey, CreateApiKeyResponse } from '@/lib/api-keys'
+import type { ApiKey, CreateApiKeyResponse } from '@/lib/apiKeys'
 import { m } from '@/paraglide/messages'
 import type { ApiKeyStatus } from './-types'
 

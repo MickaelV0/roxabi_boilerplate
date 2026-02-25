@@ -387,6 +387,25 @@ After features have been validated on staging:
 
 > XXX = GitHub issue number
 
+### File Naming
+
+Enforced by Biome `useFilenamingConvention` at `error` level.
+
+| File Type | Convention | Example |
+|-----------|-----------|---------|
+| Component `.tsx` (in `**/components/**`) | PascalCase | `BanDialog.tsx`, `ActionEmail.tsx` |
+| Hooks, utils, lib, config `.ts` | camelCase | `useConsent.ts`, `formatDate.ts` |
+| API modules `.ts` (with suffixes) | camelCase + preserved suffix | `adminUsers.service.ts`, `apiKey.controller.ts` |
+| Route files | TanStack conventions (exempt) | `$postId.tsx`, `__root.tsx`, `index.tsx` |
+| Integration wrappers `.tsx` (not in `components/`) | camelCase | `rootProvider.tsx`, `devtools.tsx` |
+| Email templates `.tsx` (not in `components/`) | camelCase | `magicLink.tsx`, `resetPassword.tsx` |
+| Test files | Match source convention + `.test` suffix | `BanDialog.test.tsx`, `errorUtils.test.ts` |
+| Scripts `.ts` | camelCase | `dbSeed.ts`, `checkEnvSync.ts` |
+
+> **`strictCase: true` (Biome default):** Consecutive uppercase characters are forbidden. Use `apiUrl.ts` not `apiURL.ts`.
+>
+> **NestJS CLI:** `nest generate` outputs kebab-case by default. Rename the file post-scaffold, then run `bun run lint` to verify.
+
 ---
 
 ## Principles

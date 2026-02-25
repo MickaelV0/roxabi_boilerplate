@@ -9,8 +9,8 @@ import {
   DialogTitle,
 } from '@repo/ui'
 import { toast } from 'sonner'
-import type { CreateApiKeyResponse } from '@/lib/api-keys'
-import { createApiKey } from '@/lib/api-keys'
+import type { CreateApiKeyResponse } from '@/lib/apiKeys'
+import { createApiKey } from '@/lib/apiKeys'
 import { m } from '@/paraglide/messages'
 import { useCreateKeyForm } from '../-hooks'
 import { CreateKeyFormFields } from './create-key-form-fields'

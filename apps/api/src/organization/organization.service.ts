@@ -4,15 +4,15 @@ import { and, count, eq } from 'drizzle-orm'
 import {
   ORGANIZATION_SOFT_DELETED,
   OrganizationSoftDeletedEvent,
-} from '../common/events/organization-soft-deleted.event.js'
+} from '../common/events/organizationSoftDeleted.event.js'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
-import { whereActive } from '../database/helpers/where-active.js'
+import { whereActive } from '../database/helpers/whereActive.js'
 import { invitations, members, organizations, sessions } from '../database/schema/auth.schema.js'
 import { roles } from '../database/schema/rbac.schema.js'
-import { OrgNameConfirmationMismatchException } from './exceptions/org-name-confirmation-mismatch.exception.js'
-import { OrgNotDeletedException } from './exceptions/org-not-deleted.exception.js'
-import { OrgNotFoundException } from './exceptions/org-not-found.exception.js'
-import { OrgNotOwnerException } from './exceptions/org-not-owner.exception.js'
+import { OrgNameConfirmationMismatchException } from './exceptions/orgNameConfirmationMismatch.exception.js'
+import { OrgNotDeletedException } from './exceptions/orgNotDeleted.exception.js'
+import { OrgNotFoundException } from './exceptions/orgNotFound.exception.js'
+import { OrgNotOwnerException } from './exceptions/orgNotOwner.exception.js'
 
 @Injectable()
 export class OrganizationService {

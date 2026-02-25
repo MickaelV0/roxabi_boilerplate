@@ -1,8 +1,8 @@
 import { cn } from '@repo/ui'
 import { createFileRoute, Link, Outlet, useRouterState } from '@tanstack/react-router'
-import { useSession } from '@/lib/auth-client'
+import { useSession } from '@/lib/authClient'
 import { hasPermission } from '@/lib/permissions'
-import { requireAuth } from '@/lib/route-guards'
+import { requireAuth } from '@/lib/routeGuards'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/settings')({
@@ -35,9 +35,9 @@ function SettingsLayout() {
       match: (p) => p.includes('/settings/account'),
     },
     {
-      to: '/settings/api-keys',
+      to: '/settings/apiKeys',
       label: () => m.settings_tab_api_keys(),
-      match: (p) => p.includes('/settings/api-keys'),
+      match: (p) => p.includes('/settings/apiKeys'),
       visible: canReadApiKeys,
     },
   ]
