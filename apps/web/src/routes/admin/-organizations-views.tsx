@@ -5,6 +5,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  EmptyState,
   Skeleton,
   Table,
   TableBody,
@@ -56,15 +57,6 @@ function OrgTableSkeleton() {
   )
 }
 
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center gap-3 py-12 text-center">
-      <BuildingIcon className="size-10 text-muted-foreground/50" />
-      <p className="text-sm text-muted-foreground">No organizations found</p>
-    </div>
-  )
-}
-
 function FlatListView({ filters }: { filters: OrgFilters }) {
   const {
     data: organizations,
@@ -100,7 +92,12 @@ function FlatListView({ filters }: { filters: OrgFilters }) {
   }
 
   if (organizations.length === 0) {
-    return <EmptyState />
+    return (
+      <EmptyState
+        icon={<BuildingIcon className="size-10" />}
+        description="No organizations found"
+      />
+    )
   }
 
   return (
@@ -228,7 +225,12 @@ function TreeModeView() {
   }
 
   if (!treeData || treeData.data.length === 0) {
-    return <EmptyState />
+    return (
+      <EmptyState
+        icon={<BuildingIcon className="size-10" />}
+        description="No organizations found"
+      />
+    )
   }
 
   function handleSelect(id: string) {
