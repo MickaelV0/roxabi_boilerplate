@@ -148,7 +148,7 @@ Runs **before** PR posting — `[auto-applied]` markers reflect outcomes.
 **1. Queue split:**
 
 ```
-auto_apply(f) ⟺ C(f) ≥ T  ∧  cat(f) ∈ actionable  ∧  src(f) ≠ security-auditor  ∧  |A(f)| ≥ 2
+auto_apply(f) ⟺ C(f) ≥ T  ∧  cat(f) ∈ actionable  ∧  src(f) ≠ security-auditor
 Q_auto = {f ∈ F | auto_apply(f)}
 Q_1b1  = F \ Q_auto
 ∀f: cat(f) ∈ {thought, question, praise} → f ∈ Q_1b1  (unconditional)
@@ -171,7 +171,7 @@ Q_1b1  = F \ Q_auto
 
 **6. Summary:** Display before PR:
 ```
--- Auto-Applied Fixes (C ≥ 80%, 2+ consensus) --
+-- Auto-Applied Fixes (C ≥ 80%, verified) --
 Applied N finding(s):
   1. [applied] issue(blocking): SQL injection in users.service.ts:42 (92%)
   2. [failed -> 1b1] nitpick: Unused import in dashboard.tsx:3 (85%) -- test failure
@@ -240,7 +240,7 @@ All use `.claude/agents/fixer.md`. Done → stage + commit + push (1 commit). CI
 
 1. Fresh agents only — ¬implementation context
 2. ¬auto-merge, ¬approve PRs on GitHub
-3. Human gate bypassed ⟺ |A(f)| ≥ 2 ∧ C(f) ≥ T ∧ cat(f) ∈ actionable ∧ src(f) ≠ security-auditor. |A(f)| = 1 ∧ C(f) ≥ T → verification first. All else → 1b1. Human can `git diff` anytime.
+3. Human gate bypassed ⟺ C(f) ≥ T ∧ cat(f) ∈ actionable ∧ src(f) ≠ security-auditor ∧ (|A(f)| ≥ 2 ∨ verifier confirms C ≥ T). All else → 1b1. Human can `git diff` anytime.
 4. ∃ PR → must post comment + post-fix follow-up
 5. Review ¬fix code — fixer agents handle after 1b1
 
