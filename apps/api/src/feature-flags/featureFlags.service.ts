@@ -5,6 +5,13 @@ import { featureFlags } from '../database/schema/featureFlags.schema.js'
 
 @Injectable()
 export class FeatureFlagService {
+  private static readonly CACHE_TTL_MS = 60_000
+
+  /**
+   * Per-instance in-memory cache with 60s TTL.
+   * In multi-instance deployments, other instances may serve stale values
+   * for up to 60s after a write on a different instance.
+   */
   private cache = new Map<string, { value: boolean; expiresAt: number }>()
 
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
@@ -22,7 +29,7 @@ export class FeatureFlagService {
 
     this.cache.set(key, {
       value: row.enabled,
-      expiresAt: Date.now() + 60_000,
+      expiresAt: Date.now() + FeatureFlagService.CACHE_TTL_MS,
     })
 
     return row.enabled
@@ -41,6 +48,8 @@ export class FeatureFlagService {
         description: data.description,
       })
       .returning()
+
+    this.cache.delete(data.key)
 
     return rows[0]
   }

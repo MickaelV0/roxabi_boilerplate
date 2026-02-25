@@ -1442,23 +1442,7 @@
           "default": "now()"
         }
       },
-      "indexes": {
-        "idx_feature_flags_key": {
-          "name": "idx_feature_flags_key",
-          "columns": [
-            {
-              "expression": "key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
@@ -1773,21 +1757,6 @@
         }
       },
       "indexes": {
-        "idx_system_settings_key": {
-          "name": "idx_system_settings_key",
-          "columns": [
-            {
-              "expression": "key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "idx_system_settings_category": {
           "name": "idx_system_settings_category",
           "columns": [

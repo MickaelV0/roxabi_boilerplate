@@ -82,7 +82,6 @@ describe('SystemSettingsService', () => {
 
       // Assert
       expect(result).toEqual(mockSettings)
-      expect(result).toHaveLength(3)
     })
 
     it('should return an empty array when no settings exist', async () => {
@@ -118,7 +117,6 @@ describe('SystemSettingsService', () => {
 
       // Assert
       expect(result).toEqual(generalSettings)
-      expect(result).toHaveLength(2)
     })
 
     it('should return an empty array when no settings match the category', async () => {

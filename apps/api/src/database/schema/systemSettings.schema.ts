@@ -1,4 +1,4 @@
-import { index, jsonb, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core'
+import { index, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import { timestamps } from './timestamps.js'
 
 const genId = () => crypto.randomUUID()
@@ -16,8 +16,5 @@ export const systemSettings = pgTable(
     metadata: jsonb('metadata').$type<{ options?: string[] } | null>(),
     ...timestamps,
   },
-  (table) => [
-    uniqueIndex('idx_system_settings_key').on(table.key),
-    index('idx_system_settings_category').on(table.category),
-  ]
+  (table) => [index('idx_system_settings_category').on(table.category)]
 )
