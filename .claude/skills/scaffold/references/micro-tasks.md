@@ -97,13 +97,13 @@ Bidirectional spec↔task:
 
 ## 4f.6 Write Plan Artifact
 
-Write to `plans/{issue}-{slug}.mdx`. Create `plans/` dir if needed.
+Write to `artifacts/plans/{issue}-{slug}.mdx`. Create `artifacts/plans/` dir if needed.
 
 ```markdown
 ---
 title: "Plan: {title}"
 issue: {N}
-spec: specs/{issue}-{slug}.mdx
+spec: artifacts/specs/{issue}-{slug}.mdx
 complexity: {score}/10
 tier: {tier}
 generated: {ISO}
@@ -113,7 +113,7 @@ generated: {ISO}
 {1-2 sentences}
 
 ## Bootstrap Context
-{From analyses/{issue}-*.mdx: conclusions + selected shape}
+{From artifacts/analyses/{issue}-*.mdx: conclusions + selected shape}
 
 ## Agents
 | Agent | Tasks | Files |
@@ -151,8 +151,8 @@ Options: **Approve** | **Modify** | **Return to spec**
 Standalone commit (¬amend):
 
 ```bash
-mkdir -p plans
-git add plans/{issue}-{slug}.mdx
+mkdir -p artifacts/plans
+git add artifacts/plans/{issue}-{slug}.mdx
 git commit -m "$(cat <<'EOF'
 docs(<scope>): add scaffold plan for <feature>
 

@@ -17,8 +17,8 @@ If the user passes `--promote <path>`:
 1. Read the document at the given path.
 2. Determine its current type from frontmatter first, then content structure as fallback:
    - **Primary check:** If it has `type: brainstorm` in frontmatter, treat it as a **Brainstorm** and promote to **Analysis**.
-   - **Fallback:** If no `type` frontmatter but lives in `analyses/` with a "Trigger" / "Ideas" structure, treat it as a **Brainstorm**.
-   - If it lives in `analyses/` with "Questions Explored" / "Analysis" / "Conclusions" structure, treat it as an **Analysis** and promote to **Spec**.
+   - **Fallback:** If no `type` frontmatter but lives in `artifacts/analyses/` with a "Trigger" / "Ideas" structure, treat it as a **Brainstorm**.
+   - If it lives in `artifacts/analyses/` with "Questions Explored" / "Analysis" / "Conclusions" structure, treat it as an **Analysis** and promote to **Spec**.
    - If it is already a Spec, inform the user: "This document is already a spec. Nothing to promote."
 3. Skip to **Step 2** (interview), but limit questions to the gaps between the current document and the next level's template. Pre-fill what you already know from the source document.
 4. When generating the promoted document, add a link back to the source:
@@ -31,8 +31,8 @@ If no `--promote` flag, continue to Step 1.
 Before asking the document type, scan for related documents:
 
 ```
-analyses/   — existing analyses
-specs/      — existing specs
+artifacts/analyses/   — existing analyses
+artifacts/specs/      — existing specs
 ```
 
 Use **Glob** to search for files matching the topic (by issue number, keywords, or slug). Also check if the user's arguments mention a GitHub issue number.
@@ -57,9 +57,9 @@ Use **AskUserQuestion** to ask the user which document type to create:
 
 | Type | Purpose | Output Path |
 |------|---------|-------------|
-| **Brainstorm** | Explore ideas, divergent thinking, early-stage exploration | `analyses/{slug}.mdx` |
-| **Analysis** | Structured investigation of a topic or problem | `analyses/{slug}.mdx` |
-| **Spec** | Technical specification for implementation | `specs/{issue}-{slug}.mdx` |
+| **Brainstorm** | Explore ideas, divergent thinking, early-stage exploration | `artifacts/analyses/{slug}.mdx` |
+| **Analysis** | Structured investigation of a topic or problem | `artifacts/analyses/{slug}.mdx` |
+| **Spec** | Technical specification for implementation | `artifacts/specs/{issue}-{slug}.mdx` |
 
 If promoting, this step is already determined — skip it.
 
@@ -137,8 +137,8 @@ Write the document using the appropriate template below. Follow these rules:
 
 - Use `.mdx` extension with YAML frontmatter (`title`, `description`).
 - Use kebab-case slugs.
-- For **Spec** documents, prefix the filename with the GitHub issue number: `specs/{issue}-{slug}.mdx`
-- For **Analysis** and **Brainstorm** documents: `analyses/{slug}.mdx` (prefix with issue number if one exists, e.g., `analyses/{issue}-{slug}.mdx`).
+- For **Spec** documents, prefix the filename with the GitHub issue number: `artifacts/specs/{issue}-{slug}.mdx`
+- For **Analysis** and **Brainstorm** documents: `artifacts/analyses/{slug}.mdx` (prefix with issue number if one exists, e.g., `artifacts/analyses/{issue}-{slug}.mdx`).
 - Brainstorm documents add `type: brainstorm` to their frontmatter.
 - Escape `<` as `&lt;` in MDX content to avoid JSX parsing errors.
 

@@ -73,8 +73,8 @@ Single domain, clear scope?                          -> F-lite
 
 | Artifact | When | Files |
 |----------|------|-------|
-| Feature spec | New feature | `specs/*.mdx` |
-| Analysis (pre-spec) | Before writing a spec | `analyses/*.mdx` |
+| Feature spec | New feature | `artifacts/specs/*.mdx` |
+| Analysis (pre-spec) | Before writing a spec | `artifacts/analyses/*.mdx` |
 | Architecture | Structure change | `docs/architecture/*.mdx` |
 | CLAUDE.md | Critical change | `CLAUDE.md` |
 
@@ -262,8 +262,8 @@ flowchart TD
 
 1. Human says "develop issue #XXX"
 2. Main Claude fetches the GitHub issue, scans for existing documents:
-   - `analyses/*` — matching analysis
-   - `specs/*` — matching spec
+   - `artifacts/analyses/*` — matching analysis
+   - `artifacts/specs/*` — matching spec
 3. **If a sufficient spec exists** — skip to Phase 2
 4. **If gaps exist** (no issue detail, no analysis, no spec):
    - Main Claude runs `/bootstrap` which drives the pipeline directly:
@@ -382,7 +382,7 @@ After features have been validated on staging:
 | Branch | `hotfix/XXX-slug` | `hotfix/99-security-patch` |
 | Branch | `docs/slug` | `docs/api-reference` |
 | Branch | `spike/[XXX-]slug` | `spike/123-sqlite-vec` or `spike/sqlite-vec` |
-| Spec | `specs/XXX-slug.mdx` | `specs/123-user-auth.mdx` |
+| Spec | `artifacts/specs/XXX-slug.mdx` | `artifacts/specs/123-user-auth.mdx` |
 | Worktree | `../roxabi-XXX` | `../roxabi-123` |
 
 > XXX = GitHub issue number

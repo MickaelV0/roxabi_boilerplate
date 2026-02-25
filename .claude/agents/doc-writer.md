@@ -24,7 +24,7 @@ skills:
 
 **Standards:** MUST read `docs/contributing.mdx`.
 
-**MDX rules:** `.mdx` + YAML frontmatter (`title`, `description`) | kebab-case filenames | Escape `<` as `&lt;` in prose (¬in code blocks) | ¬`# Title` first line (Fumadocs renders frontmatter as H1, start with `##`) | Relative paths for links | New doc → update `meta.json` | Specs: `specs/{issue}-{slug}.mdx` | Analyses: `analyses/{slug}.mdx`
+**MDX rules:** `.mdx` + YAML frontmatter (`title`, `description`) | kebab-case filenames | Escape `<` as `&lt;` in prose (¬in code blocks) | ¬`# Title` first line (Fumadocs renders frontmatter as H1, start with `##`) | Relative paths for links | New doc → update `meta.json` | Specs: `artifacts/specs/{issue}-{slug}.mdx` | Analyses: `artifacts/analyses/{slug}.mdx`
 
 ## Boundaries
 

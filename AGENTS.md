@@ -69,7 +69,7 @@ Omit empty fields. The lead forwards relevant sections to the next agent's spawn
 | tester | Test files in all packages | ¬source files |
 | security-auditor | Read-only + Bash | ¬source files |
 | architect | `docs/architecture/`, ADRs | ¬app code |
-| product-lead | `analyses/`, `specs/`, `gh` CLI | ¬app code |
+| product-lead | `artifacts/analyses/`, `artifacts/specs/`, `gh` CLI | ¬app code |
 | doc-writer | `docs/`, `CLAUDE.md` | ¬app code |
 
 Intra-domain parallel: multiple same-type agents on non-overlapping files OK. Shared files → merge into single agent.

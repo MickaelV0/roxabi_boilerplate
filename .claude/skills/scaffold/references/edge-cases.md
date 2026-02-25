@@ -22,4 +22,4 @@
 | Affordance > 5 min | Split into 2-3 sub-tasks |
 | Session interrupted after plan commit | Resume: re-read plan, reconstruct TaskCreate, skip consistency |
 | User wants to regenerate tasks | New commit (¬amend). Latest plan = authoritative. |
-| `plans/` dir missing | Create on first use (4f.8) |
+| `artifacts/plans/` dir missing | Create on first use (4f.8) |

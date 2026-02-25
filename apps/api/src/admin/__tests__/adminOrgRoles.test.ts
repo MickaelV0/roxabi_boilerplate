@@ -78,7 +78,7 @@ const baseOrg = {
 
 /**
  * Test shells for #313 — Org membership context menu (backend).
- * Spec: specs/312-313-admin-users-columns-org-membership-editing.mdx
+ * Spec: artifacts/specs/312-313-admin-users-columns-org-membership-editing.mdx
  */
 describe('AdminOrganizationsService — listOrgRoles (#313)', () => {
   let service: AdminOrganizationsService

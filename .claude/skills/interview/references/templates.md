@@ -2,7 +2,7 @@
 
 ## Brainstorm
 
-Output path: `analyses/{slug}.mdx`
+Output path: `artifacts/analyses/{slug}.mdx`
 
 ```mdx
 ---
@@ -36,7 +36,7 @@ type: brainstorm
 
 ## Analysis
 
-Output path: `analyses/{slug}.mdx`
+Output path: `artifacts/analyses/{slug}.mdx`
 
 ```mdx
 ---
@@ -98,7 +98,7 @@ description: {One-line description of the analysis}
 
 > **Inline ambiguity markers:** `[NEEDS CLARIFICATION: description]` markers indicate unresolved ambiguity (max 3-5 per spec). These must be resolved before `/scaffold` execution.
 
-Output path: `specs/{issue}-{slug}.mdx`
+Output path: `artifacts/specs/{issue}-{slug}.mdx`
 
 ```mdx
 ---

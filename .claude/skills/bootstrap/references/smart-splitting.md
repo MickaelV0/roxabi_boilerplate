@@ -66,7 +66,7 @@ bun .claude/skills/issue-triage/triage.ts create \
 ## Scope
 {slices/affordances/criteria covered}
 
-**Parent spec:** specs/{issue}-{slug}.mdx | **Parent issue:** #{parent}
+**Parent spec:** artifacts/specs/{issue}-{slug}.mdx | **Parent issue:** #{parent}
 
 ## Acceptance Criteria
 {subset from parent spec}
@@ -81,12 +81,12 @@ Parse output `Created #N: <title>` → store mapping. Wire deps:
 bun .claude/skills/issue-triage/triage.ts set <B> --blocked-by <A>
 ```
 
-**Generate sub-specs** ∀ sub-issue at `specs/{sub_N}-{sub_slug}.mdx`:
+**Generate sub-specs** ∀ sub-issue at `artifacts/specs/{sub_N}-{sub_slug}.mdx`:
 
 ```markdown
 ---
 title: "{sub-issue title}"
-parent_spec: "specs/{parent_issue}-{parent_slug}.mdx"
+parent_spec: "artifacts/specs/{parent_issue}-{parent_slug}.mdx"
 parent_issue: {parent_N}
 ---
 
@@ -97,7 +97,7 @@ parent_issue: {parent_N}
 {subset from parent}
 
 ## Reference
-Full spec: [specs/{parent_issue}-{parent_slug}.mdx](../specs/{parent_issue}-{parent_slug}.mdx)
+Full spec: [artifacts/specs/{parent_issue}-{parent_slug}.mdx](../specs/{parent_issue}-{parent_slug}.mdx)
 ```
 
 Inform: "Created {N} sub-issues under #{parent}. `/scaffold --issue <N>` for each."
