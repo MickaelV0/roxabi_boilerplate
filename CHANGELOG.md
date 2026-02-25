@@ -29,6 +29,8 @@ Entries are generated automatically by `/promote` and committed to staging befor
 - feat(auth): auth flow production-readiness fixes (#288)
 
 ### Fixed
+- fix(cd): reset Neon branch schema before deploy preview migrations
+- fix(cd): use --build-env to override DATABASE_URL during Vercel build
 - fix(ci): build API alongside web app in E2E jobs
 - fix(e2e): correct API entrypoint path in Playwright config (#354)
 - fix(vite): enable multi-project path resolution for @repo/* aliases (#345)
