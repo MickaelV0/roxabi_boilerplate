@@ -25,7 +25,7 @@ cp .env.example .env && bun install && bun run db:up && bun run dev  # web:3000 
 ```
 apps/web   @repo/web    TanStack Start + Vite + Tailwind v4
 apps/api   @repo/api    NestJS + Fastify + Drizzle ORM
-packages/  ui(@repo/ui) types(@repo/types) config(@repo/config) vitest-config playwright-config
+packages/  ui(@repo/ui) types(@repo/types) config(@repo/config) email vitest-config playwright-config
 ```
 
 ## Commands
@@ -146,4 +146,4 @@ Agents: rules → [AGENTS.md](AGENTS.md). Defs → `.claude/agents/*.md`. Guide 
 **Deploy:** `main` → Vercel prod. `staging` → preview. Web=`apps/web` (TanStack/Nitro). API=`apps/api` (NestJS).
 
 **Hooks (Claude Code):** Biome auto-format (PostToolUse) | Security warn (PreToolUse) | `bun test` blocker (PreToolUse)
-**Hooks (Git/Lefthook):** pre-commit (Biome) | commit-msg (Commitlint) | pre-push (lint+typecheck+tests)
+**Hooks (Git/Lefthook):** pre-commit (Biome) | commit-msg (Commitlint) | pre-push (lint+typecheck+tests+i18n+license)

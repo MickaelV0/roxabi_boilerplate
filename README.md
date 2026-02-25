@@ -41,7 +41,10 @@ roxabi_boilerplate/
 ├── packages/
 │   ├── ui/           # Shared UI components
 │   ├── config/       # Shared configurations
-│   └── types/        # Shared TypeScript types
+│   ├── types/        # Shared TypeScript types
+│   ├── email/        # Email templates
+│   ├── vitest-config/ # Shared Vitest configuration
+│   └── playwright-config/ # Shared Playwright configuration
 └── docs/             # Documentation
 ```
 
@@ -51,8 +54,9 @@ Git hooks are configured using [Lefthook](https://github.com/evilmartians/leftho
 
 | Hook | Purpose | Speed |
 |------|---------|-------|
+| **Commit-msg** | Validate Conventional Commits format | <1s |
 | **Pre-commit** | Auto-format staged files with Biome | <1s |
-| **Pre-push** | Full validation (lint, typecheck, tests) | <30s (cached) |
+| **Pre-push** | Full validation (lint, typecheck, tests, i18n, license) | <30s (cached) |
 
 **Bypass for emergencies:** Use `--no-verify` flag (CI is the ultimate enforcement).
 

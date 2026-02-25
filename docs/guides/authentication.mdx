@@ -11,7 +11,7 @@ Authentication is powered by **Better Auth** with the Drizzle adapter. It suppor
 - **OAuth** providers (Google, GitHub) — conditionally enabled when credentials are configured
 - **Magic link** sign-in via email
 - **Organizations** with role-based membership and invitations
-- **Admin** plugin for user management (ban, role assignment)
+- **Admin** actions via NestJS AdminModule (Better Auth admin plugin removed in Phase 1 #268)
 
 The auth system follows a **deny-by-default** model: every endpoint requires authentication unless explicitly marked otherwise.
 
@@ -110,6 +110,7 @@ The guard checks metadata in this order:
 4. No session → `401 Unauthorized`
 5. `ROLES` — check user role → `403 Forbidden` if mismatch
 6. `REQUIRE_ORG` — check active org → `403 Forbidden` if missing
+7. `PERMISSIONS` — check tenant-scoped permissions → `403 Forbidden` if insufficient
 
 ## Session Management
 

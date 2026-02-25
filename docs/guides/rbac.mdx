@@ -53,6 +53,8 @@ export const DEFAULT_ROLES: DefaultRoleDefinition[] = [
       'roles:read',
       'roles:write',
       'roles:delete',
+      'api_keys:read',
+      'api_keys:write',
     ],
   },
   // Admin, Member, Viewer follow the same pattern...
@@ -64,7 +66,7 @@ export const DEFAULT_ROLES: DefaultRoleDefinition[] = [
 Permissions follow the `resource:action` pattern. The valid combinations are defined in `packages/types/src/rbac.ts`:
 
 ```ts
-export type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles'
+export type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles' | 'api_keys'
 export type PermissionAction = 'read' | 'write' | 'delete'
 export type PermissionString = `${PermissionResource}:${PermissionAction}`
 ```
@@ -303,11 +305,11 @@ To add a new resource or action to the permission system, follow these steps:
 Add the new resource or action to the union types in `packages/types/src/rbac.ts`:
 
 ```ts
-// Before
-export type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles'
+// Before (current state includes api_keys)
+export type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles' | 'api_keys'
 
 // After (adding a "billing" resource)
-export type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles' | 'billing'
+export type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles' | 'api_keys' | 'billing'
 ```
 
 ### Step 2: Create a Database Migration

@@ -83,18 +83,32 @@ alias cc-pa='claude --agent product-lead'
 ### ~/.tmux.conf
 
 ```bash
+set -g default-terminal "tmux-256color"
 set -g mouse on
 set -g set-titles on
 set -g set-titles-string "#{pane_title}"
 set -g allow-passthrough on
+set -s set-clipboard on
+set -s extended-keys always
+set -as terminal-features 'xterm*:extkeys'
+set -as terminal-features 'xterm*:hyperlinks'
+set -s extended-keys-format csi-u
+
+# Middle-click paste from Windows clipboard
+bind -n MouseDown2Pane run -b 'tmux set-buffer -- "$(powershell.exe -command Get-Clipboard | tr -d \\r)"; tmux paste-buffer -p'
 ```
 
 | Setting | Purpose |
 |---------|---------|
+| `default-terminal` | Set terminal type to `tmux-256color` for correct capability detection |
 | `mouse on` | Scroll, resize panes, and select windows with mouse |
 | `set-titles on` | Propagate pane titles to the terminal emulator |
 | `set-titles-string` | Format for the terminal title (uses pane title) |
 | `allow-passthrough on` | Let applications (Claude Code, Neovim, etc.) set the terminal title directly via escape sequences. Requires tmux >= 3.3 |
+| `set-clipboard on` | Enable OSC 52 clipboard integration |
+| `extended-keys` / `csi-u` | Kitty keyboard protocol support (matches WezTerm's `enable_kitty_keyboard`) |
+| `terminal-features` | Enable extended keys and hyperlink detection for xterm-compatible terminals |
+| Middle-click paste | Paste from Windows clipboard via PowerShell (WSL-specific) |
 
 ### Reload config
 
@@ -154,6 +168,9 @@ If WezTerm tab titles don't update inside tmux, ensure your `~/.tmux.conf` inclu
 set -g set-titles on
 set -g set-titles-string "#{pane_title}"
 set -g allow-passthrough on
+set -s extended-keys always
+set -as terminal-features 'xterm*:extkeys'
+set -s extended-keys-format csi-u
 ```
 
 ---
@@ -270,10 +287,17 @@ npm install -g @anthropic-ai/claude-code
 
 # 6. Configure tmux
 cat >> ~/.tmux.conf << 'EOF'
+set -g default-terminal "tmux-256color"
 set -g mouse on
 set -g set-titles on
 set -g set-titles-string "#{pane_title}"
 set -g allow-passthrough on
+set -s set-clipboard on
+set -s extended-keys always
+set -as terminal-features 'xterm*:extkeys'
+set -as terminal-features 'xterm*:hyperlinks'
+set -s extended-keys-format csi-u
+bind -n MouseDown2Pane run -b 'tmux set-buffer -- "$(powershell.exe -command Get-Clipboard | tr -d \\r)"; tmux paste-buffer -p'
 EOF
 
 # 7. Configure aliases

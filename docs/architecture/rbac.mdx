@@ -22,12 +22,12 @@ All RBAC code lives in `apps/api/src/rbac/`. Shared TypeScript types are in `pac
 Permissions use a `resource:action` string format, type-checked at compile time via the `PermissionString` type from `@repo/types`:
 
 ```ts
-type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles'
+type PermissionResource = 'users' | 'organizations' | 'members' | 'invitations' | 'roles' | 'api_keys'
 type PermissionAction = 'read' | 'write' | 'delete'
 type PermissionString = `${PermissionResource}:${PermissionAction}`
 ```
 
-This produces 15 possible permissions (5 resources x 3 actions). Permissions are **global** -- they are seeded via database migration and are not editable by tenants. The `permissions` table has a unique constraint on `(resource, action)`.
+This produces 18 possible permissions (6 resources x 3 actions). Permissions are **global** -- they are seeded via database migration and are not editable by tenants. The `permissions` table has a unique constraint on `(resource, action)`.
 
 ### Why resource:action instead of flat strings
 
@@ -42,8 +42,8 @@ Each organization gets four default roles, seeded automatically on creation:
 
 | Role | Slug | Permissions | Purpose |
 |------|------|-------------|---------|
-| Owner | `owner` | All 15 permissions | Full organization control, including deletion |
-| Admin | `admin` | All except `organizations:delete` | Day-to-day management |
+| Owner | `owner` | All 17 permissions (all except `api_keys:delete`) | Full organization control, including deletion |
+| Admin | `admin` | All except `organizations:delete` and `users:delete` | Day-to-day management |
 | Member | `member` | Read-only on `users`, `organizations`, `members`, `invitations`, `roles` | Standard member access |
 | Viewer | `viewer` | Read-only on `users`, `organizations`, `members`, `invitations`, `roles` | Minimal read access |
 
@@ -283,6 +283,8 @@ The permission assignments are defined in `rbac.constants.ts`:
 | `roles:read` | x | x | x | x |
 | `roles:write` | x | x | | |
 | `roles:delete` | x | x | | |
+| `api_keys:read` | x | x | | |
+| `api_keys:write` | x | x | | |
 
 ## Custom Decorators
 

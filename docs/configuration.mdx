@@ -172,6 +172,12 @@ Agent definitions are in `.claude/agents/*.md`. See the [Agent Teams Guide](./gu
 | `RATE_LIMIT_API_TTL` | API | No | `60000` | Server | API key window (ms) |
 | `RATE_LIMIT_API_LIMIT` | API | No | `100` | Server | API key max requests |
 
+### Scheduled Tasks
+
+| Variable | App | Required | Default | Scope | Description |
+|----------|-----|----------|---------|-------|-------------|
+| `CRON_SECRET` | API | No | — | Server | Shared secret for authenticating cron job requests |
+
 ### Deployment
 
 | Variable | App | Required | Default | Scope | Description |
