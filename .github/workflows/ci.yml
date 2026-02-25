@@ -368,8 +368,8 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: bunx playwright install-deps chromium
 
-      - name: Build web app
-        run: bun run build --filter=@repo/web
+      - name: Build apps
+        run: bun run build --filter=@repo/web --filter=@repo/api
 
       - name: Run E2E tests
         run: bun test:e2e --project=chromium --reporter=list --reporter=html
@@ -458,8 +458,8 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: bunx playwright install-deps chromium firefox webkit
 
-      - name: Build web app
-        run: bun run build --filter=@repo/web
+      - name: Build apps
+        run: bun run build --filter=@repo/web --filter=@repo/api
 
       - name: Run E2E tests (shard ${{ matrix.shard }})
         run: bun test:e2e --shard=${{ matrix.shard }}
