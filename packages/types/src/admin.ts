@@ -114,3 +114,50 @@ export type OrgDeletionImpact = {
   childOrgCount: number
   childMemberCount: number
 }
+
+// --- Phase 3: System Settings & Feature Flags ---
+
+/** Setting value type discriminant */
+export type SettingType = 'string' | 'number' | 'boolean' | 'select'
+
+/** System setting as returned by the admin settings API */
+export type SystemSetting = {
+  id: string
+  key: string
+  value: unknown
+  type: SettingType
+  name: string
+  description: string | null
+  category: string
+  metadata: { options?: string[] } | null
+  createdAt: string
+  updatedAt: string
+}
+
+/** Batch update payload for PATCH /api/admin/settings */
+export type SettingsUpdatePayload = {
+  updates: Array<{ key: string; value: unknown }>
+}
+
+/** Settings grouped by category */
+export type SettingsByCategory = {
+  [category: string]: SystemSetting[]
+}
+
+/** Feature flag as returned by the admin feature-flags API */
+export type FeatureFlag = {
+  id: string
+  key: string
+  name: string
+  description: string | null
+  enabled: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+/** Payload for POST /api/admin/feature-flags */
+export type CreateFeatureFlagPayload = {
+  name: string
+  key: string
+  description?: string
+}
