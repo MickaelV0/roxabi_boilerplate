@@ -209,7 +209,7 @@ export function hasAnyPermission(
 Use `hasPermission()` with the session from `useSession()` to conditionally render UI elements:
 
 ```tsx
-import { useSession } from '@/lib/auth-client'
+import { useSession } from '@/lib/authClient'
 import { hasPermission } from '@/lib/permissions'
 
 function OrgMembersPage() {
@@ -275,7 +275,7 @@ Use TanStack Router's `beforeLoad` guard to redirect users who lack the required
 ```ts
 import { redirect } from '@tanstack/react-router'
 import { createFileRoute } from '@tanstack/react-router'
-import { authClient } from '@/lib/auth-client'
+import { authClient } from '@/lib/authClient'
 import { hasPermission } from '@/lib/permissions'
 
 export const Route = createFileRoute('/org/billing')({

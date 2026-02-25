@@ -29,7 +29,7 @@ type CreateApiKeyDto = z.infer<typeof createApiKeySchema>
 
 @ApiTags('API Keys')
 @UseFilters(ApiKeyExceptionFilter)
-@Controller('api/apiKeys')
+@Controller('api/api-keys')
 export class ApiKeyController {
   constructor(private readonly apiKeyService: ApiKeyService) {}
 

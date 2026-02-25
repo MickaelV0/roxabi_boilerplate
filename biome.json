@@ -88,7 +88,8 @@
         "**/*.spec.tsx",
         "**/e2e/**",
         "**/.claude/skills/**",
-        "**/scripts/**"
+        "**/scripts/**",
+        "**/tools/**"
       ],
       "linter": {
         "rules": {
@@ -109,7 +110,7 @@
           "style": {
             "useFilenamingConvention": {
               "level": "error",
-              "options": { "filenameCases": ["PascalCase"] }
+              "options": { "filenameCases": ["PascalCase"], "strictCase": false }
             }
           }
         }

@@ -110,8 +110,8 @@ export {
   NavigationMenuViewport,
   navigationMenuTriggerStyle,
 } from './components/NavigationMenu'
-export type { OAuthButtonProps, OAuthProvider } from './components/OauthButton'
-export { OAuthButton, oAuthButtonVariants } from './components/OauthButton'
+export type { OAuthButtonProps, OAuthProvider } from './components/OAuthButton'
+export { OAuthButton, oAuthButtonVariants } from './components/OAuthButton'
 export type {
   PasswordInputProps,
   PasswordStrength,

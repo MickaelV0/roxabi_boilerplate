@@ -43,7 +43,7 @@ export type RevokeApiKeyResponse = {
 }
 
 export async function listApiKeys(signal?: AbortSignal): Promise<ListApiKeysResponse> {
-  const res = await fetch('/api/apiKeys', {
+  const res = await fetch('/api/api-keys', {
     credentials: 'include',
     signal,
   })
@@ -54,7 +54,7 @@ export async function listApiKeys(signal?: AbortSignal): Promise<ListApiKeysResp
 }
 
 export async function createApiKey(data: CreateApiKeyRequest): Promise<CreateApiKeyResponse> {
-  const res = await fetch('/api/apiKeys', {
+  const res = await fetch('/api/api-keys', {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },

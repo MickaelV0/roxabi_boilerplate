@@ -191,7 +191,7 @@ The frontend discovers which providers are available at runtime by calling `GET 
 1. Add the provider's client ID/secret to the env schema (`apps/api/src/config/env.validation.ts`)
 2. Add the conditional block in `createBetterAuth()` (`apps/api/src/auth/auth.instance.ts`)
 3. Update `enabledProviders` in `AuthService` (`apps/api/src/auth/auth.service.ts`)
-4. Update the frontend `EnabledProviders` type (`apps/web/src/lib/auth-client.ts`)
+4. Update the frontend `EnabledProviders` type (`apps/web/src/lib/authClient.ts`)
 
 No new routes or controllers are needed — Better Auth handles the OAuth callback flow at `/api/auth/callback/{provider}`.
 
@@ -361,7 +361,7 @@ The env validation (`apps/api/src/config/env.validation.ts`) enforces that `KV_R
 
 ## Frontend Auth Client
 
-The frontend uses Better Auth's React SDK, configured in `apps/web/src/lib/auth-client.ts`:
+The frontend uses Better Auth's React SDK, configured in `apps/web/src/lib/authClient.ts`:
 
 ```ts
 import { adminClient, magicLinkClient, organizationClient } from 'better-auth/client/plugins'
@@ -426,7 +426,7 @@ The env validation schema (`apps/api/src/config/env.validation.ts`) enforces tha
 | Auth guard | `apps/api/src/auth/auth.guard.ts` |
 | Auth controller | `apps/api/src/auth/auth.controller.ts` |
 | Auth module | `apps/api/src/auth/auth.module.ts` |
-| Fastify header conversion | `apps/api/src/auth/fastify-headers.ts` |
+| Fastify header conversion | `apps/api/src/auth/fastifyHeaders.ts` |
 | Decorators | `apps/api/src/auth/decorators/` |
 | Email provider interface | `apps/api/src/auth/email/email.provider.ts` |
 | Resend implementation | `apps/api/src/auth/email/resend.provider.ts` |
@@ -436,7 +436,7 @@ The env validation schema (`apps/api/src/config/env.validation.ts`) enforces tha
 | CORS parser | `apps/api/src/cors.ts` |
 | Bootstrap (headers, CORS) | `apps/api/src/index.ts` |
 | Env validation | `apps/api/src/config/env.validation.ts` |
-| Frontend auth client | `apps/web/src/lib/auth-client.ts` |
+| Frontend auth client | `apps/web/src/lib/authClient.ts` |
 | Frontend permissions | `apps/web/src/lib/permissions.ts` |
 | Vite proxy config | `apps/web/vite.config.ts` |
 

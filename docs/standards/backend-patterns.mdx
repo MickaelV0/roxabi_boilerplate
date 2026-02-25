@@ -16,7 +16,7 @@ Shared TypeScript rules (const assertions, derived unions, type guards, `satisfi
 
 ### Validation with Zod
 
-Use Zod for all validation: environment variables, DTOs, and request bodies. The `ZodValidationPipe` (`apps/api/src/common/pipes/zod-validation.pipe.ts`) applies Zod schemas at the controller boundary via `@UsePipes()`.
+Use Zod for all validation: environment variables, DTOs, and request bodies. The `ZodValidationPipe` (`apps/api/src/common/pipes/zodValidation.pipe.ts`) applies Zod schemas at the controller boundary via `@UsePipes()`.
 
 ---
 
@@ -40,7 +40,7 @@ feature/
 - **One module per domain feature.** Do not combine unrelated concerns into a single module.
 - **Controllers handle HTTP only.** Extract all business logic into services. Controllers parse requests, call services, and format responses.
 - **Use providers for infrastructure.** Database connections, external API clients, and third-party integrations are providers, not services.
-- **No barrel files in app code.** Import directly from source files (`@/common/filters/all-exceptions.filter`, not `@/common`).
+- **No barrel files in app code.** Import directly from source files (`@/common/filters/allExceptions.filter`, not `@/common`).
 - **Barrel exports allowed only in `common/index.ts`** for cross-cutting concerns shared across modules. See `apps/api/src/common/index.ts` for the existing pattern.
 
 ### File Naming
@@ -74,7 +74,7 @@ Enforced by Biome `useFilenamingConvention` at `error` level.
 | Dependency Injection | `drizzle.provider.ts` | Symbol tokens + `useFactory` for injectable providers |
 | Factory | `drizzle.provider.ts` | `useFactory` creates instances from config values |
 | CLS Middleware | `app.module.ts` (`ClsModule.forRoot`) | Correlation ID via `nestjs-cls` AsyncLocalStorage, available before guards |
-| Exception Filter | `all-exceptions.filter.ts` | Global fallback error formatting with structured responses |
+| Exception Filter | `allExceptions.filter.ts` | Global fallback error formatting with structured responses |
 | Domain Exception Filter | `feature/filters/*.filter.ts` | Maps domain exceptions to HTTP responses |
 | Lifecycle Hook | `database.module.ts` | `OnModuleDestroy` for connection cleanup |
 | Auth Guard | `auth.guard.ts` | Global guard: session validation, role checks, permission enforcement |
@@ -146,7 +146,7 @@ Use a three-layer approach: domain exceptions, domain-to-HTTP mapping filters, a
 **1. Domain exceptions** -- pure TypeScript, no NestJS imports:
 
 ```typescript
-// feature/exceptions/user-not-found.exception.ts
+// feature/exceptions/userNotFound.exception.ts
 export class UserNotFoundException extends Error {
   constructor(public readonly userId: string) {
     super(`User ${userId} not found`)
@@ -157,11 +157,11 @@ export class UserNotFoundException extends Error {
 **2. Domain-to-HTTP mapping filter** -- translates domain exceptions into HTTP responses:
 
 ```typescript
-// feature/filters/user-not-found.filter.ts
+// feature/filters/userNotFound.filter.ts
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpStatus } from '@nestjs/common'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { ClsService } from 'nestjs-cls'
-import { UserNotFoundException } from '../exceptions/user-not-found.exception'
+import { UserNotFoundException } from '../exceptions/userNotFound.exception'
 
 @Catch(UserNotFoundException)
 export class UserNotFoundFilter implements ExceptionFilter {
@@ -185,7 +185,7 @@ export class UserNotFoundFilter implements ExceptionFilter {
 }
 ```
 
-**3. `AllExceptionsFilter`** remains as the global fallback for unexpected errors. See `apps/api/src/common/filters/all-exceptions.filter.ts`.
+**3. `AllExceptionsFilter`** remains as the global fallback for unexpected errors. See `apps/api/src/common/filters/allExceptions.filter.ts`.
 
 ### Structured Error Response Format
 
@@ -198,7 +198,7 @@ All error responses follow this shape:
   path: string
   correlationId: string
   message: string | string[]
-  errorCode?: string      // Machine-readable code for frontend i18n (see common/error-codes.ts)
+  errorCode?: string      // Machine-readable code for frontend i18n (see common/errorCodes.ts)
 }
 ```
 
