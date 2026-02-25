@@ -1,5 +1,5 @@
 import { Button, Input, Label } from '@repo/ui'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -76,13 +76,27 @@ function VerifyingState() {
   )
 }
 
-function SuccessState() {
+function SuccessState({ hasSession }: { hasSession: boolean }) {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    toast.success(m.auth_email_verified())
+    if (hasSession) {
+      const timer = setTimeout(() => {
+        navigate({ to: '/dashboard' })
+      }, 1500)
+      return () => clearTimeout(timer)
+    }
+  }, [hasSession, navigate])
+
   return (
     <AuthLayout title={m.auth_email_verified_title()}>
       <div className="text-center space-y-4">
         <p className="text-sm text-muted-foreground">{m.auth_email_verified()}</p>
         <Button asChild className="w-full">
-          <Link to="/">{m.auth_continue_to_app()}</Link>
+          <Link to={hasSession ? '/dashboard' : '/login'}>
+            {hasSession ? m.auth_continue_to_app() : m.auth_back_to_sign_in()}
+          </Link>
         </Button>
       </div>
     </AuthLayout>
@@ -244,7 +258,7 @@ function VerifyEmailPage() {
   const resendHandlers = useVerifyResendHandlers(sessionEmail, setCooldown)
 
   if (status === 'loading') return <VerifyingState />
-  if (status === 'success') return <SuccessState />
+  if (status === 'success') return <SuccessState hasSession={Boolean(session)} />
 
   return (
     <ErrorState

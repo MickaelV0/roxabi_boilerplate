@@ -11,7 +11,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { magicLink } from 'better-auth/plugins/magic-link'
 import { organization } from 'better-auth/plugins/organization'
 import { eq } from 'drizzle-orm'
-import { rewriteCallbackUrl } from '../common/url.util.js'
+import { buildFrontendUrl } from '../common/url.util.js'
 import type { DrizzleDB } from '../database/drizzle.provider.js'
 import { users } from '../database/schema/auth.schema.js'
 import type { EmailProvider } from './email/email.provider.js'
@@ -69,7 +69,7 @@ function buildEmailAndPasswordConfig(emailProvider: EmailProvider, config: AuthI
       user: { email: string } & UserWithLocale
       url: string
     }) {
-      const emailUrl = rewriteCallbackUrl(url, config.appURL, '/reset-password/confirm')
+      const emailUrl = buildFrontendUrl(url, config.appURL, '/reset-password/confirm')
       try {
         const locale = (user as UserWithLocale).locale ?? 'en'
         const { html, text, subject } = await renderResetEmail(emailUrl, locale, config.appURL)
@@ -101,7 +101,7 @@ function buildEmailVerificationConfig(emailProvider: EmailProvider, config: Auth
       user: { email: string } & UserWithLocale
       url: string
     }) {
-      const emailUrl = rewriteCallbackUrl(url, config.appURL, '/verify-email')
+      const emailUrl = buildFrontendUrl(url, config.appURL, '/verify-email')
       try {
         const locale = (user as UserWithLocale).locale ?? 'en'
         const { html, text, subject } = await renderVerificationEmail(
@@ -130,7 +130,7 @@ function buildMagicLinkPlugin(
 ) {
   return magicLink({
     async sendMagicLink({ email, url }) {
-      const emailUrl = rewriteCallbackUrl(url, config.appURL)
+      const emailUrl = buildFrontendUrl(url, config.appURL, '/magic-link/verify')
       try {
         const [userData] = await db
           .select({ locale: users.locale })

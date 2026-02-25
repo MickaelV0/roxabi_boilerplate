@@ -306,12 +306,12 @@ describe('createBetterAuth sendVerificationEmail', () => {
     // Act
     await handler({
       user: { email: 'user@example.com', locale: 'fr' },
-      url: 'https://app.roxabi.com/verify?token=abc',
+      url: 'http://localhost:4000/api/auth/verify-email?token=abc',
     })
 
-    // Assert
+    // Assert — URL should be rewritten to frontend page URL
     expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
-      'https://app.roxabi.com/verify?token=abc',
+      'http://localhost:3000/verify-email?token=abc',
       'fr',
       'http://localhost:3000'
     )
@@ -339,12 +339,12 @@ describe('createBetterAuth sendVerificationEmail', () => {
     // Act
     await handler({
       user: { email: 'user@example.com' },
-      url: 'https://app.roxabi.com/verify?token=abc',
+      url: 'http://localhost:4000/api/auth/verify-email?token=abc',
     })
 
     // Assert
     expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
-      'https://app.roxabi.com/verify?token=abc',
+      'http://localhost:3000/verify-email?token=abc',
       'en',
       'http://localhost:3000'
     )
@@ -362,15 +362,15 @@ describe('createBetterAuth sendVerificationEmail', () => {
     // Act
     await handler({
       user: { email: 'user@example.com' },
-      url: 'https://app.roxabi.com/verify?token=abc',
+      url: 'http://localhost:4000/api/auth/verify-email?token=abc',
     })
 
-    // Assert - should send fallback email
+    // Assert - should send fallback email with frontend URL
     expect(mockEmail.send).toHaveBeenCalledWith({
       to: 'user@example.com',
       subject: 'Verify your email',
-      html: '<p>Click <a href="https://app.roxabi.com/verify?token=abc">here</a> to verify your email.</p>',
-      text: 'Verify your email: https://app.roxabi.com/verify?token=abc',
+      html: '<p>Click <a href="http://localhost:3000/verify-email?token=abc">here</a> to verify your email.</p>',
+      text: 'Verify your email: http://localhost:3000/verify-email?token=abc',
     })
   })
 })
@@ -412,12 +412,12 @@ describe('createBetterAuth sendResetPassword', () => {
     // Act
     await handler({
       user: { email: 'user@example.com', locale: 'fr' },
-      url: 'https://app.roxabi.com/reset?token=xyz',
+      url: 'http://localhost:4000/api/auth/reset-password?token=xyz',
     })
 
-    // Assert
+    // Assert — URL should be rewritten to frontend page URL
     expect(mockRenderResetEmail).toHaveBeenCalledWith(
-      'https://app.roxabi.com/reset?token=xyz',
+      'http://localhost:3000/reset-password/confirm?token=xyz',
       'fr',
       'http://localhost:3000'
     )
@@ -445,12 +445,12 @@ describe('createBetterAuth sendResetPassword', () => {
     // Act
     await handler({
       user: { email: 'user@example.com' },
-      url: 'https://app.roxabi.com/reset?token=xyz',
+      url: 'http://localhost:4000/api/auth/reset-password?token=xyz',
     })
 
     // Assert
     expect(mockRenderResetEmail).toHaveBeenCalledWith(
-      'https://app.roxabi.com/reset?token=xyz',
+      'http://localhost:3000/reset-password/confirm?token=xyz',
       'en',
       'http://localhost:3000'
     )
@@ -468,15 +468,15 @@ describe('createBetterAuth sendResetPassword', () => {
     // Act
     await handler({
       user: { email: 'user@example.com' },
-      url: 'https://app.roxabi.com/reset?token=xyz',
+      url: 'http://localhost:4000/api/auth/reset-password?token=xyz',
     })
 
-    // Assert - should send fallback email with escaped URL
+    // Assert - should send fallback email with frontend URL
     expect(mockEmail.send).toHaveBeenCalledWith({
       to: 'user@example.com',
       subject: 'Reset your password',
-      html: '<p>Click <a href="https://app.roxabi.com/reset?token=xyz">here</a> to reset your password.</p>',
-      text: 'Reset your password: https://app.roxabi.com/reset?token=xyz',
+      html: '<p>Click <a href="http://localhost:3000/reset-password/confirm?token=xyz">here</a> to reset your password.</p>',
+      text: 'Reset your password: http://localhost:3000/reset-password/confirm?token=xyz',
     })
   })
 })
@@ -517,13 +517,13 @@ describe('createBetterAuth sendMagicLink', () => {
     // Act
     await handler({
       email: 'user@example.com',
-      url: 'https://app.roxabi.com/magic?token=m1',
+      url: 'http://localhost:4000/api/auth/magic-link/verify?token=m1',
     })
 
-    // Assert
+    // Assert — URL should be rewritten to frontend page URL
     expect(mockDb._mocks.selectFn).toHaveBeenCalled()
     expect(mockRenderMagicLinkEmail).toHaveBeenCalledWith(
-      'https://app.roxabi.com/magic?token=m1',
+      'http://localhost:3000/magic-link/verify?token=m1',
       'fr',
       'http://localhost:3000'
     )
@@ -552,12 +552,12 @@ describe('createBetterAuth sendMagicLink', () => {
     // Act
     await handler({
       email: 'unknown@example.com',
-      url: 'https://app.roxabi.com/magic?token=m2',
+      url: 'http://localhost:4000/api/auth/magic-link/verify?token=m2',
     })
 
     // Assert
     expect(mockRenderMagicLinkEmail).toHaveBeenCalledWith(
-      'https://app.roxabi.com/magic?token=m2',
+      'http://localhost:3000/magic-link/verify?token=m2',
       'en',
       'http://localhost:3000'
     )
@@ -576,15 +576,15 @@ describe('createBetterAuth sendMagicLink', () => {
     // Act
     await handler({
       email: 'user@example.com',
-      url: 'https://app.roxabi.com/magic?token=m3',
+      url: 'http://localhost:4000/api/auth/magic-link/verify?token=m3',
     })
 
-    // Assert - should send fallback email
+    // Assert - should send fallback email with frontend URL
     expect(mockEmail.send).toHaveBeenCalledWith({
       to: 'user@example.com',
       subject: 'Sign in to Roxabi',
-      html: '<p>Click <a href="https://app.roxabi.com/magic?token=m3">here</a> to sign in.</p>',
-      text: 'Sign in to Roxabi: https://app.roxabi.com/magic?token=m3',
+      html: '<p>Click <a href="http://localhost:3000/magic-link/verify?token=m3">here</a> to sign in.</p>',
+      text: 'Sign in to Roxabi: http://localhost:3000/magic-link/verify?token=m3',
     })
   })
 
@@ -599,31 +599,31 @@ describe('createBetterAuth sendMagicLink', () => {
     // Act
     await handler({
       email: 'user@example.com',
-      url: 'https://app.roxabi.com/magic?token=m4',
+      url: 'http://localhost:4000/api/auth/magic-link/verify?token=m4',
     })
 
-    // Assert - the whole try block fails, falls to catch with fallback
+    // Assert - the whole try block fails, falls to catch with frontend URL
     expect(mockEmail.send).toHaveBeenCalledWith({
       to: 'user@example.com',
       subject: 'Sign in to Roxabi',
-      html: '<p>Click <a href="https://app.roxabi.com/magic?token=m4">here</a> to sign in.</p>',
-      text: 'Sign in to Roxabi: https://app.roxabi.com/magic?token=m4',
+      html: '<p>Click <a href="http://localhost:3000/magic-link/verify?token=m4">here</a> to sign in.</p>',
+      text: 'Sign in to Roxabi: http://localhost:3000/magic-link/verify?token=m4',
     })
   })
 })
 
 // ---------------------------------------------------------------------------
-// callbackURL rewrite (appURL → frontend redirect)
+// buildFrontendUrl (appURL → frontend page URL with token)
 // ---------------------------------------------------------------------------
 
-describe('createBetterAuth callbackURL rewrite', () => {
+describe('createBetterAuth buildFrontendUrl', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     capturedConfig.config = null
     capturedMagicLinkConfig.config = null
   })
 
-  it('should rewrite callbackURL in verification email URL to appURL/verify-email', async () => {
+  it('should build frontend verify-email URL from API verification URL', async () => {
     // Arrange
     const mockDb = createMockDb()
     const mockEmail = createMockEmailProvider()
@@ -642,21 +642,21 @@ describe('createBetterAuth callbackURL rewrite', () => {
       subject: 'Verify',
     })
 
-    // Act — simulate Better Auth URL with callbackURL pointing to API root
+    // Act — simulate Better Auth URL with token
     await emailVerification.sendVerificationEmail({
       user: { email: 'user@example.com', locale: 'en' },
       url: 'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=%2F',
     })
 
-    // Assert — callbackURL should be rewritten to appURL/verify-email
+    // Assert — URL should be a frontend page URL with token
     expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
-      'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=http%3A%2F%2Flocalhost%3A3000%2Fverify-email',
+      'http://localhost:3000/verify-email?token=abc',
       'en',
       'http://localhost:3000'
     )
   })
 
-  it('should rewrite callbackURL in reset password email URL to appURL/reset-password/confirm', async () => {
+  it('should build frontend reset-password URL from API reset URL', async () => {
     // Arrange
     const mockDb = createMockDb()
     const mockEmail = createMockEmailProvider()
@@ -683,13 +683,13 @@ describe('createBetterAuth callbackURL rewrite', () => {
 
     // Assert
     expect(mockRenderResetEmail).toHaveBeenCalledWith(
-      'http://localhost:4000/api/auth/reset-password?token=xyz&callbackURL=http%3A%2F%2Flocalhost%3A3000%2Freset-password%2Fconfirm',
+      'http://localhost:3000/reset-password/confirm?token=xyz',
       'en',
       'http://localhost:3000'
     )
   })
 
-  it('should rewrite callbackURL in magic link email URL to appURL', async () => {
+  it('should build frontend magic-link URL from API magic link URL', async () => {
     // Arrange
     const mockDb = createMockDb()
     const mockEmail = createMockEmailProvider()
@@ -715,13 +715,13 @@ describe('createBetterAuth callbackURL rewrite', () => {
 
     // Assert
     expect(mockRenderMagicLinkEmail).toHaveBeenCalledWith(
-      'http://localhost:4000/api/auth/magic-link?token=m1&callbackURL=http%3A%2F%2Flocalhost%3A3000',
+      'http://localhost:3000/magic-link/verify?token=m1',
       'en',
       'http://localhost:3000'
     )
   })
 
-  it('should not rewrite callbackURL when appURL is not configured', async () => {
+  it('should not rewrite URL when appURL is not configured', async () => {
     // Arrange
     const mockDb = createMockDb()
     const mockEmail = createMockEmailProvider()
@@ -755,7 +755,7 @@ describe('createBetterAuth callbackURL rewrite', () => {
     )
   })
 
-  it('should use rewritten URL in fallback email when render throws (reset password)', async () => {
+  it('should use frontend URL in fallback email when render throws (reset password)', async () => {
     // Arrange
     const mockDb = createMockDb()
     const mockEmail = createMockEmailProvider()
@@ -776,21 +776,17 @@ describe('createBetterAuth callbackURL rewrite', () => {
       url: 'http://localhost:4000/api/auth/reset-password?token=xyz&callbackURL=%2F',
     })
 
-    // Assert — fallback should also use rewritten URL with path
-    const rewrittenUrl =
-      'http://localhost:4000/api/auth/reset-password?token=xyz&callbackURL=http%3A%2F%2Flocalhost%3A3000%2Freset-password%2Fconfirm'
+    // Assert — fallback should use the frontend URL
+    const frontendUrl = 'http://localhost:3000/reset-password/confirm?token=xyz'
     expect(mockEmail.send).toHaveBeenCalledWith({
       to: 'user@example.com',
       subject: 'Reset your password',
-      html: `<p>Click <a href="${escapeHtml(rewrittenUrl)}">here</a> to reset your password.</p>`,
-      text: `Reset your password: ${rewrittenUrl}`,
+      html: `<p>Click <a href="${escapeHtml(frontendUrl)}">here</a> to reset your password.</p>`,
+      text: `Reset your password: ${frontendUrl}`,
     })
   })
 
-  it('should use rewritten URL in fallback email when render throws (verification)', async () => {
-    // Regression test: verifies the fallback email uses emailUrl (rewritten)
-    // instead of the raw url when renderVerificationEmail throws. The URL must
-    // contain a callbackURL parameter so we can distinguish rewritten from raw.
+  it('should use frontend URL in fallback email when render throws (verification)', async () => {
     // Arrange
     const mockDb = createMockDb()
     const mockEmail = createMockEmailProvider()
@@ -805,36 +801,35 @@ describe('createBetterAuth callbackURL rewrite', () => {
 
     mockRenderVerificationEmail.mockRejectedValueOnce(new Error('Template render failed'))
 
-    // Act — URL with callbackURL to distinguish raw url from rewritten emailUrl
+    // Act
     await emailVerification.sendVerificationEmail({
       user: { email: 'user@example.com' },
       url: 'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=%2F',
     })
 
-    // Assert — fallback should use rewritten emailUrl with path, NOT the raw url
-    const rewrittenUrl =
-      'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=http%3A%2F%2Flocalhost%3A3000%2Fverify-email'
+    // Assert — fallback should use the frontend URL
+    const frontendUrl = 'http://localhost:3000/verify-email?token=abc'
     expect(mockEmail.send).toHaveBeenCalledWith({
       to: 'user@example.com',
       subject: 'Verify your email',
-      html: `<p>Click <a href="${escapeHtml(rewrittenUrl)}">here</a> to verify your email.</p>`,
-      text: `Verify your email: ${rewrittenUrl}`,
+      html: `<p>Click <a href="${escapeHtml(frontendUrl)}">here</a> to verify your email.</p>`,
+      text: `Verify your email: ${frontendUrl}`,
     })
   })
 })
 
 // ---------------------------------------------------------------------------
-// rewriteCallbackUrl edge cases (tested via email handler behavior)
+// buildFrontendUrl edge cases (tested via email handler behavior)
 // ---------------------------------------------------------------------------
 
-describe('rewriteCallbackUrl edge cases', () => {
+describe('buildFrontendUrl edge cases', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     capturedConfig.config = null
     capturedMagicLinkConfig.config = null
   })
 
-  it('should return URL unchanged when it has no callbackURL parameter', async () => {
+  it('should still build frontend URL when there is no callbackURL parameter but token exists', async () => {
     // Arrange
     const mockDb = createMockDb()
     const mockEmail = createMockEmailProvider()
@@ -853,21 +848,21 @@ describe('rewriteCallbackUrl edge cases', () => {
       subject: 'Verify',
     })
 
-    // Act — URL without callbackURL parameter
+    // Act — URL without callbackURL but with token
     await emailVerification.sendVerificationEmail({
       user: { email: 'user@example.com', locale: 'en' },
       url: 'http://localhost:4000/api/auth/verify-email?token=abc',
     })
 
-    // Assert — URL should remain unchanged since there is no callbackURL to rewrite
+    // Assert — should build frontend URL from token
     expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
-      'http://localhost:4000/api/auth/verify-email?token=abc',
+      'http://localhost:3000/verify-email?token=abc',
       'en',
       'http://localhost:3000'
     )
   })
 
-  it('should rewrite callbackURL when appURL is configured', async () => {
+  it('should build frontend URL when appURL is configured', async () => {
     // Arrange
     const mockDb = createMockDb()
     const mockEmail = createMockEmailProvider()
@@ -892,15 +887,15 @@ describe('rewriteCallbackUrl edge cases', () => {
       url: 'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=%2Fdashboard',
     })
 
-    // Assert — callbackURL should be rewritten to appURL/verify-email
+    // Assert — should build frontend URL from token, ignoring callbackURL
     expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
-      'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=http%3A%2F%2Flocalhost%3A3000%2Fverify-email',
+      'http://localhost:3000/verify-email?token=abc',
       'en',
       'http://localhost:3000'
     )
   })
 
-  it('should not rewrite callbackURL when appURL is undefined', async () => {
+  it('should not rewrite URL when appURL is undefined', async () => {
     // Arrange
     const mockDb = createMockDb()
     const mockEmail = createMockEmailProvider()

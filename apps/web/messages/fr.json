@@ -623,6 +623,11 @@
   "auth_verify_email_resend_neutral": "Si un compte avec cet e-mail existe et n'est pas encore v\u00e9rifi\u00e9, un e-mail de v\u00e9rification a \u00e9t\u00e9 envoy\u00e9.",
   "auth_login_email_not_verified_sent": "Votre e-mail n'est pas v\u00e9rifi\u00e9. Un nouvel e-mail de v\u00e9rification a \u00e9t\u00e9 envoy\u00e9. V\u00e9rifiez votre bo\u00eete de r\u00e9ception.",
   "auth_magic_link_error": "Impossible d'envoyer le lien magique. Veuillez r\u00e9essayer.",
+  "auth_magic_link_verify_title": "Connexion par lien magique",
+  "auth_magic_link_verifying": "Connexion en cours\u2026",
+  "auth_magic_link_verified": "Vous \u00eates maintenant connect\u00e9.",
+  "auth_magic_link_verified_title": "Connect\u00e9",
+  "auth_magic_link_verify_failed": "La v\u00e9rification du lien magique a \u00e9chou\u00e9. Le lien est peut-\u00eatre invalide ou expir\u00e9.",
   "auth_rate_limit": "Trop de tentatives. Veuillez r\u00e9essayer plus tard.",
 
   "dashboard_welcome": "Bon retour, {name}",

@@ -623,6 +623,11 @@
   "auth_verify_email_resend_neutral": "If an account with this email exists and is not yet verified, a verification email has been sent.",
   "auth_login_email_not_verified_sent": "Your email is not verified. A new verification email has been sent. Check your inbox.",
   "auth_magic_link_error": "Unable to send magic link. Please try again.",
+  "auth_magic_link_verify_title": "Magic Link Sign In",
+  "auth_magic_link_verifying": "Signing you in\u2026",
+  "auth_magic_link_verified": "You have been signed in successfully.",
+  "auth_magic_link_verified_title": "Signed In",
+  "auth_magic_link_verify_failed": "Magic link verification failed. The link may be invalid or expired.",
   "auth_rate_limit": "Too many attempts. Please try again later.",
 
   "dashboard_welcome": "Welcome back, {name}",
