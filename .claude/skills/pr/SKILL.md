@@ -54,6 +54,29 @@ git log staging..HEAD --format="%h %s%n%b"
 git diff staging...HEAD --stat
 ```
 
+**Build lifecycle section** (gather artifacts linked to this PR):
+
+```bash
+# Extract issue number from branch name (e.g., feat/42-slug → 42)
+ISSUE_NUM=$(echo "$BRANCH" | grep -oP '(?<=/)\d+')
+
+# Check for analysis file
+ls analyses/${ISSUE_NUM}-*.mdx 2>/dev/null
+
+# Check for spec file
+ls specs/${ISSUE_NUM}-*.mdx 2>/dev/null
+
+# Get issue title + status (if issue exists)
+gh issue view "$ISSUE_NUM" --json title,state,labels 2>/dev/null
+
+# Count new test files in this branch
+git diff staging...HEAD --name-only | grep -c '\.test\.\|\.spec\.' || echo 0
+
+# Check lint + typecheck status (already run in guard rails)
+```
+
+For each artifact found, add a row to the lifecycle table. Omit rows for artifacts that don't exist (e.g., no spec for S-tier changes). See the PR Body Template below.
+
 **Detect issue number** from the branch name:
 
 - Branch `feat/42-user-auth` -> issue `#42`
@@ -117,6 +140,16 @@ gh pr edit <number> --title "<title>" --body "<body>"
 - {bullet 2: secondary change if applicable}
 - {bullet 3: if needed}
 
+## Lifecycle
+
+| Phase | Artifact | Status |
+|-------|----------|--------|
+| Intent | #{issue_number}: {issue title} | {issue state} |
+| Analysis | [{analysis filename}](analyses/{filename}) | {Present/Absent} |
+| Spec | [{spec filename}](specs/{filename}) | {Present/Absent} |
+| Implementation | {N} commits on `{branch}` | Complete |
+| Verification | Lint {✅/❌} Typecheck {✅/❌} Tests {✅/❌} ({N} new) | {Passed/Failed} |
+
 ## Test Plan
 - [ ] {how to verify the change works}
 - [ ] {edge case to test}
@@ -130,9 +163,10 @@ Generated with [Claude Code](https://claude.com/claude-code) via `/pr`
 **Notes on the template:**
 
 - Summary bullets should focus on **what** changed and **why**, not list commits
+- **Lifecycle table:** Include only rows where artifacts exist. For S-tier changes (no spec/analysis), show only Intent + Implementation + Verification. Omit the entire Lifecycle section if there's no linked issue.
 - Test Plan should have actionable items a reviewer can follow
 - `Closes #XX` auto-links and auto-closes the issue on merge
-- If no issue number was detected, omit the `Closes` line
+- If no issue number was detected, omit the `Closes` line and the Lifecycle section
 
 ## Options
 

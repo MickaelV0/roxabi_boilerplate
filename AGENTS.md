@@ -32,6 +32,30 @@ Lead creates tasks → agents claim by domain → execute → mark complete + fo
 Blocker → lead. Cross-domain → create task + message lead. Security → lead + security-auditor.
 Task handoff via `blockedBy` deps.
 
+### Handoff Format
+
+When completing a task that feeds into another agent's work, include a structured handoff in your completion message to the lead. This prevents context loss between agents.
+
+```
+Handoff: <short description>
+  Files: <files created/modified, one per line>
+  Migrations: <DB migration files, if any>
+  Routes: <new/changed API routes, if any>
+  Types: <new/changed shared types in @repo/types, if any>
+  Auth: <auth requirements for new endpoints>
+  Decisions: <key choices made and why>
+  Caveats: <known limitations, TODOs, or risks>
+  Depends on: <task IDs this work depends on>
+```
+
+Omit empty fields. The lead forwards relevant sections to the next agent's spawn prompt.
+
+**Examples:**
+- backend-dev → tester: Files, Routes, Auth, Caveats (so tester knows what to test + what's unguarded)
+- frontend-dev → tester: Files, Routes consumed, Decisions (component structure, state management)
+- architect → backend-dev: Decisions, Caveats (so implementer respects design constraints)
+- any agent → fixer: Files, Caveats (so fixer has full context on accepted findings)
+
 ## Domain Boundaries
 
 ¬modify files outside your domain.
