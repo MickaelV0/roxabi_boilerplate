@@ -1,0 +1,82 @@
+---
+title: "ADR-002: EmptyState — Monolithic vs Compound Component Shape"
+description: Decision to use a monolithic prop-driven component instead of a compound subcomponent pattern for the shared EmptyState in packages/ui.
+---
+
+## Status
+
+Accepted
+
+## Context
+
+The codebase has 5 duplicated inline `EmptyState` implementations across admin and settings pages, with no shared component in `packages/ui`. A shared component must be designed to follow the existing `packages/ui` patterns (`cva`, `data-slot`, `data-variant`, `cn()`).
+
+The library already ships two related patterns:
+
+- **Compound** (`Card`, `Alert`): root element + named subcomponents (`CardHeader`, `CardContent`, `AlertTitle`, `AlertDescription`). Used when callers need to freely compose sections — for example, `Card` may be used with or without a footer, and `CardAction` can be placed anywhere inside `CardHeader`.
+- **Monolithic** (`Spinner`, `Badge`, `Button`): single element, all variation expressed through props. Used when the internal layout is fixed and composition adds no caller value.
+
+All 5 existing inline `EmptyState` implementations share an identical fixed layout: icon → title (optional) → description → action (optional), vertically centered. No existing usage reorders, omits the middle, or injects additional sections between these slots.
+
+## Options Considered
+
+### Option A: Monolithic component with variant prop (Recommended)
+
+Single `EmptyState` component using `cva` for the three visual variants (`default`, `error`, `search`), with `icon`, `title`, `description`, `action`, and `className` as top-level props.
+
+```tsx
+<EmptyState
+  icon={<BuildingIcon />}
+  title="No organizations"
+  description="Create your first organization to get started."
+  action={<Button>Create</Button>}
+  variant="default"
+/>
+```
+
+- **Pros:** Matches the `Spinner`/`Badge`/`Button` monolithic pattern for fixed-layout components. Single import, minimal boilerplate, one component to test. Props are self-documenting at the call site. Conditional rendering of `title` and `action` is handled internally — callers omit props, not JSX branches.
+- **Cons:** All props are top-level; callers cannot inject arbitrary elements between slots.
+
+### Option B: Compound component (EmptyState + EmptyStateIcon / EmptyStateTitle / EmptyStateDescription / EmptyStateAction)
+
+Follows the `Card`/`Alert` pattern with named subcomponents for each slot.
+
+```tsx
+<EmptyState variant="default">
+  <EmptyStateIcon><BuildingIcon /></EmptyStateIcon>
+  <EmptyStateTitle>No organizations</EmptyStateTitle>
+  <EmptyStateDescription>Create your first organization.</EmptyStateDescription>
+  <EmptyStateAction><Button>Create</Button></EmptyStateAction>
+</EmptyState>
+```
+
+- **Pros:** Maximum composition flexibility. Consistent with how `Card` and `Alert` expose subcomponents. Allows callers to omit or reorder sections in JSX.
+- **Cons:** Over-engineered for a fixed-layout component. Every existing usage would use all subcomponents in the same order — the flexibility is unused. Introduces 4-5 exports instead of 1. More test surface. Callers must write 4–5 JSX lines for what is conceptually a single semantic element.
+
+## Decision
+
+**Option A (monolithic).**
+
+The `EmptyState` layout is structurally fixed: icon, then optional title, then description, then optional action — always in that order, always vertically centered. Unlike `Card`, which supports arbitrary content in its content zone and optional header/footer sections, `EmptyState` has no meaningful composition axis. The compound pattern exists to serve genuine layout flexibility; applying it here adds API surface with no caller benefit.
+
+The three visual states (`default`, `error`, `search`) are state-driven semantics (what happened), not structural variants that change the component's internal layout. They are correctly expressed as a `cva` variant prop, consistent with how `Alert` expresses `default`/`destructive`/`warning` and how `Card` expresses `default`/`subtle`/`interactive`.
+
+The `description: string` constraint (not `ReactNode`) is intentional: it prevents callers from breaking the centered text layout with complex markup. All 5 existing usages are plain strings.
+
+## Consequences
+
+### Positive
+
+- Minimal API surface: 1 export, 5 props, clear defaults.
+- Eliminates 5 duplicated inline implementations.
+- Consistent with the `cva` + `data-slot` + `data-variant` pattern already used by `Alert`, `Card`, `Button`, and `Spinner`.
+- Unit tests are straightforward: one component, three variants, two optional props.
+
+### Negative
+
+- If a future use case requires a non-standard slot order or an additional section between description and action, the component will need to be refactored or the compound pattern adopted at that time.
+
+### Neutral
+
+- The `icon` prop accepts `React.ReactNode`, so callers that need a decorative wrapper (e.g., `rounded-full bg-muted p-3` pill) pass the wrapped element as the prop. This is a caller concern, not a component concern — consistent with how `Button` renders icons passed as children without imposing a container.
+- The three variants map to border style and icon color only; they do not change the component's internal structure, making future addition of a fourth variant low-risk.
