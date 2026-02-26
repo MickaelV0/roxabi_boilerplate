@@ -60,7 +60,8 @@ AskUserQuestion: Confirm {tier} | Override S | Override F-lite | Override F-full
 
 ∃ α ⇒ read + present.
 ¬∃ ⇒ `skill: "interview", args: "topic text"` → α
-Interview explores 2–3 shapes. α includes `## Shapes` + `## Fit Check`. Tier S may skip.
+Interview captures framing (Source, Problem, Outcome, Appetite) + explores 2–3 shapes.
+α includes `## Source` + `## Problem` + `## Outcome` + `## Appetite` + `## Shapes` + `## Fit Check`. Tier S may skip Shapes/Fit Check.
 Domain expertise ⇒ spawn expert via Task. See [references/expert-consultation.md](references/expert-consultation.md).
 
 ### 1b. Expert Review
@@ -70,7 +71,7 @@ Auto-select ρ (¬ask user):
 | ρ | When | Focus |
 |---|------|-------|
 | doc-writer | Always | Structure, clarity |
-| product-lead | Always | Product fit, criteria quality |
+| product-lead | Always | Product fit, criteria quality, framing (Problem↔Outcome alignment) |
 | architect | ∃ arch / trade-offs / multi-domain | Technical soundness |
 | devops | ∃ CI/CD / deploy / infra | Operational impact |
 

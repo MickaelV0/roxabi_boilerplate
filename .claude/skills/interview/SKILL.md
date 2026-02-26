@@ -67,10 +67,18 @@ If promoting, this step is already determined — skip it.
 
 Conduct the interview using **AskUserQuestion**. Follow the four-phase framework below. Group 2-4 questions per call for efficiency. **Skip questions whose answers are obvious from context, arguments, or an existing source document.**
 
-#### Phase 1 — Context (1-2 questions)
+#### Phase 1 — Context & Framing (2-3 questions)
 
 - What triggered this? What is the problem or opportunity?
 - What exists today? What has been tried?
+
+**Analysis-specific framing (capture raw source + appetite):**
+
+When the interview is for an **Analysis** document, Phase 1 should also capture:
+
+- **Source material:** "Can you share the original request, user quote, Slack message, or support ticket that triggered this?" Preserve verbatim — this is ground truth.
+- **Outcome:** "What does success look like — without prescribing a solution?"
+- **Appetite:** "What's the time budget for this work? (e.g. 1 week, 2-week cycle)" This constrains design — fixed time, variable scope.
 
 #### Phase 2 — Scope (2-3 questions)
 

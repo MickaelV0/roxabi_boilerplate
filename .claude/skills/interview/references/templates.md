@@ -44,9 +44,25 @@ title: "{Title}"
 description: {One-line description of the analysis}
 ---
 
+## Source
+
+{Verbatim raw material — user quotes, Slack messages, issue descriptions, support tickets. Preserve original wording as ground truth. Append new material as it arrives.}
+
+## Problem
+
+{Distilled from Source — what is broken or painful. One or two sentences. No solutions.}
+
+## Outcome
+
+{Solution-agnostic success definition — what does "done" look like without prescribing how to get there.}
+
+## Appetite
+
+{Time/effort budget that constrains design. e.g. "1 week" or "2-week cycle". Fixed time, variable scope — the appetite forces trade-offs between quality, time, and scope.}
+
 ## Context
 
-{Why this analysis exists — background, motivation, triggering event}
+{Additional background — motivation, prior art, what exists today, what has been tried}
 
 ## Questions Explored
 
