@@ -13,7 +13,7 @@
 
 ## Project Overview
 
-SaaS framework with integrated AI team. Vision → [docs/vision.mdx](docs/vision.mdx).
+SaaS framework with integrated AI team. Vision → [docs/product/vision.mdx](docs/product/vision.mdx).
 
 **Stack:** Bun | TurboRepo | TypeScript 5.x strict | Biome | TanStack Start | NestJS + Fastify | Vercel | Drizzle ORM + PostgreSQL 16
 **Style:** single quotes, no semicolons, trailing commas (es5), 2-space indent, 100-char width
@@ -103,7 +103,7 @@ Artifacts are the state markers `/dev` uses for progress detection and resumptio
 
 ```bash
 git worktree add ../roxabi-XXX -b feat/XXX-slug staging
-cd ../roxabi-XXX && cp .env.example .env && bun install
+cd ../roxabi-XXX && git config --unset-all --local core.hooksPath && cp .env.example .env && bun install
 cd apps/api && bun run db:branch:create --force XXX
 ```
 
@@ -161,7 +161,7 @@ Agents: rules → [AGENTS.md](AGENTS.md). Defs → `.claude/agents/*.md`. Guide 
 | FE / BE / Test / Review | [frontend-patterns](docs/standards/frontend-patterns.mdx) / [backend-patterns](docs/standards/backend-patterns.mdx) / [testing](docs/standards/testing.mdx) / [code-review](docs/standards/code-review.mdx) |
 | Contributing | [contributing.mdx](docs/contributing.mdx) |
 | Deploy / Auth / Agents | [deployment](docs/guides/deployment.mdx) / [authentication](docs/guides/authentication.mdx) / [agent-teams](docs/guides/agent-teams.mdx) |
-| Vision | [vision.mdx](docs/vision.mdx) |
+| Vision | [vision.mdx](docs/product/vision.mdx) |
 | Frames / Analyses / Specs / Plans | [artifacts/frames/](artifacts/frames/) / [artifacts/analyses/](artifacts/analyses/) / [artifacts/specs/](artifacts/specs/) / [artifacts/plans/](artifacts/plans/) |
 
 **Deploy:** `main` → Vercel prod. `staging` → preview. Details in [apps/web/CLAUDE.md](apps/web/CLAUDE.md) and [apps/api/CLAUDE.md](apps/api/CLAUDE.md).

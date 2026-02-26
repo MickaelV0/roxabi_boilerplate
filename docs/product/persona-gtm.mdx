@@ -1,0 +1,123 @@
+---
+title: Persona & GTM Brief
+description: Primary customer persona, needs, buying behavior, and go-to-market strategy for Roxabi Boilerplate
+---
+
+## Primary Persona: "The Impatient Architect"
+
+**Who:** Senior dev / ex-CTO (5–10 yrs exp) building their first or second SaaS on the side,
+or recently quit their job to go indie. Building B2B SaaS — internal tools, dashboards,
+productivity apps. Already using Claude Code or Cursor daily.
+
+**Mindset:** *"I know how to build this. I just don't want to spend 6 weeks building what
+doesn't matter. I want to prove the idea works first."*
+
+**Day-to-day pain:** Every new project restarts with the same week of hell — auth, multi-tenant
+schema, RBAC, deployment, CI/CD, linting config, DB setup. Then when they finally start building
+the actual product, motivation is half-gone and they're already behind.
+
+---
+
+## What They Want
+
+| Priority | Need | Why it matters |
+|----------|------|----------------|
+| 1 | **Zero-to-dev in <5 min** | They've set up 10 projects — setup friction = rage |
+| 2 | **Auth + multi-tenancy + RBAC out of the box** | B2B SaaS requires this, it's hard to retrofit |
+| 3 | **Code they can read and own** | Fear of black-box abstractions they'll fight at 2am |
+| 4 | **Modern, scalable stack** | They'll be living in this codebase for years |
+| 5 | **AI-ready out of the box** | They already use Claude Code — want it to "just work" |
+| 6 | **Active maintenance + docs** | Biggest fear: abandoned boilerplate = tech debt |
+
+---
+
+## What They Buy
+
+A **one-time license** ($199–$349 sweet spot) after:
+
+1. Seeing the **creator's credibility** (track record, build-in-public, responsiveness)
+2. Recognizing their **exact stack** (if it's Next.js and they want TanStack, they bounce)
+3. Validating **active maintenance** (recent commits, Discord activity, changelog)
+4. A specific feature clicks (e.g., "this has multi-tenancy with RLS, the others don't")
+
+They do **not** buy on feature lists. They buy on **trust + time savings realized**.
+
+---
+
+## How to Sell Roxabi
+
+### Positioning
+
+Roxabi's genuine moat: the only boilerplate with a **pre-built 10-agent AI development team
++ structured workflow (frame → spec → plan → implement → review)**. This directly solves the
+#1 AI pain: fresh projects have no context → Claude hallucinates and produces inconsistent code.
+Roxabi ships fully wired for Claude Code from day one.
+
+> **Positioning line:** *"The boilerplate Claude Code was built to work on."*
+
+Not "AI-native" (that's noise). Instead: **show** it. A 2-min video of Claude Code running
+`/dev #1` on a fresh Roxabi clone, autonomously delivering a feature, is worth more than any
+marketing copy.
+
+### Channel Priority
+
+| Channel | Tactic |
+|---------|--------|
+| **Twitter/X** | Build in public 3–5×/week. Show agent team in action. Real outputs, real commits. |
+| **Newsletters** | Indie Hackers, React/TS ecosystem newsletters. One sponsored issue = 200+ leads. |
+| **HN Show HN** | Once ready. Suggested title: *"Show HN: SaaS boilerplate where Claude Code does 90% of the dev work"* |
+| **Word-of-mouth** | First 50 customers are the sales team. Discord + responsive creator presence. |
+
+### Pricing
+
+**$299 one-time.** Never $49 (screams low quality). One update tier max — no subscription.
+
+Higher price = higher perceived quality. Supastarter's creator confirmed: conversion improved
+at every price increase from $49 → $149 → $299 → $349.
+
+---
+
+## Design Expectations
+
+| Signal | What they expect |
+|--------|-----------------|
+| UI library | **shadcn/ui** — non-negotiable for credibility in 2026 |
+| Color scheme | Neutral grays + 1–2 strategic accents. No rainbow dashboards. |
+| Dark mode | Default, not optional |
+| Typography | Inter/Geist, 70–80 char lines, clear hierarchy |
+| Feel | Professional, not AI-generated — consistent spacing (8px grid), design tokens, accessible |
+| Anti-patterns | Heavy rounded corners + neon = instant trust loss |
+
+The design must feel like **Stripe's dashboard had a baby with Linear** — minimal,
+data-focused, zero clutter.
+
+---
+
+## Competitive Positioning
+
+| Competitor gap | Roxabi answer |
+|----------------|--------------|
+| Next.js lock-in (ShipFast, Makerkit) | TanStack Start + NestJS — unique, performant, future-proof |
+| No AI workflow | 10-agent team + CLAUDE.md + skills + `/dev` orchestrator |
+| Abandonment fear | Roxabi is the product the creator builds ON — extreme dogfooding |
+| Abstraction hell | Minimal abstractions, eject-friendly, code you can read |
+| Fresh project = AI chaos | Ships with full context system — Claude works immediately |
+| Multi-tenancy is optional/add-on | RLS multi-tenancy is core, day one |
+
+---
+
+## One-Line Pitch
+
+> *"Clone → Claude → ship. The only boilerplate where your AI team is already hired."*
+
+---
+
+## Research Sources
+
+This brief was synthesized from 5 parallel web research streams (Feb 2026):
+
+- Buyer pains: Reddit (r/SaaS, r/webdev), Indie Hackers, Hacker News discussions
+- Competitor landscape: ShipFast, Makerkit, Supastarter, SaaSRock, LaunchFast, SaaSPegasus, PropelKit, Bedrock, SaaSBold, Nextbase, Gravity
+- Design expectations: Dribbble, Product Hunt, dev community discussions, SaaS dashboard trend reports
+- Buying behavior: Indie Hackers build-in-public case studies, pricing experiments
+- AI-native demand: Claude Code adoption data, Wasp Framework growth, CLAUDE.md pattern adoption

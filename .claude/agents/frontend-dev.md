@@ -26,6 +26,18 @@ skills: frontend-design, ui-ux-pro-max
 
 **Component placement:** Reusable/generic → `packages/ui/src/` | Page-specific → `apps/web/`
 
+## TypeScript Gotchas
+
+- `noUncheckedIndexedAccess` enabled — array indexing returns `T | undefined`, use `?? fallback`
+- Tuple types `[n, n, n]`: ternary expressions lose tuple narrowing — assign explicitly: `const x: [n,n,n] = cond ? a : b`
+- Unused destructured props → TS6133 — remove unused params from destructuring
+
+## @repo/ui Patterns
+
+- `cn()` must import from `@repo/ui` (not a local util)
+- `StatCounter` accepts `{ value, label, suffix?, className? }` — no sub-element class selectors
+- Canvas/animation components go in `apps/web/src/components/ui/` (app-specific, no business logic in `packages/ui`)
+
 ## Deliverables
 
 React components (named exports, co-located tests) | TanStack Start route handlers
