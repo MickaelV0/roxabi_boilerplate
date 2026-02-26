@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuditService } from '../audit/audit.service.js'
 import { createChainMock } from './__test-utils__/createChainMock.js'
 import { AdminUsersLifecycleService } from './adminUsers.lifecycle.js'
+import { LastSuperadminException } from './exceptions/lastSuperadmin.exception.js'
 import { NotDeletedException } from './exceptions/notDeleted.exception.js'
 import { SelfActionException } from './exceptions/selfAction.exception.js'
 import { SuperadminProtectionException } from './exceptions/superadminProtection.exception.js'
@@ -13,12 +14,18 @@ import { AdminUserNotFoundException } from './exceptions/userNotFound.exception.
 // ---------------------------------------------------------------------------
 
 function createMockDb() {
-  return {
+  const db = {
     select: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    // transaction executes the callback with db as the tx,
+    // so existing db.select/db.update mockReturnValueOnce() setups work inside
+    // the transaction callback without needing separate tx mocks.
+    transaction: vi.fn(),
   }
+  db.transaction.mockImplementation(async (cb: (tx: typeof db) => Promise<unknown>) => cb(db))
+  return db
 }
 
 function createMockAuditService(): AuditService {
@@ -132,14 +139,29 @@ describe('AdminUsersLifecycleService', () => {
       ).rejects.toThrow(AdminUserNotFoundException)
     })
 
-    it('should throw SuperadminProtectionException when banning a superadmin', async () => {
-      // Arrange
+    it('should throw SuperadminProtectionException when banning a superadmin (not last)', async () => {
+      // Arrange — superadmin target, but not the last active one
       const superadminUser = { ...baseUser, role: 'superadmin', banned: false }
-      db.select.mockReturnValueOnce(createChainMock([superadminUser]))
+      db.select
+        .mockReturnValueOnce(createChainMock([superadminUser])) // findUserSnapshotOrThrow
+        .mockReturnValueOnce(createChainMock([{ count: 2 }])) // isLastActiveSuperadmin: 2 others exist
 
       // Act & Assert
       await expect(service.banUser('user-1', 'Spam activity', null, 'actor-super')).rejects.toThrow(
         SuperadminProtectionException
+      )
+    })
+
+    it('should throw LastSuperadminException when banning the last active superadmin', async () => {
+      // Arrange — superadmin target, and they are the last active one
+      const superadminUser = { ...baseUser, role: 'superadmin', banned: false }
+      db.select
+        .mockReturnValueOnce(createChainMock([superadminUser])) // findUserSnapshotOrThrow
+        .mockReturnValueOnce(createChainMock([{ count: 0 }])) // isLastActiveSuperadmin: 0 others
+
+      // Act & Assert
+      await expect(service.banUser('user-1', 'Spam activity', null, 'actor-super')).rejects.toThrow(
+        LastSuperadminException
       )
     })
 
@@ -358,6 +380,19 @@ describe('AdminUsersLifecycleService', () => {
           actorId: 'actor-super',
         })
       )
+    })
+
+    it('should throw NotDeletedException when user is already soft-deleted', async () => {
+      // Arrange
+      const alreadyDeletedUser = {
+        ...baseUser,
+        deletedAt: new Date('2025-06-01'),
+        deleteScheduledFor: new Date('2025-07-01'),
+      }
+      db.select.mockReturnValueOnce(createChainMock([alreadyDeletedUser]))
+
+      // Act & Assert
+      await expect(service.deleteUser('user-1', 'actor-super')).rejects.toThrow(NotDeletedException)
     })
 
     it('should not call auditService.log when user is not found', async () => {

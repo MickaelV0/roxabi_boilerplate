@@ -5,6 +5,7 @@ import { EmailConflictException } from '../exceptions/emailConflict.exception.js
 import { InvitationAlreadyPendingException } from '../exceptions/invitationAlreadyPending.exception.js'
 import { InvitationNotFoundException } from '../exceptions/invitationNotFound.exception.js'
 import { LastOwnerConstraintException } from '../exceptions/lastOwnerConstraint.exception.js'
+import { LastSuperadminException } from '../exceptions/lastSuperadmin.exception.js'
 import { MemberAlreadyExistsException } from '../exceptions/memberAlreadyExists.exception.js'
 import { AdminMemberNotFoundException } from '../exceptions/memberNotFound.exception.js'
 import { OrgCycleDetectedException } from '../exceptions/orgCycleDetected.exception.js'
@@ -25,6 +26,7 @@ type AdminException =
   | InvitationAlreadyPendingException
   | InvitationNotFoundException
   | LastOwnerConstraintException
+  | LastSuperadminException
   | SelfRemovalException
   | SelfRoleChangeException
   | SelfActionException
@@ -45,6 +47,7 @@ type AdminException =
   InvitationAlreadyPendingException,
   InvitationNotFoundException,
   LastOwnerConstraintException,
+  LastSuperadminException,
   SelfRemovalException,
   SelfRoleChangeException,
   SelfActionException,

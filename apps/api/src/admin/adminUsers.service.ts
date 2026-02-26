@@ -16,12 +16,12 @@ import {
 import { ClsService } from 'nestjs-cls'
 import { AuditService } from '../audit/audit.service.js'
 import { buildCursorCondition, buildCursorResponse } from '../common/utils/cursorPagination.util.js'
-import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
+import { DRIZZLE, type DrizzleDB, type DrizzleTx } from '../database/drizzle.provider.js'
 import { auditLogs } from '../database/schema/audit.schema.js'
-import { members, organizations, users } from '../database/schema/auth.schema.js'
-import { findUserSnapshotOrThrow } from './adminUsers.shared.js'
+import { members, organizations, sessions, users } from '../database/schema/auth.schema.js'
+import { findUserSnapshotOrThrow, isLastActiveSuperadmin } from './adminUsers.shared.js'
 import { EmailConflictException } from './exceptions/emailConflict.exception.js'
-import { SelfActionException } from './exceptions/selfAction.exception.js'
+import { LastSuperadminException } from './exceptions/lastSuperadmin.exception.js'
 import { SuperadminProtectionException } from './exceptions/superadminProtection.exception.js'
 import { AdminUserNotFoundException } from './exceptions/userNotFound.exception.js'
 import { redactSensitiveFields } from './utils/redactSensitiveFields.js'
@@ -229,9 +229,10 @@ export class AdminUsersService {
       throw new AdminUserNotFoundException(userId)
     }
 
-    const [memberships, redactedEntries] = await Promise.all([
+    const [memberships, redactedEntries, isLastSuperadmin] = await Promise.all([
       this.fetchUserMemberships(userId),
       this.fetchUserAuditEntries(userId),
+      user.role === 'superadmin' ? isLastActiveSuperadmin(this.db, userId) : Promise.resolve(false),
     ])
 
     return {
@@ -244,6 +245,7 @@ export class AdminUsersService {
         role: m.role,
       })),
       activitySummary: redactedEntries,
+      isLastActiveSuperadmin: isLastSuperadmin,
     }
   }
 
@@ -324,8 +326,14 @@ export class AdminUsersService {
     data: { name?: string; email?: string; role?: string },
     actorId: string
   ) {
+    const isSelfRoleChange = data.role && actorId === userId
+
+    if (isSelfRoleChange) {
+      return this.executeSelfRoleChange(userId, data, actorId)
+    }
+
     const beforeUser = await findUserSnapshotOrThrow(this.db, userId)
-    this.validateUpdatePermissions(data, actorId, userId, beforeUser.role ?? 'user')
+    this.validateUpdatePermissions(data, beforeUser.role ?? 'user')
 
     const updatedUser = await this.executeUserUpdate(userId, data)
     const auditAction =
@@ -336,15 +344,45 @@ export class AdminUsersService {
     return updatedUser
   }
 
-  private validateUpdatePermissions(
-    data: { role?: string },
-    actorId: string,
+  private async executeSelfRoleChange(
     userId: string,
-    currentRole: string
+    data: { name?: string; email?: string; role?: string },
+    actorId: string
   ) {
-    if (data.role && actorId === userId) {
-      throw new SelfActionException()
-    }
+    return this.db.transaction(
+      async (tx) => {
+        const isLast = await isLastActiveSuperadmin(tx, userId)
+        if (isLast) {
+          throw new LastSuperadminException()
+        }
+
+        const [beforeUser] = await tx.select().from(users).where(eq(users.id, userId)).limit(1)
+        if (!beforeUser) throw new AdminUserNotFoundException(userId)
+
+        if (beforeUser.role !== 'superadmin') {
+          throw new SuperadminProtectionException()
+        }
+
+        const updatedUser = await this.applyUserUpdate(tx, userId, data)
+        await tx.delete(sessions).where(eq(sessions.userId, userId))
+
+        await this.auditService.log({
+          actorId,
+          actorType: 'user',
+          action: 'user.role_changed' as AuditAction,
+          resource: 'user',
+          resourceId: userId,
+          before: { ...beforeUser },
+          after: { ...updatedUser },
+        })
+
+        return updatedUser
+      },
+      { isolationLevel: 'serializable' }
+    )
+  }
+
+  private validateUpdatePermissions(data: { role?: string }, currentRole: string) {
     if (data.role && data.role !== 'superadmin' && currentRole === 'superadmin') {
       throw new SuperadminProtectionException()
     }
@@ -354,8 +392,16 @@ export class AdminUsersService {
     userId: string,
     data: { name?: string; email?: string; role?: string }
   ) {
+    return this.applyUserUpdate(this.db, userId, data)
+  }
+
+  private async applyUserUpdate(
+    db: DrizzleDB | DrizzleTx,
+    userId: string,
+    data: { name?: string; email?: string; role?: string }
+  ) {
     try {
-      const [result] = await this.db.update(users).set(data).where(eq(users.id, userId)).returning()
+      const [result] = await db.update(users).set(data).where(eq(users.id, userId)).returning()
       if (!result) throw new AdminUserNotFoundException(userId)
       return result
     } catch (err) {
