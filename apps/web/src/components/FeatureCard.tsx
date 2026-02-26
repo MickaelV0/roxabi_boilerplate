@@ -15,7 +15,7 @@ function FeatureCard({
   return (
     <Card
       className={cn(
-        'border-border bg-background transition-all duration-200 hover:-translate-y-1 hover:shadow-md',
+        'h-full border-border bg-background transition-all duration-200 hover:-translate-y-1 hover:shadow-md',
         className
       )}
       {...props}
