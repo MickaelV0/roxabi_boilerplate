@@ -38,6 +38,7 @@ export function buildHtml(
   const prsHtml = renderPRs(prs)
   const branchesHtml = renderBranchesAndWorktrees(branches, worktrees)
   const ciHtml = renderBranchCI(branchCI)
+  const showCI = shouldShowCI(branchCI)
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -63,7 +64,7 @@ ${LIVE_STYLES}
 
   <div id="section-vercel">${vercelHtml}</div>
 
-  <div id="section-ci" class="section"><h2>CI Status</h2>${ciHtml}</div>
+  <div id="section-ci">${showCI ? `<div class="section"><h2>CI Status</h2>${ciHtml}</div>` : ''}</div>
 
   <div id="section-prs">${prs.length > 0 ? `<div class="section"><h2>Pull Requests</h2>${prsHtml}</div>` : ''}</div>
 
@@ -356,6 +357,21 @@ ${LIVE_STYLES}
 
 </body>
 </html>`
+}
+
+const TWO_MINUTES = 2 * 60 * 1000
+const CI_FAILING_STATES = ['FAILURE', 'ERROR', 'ACTION_REQUIRED', 'TIMED_OUT']
+const CI_RUNNING_STATES = ['PENDING', 'EXPECTED']
+
+function shouldShowCI(branchCI: BranchCI[]): boolean {
+  if (branchCI.length === 0) return false
+  const now = Date.now()
+  return branchCI.some((b) => {
+    if (CI_FAILING_STATES.includes(b.overallState)) return true
+    if (CI_RUNNING_STATES.includes(b.overallState)) return true
+    if (b.committedAt && now - new Date(b.committedAt).getTime() < TWO_MINUTES) return true
+    return false
+  })
 }
 
 const LIVE_STYLES = `
