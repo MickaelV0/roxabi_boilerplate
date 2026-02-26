@@ -15,6 +15,8 @@ import { AdminRoleNotFoundException } from '../exceptions/roleNotFound.exception
 import { SelfActionException } from '../exceptions/selfAction.exception.js'
 import { SelfRemovalException } from '../exceptions/selfRemoval.exception.js'
 import { SelfRoleChangeException } from '../exceptions/selfRoleChange.exception.js'
+import { SettingNotFoundException } from '../exceptions/settingNotFound.exception.js'
+import { SettingValidationException } from '../exceptions/settingValidation.exception.js'
 import { UserAlreadyBannedException } from '../exceptions/userAlreadyBanned.exception.js'
 import { AdminUserNotFoundException } from '../exceptions/userNotFound.exception.js'
 
@@ -35,6 +37,8 @@ type AdminException =
   | OrgSlugConflictException
   | OrgDepthExceededException
   | OrgCycleDetectedException
+  | SettingNotFoundException
+  | SettingValidationException
 
 @Catch(
   MemberAlreadyExistsException,
@@ -52,7 +56,9 @@ type AdminException =
   AdminOrgNotFoundException,
   OrgSlugConflictException,
   OrgDepthExceededException,
-  OrgCycleDetectedException
+  OrgCycleDetectedException,
+  SettingNotFoundException,
+  SettingValidationException
 )
 export class AdminExceptionFilter implements ExceptionFilter {
   constructor(private readonly cls: ClsService) {}
@@ -69,7 +75,8 @@ export class AdminExceptionFilter implements ExceptionFilter {
       exception instanceof AdminRoleNotFoundException ||
       exception instanceof InvitationNotFoundException ||
       exception instanceof AdminUserNotFoundException ||
-      exception instanceof AdminOrgNotFoundException
+      exception instanceof AdminOrgNotFoundException ||
+      exception instanceof SettingNotFoundException
     ) {
       statusCode = HttpStatus.NOT_FOUND
     } else if (
