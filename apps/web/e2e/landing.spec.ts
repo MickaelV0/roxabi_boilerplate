@@ -40,7 +40,12 @@ test.describe('Landing Page', () => {
     // Assert
     await expect(landing.header).toBeVisible()
     await expect(landing.brandLink).toBeVisible()
-    await expect(landing.docsHeaderLink).toBeVisible()
+
+    // Docs link may be hidden behind a hamburger menu on narrow viewports
+    const viewport = page.viewportSize()
+    if (viewport && viewport.width >= 768) {
+      await expect(landing.docsHeaderLink).toBeVisible()
+    }
   })
 
   test('should navigate to docs when Get Started button is clicked', async ({ page }) => {

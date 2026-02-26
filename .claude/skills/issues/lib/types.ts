@@ -30,6 +30,7 @@ export interface PR {
   deletions: number
   reviewDecision: string
   labels: string[]
+  mergeable: string
 }
 
 export interface Branch {

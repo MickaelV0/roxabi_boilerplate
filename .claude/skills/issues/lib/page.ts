@@ -51,6 +51,14 @@ ${LIVE_STYLES}
     </span>
   </header>
 
+  <div id="section-prs" class="section">
+    <h2>Pull Requests</h2>
+    ${prsHtml}
+  </div>
+
+  <div id="section-issues" class="section">
+    <h2>Issues</h2>
+  </div>
   <table>
     <thead>
       <tr>
@@ -84,11 +92,6 @@ ${LIVE_STYLES}
       </td></tr>
     </tbody>
   </table>
-
-  <div id="section-prs" class="section">
-    <h2>Pull Requests</h2>
-    ${prsHtml}
-  </div>
 
   <div class="legend">
     <span>\u26d4 blocked</span>

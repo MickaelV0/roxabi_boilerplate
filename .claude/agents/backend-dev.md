@@ -9,6 +9,7 @@ description: |
   user: "Create an endpoint to fetch user preferences"
   assistant: "I'll use the backend-dev agent to implement the API."
   </example>
+model: sonnet
 color: white
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Task", "SendMessage"]
 permissionMode: bypassPermissions

@@ -107,6 +107,7 @@ export function issueRow(issue: Issue, indent = 0, prefix = ''): string {
 }
 
 function getPRDisplay(pr: PR): { label: string; cssClass: string } {
+  if (pr.mergeable === 'CONFLICTING') return { label: 'Conflict', cssClass: 'pri-p0' }
   if (pr.isDraft) return { label: 'Draft', cssClass: 'status-backlog' }
   if (pr.reviewDecision === 'APPROVED') return { label: 'Approved', cssClass: 'status-done' }
   if (pr.reviewDecision === 'CHANGES_REQUESTED') return { label: 'Changes', cssClass: 'pri-p1' }
