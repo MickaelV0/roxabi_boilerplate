@@ -1,4 +1,11 @@
 {
   "title": "Product",
-  "pages": ["vision", "persona-gtm"]
+  "pages": [
+    "vision",
+    "persona-gtm",
+    "competitive-analysis",
+    "positioning",
+    "gtm-strategy",
+    "landing-page"
+  ]
 }

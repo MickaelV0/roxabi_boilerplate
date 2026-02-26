@@ -168,6 +168,55 @@ Once all tasks are complete, review the deliverables and create the PR.
 
 ---
 
+## Tool Availability Matrix
+
+Reference for what each agent can and cannot do. Use this when deciding which agent to assign a task to or diagnosing unexpected behaviour.
+
+### Core Tools
+
+| Tool | frontend-dev | backend-dev | devops | fixer | tester | doc-writer | architect | product-lead | security-auditor |
+|------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Read | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Write | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ disallowed |
+| Edit | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ disallowed |
+| Glob | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Grep | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Bash | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| WebSearch | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| WebFetch | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Task | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| SendMessage | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| TeamCreate | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ |
+| TeamDelete | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ |
+| TaskCreate / TaskGet / TaskUpdate / TaskList | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| AskUserQuestion | ❌ by design | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+> **Note:** `AskUserQuestion` is intentionally excluded from agents. Agents escalate blockers to the lead via `SendMessage` — they do not interact with the user directly.
+
+### MCP Plugins
+
+MCP tools (Context7, Vercel) are only available to the **orchestrator** (main Claude Code session). Sub-agents use `WebSearch` + `Bash` CLI equivalents instead.
+
+| MCP Tool | Orchestrator | All Agents |
+|----------|:---:|:---:|
+| Context7: resolve-library-id / query-docs | ✅ | ❌ |
+| Vercel: deploy, logs, get_deployment, etc. | ✅ | ❌ |
+
+### Known Gaps
+
+| Gap | Severity | Impact |
+|-----|----------|--------|
+| `TaskCreate`, `TaskGet`, `TaskUpdate`, `TaskList` missing from all agents | 🔴 Must fix | Agents cannot claim tasks, mark complete, or create follow-ups autonomously — the micro-task protocol in AGENTS.md requires these |
+| `Task` missing from `fixer` | 🔴 Must fix | fixer cannot delegate to domain-specific sub-fixers for multi-domain findings |
+| `WebFetch` missing from all agents | 🟡 Should add | Agents cannot fetch specific URLs (deployed pages, raw GitHub files, API responses). `WebSearch` only finds, it does not fetch a targeted URL |
+| Context7 not available to agents | 🟡 Should add | doc-writer, frontend-dev, backend-dev, architect use `WebSearch` for docs — Context7 gives versioned, authoritative library documentation |
+| Vercel MCP not available to `devops` | 🟡 Should add | devops uses `vercel` / `gh` CLI via Bash — Vercel MCP gives structured access to logs and deployment status |
+| No skills on `doc-writer` | 🟡 Should add | Would benefit from `context7-plugin:docs` for library reference lookups while writing docs |
+| No skills on `backend-dev` | 🟡 Should add | Would benefit from `context7-plugin:docs` for NestJS / Drizzle API lookups |
+| No skills on `devops` | 🟡 Should add | Would benefit from `vercel:logs`, `vercel:deploy` skills |
+
+---
+
 ## Agent Configuration
 
 Each agent's `.md` file contains YAML frontmatter that controls its behavior:
@@ -473,9 +522,13 @@ All agents follow these rules (baked into their system prompts):
 
 Claude Code plugins are enabled in `.claude/settings.json` and extend agent capabilities:
 
-| Plugin | Purpose | Benefits |
-|--------|---------|----------|
-| `frontend-design@claude-plugins-official` | Design guardrails for UI development | Helps frontend-dev avoid AI-generated design slop |
+| Plugin | Available to | Purpose |
+|--------|-------------|---------|
+| `frontend-design@claude-plugins-official` | Orchestrator + frontend-dev (preloaded skill) | Design guardrails for UI — prevents AI-generated design slop |
+| `context7-plugin` (Context7) | Orchestrator only | Versioned library documentation lookup (`resolve-library-id` + `query-docs`) |
+| `vercel` (Vercel MCP) | Orchestrator only | Structured access to deployments, build logs, runtime logs, domain management |
+
+> MCP plugin tools are available to the orchestrator only — not to sub-agents. Agents use `WebSearch` + `Bash` CLI equivalents.
 
 ### Built-in Tools
 
@@ -483,18 +536,16 @@ Claude Code plugins are enabled in `.claude/settings.json` and extend agent capa
 
 ---
 
-## Model Tiering (Future)
+## Model Tiering
 
-Recommended model-per-role mapping for cost optimization. **Not applied yet** — all agents currently use `model: inherit`.
+Model assignments are configured in each agent's `.md` frontmatter (`model:` field).
 
 | Tier | Model | Agents | Rationale |
 |------|-------|--------|-----------|
-| **Heavy** | Opus | product-lead, architect | Complex analysis, planning, product decisions |
-| **Standard** | Sonnet | frontend-dev, backend-dev, devops, tester, doc-writer | Implementation, testing, documentation |
-| **Standard** | Sonnet | fixer | Cross-stack fixes on identified issues |
-| **Light** | Haiku | security-auditor | Read-only analysis, checklist verification |
+| **Heavy** | Opus (inherited) | product-lead, architect, security-auditor | Complex analysis, planning, product decisions |
+| **Standard** | Sonnet | frontend-dev, backend-dev, devops, tester, doc-writer, fixer | Implementation, testing, documentation, fixes |
 
-This tiering will be applied when cost optimization becomes a priority. For now, all agents inherit the parent session's model.
+> `model: sonnet` is explicitly set in agent frontmatter for domain and quality agents. Strategy agents (product-lead, architect) inherit Opus from the orchestrator session since they are not assigned a model in frontmatter.
 
 ---
 
