@@ -38,7 +38,9 @@ interface PriorReviewResult {
 }
 
 export function parsePriorReview(comments: PrComment[]): PriorReviewResult {
-  const botComment = comments.find((c) => c.body.includes('<!-- reviewed-by-bot -->'))
+  // findLast: prefer the deterministic marker step comment (posted after Claude's review)
+  // over Claude's own review comment, which may omit or misformat the markers.
+  const botComment = comments.findLast((c) => c.body.includes('<!-- reviewed-by-bot -->'))
   if (!botComment) {
     return { priorReviewFound: false, priorReviewCommentId: null, priorReviewCommitSha: null }
   }

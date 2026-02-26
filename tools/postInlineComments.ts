@@ -6,13 +6,10 @@
  * Usage: GH_TOKEN=... bun run tools/post-inline-comments.ts <pr-number> <head-sha>
  * Exit 0 on success, 1 on error.
  */
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
+import { buildPositionMap, type DiffPosition } from './diffUtils'
 
-export interface DiffPosition {
-  path: string
-  line: number
-  side: 'RIGHT' | 'LEFT'
-}
+export type { DiffPosition }
 
 interface Finding {
   file: string
@@ -20,39 +17,10 @@ interface Finding {
   body: string
   category: string
   confidence: number
+  nodeId?: string // GitHub global node_id of posted inline comment (for minimizeComment)
 }
 
-/**
- * Parse unified diff hunk headers to build a map of "file:line" → DiffPosition.
- * Only lines present in the diff (added/context lines on RIGHT side) are included.
- */
-export function buildPositionMap(diff: string): Map<string, DiffPosition> {
-  const map = new Map<string, DiffPosition>()
-  let currentFile = ''
-  let newLine = 0
-
-  for (const raw of diff.split('\n')) {
-    const fileMatch = raw.match(/^\+\+\+ b\/(.+)$/)
-    if (fileMatch) {
-      currentFile = fileMatch[1]
-      continue
-    }
-    const hunkMatch = raw.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/)
-    if (hunkMatch) {
-      newLine = parseInt(hunkMatch[1], 10) - 1
-      continue
-    }
-    if (!currentFile) continue
-    if (raw.startsWith('\\')) continue // "\ No newline at end of file"
-    if (raw.startsWith('-')) continue // removed line — not a valid comment target
-    if (raw.startsWith('+') || raw.startsWith(' ')) {
-      newLine++
-      map.set(`${currentFile}:${newLine}`, { path: currentFile, line: newLine, side: 'RIGHT' })
-    }
-  }
-
-  return map
-}
+export { buildPositionMap }
 
 async function deletePriorBotComments(prNumber: number, repo: string): Promise<void> {
   try {
@@ -94,6 +62,22 @@ try {
   process.exit(0)
 }
 
+if (!Array.isArray(findings)) {
+  console.error('review-findings.json is not an array — skipping inline comments')
+  process.exit(0)
+}
+findings = findings.filter((f) => {
+  if (typeof f.file !== 'string' || !Number.isFinite(f.line) || typeof f.body !== 'string') {
+    console.warn(`Skipping malformed finding: ${JSON.stringify(f)}`)
+    return false
+  }
+  return true
+})
+if (findings.length === 0) {
+  console.log('No valid findings after validation — nothing to post')
+  process.exit(0)
+}
+
 try {
   const ctx = JSON.parse(readFileSync('/tmp/pr-context.json', 'utf-8'))
   diff = ctx.diff as string
@@ -116,17 +100,21 @@ for (const f of findings) {
     continue
   }
   try {
-    await Bun.$`gh api repos/${repo}/pulls/${prNumber}/comments \
+    const result = (await Bun.$`gh api repos/${repo}/pulls/${prNumber}/comments \
       -f commit_id=${headSha} \
       -f path=${pos.path} \
       -F line=${pos.line} \
       -f side=${pos.side} \
-      -f body=${`<!-- reviewed-by-bot-comment -->\n${f.body}`}`.quiet()
+      -f body=${`<!-- reviewed-by-bot-comment -->\n${f.body}`}`.json()) as Record<string, unknown>
+    f.nodeId = typeof result.node_id === 'string' ? result.node_id : undefined
     posted++
   } catch {
     fallback.push(`**${f.file}:${f.line}** — ${f.body}`)
   }
 }
+
+// Write enriched findings (with nodeId) back for artifact upload + resolveThreads
+writeFileSync('/tmp/review-findings.json', JSON.stringify(findings, null, 2))
 
 if (fallback.length > 0) {
   const extra = fallback.map((s) => `- ${s}`).join('\n')

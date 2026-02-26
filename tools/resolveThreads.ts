@@ -6,19 +6,26 @@
  * Exit 0 on success, 1 on error.
  */
 import { existsSync, readFileSync } from 'node:fs'
-import { buildPositionMap } from './postInlineComments'
+import { buildPositionMap, getTouchedFiles } from './diffUtils'
 
 interface Finding {
   file: string
   line: number
   body: string
-  databaseId?: number
+  nodeId?: string // GitHub global node_id captured by postInlineComments.ts
 }
 
 /**
- * A finding is verified-fixed when its file:line no longer appears as a changed line in the current diff.
+ * A finding is verified-fixed when its file was touched in the current diff
+ * AND its file:line no longer appears as a changed/context line in the position map.
+ * If the file was not touched at all, we cannot determine fix status — return false
+ * to prevent false positives from untouched files.
  */
 export function isVerifiedFixed(finding: Finding, currentDiff: string): boolean {
+  const touchedFiles = getTouchedFiles(currentDiff)
+  if (!touchedFiles.has(finding.file)) {
+    return false // file not touched → cannot determine fix status
+  }
   const posMap = buildPositionMap(currentDiff)
   return !posMap.has(`${finding.file}:${finding.line}`)
 }
@@ -55,9 +62,9 @@ const remaining: Finding[] = []
 for (const prior of priorFindings) {
   if (isVerifiedFixed(prior, diff)) {
     fixed.push(prior)
-    if (prior.databaseId) {
+    if (prior.nodeId) {
       try {
-        await Bun.$`gh api graphql -f query=${`mutation { minimizeComment(input: {subjectId: "${prior.databaseId}", classifier: RESOLVED}) { minimizedComment { isMinimized } } }`}`.quiet()
+        await Bun.$`gh api graphql -f query=${`mutation { minimizeComment(input: {subjectId: "${prior.nodeId}", classifier: RESOLVED}) { minimizedComment { isMinimized } } }`}`.quiet()
       } catch {
         // non-fatal — thread resolution best-effort
       }

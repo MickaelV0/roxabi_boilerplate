@@ -21,7 +21,7 @@ jobs:
   review:
     name: Automated Review
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     if: github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@v6
@@ -30,6 +30,14 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: node_modules
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -43,7 +51,7 @@ jobs:
           LINES=$(gh pr diff "$PR_NUMBER" | wc -l)
           if [ "$LINES" -gt 2000 ]; then
             gh pr comment "$PR_NUMBER" \
-              --body "<!-- reviewed-by-bot -->⚠️ PR too large for automated review (${LINES} diff lines > 2000). Run \`/review\` manually."
+              --body "<!-- review-skipped-by-bot -->⚠️ PR too large for automated review (${LINES} diff lines > 2000). Run \`/review\` manually."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
         env:
@@ -57,6 +65,7 @@ jobs:
           bun run tools/buildPrContext.ts "$PR_NUMBER"
           PRIOR=$(jq -r '.priorReviewFound' /tmp/pr-context.json)
           HEAD_SHA=$(jq -r '.headSha' /tmp/pr-context.json)
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid HEAD_SHA: $HEAD_SHA"; exit 1; }
           echo "prior_review=$PRIOR" >> "$GITHUB_OUTPUT"
           echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
         env:
@@ -65,7 +74,7 @@ jobs:
 
       - name: Download prior findings artifact
         if: steps.preflight.outputs.skip != 'true' && steps.context.outputs.prior_review == 'true'
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v7  # v7 can read v6 artifacts — matches ci.yml pattern
         with:
           name: review-findings-${{ github.event.pull_request.number }}
           path: /tmp/prior-findings/
@@ -75,7 +84,8 @@ jobs:
         if: steps.preflight.outputs.skip != 'true' && steps.context.outputs.prior_review != 'true'
         id: review-first
         run: |
-          claude --print --permission-mode bypassPermissions \
+          claude --print \
+            --allowedTools 'Bash(gh pr comment:*),Bash(gh api:*),Bash(gh pr view:*),Bash(gh pr diff:*),Read,Write' \
             --model claude-sonnet-4-6 \
             "/review #${PR_NUMBER}
           IMPORTANT: Stop after Phase 6 (post the PR comment). Do NOT call AskUserQuestion or proceed to Phase 8."
@@ -92,7 +102,8 @@ jobs:
           if [ -f "/tmp/prior-findings/review-findings.json" ]; then
             PRIOR_PATH="/tmp/prior-findings/review-findings.json"
           fi
-          claude --print --permission-mode bypassPermissions \
+          claude --print \
+            --allowedTools 'Bash(gh pr comment:*),Bash(gh api:*),Bash(gh pr view:*),Bash(gh pr diff:*),Read,Write' \
             --model claude-sonnet-4-6 \
             "/review #${PR_NUMBER}
           Follow-up mode: this PR was previously reviewed.${PRIOR_PATH:+ Prior findings available at $PRIOR_PATH.}
@@ -102,6 +113,18 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+
+      - name: Post review markers (deterministic)
+        if: steps.preflight.outputs.skip != 'true' && (steps.review-first.outcome == 'success' || steps.review-followup.outcome == 'success')
+        run: |
+          gh pr comment "$PR_NUMBER" \
+            --body "<!-- reviewed-by-bot -->
+<!-- review-sha: $HEAD_SHA -->
+_Automated review posted. See review comment above._"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ steps.context.outputs.head_sha }}
 
       - name: Post inline comments
         if: steps.preflight.outputs.skip != 'true'
@@ -130,7 +153,7 @@ jobs:
         if: failure()
         run: |
           gh pr comment "$PR_NUMBER" \
-            --body "<!-- reviewed-by-bot -->⚠️ Automated review failed. Please run \`/review\` manually or check [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+            --body "<!-- review-failed-by-bot -->⚠️ Automated review failed. Please run \`/review\` manually or check [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}

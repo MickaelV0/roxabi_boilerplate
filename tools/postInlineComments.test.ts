@@ -1,17 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
+import { stubBun } from './__tests__/stubBun.js'
 
 // ─── Stub Bun global ──────────────────────────────────────────────────────
-// postInlineComments.ts uses Bun.$ as a global template literal for shell
-// commands. Vitest runs under Node.js where Bun is undefined. We inject a
-// fake Bun.$ into globalThis before importing so that top-level script code
-// does not throw.
-const bunShellResult = {
-  text: vi.fn().mockResolvedValue(''),
-  json: vi.fn().mockResolvedValue([]),
-  quiet: vi.fn().mockResolvedValue({}),
-}
-const bunShellTag = Object.assign(vi.fn().mockReturnValue(bunShellResult), bunShellResult)
-;(globalThis as Record<string, unknown>).Bun = { $: bunShellTag }
+// postInlineComments.ts uses Bun.$ as a global template literal for shell commands.
+// Vitest runs under Node.js where Bun is undefined — inject via shared helper.
+stubBun()
 
 // Stub argv (pr-number + head-sha) and mock exit to prevent real termination.
 vi.spyOn(process, 'exit').mockImplementation((() => {}) as never)

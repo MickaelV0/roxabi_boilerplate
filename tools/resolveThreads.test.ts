@@ -1,20 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
+import { stubBun } from './__tests__/stubBun.js'
 
 // ─── Stub Bun global ──────────────────────────────────────────────────────
-// resolveThreads.ts and its imported postInlineComments.ts use Bun.$ as a
-// global template literal for shell commands. Vitest runs under Node.js where
-// Bun is undefined. We inject a fake Bun.$ into globalThis before importing.
-const bunShellResult = {
-  text: vi.fn().mockResolvedValue(''),
-  json: vi.fn().mockResolvedValue([]),
-  quiet: vi.fn().mockResolvedValue({}),
-}
-const bunShellTag = Object.assign(vi.fn().mockReturnValue(bunShellResult), bunShellResult)
-;(globalThis as Record<string, unknown>).Bun = { $: bunShellTag }
+// resolveThreads.ts uses Bun.$ as a global template literal for shell commands.
+// (No longer imports from postInlineComments.ts — diffUtils.ts is side-effect free.)
+stubBun()
 
-// Stub argv + exit; postInlineComments also checks argv[2] and argv[3].
+// Stub argv + exit; resolveThreads.ts only checks argv[2] (PR number).
 vi.spyOn(process, 'exit').mockImplementation((() => {}) as never)
-process.argv = ['bun', 'resolveThreads.ts', '42', 'abc123def456']
+process.argv = ['bun', 'resolveThreads.ts', '42']
 
 // existsSync returns false so the script takes the "no prior findings" early
 // exit path and does not attempt any real API calls.
@@ -70,12 +64,14 @@ describe('isVerifiedFixed — verified-fixed detection', () => {
     expect(isVerifiedFixed(finding, DIFF_WITH_CHANGES)).toBe(false)
   })
 
-  it('returns true when file is not in diff at all', () => {
-    // Arrange — src/other.ts does not appear in DIFF_WITH_CHANGES
+  it('returns false when file is not in diff at all (untouched file cannot be verified fixed)', () => {
+    // Arrange — src/other.ts does not appear in DIFF_WITH_CHANGES at all.
+    // We cannot know whether the finding was addressed; returning false prevents
+    // a false-positive auto-resolve for files not included in this push.
     const finding = { file: 'src/other.ts', line: 1, body: 'test finding' }
 
     // Act / Assert
-    expect(isVerifiedFixed(finding, DIFF_WITH_CHANGES)).toBe(true)
+    expect(isVerifiedFixed(finding, DIFF_WITH_CHANGES)).toBe(false)
   })
 
   it('returns false for finding on context line present in diff', () => {
@@ -90,12 +86,13 @@ describe('isVerifiedFixed — verified-fixed detection', () => {
 // ─── isVerifiedFixed — edge cases ────────────────────────────────────────
 
 describe('isVerifiedFixed — edge cases', () => {
-  it('handles empty diff (all findings treated as verified fixed)', () => {
-    // Arrange
+  it('handles empty diff (no touched files → finding cannot be verified fixed)', () => {
+    // Arrange — empty diff means no files were touched in this push.
+    // The finding is not resolved; returning false prevents false-positive auto-resolve.
     const finding = { file: 'src/foo.ts', line: 10, body: 'test' }
 
     // Act / Assert
-    expect(isVerifiedFixed(finding, '')).toBe(true)
+    expect(isVerifiedFixed(finding, '')).toBe(false)
   })
 
   it('returns true when finding line falls outside all diff hunks', () => {

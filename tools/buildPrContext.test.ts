@@ -1,21 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
+import { stubBun } from './__tests__/stubBun.js'
 
 // ─── Stub Bun global ──────────────────────────────────────────────────────
-// buildPrContext.ts uses Bun.$ as a global template literal for shell commands.
-// Vitest runs under Node.js where Bun is undefined. We inject a fake Bun.$
-// into globalThis before importing the module so the top-level script code
-// does not throw. json() alternates: first call returns a PR-like object
-// (needs .head.sha), second returns an empty array (comments, needs Array.find).
-const bunShellResult = {
-  text: vi.fn().mockResolvedValue(''),
-  json: vi
+// buildPrContext.ts calls json() twice in sequence: first call returns a PR
+// object (needs .head.sha), second returns an empty array (comments, needs
+// Array.find). Pass a custom json mock to stubBun() for this ordering.
+stubBun(
+  vi
     .fn()
     .mockResolvedValueOnce({ head: { sha: 'abc123def456' } })
-    .mockResolvedValueOnce([]),
-  quiet: vi.fn().mockResolvedValue({}),
-}
-const bunShellTag = Object.assign(vi.fn().mockReturnValue(bunShellResult), bunShellResult)
-;(globalThis as Record<string, unknown>).Bun = { $: bunShellTag }
+    .mockResolvedValueOnce([])
+)
 
 // Stub process.argv so the PR-number guard passes; mock exit so it never fires.
 vi.spyOn(process, 'exit').mockImplementation((() => {}) as never)
@@ -109,8 +104,9 @@ describe('parsePriorReview — no marker / edge cases', () => {
     expect(result.priorReviewCommentId).toBeNull()
   })
 
-  it('uses the first matching comment when multiple bot comments exist', () => {
-    // Arrange — Array.find returns the first match
+  it('uses the last matching comment when multiple bot comments exist', () => {
+    // Arrange — Array.findLast returns the last match; the deterministic marker step
+    // is always posted after Claude's review comment, so it takes priority.
     const comments = [
       { id: 10, body: '<!-- reviewed-by-bot -->\n<!-- review-sha: aaa111 -->' },
       { id: 20, body: '<!-- reviewed-by-bot -->\n<!-- review-sha: bbb222 -->' },
@@ -120,8 +116,8 @@ describe('parsePriorReview — no marker / edge cases', () => {
     const result = parsePriorReview(comments)
 
     // Assert
-    expect(result.priorReviewCommentId).toBe(10)
-    expect(result.priorReviewCommitSha).toBe('aaa111')
+    expect(result.priorReviewCommentId).toBe(20)
+    expect(result.priorReviewCommitSha).toBe('bbb222')
   })
 
   it('ignores non-bot comments before the bot comment', () => {
