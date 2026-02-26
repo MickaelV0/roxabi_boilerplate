@@ -131,7 +131,7 @@ export async function fetchPRs(): Promise<PR[]> {
       '--state',
       'open',
       '--json',
-      'number,title,headRefName,state,isDraft,url,author,updatedAt,additions,deletions,reviewDecision,labels',
+      'number,title,headRefName,state,isDraft,url,author,updatedAt,additions,deletions,reviewDecision,labels,mergeable',
     ])
     if (!out) return []
     return JSON.parse(out).map((pr: Record<string, unknown>) => ({
@@ -147,6 +147,7 @@ export async function fetchPRs(): Promise<PR[]> {
       deletions: pr.deletions ?? 0,
       reviewDecision: pr.reviewDecision ?? '',
       labels: ((pr.labels as { name: string }[]) ?? []).map((l) => l.name),
+      mergeable: (pr.mergeable as string) ?? 'UNKNOWN',
     }))
   } catch {
     return []
