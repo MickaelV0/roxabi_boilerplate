@@ -320,6 +320,11 @@ jobs:
         contains(github.event.pull_request.labels.*.name, 'e2e') ||
         needs.detect-changes.outputs.e2e == 'true'
       )
+    env:
+      # E2E needs DATABASE_URL for full-stack tests (auth, dashboard).
+      # When not set, the API starts without a DB and auth tests fail gracefully.
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6

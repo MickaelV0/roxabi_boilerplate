@@ -1,6 +1,8 @@
 import type { PlaywrightTestConfig } from '@playwright/test'
 import { devices } from '@playwright/test'
 
+const hasDatabase = Boolean(process.env.DATABASE_URL)
+
 /**
  * Base Playwright configuration for the monorepo.
  *
@@ -8,12 +10,13 @@ import { devices } from '@playwright/test'
  * It must be consumed from a config file at the repo root (e.g., playwright.config.ts).
  * Importing from a non-root config file will cause path resolution errors.
  *
- * Full-stack E2E: Both web (3000) and API (4000) servers are started.
+ * Full-stack E2E: Both web (3000) and API (4000) servers are started when DATABASE_URL is set.
  * - Local dev: `bun run dev` starts both services
- * - CI: Built web app + API server run separately
+ * - CI with DATABASE_URL: Both servers + DB migration/seed
+ * - CI without DATABASE_URL: Frontend-only (landing page tests)
  */
 export const basePlaywrightConfig: PlaywrightTestConfig = {
-  globalSetup: './apps/web/e2e/globalSetup.ts',
+  globalSetup: hasDatabase ? './apps/web/e2e/globalSetup.ts' : undefined,
   testDir: './apps/web/e2e',
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
@@ -45,22 +48,22 @@ export const basePlaywrightConfig: PlaywrightTestConfig = {
   ],
   webServer: [
     {
-      // Web server (frontend)
+      // Web server (frontend) — always started
       command: process.env.CI ? 'node apps/web/.output/server/index.mjs' : 'bun run dev',
       url: 'http://localhost:3000',
       reuseExistingServer: !process.env.CI,
       timeout: 120000,
     },
-    {
-      // API server (backend) — for full-stack E2E tests
-      // Only start in CI or if explicitly requested (local dev uses 'bun run dev')
-      command: process.env.CI ? 'node apps/api/dist/index.js' : 'bun run --cwd apps/api dev',
-      url: 'http://localhost:4000/health',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120000,
-      env: {
-        NODE_ENV: process.env.CI ? 'production' : 'development',
-      },
-    },
+    // API server — requires DATABASE_URL (local dev always has it via .env)
+    ...(hasDatabase || !process.env.CI
+      ? [
+          {
+            command: process.env.CI ? 'node apps/api/dist/index.js' : 'bun run --cwd apps/api dev',
+            url: 'http://localhost:4000/health',
+            reuseExistingServer: !process.env.CI,
+            timeout: 120000,
+          },
+        ]
+      : []),
   ],
 }

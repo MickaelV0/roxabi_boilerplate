@@ -3,7 +3,12 @@ import { AuthPage } from './auth.page'
 import { DashboardPage } from './dashboard.page'
 import { TEST_USER } from './testHelpers'
 
+const hasApi = Boolean(process.env.DATABASE_URL) || !process.env.CI
+
 test.describe('Dashboard Navigation', () => {
+  // Dashboard tests require the API server (needs DATABASE_URL)
+  test.skip(() => !hasApi, 'Skipped: no DATABASE_URL in CI')
+
   test.beforeEach(async ({ page }) => {
     // Arrange: Login before each test
     const auth = new AuthPage(page)
