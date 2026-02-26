@@ -1,10 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Mock Bun.spawn before importing the module
+// Mock fetch and Bun.spawn/spawnSync before importing the module
+const mockFetch = vi.fn()
 const mockSpawn = vi.fn()
+const mockSpawnSync = vi.fn()
+vi.stubGlobal('fetch', mockFetch)
 vi.stubGlobal('Bun', {
   spawn: mockSpawn,
+  spawnSync: mockSpawnSync,
 })
+
+// Set GITHUB_TOKEN for tests
+process.env.GITHUB_TOKEN = 'test-token'
 
 const { ghGraphQL, run } = await import('../github')
 
@@ -31,6 +38,7 @@ function mockProcess(stdout: string, stderr = '', exitCode = 0) {
 describe('shared/github', () => {
   beforeEach(() => {
     mockSpawn.mockReset()
+    mockFetch.mockReset()
   })
 
   afterEach(() => {
@@ -55,36 +63,60 @@ describe('shared/github', () => {
 
     it('throws on non-zero exit code', async () => {
       mockSpawn.mockReturnValue(mockProcess('', 'not found', 1))
-      await expect(run(['gh', 'issue', 'create'])).rejects.toThrow('Command failed (1)')
+      await expect(run(['git', 'branch'])).rejects.toThrow('Command failed (1)')
     })
   })
 
   describe('ghGraphQL', () => {
-    it('builds correct gh api graphql args', async () => {
-      mockSpawn.mockReturnValue(mockProcess('{"data":{}}'))
+    it('calls GitHub GraphQL API with correct headers', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ data: {} }),
+      })
       await ghGraphQL('query { viewer { login } }', { owner: 'test' })
-      const args = mockSpawn.mock.calls[0][0]
-      expect(args).toContain('gh')
-      expect(args).toContain('api')
-      expect(args).toContain('graphql')
-      expect(args).toContain('-f')
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.github.com/graphql',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        })
+      )
     })
 
-    it('uses -F for number variables', async () => {
-      mockSpawn.mockReturnValue(mockProcess('{"data":{}}'))
+    it('passes variables in request body', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ data: {} }),
+      })
       await ghGraphQL('query { issue(number: $number) { id } }', { number: 42 })
-      const args = mockSpawn.mock.calls[0][0]
-      expect(args).toContain('-F')
-      expect(args).toContain('number=42')
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+      expect(body.variables.number).toBe(42)
     })
 
-    it('throws on non-zero exit code', async () => {
-      mockSpawn.mockReturnValue(mockProcess('', 'auth error', 1))
-      await expect(ghGraphQL('query {}', {})).rejects.toThrow('gh api graphql failed')
+    it('throws on HTTP error', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 401,
+        text: () => Promise.resolve('Unauthorized'),
+      })
+      await expect(ghGraphQL('query {}', {})).rejects.toThrow('GitHub GraphQL error (401)')
+    })
+
+    it('throws on GraphQL errors', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ errors: [{ message: 'Not found' }] }),
+      })
+      await expect(ghGraphQL('query {}', {})).rejects.toThrow('GitHub GraphQL error')
     })
 
     it('parses JSON response', async () => {
-      mockSpawn.mockReturnValue(mockProcess('{"data":{"viewer":{"login":"test"}}}'))
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ data: { viewer: { login: 'test' } } }),
+      })
       const result = (await ghGraphQL('query { viewer { login } }', {})) as {
         data: { viewer: { login: string } }
       }
