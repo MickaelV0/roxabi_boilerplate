@@ -15,6 +15,7 @@ export const getRouter = () => {
     routeTree,
     context: {
       ...rqContext,
+      session: null,
     },
 
     // Paraglide URL rewrite docs: https://github.com/TanStack/router/tree/main/examples/react/i18n-paraglide#rewrite-url

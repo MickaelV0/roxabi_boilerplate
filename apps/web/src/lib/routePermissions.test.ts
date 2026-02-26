@@ -10,6 +10,7 @@ globalThis.fetch = mockFetch
 
 const mockUseRouter = vi.fn()
 const mockUseQuery = vi.fn()
+const mockGetRequestHeader = vi.fn()
 
 vi.mock('@tanstack/react-router', () => ({
   redirect: (opts: { to: string }) => new Error(`REDIRECT:${opts.to}`),
@@ -20,35 +21,26 @@ vi.mock('@tanstack/react-query', () => ({
   useQuery: (...args: unknown[]) => mockUseQuery(...args),
 }))
 
+vi.mock('@tanstack/react-start', () => ({
+  createServerFn: () => ({
+    handler: (fn: (...args: unknown[]) => unknown) => fn,
+  }),
+}))
+
+vi.mock('@tanstack/react-start/server', () => ({
+  getRequestHeader: (...args: unknown[]) => mockGetRequestHeader(...args),
+}))
+
+vi.mock('./env.server.js', () => ({
+  env: { API_URL: 'http://localhost:4000' },
+}))
+
 // Import after mocks are set up
 import { enforceRoutePermission, useCanAccess } from './routePermissions'
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/** Helper: create a mock Response returning JSON for the enriched session endpoint. */
-function jsonResponse(body: unknown, status = 200) {
-  return Promise.resolve({
-    ok: status >= 200 && status < 300,
-    status,
-    json: () => Promise.resolve(body),
-  })
-}
-
-/** Helper: build a beforeLoad context with a matching route and optional permission. */
-function createBeforeLoadCtx(permission?: string) {
-  const routeId = '/admin/test'
-  return {
-    routeId,
-    matches: [
-      {
-        routeId,
-        staticData: permission ? { permission } : {},
-      },
-    ],
-  }
-}
 
 /** Helper: create an enriched session object. */
 function createSession(
@@ -65,6 +57,24 @@ function createSession(
     },
     session: {},
     permissions: overrides.permissions ?? [],
+  }
+}
+
+/** Helper: build a beforeLoad context with session in context + optional permission. */
+function createBeforeLoadCtx(
+  permission?: string,
+  session: ReturnType<typeof createSession> | null = null
+) {
+  const routeId = '/admin/test'
+  return {
+    routeId,
+    matches: [
+      {
+        routeId,
+        staticData: permission ? { permission } : {},
+      },
+    ],
+    context: { session },
   }
 }
 
@@ -85,10 +95,6 @@ function setupUseQuery(data: ReturnType<typeof createSession> | null | undefined
 // ---------------------------------------------------------------------------
 
 describe('enforceRoutePermission', () => {
-  beforeEach(() => {
-    mockFetch.mockReset()
-  })
-
   it('should return early when no permission is defined in staticData', async () => {
     // Arrange
     const ctx = createBeforeLoadCtx()
@@ -98,30 +104,11 @@ describe('enforceRoutePermission', () => {
 
     // Assert
     expect(result).toBeUndefined()
-    expect(mockFetch).not.toHaveBeenCalled()
   })
 
-  it('should return early during SSR (typeof window === "undefined")', async () => {
+  it('should throw redirect to /login when session is null in context', async () => {
     // Arrange
-    const ctx = createBeforeLoadCtx('role:superadmin')
-    const originalWindow = globalThis.window
-    delete (globalThis as Record<string, unknown>).window
-
-    // Act
-    const result = await enforceRoutePermission(ctx)
-
-    // Assert
-    expect(result).toBeUndefined()
-    expect(mockFetch).not.toHaveBeenCalled()
-
-    // Cleanup
-    globalThis.window = originalWindow
-  })
-
-  it('should throw redirect to /login when no session is available', async () => {
-    // Arrange
-    const ctx = createBeforeLoadCtx('role:superadmin')
-    mockFetch.mockReturnValueOnce(jsonResponse(null, 401))
+    const ctx = createBeforeLoadCtx('role:superadmin', null)
 
     // Act & Assert
     await expect(enforceRoutePermission(ctx)).rejects.toThrow('REDIRECT:/login')
@@ -129,8 +116,7 @@ describe('enforceRoutePermission', () => {
 
   it('should allow superadmin for role:superadmin permission', async () => {
     // Arrange
-    const ctx = createBeforeLoadCtx('role:superadmin')
-    mockFetch.mockReturnValueOnce(jsonResponse(createSession({ role: 'superadmin' })))
+    const ctx = createBeforeLoadCtx('role:superadmin', createSession({ role: 'superadmin' }))
 
     // Act & Assert
     await expect(enforceRoutePermission(ctx)).resolves.toBeUndefined()
@@ -138,8 +124,7 @@ describe('enforceRoutePermission', () => {
 
   it('should throw redirect to /admin when user does not have the required role', async () => {
     // Arrange
-    const ctx = createBeforeLoadCtx('role:superadmin')
-    mockFetch.mockReturnValueOnce(jsonResponse(createSession({ role: 'member' })))
+    const ctx = createBeforeLoadCtx('role:superadmin', createSession({ role: 'member' }))
 
     // Act & Assert
     await expect(enforceRoutePermission(ctx)).rejects.toThrow('REDIRECT:/admin')
@@ -147,9 +132,9 @@ describe('enforceRoutePermission', () => {
 
   it('should allow user with correct permission string (e.g. members:write)', async () => {
     // Arrange
-    const ctx = createBeforeLoadCtx('members:write')
-    mockFetch.mockReturnValueOnce(
-      jsonResponse(createSession({ role: 'member', permissions: ['members:write'] }))
+    const ctx = createBeforeLoadCtx(
+      'members:write',
+      createSession({ role: 'member', permissions: ['members:write'] })
     )
 
     // Act & Assert
@@ -158,38 +143,20 @@ describe('enforceRoutePermission', () => {
 
   it('should allow superadmin even for non-role permissions (bypass)', async () => {
     // Arrange
-    const ctx = createBeforeLoadCtx('members:write')
-    mockFetch.mockReturnValueOnce(
-      jsonResponse(createSession({ role: 'superadmin', permissions: [] }))
+    const ctx = createBeforeLoadCtx(
+      'members:write',
+      createSession({ role: 'superadmin', permissions: [] })
     )
 
     // Act & Assert
     await expect(enforceRoutePermission(ctx)).resolves.toBeUndefined()
   })
 
-  it('should throw redirect to /login when response body fails type guard', async () => {
-    // Arrange
-    const ctx = createBeforeLoadCtx('role:superadmin')
-    mockFetch.mockReturnValueOnce(jsonResponse({ invalid: true }))
-
-    // Act & Assert
-    await expect(enforceRoutePermission(ctx)).rejects.toThrow('REDIRECT:/login')
-  })
-
-  it('should throw redirect to /login when fetch throws a network error', async () => {
-    // Arrange
-    const ctx = createBeforeLoadCtx('role:superadmin')
-    mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'))
-
-    // Act & Assert
-    await expect(enforceRoutePermission(ctx)).rejects.toThrow('REDIRECT:/login')
-  })
-
   it('should throw redirect to /dashboard when user lacks org permission', async () => {
     // Arrange
-    const ctx = createBeforeLoadCtx('members:write')
-    mockFetch.mockReturnValueOnce(
-      jsonResponse(createSession({ role: 'member', permissions: ['members:read'] }))
+    const ctx = createBeforeLoadCtx(
+      'members:write',
+      createSession({ role: 'member', permissions: ['members:read'] })
     )
 
     // Act & Assert
