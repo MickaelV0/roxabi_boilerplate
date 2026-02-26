@@ -16,7 +16,7 @@ flowchart LR
 
 | Tier | Name | Criteria | `/dev #N` phases |
 |------|------|----------|-----------------|
-| **S** | Quick Fix | &lt;=3 files, no arch, no risk | triage → implement → pr → validate → review |
+| **S** | Quick Fix | &lt;=3 files, no arch, no risk | triage → implement → pr → validate → review → fix* → promote* → cleanup* |
 | **F-lite** | Feature (lite) | Clear scope, documented requirements, single domain | frame → spec → plan → implement → verify → ship |
 | **F-full** | Feature (full) | New arch concepts, unclear requirements, or >2 domain boundaries | frame → analyze → spec → plan → implement → verify → ship |
 
