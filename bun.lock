@@ -92,6 +92,8 @@
         "@radix-ui/react-slot": "^1.2.0",
         "@repo/types": "workspace:*",
         "@repo/ui": "workspace:*",
+        "@shikijs/langs": "^3.23.0",
+        "@shikijs/themes": "^3.23.0",
         "@tailwindcss/vite": "^4.0.6",
         "@tanstack/match-sorter-utils": "^8.19.4",
         "@tanstack/react-devtools": "^0.9.6",
