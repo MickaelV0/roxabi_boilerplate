@@ -204,7 +204,7 @@ Guards no longer fetch the session independently. Instead, the root route (`__ro
 - **During SSR:** the server function executes inline, forwarding cookies via `getRequestHeader`. No client round-trip occurs.
 - **During client-side navigation:** the server function runs as an RPC call.
 
-The session is returned from root `beforeLoad` and merged into TanStack Router's context (`MyRouterContext`). All child route guards simply read `ctx.context.session` — zero additional API calls, and no `typeof window === 'undefined'` bypass. Auth is enforced identically on SSR and in the browser.
+The session is returned from root `beforeLoad` and merged into TanStack Router's context (`MyRouterContext`). All child route guards simply read `ctx.context.session` — zero additional API calls and no SSR environment checks. Auth is enforced identically on SSR and in the browser.
 
 ```ts
 // router.tsx — initial context
