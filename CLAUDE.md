@@ -128,6 +128,9 @@ MUST read [code-review.mdx](docs/standards/code-review.mdx). Conventional Commen
 Skills: always use appropriate skill. Defs → `.claude/skills/*/SKILL.md`.
 Agents: rules → [AGENTS.md](AGENTS.md). Defs → `.claude/agents/*.md`. Guide → [agent-teams.mdx](docs/guides/agent-teams.mdx).
 
+**Agent models:** Sonnet = frontend-dev, backend-dev, devops, doc-writer, fixer, tester. Opus (inherited) = architect, product-lead, security-auditor.
+**Spawns:** Explore/research tasks → `model: "haiku"`. Simple mechanical tasks (grep, summarize, single-line fix) → `model: "haiku"`. Code generation, review, architecture → Sonnet/Opus (agent defaults).
+
 **Workflow skills (via `/dev #N` or standalone):** `dev` (orchestrator) | `frame` | `analyze` | `spec` | `plan` | `implement` | `fix`
 
 **Shared agent rules:** ¬commit/push (lead handles git) | ¬force/hard/amend | stage specific files only | escalate blockers → lead | claim tasks from shared list | create follow-up tasks | security → lead + security-auditor | message lead on completion.
