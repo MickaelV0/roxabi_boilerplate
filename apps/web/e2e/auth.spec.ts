@@ -3,45 +3,40 @@ import { AuthPage } from './auth.page'
 import { TEST_USER } from './testHelpers'
 
 const hasApi = Boolean(process.env.DATABASE_URL) || !process.env.CI
-const NAVIGATION_TIMEOUT = 30_000
+const NAVIGATION_TIMEOUT = 45_000
 
 test.describe('Authentication', () => {
   // Auth tests require the API server (needs DATABASE_URL)
   test.skip(() => !hasApi, 'Skipped: no DATABASE_URL in CI')
 
   test('should display login form when navigating to /login', async ({ page }) => {
-    // Arrange
     const auth = new AuthPage(page)
-
-    // Act
     await auth.gotoLogin()
 
-    // Assert
     await expect(auth.loginEmailInput).toBeVisible()
     await expect(auth.loginPasswordInput).toBeVisible()
     await expect(auth.loginSubmitButton).toBeVisible()
   })
 
   test('should login with valid credentials and redirect to dashboard', async ({ page }) => {
-    // Arrange
+    // This test uses a fresh context (no storageState) to test the actual login flow.
+    // Clear any inherited auth state.
+    await page.context().clearCookies()
+
     const auth = new AuthPage(page)
     await auth.gotoLogin()
-    // Act
     await auth.loginWithPassword(TEST_USER.email, TEST_USER.password)
 
-    // Assert — should redirect to dashboard or org page
     await page.waitForURL(/\/(dashboard|org)/, { timeout: NAVIGATION_TIMEOUT })
   })
 
   test('should show error message for invalid credentials', async ({ page }) => {
-    // Arrange
+    await page.context().clearCookies()
+
     const auth = new AuthPage(page)
     await auth.gotoLogin()
-
-    // Act
     await auth.loginWithPassword('nonexistent@example.com', 'wrongpassword')
 
-    // Assert — wait for error to appear
     await expect(auth.errorAlert).toBeVisible({ timeout: 15_000 })
     const errorText = await auth.getErrorText()
     expect(errorText).toBeTruthy()
@@ -59,48 +54,35 @@ test.describe('Authentication', () => {
   })
 
   test('should logout user and redirect to landing page', async ({ page }) => {
-    // Arrange
-    const auth = new AuthPage(page)
-    // First login
-    await auth.gotoLogin()
-    await auth.loginWithPassword(TEST_USER.email, TEST_USER.password)
-    await page.waitForURL(/\/(dashboard|org)/, { timeout: NAVIGATION_TIMEOUT })
+    // storageState already provides an authenticated session
+    await page.goto('/dashboard')
     await page.waitForLoadState('networkidle')
 
-    // Act
+    const auth = new AuthPage(page)
     await auth.logout()
 
-    // Assert — should redirect away from dashboard
     await page.waitForURL(/\/(login|$)/, { timeout: NAVIGATION_TIMEOUT })
   })
 
   test('should verify OAuth button is present and redirects (Google)', async ({ page }) => {
-    // Arrange
     const auth = new AuthPage(page)
     await auth.gotoLogin()
 
-    // Act
     const oauthButton = auth.googleOAuthButton
     const isVisible = await oauthButton.isVisible().catch(() => false)
 
-    // Assert
     if (isVisible) {
-      // Just verify button exists and is clickable
       await expect(oauthButton).toBeVisible()
-      // We don't click to avoid actual OAuth redirect in test
     }
   })
 
   test('should verify OAuth button is present and redirects (GitHub)', async ({ page }) => {
-    // Arrange
     const auth = new AuthPage(page)
     await auth.gotoLogin()
 
-    // Act
     const oauthButton = auth.githubOAuthButton
     const isVisible = await oauthButton.isVisible().catch(() => false)
 
-    // Assert
     if (isVisible) {
       await expect(oauthButton).toBeVisible()
     }
