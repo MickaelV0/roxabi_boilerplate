@@ -37,7 +37,13 @@ function computeHash(
       i.blockStatus,
       i.children.length,
     ]),
-    p: prs.map((p) => [p.number, p.isDraft, p.reviewDecision, p.updatedAt]),
+    p: prs.map((p) => [
+      p.number,
+      p.isDraft,
+      p.reviewDecision,
+      p.updatedAt,
+      p.checks.map((c) => [c.name, c.status, c.conclusion]),
+    ]),
     b: branches.length,
     w: worktrees.length,
   })

@@ -136,6 +136,12 @@ ${LIVE_STYLES}
   <div id="toast" class="toast"></div>
 
   <script>
+  function toggleCI(prNum) {
+    var row = document.getElementById('ci-' + prNum);
+    if (!row) return;
+    row.style.display = row.style.display === 'none' ? '' : 'none';
+  }
+
   (function() {
     var ctxMenu = document.getElementById('ctx-menu');
     var ctxNum = document.getElementById('ctx-issue-num');
@@ -257,6 +263,12 @@ ${LIVE_STYLES}
       // Preserve show/hide state of hidden issues
       var hiddenVisible = document.getElementById('hidden-issues').style.display !== 'none';
 
+      // Preserve CI expand/collapse state
+      var expandedCIs = [];
+      document.querySelectorAll('.ci-details-row').forEach(function(row) {
+        if (row.style.display !== 'none') expandedCIs.push(row.id);
+      });
+
       // Patch issue tables
       var selectors = ['#issues-visible', '#hidden-issues', '#section-prs', '#section-graph', '#section-branches', '#issue-count', '#fetch-time'];
       for (var s = 0; s < selectors.length; s++) {
@@ -277,6 +289,12 @@ ${LIVE_STYLES}
         if (showMoreRow) showMoreRow.style.display = 'none';
         var showLessRow = document.getElementById('show-less-row');
         if (showLessRow) showLessRow.style.display = '';
+      }
+
+      // Restore CI expand/collapse state
+      for (var ci = 0; ci < expandedCIs.length; ci++) {
+        var ciRow = document.getElementById(expandedCIs[ci]);
+        if (ciRow) ciRow.style.display = '';
       }
 
       // Update timestamp

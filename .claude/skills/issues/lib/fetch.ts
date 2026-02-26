@@ -1,8 +1,8 @@
-import { PROJECT_ID } from '../../shared/config'
+import { GITHUB_REPO, PROJECT_ID } from '../../shared/config'
 import { ghGraphQL, run } from '../../shared/github'
-import { ISSUES_QUERY } from '../../shared/queries'
+import { ISSUES_QUERY, PRS_QUERY } from '../../shared/queries'
 import type { RawItem } from '../../shared/types'
-import type { Branch, Issue, PR, Worktree } from './types'
+import type { Branch, CICheck, Issue, PR, Worktree } from './types'
 
 async function fetchPage(
   cursor?: string
@@ -122,33 +122,76 @@ export async function fetchIssues(): Promise<Issue[]> {
 
 export { run }
 
+interface RawCheckNode {
+  __typename?: string
+  name?: string
+  context?: string
+  status?: string
+  state?: string
+  conclusion?: string
+  detailsUrl?: string
+  targetUrl?: string
+}
+
+interface RawPRNode {
+  number: number
+  title: string
+  headRefName: string
+  state: string
+  isDraft: boolean
+  url: string
+  author: { login: string } | null
+  updatedAt: string
+  additions: number
+  deletions: number
+  reviewDecision: string | null
+  labels: { nodes: { name: string }[] }
+  mergeable: string
+  commits: {
+    nodes: {
+      commit: {
+        statusCheckRollup: {
+          contexts: { nodes: RawCheckNode[] }
+        } | null
+      }
+    }[]
+  }
+}
+
 export async function fetchPRs(): Promise<PR[]> {
   try {
-    const out = await run([
-      'gh',
-      'pr',
-      'list',
-      '--state',
-      'open',
-      '--json',
-      'number,title,headRefName,state,isDraft,url,author,updatedAt,additions,deletions,reviewDecision,labels,mergeable',
-    ])
-    if (!out) return []
-    return JSON.parse(out).map((pr: Record<string, unknown>) => ({
-      number: pr.number,
-      title: pr.title,
-      branch: pr.headRefName,
-      state: pr.state,
-      isDraft: pr.isDraft,
-      url: pr.url,
-      author: (pr.author as Record<string, string>)?.login ?? '',
-      updatedAt: pr.updatedAt,
-      additions: pr.additions ?? 0,
-      deletions: pr.deletions ?? 0,
-      reviewDecision: pr.reviewDecision ?? '',
-      labels: ((pr.labels as { name: string }[]) ?? []).map((l) => l.name),
-      mergeable: (pr.mergeable as string) ?? 'UNKNOWN',
-    }))
+    const [owner, repo] = GITHUB_REPO.split('/')
+    const data = (await ghGraphQL(PRS_QUERY, { owner, repo })) as {
+      data: { repository: { pullRequests: { nodes: RawPRNode[] } } }
+    }
+
+    return data.data.repository.pullRequests.nodes.map((pr) => {
+      const commitNode = pr.commits.nodes[0]
+      const rawChecks = commitNode?.commit.statusCheckRollup?.contexts.nodes ?? []
+      const checks: CICheck[] = rawChecks.map((c) => ({
+        name: c.name || c.context || 'unknown',
+        status: c.status || c.state || '',
+        conclusion: c.conclusion || '',
+        detailsUrl: c.detailsUrl || c.targetUrl || '',
+      }))
+
+      return {
+        number: pr.number,
+        title: pr.title,
+        branch: pr.headRefName,
+        state: pr.state,
+        isDraft: pr.isDraft,
+        url: pr.url,
+        author: pr.author?.login ?? '',
+        updatedAt: pr.updatedAt,
+        additions: pr.additions ?? 0,
+        deletions: pr.deletions ?? 0,
+        reviewDecision: pr.reviewDecision ?? '',
+        labels: pr.labels.nodes.map((l) => l.name),
+        mergeable: pr.mergeable ?? 'UNKNOWN',
+        checks,
+      }
+    })
   } catch {
     return []
   }

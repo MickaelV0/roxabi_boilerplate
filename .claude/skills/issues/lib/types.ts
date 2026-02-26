@@ -17,6 +17,13 @@ export interface Issue {
   children: Issue[]
 }
 
+export interface CICheck {
+  name: string
+  status: string
+  conclusion: string
+  detailsUrl: string
+}
+
 export interface PR {
   number: number
   title: string
@@ -31,6 +38,7 @@ export interface PR {
   reviewDecision: string
   labels: string[]
   mergeable: string
+  checks: CICheck[]
 }
 
 export interface Branch {
