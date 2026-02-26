@@ -37,8 +37,8 @@ describe('pr-review.yml', () => {
     expect(job.permissions.issues).toBe('read')
   })
 
-  it('does not have id-token:write (unnecessary OIDC permission)', () => {
-    expect(job.permissions?.['id-token']).toBeUndefined()
+  it('has id-token:write permission (required by claude-code-action for OIDC)', () => {
+    expect(job.permissions?.['id-token']).toBe('write')
   })
 
   it('triggers on pull_request to main and staging branches', () => {
