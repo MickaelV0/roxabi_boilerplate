@@ -92,6 +92,6 @@ When `/plan` generates micro-tasks, agents receive structured work units via Tas
 ## Config
 
 Agent behavior via YAML frontmatter in `.claude/agents/*.md`:
-`permissionMode` (bypassPermissions|plan) | `maxTurns` (20-50) | `memory: project` (.claude/agent-memory/) | `skills` (preloaded) | `disallowedTools` (deny list)
+`permissionMode` (bypassPermissions|plan) | `maxTurns` (30-50) | `memory: project` (.claude/agent-memory/) | `skills` (preloaded) | `disallowedTools` (deny list)
 
 Full → [agent-teams.mdx](docs/guides/agent-teams.mdx).

@@ -36,7 +36,7 @@ The Paraglide Vite plugin is configured in `apps/web/vite.config.ts`:
 paraglideVitePlugin({
   project: './project.inlang',
   outdir: './src/paraglide',
-  strategy: ['url'],
+  strategy: ['cookie', 'preferredLanguage', 'url', 'baseLocale'],
 })
 ```
 

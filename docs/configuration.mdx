@@ -142,6 +142,7 @@ Agent definitions are in `.claude/agents/*.md`. See the [Agent Teams Guide](./gu
 | Variable | App | Required | Default | Scope | Description |
 |----------|-----|----------|---------|-------|-------------|
 | `DATABASE_URL` | API | Yes (prod) | — | Server | PostgreSQL connection string |
+| `DATABASE_APP_URL` | API | No | — | Server | App user connection URL (RLS enforced — use this instead of `DATABASE_URL` for the API server) |
 
 ### Authentication
 
@@ -229,6 +230,8 @@ Tasks defined in `turbo.jsonc`:
 - `typecheck` - Type checking
 - `lint` - Run linter
 - `test` - Run tests
+- `clean` - Remove build artifacts and caches
+- `license:check` - Scan dependency licenses for compliance
 
 ### Environment Variables in Turbo
 
@@ -281,6 +284,7 @@ Configure in Vercel dashboard under **Settings &gt; Environment Variables** (man
 | Variable | Description | Source | Example |
 |----------|-------------|--------|---------|
 | `DATABASE_URL` | PostgreSQL connection (Neon) | Auto-injected by Neon Marketplace integration | `postgresql://user:pass@host/neondb?sslmode=require` |
+| `DATABASE_APP_URL` | App user connection URL (RLS enforced) | Manual | `postgresql://app_user:pass@host/neondb?sslmode=require` |
 | `CORS_ORIGIN` | Web project URL | Manual | `https://app.roxabi.vercel.app` |
 | `BETTER_AUTH_SECRET` | Auth secret (random 32+ chars) | Manual | `&lt;random-string&gt;` |
 | `BETTER_AUTH_URL` | This project's URL | Manual | `https://api.roxabi.vercel.app` |

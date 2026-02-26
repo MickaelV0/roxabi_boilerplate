@@ -68,6 +68,16 @@ Hooks configured in `.claude/settings.json` automate common tasks during Claude 
 }
 ```
 
+> **Note:** The simplified command above illustrates the hook intent. The actual command in `.claude/settings.json` adds a `case` file-type guard (to restrict which extensions trigger Biome), `timeout 10s` (to prevent hangs on large files), and `2>/dev/null || true` (to suppress errors and ensure the hook never blocks the tool operation).
+
+### Bun Test Blocker
+
+**Trigger**: Before any Bash tool invocation (`PreToolUse`)
+
+**Action**: Blocks any command that calls `bun test` without `run` and redirects to `bun run test`
+
+Plain `bun test` invokes Bun's native test runner, which causes a CPU spin in this project due to the Lefthook hook setup. The correct command is `bun run test`, which delegates to Vitest via TurboRepo — the project's configured test runner. This hook prevents accidental use of the wrong runner during Claude Code development sessions.
+
 ### Security Check
 
 **Trigger**: Before Edit or Write operations

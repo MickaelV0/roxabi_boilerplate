@@ -29,6 +29,8 @@ A user can belong to multiple organizations (tenants) but operates within one at
 
 ### Parent Organization Resolution
 
+> **Planned / not yet implemented:** Full organization hierarchy resolution is pending Phase 3. The `resolveParentOrg()` function currently returns `orgId` directly (no-op stub). The description below reflects the intended design.
+
 The interceptor supports hierarchical organizations. If an organization has a `parentOrganizationId`, the parent's ID is used as the tenant boundary instead -- child organizations share the parent's data scope. Until Better Auth adds native parent org support, every organization is treated as a root tenant.
 
 ## Tenant Context Flow
@@ -61,7 +63,7 @@ flowchart TD
 
 ### Infrastructure
 
-RLS infrastructure is established in migration `0000_rls_infrastructure.sql`. It creates three foundational pieces:
+RLS infrastructure is established in migration `0000_baseline.sql`. It creates three foundational pieces:
 
 **1. Application role (`app_user`):** The role used by the application's database connection. RLS policies target this role specifically.
 
@@ -203,6 +205,8 @@ Registered as a global `APP_INTERCEPTOR`, it runs on every HTTP request. Its res
 
 If no session or no active organization exists, the interceptor sets `tenantId` to `null` in CLS and allows the request to continue. This supports unauthenticated routes and routes that do not require tenant context (e.g., user profile, login).
 
+> **Note:** The description above is a simplified overview. The actual implementation also includes: (1) a `@SkipOrg()` Reflector short-circuit check — endpoints decorated with `@SkipOrg()` skip tenant context resolution entirely; and (2) `enforceDeletedOrgRestriction()` — enforcement of org soft-delete rules that blocks requests to restricted routes when the active organization has been soft-deleted.
+
 ### TenantService
 
 The service that domain code uses to execute tenant-scoped database operations. It exposes two methods:
@@ -234,9 +238,10 @@ async seedDefaultRoles(organizationId: string) {
 Both methods follow the same internal flow:
 
 1. Open a Drizzle transaction
-2. Execute `SELECT set_config('app.tenant_id', $tenantId, true)`
-3. Run the callback within the transaction
-4. Return the result (transaction commits) or propagate errors (transaction rolls back)
+2. Execute `SET LOCAL ROLE app_user` to switch to the application role (required for RLS enforcement)
+3. Execute `SELECT set_config('app.tenant_id', $tenantId, true)`
+4. Run the callback within the transaction
+5. Return the result (transaction commits) or propagate errors (transaction rolls back)
 
 ### Exception Handling
 
@@ -314,7 +319,7 @@ The service does not need to filter by `tenant_id` -- RLS handles it automatical
 | `apps/api/src/tenant/exceptions/` | Custom exception classes |
 | `apps/api/src/tenant/filters/` | Exception-to-HTTP-response filters |
 | `apps/api/src/database/schema/base.ts` | `tenantColumn` helper |
-| `apps/api/drizzle/migrations/0000_rls_infrastructure.sql` | RLS infrastructure (role, function, grants) |
+| `apps/api/drizzle/migrations/0000_baseline.sql` | RLS infrastructure (role, function, grants) |
 
 ## Related Documentation
 

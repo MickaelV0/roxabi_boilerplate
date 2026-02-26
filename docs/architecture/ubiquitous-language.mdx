@@ -12,7 +12,7 @@ This glossary covers the current domain model. It is extended as new features ar
 | **Invitation** | A pending org membership invite with an expiration. Requires acceptance by the invitee. | [Auth &amp; Security](./auth-security) |
 | **Member** | A user's membership in a specific organization. Stored in the `members` table with both a Better Auth `role` text column and an RBAC `role_id` FK. | [RBAC](./rbac) |
 | **Organization** | A Better Auth entity representing a group of users. Maps to a row in the `organizations` table. | [Multi-Tenant](./multi-tenant) |
-| **Permission** | A `resource:action` string (e.g., `members:write`). 18 possible permissions across 6 resources and 3 actions. | [RBAC](./rbac) |
+| **Permission** | A `resource:action` string (e.g., `members:write`). 17 possible permissions across 6 resources and 3 actions (`api_keys:delete` is defined in the type system but not seeded). | [RBAC](./rbac) |
 | **Role** | A named set of permissions scoped to an organization. Four defaults: Owner, Admin, Member, Viewer. Custom roles are also supported. | [RBAC](./rbac) |
 | **Session** | An authenticated session tracking the user and their active organization via `sessions.active_organization_id`. | [Multi-Tenant](./multi-tenant) |
 | **Tenant** | The logical data isolation boundary. Currently 1:1 with Organization (each org is a root tenant). | [Multi-Tenant](./multi-tenant) |

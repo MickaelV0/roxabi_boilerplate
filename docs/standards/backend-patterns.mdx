@@ -114,10 +114,11 @@ The `AuthGuard` is registered globally and supports several decorators for acces
 1. `@AllowAnonymous()` &rarr; allow immediately
 2. Validate session &rarr; 401 if missing
 3. `@OptionalAuth()` &rarr; allow if no session
-4. `@Roles()` &rarr; check global user role
-5. `@RequireOrg()` or `@Permissions()` &rarr; require active organization
-6. Super-admin (`user.role === 'superadmin'`) &rarr; bypass permission checks
-7. `@Permissions()` &rarr; resolve member's role &rarr; load permissions &rarr; check &rarr; 403 if missing
+4. Soft-delete check &rarr; 403 if user is soft-deleted (unless route is in `SOFT_DELETED_ALLOWED_ROUTES` allowlist)
+5. `@Roles()` &rarr; check global user role
+6. `@RequireOrg()` or `@Permissions()` &rarr; require active organization
+7. Super-admin (`user.role === 'superadmin'`) &rarr; bypass permission checks
+8. `@Permissions()` &rarr; resolve member's role &rarr; load permissions &rarr; check &rarr; 403 if missing
 
 **Usage:**
 

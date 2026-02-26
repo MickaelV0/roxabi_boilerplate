@@ -212,7 +212,6 @@ The frontend uses a layered approach to state, matching each concern to the righ
 |-------|------|
 | Server/async state | TanStack Query |
 | Form state | TanStack Form |
-| Client-side global state | TanStack Store |
 | Route-level data | Route loaders (SSR) |
 | Server mutations | Server functions (createServerFn) |
 | Local component state | React useState |
@@ -249,22 +248,7 @@ const { data, refetch } = useQuery<Todo[]>({
 
 ### TanStack Form
 
-Form state uses `@tanstack/react-form` with a **form hook factory** pattern defined in `src/hooks/demo.form.ts`:
-
-```ts
-import { createFormHook } from '@tanstack/react-form'
-import { Select, SubscribeButton, TextArea, TextField } from '../components/demo.FormComponents'
-import { fieldContext, formContext } from './demo.form-context'
-
-export const { useAppForm } = createFormHook({
-  fieldComponents: { TextField, Select, TextArea },
-  formComponents: { SubscribeButton },
-  fieldContext,
-  formContext,
-})
-```
-
-This creates a `useAppForm` hook that bundles form field components with validation, enabling a composable API:
+Form state uses `@tanstack/react-form` with a **form hook factory** pattern using `createFormHook`. This creates a `useAppForm` hook that bundles form field components with validation, enabling a composable API:
 
 ```tsx
 const form = useAppForm({
@@ -280,31 +264,6 @@ const form = useAppForm({
 ```
 
 Validation integrates with Zod schemas via the `validators` option.
-
-### TanStack Store
-
-For lightweight client-side global state that does not involve server data, TanStack Store provides a reactive store with derived values:
-
-```ts
-// src/lib/demo-store.ts
-import { Derived, Store } from '@tanstack/store'
-
-export const store = new Store({
-  firstName: 'Jane',
-  lastName: 'Smith',
-})
-
-export const fullName = new Derived({
-  fn: () => `${store.state.firstName} ${store.state.lastName}`,
-  deps: [store],
-})
-```
-
-Components subscribe with `useStore`:
-
-```ts
-const firstName = useStore(store, (state) => state.firstName)
-```
 
 ### Server Functions
 
@@ -410,8 +369,7 @@ apps/web/src/
     LocaleSwitcher.tsx      # Language selector
     GithubIcon.tsx          # GitHub link icon
     FeatureCard.tsx         # Landing page feature card
-    docs-error-boundary.tsx # Error boundary for docs pages
-    demo.FormComponents.tsx # Form field components for TanStack Form
+    DocsErrorBoundary.tsx   # Error boundary for docs pages
     landing/                # Landing page sections
       HeroSection.tsx
       FeaturesSection.tsx
@@ -553,7 +511,6 @@ The architecture maintains a clear separation between server-side and client-sid
 |----------|---------|
 | `src/components/*.tsx` | React UI components |
 | `src/lib/authClient.ts` | Better Auth client (browser-side session) |
-| `src/lib/demo-store.ts` | TanStack Store instances |
 | `src/hooks/*.ts` | Form hooks, custom React hooks |
 | `src/integrations/tanstack-query/` | Query client setup and devtools |
 
@@ -625,13 +582,12 @@ Both use `react-error-boundary` with custom fallback components.
 
 ## Developer Tooling
 
-In development mode (`import.meta.env.DEV`), the root route renders a unified TanStack Devtools panel with three plugins:
+In development mode (`import.meta.env.DEV`), the root route renders a unified TanStack Devtools panel with two plugins:
 
 | Plugin | Purpose |
 |--------|---------|
 | TanStack Router Devtools | Route tree inspection, navigation state |
 | TanStack Query Devtools | Query cache, refetch status, stale tracking |
-| Store Devtools (demo store) | Store state inspection |
 
 These are tree-shaken from production builds.
 

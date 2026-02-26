@@ -353,7 +353,7 @@ flowchart TD
 
 ### Phase 3 — Review
 
-11. Main Claude runs `/review` which spawns **fresh review agents** (new instances with no implementation context):
+10. Main Claude runs `/review` which spawns **fresh review agents** (new instances with no implementation context):
 
     | Always | Conditional |
     |--------|-------------|
@@ -364,25 +364,25 @@ flowchart TD
 
     Each reviewer produces Conventional Comments scoped to their domain.
 
-12. Main Claude collects all review comments and presents a verdict (findings + recommendation).
-13. Human chooses: **Fix now** (delegates to `/fix`) | **Merge as-is** | **Stop**
+11. Main Claude collects all review comments and presents a verdict (findings + recommendation).
+12. Human chooses: **Fix now** (delegates to `/fix`) | **Merge as-is** | **Stop**
 
 ### Phase 4 — Fix and Merge
 
-14. `/fix` receives the accepted findings and handles: auto-apply (high-confidence), `/1b1` walkthrough, then **parallel domain fixers** scoped to their domain:
+13. `/fix` receives the accepted findings and handles: auto-apply (high-confidence), `/1b1` walkthrough, then **parallel domain fixers** scoped to their domain:
     - **Backend fixer** — if findings touch `apps/api/` or `packages/types/`
     - **Frontend fixer** — if findings touch `apps/web/` or `packages/ui/`
     - **Infra fixer** — if findings touch `packages/config/`, root configs, or CI
     - Single-domain findings → one fixer. Multi-domain → parallel fixers.
-15. Push combined fixes, post a follow-up comment on the PR confirming which findings were addressed (and noting any rejected/deferred).
-16. CI runs:
+14. Push combined fixes, post a follow-up comment on the PR confirming which findings were addressed (and noting any rejected/deferred).
+15. CI runs:
     - **Pass** — merge and cleanup worktree
     - **Fail** — fixer investigates and fixes, CI again, loop until green
-17. Human approves merge:
+16. Human approves merge:
     ```bash
     gh pr merge <pr-number> --squash --delete-branch
     ```
-18. Cleanup:
+17. Cleanup:
     ```bash
     cd ../roxabi_boilerplate
     git worktree remove ../roxabi-XXX
@@ -394,11 +394,11 @@ flowchart TD
 
 After features have been validated on staging:
 
-19. Human runs `/promote` to merge staging → main.
-20. `/promote` computes the version, generates the changelog and release notes, commits them to staging, and creates a PR from staging to main.
-21. Human reviews the promotion PR (which includes the changelog).
-22. Merge → Vercel auto-deploys with changelog and release notes already included.
-23. Run `/promote --finalize` to tag the release and create the GitHub Release.
+18. Human runs `/promote` to merge staging → main.
+19. `/promote` computes the version, generates the changelog and release notes, commits them to staging, and creates a PR from staging to main.
+20. Human reviews the promotion PR (which includes the changelog).
+21. Merge → Vercel auto-deploys with changelog and release notes already included.
+22. Run `/promote --finalize` to tag the release and create the GitHub Release.
 
 > Promotion is **not per-feature** — it batches all staging changes into a single release. See the `/promote` skill for details.
 

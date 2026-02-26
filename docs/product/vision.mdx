@@ -90,6 +90,9 @@ The boilerplate distinguishes between two types of AI agents:
 | `security-auditor` | Security audits and compliance |
 
 **Runtime Agents** - Interact with the deployed SaaS
+
+> **Planned** — Runtime agents are not yet implemented. This describes a future capability.
+
 | Agent | Role |
 |-------|------|
 | Domain agents | Business-specific automation |
@@ -110,6 +113,8 @@ A CLI generated from OpenAPI specs enables AI agents to interact with the SaaS A
 | Built-in | Skills included in the boilerplate |
 | Marketplace | Centralized registry with review/quality |
 | Git-based | Exceptional import from Git repos |
+
+> **Planned** — The Marketplace and Git-based skill sources are not yet implemented. Only built-in skills are currently available.
 
 ### Orchestration
 
@@ -167,7 +172,10 @@ roxabi_boilerplate/
 ├── packages/               # Shared code
 │   ├── ui/                # Shared UI components
 │   ├── config/            # Shared configurations
-│   └── types/             # Shared TypeScript types
+│   ├── types/             # Shared TypeScript types
+│   ├── email/             # Email templates
+│   ├── vitest-config/     # Shared Vitest configuration
+│   └── playwright-config/ # Shared Playwright configuration
 ├── docs/                   # Documentation content (MDX files)
 └── .claude/                # Claude Code configuration
 ```
@@ -256,7 +264,7 @@ flowchart LR
 - [x] i18n (Paraglide JS — compile-time, type-safe)
 - [x] Design system (Shadcn/UI + CVA + design tokens)
 - [x] Security hardening (CORS, CSP, input sanitization)
-- [x] Agent Teams (10-agent AI development team)
+- [x] Agent Teams (9-agent AI development team)
 - [ ] Admin panel *(backlog — [#25](https://github.com/MickaelV0/roxabi_boilerplate/issues/25))*
 - [ ] Audit logs *(backlog)*
 - [ ] Notifications *(backlog)*

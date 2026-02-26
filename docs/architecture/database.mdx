@@ -30,7 +30,7 @@ Two providers are registered:
 
 1. **`POSTGRES_CLIENT`** — creates the raw `postgres` connection. Reads `DATABASE_URL` from `ConfigService`. Connection pool settings: `max: 10`, `idle_timeout: 20`, `connect_timeout: 10`.
 
-2. **`DRIZZLE`** — wraps the postgres client in Drizzle ORM with the full schema. This is the token you inject in services.
+2. **`DRIZZLE`** — wraps the postgres client in Drizzle ORM with the full schema. This is the token you inject in services. Prefer `DATABASE_APP_URL` over `DATABASE_URL` for application queries: `DATABASE_APP_URL` connects as the `app_user` role (RLS enforced), while `DATABASE_URL` connects as the schema owner (RLS bypassed). When RLS enforcement is required, `SET LOCAL ROLE app_user` must be called before `set_config()` in any transaction.
 
 **Graceful degradation:** If `DATABASE_URL` is not set:
 - In **production**: throws immediately (hard failure)
@@ -44,7 +44,7 @@ The `DatabaseModule` is registered as `@Global()` so every module can inject `DR
 
 The module implements `OnModuleInit` and `OnModuleDestroy`:
 
-- **`onModuleInit`**: Pings the database (`SELECT 1`) to verify the connection, then checks for pending migrations by comparing `drizzle/migrations/meta/_journal.json` against the `__drizzle_migrations` table. Logs a warning if migrations are pending.
+- **`onModuleInit`**: Pings the database (`SELECT 1`) to verify the connection, then checks for pending migrations by comparing `drizzle/migrations/meta/_journal.json` against the `drizzle.__drizzle_migrations` table. Logs a warning if migrations are pending. After the migration check, it also calls `checkCoreTables()` to verify that Better Auth core tables exist in the database.
 - **`onModuleDestroy`**: Closes the postgres connection on shutdown.
 
 ## Schema Conventions

@@ -136,7 +136,9 @@ flowchart TD
     C3 -- "No session + optional" --> ALLOW2["ALLOW (session = null)"]
     C3 -- "Continue" --> C4{"4. No session?"}
     C4 -- Yes --> DENY1["401 Unauthorized"]
-    C4 -- "Session exists" --> C5{"5. @Roles(...)<br/>(ROLES metadata)?"}
+    C4 -- "Session exists" --> C4B{"4b. User soft-deleted?"}
+    C4B -- "Yes (not on allowlist)" --> DENY1B["403 Forbidden"]
+    C4B -- "No / allowlisted route" --> C5{"5. @Roles(...)<br/>(ROLES metadata)?"}
     C5 -- "Role not in list" --> DENY2["403 Forbidden"]
     C5 -- Pass --> C6{"6. @RequireOrg()<br/>(REQUIRE_ORG metadata)?"}
     C6 -- "No activeOrganizationId" --> DENY3["403 No active organization"]
@@ -159,6 +161,7 @@ All decorators are thin `SetMetadata` wrappers. They set metadata keys that the 
 | `@RequireOrg()` | `REQUIRE_ORG` | Require `activeOrganizationId` on the session |
 | `@Permissions('members:write')` | `PERMISSIONS` | Require RBAC permission(s); implies org context |
 | `@Session()` | *(param decorator)* | Extract session from `request.session` |
+| `@SkipOrg()` | *(interceptor metadata)* | Skip tenant context resolution in `TenantInterceptor`; used for endpoints that do not require org context |
 
 The `@Permissions()` decorator implicitly requires an active organization. If the session has no `activeOrganizationId`, the guard returns 403 before checking permissions.
 
@@ -206,7 +209,7 @@ When a user switches organizations in the UI, Better Auth updates the `activeOrg
 1. **Session** — Stored in `sessions.active_organization_id`
 2. **Guard** — `@RequireOrg()` and `@Permissions()` check it
 3. **RBAC** — `PermissionService.getPermissions(userId, orgId)` resolves org-scoped permissions
-4. **Tenant isolation** — Downstream services use it to set the PostgreSQL `app.tenant_id` variable for RLS
+4. **Tenant isolation** — Downstream services use it to set the PostgreSQL `app.tenant_id` variable for RLS. `SET LOCAL ROLE app_user` must be called before `set_config()` in each transaction to properly enforce RLS. Without it, the config is set but RLS may not be enforced correctly if the connection is running as the schema owner.
 
 ### Organization Creation Hook
 
