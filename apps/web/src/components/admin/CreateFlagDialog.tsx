@@ -87,7 +87,7 @@ function useCreateFlagForm(onCreated: () => void) {
     patch({ keyTouched: true, key: value, keyError: value ? validateKey(value) : null })
   }
   function handleOpenChange(value: boolean) {
-    setState(value ? (prev) => ({ ...prev, open: true }) : () => INITIAL_STATE)
+    setState(value ? (prev) => ({ ...prev, open: true }) : INITIAL_STATE)
   }
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

@@ -4,7 +4,6 @@ import type { AuditService } from '../audit/audit.service.js'
 import type { FeatureFlagService } from '../feature-flags/featureFlags.service.js'
 import { AdminFeatureFlagsController } from './adminFeatureFlags.controller.js'
 import { FlagKeyConflictException } from './exceptions/flagKeyConflict.exception.js'
-import { FlagKeyInvalidException } from './exceptions/flagKeyInvalid.exception.js'
 import { FlagNotFoundException } from './exceptions/flagNotFound.exception.js'
 
 // ---------------------------------------------------------------------------
@@ -14,6 +13,7 @@ import { FlagNotFoundException } from './exceptions/flagNotFound.exception.js'
 const mockFeatureFlagService: FeatureFlagService = {
   isEnabled: vi.fn(),
   getAll: vi.fn(),
+  getById: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
   delete: vi.fn(),
@@ -161,27 +161,6 @@ describe('AdminFeatureFlagsController', () => {
       expect(mockAuditService.log).not.toHaveBeenCalled()
     })
 
-    it('should throw FlagKeyInvalidException on invalid key format (uppercase)', async () => {
-      // Arrange — ZodValidationPipe would normally catch this, but we test controller logic directly
-      const body = { name: 'Bad Key', key: 'InvalidKey' }
-
-      // Act & Assert
-      await expect(controller.create(mockSession as never, body)).rejects.toThrow(
-        FlagKeyInvalidException
-      )
-      expect(mockFeatureFlagService.create).not.toHaveBeenCalled()
-    })
-
-    it('should throw FlagKeyInvalidException on key starting with dash', async () => {
-      // Arrange
-      const body = { name: 'Bad Key', key: '-starts-with-dash' }
-
-      // Act & Assert
-      await expect(controller.create(mockSession as never, body)).rejects.toThrow(
-        FlagKeyInvalidException
-      )
-    })
-
     it('should propagate unexpected errors from the service', async () => {
       // Arrange
       const body = { name: 'My Flag', key: 'my-flag' }
@@ -205,7 +184,7 @@ describe('AdminFeatureFlagsController', () => {
       const before = createFlag({ id, name: 'Old Name', key: 'my-flag', enabled: false })
       const after = createFlag({ id, name: 'New Name', key: 'my-flag', enabled: false })
       const body = { name: 'New Name' }
-      vi.mocked(mockFeatureFlagService.getAll).mockResolvedValue([before] as never)
+      vi.mocked(mockFeatureFlagService.getById).mockResolvedValue(before as never)
       vi.mocked(mockFeatureFlagService.update).mockResolvedValue(after as never)
 
       // Act
@@ -226,13 +205,13 @@ describe('AdminFeatureFlagsController', () => {
       expect(result).toEqual(after)
     })
 
-    it('should use flag.toggled action when enabled changes', async () => {
+    it('should use flag.toggled action when only enabled changes', async () => {
       // Arrange
       const id = 'flag-1'
       const before = createFlag({ id, enabled: false })
       const after = createFlag({ id, enabled: true })
       const body = { enabled: true }
-      vi.mocked(mockFeatureFlagService.getAll).mockResolvedValue([before] as never)
+      vi.mocked(mockFeatureFlagService.getById).mockResolvedValue(before as never)
       vi.mocked(mockFeatureFlagService.update).mockResolvedValue(after as never)
 
       // Act
@@ -244,13 +223,13 @@ describe('AdminFeatureFlagsController', () => {
       )
     })
 
-    it('should use flag.updated action when name changes (not enabled)', async () => {
+    it('should use flag.updated action when enabled and name both change', async () => {
       // Arrange
       const id = 'flag-1'
-      const before = createFlag({ id })
-      const after = createFlag({ id, name: 'Updated' })
-      const body = { name: 'Updated' }
-      vi.mocked(mockFeatureFlagService.getAll).mockResolvedValue([before] as never)
+      const before = createFlag({ id, enabled: false })
+      const after = createFlag({ id, enabled: true, name: 'Renamed' })
+      const body = { enabled: true, name: 'Renamed' }
+      vi.mocked(mockFeatureFlagService.getById).mockResolvedValue(before as never)
       vi.mocked(mockFeatureFlagService.update).mockResolvedValue(after as never)
 
       // Act
@@ -262,10 +241,28 @@ describe('AdminFeatureFlagsController', () => {
       )
     })
 
-    it('should throw FlagNotFoundException when flag does not exist in getAll', async () => {
+    it('should use flag.updated action when name changes (not enabled)', async () => {
+      // Arrange
+      const id = 'flag-1'
+      const before = createFlag({ id })
+      const after = createFlag({ id, name: 'Updated' })
+      const body = { name: 'Updated' }
+      vi.mocked(mockFeatureFlagService.getById).mockResolvedValue(before as never)
+      vi.mocked(mockFeatureFlagService.update).mockResolvedValue(after as never)
+
+      // Act
+      await controller.update(mockSession as never, id, body)
+
+      // Assert
+      expect(mockAuditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'flag.updated' })
+      )
+    })
+
+    it('should throw FlagNotFoundException when flag does not exist', async () => {
       // Arrange
       const id = 'nonexistent-id'
-      vi.mocked(mockFeatureFlagService.getAll).mockResolvedValue([])
+      vi.mocked(mockFeatureFlagService.getById).mockResolvedValue(undefined as never)
 
       // Act & Assert
       await expect(controller.update(mockSession as never, id, { name: 'X' })).rejects.toThrow(
@@ -279,7 +276,7 @@ describe('AdminFeatureFlagsController', () => {
       // Arrange
       const id = 'flag-1'
       const before = createFlag({ id })
-      vi.mocked(mockFeatureFlagService.getAll).mockResolvedValue([before] as never)
+      vi.mocked(mockFeatureFlagService.getById).mockResolvedValue(before as never)
       vi.mocked(mockFeatureFlagService.update).mockResolvedValue(undefined as never)
 
       // Act & Assert
@@ -298,7 +295,7 @@ describe('AdminFeatureFlagsController', () => {
       // Arrange
       const id = 'flag-1'
       const existing = createFlag({ id })
-      vi.mocked(mockFeatureFlagService.getAll).mockResolvedValue([existing] as never)
+      vi.mocked(mockFeatureFlagService.getById).mockResolvedValue(existing as never)
       vi.mocked(mockFeatureFlagService.delete).mockResolvedValue(undefined)
 
       // Act
@@ -316,32 +313,19 @@ describe('AdminFeatureFlagsController', () => {
           before: existing,
         })
       )
-      expect(result).toEqual({ success: true })
+      expect(result).toBeUndefined()
     })
 
     it('should throw FlagNotFoundException when flag does not exist', async () => {
       // Arrange
       const id = 'nonexistent-id'
-      vi.mocked(mockFeatureFlagService.getAll).mockResolvedValue([])
+      vi.mocked(mockFeatureFlagService.getById).mockResolvedValue(undefined as never)
 
       // Act & Assert
       await expect(controller.delete(mockSession as never, id)).rejects.toThrow(
         FlagNotFoundException
       )
       expect(mockFeatureFlagService.delete).not.toHaveBeenCalled()
-      expect(mockAuditService.log).not.toHaveBeenCalled()
-    })
-
-    it('should not log audit when flag is not found', async () => {
-      // Arrange
-      vi.mocked(mockFeatureFlagService.getAll).mockResolvedValue([
-        createFlag({ id: 'other-id' }),
-      ] as never)
-
-      // Act & Assert
-      await expect(controller.delete(mockSession as never, 'flag-1')).rejects.toThrow(
-        FlagNotFoundException
-      )
       expect(mockAuditService.log).not.toHaveBeenCalled()
     })
   })

@@ -9,6 +9,8 @@ import { FlagListItem } from '@/components/admin/FlagListItem'
 import { isErrorWithMessage } from '@/lib/errorUtils'
 import { enforceRoutePermission } from '@/lib/routePermissions'
 
+const FEATURE_FLAGS_QUERY_KEY = ['admin', 'feature-flags'] as const
+
 export const Route = createFileRoute('/admin/feature-flags')({
   staticData: { permission: 'role:superadmin' },
   beforeLoad: enforceRoutePermission,
@@ -49,7 +51,6 @@ function EmptyState() {
 
 function useFeatureFlagActions() {
   const queryClient = useQueryClient()
-  const queryKey = ['admin', 'feature-flags']
 
   async function handleToggle(id: string, enabled: boolean) {
     try {
@@ -68,7 +69,7 @@ function useFeatureFlagActions() {
       }
 
       toast.success('Feature flag updated')
-      await queryClient.invalidateQueries({ queryKey })
+      await queryClient.invalidateQueries({ queryKey: [...FEATURE_FLAGS_QUERY_KEY] })
     } catch {
       toast.error('Failed to update feature flag')
     }
@@ -89,22 +90,22 @@ function useFeatureFlagActions() {
       }
 
       toast.success('Feature flag deleted')
-      await queryClient.invalidateQueries({ queryKey })
+      await queryClient.invalidateQueries({ queryKey: [...FEATURE_FLAGS_QUERY_KEY] })
     } catch {
       toast.error('Failed to delete feature flag')
     }
   }
 
-  function handleCreated() {
-    queryClient.invalidateQueries({ queryKey })
+  async function handleCreated() {
+    await queryClient.invalidateQueries({ queryKey: [...FEATURE_FLAGS_QUERY_KEY] })
   }
 
   return { handleToggle, handleDelete, handleCreated }
 }
 
 function FeatureFlagsPage() {
-  const { data, isLoading } = useQuery<FeatureFlag[]>({
-    queryKey: ['admin', 'feature-flags'],
+  const { data, isLoading, isError } = useQuery<FeatureFlag[]>({
+    queryKey: [...FEATURE_FLAGS_QUERY_KEY],
     queryFn: async () => {
       const res = await fetch('/api/admin/feature-flags', { credentials: 'include' })
       if (!res.ok) throw new Error('Failed to fetch feature flags')
@@ -129,11 +130,19 @@ function FeatureFlagsPage() {
       {/* Loading state */}
       {isLoading && <FlagsSkeleton />}
 
+      {/* Error state */}
+      {isError && (
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+          <p className="text-sm font-medium text-destructive">Failed to load feature flags</p>
+          <p className="text-xs text-muted-foreground">Please try refreshing the page</p>
+        </div>
+      )}
+
       {/* Empty state */}
-      {!isLoading && flags.length === 0 && <EmptyState />}
+      {!(isLoading || isError) && flags.length === 0 && <EmptyState />}
 
       {/* Flag list */}
-      {!isLoading && flags.length > 0 && (
+      {!(isLoading || isError) && flags.length > 0 && (
         <div className="space-y-3">
           {flags.map((flag) => (
             <FlagListItem
