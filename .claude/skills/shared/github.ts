@@ -1,6 +1,6 @@
 /**
  * GitHub API helpers — shared across skills.
- * All GitHub interactions go through gh CLI.
+ * Uses direct fetch() against GitHub API with GITHUB_TOKEN.
  */
 
 import { GITHUB_REPO, PROJECT_ID } from './config'
@@ -15,7 +15,44 @@ import {
   UPDATE_FIELD_MUTATION,
 } from './queries'
 
-/** Run a shell command and return trimmed stdout. Throws on non-zero exit. */
+const GITHUB_API = 'https://api.github.com'
+const GRAPHQL_URL = `${GITHUB_API}/graphql`
+
+let cachedToken: string | undefined
+
+function getToken(): string {
+  if (cachedToken) return cachedToken
+
+  // Prefer env var (set in .env or CI secrets)
+  if (process.env.GITHUB_TOKEN) {
+    cachedToken = process.env.GITHUB_TOKEN
+    return cachedToken
+  }
+
+  // Fallback: extract from gh CLI auth (local dev convenience)
+  try {
+    const proc = Bun.spawnSync(['gh', 'auth', 'token'], { stdout: 'pipe', stderr: 'pipe' })
+    const token = new TextDecoder().decode(proc.stdout).trim()
+    if (token) {
+      cachedToken = token
+      return cachedToken
+    }
+  } catch {
+    // gh not available
+  }
+
+  throw new Error('GITHUB_TOKEN env var required (or gh auth login for local dev)')
+}
+
+function authHeaders(): Record<string, string> {
+  return {
+    Authorization: `Bearer ${getToken()}`,
+    'Content-Type': 'application/json',
+    'User-Agent': 'roxabi-skills',
+  }
+}
+
+/** Run a local shell command and return trimmed stdout. Throws on non-zero exit. */
 export async function run(cmd: string[]): Promise<string> {
   const proc = Bun.spawn(cmd, { stdout: 'pipe', stderr: 'pipe' })
   const stdout = await new Response(proc.stdout).text()
@@ -28,34 +65,65 @@ export async function run(cmd: string[]): Promise<string> {
   return stdout.trim()
 }
 
-/** Execute a GraphQL query/mutation via `gh api graphql`. */
+/** Execute a GraphQL query/mutation against GitHub API. */
 export async function ghGraphQL(
   query: string,
   variables: Record<string, string | number>
 ): Promise<unknown> {
-  const args = ['gh', 'api', 'graphql', '-f', `query=${query}`]
-  for (const [key, value] of Object.entries(variables)) {
-    if (typeof value === 'number') {
-      args.push('-F', `${key}=${value}`)
-    } else {
-      args.push('-f', `${key}=${value}`)
-    }
+  const res = await fetch(GRAPHQL_URL, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ query, variables }),
+  })
+
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`GitHub GraphQL error (${res.status}): ${text}`)
   }
 
-  const proc = Bun.spawn(args, { stdout: 'pipe', stderr: 'pipe' })
-  const stdout = await new Response(proc.stdout).text()
-  const stderr = await new Response(proc.stderr).text()
-  const code = await proc.exited
-
-  if (code !== 0) {
-    throw new Error(`gh api graphql failed (${code}): ${stderr}`)
+  const json = (await res.json()) as { errors?: { message: string }[] }
+  if (json.errors?.length) {
+    throw new Error(`GitHub GraphQL error: ${JSON.stringify(json.errors)}`)
   }
-  return JSON.parse(stdout)
+  return json
 }
 
 /** Get issue node ID via REST API. */
 export async function getNodeId(issueNumber: number | string): Promise<string> {
-  return run(['gh', 'api', `repos/${GITHUB_REPO}/issues/${issueNumber}`, '--jq', '.node_id'])
+  const res = await fetch(`${GITHUB_API}/repos/${GITHUB_REPO}/issues/${issueNumber}`, {
+    headers: authHeaders(),
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Failed to get node ID for #${issueNumber} (${res.status}): ${text}`)
+  }
+  const data = (await res.json()) as { node_id: string }
+  return data.node_id
+}
+
+/** Create a new GitHub issue via REST API. Returns the issue URL and number. */
+export async function createGitHubIssue(
+  title: string,
+  body?: string,
+  labels?: string[]
+): Promise<{ url: string; number: number }> {
+  const payload: Record<string, unknown> = { title }
+  if (body) payload.body = body
+  if (labels?.length) payload.labels = labels
+
+  const res = await fetch(`${GITHUB_API}/repos/${GITHUB_REPO}/issues`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  })
+
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Failed to create issue (${res.status}): ${text}`)
+  }
+
+  const data = (await res.json()) as { html_url: string; number: number }
+  return { url: data.html_url, number: data.number }
 }
 
 /** Get project item ID for an issue number. */

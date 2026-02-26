@@ -1,4 +1,4 @@
-import type { Branch, Issue, PR, Worktree } from './types'
+import type { Branch, Issue, PR, VercelDeployment, Worktree } from './types'
 
 const PRIORITY_SHORT: Record<string, string> = {
   'P0 - Urgent': 'P0',
@@ -116,26 +116,108 @@ function getPRDisplay(pr: PR): { label: string; cssClass: string } {
   return { label: 'Review', cssClass: 'status-progress' }
 }
 
+const CI_SPINNER = '<span class="ci-spinner"></span>'
+
+function ciIcon(status: string, conclusion: string): string {
+  if (status === 'COMPLETED' || status === 'SUCCESS') {
+    if (conclusion === 'SUCCESS' || conclusion === '') return '\u2705'
+    if (conclusion === 'FAILURE' || conclusion === 'ERROR') return '\u274c'
+    if (conclusion === 'CANCELLED' || conclusion === 'TIMED_OUT') return '\u26d4'
+    if (conclusion === 'SKIPPED' || conclusion === 'NEUTRAL') return '\u23ed'
+    return '\u2753'
+  }
+  if (status === 'IN_PROGRESS') return CI_SPINNER
+  if (status === 'QUEUED' || status === 'WAITING' || status === 'PENDING' || status === 'REQUESTED')
+    return CI_SPINNER
+  // StatusContext states
+  if (status === 'SUCCESS') return '\u2705'
+  if (status === 'FAILURE' || status === 'ERROR') return '\u274c'
+  if (status === 'PENDING' || status === 'EXPECTED') return CI_SPINNER
+  return '\u2753'
+}
+
+function ciClass(status: string, conclusion: string): string {
+  if (status === 'COMPLETED' || status === 'SUCCESS') {
+    if (conclusion === 'SUCCESS' || conclusion === '') return 'ci-success'
+    if (conclusion === 'FAILURE' || conclusion === 'ERROR') return 'ci-failure'
+    if (conclusion === 'CANCELLED' || conclusion === 'TIMED_OUT') return 'ci-cancelled'
+    if (conclusion === 'SKIPPED' || conclusion === 'NEUTRAL') return 'ci-skipped'
+  }
+  if (status === 'IN_PROGRESS') return 'ci-running'
+  if (status === 'SUCCESS') return 'ci-success'
+  if (status === 'FAILURE' || status === 'ERROR') return 'ci-failure'
+  return 'ci-pending'
+}
+
+function ciSummary(checks: PR['checks']): { icon: string; label: string; cssClass: string } {
+  if (checks.length === 0) return { icon: '', label: '', cssClass: '' }
+  const total = checks.length
+  const pass = checks.filter(
+    (c) =>
+      c.conclusion === 'SUCCESS' ||
+      (c.status === 'SUCCESS' && !c.conclusion) ||
+      c.conclusion === 'SKIPPED' ||
+      c.conclusion === 'NEUTRAL'
+  ).length
+  const fail = checks.filter(
+    (c) =>
+      c.conclusion === 'FAILURE' ||
+      c.conclusion === 'ERROR' ||
+      c.status === 'FAILURE' ||
+      c.status === 'ERROR'
+  ).length
+  const running = checks.filter((c) => c.status === 'IN_PROGRESS').length
+
+  if (fail > 0) return { icon: '\u274c', label: `${fail}/${total} failed`, cssClass: 'ci-failure' }
+  if (running > 0)
+    return { icon: CI_SPINNER, label: `${running}/${total} running`, cssClass: 'ci-running' }
+  if (pass === total) return { icon: '\u2705', label: `${total} passed`, cssClass: 'ci-success' }
+  return {
+    icon: CI_SPINNER,
+    label: `${pass}/${total} passed`,
+    cssClass: 'ci-pending',
+  }
+}
+
 export function renderPRs(prs: PR[]): string {
   if (prs.length === 0) return '<p class="empty-state">No open pull requests</p>'
 
   let html = `<table class="sub-table"><thead><tr>
-    <th>#</th><th>Title</th><th>Status</th><th>Changes</th><th>Updated</th>
+    <th>#</th><th>Title</th><th>Status</th><th>CI</th><th>Changes</th><th>Updated</th>
   </tr></thead><tbody>`
 
   for (const pr of prs) {
     const { label: statusLabel, cssClass: statusClass } = getPRDisplay(pr)
     const age = timeAgo(pr.updatedAt)
-    html += `<tr>
+    const summary = ciSummary(pr.checks)
+    const hasChecks = pr.checks.length > 0
+
+    html += `<tr class="pr-row" data-pr="${pr.number}">
       <td><a href="${escHtml(pr.url)}" target="_blank" rel="noopener">#${pr.number}</a></td>
       <td class="col-pr-title" title="${escHtml(pr.title)}">
         ${escHtml(pr.title)}
         <div class="pr-branch"><span class="tree-prefix">\u2514</span><code>${escHtml(pr.branch)}</code></div>
       </td>
       <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+      <td class="col-ci">${hasChecks ? `<button class="ci-toggle ${summary.cssClass}" onclick="toggleCI(${pr.number})" title="Toggle CI details">${summary.icon} ${summary.label}</button>` : '<span class="text-muted">-</span>'}</td>
       <td class="changes"><span class="additions">+${pr.additions}</span> <span class="deletions">-${pr.deletions}</span></td>
       <td class="text-muted">${age}</td>
     </tr>`
+
+    if (hasChecks) {
+      html += `<tr class="ci-details-row" id="ci-${pr.number}" style="display:none;">
+        <td colspan="6">
+          <div class="ci-checks">`
+      for (const check of pr.checks) {
+        const icon = ciIcon(check.status, check.conclusion)
+        const cls = ciClass(check.status, check.conclusion)
+        const nameHtml = check.detailsUrl
+          ? `<a href="${escHtml(check.detailsUrl)}" target="_blank" rel="noopener">${escHtml(check.name)}</a>`
+          : escHtml(check.name)
+        html += `<div class="ci-check ${cls}">${icon} ${nameHtml}</div>`
+      }
+      html += `</div></td></tr>`
+    }
   }
   html += `</tbody></table>`
   return html
@@ -167,5 +249,52 @@ export function renderBranchesAndWorktrees(branches: Branch[], worktrees: Worktr
     </div>`
   }
   html += '</div>'
+  return html
+}
+
+const DEPLOY_STATE_DISPLAY: Record<string, { icon: string; label: string; cls: string }> = {
+  BUILDING: { icon: '<span class="ci-spinner"></span>', label: 'Building', cls: 'vd-building' },
+  QUEUED: { icon: '<span class="ci-spinner"></span>', label: 'Queued', cls: 'vd-queued' },
+  INITIALIZING: {
+    icon: '<span class="ci-spinner"></span>',
+    label: 'Initializing',
+    cls: 'vd-queued',
+  },
+  READY: { icon: '\u2705', label: 'Ready', cls: 'vd-ready' },
+  ERROR: { icon: '\u274c', label: 'Error', cls: 'vd-error' },
+  CANCELED: { icon: '\u26d4', label: 'Canceled', cls: 'vd-error' },
+}
+
+export function renderVercelDeployments(deployments: VercelDeployment[]): string {
+  if (deployments.length === 0) return ''
+
+  let html = `<div class="section">
+    <h2>\u25b2 Vercel Deployments</h2>
+    <div class="vd-list">`
+
+  for (const d of deployments) {
+    const display = DEPLOY_STATE_DISPLAY[d.state] ?? {
+      icon: '\u2753',
+      label: d.state,
+      cls: '',
+    }
+    const env = d.target === 'production' ? 'prod' : 'preview'
+    const envCls = d.target === 'production' ? 'vd-env-prod' : 'vd-env-preview'
+    const branch = d.meta.githubCommitRef ?? ''
+    const msg = d.meta.githubCommitMessage ? shortTitle(d.meta.githubCommitMessage, 40) : ''
+    const age = d.createdAt ? timeAgo(new Date(d.createdAt).toISOString()) : ''
+    const deployUrl = `https://${d.url}`
+
+    html += `<div class="vd-item ${display.cls}">
+      <span class="vd-state">${display.icon} ${display.label}</span>
+      <span class="badge ${envCls}">${env}</span>
+      <a href="${escHtml(deployUrl)}" target="_blank" rel="noopener" class="vd-url">${escHtml(d.url)}</a>
+      ${branch ? `<code class="vd-branch">${escHtml(branch)}</code>` : ''}
+      ${msg ? `<span class="vd-msg">${escHtml(msg)}</span>` : ''}
+      <span class="text-muted vd-age">${age}</span>
+    </div>`
+  }
+
+  html += '</div></div>'
   return html
 }

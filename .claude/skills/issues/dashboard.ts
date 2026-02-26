@@ -7,9 +7,15 @@
  * Features: in-memory cache, background polling, SSE live updates.
  */
 
-import { fetchBranches, fetchIssues, fetchPRs, fetchWorktrees } from './lib/fetch'
+import {
+  fetchBranches,
+  fetchIssues,
+  fetchPRs,
+  fetchVercelDeployments,
+  fetchWorktrees,
+} from './lib/fetch'
 import { buildHtml } from './lib/page'
-import type { Branch, Issue, PR, Worktree } from './lib/types'
+import type { Branch, Issue, PR, VercelDeployment, Worktree } from './lib/types'
 import { handleUpdate } from './lib/update'
 
 const PORT = Number(process.argv.find((a) => a.startsWith('--port='))?.split('=')[1] ?? 3333)
@@ -26,7 +32,8 @@ function computeHash(
   issues: Issue[],
   prs: PR[],
   branches: Branch[],
-  worktrees: Worktree[]
+  worktrees: Worktree[],
+  deployments: VercelDeployment[]
 ): string {
   const key = JSON.stringify({
     i: issues.map((i) => [
@@ -37,9 +44,16 @@ function computeHash(
       i.blockStatus,
       i.children.length,
     ]),
-    p: prs.map((p) => [p.number, p.isDraft, p.reviewDecision, p.updatedAt]),
+    p: prs.map((p) => [
+      p.number,
+      p.isDraft,
+      p.reviewDecision,
+      p.updatedAt,
+      p.checks.map((c) => [c.name, c.status, c.conclusion]),
+    ]),
     b: branches.length,
     w: worktrees.length,
+    v: deployments.map((d) => [d.uid, d.state]),
   })
   return Bun.hash(key).toString(36)
 }
@@ -47,18 +61,19 @@ function computeHash(
 async function refreshCache(): Promise<void> {
   try {
     const start = performance.now()
-    const [issues, prs, branches, worktrees] = await Promise.all([
+    const [issues, prs, branches, worktrees, deployments] = await Promise.all([
       fetchIssues(),
       fetchPRs(),
       fetchBranches(),
       fetchWorktrees(),
+      fetchVercelDeployments(),
     ])
     const fetchMs = Math.round(performance.now() - start)
-    const hash = computeHash(issues, prs, branches, worktrees)
+    const hash = computeHash(issues, prs, branches, worktrees, deployments)
 
     const changed = !cache || cache.hash !== hash
     const updatedAt = Date.now()
-    const html = buildHtml(issues, prs, branches, worktrees, fetchMs, updatedAt)
+    const html = buildHtml(issues, prs, branches, worktrees, deployments, fetchMs, updatedAt)
     cache = { html, hash, fetchMs, updatedAt }
 
     if (changed) notifyClients()
@@ -162,7 +177,7 @@ const server = Bun.serve({
     // Dashboard page
     try {
       if (!cache) await refreshCache()
-      return new Response(cache!.html, {
+      return new Response(cache?.html, {
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
       })
     } catch (err) {

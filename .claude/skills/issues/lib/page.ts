@@ -1,13 +1,19 @@
-import { issueRow, renderBranchesAndWorktrees, renderPRs } from './components'
+import {
+  issueRow,
+  renderBranchesAndWorktrees,
+  renderPRs,
+  renderVercelDeployments,
+} from './components'
 import { buildDepGraph, renderDepGraph } from './graph'
 import { PAGE_STYLES } from './page-styles'
-import type { Branch, Issue, PR, Worktree } from './types'
+import type { Branch, Issue, PR, VercelDeployment, Worktree } from './types'
 
 export function buildHtml(
   issues: Issue[],
   prs: PR[],
   branches: Branch[],
   worktrees: Worktree[],
+  deployments: VercelDeployment[],
   fetchMs: number,
   updatedAt: number
 ): string {
@@ -26,6 +32,7 @@ export function buildHtml(
   const hiddenCount = issues.length - INITIAL_VISIBLE
   const depNodes = buildDepGraph(issues)
   const depGraphHtml = renderDepGraph(depNodes, issues)
+  const vercelHtml = renderVercelDeployments(deployments)
   const prsHtml = renderPRs(prs)
   const branchesHtml = renderBranchesAndWorktrees(branches, worktrees)
 
@@ -50,6 +57,8 @@ ${LIVE_STYLES}
       &middot; <span id="fetch-time">Fetched in ${fetchMs}ms</span>
     </span>
   </header>
+
+  <div id="section-vercel">${vercelHtml}</div>
 
   <div id="section-prs" class="section">
     <h2>Pull Requests</h2>
@@ -136,6 +145,12 @@ ${LIVE_STYLES}
   <div id="toast" class="toast"></div>
 
   <script>
+  function toggleCI(prNum) {
+    var row = document.getElementById('ci-' + prNum);
+    if (!row) return;
+    row.style.display = row.style.display === 'none' ? '' : 'none';
+  }
+
   (function() {
     var ctxMenu = document.getElementById('ctx-menu');
     var ctxNum = document.getElementById('ctx-issue-num');
@@ -257,8 +272,14 @@ ${LIVE_STYLES}
       // Preserve show/hide state of hidden issues
       var hiddenVisible = document.getElementById('hidden-issues').style.display !== 'none';
 
+      // Preserve CI expand/collapse state
+      var expandedCIs = [];
+      document.querySelectorAll('.ci-details-row').forEach(function(row) {
+        if (row.style.display !== 'none') expandedCIs.push(row.id);
+      });
+
       // Patch issue tables
-      var selectors = ['#issues-visible', '#hidden-issues', '#section-prs', '#section-graph', '#section-branches', '#issue-count', '#fetch-time'];
+      var selectors = ['#issues-visible', '#hidden-issues', '#section-vercel', '#section-prs', '#section-graph', '#section-branches', '#issue-count', '#fetch-time'];
       for (var s = 0; s < selectors.length; s++) {
         var sel = selectors[s];
         var freshEl = freshDoc.querySelector(sel);
@@ -277,6 +298,12 @@ ${LIVE_STYLES}
         if (showMoreRow) showMoreRow.style.display = 'none';
         var showLessRow = document.getElementById('show-less-row');
         if (showLessRow) showLessRow.style.display = '';
+      }
+
+      // Restore CI expand/collapse state
+      for (var ci = 0; ci < expandedCIs.length; ci++) {
+        var ciRow = document.getElementById(expandedCIs[ci]);
+        if (ciRow) ciRow.style.display = '';
       }
 
       // Update timestamp
