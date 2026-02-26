@@ -29,6 +29,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Update branch with base
+        run: gh pr update-branch "$PR_NUMBER" || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+
       - name: Enable auto-merge (squash)
         run: gh pr merge "$PR_NUMBER" --auto --squash
         env:
