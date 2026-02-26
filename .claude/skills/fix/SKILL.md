@@ -61,15 +61,48 @@ Runs before 1b1 — `[auto-applied]` markers reflect outcomes.
 **3. Large queue:** |Q_auto| > 5 → AskUserQuestion: "Auto-apply all N?" / "Review via 1b1".
 - 1b1 → Q_1b1 ∪= Q_auto; Q_auto := ∅; skip to Phase 4.
 
-**4. Serial apply:** ∀ f ∈ Q_auto (sequential):
+**4. Dispatch strategy — agent vs inline:**
+
+```
+|Q_auto| ≤ 2  → orchestrator applies directly (inline, ¬spawn agent)
+|Q_auto| ≥ 3  → spawn agent(s) per dispatch table below
+```
+
+**Agent dispatch (|Q_auto| ≥ 3):**
+
+```
+simple(f) ⟺ mechanical fix (rename, remove unused, add import/type, one-liner)
+complex(f) ⟺ domain reasoning needed (logic change, multi-file, arch-adjacent, security)
+```
+Evaluate the fix, ¬the label — any category can be simple or complex.
+
+```
+simple(f) → fixer
+complex(f) → domain agent: FE→frontend-dev | BE→backend-dev | Infra→devops
+```
+Domains: FE = `apps/web/`, `packages/ui/` | BE = `apps/api/`, `packages/types/` | Infra = `packages/config/`, root, CI
+
+**Batching (cost efficiency):**
+- Min 3 findings per agent — ¬spawn for <3
+- <3 in a group → merge into nearest agent (prefer `fixer` as catch-all)
+- Mixed domains → 1 agent per domain (if ≥3 each), else consolidate into fewest agents respecting min 3
+
+**5. Apply (inline or via agent):**
+
+*Inline (|Q_auto| ≤ 2):* ∀ f ∈ Q_auto (sequential):
 - succeeds → `[applied]`
 - fails (test / lint / timeout / crash) → stash restore → demote f + remaining → Q_1b1 + note → **halt serial apply**
 - Prior fixes ¬rolled back
 
-**5. Summary:** Display before Phase 4:
+*Agent (|Q_auto| ≥ 3):* Spawn per dispatch table. Agent payload = findings in scope + diff context + "fix each finding; re-read files before editing; run lint + tests after each fix."
+- Agent succeeds → `[applied]` per finding
+- Agent fails on a finding → `[failed -> 1b1]`, demote to Q_1b1
+- Agent constraints: same as Phase 5 fixer constraints (re-read, CI fail → retry max 3, escalate if stuck)
+
+**6. Summary:** Display before Phase 4:
 ```
 -- Auto-Applied Fixes (C ≥ 80%, verified) --
-Applied N finding(s):
+Applied N finding(s) [inline | via fixer | via frontend-dev | ...]:
   1. [applied] issue(blocking): SQL injection in users.service.ts:42 (92%)
   2. [failed -> 1b1] nitpick: Unused import in dashboard.tsx:3 (85%) -- test failure
 Remaining M finding(s) → 1b1.
@@ -91,20 +124,23 @@ accepted = {f ∈ Q_1b1 | decision(f) = accept}
 
 accepted = ∅ → inform ("No findings accepted"), skip to Phase 6.
 
-**Domain dispatch:**
+**Inline vs agent (same rule as Phase 3):**
+```
+|accepted| ≤ 2  → orchestrator applies directly (inline, ¬spawn agent)
+|accepted| ≥ 3  → spawn agent(s) per dispatch below
+```
 
-| Fixer | Condition | Scope |
-|-------|-----------|-------|
-| Backend | accepted ∩ {`apps/api/`, `packages/types/`} ≠ ∅ | BE patterns, API, errors |
-| Frontend | accepted ∩ {`apps/web/`, `packages/ui/`} ≠ ∅ | FE patterns, components, hooks |
-| Infra | accepted ∩ {`packages/config/`, root, CI} ≠ ∅ | Config, deploy, infra |
+**Dispatch — same rules as Phase 3:**
+```
+simple(f) → fixer
+complex(f) → domain agent: FE→frontend-dev | BE→backend-dev | Infra→devops
+```
 
-**Split rules:**
-- ≤5 findings/domain → 1 fixer per domain
-- ≥6 findings/domain across distinct modules → N fixers (disjoint file groups), 1/module group
-- multi-domain → 1 fixer/domain ∥ + split within domain if ≥6
-
-All fixers use `.claude/agents/fixer.md`.
+**Batching (cost efficiency):**
+- Min 3 findings per agent — ¬spawn for <3
+- <3 in a group → merge into nearest agent (prefer `fixer` as catch-all)
+- ≥6 findings/domain across distinct modules → N agents (disjoint file groups), 1/module group
+- Mixed domains → 1 agent per domain (if ≥3 each), else consolidate into fewest agents respecting min 3
 
 **Fixer payload per agent:** accepted findings in scope + full diff context + "fix each finding; re-read files before editing; run lint + tests after each fix."
 
@@ -150,7 +186,8 @@ Fixer constraints:
 | Q_auto = ∅ | Skip Phase 3, go to Phase 4 |
 | Q_1b1 = ∅ after Phase 3 | Skip Phase 4 |
 | accepted = ∅ | Skip Phase 5, inform |
-| ∀f: auto_apply(f) | All auto-applied, 1b1 skipped |
+| ∀f: auto_apply(f) ∧ |Q_auto| ≤ 2 | All auto-applied inline, 1b1 skipped |
+| ∀f: auto_apply(f) ∧ |Q_auto| ≥ 3 | All auto-applied via agent(s), 1b1 skipped |
 | ∀f: C(f) < T | Phase 3 skipped, all → 1b1 |
 | |A(f)| = 1 ∧ C(f) ≥ T | Verification agent → auto-apply ∨ 1b1 |
 | Auto-apply breaks tests/lint | Stash restore, demote to 1b1 |
