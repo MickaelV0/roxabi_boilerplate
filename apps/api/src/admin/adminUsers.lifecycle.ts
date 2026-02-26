@@ -1,11 +1,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import type { AuditAction } from '@repo/types'
-import { eq } from 'drizzle-orm'
+import { and, count, eq, isNull, ne } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import { AuditService } from '../audit/audit.service.js'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { users } from '../database/schema/auth.schema.js'
 import { findUserSnapshotOrThrow } from './adminUsers.shared.js'
+import { LastSuperadminException } from './exceptions/lastSuperadmin.exception.js'
 import { NotDeletedException } from './exceptions/notDeleted.exception.js'
 import { SelfActionException } from './exceptions/selfAction.exception.js'
 import { SuperadminProtectionException } from './exceptions/superadminProtection.exception.js'
@@ -39,7 +40,7 @@ export class AdminUsersLifecycleService {
     }
 
     const user = await findUserSnapshotOrThrow(this.db, userId)
-    this.validateBanEligibility(user, userId)
+    await this.validateBanEligibility(user, userId)
 
     const [updatedUser] = await this.db
       .update(users)
@@ -52,16 +53,35 @@ export class AdminUsersLifecycleService {
     return updatedUser
   }
 
-  private validateBanEligibility(
+  private async validateBanEligibility(
     user: { role: string | null; banned: boolean | null },
     userId: string
   ) {
     if (user.role === 'superadmin') {
+      const isLast = await this.isLastActiveSuperadmin(userId)
+      if (isLast) {
+        throw new LastSuperadminException()
+      }
       throw new SuperadminProtectionException()
     }
     if (user.banned) {
       throw new UserAlreadyBannedException(userId)
     }
+  }
+
+  private async isLastActiveSuperadmin(excludeUserId: string): Promise<boolean> {
+    const [result] = await this.db
+      .select({ count: count() })
+      .from(users)
+      .where(
+        and(
+          eq(users.role, 'superadmin'),
+          eq(users.banned, false),
+          isNull(users.deletedAt),
+          ne(users.id, excludeUserId)
+        )
+      )
+    return (result?.count ?? 0) === 0
   }
 
   /**

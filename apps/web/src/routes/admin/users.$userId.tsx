@@ -6,6 +6,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  ConfirmDialog,
   Input,
   Label,
   Select,
@@ -20,12 +21,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from '@repo/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import {
   BuildingIcon,
   CalendarIcon,
+  LockIcon,
   MailIcon,
   PencilIcon,
   ShieldIcon,
@@ -36,6 +41,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { BackLink, DetailSkeleton } from '@/components/admin/DetailShared'
 import { UserActions } from '@/components/admin/UserActions'
+import { useSession } from '@/lib/authClient'
 import { formatDate, formatTimestamp } from '@/lib/formatDate'
 import { enforceRoutePermission } from '@/lib/routePermissions'
 import { statusLabel, statusVariant } from '@/lib/userStatus'
@@ -214,15 +220,26 @@ const ROLE_OPTIONS = [
 
 type EditUserFormProps = {
   user: AdminUserDetail
+  currentUserId: string | undefined
   onSave: () => void
   onCancel: () => void
 }
 
-function EditUserForm({ user, onSave, onCancel }: EditUserFormProps) {
+function EditUserForm({ user, currentUserId, onSave, onCancel }: EditUserFormProps) {
   const [name, setName] = useState(user.name || '')
   const [email, setEmail] = useState(user.email)
   const [role, setRole] = useState(user.role ?? 'user')
   const [error, setError] = useState<string | null>(null)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+
+  const isSelf = currentUserId === user.id
+  const isSelfSuperadmin = isSelf && user.role === 'superadmin'
+  const isRoleLocked = isSelfSuperadmin && user.isLastActiveSuperadmin
+  const isSelfDemotion = isSelfSuperadmin && role !== 'superadmin'
+
+  const orgOwnerNames = user.organizations
+    .filter((org) => org.role === 'owner')
+    .map((org) => org.name)
 
   const mutation = useMutation({
     mutationFn: async (payload: { name: string; email: string; role: string }) => {
@@ -252,77 +269,124 @@ function EditUserForm({ user, onSave, onCancel }: EditUserFormProps) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (isSelfDemotion) {
+      setShowConfirmDialog(true)
+      return
+    }
+
     mutation.mutate({ name, email, role })
   }
 
+  function handleConfirmRoleChange() {
+    setShowConfirmDialog(false)
+    mutation.mutate({ name, email, role })
+  }
+
+  function buildConfirmDescription() {
+    let desc =
+      'You are about to change your role from Superadmin to User. You will lose access to the admin panel and will be logged out on all devices. Another superadmin will need to restore your access.'
+    if (orgOwnerNames.length > 0) {
+      desc += `\n\nNote: You are still an owner in ${orgOwnerNames.join(', ')}. Your organization ownership is not affected, but you won't be able to manage these organizations from the admin panel.`
+    }
+    return desc
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <PencilIcon className="size-4" />
-          Edit User
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <p className="text-sm text-destructive rounded-md border border-destructive/20 bg-destructive/5 p-3">
-              {error}
-            </p>
-          )}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-name" className="text-sm font-medium">
-                Name
-              </Label>
-              <Input
-                id="edit-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="User name"
-              />
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <PencilIcon className="size-4" />
+            Edit User
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <p className="text-sm text-destructive rounded-md border border-destructive/20 bg-destructive/5 p-3">
+                {error}
+              </p>
+            )}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-name" className="text-sm font-medium">
+                  Name
+                </Label>
+                <Input
+                  id="edit-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="User name"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-email" className="text-sm font-medium">
+                  Email
+                </Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="user@example.com"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-role" className="text-sm font-medium">
+                  Global Role
+                </Label>
+                {isRoleLocked ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex h-9 w-full items-center gap-2 rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground cursor-not-allowed">
+                        <LockIcon className="size-3.5" />
+                        <span className="capitalize">{user.role}</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      You are the last active superadmin and cannot change your role.
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Select value={role} onValueChange={setRole}>
+                    <SelectTrigger id="edit-role" className="w-full">
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ROLE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-email" className="text-sm font-medium">
-                Email
-              </Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="user@example.com"
-              />
+            <div className="flex gap-2">
+              <Button type="submit" size="sm" loading={mutation.isPending}>
+                Save Changes
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+                Cancel
+              </Button>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-role" className="text-sm font-medium">
-                Global Role
-              </Label>
-              <Select value={role} onValueChange={setRole}>
-                <SelectTrigger id="edit-role" className="w-full">
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button type="submit" size="sm" loading={mutation.isPending}>
-              Save Changes
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+          </form>
+        </CardContent>
+      </Card>
+
+      <ConfirmDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Change Your Role"
+        description={buildConfirmDescription()}
+        variant="warning"
+        confirmText="Change Role"
+        onConfirm={handleConfirmRoleChange}
+        loading={mutation.isPending}
+      />
+    </>
   )
 }
 
@@ -378,6 +442,7 @@ function UserDetailHeader({
 function AdminUserDetailPage() {
   const { userId } = Route.useParams()
   const queryClient = useQueryClient()
+  const { data: session } = useSession()
   const [isEditing, setIsEditing] = useState(false)
 
   const { data, isLoading, error } = useQuery<AdminUserDetail>({
@@ -433,7 +498,12 @@ function AdminUserDetailPage() {
         onActionComplete={handleActionComplete}
       />
       {isEditing && (
-        <EditUserForm user={data} onSave={handleEditSave} onCancel={() => setIsEditing(false)} />
+        <EditUserForm
+          user={data}
+          currentUserId={session?.user?.id}
+          onSave={handleEditSave}
+          onCancel={() => setIsEditing(false)}
+        />
       )}
       <ProfileCard data={data} />
       <MembershipsCard organizations={data.organizations} />

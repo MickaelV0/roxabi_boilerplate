@@ -51,6 +51,8 @@ export type AdminUser = {
 export type AdminUserDetail = AdminUser & {
   image: string | null
   activitySummary: import('./audit').AuditLogEntry[]
+  /** True when this user is the only active (non-banned, non-deleted) superadmin */
+  isLastActiveSuperadmin: boolean
 }
 
 /** Filter parameters for the admin users list */

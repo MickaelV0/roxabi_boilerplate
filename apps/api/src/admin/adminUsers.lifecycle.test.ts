@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuditService } from '../audit/audit.service.js'
 import { createChainMock } from './__test-utils__/createChainMock.js'
 import { AdminUsersLifecycleService } from './adminUsers.lifecycle.js'
+import { LastSuperadminException } from './exceptions/lastSuperadmin.exception.js'
 import { NotDeletedException } from './exceptions/notDeleted.exception.js'
 import { SelfActionException } from './exceptions/selfAction.exception.js'
 import { SuperadminProtectionException } from './exceptions/superadminProtection.exception.js'
@@ -132,14 +133,29 @@ describe('AdminUsersLifecycleService', () => {
       ).rejects.toThrow(AdminUserNotFoundException)
     })
 
-    it('should throw SuperadminProtectionException when banning a superadmin', async () => {
-      // Arrange
+    it('should throw SuperadminProtectionException when banning a superadmin (not last)', async () => {
+      // Arrange — superadmin target, but not the last active one
       const superadminUser = { ...baseUser, role: 'superadmin', banned: false }
-      db.select.mockReturnValueOnce(createChainMock([superadminUser]))
+      db.select
+        .mockReturnValueOnce(createChainMock([superadminUser])) // findUserSnapshotOrThrow
+        .mockReturnValueOnce(createChainMock([{ count: 2 }])) // isLastActiveSuperadmin: 2 others exist
 
       // Act & Assert
       await expect(service.banUser('user-1', 'Spam activity', null, 'actor-super')).rejects.toThrow(
         SuperadminProtectionException
+      )
+    })
+
+    it('should throw LastSuperadminException when banning the last active superadmin', async () => {
+      // Arrange — superadmin target, and they are the last active one
+      const superadminUser = { ...baseUser, role: 'superadmin', banned: false }
+      db.select
+        .mockReturnValueOnce(createChainMock([superadminUser])) // findUserSnapshotOrThrow
+        .mockReturnValueOnce(createChainMock([{ count: 0 }])) // isLastActiveSuperadmin: 0 others
+
+      // Act & Assert
+      await expect(service.banUser('user-1', 'Spam activity', null, 'actor-super')).rejects.toThrow(
+        LastSuperadminException
       )
     })
 
