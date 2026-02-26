@@ -197,7 +197,7 @@ useSession() ─┬─ session + token → WarningState (new)
 - [ ] Error code mapping tested for all four codes (EXPIRED_TOKEN, INVALID_TOKEN, USER_NOT_FOUND, + fallback)
 - [ ] Session check + warning state tested (logged-in user clicks link)
 - [ ] Logout-and-retry flow tested (warning state → signOut → reload)
-- [ ] i18n keys complete (EN + FR, `bun run i18n:validate` passes)
+- [ ] i18n keys complete (EN + FR, `bun run i18n:check` passes)
 - [ ] No regressions in happy path (unregistered → registered email, valid token, guest user)
 
 ---

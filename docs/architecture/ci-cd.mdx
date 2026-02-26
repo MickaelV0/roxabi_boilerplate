@@ -130,7 +130,7 @@ The first three jobs (`lint`, `typecheck`, `test`) run in parallel. `build` runs
 
 **Lint** -- Installs dependencies with `bun install --frozen-lockfile`, then runs:
 - `bun lint` -- Biome check across the entire monorepo
-- `bun run i18n:validate` -- Validates translation file completeness
+- `bun run i18n:check` -- Validates translation file completeness
 - `bun run license:check` -- Scans dependency licenses for compliance
 
 **Type Check** -- Generates code artifacts (`codegen` for Paraglide i18n and TanStack Router route tree), then runs `bun typecheck` (TurboRepo delegates to each workspace's `tsc --noEmit`).

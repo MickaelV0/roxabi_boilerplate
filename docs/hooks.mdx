@@ -20,7 +20,7 @@ Roxabi Boilerplate uses two layers of hooks: **Lefthook** for Git hooks (commit-
 | `pre-push` | **lint** | Runs `bun run lint` (Biome lint on the full repo) |
 | `pre-push` | **typecheck** | Runs `bun run typecheck` (TypeScript strict mode) |
 | `pre-push` | **test** | Runs `bun run test:coverage` (full test suite with coverage) |
-| `pre-push` | **i18n** | Runs `bun run i18n:validate` (translation completeness) |
+| `pre-push` | **i18n** | Runs `bun run i18n:check` (translation completeness) |
 | `pre-push` | **license** | Runs `bun run license:check` (dependency license compliance) |
 
 The `pre-commit` and `pre-push` stages run their commands in parallel for faster execution.

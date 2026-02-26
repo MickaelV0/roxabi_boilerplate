@@ -322,7 +322,7 @@ Not using `FormMessage` (which renders as `&lt;p>`) because placing a `&lt;Butto
 | Unit test `safeRedirect` | `apps/web/src/lib/route-guards.test.ts` | Absolute URLs, `//`, encoded paths, empty string, valid relative paths |
 | Update login page tests | `apps/web/src/routes/login.test.ts` | 403 banner rendering, resend button, `emailNotVerified` state clearing |
 | Update verify-email tests | `apps/web/src/routes/verify-email.test.ts` | Sessionless resend form, cooldown, neutral message |
-| Run `bun run i18n:validate` | — | Confirm EN and FR message files are in sync after new key additions |
+| Run `bun run i18n:check` | — | Confirm EN and FR message files are in sync after new key additions |
 | Run full quality check | — | `bun run lint && bun run typecheck && bun run test` |
 
 **Note:** Phases 2-5 have no mutual dependencies and can be developed in parallel by multiple agents once Phase 1 is committed. Phase 6 runs after all phases are complete.
@@ -351,7 +351,7 @@ Not using `FormMessage` (which renders as `&lt;p>`) because placing a `&lt;Butto
 - [ ] `safeRedirect` rejects encoded path traversal (`/%2F/evil.com`)
 - [ ] `emailNotVerified` banner clears on new login attempt
 - [ ] `bun run lint && bun run typecheck && bun run test` passes
-- [ ] `bun run i18n:validate` shows zero missing keys
+- [ ] `bun run i18n:check` shows zero missing keys
 - [ ] Existing auth E2E tests (`bun run test:e2e`) pass without modification
 
 ## Open Questions

@@ -152,7 +152,7 @@ Add as a step in the `lint` job of `.github/workflows/ci.yml` (alongside Biome l
 **Done when:**
 - CI fails if `.env.example` is missing keys declared in Zod schemas
 - CI warns if `.env.example` has keys not in any schema (excluding the tooling allowlist)
-- Script is runnable locally (`bun run check:env`)
+- Script is runnable locally (`bun run env:check`)
 
 ---
 

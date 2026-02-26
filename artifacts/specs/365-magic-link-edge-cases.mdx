@@ -246,7 +246,7 @@ useSession() ─────┤
 |------|---------|
 | `bun run lint &amp;&amp; bun run typecheck` | Ensure no regressions |
 | `bun run test` | Run existing tests |
-| `bun run i18n:validate` | Confirm EN + FR in sync |
+| `bun run i18n:check` | Confirm EN + FR in sync |
 | Manual test each slice | V1: unregistered email → error. V2: expired/invalid token → specific message. V3: signed in + click link → warning. |
 
 **Note:** Phases 1-4 can be developed sequentially (Phase 1 → 2 share the same error path, Phase 3-4 both modify `verify.tsx`). Phase 5 runs after all.
@@ -264,7 +264,7 @@ useSession() ─────┤
 - [ ] Visiting `/magic-link/verify` with no token while signed in redirects to `/dashboard`
 - [ ] All new strings have EN and FR translations
 - [ ] `bun run lint &amp;&amp; bun run typecheck &amp;&amp; bun run test` passes
-- [ ] `bun run i18n:validate` shows zero missing keys
+- [ ] `bun run i18n:check` shows zero missing keys
 
 ## Open Questions
 

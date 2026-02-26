@@ -46,8 +46,8 @@ Run all quality gates sequentially → single structured pass/fail report. ¬sto
 | Test | `bun run test` | 180s |
 | Test (affected) | `bun run test:affected` | 180s |
 | Test coverage | `bun run test:coverage` | 300s |
-| Env check | `bun run check:env` | 10s |
-| i18n | `bun run i18n:validate` | 30s |
+| Env check | `bun run env:check` | 10s |
+| i18n | `bun run i18n:check` | 30s |
 | License | `bun run license:check` | 30s |
 
 ### 3. Report

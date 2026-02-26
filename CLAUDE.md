@@ -45,8 +45,8 @@ packages/  ui(@repo/ui) types(@repo/types) config(@repo/config) email vitest-con
 | DB generate/migrate/reset/seed | `db:generate` / `db:migrate` / `db:reset` / `db:seed` | |
 | DB branch | `cd apps/api && bun run db:branch:create --force XXX` | Per-worktree |
 | Clean | `bun run clean` / `clean:cache` | Artifacts / caches |
-| i18n | `bun run i18n:validate` | Translation completeness |
-| Env check | `bun run check:env` | .env ↔ .env.example |
+| i18n | `bun run i18n:check` | Translation completeness |
+| Env check | `bun run env:check` | .env ↔ .env.example |
 | License | `bun run license:check` | Dependency licenses |
 | Docs | `bun run docs` | Runs web only (port 3000) |
 | Dashboard | `bun run dashboard` | Issue dashboard :3333 |
