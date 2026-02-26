@@ -10,7 +10,7 @@ vi.mock('@repo/ui', () => ({
 
 // Mock shiki -- codeToHtml returns a resolved promise by default
 const mockCodeToHtml = vi.fn()
-vi.mock('shiki', () => ({
+vi.mock('@/lib/shiki', () => ({
   codeToHtml: (...args: unknown[]) => mockCodeToHtml(...args),
 }))
 

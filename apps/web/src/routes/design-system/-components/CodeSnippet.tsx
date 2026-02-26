@@ -25,11 +25,10 @@ function useShikiHighlight(code: string, language: string | undefined) {
 
     async function highlight() {
       try {
-        const { codeToHtml } = await import('shiki')
+        const { codeToHtml } = await import('@/lib/shiki')
         const result = await codeToHtml(code, {
           lang: language as string,
           themes: { light: 'github-light', dark: 'github-dark' },
-          defaultColor: false,
         })
         if (!cancelled) setHtml(result)
       } catch {
