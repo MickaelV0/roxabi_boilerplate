@@ -5,14 +5,8 @@ on:
     types: [opened, synchronize]
     branches: [main, staging]
 
-permissions:
-  contents: write
-  pull-requests: write
-  issues: read
-  id-token: write
-
 concurrency:
-  group: pr-review-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-pr-review-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
@@ -20,10 +14,17 @@ jobs:
     name: Review & Auto-fix
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'github-actions[bot]'
+
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: read
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -42,7 +43,7 @@ jobs:
 
       - name: Review & Auto-fix
         if: steps.preflight.outputs.skip != 'true'
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@4d97243dfe710930bd5d449730cdaf7789fbe7b0 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           use_sticky_comment: true
@@ -60,7 +61,7 @@ jobs:
             - Run `bun run lint:fix && bun run format` to fix Biome violations
             - Fix simple type annotations and obvious safe corrections
             If you made any changes, commit them with:
-            `fix(review): automated fixes [skip ci]`
+            `fix(review): automated fixes`
             If nothing to fix, skip the commit.
 
             **Step 3 — Post comment**
@@ -82,7 +83,7 @@ jobs:
             ```
 
       - name: Post fallback comment on failure
-        if: failure()
+        if: failure() && steps.preflight.outputs.skip != 'true'
         run: |
           gh pr comment "$PR_NUMBER" \
             --body "<!-- reviewed-by-claude -->⚠️ Automated review could not complete. Please run \`/review\` manually."
