@@ -21,7 +21,7 @@ export const Route = createFileRoute('/talks/claude-code')({
 
 export function ClaudeCodePresentation() {
   const navigate = useNavigate()
-  const handleEscape = useCallback(() => navigate({ to: '/' }), [navigate])
+  const handleEscape = useCallback(() => navigate({ to: '/talks' }), [navigate])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const sections = useMemo(

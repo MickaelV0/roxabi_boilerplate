@@ -58,7 +58,7 @@ function DesktopNavLinks() {
         </Link>
       </Button>
       <Button variant="ghost" size="sm" asChild>
-        <Link to="/talks/claude-code">{m.nav_talks()}</Link>
+        <Link to="/talks">{m.nav_talks()}</Link>
       </Button>
       <Button variant="ghost" size="sm" asChild>
         <Link to="/docs/$" params={{ _splat: '' }}>

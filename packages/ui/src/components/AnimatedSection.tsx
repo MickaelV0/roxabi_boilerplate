@@ -52,7 +52,7 @@ export function AnimatedSection({ children, className = '' }: AnimatedSectionPro
     <div
       ref={setRefs}
       className={cn(
-        skipAnimation ? '' : 'transition-[opacity,transform] duration-700 ease-out',
+        skipAnimation ? '' : 'transition-[opacity,transform] duration-400 ease-out',
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8',
         className
       )}
