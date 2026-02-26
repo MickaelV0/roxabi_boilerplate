@@ -1,0 +1,565 @@
+---
+title: "Plan: Automated PR Review Pipeline"
+issue: 379
+spec: artifacts/specs/379-pr-review-pipeline.mdx
+complexity: 7/10
+tier: F-lite
+generated: 2026-02-26T00:00:00Z
+---
+
+## Summary
+
+Build an automated PR review pipeline using GitHub Actions that triggers the existing `/review` skill on every PR open/push, posts findings as inline diff comments, and runs follow-up reviews that resolve threads when fixes are verified.
+
+## Bootstrap Context
+
+No analysis artifact (F-lite, analyze skipped). Key patterns from codebase:
+- `tools/docsLinkAudit.ts` — TypeScript tool structure: Bun, `import.meta.dirname`, typed interfaces, exit codes, single-quotes, no semicolons, 2-space indent
+- `.github/workflows/ci.yml` — workflow pattern: `actions/checkout@v6`, `oven-sh/setup-bun@v2`, `bun install --frozen-lockfile`, `timeout-minutes`, TurboRepo caching
+- `.github/workflows/auto-merge.yml` — `gh api` usage, `GH_TOKEN` env var, `actions/github-script@v8`
+
+## Agents
+
+| Agent | Tasks | Files |
+|-------|-------|-------|
+| devops | 14 | `.github/workflows/pr-review.yml`, `tools/build-pr-context.ts`, `tools/post-inline-comments.ts`, `tools/resolve-threads.ts` |
+| doc-writer | 1 | `.claude/skills/review/SKILL.md` |
+| tester | 3 | `tools/*.test.ts` |
+
+## Consistency Report
+
+- Covered: 6/6 criteria, 8/8 breadboard nodes
+- Uncovered: none
+- Untraced: V1.1 (spike — infra validation, exempt), V3.4/V4.1/V4.2 (workflow integration tasks — infra, exempt)
+- Exemptions: 4 (infra/integration tasks)
+
+---
+
+## Micro-Tasks
+
+### Slice V1: Trigger & run (+ spike)
+
+#### Task V1.1: Create spike workflow validating `claude --print` + Task dispatch in CI → devops
+- **File:** `.github/workflows/claude-spike.yml` (delete after validation)
+- **Snippet:**
+  ```yaml
+  name: Claude CLI Spike
+  on: workflow_dispatch
+  jobs:
+    spike:
+      runs-on: ubuntu-latest
+      timeout-minutes: 5
+      steps:
+        - uses: actions/checkout@v6
+        - run: npm install -g @anthropic-ai/claude-code@latest
+        - run: claude --print --permission-mode bypassPermissions "Run bash: echo hello"
+          env:
+            ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  ```
+- **Verify:** `[manual]` — trigger via `gh workflow run claude-spike.yml`, confirm Task dispatch and `gh` calls work in ubuntu-latest
+- **Expected:** workflow completes without error; Task sub-agents can run Bash commands
+- **Time:** 8 min | **Difficulty:** 3
+- **Traces:** SC-1 (prerequisite) | **Phase:** RED | **Slice:** V1
+
+#### Task V1.2: Create `.github/workflows/pr-review.yml` with triggers, concurrency, fork guard, permissions, timeout → devops
+- **File:** `.github/workflows/pr-review.yml`
+- **Snippet:**
+  ```yaml
+  name: PR Review
+  on:
+    pull_request:
+      types: [opened, synchronize]
+      branches: [main, staging]
+  permissions:
+    pull-requests: write
+    contents: read
+    issues: read
+  concurrency:
+    group: pr-review-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
+  jobs:
+    review:
+      name: Automated Review
+      runs-on: ubuntu-latest
+      timeout-minutes: 12
+      if: github.event.pull_request.head.repo.full_name == github.repository
+  ```
+- **Verify:** `test -f .github/workflows/pr-review.yml && grep -q 'cancel-in-progress: true' .github/workflows/pr-review.yml`
+- **Expected:** file exists with correct concurrency group and fork guard
+- **Time:** 5 min | **Difficulty:** 2
+- **Traces:** N1, N2 → SC-1, SC-2 | **Phase:** GREEN | **Slice:** V1
+
+#### Task V1.3: Add Claude CLI install, env vars, Phase-6-only invocation, fallback error comment → devops
+- **File:** `.github/workflows/pr-review.yml`
+- **Snippet:**
+  ```yaml
+      steps:
+        - uses: actions/checkout@v6
+        - name: Install Claude CLI
+          run: npm install -g @anthropic-ai/claude-code@0.2.x  # pin version
+        - name: Run review (Phase 6 only)
+          id: review
+          run: |
+            claude --print --permission-mode bypassPermissions \
+              --model claude-sonnet-4-6 \
+              "/review #${{ github.event.pull_request.number }}
+               IMPORTANT: Stop after Phase 6 (post PR comment). Do NOT call AskUserQuestion."
+          env:
+            ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        - name: Post fallback comment on failure
+          if: failure() && steps.review.outcome == 'failure'
+          run: |
+            gh pr comment "$PR_NUMBER" \
+              --body "<!-- reviewed-by-bot -->⚠️ Automated review could not complete. Please run \`/review\` manually."
+          env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            PR_NUMBER: ${{ github.event.pull_request.number }}
+  ```
+- **Verify:** `grep -q 'ANTHROPIC_API_KEY' .github/workflows/pr-review.yml && grep -q 'Stop after Phase 6' .github/workflows/pr-review.yml`
+- **Expected:** Claude invocation with model override, Phase 8 suppression instruction, fallback error step
+- **Time:** 5 min | **Difficulty:** 3
+- **Traces:** N4 → SC-1, SC-5 | **Phase:** GREEN | **Slice:** V1
+
+#### Task V1.4: Add large-PR preflight check (> 2000 diff lines → warning + skip) → devops
+- **File:** `.github/workflows/pr-review.yml`
+- **Snippet:**
+  ```yaml
+        - name: Preflight — check PR size
+          id: preflight
+          run: |
+            LINES=$(gh pr diff "$PR_NUMBER" | wc -l)
+            if [ "$LINES" -gt 2000 ]; then
+              gh pr comment "$PR_NUMBER" \
+                --body "<!-- reviewed-by-bot -->⚠️ PR is too large for automated review (${LINES} diff lines > 2000). Please run \`/review\` manually."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+            fi
+          env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            PR_NUMBER: ${{ github.event.pull_request.number }}
+        - name: Run review (Phase 6 only)
+          if: steps.preflight.outputs.skip != 'true'
+          # ... existing step
+  ```
+- **Verify:** `grep -q 'skip=true' .github/workflows/pr-review.yml`
+- **Expected:** preflight step gates Claude invocation with diff size check
+- **Time:** 3 min | **Difficulty:** 2
+- **Traces:** edge case (large PR) | **Phase:** GREEN | **Slice:** V1
+
+#### Task V1.5: Write tests for fork guard and concurrency configuration → tester
+- **File:** `tools/pr-review.test.ts`
+- **Snippet:**
+  ```ts
+  import { describe, it, expect } from 'vitest'
+  import { readFileSync } from 'node:fs'
+  import { parse } from 'yaml'
+
+  describe('pr-review.yml', () => {
+    const wf = parse(readFileSync('.github/workflows/pr-review.yml', 'utf-8'))
+    it('has fork guard', () => {
+      expect(wf.jobs.review.if).toContain('head.repo.full_name == github.repository')
+    })
+    it('has cancel-in-progress concurrency', () => {
+      expect(wf.concurrency['cancel-in-progress']).toBe(true)
+    })
+  })
+  ```
+- **Verify:** `bun run test tools/pr-review.test.ts`
+- **Expected:** both assertions pass
+- **Time:** 3 min | **Difficulty:** 1
+- **Traces:** N1, N2 → SC-2 | **Phase:** GREEN | **Slice:** V1
+
+#### RED-GATE V1: All V1 tasks complete → tester validates; spike result documented before V2 starts
+
+---
+
+### Slice V2: Context file
+
+#### Task V2.1: Create `tools/build-pr-context.ts` — fetch diff, SHA, threads, prior review detection → devops [P]
+- **File:** `tools/build-pr-context.ts`
+- **Snippet:**
+  ```ts
+  /**
+   * Build PR review context file for automated review pipeline.
+   * Outputs /tmp/pr-context.json consumed by pr-review.yml.
+   *
+   * Usage: GH_TOKEN=... bun run tools/build-pr-context.ts <pr-number>
+   */
+  import { writeFileSync } from 'node:fs'
+
+  interface PrContext {
+    prNumber: number
+    headSha: string
+    diff: string
+    priorReviewFound: boolean
+    priorReviewCommentId: number | null
+    priorReviewCommitSha: string | null
+    threads: Thread[]
+  }
+
+  interface Thread {
+    id: string
+    databaseId: number
+    path: string
+    line: number
+    body: string
+    isMinimized: boolean
+  }
+
+  const prNumber = parseInt(process.argv[2] ?? '')
+  if (!prNumber) { console.error('Usage: build-pr-context.ts <pr-number>'); process.exit(1) }
+
+  // fetch diff
+  const diff = await $`gh pr diff ${prNumber} --patch`.text()
+
+  // fetch PR metadata + comments
+  const pr = await $`gh api repos/{owner}/{repo}/pulls/${prNumber}`.json()
+  const comments = await $`gh api repos/{owner}/{repo}/issues/${prNumber}/comments`.json()
+
+  const botComment = comments.find((c: { body: string }) => c.body.includes('<!-- reviewed-by-bot -->'))
+  const priorReviewFound = !!botComment
+  const priorReviewCommitSha = botComment
+    ? botComment.body.match(/<!-- review-sha: ([a-f0-9]+) -->/)?.[1] ?? null
+    : null
+
+  const threads: Thread[] = await fetchReviewThreads(prNumber)
+
+  const ctx: PrContext = {
+    prNumber,
+    headSha: pr.head.sha,
+    diff,
+    priorReviewFound,
+    priorReviewCommentId: botComment?.id ?? null,
+    priorReviewCommitSha,
+    threads,
+  }
+
+  writeFileSync('/tmp/pr-context.json', JSON.stringify(ctx, null, 2))
+  console.log(`Context written: priorReviewFound=${priorReviewFound}, headSha=${ctx.headSha}`)
+  ```
+- **Verify:** `test -f tools/build-pr-context.ts && bun run typecheck --filter=...`
+- **Expected:** file compiles; PrContext type matches spec fields
+- **Time:** 8 min | **Difficulty:** 3
+- **Traces:** N3 → SC-1, SC-4 | **Phase:** GREEN | **Slice:** V2
+
+#### Task V2.2: Integrate context builder into `pr-review.yml` before Claude step → devops
+- **File:** `.github/workflows/pr-review.yml`
+- **Snippet:**
+  ```yaml
+        - name: Build PR context
+          run: bun run tools/build-pr-context.ts "$PR_NUMBER"
+          env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            PR_NUMBER: ${{ github.event.pull_request.number }}
+  ```
+- **Verify:** `grep -q 'build-pr-context.ts' .github/workflows/pr-review.yml`
+- **Expected:** context step runs before Claude invocation, outputs `/tmp/pr-context.json`
+- **Time:** 2 min | **Difficulty:** 1
+- **Traces:** N3 | **Phase:** GREEN | **Slice:** V2
+
+#### Task V2.3: Write tests for context file schema and prior review detection → tester [P]
+- **File:** `tools/build-pr-context.test.ts`
+- **Snippet:**
+  ```ts
+  import { describe, it, expect } from 'vitest'
+  import { parsePriorReview } from './build-pr-context'
+
+  describe('prior review detection', () => {
+    it('detects <!-- reviewed-by-bot --> marker', () => {
+      const comments = [{ id: 1, body: '<!-- reviewed-by-bot -->\n## Code Review\n...' }]
+      const result = parsePriorReview(comments)
+      expect(result.priorReviewFound).toBe(true)
+      expect(result.priorReviewCommentId).toBe(1)
+    })
+    it('returns false when no marker', () => {
+      const result = parsePriorReview([{ id: 2, body: '## Manual review' }])
+      expect(result.priorReviewFound).toBe(false)
+    })
+  })
+  ```
+- **Verify:** `bun run test tools/build-pr-context.test.ts`
+- **Expected:** both assertions pass
+- **Time:** 3 min | **Difficulty:** 1
+- **Traces:** N3, N7 → SC-1, SC-4 | **Phase:** GREEN | **Slice:** V2
+
+#### RED-GATE V2: V2 complete → tester; context file shape matches PrContext type
+
+---
+
+### Slice V3: Inline comments
+
+#### Task V3.1: Amend `.claude/skills/review/SKILL.md` Phase 6 — additive write of `/tmp/review-findings.json` → doc-writer [P]
+- **File:** `.claude/skills/review/SKILL.md`
+- **Snippet:**
+  ```markdown
+  ## Phase 6 — Post to PR
+
+  1. PR# = provided ∨ `gh pr list ...`; ¬∃ → skip
+  2. Write findings as structured JSON (additive, for inline posting pipeline):
+     ```bash
+     # /tmp/review-findings.json written if ∃ PR
+     # Format: Array<{file: string, line: number, body: string, category: string, confidence: number}>
+     # Extract from F: ∀f where f has file:line attribution
+     ```
+  3. `/tmp/review-comment.md` → `gh pr comment <#> --body-file ...`
+  4. `## Code Review` header + `<!-- reviewed-by-bot -->` + `<!-- review-sha: {HEAD_SHA} -->` markers
+  ```
+- **Verify:** `grep -q 'review-findings.json' .claude/skills/review/SKILL.md`
+- **Expected:** Phase 6 documents the JSON write; existing comment format unchanged
+- **Time:** 5 min | **Difficulty:** 2
+- **Traces:** N5 → SC-3 | **Phase:** GREEN | **Slice:** V3
+
+#### Task V3.2: Create `tools/post-inline-comments.ts` — hunk parser + stale comment deletion → devops
+- **File:** `tools/post-inline-comments.ts`
+- **Snippet:**
+  ```ts
+  /**
+   * Post findings from /tmp/review-findings.json as inline PR diff comments.
+   * Deletes prior bot inline comments first (clean slate).
+   *
+   * Usage: GH_TOKEN=... bun run tools/post-inline-comments.ts <pr-number>
+   */
+  interface Finding {
+    file: string
+    line: number
+    body: string
+    category: string
+    confidence: number
+  }
+
+  interface DiffPosition {
+    path: string
+    line: number
+    side: 'RIGHT' | 'LEFT'
+    diffLine: number  // position in unified diff (1-indexed)
+  }
+
+  /**
+   * Parse unified diff hunk headers to build a map of file:line → diff position.
+   * Only lines present in the diff (changed or context) are mappable.
+   */
+  function buildPositionMap(diff: string): Map<string, DiffPosition> { /* ... */ }
+
+  /**
+   * Delete all prior bot-posted inline comments (identified by <!-- reviewed-by-bot-comment --> marker).
+   */
+  async function deletePriorBotComments(prNumber: number): Promise<void> { /* ... */ }
+  ```
+- **Verify:** `test -f tools/post-inline-comments.ts && grep -q 'buildPositionMap' tools/post-inline-comments.ts`
+- **Expected:** position map builder and stale comment deletion scaffolded
+- **Time:** 8 min | **Difficulty:** 4
+- **Traces:** N6 → SC-3 | **Phase:** GREEN | **Slice:** V3
+
+#### Task V3.3: Implement inline comment posting with fallback for out-of-diff findings → devops
+- **File:** `tools/post-inline-comments.ts`
+- **Snippet:**
+  ```ts
+  async function postInlineComments(prNumber: number, headSha: string, findings: Finding[], posMap: Map<string, DiffPosition>): Promise<{ posted: number, fallback: string[] }> {
+    const fallback: string[] = []
+    let posted = 0
+    for (const f of findings) {
+      const key = `${f.file}:${f.line}`
+      const pos = posMap.get(key)
+      if (!pos) { fallback.push(formatFinding(f)); continue }
+      try {
+        await $`gh api repos/{owner}/{repo}/pulls/${prNumber}/comments \
+          -f commit_id=${headSha} \
+          -f path=${f.file} \
+          -F line=${f.line} \
+          -f side=RIGHT \
+          -f body=${'<!-- reviewed-by-bot-comment -->\n' + f.body}`
+        posted++
+      } catch { fallback.push(formatFinding(f)) }
+    }
+    return { posted, fallback }
+  }
+  ```
+- **Verify:** `grep -q 'reviewed-by-bot-comment' tools/post-inline-comments.ts`
+- **Expected:** inline posting with `commit_id`, marker embed, and fallback collection
+- **Time:** 8 min | **Difficulty:** 4
+- **Traces:** N6 → SC-3, abandonment strategy | **Phase:** GREEN | **Slice:** V3
+
+#### Task V3.4: Integrate post-inline-comments step into `pr-review.yml` → devops
+- **File:** `.github/workflows/pr-review.yml`
+- **Snippet:**
+  ```yaml
+        - name: Post inline comments
+          if: steps.preflight.outputs.skip != 'true'
+          run: bun run tools/post-inline-comments.ts "$PR_NUMBER"
+          env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            PR_NUMBER: ${{ github.event.pull_request.number }}
+  ```
+- **Verify:** `grep -q 'post-inline-comments.ts' .github/workflows/pr-review.yml`
+- **Expected:** inline posting step after Claude exit, before summary update
+- **Time:** 2 min | **Difficulty:** 1
+- **Traces:** N6 | **Phase:** GREEN | **Slice:** V3 | **Infra — exempt**
+
+#### Task V3.5: Write tests for hunk position parser and out-of-diff fallback → tester
+- **File:** `tools/post-inline-comments.test.ts`
+- **Snippet:**
+  ```ts
+  import { describe, it, expect } from 'vitest'
+  import { buildPositionMap } from './post-inline-comments'
+
+  const SAMPLE_DIFF = `diff --git a/src/foo.ts b/src/foo.ts\n@@ -10,4 +10,5 @@\n context\n+added line\n-removed\n`
+
+  describe('buildPositionMap', () => {
+    it('maps changed line to diff position', () => {
+      const map = buildPositionMap(SAMPLE_DIFF)
+      expect(map.has('src/foo.ts:11')).toBe(true)
+    })
+    it('returns undefined for out-of-diff line', () => {
+      const map = buildPositionMap(SAMPLE_DIFF)
+      expect(map.has('src/foo.ts:1')).toBe(false)
+    })
+  })
+  ```
+- **Verify:** `bun run test tools/post-inline-comments.test.ts`
+- **Expected:** both assertions pass
+- **Time:** 3 min | **Difficulty:** 2
+- **Traces:** N6 → SC-3 | **Phase:** GREEN | **Slice:** V3
+
+#### RED-GATE V3: V3 complete → tester validates hunk parser; manual test: open test PR → confirm inline comments appear
+
+---
+
+### Slice V4: Follow-up review
+
+#### Task V4.1: Add artifact upload/download for `review-findings.json` in workflow → devops
+- **File:** `.github/workflows/pr-review.yml`
+- **Snippet:**
+  ```yaml
+        - name: Upload findings artifact
+          if: always() && steps.preflight.outputs.skip != 'true'
+          uses: actions/upload-artifact@v6
+          with:
+            name: review-findings-${{ github.event.pull_request.number }}
+            path: /tmp/review-findings.json
+            retention-days: 90
+        # In follow-up mode:
+        - name: Download prior findings artifact
+          if: steps.context.outputs.prior_review == 'true'
+          uses: actions/download-artifact@v7
+          with:
+            name: review-findings-${{ github.event.pull_request.number }}
+            path: /tmp/prior-findings/
+  ```
+- **Verify:** `grep -q 'review-findings' .github/workflows/pr-review.yml`
+- **Expected:** upload always; download only in follow-up mode
+- **Time:** 3 min | **Difficulty:** 2
+- **Traces:** N7 → SC-4, SC-6 | **Phase:** GREEN | **Slice:** V4 | **Infra — exempt**
+
+#### Task V4.2: Add follow-up mode to `pr-review.yml` — read `priorReviewFound`, pass prior findings to Claude → devops
+- **File:** `.github/workflows/pr-review.yml`
+- **Snippet:**
+  ```yaml
+        - name: Extract context flags
+          id: context
+          run: |
+            PRIOR=$(jq -r '.priorReviewFound' /tmp/pr-context.json)
+            echo "prior_review=$PRIOR" >> "$GITHUB_OUTPUT"
+            echo "head_sha=$(jq -r '.headSha' /tmp/pr-context.json)" >> "$GITHUB_OUTPUT"
+        - name: Run review (follow-up mode)
+          if: steps.context.outputs.prior_review == 'true' && steps.preflight.outputs.skip != 'true'
+          run: |
+            claude --print --permission-mode bypassPermissions --model claude-sonnet-4-6 \
+              "/review #$PR_NUMBER
+               Follow-up mode: prior findings at /tmp/prior-findings/review-findings.json.
+               Check if each prior finding is fixed in the current diff. Report verified-fixed vs. remaining.
+               Stop after Phase 6. Do NOT call AskUserQuestion."
+          env:
+            ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            PR_NUMBER: ${{ github.event.pull_request.number }}
+  ```
+- **Verify:** `grep -q 'follow-up mode' .github/workflows/pr-review.yml && grep -q 'prior_review' .github/workflows/pr-review.yml`
+- **Expected:** separate Claude invocation for follow-up mode with prior findings context
+- **Time:** 5 min | **Difficulty:** 3
+- **Traces:** N7 → SC-4 | **Phase:** GREEN | **Slice:** V4
+
+#### Task V4.3: Create `tools/resolve-threads.ts` — verified-fixed detection + thread minimization → devops
+- **File:** `tools/resolve-threads.ts`
+- **Snippet:**
+  ```ts
+  /**
+   * Resolve GitHub PR review threads for verified-fixed findings.
+   * A finding is verified-fixed when its file+line no longer contains the flagged pattern in the current diff.
+   *
+   * Usage: GH_TOKEN=... bun run tools/resolve-threads.ts <pr-number>
+   */
+  interface Finding { file: string; line: number; body: string; databaseId?: number }
+
+  async function isVerifiedFixed(finding: Finding, currentDiff: string): Promise<boolean> {
+    // Check if file:line no longer appears as a changed line in currentDiff
+    const posMap = buildPositionMap(currentDiff)
+    return !posMap.has(`${finding.file}:${finding.line}`)
+  }
+
+  async function minimizeThread(threadDatabaseId: number): Promise<void> {
+    await $`gh api graphql -f query='
+      mutation { minimizeComment(input: {subjectId: "${threadDatabaseId}", classifier: RESOLVED}) { minimizedComment { isMinimized } } }
+    '`
+  }
+  ```
+- **Verify:** `test -f tools/resolve-threads.ts && grep -q 'isVerifiedFixed' tools/resolve-threads.ts`
+- **Expected:** verified-fixed check and graphql minimization scaffolded
+- **Time:** 8 min | **Difficulty:** 4
+- **Traces:** N8 → SC-4 | **Phase:** GREEN | **Slice:** V4
+
+#### Task V4.4: Post updated summary with verified-fixed count, idempotent re-posting guard → devops
+- **File:** `tools/resolve-threads.ts`
+- **Snippet:**
+  ```ts
+  // In main():
+  const fixed: Finding[] = []
+  const remaining: Finding[] = []
+
+  for (const prior of priorFindings) {
+    if (await isVerifiedFixed(prior, currentDiff)) {
+      fixed.push(prior)
+      if (prior.databaseId) await minimizeThread(prior.databaseId)
+    } else {
+      // Only re-post if not already posted in a prior run (idempotency: check for existing inline comment at same file:line)
+      const alreadyPosted = existingBotComments.some(c => c.path === prior.file && c.line === prior.line)
+      if (!alreadyPosted) remaining.push(prior)
+    }
+  }
+
+  const summary = `<!-- reviewed-by-bot -->\n<!-- review-sha: ${headSha} -->\n` +
+    `## Follow-up Review\n✅ ${fixed.length} fixed | ⚠️ ${remaining.length} remaining\n`
+  await $`gh pr comment ${prNumber} --body ${summary}`
+  ```
+- **Verify:** `grep -q 'alreadyPosted' tools/resolve-threads.ts && grep -q 'review-sha' tools/resolve-threads.ts`
+- **Expected:** idempotency guard + updated summary with counts + SHA marker
+- **Time:** 5 min | **Difficulty:** 3
+- **Traces:** N8 → SC-4, SC-6 | **Phase:** GREEN | **Slice:** V4
+
+#### Task V4.5: Write tests for verified-fixed detection and idempotency → tester
+- **File:** `tools/resolve-threads.test.ts`
+- **Snippet:**
+  ```ts
+  import { describe, it, expect } from 'vitest'
+  import { isVerifiedFixed } from './resolve-threads'
+  import { buildPositionMap } from './post-inline-comments'
+
+  const DIFF_WITH_LINE = `@@ -10,3 +10,4 @@\n context\n+new line at 11\n`
+
+  describe('isVerifiedFixed', () => {
+    it('returns true when finding line absent from diff', async () => {
+      const finding = { file: 'src/foo.ts', line: 99, body: 'test' }
+      expect(await isVerifiedFixed(finding, DIFF_WITH_LINE)).toBe(true)
+    })
+    it('returns false when finding line still in diff', async () => {
+      const finding = { file: 'src/foo.ts', line: 11, body: 'test' }
+      expect(await isVerifiedFixed(finding, DIFF_WITH_LINE)).toBe(false)
+    })
+  })
+  ```
+- **Verify:** `bun run test tools/resolve-threads.test.ts`
+- **Expected:** both assertions pass
+- **Time:** 3 min | **Difficulty:** 2
+- **Traces:** N8 → SC-4, SC-6 | **Phase:** GREEN | **Slice:** V4
+
+#### RED-GATE V4: All tasks complete → tester; manual E2E: open PR, push fix, confirm thread resolves
