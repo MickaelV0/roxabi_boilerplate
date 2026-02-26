@@ -214,7 +214,6 @@ function ActivityCard({ entries }: { entries: AuditLogEntry[] }) {
 
 const ROLE_OPTIONS = [
   { value: 'user', label: 'User' },
-  { value: 'admin', label: 'Admin' },
   { value: 'superadmin', label: 'Super Admin' },
 ]
 
@@ -226,6 +225,7 @@ type EditUserFormProps = {
 }
 
 function EditUserForm({ user, currentUserId, onSave, onCancel }: EditUserFormProps) {
+  const queryClient = useQueryClient()
   const [name, setName] = useState(user.name || '')
   const [email, setEmail] = useState(user.email)
   const [role, setRole] = useState(user.role ?? 'user')
@@ -263,6 +263,8 @@ function EditUserForm({ user, currentUserId, onSave, onCancel }: EditUserFormPro
     },
     onError: (err) => {
       setError(err instanceof Error ? err.message : 'Failed to update user')
+      // Refetch user detail to update isLastActiveSuperadmin flag
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users', user.id] })
     },
   })
 
@@ -284,12 +286,23 @@ function EditUserForm({ user, currentUserId, onSave, onCancel }: EditUserFormPro
   }
 
   function buildConfirmDescription() {
-    let desc =
-      'You are about to change your role from Superadmin to User. You will lose access to the admin panel and will be logged out on all devices. Another superadmin will need to restore your access.'
-    if (orgOwnerNames.length > 0) {
-      desc += `\n\nNote: You are still an owner in ${orgOwnerNames.join(', ')}. Your organization ownership is not affected, but you won't be able to manage these organizations from the admin panel.`
-    }
-    return desc
+    const targetLabel = ROLE_OPTIONS.find((o) => o.value === role)?.label ?? role
+    return (
+      <>
+        <p>
+          You are about to change your role from Super Admin to {targetLabel}. You will lose access
+          to the admin panel and will be logged out on all devices. Another superadmin will need to
+          restore your access.
+        </p>
+        {orgOwnerNames.length > 0 && (
+          <p className="mt-2">
+            Note: You are still an owner in {orgOwnerNames.join(', ')}. Your organization ownership
+            is not affected, but you won&apos;t be able to manage these organizations from the admin
+            panel.
+          </p>
+        )}
+      </>
+    )
   }
 
   return (
@@ -339,10 +352,13 @@ function EditUserForm({ user, currentUserId, onSave, onCancel }: EditUserFormPro
                 {isRoleLocked ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex h-9 w-full items-center gap-2 rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground cursor-not-allowed">
+                      <output
+                        aria-label="You are the last active superadmin and cannot change your role."
+                        className="flex h-9 w-full items-center gap-2 rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground cursor-not-allowed"
+                      >
                         <LockIcon className="size-3.5" />
                         <span className="capitalize">{user.role}</span>
-                      </div>
+                      </output>
                     </TooltipTrigger>
                     <TooltipContent>
                       You are the last active superadmin and cannot change your role.

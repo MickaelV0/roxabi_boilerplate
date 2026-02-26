@@ -2,7 +2,6 @@ import { Inject, Injectable, Logger } from '@nestjs/common'
 import type { AuditAction } from '@repo/types'
 import {
   and,
-  count,
   desc,
   eq,
   exists,
@@ -11,18 +10,16 @@ import {
   isNotNull,
   isNull,
   max,
-  ne,
   or,
   type SQL,
-  sql,
 } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import { AuditService } from '../audit/audit.service.js'
 import { buildCursorCondition, buildCursorResponse } from '../common/utils/cursorPagination.util.js'
-import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
+import { DRIZZLE, type DrizzleDB, type DrizzleTx } from '../database/drizzle.provider.js'
 import { auditLogs } from '../database/schema/audit.schema.js'
 import { members, organizations, sessions, users } from '../database/schema/auth.schema.js'
-import { findUserSnapshotOrThrow } from './adminUsers.shared.js'
+import { findUserSnapshotOrThrow, isLastActiveSuperadmin } from './adminUsers.shared.js'
 import { EmailConflictException } from './exceptions/emailConflict.exception.js'
 import { LastSuperadminException } from './exceptions/lastSuperadmin.exception.js'
 import { SuperadminProtectionException } from './exceptions/superadminProtection.exception.js'
@@ -232,10 +229,10 @@ export class AdminUsersService {
       throw new AdminUserNotFoundException(userId)
     }
 
-    const [memberships, redactedEntries, isLastActiveSuperadmin] = await Promise.all([
+    const [memberships, redactedEntries, isLastSuperadmin] = await Promise.all([
       this.fetchUserMemberships(userId),
       this.fetchUserAuditEntries(userId),
-      user.role === 'superadmin' ? this.isLastActiveSuperadmin(userId) : Promise.resolve(false),
+      user.role === 'superadmin' ? isLastActiveSuperadmin(this.db, userId) : Promise.resolve(false),
     ])
 
     return {
@@ -248,7 +245,7 @@ export class AdminUsersService {
         role: m.role,
       })),
       activitySummary: redactedEntries,
-      isLastActiveSuperadmin,
+      isLastActiveSuperadmin: isLastSuperadmin,
     }
   }
 
@@ -352,26 +349,37 @@ export class AdminUsersService {
     data: { name?: string; email?: string; role?: string },
     actorId: string
   ) {
-    return this.db.transaction(async (tx) => {
-      await tx.execute(sql`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`)
+    return this.db.transaction(
+      async (tx) => {
+        const isLast = await isLastActiveSuperadmin(tx, userId)
+        if (isLast) {
+          throw new LastSuperadminException()
+        }
 
-      const isLast = await this.isLastActiveSuperadminTx(tx, userId)
-      if (isLast) {
-        throw new LastSuperadminException()
-      }
+        const [beforeUser] = await tx.select().from(users).where(eq(users.id, userId)).limit(1)
+        if (!beforeUser) throw new AdminUserNotFoundException(userId)
 
-      const [beforeUser] = await tx.select().from(users).where(eq(users.id, userId)).limit(1)
-      if (!beforeUser) throw new AdminUserNotFoundException(userId)
+        if (beforeUser.role !== 'superadmin') {
+          throw new SuperadminProtectionException()
+        }
 
-      const [updatedUser] = await tx.update(users).set(data).where(eq(users.id, userId)).returning()
-      if (!updatedUser) throw new AdminUserNotFoundException(userId)
+        const updatedUser = await this.applyUserUpdate(tx, userId, data)
+        await tx.delete(sessions).where(eq(sessions.userId, userId))
 
-      await tx.delete(sessions).where(eq(sessions.userId, userId))
+        await this.auditService.log({
+          actorId,
+          actorType: 'user',
+          action: 'user.role_changed' as AuditAction,
+          resource: 'user',
+          resourceId: userId,
+          before: { ...beforeUser },
+          after: { ...updatedUser },
+        })
 
-      this.logUserAudit('user.role_changed', userId, actorId, beforeUser, updatedUser)
-
-      return updatedUser
-    })
+        return updatedUser
+      },
+      { isolationLevel: 'serializable' }
+    )
   }
 
   private validateUpdatePermissions(data: { role?: string }, currentRole: string) {
@@ -380,45 +388,20 @@ export class AdminUsersService {
     }
   }
 
-  private async isLastActiveSuperadmin(excludeUserId: string): Promise<boolean> {
-    const [result] = await this.db
-      .select({ count: count() })
-      .from(users)
-      .where(
-        and(
-          eq(users.role, 'superadmin'),
-          eq(users.banned, false),
-          isNull(users.deletedAt),
-          ne(users.id, excludeUserId)
-        )
-      )
-    return (result?.count ?? 0) === 0
-  }
-
-  private async isLastActiveSuperadminTx(
-    tx: Parameters<Parameters<DrizzleDB['transaction']>[0]>[0],
-    excludeUserId: string
-  ): Promise<boolean> {
-    const [result] = await tx
-      .select({ count: count() })
-      .from(users)
-      .where(
-        and(
-          eq(users.role, 'superadmin'),
-          eq(users.banned, false),
-          isNull(users.deletedAt),
-          ne(users.id, excludeUserId)
-        )
-      )
-    return (result?.count ?? 0) === 0
-  }
-
   private async executeUserUpdate(
     userId: string,
     data: { name?: string; email?: string; role?: string }
   ) {
+    return this.applyUserUpdate(this.db, userId, data)
+  }
+
+  private async applyUserUpdate(
+    db: DrizzleDB | DrizzleTx,
+    userId: string,
+    data: { name?: string; email?: string; role?: string }
+  ) {
     try {
-      const [result] = await this.db.update(users).set(data).where(eq(users.id, userId)).returning()
+      const [result] = await db.update(users).set(data).where(eq(users.id, userId)).returning()
       if (!result) throw new AdminUserNotFoundException(userId)
       return result
     } catch (err) {

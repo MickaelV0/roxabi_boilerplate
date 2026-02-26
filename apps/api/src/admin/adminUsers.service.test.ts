@@ -662,6 +662,13 @@ describe('AdminUsersService', () => {
       expect(result).toBeDefined()
       expect(db.transaction).toHaveBeenCalled()
       expect(tx.delete).toHaveBeenCalled()
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'user.role_changed',
+          actorId: 'actor-super',
+          resourceId: 'actor-super',
+        })
+      )
     })
 
     it('should throw LastSuperadminException when last active superadmin self-demotes', async () => {
@@ -724,8 +731,29 @@ describe('AdminUsersService', () => {
       // Act
       await service.updateUser('actor-super', { role: 'user' }, 'actor-super')
 
-      // Assert — SET TRANSACTION ISOLATION LEVEL SERIALIZABLE was called
-      expect(tx.execute).toHaveBeenCalled()
+      // Assert — transaction started with serializable isolation level
+      // (passed as second argument to db.transaction, not via tx.execute)
+      expect(db.transaction).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({ isolationLevel: 'serializable' })
+      )
+    })
+
+    it('should throw SuperadminProtectionException when non-superadmin attempts self-role-change', async () => {
+      // Arrange — user with role 'user' tries to self-promote via self-role-change path
+      // (blocked at controller by @Roles('superadmin'), defense-in-depth at service layer)
+      const regularUser = { ...baseUser, id: 'user-1', role: 'user' }
+
+      const tx = mockTransaction(db)
+      // isLastActiveSuperadmin: count=1 so it passes through to the role guard
+      tx.select.mockReturnValueOnce(createChainMock([{ count: 1 }]))
+      // Fetch before-user in tx — returns non-superadmin user
+      tx.select.mockReturnValueOnce(createChainMock([regularUser]))
+
+      // Act & Assert
+      await expect(service.updateUser('user-1', { role: 'superadmin' }, 'user-1')).rejects.toThrow(
+        SuperadminProtectionException
+      )
     })
   })
 })

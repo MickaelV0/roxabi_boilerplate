@@ -14,12 +14,18 @@ import { AdminUserNotFoundException } from './exceptions/userNotFound.exception.
 // ---------------------------------------------------------------------------
 
 function createMockDb() {
-  return {
+  const db = {
     select: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    // transaction executes the callback with db as the tx,
+    // so existing db.select/db.update mockReturnValueOnce() setups work inside
+    // the transaction callback without needing separate tx mocks.
+    transaction: vi.fn(),
   }
+  db.transaction.mockImplementation(async (cb: (tx: typeof db) => Promise<unknown>) => cb(db))
+  return db
 }
 
 function createMockAuditService(): AuditService {
@@ -374,6 +380,19 @@ describe('AdminUsersLifecycleService', () => {
           actorId: 'actor-super',
         })
       )
+    })
+
+    it('should throw NotDeletedException when user is already soft-deleted', async () => {
+      // Arrange
+      const alreadyDeletedUser = {
+        ...baseUser,
+        deletedAt: new Date('2025-06-01'),
+        deleteScheduledFor: new Date('2025-07-01'),
+      }
+      db.select.mockReturnValueOnce(createChainMock([alreadyDeletedUser]))
+
+      // Act & Assert
+      await expect(service.deleteUser('user-1', 'actor-super')).rejects.toThrow(NotDeletedException)
     })
 
     it('should not call auditService.log when user is not found', async () => {

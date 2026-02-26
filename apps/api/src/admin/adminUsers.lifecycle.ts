@@ -1,11 +1,11 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import type { AuditAction } from '@repo/types'
-import { and, count, eq, isNull, ne } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import { AuditService } from '../audit/audit.service.js'
-import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
+import { DRIZZLE, type DrizzleDB, type DrizzleTx } from '../database/drizzle.provider.js'
 import { users } from '../database/schema/auth.schema.js'
-import { findUserSnapshotOrThrow } from './adminUsers.shared.js'
+import { findUserSnapshotOrThrow, isLastActiveSuperadmin } from './adminUsers.shared.js'
 import { LastSuperadminException } from './exceptions/lastSuperadmin.exception.js'
 import { NotDeletedException } from './exceptions/notDeleted.exception.js'
 import { SelfActionException } from './exceptions/selfAction.exception.js'
@@ -39,14 +39,21 @@ export class AdminUsersLifecycleService {
       throw new SelfActionException()
     }
 
-    const user = await findUserSnapshotOrThrow(this.db, userId)
-    await this.validateBanEligibility(user, userId)
+    const [user, updatedUser] = await this.db.transaction(
+      async (tx) => {
+        const snapshot = await findUserSnapshotOrThrow(tx, userId)
+        await this.validateBanEligibility(tx, snapshot, userId)
 
-    const [updatedUser] = await this.db
-      .update(users)
-      .set({ banned: true, banReason: reason, banExpires: expires })
-      .where(eq(users.id, userId))
-      .returning()
+        const [updated] = await tx
+          .update(users)
+          .set({ banned: true, banReason: reason, banExpires: expires })
+          .where(eq(users.id, userId))
+          .returning()
+
+        return [snapshot, updated] as const
+      },
+      { isolationLevel: 'serializable' }
+    )
 
     this.logUserAudit('user.banned', userId, actorId, user, updatedUser)
 
@@ -54,11 +61,12 @@ export class AdminUsersLifecycleService {
   }
 
   private async validateBanEligibility(
+    tx: DrizzleTx,
     user: { role: string | null; banned: boolean | null },
     userId: string
   ) {
     if (user.role === 'superadmin') {
-      const isLast = await this.isLastActiveSuperadmin(userId)
+      const isLast = await isLastActiveSuperadmin(tx, userId)
       if (isLast) {
         throw new LastSuperadminException()
       }
@@ -67,21 +75,6 @@ export class AdminUsersLifecycleService {
     if (user.banned) {
       throw new UserAlreadyBannedException(userId)
     }
-  }
-
-  private async isLastActiveSuperadmin(excludeUserId: string): Promise<boolean> {
-    const [result] = await this.db
-      .select({ count: count() })
-      .from(users)
-      .where(
-        and(
-          eq(users.role, 'superadmin'),
-          eq(users.banned, false),
-          isNull(users.deletedAt),
-          ne(users.id, excludeUserId)
-        )
-      )
-    return (result?.count ?? 0) === 0
   }
 
   /**
