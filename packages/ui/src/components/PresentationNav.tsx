@@ -70,6 +70,42 @@ function isFormElement(target: EventTarget | null): boolean {
   )
 }
 
+const EXTENDED_KEY_MAP: Record<string, number> = { '0': 9, '-': 10, '=': 11 }
+
+function resolveKeyIndex(key: string, sectionCount: number): number | null {
+  const num = Number.parseInt(key, 10)
+  if (num >= 1 && num <= sectionCount) return num - 1
+  const mapped = EXTENDED_KEY_MAP[key]
+  if (mapped != null && mapped < sectionCount) return mapped
+  return null
+}
+
+function resolveNavAction(
+  key: string,
+  activeIndex: number,
+  sectionCount: number
+): { type: 'scroll'; index: number } | { type: 'escape' } | null {
+  switch (key) {
+    case 'ArrowDown':
+    case 'PageDown':
+    case ' ':
+      return { type: 'scroll', index: Math.min(activeIndex + 1, sectionCount - 1) }
+    case 'ArrowUp':
+    case 'PageUp':
+      return { type: 'scroll', index: Math.max(activeIndex - 1, 0) }
+    case 'Home':
+      return { type: 'scroll', index: 0 }
+    case 'End':
+      return { type: 'scroll', index: sectionCount - 1 }
+    case 'Escape':
+      return { type: 'escape' }
+    default: {
+      const index = resolveKeyIndex(key, sectionCount)
+      return index != null ? { type: 'scroll', index } : null
+    }
+  }
+}
+
 function useKeyboardNavigation(
   sections: ReadonlyArray<Section>,
   activeIndexRef: { current: number },
@@ -79,44 +115,11 @@ function useKeyboardNavigation(
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (isFormElement(e.target)) return
-
-      switch (e.key) {
-        case 'ArrowDown':
-        case 'PageDown':
-        case ' ': {
-          e.preventDefault()
-          scrollToSection(Math.min(activeIndexRef.current + 1, sections.length - 1))
-          break
-        }
-        case 'ArrowUp':
-        case 'PageUp': {
-          e.preventDefault()
-          scrollToSection(Math.max(activeIndexRef.current - 1, 0))
-          break
-        }
-        case 'Home': {
-          e.preventDefault()
-          scrollToSection(0)
-          break
-        }
-        case 'End': {
-          e.preventDefault()
-          scrollToSection(sections.length - 1)
-          break
-        }
-        case 'Escape': {
-          e.preventDefault()
-          onEscape?.()
-          break
-        }
-        default: {
-          const num = Number.parseInt(e.key, 10)
-          if (num >= 1 && num <= sections.length) {
-            e.preventDefault()
-            scrollToSection(num - 1)
-          }
-        }
-      }
+      const action = resolveNavAction(e.key, activeIndexRef.current, sections.length)
+      if (!action) return
+      e.preventDefault()
+      if (action.type === 'escape') onEscape?.()
+      else scrollToSection(action.index)
     }
 
     window.addEventListener('keydown', handleKeyDown)
