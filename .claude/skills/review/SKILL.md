@@ -1,7 +1,7 @@
 ---
 argument-hint: [#PR]
 description: Multi-domain code review (agents + Conventional Comments → findings + verdict). Triggers: "review changes" | "review PR #42" | "code review" | "check my code".
-allowed-tools: Bash, AskUserQuestion, Read, Grep, Task
+allowed-tools: Bash, AskUserQuestion, Read, Write, Glob, Grep, Task, Skill
 ---
 
 # Code Review

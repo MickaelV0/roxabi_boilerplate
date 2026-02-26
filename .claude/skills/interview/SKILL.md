@@ -118,7 +118,7 @@ When the interview is for a **Spec** document (or promoting to spec), Phase 3 sh
 | Terminology | "Are there terms that could mean different things to different people?" |
 | Completion Signals | "How do we know this is done? What does success look like?" |
 
-For each ambiguity detected, rank by **Impact x Uncertainty** (High/Medium/Low for each). High-Impact + High-Uncertainty items become interview follow-up questions. Ambiguity that impacts implementation can be marked inline as `[NEEDS CLARIFICATION: description]` (max 3-5 per spec). These must be resolved before scaffold execution.
+For each ambiguity detected, rank by **Impact x Uncertainty** (High/Medium/Low for each). High-Impact + High-Uncertainty items become interview follow-up questions. Ambiguity that impacts implementation can be marked inline as `[NEEDS CLARIFICATION: description]` (max 3-5 per spec). These must be resolved before `/plan` execution.
 
 > **Example:** During a Spec interview about user notifications, the probe "What external systems does this touch?" (Integrations) reveals uncertainty about whether to use SendGrid or Resend for email. Scored as High-Impact (core feature) x High-Uncertainty (no prior evaluation) → becomes a follow-up question: "Which email provider should we evaluate?" If unresolved after interview, mark as `[NEEDS CLARIFICATION: email provider selection — SendGrid vs Resend]` in the spec.
 

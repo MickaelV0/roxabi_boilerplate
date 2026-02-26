@@ -310,8 +310,6 @@ flowchart TD
 
 > **Investigation (optional):** If the analysis reveals technical uncertainty, the orchestrator may suggest spiking a solution before writing the spec. See the `/analyze` skill for details.
 
-> **Deprecated:** `/bootstrap` is a deprecated alias for `/dev`. It emits a warning and redirects automatically.
-
 > **F-lite shortcut:** If the task is classified as F-lite (clear scope, documented requirements), `/dev #N` skips the analyze step and proceeds directly from frame → spec → plan.
 
 ### Build Phase (`/plan` + `/implement` + `/pr`)
@@ -352,8 +350,6 @@ flowchart TD
     ```bash
     gh pr create --title "feat: description" --body "Closes #XXX"
     ```
-
-> **Deprecated:** `/scaffold` is a deprecated alias for `/dev --from plan`. It emits a warning and redirects automatically.
 
 ### Phase 3 — Review
 

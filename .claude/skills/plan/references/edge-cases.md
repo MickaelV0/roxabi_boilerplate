@@ -2,7 +2,7 @@
 
 | Scenario | Behavior |
 |----------|----------|
-| No spec found | Suggest `/spec` or `/bootstrap`. Stop. |
+| No spec found | Suggest `/spec` or `/dev`. Stop. |
 | Unresolved `[NEEDS CLARIFICATION]` | Pre-flight warns. User: resolve ∨ return to spec ∨ proceed |
 | No Breadboard ∧ no Success Criteria | Skip micro-tasks, warn, use text tasks from Step 2d |
 | Task count > 30 | Warn, show full list, suggest splitting |

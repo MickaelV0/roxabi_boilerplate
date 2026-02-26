@@ -20,7 +20,7 @@ Spec → micro-tasks → agent assignments → plan artifact.
 
 `--issue N` → `ls artifacts/specs/N-*.mdx` → read full → extract title, criteria, files.
 `--spec <path>` → read directly.
-¬found ⇒ suggest `/spec` or `/bootstrap`. **Stop.**
+¬found ⇒ suggest `/spec` or `/dev`. **Stop.**
 
 ### Pre-flight: Ambiguity Check
 

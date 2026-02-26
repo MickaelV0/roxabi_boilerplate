@@ -26,17 +26,6 @@ Single entry point for the full dev lifecycle. Scans artifacts → detects state
 /dev #42 --from spec → jump to specific step (warn if deps missing)
 ```
 
-**Deprecated aliases (emit notice + redirect):**
-```
-/bootstrap "idea"     → /dev "idea"
-/bootstrap --issue N  → /dev #N
-/bootstrap --spec N   → /dev #N --from spec
-/scaffold --spec N    → /dev #N --from plan
-/scaffold --issue N   → /dev #N --from plan
-```
-
-∀ deprecated alias ⇒ output: "Warning: /{alias} is deprecated. Use /dev instead." then proceed.
-
 ## Step 0 — Parse Input
 
 `#N` ⇒ fetch issue:
@@ -300,6 +289,5 @@ Issue #{N} closed. Worktree cleaned up.
 - Issue ¬exists + free text → proceed in frame-only mode. After frame approved, AskUserQuestion: **Create GitHub issue now** | **Continue without issue**.
 - S* == validate → Σ.validate is always null (no artifact). Within a session, Σ_s.validate advances past it. On resume (new session), validate re-runs (Σ_s lost).
 - Multiple open PRs for same issue → show list, AskUserQuestion: select which PR to track.
-- Deprecated `/bootstrap` ∨ `/scaffold` input → emit deprecation notice, then map to equivalent `/dev` entry and proceed.
 
 $ARGUMENTS

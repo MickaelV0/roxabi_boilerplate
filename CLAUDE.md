@@ -129,7 +129,6 @@ Skills: always use appropriate skill. Defs → `.claude/skills/*/SKILL.md`.
 Agents: rules → [AGENTS.md](AGENTS.md). Defs → `.claude/agents/*.md`. Guide → [agent-teams.mdx](docs/guides/agent-teams.mdx).
 
 **Workflow skills (via `/dev #N` or standalone):** `dev` (orchestrator) | `frame` | `analyze` | `spec` | `plan` | `implement` | `fix`
-**Deprecated aliases:** `bootstrap` → `/dev` | `scaffold` → `/dev` (emit deprecation notice + redirect)
 
 **Shared agent rules:** ¬commit/push (lead handles git) | ¬force/hard/amend | stage specific files only | escalate blockers → lead | claim tasks from shared list | create follow-up tasks | security → lead + security-auditor | message lead on completion.
 
