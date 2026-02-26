@@ -51,7 +51,7 @@ export class AdminSettingsController {
       if (!grouped[s.category]) {
         grouped[s.category] = []
       }
-      grouped[s.category]!.push(s)
+      grouped[s.category]?.push(s)
     }
     return grouped
   }
