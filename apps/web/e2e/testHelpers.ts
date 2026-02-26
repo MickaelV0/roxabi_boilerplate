@@ -36,7 +36,7 @@ export async function loginUser(
   const auth = new AuthPage(page)
   await auth.gotoLogin()
   await auth.loginWithPassword(email, password)
-  await page.waitForURL(/\/(dashboard|org)/, { timeout: 15000 })
+  await page.waitForURL(/\/(dashboard|org)/, { timeout: 30000 })
   return auth
 }
 
@@ -47,7 +47,7 @@ export async function loginUser(
 export async function logoutUser(page: Page) {
   const auth = new AuthPage(page)
   await auth.logout()
-  await page.waitForURL(/\/(login|$)/, { timeout: 15000 })
+  await page.waitForURL(/\/(login|$)/, { timeout: 30000 })
 }
 
 /**

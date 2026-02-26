@@ -14,6 +14,9 @@ export class DashboardPage {
 
   async goto() {
     await this.page.goto('/dashboard')
+    await this.page.waitForLoadState('domcontentloaded')
+    // Wait for client-side auth guard to settle (SSR renders shell only)
+    await this.page.waitForTimeout(500)
   }
 
   // ---------------------------------------------------------------------------

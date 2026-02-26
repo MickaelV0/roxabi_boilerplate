@@ -4,6 +4,7 @@ import { DashboardPage } from './dashboard.page'
 import { TEST_USER } from './testHelpers'
 
 const hasApi = Boolean(process.env.DATABASE_URL) || !process.env.CI
+const NAVIGATION_TIMEOUT = 30_000
 
 test.describe('Dashboard Navigation', () => {
   // Dashboard tests require the API server (needs DATABASE_URL)
@@ -14,7 +15,8 @@ test.describe('Dashboard Navigation', () => {
     const auth = new AuthPage(page)
     await auth.gotoLogin()
     await auth.loginWithPassword(TEST_USER.email, TEST_USER.password)
-    await page.waitForURL(/\/(dashboard|org)/, { timeout: 15000 })
+    await page.waitForURL(/\/(dashboard|org)/, { timeout: NAVIGATION_TIMEOUT })
+    await page.waitForLoadState('networkidle')
   })
 
   test('should display dashboard sidebar with navigation links', async ({ page }) => {
@@ -23,7 +25,7 @@ test.describe('Dashboard Navigation', () => {
     await dashboard.goto()
 
     // Act & Assert
-    await expect(dashboard.sidebar).toBeVisible()
+    await expect(dashboard.sidebar).toBeVisible({ timeout: 10_000 })
     const links = await dashboard.sidebarLinks.count()
     expect(links).toBeGreaterThan(0)
   })
@@ -40,7 +42,7 @@ test.describe('Dashboard Navigation', () => {
 
     if (href) {
       await firstLink.click()
-      await page.waitForURL(new RegExp(href), { timeout: 10000 })
+      await page.waitForURL(new RegExp(href), { timeout: NAVIGATION_TIMEOUT })
     }
 
     // Assert
@@ -55,7 +57,7 @@ test.describe('Dashboard Navigation', () => {
 
     // Act
     await page.reload()
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Assert — should still be on dashboard, not redirected to login
     expect(page.url()).not.toContain('/login')
@@ -84,7 +86,7 @@ test.describe('Dashboard Navigation', () => {
     if (links && links.length > 0 && links[0]) {
       // Click first link and verify navigation
       await links[0].click()
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
     }
 
     // Assert

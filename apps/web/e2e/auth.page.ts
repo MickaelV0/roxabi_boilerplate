@@ -112,15 +112,16 @@ export class AuthPage {
   // ---------------------------------------------------------------------------
 
   get userMenuTrigger(): Locator {
-    return this.page.getByRole('button', { name: /user menu/i })
+    return this.page.getByRole('button', { name: /user menu|profile|account/i })
   }
 
   get logoutButton(): Locator {
-    return this.page.getByRole('menuitem', { name: /sign out/i })
+    return this.page.getByRole('menuitem', { name: /sign out|log\s?out/i })
   }
 
   async logout() {
     await this.userMenuTrigger.click()
+    await this.logoutButton.waitFor({ state: 'visible', timeout: 5000 })
     await this.logoutButton.click()
   }
 
@@ -129,12 +130,14 @@ export class AuthPage {
   // ---------------------------------------------------------------------------
 
   get errorAlert(): Locator {
-    return this.page.getByRole('alert').first()
+    return this.page.locator('[data-slot="form-message"]').first()
   }
 
   async getErrorText(): Promise<string | null> {
     const error = this.errorAlert
-    return error.isVisible().then(() => error.textContent())
+    const visible = await error.isVisible().catch(() => false)
+    if (!visible) return null
+    return error.textContent()
   }
 
   // ---------------------------------------------------------------------------

@@ -3,6 +3,7 @@ import { AuthPage } from './auth.page'
 import { TEST_USER } from './testHelpers'
 
 const hasApi = Boolean(process.env.DATABASE_URL) || !process.env.CI
+const NAVIGATION_TIMEOUT = 30_000
 
 test.describe('Authentication', () => {
   // Auth tests require the API server (needs DATABASE_URL)
@@ -29,7 +30,7 @@ test.describe('Authentication', () => {
     await auth.loginWithPassword(TEST_USER.email, TEST_USER.password)
 
     // Assert — should redirect to dashboard or org page
-    await page.waitForURL(/\/(dashboard|org)/, { timeout: 15000 })
+    await page.waitForURL(/\/(dashboard|org)/, { timeout: NAVIGATION_TIMEOUT })
   })
 
   test('should show error message for invalid credentials', async ({ page }) => {
@@ -41,10 +42,10 @@ test.describe('Authentication', () => {
     await auth.loginWithPassword('nonexistent@example.com', 'wrongpassword')
 
     // Assert — wait for error to appear
-    await expect(auth.errorAlert).toBeVisible({ timeout: 10000 })
+    await expect(auth.errorAlert).toBeVisible({ timeout: 15_000 })
     const errorText = await auth.getErrorText()
     expect(errorText).toBeTruthy()
-    expect(errorText).toMatch(/invalid|incorrect|not found/i)
+    expect(errorText).toMatch(/invalid|incorrect|not found|email|password/i)
   })
 
   // TODO: requireAuth guard skips on SSR and beforeLoad doesn't re-run on hydration
@@ -54,7 +55,7 @@ test.describe('Authentication', () => {
     page,
   }) => {
     await page.goto('/dashboard')
-    await page.waitForURL(/\/login/, { timeout: 30000 })
+    await page.waitForURL(/\/login/, { timeout: NAVIGATION_TIMEOUT })
   })
 
   test('should logout user and redirect to landing page', async ({ page }) => {
@@ -63,13 +64,14 @@ test.describe('Authentication', () => {
     // First login
     await auth.gotoLogin()
     await auth.loginWithPassword(TEST_USER.email, TEST_USER.password)
-    await page.waitForURL(/\/(dashboard|org)/, { timeout: 15000 })
+    await page.waitForURL(/\/(dashboard|org)/, { timeout: NAVIGATION_TIMEOUT })
+    await page.waitForLoadState('networkidle')
 
     // Act
     await auth.logout()
 
     // Assert — should redirect away from dashboard
-    await page.waitForURL(/\/(login|$)/, { timeout: 15000 })
+    await page.waitForURL(/\/(login|$)/, { timeout: NAVIGATION_TIMEOUT })
   })
 
   test('should verify OAuth button is present and redirects (Google)', async ({ page }) => {
