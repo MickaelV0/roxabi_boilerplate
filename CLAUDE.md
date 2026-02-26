@@ -103,7 +103,7 @@ Artifacts are the state markers `/dev` uses for progress detection and resumptio
 
 ```bash
 git worktree add ../roxabi-XXX -b feat/XXX-slug staging
-cd ../roxabi-XXX && git config --unset-all --local core.hooksPath && cp .env.example .env && bun install
+cd ../roxabi-XXX && cp .env.example .env && bun install
 cd apps/api && bun run db:branch:create --force XXX
 ```
 
