@@ -144,10 +144,16 @@ No changes — existing flow works correctly:
 
 Better Auth's `sendMagicLink` callback is called without try-catch. Throwing an error propagates it to the HTTP response and then to the SDK client.
 
-**Approach:** Import `APIError` from `better-auth/api` (or throw a plain `Error`) in the callback. The SDK client receives it as `{ error: { status, message, code } }`.
+**Approach:** Import `APIError` from `better-auth/api` (actually from `better-call`; Better Auth re-exports it). Throw in the callback — the router catches it via `isAPIError()` and calls `toResponse()`.
+
+**APIError constructor:** `new APIError(status, body?, headers?)` where `body` has `{ message?, code?, ... }`. The constructor **auto-generates** `code` from `message` by uppercasing and replacing spaces with underscores (e.g., `message: 'User not found'` → `code: 'USER_NOT_FOUND'`).
+
+**Client receives:** `{ data: null, error: { code: 'USER_NOT_FOUND', message: 'User not found', status: 400, statusText: 'Bad Request' } }` — `better-fetch` spreads the parsed JSON body and adds `status`/`statusText`.
 
 ```typescript
 // In buildMagicLinkPlugin → sendMagicLink callback
+import { APIError } from 'better-auth/api'
+
 const [userData] = await db
   .select({ locale: users.locale })
   .from(users)
@@ -158,7 +164,7 @@ if (!userData) {
 }
 ```
 
-[NEEDS CLARIFICATION: Verify that `APIError` from Better Auth propagates the `message` field to the client SDK as `error.code` or `error.message`. Test during implementation — if the SDK wraps it differently, adjust the frontend error detection.]
+**Frontend detection:** Check `mlError.code === 'USER_NOT_FOUND'` in `-login-handlers.ts`.
 
 ### 2. Verify error code extraction
 
@@ -169,17 +175,21 @@ const { error } = await authClient.magicLink.verify({ query: { token: t } })
 if (error) setStatus('error')  // error details lost
 ```
 
-**Change:** Store the error object and expose the error code:
+**Change:** Store the error object and expose the error code. The verify endpoint uses `ctx.redirect()` (which throws `APIError('FOUND')` with a Location header containing `?error=CODE`). The client SDK follows the redirect; the exact error object shape may vary. Use defensive extraction:
 
 ```typescript
 const { error } = await authClient.magicLink.verify({ query: { token: t } })
 if (error) {
-  setErrorCode(error.code ?? 'UNKNOWN')
+  // Try multiple fields — verify endpoint may return code via different paths
+  const code = error.code || error.message || 'UNKNOWN'
+  setErrorCode(code)
   setStatus('error')
 }
 ```
 
-The `ErrorState` component then receives `errorCode` and renders the appropriate message.
+**Implementation note:** During development, `console.log('verify error:', JSON.stringify(error))` to confirm the exact shape. If `error.code` is not populated with `EXPIRED_TOKEN`/`INVALID_TOKEN`, consider passing `callbackURL` and `errorCallbackURL` explicitly to the verify call, or use a custom fetch with `redirect: 'manual'` to parse the Location header directly.
+
+The `ErrorState` component then receives `errorCode` and renders the appropriate message. Unknown codes fall through to a generic message.
 
 ### 3. Session check replaces `requireGuest`
 
@@ -258,6 +268,10 @@ useSession() ─────┤
 
 ## Open Questions
 
-1. **`APIError` propagation:** Does Better Auth's `APIError` thrown in `sendMagicLink` callback propagate the `message` field as `error.code` or `error.message` to the SDK client? Needs testing during implementation. If the SDK wraps it differently, the frontend error detection in `-login-handlers.ts` needs to adjust.
+*None — all ambiguities resolved during investigation.*
 
-2. **Verify endpoint redirect vs SDK:** Better Auth's verify endpoint uses HTTP redirects with `?error=<code>`. The SDK client wraps this — need to confirm that `error.code` is populated with `INVALID_TOKEN` / `EXPIRED_TOKEN` in the returned error object. If the SDK returns a generic error, we may need to extract from the redirect URL.
+## Resolved Questions
+
+1. **`APIError` propagation (resolved):** `APIError` from `better-call` auto-generates `code` from `message` (uppercase + underscores). Client SDK receives `{ code, message, status, statusText }` via `better-fetch` JSON parsing. Confirmed from source: `better-call/dist/error.mjs` constructor + `@better-fetch/fetch/dist/index.js` lines 639-679.
+
+2. **Verify endpoint redirect vs SDK (partially resolved):** The verify endpoint uses `ctx.redirect()` → `new APIError('FOUND', void 0, headers)` → HTTP 302 with Location header containing `?error=CODE`. The SDK's `fetch` follows the redirect (default `redirect: 'follow'`). The exact error object on the client needs runtime confirmation. Implementation should defensively check `error.code || error.message` and fall back to generic. If neither contains the code, escalate to custom fetch with `redirect: 'manual'`.

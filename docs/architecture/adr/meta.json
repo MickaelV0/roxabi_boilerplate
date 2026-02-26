@@ -1,4 +1,8 @@
 {
   "title": "ADRs",
-  "pages": ["001-release-please", "002-empty-state-monolithic-vs-compound"]
+  "pages": [
+    "001-release-please",
+    "002-empty-state-monolithic-vs-compound",
+    "003-magic-link-error-handling"
+  ]
 }
