@@ -1,0 +1,93 @@
+name: PR Review & Auto-fix
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [main, staging]
+
+concurrency:
+  group: ${{ github.workflow }}-pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Review & Auto-fix
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'github-actions[bot]'
+
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Preflight — check PR size
+        id: preflight
+        run: |
+          LINES=$(gh pr diff "$PR_NUMBER" | wc -l)
+          if [ "$LINES" -gt 2000 ]; then
+            gh pr comment "$PR_NUMBER" \
+              --body "<!-- reviewed-by-claude -->⚠️ PR too large for automated review (${LINES} diff lines > 2000). Run \`/review\` manually."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+
+      - name: Review & Auto-fix
+        if: steps.preflight.outputs.skip != 'true'
+        uses: anthropics/claude-code-action@4d97243dfe710930bd5d449730cdaf7789fbe7b0 # v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          use_sticky_comment: true
+          use_commit_signing: true
+          prompt: |
+            # PR Review & Auto-fix for PR #${{ github.event.pull_request.number }}
+
+            **Step 1 — Review**
+            Review the PR diff thoroughly. Identify bugs, security issues, style violations,
+            type errors, and anything that deviates from the project coding standards
+            (single quotes, no semicolons, trailing commas es5, 2-space indent, 100-char width).
+
+            **Step 2 — Auto-fix**
+            Fix issues you can address safely without changing logic or behaviour:
+            - Run `bun run lint:fix && bun run format` to fix Biome violations
+            - Fix simple type annotations and obvious safe corrections
+            If you made any changes, commit them with:
+            `fix(review): automated fixes`
+            If nothing to fix, skip the commit.
+
+            **Step 3 — Post comment**
+            Post a PR comment in exactly this format:
+
+            ```
+            <!-- reviewed-by-claude -->
+            ## Automated Review
+
+            ### ✅ Auto-fixed
+            - `path/to/file.ts` — description
+            _(or "Nothing to auto-fix")_
+
+            ### ⚠️ Manual action needed
+            - `path/to/file.ts:42` — description
+            _(or "No manual action needed")_
+
+            _Reviewed commit: ${{ github.sha }}_
+            ```
+
+      - name: Post fallback comment on failure
+        if: failure() && steps.preflight.outputs.skip != 'true'
+        run: |
+          gh pr comment "$PR_NUMBER" \
+            --body "<!-- reviewed-by-claude -->⚠️ Automated review could not complete. Please run \`/review\` manually."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
