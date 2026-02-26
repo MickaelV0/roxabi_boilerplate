@@ -14,24 +14,63 @@ type PresentationNavProps = {
   sections: ReadonlyArray<Section>
   onEscape?: () => void
   scrollContainerRef?: RefObject<HTMLDivElement | null>
+  syncHash?: boolean
 }
 
 function useActiveSection(
   sections: ReadonlyArray<Section>,
-  scrollContainerRef?: RefObject<HTMLDivElement | null>
+  scrollContainerRef?: RefObject<HTMLDivElement | null>,
+  syncHash?: boolean
 ) {
-  const [activeIndex, setActiveIndex] = useState(0)
+  const [activeIndex, setActiveIndex] = useState(() => {
+    if (!syncHash || typeof window === 'undefined') return 0
+    const hash = window.location.hash.slice(1)
+    if (!hash) return 0
+    const idx = sections.findIndex((s) => s.id === hash)
+    return idx !== -1 ? idx : 0
+  })
   const activeIndexRef = useRef(activeIndex)
   activeIndexRef.current = activeIndex
+  // Guard: suppress observer updates during programmatic scroll
+  const isScrollingRef = useRef(false)
+  // Stable section IDs for observer — avoids reconnecting on label changes
+  const sectionIdsRef = useRef(sections.map((s) => s.id))
+  sectionIdsRef.current = sections.map((s) => s.id)
+
+  // Sync hash → URL when active section changes (debounced)
+  useEffect(() => {
+    if (!syncHash) return
+    const section = sections[activeIndex]
+    if (!section) return
+    const newHash = `#${section.id}`
+    if (window.location.hash !== newHash) {
+      const timer = setTimeout(() => {
+        window.history.replaceState(null, '', newHash)
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [activeIndex, sections, syncHash])
+
+  // Scroll to hash section on mount
+  useEffect(() => {
+    if (!syncHash) return
+    const hash = window.location.hash.slice(1)
+    if (!hash) return
+    const el = document.getElementById(hash)
+    if (el) {
+      requestAnimationFrame(() => el.scrollIntoView({ block: 'start' }))
+    }
+  }, [syncHash])
 
   useEffect(() => {
     const container = scrollContainerRef?.current ?? null
 
     const observer = new IntersectionObserver(
       (entries) => {
+        if (isScrollingRef.current) return
         for (const entry of entries) {
           if (entry.isIntersecting) {
-            const index = sections.findIndex((s) => s.id === entry.target.id)
+            const index = sectionIdsRef.current.indexOf(entry.target.id)
             if (index !== -1) setActiveIndex(index)
           }
         }
@@ -39,13 +78,15 @@ function useActiveSection(
       { threshold: 0.5, root: container }
     )
 
-    for (const section of sections) {
-      const el = document.getElementById(section.id)
+    for (const id of sectionIdsRef.current) {
+      const el = document.getElementById(id)
       if (el) observer.observe(el)
     }
 
     return () => observer.disconnect()
-  }, [sections, scrollContainerRef])
+    // Only reconnect when the scroll container changes, not on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollContainerRef])
 
   const scrollToSection = useCallback(
     (index: number) => {
@@ -53,7 +94,17 @@ function useActiveSection(
       if (!section) return
       const el = document.getElementById(section.id)
       if (!el) return
+
+      // Suppress observer during programmatic scroll
+      isScrollingRef.current = true
+      setActiveIndex(index)
+
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+
+      // Release guard after scroll settles
+      setTimeout(() => {
+        isScrollingRef.current = false
+      }, 800)
     },
     [sections]
   )
@@ -128,10 +179,16 @@ function useKeyboardNavigation(
   }, [sections, scrollToSection, onEscape, activeIndexRef])
 }
 
-export function PresentationNav({ sections, onEscape, scrollContainerRef }: PresentationNavProps) {
+export function PresentationNav({
+  sections,
+  onEscape,
+  scrollContainerRef,
+  syncHash,
+}: PresentationNavProps) {
   const { activeIndex, activeIndexRef, scrollToSection } = useActiveSection(
     sections,
-    scrollContainerRef
+    scrollContainerRef,
+    syncHash
   )
 
   useKeyboardNavigation(sections, activeIndexRef, scrollToSection, onEscape)

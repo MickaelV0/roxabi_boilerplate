@@ -1,5 +1,6 @@
-import { AnimatedSection, Badge } from '@repo/ui'
+import { AnimatedSection, Badge, cn } from '@repo/ui'
 import { Minimize2 } from 'lucide-react'
+import { useState } from 'react'
 import { CompressionDemo } from '@/components/presentation/dev-process/CompressionDemo'
 import { m } from '@/paraglide/messages'
 
@@ -21,24 +22,17 @@ function useSymbols(): ReadonlyArray<SymbolEntry> {
   ]
 }
 
-const BEFORE_CONTENT = `## Step 1 — Parse Input
+const SIMPLE_BEFORE = `## Step 1 — Parse Input
 
-First, look at the arguments. If an issue number
-is provided (like #42), fetch the GitHub issue
-using the gh CLI tool to get the title and body.
+First, look at the arguments. If an issue number is provided (like #42), fetch the GitHub issue using the gh CLI tool to get the title and body.
 
-If the issue does not exist, stop execution and
-inform the user that the issue was not found.
+If the issue does not exist, stop execution and inform the user that the issue was not found.
 
-If free text is provided instead of an issue
-number, search for matching issues using the
-gh issue list command with the search parameter.
+If free text is provided instead of an issue number, search for matching issues using the gh issue list command with the search parameter.
 
-If a matching issue is found, ask the user if
-they want to use it. If not, create a new issue
-or proceed without one.`
+If a matching issue is found, ask the user if they want to use it. If not, create a new issue or proceed without one.`
 
-const AFTER_CONTENT = `## S0 — Parse
+const SIMPLE_AFTER = `## S0 — Parse
 
 #N \u21D2 \`gh issue view N --json title,body\`
 \u00AC\u2203 issue \u21D2 halt
@@ -46,8 +40,66 @@ const AFTER_CONTENT = `## S0 — Parse
 Free text \u21D2 \`gh issue list --search "{text}"\`
 \u2203 match \u21D2 AskUserQuestion: Use #{N} | Create | Skip`
 
+const COMPLEX_BEFORE = `## Phase 3 — Confidence-Gated Auto-Apply
+
+This phase runs before the one-by-one walkthrough. The auto-applied markers will reflect the outcomes.
+
+First, check if the auto-apply queue is empty. If it is, skip directly to Phase 4.
+
+For every finding in the auto-apply queue that was only flagged by a single agent, we need to spawn a fresh verifier agent from a different domain. If the verifier confirms the finding with confidence above the threshold, it stays in the queue and we mark it as verified by two agents. If the verifier rejects it or lowers confidence below threshold, move it to the one-by-one queue instead.
+
+If there are more than 5 findings in the queue, ask the user whether to auto-apply all of them or review each one individually via the walkthrough.
+
+Then apply each finding sequentially. If a finding succeeds, mark it as applied. If it fails because of a test failure, lint error, timeout, or crash, restore the stash, demote that finding plus all remaining findings to the walkthrough queue, add a note about the failure, and stop the serial apply. Prior successful fixes are not rolled back.
+
+Finally, display a summary of what was applied and what was demoted before continuing to Phase 4.`
+
+const COMPLEX_AFTER = `## P3 — Auto-Apply (C \u2265 T)
+
+Q_auto = \u2205 \u21D2 skip \u2192 P4
+
+\u2200 f \u2208 Q_auto \u2227 |A(f)| = 1:
+  spawn verifier(\u00ACsrc(f))
+  C(f) \u2265 T \u21D2 stays, |A(f)| := 2
+  C(f) < T \u2228 rejects \u21D2 Q_1b1
+
+|Q_auto| > 5 \u21D2 AskUserQuestion:
+  Auto-apply all | Review via 1b1
+
+\u2200 f \u2208 Q_auto (sequential):
+  \u2713 \u21D2 [applied]
+  \u2717 (test|lint|timeout|crash) \u21D2
+    stash restore \u2192 f + remaining \u2192 Q_1b1
+    \u00AChalt prior fixes
+
+Summary \u2192 P4`
+
+type ExampleKey = 'simple' | 'complex'
+
+const EXAMPLES: Record<
+  ExampleKey,
+  {
+    before: string
+    after: string
+    stats: { linesBefore: number; linesAfter: number; tokenReduction: string }
+  }
+> = {
+  simple: {
+    before: SIMPLE_BEFORE,
+    after: SIMPLE_AFTER,
+    stats: { linesBefore: 15, linesAfter: 6, tokenReduction: '62' },
+  },
+  complex: {
+    before: COMPLEX_BEFORE,
+    after: COMPLEX_AFTER,
+    stats: { linesBefore: 30, linesAfter: 14, tokenReduction: '68' },
+  },
+}
+
 export function CompressorSection() {
   const symbols = useSymbols()
+  const [active, setActive] = useState<ExampleKey>('simple')
+  const example = EXAMPLES[active]
 
   return (
     <div className="relative mx-auto max-w-6xl w-full">
@@ -81,16 +133,39 @@ export function CompressorSection() {
         </div>
       </AnimatedSection>
 
-      {/* Compression demo */}
+      {/* Example toggle + Compression demo */}
       <AnimatedSection className="mt-10">
+        <div className="mb-4 flex items-center justify-center gap-1 rounded-lg bg-muted p-1 max-w-xs mx-auto">
+          <button
+            type="button"
+            className={cn(
+              'flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+              active === 'simple'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+            onClick={() => setActive('simple')}
+          >
+            {m.talk_dp_compress_simple()}
+          </button>
+          <button
+            type="button"
+            className={cn(
+              'flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+              active === 'complex'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+            onClick={() => setActive('complex')}
+          >
+            {m.talk_dp_compress_complex()}
+          </button>
+        </div>
+
         <CompressionDemo
-          beforeContent={BEFORE_CONTENT}
-          afterContent={AFTER_CONTENT}
-          stats={{
-            linesBefore: 15,
-            linesAfter: 6,
-            tokenReduction: '62',
-          }}
+          beforeContent={example.before}
+          afterContent={example.after}
+          stats={example.stats}
         />
       </AnimatedSection>
 

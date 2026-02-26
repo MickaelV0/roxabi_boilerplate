@@ -10,6 +10,16 @@ export const Route = createFileRoute('/talks/')({
 export function TalksIndex() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-6 py-16">
+      {/* Roxabi wordmark */}
+      <div className="fixed left-6 top-6 z-50">
+        <Link
+          to="/"
+          className="text-sm font-bold tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors uppercase"
+        >
+          Roxabi
+        </Link>
+      </div>
+
       <AnimatedSection className="w-full max-w-3xl">
         <h1 className="mb-12 text-center text-4xl font-bold tracking-tight lg:text-5xl">
           {m.talk_index_title()}

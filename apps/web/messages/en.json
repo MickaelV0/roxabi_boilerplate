@@ -918,6 +918,34 @@
   "talk_dp_gates_loop_title": "Human-in-the-Loop",
   "talk_dp_gates_loop_desc": "Not fully autonomous — intentionally human-in-the-loop",
 
+  "talk_dp_gates_quality_title": "Automated Quality Gates",
+  "talk_dp_gates_quality_pre_commit": "pre-commit",
+  "talk_dp_gates_quality_pre_commit_desc": "Biome lint + format",
+  "talk_dp_gates_quality_commit_msg": "commit-msg",
+  "talk_dp_gates_quality_commit_msg_desc": "Commitlint conventional",
+  "talk_dp_gates_quality_pre_push": "pre-push",
+  "talk_dp_gates_quality_pre_push_desc": "lint + typecheck + tests + i18n",
+
+  "talk_dp_nav_hooks": "Hooks",
+  "talk_dp_hooks_title": "Hooks: Automated Guardrails",
+  "talk_dp_hooks_subtitle": "Git hooks and Claude Code hooks enforce quality at every step — no human action needed",
+  "talk_dp_hooks_git_title": "Git Hooks (Lefthook)",
+  "talk_dp_hooks_git_desc": "Triggered by git operations — block bad code before it reaches the repo",
+  "talk_dp_hooks_claude_title": "Claude Code Hooks",
+  "talk_dp_hooks_claude_desc": "Triggered by tool use — enforce patterns during AI-assisted development",
+  "talk_dp_hooks_pre_commit_title": "pre-commit",
+  "talk_dp_hooks_pre_commit_desc": "Biome check — lint + format every staged file",
+  "talk_dp_hooks_commit_msg_title": "commit-msg",
+  "talk_dp_hooks_commit_msg_desc": "Commitlint — enforce conventional commit format",
+  "talk_dp_hooks_pre_push_title": "pre-push",
+  "talk_dp_hooks_pre_push_desc": "Full suite — lint, typecheck, tests, i18n validation, license check",
+  "talk_dp_hooks_post_tool_title": "PostToolUse",
+  "talk_dp_hooks_post_tool_desc": "Auto-format files after every Write/Edit with Biome",
+  "talk_dp_hooks_pre_tool_title": "PreToolUse",
+  "talk_dp_hooks_pre_tool_desc": "Block 'bun test' (must use 'bun run test'), warn on sensitive file access",
+  "talk_dp_hooks_insight": "Key insight:",
+  "talk_dp_hooks_insight_text": "Hooks run automatically — they don't require human attention. They catch mistakes before they compound.",
+
   "legal_back": "Back",
 
   "footer_legal_notice": "Legal Notice",
@@ -1326,5 +1354,7 @@
   "talk_dp_compress_symbol_or": "or",
   "talk_dp_compress_symbol_not": "not",
   "talk_dp_compress_symbol_then": "then",
-  "talk_dp_compress_symbol_iff": "iff"
+  "talk_dp_compress_symbol_iff": "iff",
+  "talk_dp_compress_simple": "Simple",
+  "talk_dp_compress_complex": "Complex"
 }

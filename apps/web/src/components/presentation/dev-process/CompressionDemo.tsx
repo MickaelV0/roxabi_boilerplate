@@ -103,14 +103,14 @@ function SliderDesktop({ beforeContent, afterContent, stats }: CompressionDemoPr
           <span className="mb-3 inline-block rounded-md bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
             {m.talk_dp_compress_before()}
           </span>
-          <pre className="font-mono text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
+          <pre className="max-w-[75%] font-mono text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
             {beforeContent}
           </pre>
         </div>
 
-        {/* After panel (clipped from the right) */}
+        {/* After panel (clipped from the right) — needs bg to cover Before */}
         <div
-          className="absolute inset-0 overflow-auto p-5"
+          className="absolute inset-0 overflow-auto bg-background p-5"
           style={{ clipPath: `inset(0 0 0 ${position}%)` }}
         >
           <div className="flex justify-end">

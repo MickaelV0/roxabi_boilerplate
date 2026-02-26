@@ -1,5 +1,5 @@
 import { AnimatedSection, Card, cn, useInView, useReducedMotion } from '@repo/ui'
-import { ArrowRight, Lock, MessageSquare, ShieldCheck, Users } from 'lucide-react'
+import { ArrowRight, Cog, Lock, MessageSquare, ShieldCheck, Users } from 'lucide-react'
 import { PHASE_COLORS, type PhaseColor } from '@/components/presentation/dev-process/phaseColors'
 import { m } from '@/paraglide/messages'
 
@@ -210,6 +210,45 @@ export function HumanGatesSection() {
             </Card>
           ))}
         </div>
+      </AnimatedSection>
+
+      {/* Automated quality gates */}
+      <AnimatedSection className="mt-8">
+        <Card variant="subtle" className="p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Cog className="h-4 w-4 text-cyan-500" />
+            <p className="text-sm font-semibold">{m.talk_dp_gates_quality_title()}</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {(
+              [
+                {
+                  title: m.talk_dp_gates_quality_pre_commit,
+                  desc: m.talk_dp_gates_quality_pre_commit_desc,
+                },
+                {
+                  title: m.talk_dp_gates_quality_commit_msg,
+                  desc: m.talk_dp_gates_quality_commit_msg_desc,
+                },
+                {
+                  title: m.talk_dp_gates_quality_pre_push,
+                  desc: m.talk_dp_gates_quality_pre_push_desc,
+                },
+              ] as const
+            ).map((gate) => (
+              <div
+                key={gate.title()}
+                className="flex items-start gap-2 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-3"
+              >
+                <Cog className="h-3.5 w-3.5 text-cyan-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs font-bold font-mono text-cyan-500">{gate.title()}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{gate.desc()}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
       </AnimatedSection>
     </div>
   )

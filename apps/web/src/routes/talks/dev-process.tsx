@@ -7,6 +7,7 @@ import { BuildPhaseSection } from '@/components/presentation/dev-process/BuildPh
 import { ClosingSection } from '@/components/presentation/dev-process/ClosingSection'
 import { CompressorSection } from '@/components/presentation/dev-process/CompressorSection'
 import { FramePhaseSection } from '@/components/presentation/dev-process/FramePhaseSection'
+import { HooksSection } from '@/components/presentation/dev-process/HooksSection'
 import { HumanGatesSection } from '@/components/presentation/dev-process/HumanGatesSection'
 import { IntroSection } from '@/components/presentation/dev-process/IntroSection'
 import { ResumabilitySection } from '@/components/presentation/dev-process/ResumabilitySection'
@@ -38,6 +39,7 @@ export function DevProcessPresentation() {
     { id: 'ship-phase', label: m.talk_dp_nav_ship_phase() },
     { id: 'resumability', label: m.talk_dp_nav_resumability() },
     { id: 'human-gates', label: m.talk_dp_nav_human_gates() },
+    { id: 'hooks', label: m.talk_dp_nav_hooks() },
     { id: 'compressor', label: m.talk_dp_nav_compressor() },
     { id: 'closing', label: m.talk_dp_nav_closing() },
   ]
@@ -65,6 +67,7 @@ export function DevProcessPresentation() {
         sections={sections}
         onEscape={handleEscape}
         scrollContainerRef={scrollContainerRef}
+        syncHash
       />
 
       {/* Scroll-snap container -- disabled on mobile */}
@@ -110,6 +113,10 @@ export function DevProcessPresentation() {
 
         <SectionContainer id="human-gates">
           <HumanGatesSection />
+        </SectionContainer>
+
+        <SectionContainer id="hooks">
+          <HooksSection />
         </SectionContainer>
 
         <SectionContainer id="compressor">

@@ -918,6 +918,34 @@
   "talk_dp_gates_loop_title": "Humain dans la boucle",
   "talk_dp_gates_loop_desc": "Pas totalement autonome — intentionnellement humain dans la boucle",
 
+  "talk_dp_gates_quality_title": "Portes de qualité automatisées",
+  "talk_dp_gates_quality_pre_commit": "pre-commit",
+  "talk_dp_gates_quality_pre_commit_desc": "Biome lint + format",
+  "talk_dp_gates_quality_commit_msg": "commit-msg",
+  "talk_dp_gates_quality_commit_msg_desc": "Commitlint conventionnel",
+  "talk_dp_gates_quality_pre_push": "pre-push",
+  "talk_dp_gates_quality_pre_push_desc": "lint + typecheck + tests + i18n",
+
+  "talk_dp_nav_hooks": "Hooks",
+  "talk_dp_hooks_title": "Hooks : Garde-fous automatisés",
+  "talk_dp_hooks_subtitle": "Les hooks Git et Claude Code assurent la qualité à chaque étape — sans action humaine",
+  "talk_dp_hooks_git_title": "Hooks Git (Lefthook)",
+  "talk_dp_hooks_git_desc": "Déclenchés par les opérations git — bloquent le mauvais code avant qu'il n'atteigne le dépôt",
+  "talk_dp_hooks_claude_title": "Hooks Claude Code",
+  "talk_dp_hooks_claude_desc": "Déclenchés par l'utilisation d'outils — appliquent les conventions pendant le développement assisté par IA",
+  "talk_dp_hooks_pre_commit_title": "pre-commit",
+  "talk_dp_hooks_pre_commit_desc": "Biome check — lint + format de chaque fichier indexé",
+  "talk_dp_hooks_commit_msg_title": "commit-msg",
+  "talk_dp_hooks_commit_msg_desc": "Commitlint — applique le format de commit conventionnel",
+  "talk_dp_hooks_pre_push_title": "pre-push",
+  "talk_dp_hooks_pre_push_desc": "Suite complète — lint, typecheck, tests, validation i18n, vérification des licences",
+  "talk_dp_hooks_post_tool_title": "PostToolUse",
+  "talk_dp_hooks_post_tool_desc": "Formate automatiquement les fichiers après chaque Write/Edit avec Biome",
+  "talk_dp_hooks_pre_tool_title": "PreToolUse",
+  "talk_dp_hooks_pre_tool_desc": "Bloque 'bun test' (doit utiliser 'bun run test'), alerte sur l'accès aux fichiers sensibles",
+  "talk_dp_hooks_insight": "Point clé :",
+  "talk_dp_hooks_insight_text": "Les hooks s'exécutent automatiquement — ils ne nécessitent pas d'attention humaine. Ils détectent les erreurs avant qu'elles ne s'accumulent.",
+
   "legal_back": "Retour",
 
   "footer_legal_notice": "Mentions legales",
@@ -1326,5 +1354,7 @@
   "talk_dp_compress_symbol_or": "ou",
   "talk_dp_compress_symbol_not": "non",
   "talk_dp_compress_symbol_then": "alors",
-  "talk_dp_compress_symbol_iff": "ssi"
+  "talk_dp_compress_symbol_iff": "ssi",
+  "talk_dp_compress_simple": "Simple",
+  "talk_dp_compress_complex": "Complexe"
 }
