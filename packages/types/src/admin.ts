@@ -163,3 +163,10 @@ export type CreateFeatureFlagPayload = {
   key: string
   description?: string
 }
+
+/** Payload for PATCH /api/admin/feature-flags/:id */
+export type UpdateFeatureFlagPayload = {
+  name?: string
+  description?: string
+  enabled?: boolean
+}

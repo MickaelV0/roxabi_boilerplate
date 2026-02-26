@@ -2,6 +2,9 @@ import { type ArgumentsHost, Catch, type ExceptionFilter, HttpStatus } from '@ne
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { ClsService } from 'nestjs-cls'
 import { EmailConflictException } from '../exceptions/emailConflict.exception.js'
+import { FlagKeyConflictException } from '../exceptions/flagKeyConflict.exception.js'
+import { FlagKeyInvalidException } from '../exceptions/flagKeyInvalid.exception.js'
+import { FlagNotFoundException } from '../exceptions/flagNotFound.exception.js'
 import { InvitationAlreadyPendingException } from '../exceptions/invitationAlreadyPending.exception.js'
 import { InvitationNotFoundException } from '../exceptions/invitationNotFound.exception.js'
 import { LastOwnerConstraintException } from '../exceptions/lastOwnerConstraint.exception.js'
@@ -41,6 +44,9 @@ type AdminException =
   | OrgCycleDetectedException
   | SettingNotFoundException
   | SettingValidationException
+  | FlagNotFoundException
+  | FlagKeyConflictException
+  | FlagKeyInvalidException
 
 @Catch(
   MemberAlreadyExistsException,
@@ -61,7 +67,10 @@ type AdminException =
   OrgDepthExceededException,
   OrgCycleDetectedException,
   SettingNotFoundException,
-  SettingValidationException
+  SettingValidationException,
+  FlagNotFoundException,
+  FlagKeyConflictException,
+  FlagKeyInvalidException
 )
 export class AdminExceptionFilter implements ExceptionFilter {
   constructor(private readonly cls: ClsService) {}
@@ -79,14 +88,16 @@ export class AdminExceptionFilter implements ExceptionFilter {
       exception instanceof InvitationNotFoundException ||
       exception instanceof AdminUserNotFoundException ||
       exception instanceof AdminOrgNotFoundException ||
-      exception instanceof SettingNotFoundException
+      exception instanceof SettingNotFoundException ||
+      exception instanceof FlagNotFoundException
     ) {
       statusCode = HttpStatus.NOT_FOUND
     } else if (
       exception instanceof MemberAlreadyExistsException ||
       exception instanceof InvitationAlreadyPendingException ||
       exception instanceof EmailConflictException ||
-      exception instanceof OrgSlugConflictException
+      exception instanceof OrgSlugConflictException ||
+      exception instanceof FlagKeyConflictException
     ) {
       statusCode = HttpStatus.CONFLICT
     } else {
