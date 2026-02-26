@@ -3,7 +3,7 @@ title: Development Process
 description: Development workflow with tiered tracks adapted to task complexity
 ---
 
-Adapts to task complexity through tiered tracks. **Determine tier before starting.**
+Use `/dev #N` as the single entry point for any development task. It scans existing artifacts, displays phase progress, and delegates to the right step skill — resuming automatically from wherever you left off.
 
 ## Step 0: Determine Tier
 
@@ -14,17 +14,17 @@ flowchart LR
     Q -->|"New arch, unclear reqs, >2 domains"| FF["Tier F-full"]
 ```
 
-| Tier | Name | Criteria | Process |
-|------|------|----------|---------|
-| **S** | Quick Fix | &lt;=3 files, no arch, no risk | Worktree + PR |
-| **F-lite** | Feature (lite) | Clear scope, documented requirements, single domain | Worktree + agents + /review (skip bootstrap) |
-| **F-full** | Feature (full) | New arch concepts, unclear requirements, or >2 domain boundaries | Bootstrap + worktree + agents + /review |
+| Tier | Name | Criteria | `/dev #N` phases |
+|------|------|----------|-----------------|
+| **S** | Quick Fix | &lt;=3 files, no arch, no risk | triage → implement → pr → validate → review |
+| **F-lite** | Feature (lite) | Clear scope, documented requirements, single domain | frame → spec → plan → implement → verify → ship |
+| **F-full** | Feature (full) | New arch concepts, unclear requirements, or >2 domain boundaries | frame → analyze → spec → plan → implement → verify → ship |
 
 ### F-lite vs F-full (judgment-based)
 
 File count alone does not determine the tier. A 50-file mechanical change may be F-lite, while a 3-file rate limiter with design decisions may be F-full. Use judgment, then validate with the human.
 
-**F-full (bootstrap required):**
+**F-full (frame + analyze + spec required):**
 
 ```
 New architectural concepts or patterns?              -> F-full
@@ -32,7 +32,7 @@ Unclear or competing requirements?                   -> F-full
 Affects >2 domain boundaries?                        -> F-full
 ```
 
-**F-lite (skip bootstrap):**
+**F-lite (analyze skipped, frame + spec only):**
 
 ```
 Mechanical/repetitive regardless of file count?      -> F-lite
@@ -43,6 +43,41 @@ Single domain, clear scope?                          -> F-lite
 **Human always validates** the F-lite/F-full classification before proceeding.
 
 > **Branch Strategy:** `staging` is the default integration branch. All feature and fix branches are created from `staging` and PRs target `staging`. Only `hotfix/*` branches may target `main` directly. Merges to `main` trigger production deploys; merges to `staging` do not auto-deploy (use the **Deploy Preview** GitHub Action for on-demand previews).
+
+## Phase Model
+
+`/dev #N` organises work into five phases. Each phase produces artifacts that serve as resumption checkpoints.
+
+```mermaid
+flowchart LR
+    subgraph Frame ["Frame"]
+        F1["issue-triage"] --> F2["frame"]
+    end
+    subgraph Shape ["Shape"]
+        S1["analyze*"] --> S2["spec"]
+    end
+    subgraph Build ["Build"]
+        B1["plan"] --> B2["implement"] --> B3["pr"]
+    end
+    subgraph Verify ["Verify"]
+        V1["validate"] --> V2["review"] --> V3["fix*"]
+    end
+    subgraph Ship ["Ship"]
+        P1["promote*"] --> P2["cleanup*"]
+    end
+
+    Frame --> Shape --> Build --> Verify --> Ship
+```
+
+`*` = conditional (skipped based on tier or outcome)
+
+| Phase | Artifact produced | Gate |
+|-------|-------------------|------|
+| **Frame** | `artifacts/frames/{slug}.mdx` | User approves frame |
+| **Shape** | `artifacts/analyses/{N}-{slug}.mdx` + `artifacts/specs/{N}-{slug}.mdx` | User approves spec |
+| **Build** | `artifacts/plans/{N}-{slug}.mdx` + code in worktree + PR | User approves plan; confirms PR ready |
+| **Verify** | Review findings on PR | User chooses fix / merge / stop |
+| **Ship** | Version tag + GitHub Release | — |
 
 ---
 
@@ -73,8 +108,10 @@ Single domain, clear scope?                          -> F-lite
 
 | Artifact | When | Files |
 |----------|------|-------|
-| Feature spec | New feature | `artifacts/specs/*.mdx` |
-| Analysis (pre-spec) | Before writing a spec | `artifacts/analyses/*.mdx` |
+| Frame | Problem framing | `artifacts/frames/*.mdx` |
+| Analysis | Deep exploration (F-full) | `artifacts/analyses/*.mdx` |
+| Feature spec | Solution design | `artifacts/specs/*.mdx` |
+| Plan | Task breakdown | `artifacts/plans/*.mdx` |
 | Architecture | Structure change | `docs/architecture/*.mdx` |
 | CLAUDE.md | Critical change | `CLAUDE.md` |
 
@@ -213,11 +250,11 @@ Tier F follows four phases: **Assess, Implement, Review, Fix/Merge**. The human 
 flowchart TD
     Start["Human: develop #XXX"] --> Fetch
 
-    subgraph P1[" Phase 1 — Assessment "]
+    subgraph P1[" Phase 1 — Assessment (Frame + Shape) "]
         Fetch["Fetch issue, check docs"] --> SpecQ{"Spec exists?"}
         SpecQ -- Yes --> P1End((" "))
-        SpecQ -- No --> Boot["/bootstrap: interview + review"]
-        Boot --> Analysis["Write analysis"]
+        SpecQ -- No --> Boot["/dev: frame → analyze → spec"]
+        Boot --> Analysis["Write analysis (F-full)"]
         Analysis --> G1{{"Human approves"}}
         G1 --> Spec["Write spec"]
         Spec --> G2{{"Human approves"}}
@@ -226,8 +263,8 @@ flowchart TD
 
     P1End --> Plan
 
-    subgraph P2[" Phase 2 — Scaffold & Implementation "]
-        Plan["Plan: scope + agents"] --> G3{{"Human approves plan"}}
+    subgraph P2[" Phase 2 — Build "]
+        Plan["/plan: scope + agents"] --> G3{{"Human approves plan"}}
         G3 --> Setup["Issue + worktree"]
         Setup --> RED["tester: failing tests (RED)"]
         RED --> FE["frontend-dev"] & BE["backend-dev"] & Inf["devops"] & DW["doc-writer"]
@@ -260,38 +297,37 @@ flowchart TD
 
 ### Phase 1 — Assessment
 
-1. Human says "develop issue #XXX"
-2. Main Claude fetches the GitHub issue, scans for existing documents:
+1. Human runs `/dev #XXX`
+2. `/dev` scans artifacts and displays progress. It fetches the GitHub issue and checks for:
+   - `artifacts/frames/*` — approved frame
    - `artifacts/analyses/*` — matching analysis
    - `artifacts/specs/*` — matching spec
-3. **If a sufficient spec exists** — skip to Phase 2
-4. **If gaps exist** (no issue detail, no analysis, no spec):
-   - Main Claude runs `/bootstrap` which drives the pipeline directly:
-     - Conducts interviews with the human (via `/interview`)
-     - Writes the analysis, spawns expert reviewers (product-lead, doc-writer, architect if needed)
-     - Human approves the analysis
-     - Writes the spec, spawns expert reviewers
-     - Human approves the spec
-   - Once spec is approved, Main Claude proceeds to Phase 2
+3. **If a sufficient spec exists** — skip to Phase 2 (Build)
+4. **If gaps exist** (no frame, no spec):
+   - `/dev` delegates to `/frame`, then `/analyze` (F-full only), then `/spec`
+   - Each step produces an artifact and pauses for user approval before continuing
+   - Once spec is approved, `/dev` proceeds to Phase 2
 
-> **Investigation (optional):** If the analysis reveals technical uncertainty, the orchestrator may suggest spiking a solution before writing the spec. See the bootstrap skill (Gate 1.5) for details.
+> **Investigation (optional):** If the analysis reveals technical uncertainty, the orchestrator may suggest spiking a solution before writing the spec. See the `/analyze` skill for details.
 
-> **F-lite shortcut:** If the task is classified as F-lite (clear scope, documented requirements), the assessment phase is brief — Main Claude confirms the spec exists and proceeds to `/scaffold`.
+> **Deprecated:** `/bootstrap` is a deprecated alias for `/dev`. It emits a warning and redirects automatically.
 
-### Scaffold and Implementation (`/scaffold`)
+> **F-lite shortcut:** If the task is classified as F-lite (clear scope, documented requirements), `/dev #N` skips the analyze step and proceeds directly from frame → spec → plan.
 
-`/scaffold` is the execution engine. It takes a spec and drives it all the way to a PR:
+### Build Phase (`/plan` + `/implement` + `/pr`)
 
-5. **Plan** — Reads the spec, analyzes scope, determines tier, breaks into tasks, picks agents. Human approves the plan.
+`/dev` delegates the Build phase to three atomic skills that together take a spec all the way to a PR:
 
-6. **Setup** — Creates the GitHub issue (if none exists), creates worktree:
+5. **Plan** (`/plan`) — Reads the spec, analyzes scope, determines tier, breaks into tasks, picks agents. Human approves the plan.
+
+6. **Setup** (`/implement`) — Creates the GitHub issue (if none exists), creates worktree:
    ```bash
    git worktree add ../roxabi-XXX -b feat/XXX-slug staging
    cd ../roxabi-XXX && cp .env.example .env && bun install
    cd apps/api && bun run db:branch:create --force XXX
    ```
 
-7. **Implement** — Spawns agents based on the plan (agents create files from scratch):
+7. **Implement** (`/implement`) — Spawns agents based on the plan (agents create files from scratch):
 
    | Change type | Agent |
    |-------------|-------|
@@ -312,10 +348,12 @@ flowchart TD
    - **Pass** — proceed to PR
    - **Fail** — agents fix, re-test, loop until green
 
-9. **PR** — `/scaffold` commits and creates the PR:
+9. **PR** — `/pr` commits and creates the PR:
     ```bash
     gh pr create --title "feat: description" --body "Closes #XXX"
     ```
+
+> **Deprecated:** `/scaffold` is a deprecated alias for `/dev --from plan`. It emits a warning and redirects automatically.
 
 ### Phase 3 — Review
 
@@ -330,15 +368,12 @@ flowchart TD
 
     Each reviewer produces Conventional Comments scoped to their domain.
 
-12. Main Claude collects all review comments.
-13. Main Claude walks the human through each comment **one-by-one** (`/1b1`):
-    - Shows the comment, severity, and context
-    - Presents trade-offs and recommendations
-    - Human decides: **accept**, **reject**, or **defer**
+12. Main Claude collects all review comments and presents a verdict (findings + recommendation).
+13. Human chooses: **Fix now** (delegates to `/fix`) | **Merge as-is** | **Stop**
 
 ### Phase 4 — Fix and Merge
 
-14. **Parallel domain fixers** receive the accepted findings scoped to their domain:
+14. `/fix` receives the accepted findings and handles: auto-apply (high-confidence), `/1b1` walkthrough, then **parallel domain fixers** scoped to their domain:
     - **Backend fixer** — if findings touch `apps/api/` or `packages/types/`
     - **Frontend fixer** — if findings touch `apps/web/` or `packages/ui/`
     - **Infra fixer** — if findings touch `packages/config/`, root configs, or CI

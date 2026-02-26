@@ -3,12 +3,12 @@
 ## TL;DR
 
 - **Project:** Roxabi Boilerplate — SaaS framework (Bun, TurboRepo, TypeScript, TanStack Start, NestJS, Vercel)
-- **Before work:** Read [dev-process.mdx](docs/processes/dev-process.mdx) → determine tier (S / F-lite / F-full)
+- **Before work:** Use `/dev #N` as the single entry point — it determines tier (S / F-lite / F-full) and drives the full lifecycle
 - **All code changes** → worktree: `git worktree add ../roxabi-XXX -b feat/XXX-slug staging`
 - **Always** `AskUserQuestion` for choices — ¬plain-text questions
 - **¬commit** without asking, **¬push** without request, **¬**`--force`/`--hard`/`--amend`
 - **Always** use appropriate skill even without slash command
-- **Before code:** Read relevant standards doc (see [Rule 8](#8-coding-standards))
+- **Before code:** Read relevant standards doc (see [Rule 9](#9-coding-standards))
 - **Orchestrator** delegates to agents — only minor fixes directly
 
 ## Project Overview
@@ -54,13 +54,15 @@ packages/  ui(@repo/ui) types(@repo/types) config(@repo/config) email vitest-con
 
 ### 1. Dev Process
 
-**MUST read [dev-process.mdx](docs/processes/dev-process.mdx) before any work.** No exceptions.
+**Entry point: `/dev #N`** — single command that scans artifacts, shows progress, and delegates to the right phase skill. Full spec → [dev-process.mdx](docs/processes/dev-process.mdx).
 
-| Tier | Criteria | Process |
-|------|----------|---------|
-| **S** | ≤3 files, no arch, no risk | Worktree + PR |
-| **F-lite** | Clear scope, single domain | Worktree + agents + /review |
-| **F-full** | New arch, unclear reqs, >2 domains | Bootstrap + worktree + agents + /review |
+| Tier | Criteria | Phases |
+|------|----------|--------|
+| **S** | ≤3 files, no arch, no risk | triage → implement → pr → validate → review |
+| **F-lite** | Clear scope, single domain | Frame → spec → plan → implement → verify → ship |
+| **F-full** | New arch, unclear reqs, >2 domains | Frame → analyze → spec → plan → implement → verify → ship |
+
+Phases: **Frame** (problem) → **Shape** (spec) → **Build** (code) → **Verify** (review) → **Ship** (release).
 
 ### 2. AskUserQuestion
 
@@ -83,7 +85,18 @@ Types: feat|fix|refactor|docs|style|test|chore|ci|perf
 ¬push without request. ¬force/hard/amend. Hook fail → fix + NEW commit.
 Full spec → [docs/contributing.mdx](docs/contributing.mdx)
 
-### 6. Mandatory Worktree
+### 6. Artifact Model
+
+Artifacts are the state markers `/dev` uses for progress detection and resumption.
+
+| Type | Directory | Question answered |
+|------|-----------|-------------------|
+| **Frame** | `artifacts/frames/` | What's the problem? |
+| **Analysis** | `artifacts/analyses/` | How deep is it? |
+| **Spec** | `artifacts/specs/` | What will we build? |
+| **Plan** | `artifacts/plans/` | How do we build it? |
+
+### 7. Mandatory Worktree
 
 ```bash
 git worktree add ../roxabi-XXX -b feat/XXX-slug staging
@@ -91,14 +104,14 @@ cd ../roxabi-XXX && cp .env.example .env && bun install
 cd apps/api && bun run db:branch:create --force XXX
 ```
 
-Exceptions: XS (confirm via AskUserQuestion) | /bootstrap (doc artifacts) | /promote (release artifacts).
+Exceptions: XS (confirm via AskUserQuestion) | `/dev` frame/spec artifacts | `/promote` release artifacts.
 **¬code on main/staging without worktree.**
 
-### 7. Code Review
+### 8. Code Review
 
 MUST read [code-review.mdx](docs/standards/code-review.mdx). Conventional Comments. Block only: security, correctness, standard violations.
 
-### 8. Coding Standards
+### 9. Coding Standards
 
 | Context | Read |
 |---------|------|
@@ -112,6 +125,9 @@ MUST read [code-review.mdx](docs/standards/code-review.mdx). Conventional Commen
 
 Skills: always use appropriate skill. Defs → `.claude/skills/*/SKILL.md`.
 Agents: rules → [AGENTS.md](AGENTS.md). Defs → `.claude/agents/*.md`. Guide → [agent-teams.mdx](docs/guides/agent-teams.mdx).
+
+**Workflow skills (via `/dev #N` or standalone):** `dev` (orchestrator) | `frame` | `analyze` | `spec` | `plan` | `implement` | `fix`
+**Deprecated aliases:** `bootstrap` → `/dev` | `scaffold` → `/dev` (emit deprecation notice + redirect)
 
 **Shared agent rules:** ¬commit/push (lead handles git) | ¬force/hard/amend | stage specific files only | escalate blockers → lead | claim tasks from shared list | create follow-up tasks | security → lead + security-auditor | message lead on completion.
 
@@ -141,7 +157,7 @@ Agents: rules → [AGENTS.md](AGENTS.md). Defs → `.claude/agents/*.md`. Guide 
 | Contributing | [contributing.mdx](docs/contributing.mdx) |
 | Deploy / Auth / Agents | [deployment](docs/guides/deployment.mdx) / [authentication](docs/guides/authentication.mdx) / [agent-teams](docs/guides/agent-teams.mdx) |
 | Vision | [vision.mdx](docs/vision.mdx) |
-| Specs / Analyses | [artifacts/specs/](artifacts/specs/) / [artifacts/analyses/](artifacts/analyses/) |
+| Frames / Analyses / Specs / Plans | [artifacts/frames/](artifacts/frames/) / [artifacts/analyses/](artifacts/analyses/) / [artifacts/specs/](artifacts/specs/) / [artifacts/plans/](artifacts/plans/) |
 
 **Deploy:** `main` → Vercel prod. `staging` → preview. Web=`apps/web` (TanStack/Nitro). API=`apps/api` (NestJS).
 
