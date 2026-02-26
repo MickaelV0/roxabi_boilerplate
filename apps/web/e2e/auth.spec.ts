@@ -2,7 +2,12 @@ import { expect, test } from '@playwright/test'
 import { AuthPage } from './auth.page'
 import { TEST_USER } from './testHelpers'
 
+const hasApi = Boolean(process.env.DATABASE_URL) || !process.env.CI
+
 test.describe('Authentication', () => {
+  // Auth tests require the API server (needs DATABASE_URL)
+  test.skip(() => !hasApi, 'Skipped: no DATABASE_URL in CI')
+
   test('should display login form when navigating to /login', async ({ page }) => {
     // Arrange
     const auth = new AuthPage(page)

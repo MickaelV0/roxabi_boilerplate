@@ -84,7 +84,13 @@ export function createLoginAuthHandlers(deps: AuthHandlerDeps) {
         email: form.magicLinkEmail,
       })
       if (mlError) {
-        form.submitError(mlError.status === 429 ? m.auth_rate_limit() : m.auth_magic_link_error())
+        if (mlError.status === 429) {
+          form.submitError(m.auth_rate_limit())
+        } else if (mlError.code === 'USER_NOT_FOUND') {
+          form.submitError(m.auth_magic_link_no_account())
+        } else {
+          form.submitError(m.auth_magic_link_error())
+        }
       } else {
         toast.success(m.auth_toast_magic_link_sent())
         navigate({
