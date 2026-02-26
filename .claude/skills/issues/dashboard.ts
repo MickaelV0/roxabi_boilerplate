@@ -125,6 +125,7 @@ setInterval(refreshCache, POLL_MS)
 // ---------------------------------------------------------------------------
 const server = Bun.serve({
   port: PORT,
+  idleTimeout: 255, // max — SSE connections are long-lived
   async fetch(req) {
     const url = new URL(req.url)
 
