@@ -53,7 +53,7 @@ function computeHash(
     ]),
     b: branches.length,
     w: worktrees.length,
-    v: deployments.map((d) => [d.uid, d.state]),
+    v: deployments.map((d) => [d.uid, d.state, d.buildSteps.map((s) => s.status)]),
   })
   return Bun.hash(key).toString(36)
 }

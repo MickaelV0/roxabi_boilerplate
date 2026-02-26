@@ -2,7 +2,7 @@ import { GITHUB_REPO, PROJECT_ID } from '../../shared/config'
 import { ghGraphQL, run } from '../../shared/github'
 import { ISSUES_QUERY, PRS_QUERY } from '../../shared/queries'
 import type { RawItem } from '../../shared/types'
-import type { Branch, CICheck, Issue, PR, VercelDeployment, Worktree } from './types'
+import type { Branch, BuildStep, CICheck, Issue, PR, VercelDeployment, Worktree } from './types'
 
 async function fetchPage(
   cursor?: string
@@ -242,6 +242,56 @@ const VERCEL_PROJECT_ID = 'prj_zQBFlIxtRstBkgQkxb9UwNPlaQuv'
 const VERCEL_TEAM_ID = 'team_aykdwlsiBnvKgB1hCKU7XsXy'
 const FIVE_MINUTES = 5 * 60 * 1000
 
+// Build phases detected from Vercel build log text
+const BUILD_PHASES: { name: string; patterns: RegExp[] }[] = [
+  { name: 'Provision', patterns: [/Running build in/] },
+  { name: 'Download', patterns: [/Retrieving list|Downloading .* deployment files/] },
+  { name: 'Install', patterns: [/Running "install"|bun install|npm install|yarn install/] },
+  {
+    name: 'Build',
+    patterns: [/Running "vercel build"|Running "build"|turbo run build|vite build/],
+  },
+  { name: 'Deploy', patterns: [/Deploying outputs|Build completed|Serverless Function/] },
+]
+
+function parseBuildSteps(logs: string[], deployState: string): BuildStep[] {
+  const reached = new Set<number>()
+  for (const line of logs) {
+    for (let i = 0; i < BUILD_PHASES.length; i++) {
+      if (BUILD_PHASES[i].patterns.some((p) => p.test(line))) reached.add(i)
+    }
+  }
+
+  const hasError =
+    deployState === 'ERROR' || logs.some((l) => /^Error:|Command ".*" exited with \d+/.test(l))
+  const maxReached = Math.max(-1, ...reached)
+
+  return BUILD_PHASES.map((phase, i) => {
+    if (i < maxReached) return { name: phase.name, status: 'done' as const }
+    if (i === maxReached) {
+      if (hasError) return { name: phase.name, status: 'error' as const }
+      if (deployState === 'READY') return { name: phase.name, status: 'done' as const }
+      return { name: phase.name, status: 'running' as const }
+    }
+    if (deployState === 'READY') return { name: phase.name, status: 'done' as const }
+    return { name: phase.name, status: 'pending' as const }
+  })
+}
+
+async function fetchBuildLogs(token: string, deploymentId: string): Promise<string[]> {
+  try {
+    const url = `https://api.vercel.com/v3/deployments/${deploymentId}/events?teamId=${VERCEL_TEAM_ID}&limit=200`
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) return []
+    const events = (await res.json()) as { text: string; type: string }[]
+    return events.map((e) => e.text).filter(Boolean)
+  } catch {
+    return []
+  }
+}
+
 export async function fetchVercelDeployments(): Promise<VercelDeployment[]> {
   const token = process.env.VERCEL_TOKEN
   if (!token) return []
@@ -256,7 +306,7 @@ export async function fetchVercelDeployments(): Promise<VercelDeployment[]> {
     const data = (await res.json()) as { deployments: RawVercelDeployment[] }
 
     const now = Date.now()
-    return data.deployments
+    const filtered = data.deployments
       .map((d) => ({
         uid: d.uid,
         url: d.url,
@@ -270,6 +320,8 @@ export async function fetchVercelDeployments(): Promise<VercelDeployment[]> {
           githubCommitRef: d.meta?.githubCommitRef,
           githubCommitMessage: d.meta?.githubCommitMessage,
         },
+        inspectorUrl: d.inspectorUrl ?? '',
+        buildSteps: [] as BuildStep[],
       }))
       .filter((d) => {
         const ongoing = ['BUILDING', 'QUEUED', 'INITIALIZING'].includes(d.state)
@@ -277,6 +329,14 @@ export async function fetchVercelDeployments(): Promise<VercelDeployment[]> {
         const recentError = d.state === 'ERROR' && now - d.createdAt < FIVE_MINUTES
         return ongoing || recentReady || recentError
       })
+
+    // Fetch build logs in parallel for all visible deployments
+    const logResults = await Promise.all(filtered.map((d) => fetchBuildLogs(token, d.uid)))
+    for (let i = 0; i < filtered.length; i++) {
+      filtered[i].buildSteps = parseBuildSteps(logResults[i], filtered[i].state)
+    }
+
+    return filtered
   } catch {
     return []
   }
@@ -293,4 +353,5 @@ interface RawVercelDeployment {
   ready?: number
   source?: string
   meta?: { githubCommitRef?: string; githubCommitMessage?: string }
+  inspectorUrl?: string
 }

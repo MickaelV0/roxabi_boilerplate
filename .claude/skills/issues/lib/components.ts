@@ -265,6 +265,23 @@ const DEPLOY_STATE_DISPLAY: Record<string, { icon: string; label: string; cls: s
   CANCELED: { icon: '\u26d4', label: 'Canceled', cls: 'vd-error' },
 }
 
+const STEP_ICON: Record<string, string> = {
+  done: '\u2705',
+  running: '<span class="ci-spinner"></span>',
+  pending: '\u25cb',
+  error: '\u274c',
+}
+
+function renderBuildPipeline(steps: VercelDeployment['buildSteps']): string {
+  if (steps.length === 0) return ''
+  return steps
+    .map(
+      (s) =>
+        `<span class="vd-step vd-step-${s.status}">${STEP_ICON[s.status]} ${escHtml(s.name)}</span>`
+    )
+    .join('<span class="vd-step-arrow">\u2192</span>')
+}
+
 export function renderVercelDeployments(deployments: VercelDeployment[]): string {
   if (deployments.length === 0) return ''
 
@@ -284,14 +301,20 @@ export function renderVercelDeployments(deployments: VercelDeployment[]): string
     const msg = d.meta.githubCommitMessage ? shortTitle(d.meta.githubCommitMessage, 40) : ''
     const age = d.createdAt ? timeAgo(new Date(d.createdAt).toISOString()) : ''
     const deployUrl = `https://${d.url}`
+    const inspectUrl = d.inspectorUrl || `https://vercel.com`
+    const pipeline = renderBuildPipeline(d.buildSteps)
 
-    html += `<div class="vd-item ${display.cls}">
-      <span class="vd-state">${display.icon} ${display.label}</span>
-      <span class="badge ${envCls}">${env}</span>
-      <a href="${escHtml(deployUrl)}" target="_blank" rel="noopener" class="vd-url">${escHtml(d.url)}</a>
-      ${branch ? `<code class="vd-branch">${escHtml(branch)}</code>` : ''}
-      ${msg ? `<span class="vd-msg">${escHtml(msg)}</span>` : ''}
-      <span class="text-muted vd-age">${age}</span>
+    html += `<div class="vd-card ${display.cls}">
+      <div class="vd-item">
+        <span class="vd-state">${display.icon} ${display.label}</span>
+        <span class="badge ${envCls}">${env}</span>
+        <a href="${escHtml(deployUrl)}" target="_blank" rel="noopener" class="vd-url">${escHtml(d.url)}</a>
+        ${branch ? `<code class="vd-branch">${escHtml(branch)}</code>` : ''}
+        ${msg ? `<span class="vd-msg">${escHtml(msg)}</span>` : ''}
+        <span class="text-muted vd-age">${age}</span>
+        <a href="${escHtml(inspectUrl)}" target="_blank" rel="noopener" class="vd-inspect" title="Inspect on Vercel">\u2197</a>
+      </div>
+      ${pipeline ? `<div class="vd-pipeline">${pipeline}</div>` : ''}
     </div>`
   }
 

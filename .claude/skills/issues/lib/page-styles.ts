@@ -285,17 +285,23 @@ export const PAGE_STYLES = `
     flex-direction: column;
     gap: 6px;
   }
+  .vd-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .vd-card:hover { border-color: var(--accent); }
+  .vd-card.vd-building { border-color: rgba(210,153,34,.4); }
+  .vd-card.vd-error { border-color: rgba(248,81,73,.4); }
+  .vd-card.vd-ready { border-color: rgba(63,185,80,.3); }
   .vd-item {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 8px 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 6px;
     font-size: 13px;
   }
-  .vd-item:hover { border-color: var(--accent); }
   .vd-state { min-width: 100px; font-weight: 500; }
   .vd-building .vd-state { color: var(--orange); }
   .vd-queued .vd-state { color: var(--text-muted); }
@@ -308,6 +314,37 @@ export const PAGE_STYLES = `
   .vd-branch { font-size: 11px; color: var(--text-muted); background: var(--bg); padding: 1px 6px; border-radius: 4px; }
   .vd-msg { font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
   .vd-age { margin-left: auto; font-size: 11px; }
+  .vd-inspect { color: var(--text-muted); text-decoration: none; font-size: 14px; padding: 0 4px; }
+  .vd-inspect:hover { color: var(--accent); }
+
+  /* Build pipeline */
+  .vd-pipeline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px 8px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    flex-wrap: wrap;
+  }
+  .vd-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .vd-step-done { color: var(--green); }
+  .vd-step-running { color: var(--orange); background: rgba(210,153,34,.1); }
+  .vd-step-pending { color: var(--text-muted); opacity: 0.5; }
+  .vd-step-error { color: var(--red); background: rgba(248,81,73,.1); }
+  .vd-step-arrow { color: var(--border); font-size: 10px; }
+  .vd-step .ci-spinner {
+    width: 10px;
+    height: 10px;
+    border-width: 1.5px;
+  }
 
   .changes { font-family: monospace; font-size: 12px; }
   .additions { color: var(--green); }

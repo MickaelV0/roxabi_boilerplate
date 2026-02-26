@@ -53,6 +53,11 @@ export interface Worktree {
   isBare: boolean
 }
 
+export interface BuildStep {
+  name: string
+  status: 'done' | 'running' | 'pending' | 'error'
+}
+
 export interface VercelDeployment {
   uid: string
   url: string
@@ -63,6 +68,8 @@ export interface VercelDeployment {
   ready: number
   source: string
   meta: { githubCommitRef?: string; githubCommitMessage?: string }
+  inspectorUrl: string
+  buildSteps: BuildStep[]
 }
 
 export interface DepNode {

@@ -60,10 +60,7 @@ ${LIVE_STYLES}
 
   <div id="section-vercel">${vercelHtml}</div>
 
-  <div id="section-prs" class="section">
-    <h2>Pull Requests</h2>
-    ${prsHtml}
-  </div>
+  <div id="section-prs">${prs.length > 0 ? `<div class="section"><h2>Pull Requests</h2>${prsHtml}</div>` : ''}</div>
 
   <div id="section-issues" class="section">
     <h2>Issues</h2>
