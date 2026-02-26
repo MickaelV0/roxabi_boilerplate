@@ -272,29 +272,20 @@ When the user switches organizations, the session refreshes and permissions upda
 
 ### Route-Level Protection
 
-Use TanStack Router's `beforeLoad` guard to redirect users who lack the required permissions before the route renders. The codebase already uses `beforeLoad` for authentication guards (see `apps/web/src/lib/route-guards.ts`):
+Use `enforceRoutePermission` from `apps/web/src/lib/routePermissions.ts` to redirect users who lack the required permissions before the route renders. Declare the required permission in `staticData` and assign the guard to `beforeLoad` — no manual session fetch needed:
 
 ```ts
-import { redirect } from '@tanstack/react-router'
 import { createFileRoute } from '@tanstack/react-router'
-import { authClient } from '@/lib/authClient'
-import { hasPermission } from '@/lib/permissions'
+import { enforceRoutePermission } from '@/lib/routePermissions'
 
-export const Route = createFileRoute('/org/billing')({
-  beforeLoad: async () => {
-    if (typeof window === 'undefined') return
-
-    const { data: session } = await authClient.getSession()
-    if (!session) throw redirect({ to: '/login' })
-    if (!hasPermission(session, 'organizations:write')) {
-      throw redirect({ to: '/org/settings' })
-    }
-  },
+export const Route = createFileRoute('/admin/billing')({
+  staticData: { permission: 'organizations:write' },
+  beforeLoad: enforceRoutePermission,
   component: BillingPage,
 })
 ```
 
-This pattern prevents the component from rendering at all when the user lacks permissions, rather than showing a flash of forbidden content.
+The guard reads the session from root context (`ctx.context.session`), which is populated once by the root route's `beforeLoad` — no per-route API call is made. This pattern prevents the component from rendering at all when the user lacks permissions, rather than showing a flash of forbidden content.
 
 ## Adding New Permissions
 

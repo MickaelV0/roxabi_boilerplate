@@ -402,6 +402,8 @@ const canViewMembers = hasAnyPermission(session, ['members:read', 'members:write
 
 These functions read from the `permissions` array that `AuthService.getSession()` attaches to the session object.
 
+> **Note:** Route guards (`requireAuth`, `requireGuest`, `enforceRoutePermission`) no longer call `authClient.getSession()` directly. The root route fetches the session once via `getServerEnrichedSession()` and passes it through TanStack Router's context. Guards read `ctx.context.session` — no per-route fetch occurs. See the [Navigation Guards](../guides/navigation-guards) guide for details.
+
 ## Environment Variable Reference
 
 | Variable | Required | Default | Purpose |

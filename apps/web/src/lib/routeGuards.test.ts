@@ -107,6 +107,10 @@ describe('safeRedirect', () => {
   it('should block URL-encoded backslash (/%5C/evil.com)', () => {
     expect(safeRedirect('/%5C/evil.com')).toBe('/dashboard')
   })
+
+  it('should return /dashboard when decodeURIComponent throws (malformed percent-encoding)', () => {
+    expect(safeRedirect('/%E')).toBe('/dashboard')
+  })
 })
 
 // ---------------------------------------------------------------------------

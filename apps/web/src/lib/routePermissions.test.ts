@@ -36,7 +36,7 @@ vi.mock('./env.server.js', () => ({
 }))
 
 // Import after mocks are set up
-import { enforceRoutePermission, useCanAccess } from './routePermissions'
+import { enforceRoutePermission, getServerEnrichedSession, useCanAccess } from './routePermissions'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -89,6 +89,84 @@ function setupRouter(
 function setupUseQuery(data: ReturnType<typeof createSession> | null | undefined) {
   mockUseQuery.mockReturnValue({ data })
 }
+
+// ---------------------------------------------------------------------------
+// getServerEnrichedSession
+// ---------------------------------------------------------------------------
+
+describe('getServerEnrichedSession', () => {
+  beforeEach(() => {
+    mockFetch.mockReset()
+    mockGetRequestHeader.mockReset()
+  })
+
+  it('should return null when no cookie header is present', async () => {
+    mockGetRequestHeader.mockReturnValue(undefined)
+    const result = await getServerEnrichedSession()
+    expect(result).toBeNull()
+  })
+
+  it('should return null when API responds with non-ok status', async () => {
+    mockGetRequestHeader.mockReturnValue('session=abc')
+    mockFetch.mockResolvedValue({ ok: false })
+    const result = await getServerEnrichedSession()
+    expect(result).toBeNull()
+  })
+
+  it('should return null when API returns invalid session data', async () => {
+    mockGetRequestHeader.mockReturnValue('session=abc')
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ invalid: true }) })
+    const result = await getServerEnrichedSession()
+    expect(result).toBeNull()
+  })
+
+  it('should return null when API returns null body', async () => {
+    mockGetRequestHeader.mockReturnValue('session=abc')
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(null) })
+    const result = await getServerEnrichedSession()
+    expect(result).toBeNull()
+  })
+
+  it('should return null when fetch throws a network error', async () => {
+    mockGetRequestHeader.mockReturnValue('session=abc')
+    mockFetch.mockRejectedValue(new Error('Network error'))
+    const result = await getServerEnrichedSession()
+    expect(result).toBeNull()
+  })
+
+  it('should return enriched session when API returns valid data', async () => {
+    const session = {
+      user: { id: '1', email: 'test@example.com', role: 'member' },
+      session: {},
+      permissions: ['members:read'],
+    }
+    mockGetRequestHeader.mockReturnValue('session=abc')
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(session) })
+    const result = await getServerEnrichedSession()
+    expect(result).toEqual(session)
+  })
+
+  it('should return null when session data has no user', async () => {
+    mockGetRequestHeader.mockReturnValue('session=abc')
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ permissions: [] }),
+    })
+    const result = await getServerEnrichedSession()
+    expect(result).toBeNull()
+  })
+
+  it('should return null when session data has no permissions array', async () => {
+    mockGetRequestHeader.mockReturnValue('session=abc')
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({ user: { id: '1', email: 'a@b.com' }, permissions: 'not-array' }),
+    })
+    const result = await getServerEnrichedSession()
+    expect(result).toBeNull()
+  })
+})
 
 // ---------------------------------------------------------------------------
 // enforceRoutePermission
