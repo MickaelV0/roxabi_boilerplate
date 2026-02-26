@@ -1,0 +1,23 @@
+name: Claude CLI Spike (delete after validation)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  spike:
+    name: Validate claude --print
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Claude CLI
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Test claude --print with Bash tool
+        run: |
+          claude --print --permission-mode bypassPermissions \
+            "Run this bash command: echo 'spike-ok'"
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
