@@ -128,6 +128,22 @@ Tier S may omit Shapes + Fit Check.
 
 Spawn domain experts via Task during writing when a specific question arises. See [references/expert-consultation.md](references/expert-consultation.md).
 
+## Step 2.5 — Investigation (Optional)
+
+Skip if ¬technical uncertainty signals in Step 2 findings.
+
+**Signals:** unfamiliar 3rd-party behavior, undocumented internal APIs, performance unknowns, conflicting docs.
+
+∃ signals → AskUserQuestion: **Spike now** (create throwaway worktree, test hypothesis, report findings) | **Skip** (proceed to expert review).
+
+**Spike flow:**
+1. `git worktree add ../roxabi-spike-{N} -b spike/{N} staging`
+2. Investigate: write minimal code, run isolated test, confirm/reject hypothesis
+3. Report findings → incorporate into analysis
+4. `git worktree remove ../roxabi-spike-{N}` (throwaway, ¬merge)
+
+See [references/investigation.md](references/investigation.md) if the reference file exists, else proceed with inline flow above.
+
 ## Step 3 — Expert Review
 
 Auto-select ρ (¬ask user):

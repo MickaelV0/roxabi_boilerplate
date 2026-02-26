@@ -65,56 +65,13 @@ Find similar existing feature → read 1-2 files for conventions. Store paths �
 
 ## Step 4 — Micro-Tasks (Tier F only)
 
-Tier S ⇒ skip → Step 5. Read [references/micro-tasks.md](references/micro-tasks.md).
+Tier S ⇒ skip → Step 5. Read [references/micro-tasks.md](references/micro-tasks.md) for the complete micro-task generation process.
 
-**Summary:** spec (Breadboard+Slices ∨ criteria) → micro-tasks + verify commands → parallelization → consistency → `artifacts/plans/{issue}-{slug}.mdx` → AskUserQuestion → commit.
+**Summary:** Detect spec format (Breadboard+Slices or Success Criteria) → generate micro-tasks with verification commands → detect parallelization → scale task count → run consistency check (spec↔tasks bidirectional) → write to plan artifact.
 
-Agents create files from scratch (¬stubs). Task desc: target path, shape/skeleton, ref pattern file.
+Key outputs: micro-tasks with fields (description, file, snippet, verify, agent, spec trace, phase, difficulty), `[P]` parallel markers, RED-GATE sentinels per slice.
 
-### 4.1 Detect Spec Format
-
-| Mode | Condition | Source |
-|------|-----------|--------|
-| Primary | ∃ `## Breadboard` ∧ `## Slices` | Parse affordances (U*/N*/S*) + slices (V*) |
-| Fallback | ∃ `## Success Criteria` only | Parse criteria as SC-1, SC-2, ... |
-| Skip | Neither present | Warn user, use text tasks from Step 2d |
-
-### 4.2 Generate Micro-Tasks
-
-**Primary mode (Breadboard + Slices):**
-
-∀ slice (V1, V2, ...):
-1. Identify referenced affordances (N1, N2, U1, S1)
-2. Expand each → 1-3 micro-tasks by complexity
-3. Order: S* → N* → U* → tests
-4. Assign agents per Step 2c path rules
-5. Generate verification command
-
-**Fallback mode (Success Criteria):**
-
-∀ criterion (SC-1, SC-2, ...):
-1. Identify affected files + logic
-2. Expand → 1-5 micro-tasks
-3. Verification command ∨ `[manual]` marker
-4. Assign agents per Step 2c
-
-**Verification heuristics:**
-
-| Change type | Verify |
-|------------|--------|
-| `.ts/.tsx` code | Unit test ∨ typecheck |
-| Type defs | `bun run typecheck --filter=@repo/types` |
-| Config (json/yaml) | `bun run lint && grep -q 'key' path` |
-| Skill/agent (.md) | `grep -q 'expected' path` |
-| Docs (.mdx) | `test -f path && grep -q '## Section' path` |
-| Migrations | `bun run db:migrate && bun run db:generate --check` |
-| Other | `[manual]` |
-
-**RED tasks:** Structural verify only (grep test structure). Tests expected to fail pre-impl.
-
-**Safety:** Single-quote grep args. Read-only only. Allowed: `bun run test`, `bun run typecheck`, `bun run lint`, `grep -q`, `test -f`, `bun run db:generate --check`.
-
-**Per-slice floor:** ≥2 tasks (1 impl + 1 test). < 2 ⇒ merge with adjacent slice.
+See [references/micro-task-example.mdx](references/micro-task-example.mdx) for a worked example.
 
 ### Micro-Task Fields
 
@@ -132,35 +89,6 @@ Agents create files from scratch (¬stubs). Task desc: target path, shape/skelet
 | Slice | V1, V2, ... |
 | Phase | RED ∨ GREEN ∨ REFACTOR ∨ RED-GATE |
 | Difficulty | 1-5 |
-
-### 4.3 Detect Parallelization
-
-`[P]` := ¬file-path conflict ∧ ¬import conflict with any other `[P]` task in same slice+phase.
-
-∀ task pair in same slice:
-1. Same file? → ¬parallel
-2. Import dep? (read existing ∨ infer from wiring) → ¬parallel
-3. Unknown → ¬parallel (conservative)
-
-### 4.4 Scale Task Count
-
-| Tier | Target | Floor |
-|------|--------|-------|
-| F-lite | 5-15 | 2 |
-| F-full | 15-30 | 2 |
-
-> 30 ⇒ AskUserQuestion: warn, suggest splitting. Show full list (¬truncate).
-< 2 ⇒ warn, suggest text-based tasks from Step 2d.
-
-### 4.5 Consistency Check
-
-Bidirectional spec↔task:
-
-1. **Coverage (spec→tasks):** ∀ criterion/affordance → ≥1 task. Report uncovered.
-2. **Gold plating (tasks→spec):** ∀ task → spec trace required. **Exempt** (sole purpose only): infra, quality, build, docs.
-3. **Report:** covered N/total, uncovered list, untraced list, exemptions count.
-
-0 coverage ⇒ block agents. Return to spec ∨ regenerate.
 
 ## Step 5 — Write Plan Artifact
 

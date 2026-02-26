@@ -19,6 +19,8 @@ allowed-tools: Skill
 
 ## Action
 
+Inform the user: "⚠ /scaffold is deprecated. Use /dev #N instead."
+
 Invoke `/dev` with the mapped arguments:
 
 ```

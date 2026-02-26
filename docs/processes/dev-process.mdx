@@ -242,15 +242,15 @@ Agents are spawned as subagents via the `Task` tool. See the [Agent Teams Guide]
 
 ---
 
-## Tier F: Feature (4-Phase Workflow)
+## Tier F: Feature (5-Phase Workflow)
 
-Tier F follows four phases: **Assess, Implement, Review, Fix/Merge**. The human is the decision-maker at every gate. Main Claude is the orchestrator.
+Tier F follows five phases: **Frame, Shape, Build, Verify, Ship**. The human is the decision-maker at every gate. Main Claude is the orchestrator.
 
 ```mermaid
 flowchart TD
     Start["Human: develop #XXX"] --> Fetch
 
-    subgraph P1[" Phase 1 — Assessment (Frame + Shape) "]
+    subgraph Frame[" Frame — Assessment (Frame + Shape) "]
         Fetch["Fetch issue, check docs"] --> SpecQ{"Spec exists?"}
         SpecQ -- Yes --> P1End((" "))
         SpecQ -- No --> Boot["/dev: frame → analyze → spec"]
@@ -263,7 +263,7 @@ flowchart TD
 
     P1End --> Plan
 
-    subgraph P2[" Phase 2 — Build "]
+    subgraph Build[" Build "]
         Plan["/plan: scope + agents"] --> G3{{"Human approves plan"}}
         G3 --> Setup["Issue + worktree"]
         Setup --> RED["tester: failing tests (RED)"]
@@ -276,16 +276,16 @@ flowchart TD
 
     PR --> Review
 
-    subgraph P3[" Phase 3 — Review "]
+    subgraph Verify2[" Verify "]
         Review["/review: fresh agents"] --> Agents["security, architect, product, tester, domain"]
         Agents --> Comments["Conventional Comments"]
-        Comments --> Walk["/1b1 walkthrough"]
+        Comments --> Walk["/fix: auto-apply + /1b1 walkthrough"]
         Walk --> G4{{"Human: accept / reject / defer"}}
     end
 
     G4 --> Fix
 
-    subgraph P4[" Phase 4 — Fix & Merge "]
+    subgraph Ship[" Ship "]
         Fix["fixer: apply accepted"] --> Push["Push + CI"]
         Push --> CIQ{"CI green?"}
         CIQ -- No --> FixCI["Fix + re-push"] --> Push
@@ -473,6 +473,6 @@ Enforced by Biome `useFilenamingConvention` at `error` level.
 **Before merging PR:**
 - [ ] CI checks pass (`gh pr checks &lt;pr-number&gt; --watch`)
 - [ ] `/review` completed with fresh domain agents (Tier F)
-- [ ] Human walked through all review comments via `/1b1`
+- [ ] Review findings addressed via `/fix` (auto-apply + `/1b1` walkthrough)
 - [ ] Accepted comments fixed by fixer agent
 - [ ] Fix confirmation comment posted to PR

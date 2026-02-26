@@ -58,9 +58,11 @@ packages/  ui(@repo/ui) types(@repo/types) config(@repo/config) email vitest-con
 
 | Tier | Criteria | Phases |
 |------|----------|--------|
-| **S** | ≤3 files, no arch, no risk | triage → implement → pr → validate → review |
+| **S** | ≤3 files, no arch, no risk | triage → implement → pr → validate → review → fix* → promote* → cleanup* |
 | **F-lite** | Clear scope, single domain | Frame → spec → plan → implement → verify → ship |
 | **F-full** | New arch, unclear reqs, >2 domains | Frame → analyze → spec → plan → implement → verify → ship |
+
+`*` = conditional (runs only if applicable — e.g., fix runs only if review produces findings)
 
 Phases: **Frame** (problem) → **Shape** (spec) → **Build** (code) → **Verify** (review) → **Ship** (release).
 

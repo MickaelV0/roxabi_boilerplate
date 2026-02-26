@@ -24,6 +24,8 @@ Does NOT create a PR — that is `/pr` (next step).
 `--plan <path>` → read directly.
 ¬found ⇒ suggest `/plan`. **Stop.**
 
+**S-tier exception:** τ == S ∧ ¬plan found ⇒ locate spec (`ls artifacts/specs/N-*.mdx`) or issue body (`gh issue view N --json body`). Skip to [Step 4 — Implement (Tier S)](#tier-s--direct). ¬require plan for S-tier.
+
 Extract from plan frontmatter: `issue`, `tier`, `spec` path. Extract from body: agent list, task list, slice structure.
 
 ## Step 2 — Setup
@@ -45,6 +47,12 @@ git fetch origin staging
 ```
 
 ∃ branch ⇒ AskUserQuestion: Reuse | Recreate | Abort
+
+∃ worktree at `../roxabi-<N>` ⇒ check dirty state:
+```bash
+cd ../roxabi-<N> && git status --porcelain
+```
+¬empty ⇒ AskUserQuestion: **Stash changes** (`git stash`) | **Reset** (`git checkout .`) | **Continue with dirty state** | **Abort**
 
 **2d. Worktree:**
 

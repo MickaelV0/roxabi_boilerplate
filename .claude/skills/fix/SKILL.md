@@ -123,10 +123,10 @@ Fixer constraints:
    - <short description of finding 1>
    - <short description of finding 2>
 
-   Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+   Co-Authored-By: Claude <model> <noreply@anthropic.com>
    ```
-3. Push: `git push`
-4. ¬push without explicit request from user → AskUserQuestion: "Push now?" / "I'll push later"
+3. AskUserQuestion: "Push now?" / "I'll push later"
+4. If push approved → `git push`
 
 ## Phase 7 — Post Follow-Up Comment
 
