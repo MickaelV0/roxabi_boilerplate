@@ -41,7 +41,7 @@ cp .env.example .env
 
 Each git worktree gets its own isolated PostgreSQL database named `roxabi_<issue_number>` within the shared Docker container. This prevents schema conflicts when multiple worktrees run concurrent migrations.
 
-Branch databases are created automatically by `/scaffold` during worktree setup, or manually:
+Branch databases are created automatically by `/implement` during worktree setup, or manually:
 
 ```bash
 cd apps/api
