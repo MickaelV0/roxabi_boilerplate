@@ -1,20 +1,105 @@
 #!/usr/bin/env bun
 /**
  * Issues Dashboard — local dev tool
- * Usage: bun .claude/skills/issues/dashboard.ts [--port=3333]
+ * Usage: bun .claude/skills/issues/dashboard.ts [--port=3333] [--poll=60]
  *
  * Serves a live HTML dashboard of GitHub project issues.
- * Data refreshes on every page load (browser refresh).
+ * Features: in-memory cache, background polling, SSE live updates.
  */
 
 import { fetchBranches, fetchIssues, fetchPRs, fetchWorktrees } from './lib/fetch'
 import { buildHtml } from './lib/page'
+import type { Branch, Issue, PR, Worktree } from './lib/types'
 import { handleUpdate } from './lib/update'
 
 const PORT = Number(process.argv.find((a) => a.startsWith('--port='))?.split('=')[1] ?? 3333)
+const POLL_MS =
+  Number(process.argv.find((a) => a.startsWith('--poll='))?.split('=')[1] ?? 60) * 1000
 const PID_FILE = `${import.meta.dirname}/.dashboard.pid`
 
-// Write PID file for lifecycle management
+// ---------------------------------------------------------------------------
+// Cache
+// ---------------------------------------------------------------------------
+let cache: { html: string; hash: string; fetchMs: number; updatedAt: number } | null = null
+
+function computeHash(
+  issues: Issue[],
+  prs: PR[],
+  branches: Branch[],
+  worktrees: Worktree[]
+): string {
+  const key = JSON.stringify({
+    i: issues.map((i) => [
+      i.number,
+      i.status,
+      i.size,
+      i.priority,
+      i.blockStatus,
+      i.children.length,
+    ]),
+    p: prs.map((p) => [p.number, p.isDraft, p.reviewDecision, p.updatedAt]),
+    b: branches.length,
+    w: worktrees.length,
+  })
+  return Bun.hash(key).toString(36)
+}
+
+async function refreshCache(): Promise<void> {
+  try {
+    const start = performance.now()
+    const [issues, prs, branches, worktrees] = await Promise.all([
+      fetchIssues(),
+      fetchPRs(),
+      fetchBranches(),
+      fetchWorktrees(),
+    ])
+    const fetchMs = Math.round(performance.now() - start)
+    const hash = computeHash(issues, prs, branches, worktrees)
+
+    const changed = !cache || cache.hash !== hash
+    const updatedAt = Date.now()
+    const html = buildHtml(issues, prs, branches, worktrees, fetchMs, updatedAt)
+    cache = { html, hash, fetchMs, updatedAt }
+
+    if (changed) notifyClients()
+  } catch (err) {
+    console.error('[dashboard] refresh failed:', err instanceof Error ? err.message : err)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// SSE
+// ---------------------------------------------------------------------------
+const sseClients = new Set<ReadableStreamDefaultController>()
+
+function notifyClients(): void {
+  const dead: ReadableStreamDefaultController[] = []
+  for (const client of sseClients) {
+    try {
+      client.enqueue(new TextEncoder().encode('data: refresh\n\n'))
+    } catch {
+      dead.push(client)
+    }
+  }
+  for (const c of dead) sseClients.delete(c)
+}
+
+// Heartbeat to keep SSE connections alive
+setInterval(() => {
+  const dead: ReadableStreamDefaultController[] = []
+  for (const client of sseClients) {
+    try {
+      client.enqueue(new TextEncoder().encode(': heartbeat\n\n'))
+    } catch {
+      dead.push(client)
+    }
+  }
+  for (const c of dead) sseClients.delete(c)
+}, 30_000)
+
+// ---------------------------------------------------------------------------
+// PID file + cleanup
+// ---------------------------------------------------------------------------
 await Bun.write(PID_FILE, String(process.pid))
 process.on('SIGINT', () => {
   try {
@@ -29,26 +114,54 @@ process.on('SIGTERM', () => {
   process.exit(0)
 })
 
+// ---------------------------------------------------------------------------
+// Initial fetch + background poll
+// ---------------------------------------------------------------------------
+await refreshCache()
+setInterval(refreshCache, POLL_MS)
+
+// ---------------------------------------------------------------------------
+// HTTP server
+// ---------------------------------------------------------------------------
 const server = Bun.serve({
   port: PORT,
   async fetch(req) {
     const url = new URL(req.url)
 
-    if (url.pathname === '/api/update' && req.method === 'POST') {
-      return handleUpdate(req)
+    // SSE endpoint
+    if (url.pathname === '/api/events') {
+      let ctrl: ReadableStreamDefaultController
+      const stream = new ReadableStream({
+        start(controller) {
+          ctrl = controller
+          sseClients.add(controller)
+          controller.enqueue(new TextEncoder().encode('data: connected\n\n'))
+        },
+        cancel() {
+          sseClients.delete(ctrl)
+        },
+      })
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      })
     }
 
+    // Field update
+    if (url.pathname === '/api/update' && req.method === 'POST') {
+      const response = await handleUpdate(req)
+      // Trigger immediate refresh after update
+      refreshCache()
+      return response
+    }
+
+    // Dashboard page
     try {
-      const start = performance.now()
-      const [issues, prs, branches, worktrees] = await Promise.all([
-        fetchIssues(),
-        fetchPRs(),
-        fetchBranches(),
-        fetchWorktrees(),
-      ])
-      const fetchMs = Math.round(performance.now() - start)
-      const html = buildHtml(issues, prs, branches, worktrees, fetchMs)
-      return new Response(html, {
+      if (!cache) await refreshCache()
+      return new Response(cache!.html, {
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
       })
     } catch (err) {
@@ -61,4 +174,7 @@ const server = Bun.serve({
   },
 })
 
-console.log(`\n  Issues Dashboard \u2192 http://localhost:${server.port}\n`)
+const pollSec = POLL_MS / 1000
+console.log(
+  `\n  Issues Dashboard \u2192 http://localhost:${server.port}  (live, polling every ${pollSec}s)\n`
+)

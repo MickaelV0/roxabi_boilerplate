@@ -8,7 +8,8 @@ export function buildHtml(
   prs: PR[],
   branches: Branch[],
   worktrees: Worktree[],
-  fetchMs: number
+  fetchMs: number,
+  updatedAt: number
 ): string {
   const totalCount = issues.reduce((sum, i) => sum + 1 + i.children.length, 0)
 
@@ -36,13 +37,18 @@ export function buildHtml(
 <title>Issues Dashboard</title>
 <style>
 ${PAGE_STYLES}
+${LIVE_STYLES}
 </style>
 </head>
-<body>
+<body data-updated-at="${updatedAt}">
   <header>
     <h1>Issues Dashboard</h1>
-    <span class="count">${totalCount} issues</span>
-    <span class="meta">Fetched in ${fetchMs}ms &middot; Refresh page (<kbd>F5</kbd>) for latest data</span>
+    <span id="issue-count" class="count">${totalCount} issues</span>
+    <span class="meta">
+      <span id="live-indicator" class="live-dot connecting" title="Connecting..."></span>
+      <span id="live-status">Connecting...</span>
+      &middot; <span id="fetch-time">Fetched in ${fetchMs}ms</span>
+    </span>
   </header>
 
   <table>
@@ -57,7 +63,7 @@ ${PAGE_STYLES}
         <th>Deps</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="issues-visible">
       ${visibleRows}
       ${
         hasMore
@@ -79,7 +85,7 @@ ${PAGE_STYLES}
     </tbody>
   </table>
 
-  <div class="section">
+  <div id="section-prs" class="section">
     <h2>Pull Requests</h2>
     ${prsHtml}
   </div>
@@ -90,14 +96,14 @@ ${PAGE_STYLES}
     <span>\u2705 ready</span>
   </div>
 
-  <div class="section">
+  <div id="section-graph" class="section">
     <h2>Dependency Graph</h2>
     <div class="graph-container">
       ${depGraphHtml}
     </div>
   </div>
 
-  <div class="section">
+  <div id="section-branches" class="section">
     <h2>Branches &amp; Worktrees</h2>
     ${branchesHtml}
   </div>
@@ -133,6 +139,9 @@ ${PAGE_STYLES}
     var toast = document.getElementById('toast');
     var ctxIssue = null;
 
+    // -----------------------------------------------------------------------
+    // Context menu
+    // -----------------------------------------------------------------------
     document.addEventListener('contextmenu', function(e) {
       var row = e.target.closest('.issue-row');
       if (!row) { ctxMenu.classList.remove('visible'); return; }
@@ -146,7 +155,6 @@ ${PAGE_STYLES}
       };
       ctxNum.textContent = ctxIssue.number;
 
-      // Mark active items
       ctxMenu.querySelectorAll('.ctx-item').forEach(function(item) {
         item.classList.remove('active', 'loading');
         var field = item.dataset.field;
@@ -156,12 +164,10 @@ ${PAGE_STYLES}
         if (field === 'priority' && value === ctxIssue.priority) item.classList.add('active');
       });
 
-      // Position menu
       ctxMenu.style.left = e.clientX + 'px';
       ctxMenu.style.top = e.clientY + 'px';
       ctxMenu.classList.add('visible');
 
-      // Adjust if overflowing viewport
       var rect = ctxMenu.getBoundingClientRect();
       if (rect.right > window.innerWidth) ctxMenu.style.left = (window.innerWidth - rect.width - 8) + 'px';
       if (rect.bottom > window.innerHeight) ctxMenu.style.top = (window.innerHeight - rect.height - 8) + 'px';
@@ -189,7 +195,7 @@ ${PAGE_STYLES}
       .then(function(data) {
         if (data.ok) {
           showToast('#' + ctxIssue.number + ' ' + field + ' \\u2192 ' + value);
-          setTimeout(function() { location.reload(); }, 800);
+          // SSE will trigger the refresh automatically
         } else {
           showToast('Error: ' + data.error, true);
           item.classList.remove('loading');
@@ -210,9 +216,139 @@ ${PAGE_STYLES}
       clearTimeout(toast._tid);
       toast._tid = setTimeout(function() { toast.classList.remove('visible'); }, 2500);
     }
+
+    // -----------------------------------------------------------------------
+    // SSE live updates
+    // -----------------------------------------------------------------------
+    var indicator = document.getElementById('live-indicator');
+    var statusEl = document.getElementById('live-status');
+    var updatedAt = Number(document.body.dataset.updatedAt) || Date.now();
+    var refreshing = false;
+
+    function setLiveState(state) {
+      indicator.className = 'live-dot ' + state;
+      if (state === 'connected') {
+        indicator.title = 'Live — connected';
+        updateRelativeTime();
+      } else if (state === 'connecting') {
+        indicator.title = 'Connecting...';
+        statusEl.textContent = 'Connecting...';
+      } else {
+        indicator.title = 'Disconnected';
+        statusEl.textContent = 'Disconnected';
+      }
+    }
+
+    function updateRelativeTime() {
+      var diff = Math.floor((Date.now() - updatedAt) / 1000);
+      if (diff < 5) statusEl.textContent = 'Live';
+      else if (diff < 60) statusEl.textContent = 'Updated ' + diff + 's ago';
+      else if (diff < 3600) statusEl.textContent = 'Updated ' + Math.floor(diff / 60) + 'm ago';
+      else statusEl.textContent = 'Updated ' + Math.floor(diff / 3600) + 'h ago';
+    }
+
+    // Update relative time every 5s
+    setInterval(updateRelativeTime, 5000);
+
+    function patchDOM(freshDoc) {
+      // Preserve show/hide state of hidden issues
+      var hiddenVisible = document.getElementById('hidden-issues').style.display !== 'none';
+
+      // Patch issue tables
+      var selectors = ['#issues-visible', '#hidden-issues', '#section-prs', '#section-graph', '#section-branches', '#issue-count', '#fetch-time'];
+      for (var s = 0; s < selectors.length; s++) {
+        var sel = selectors[s];
+        var freshEl = freshDoc.querySelector(sel);
+        var currentEl = document.querySelector(sel);
+        if (freshEl && currentEl) {
+          // For elements with children, replace all children
+          while (currentEl.firstChild) currentEl.removeChild(currentEl.firstChild);
+          while (freshEl.firstChild) currentEl.appendChild(freshEl.firstChild);
+        }
+      }
+
+      // Restore show/hide state
+      if (hiddenVisible) {
+        document.getElementById('hidden-issues').style.display = '';
+        var showMoreRow = document.getElementById('show-more-row');
+        if (showMoreRow) showMoreRow.style.display = 'none';
+        var showLessRow = document.getElementById('show-less-row');
+        if (showLessRow) showLessRow.style.display = '';
+      }
+
+      // Update timestamp
+      var newUpdatedAt = freshDoc.body.dataset.updatedAt;
+      if (newUpdatedAt) updatedAt = Number(newUpdatedAt);
+      updateRelativeTime();
+    }
+
+    function connectSSE() {
+      var es = new EventSource('/api/events');
+
+      es.onopen = function() {
+        setLiveState('connected');
+      };
+
+      es.onmessage = function(e) {
+        if (e.data === 'connected') {
+          setLiveState('connected');
+          return;
+        }
+        if (e.data !== 'refresh' || refreshing) return;
+        refreshing = true;
+
+        fetch('/', { headers: { Accept: 'text/html' } })
+          .then(function(res) { return res.text(); })
+          .then(function(html) {
+            var parser = new DOMParser();
+            var freshDoc = parser.parseFromString(html, 'text/html');
+            patchDOM(freshDoc);
+            refreshing = false;
+          })
+          .catch(function(err) {
+            console.error('[dashboard] patch failed:', err);
+            refreshing = false;
+          });
+      };
+
+      es.onerror = function() {
+        setLiveState('disconnected');
+        // EventSource auto-reconnects, but update UI state
+        // When it reconnects, onopen fires again
+      };
+    }
+
+    connectSSE();
   })();
   </script>
 
 </body>
 </html>`
 }
+
+const LIVE_STYLES = `
+  .live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+    transition: background 0.3s;
+  }
+  .live-dot.connected {
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+  }
+  .live-dot.connecting {
+    background: var(--orange);
+    animation: pulse 1.5s infinite;
+  }
+  .live-dot.disconnected {
+    background: var(--red);
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+`
