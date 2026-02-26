@@ -304,6 +304,7 @@ jobs:
       - name: Build
         run: bun run build
         env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
@@ -387,6 +388,8 @@ jobs:
 
       - name: Build apps
         run: bun run build --filter=@repo/web --filter=@repo/api
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
 
       - name: Run E2E tests
         run: bun test:e2e --project=chromium --reporter=list --reporter=html
@@ -497,6 +500,8 @@ jobs:
 
       - name: Build apps
         run: bun run build --filter=@repo/web --filter=@repo/api
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
 
       - name: Run E2E tests (shard ${{ matrix.shard }})
         run: bun test:e2e --shard=${{ matrix.shard }}
