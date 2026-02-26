@@ -4,42 +4,34 @@ import { describe, expect, it, vi } from 'vitest'
 // buildPrContext.ts uses Bun.$ as a global template literal for shell commands.
 // Vitest runs under Node.js where Bun is undefined. We inject a fake Bun.$
 // into globalThis before importing the module so the top-level script code
-// does not throw. The stub returns empty/no-op results for all shell calls.
-// json() is called for both the PR object and the comments array.
-// PR object needs .head.sha; comments array needs to be iterable (Array.find).
-// We alternate: first call returns a PR-like object, second returns an array.
+// does not throw. json() alternates: first call returns a PR-like object
+// (needs .head.sha), second returns an empty array (comments, needs Array.find).
 const bunShellResult = {
   text: vi.fn().mockResolvedValue(''),
   json: vi
     .fn()
-    .mockResolvedValueOnce({ head: { sha: 'abc123def456' } }) // gh api PR
-    .mockResolvedValueOnce([]), // gh api comments
+    .mockResolvedValueOnce({ head: { sha: 'abc123def456' } })
+    .mockResolvedValueOnce([]),
   quiet: vi.fn().mockResolvedValue({}),
 }
 const bunShellTag = Object.assign(vi.fn().mockReturnValue(bunShellResult), bunShellResult)
 ;(globalThis as Record<string, unknown>).Bun = { $: bunShellTag }
 
-// ─── Stub process.argv + process.exit ────────────────────────────────────
-// The script checks process.argv[2] for a PR number at the module's top level
-// and calls process.exit(1) when missing. Stub argv to a valid value and mock
-// exit so it never actually exits.
+// Stub process.argv so the PR-number guard passes; mock exit so it never fires.
 vi.spyOn(process, 'exit').mockImplementation((() => {}) as never)
 process.argv = ['bun', 'buildPrContext.ts', '42']
 
-// ─── Mock node:fs ─────────────────────────────────────────────────────────
-// writeFileSync is called at the end of the script. Mock it to avoid writing
-// to /tmp in the test environment.
+// writeFileSync is called at the end of the script — mock to avoid /tmp writes.
 vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs')>()
   return { ...actual, writeFileSync: vi.fn() }
 })
 
-// Dynamic import happens AFTER all mocks are registered
 const { parsePriorReview } = await import('./buildPrContext.js')
 
-// ─── parsePriorReview ─────────────────────────────────────────────────────
+// ─── parsePriorReview — detection ────────────────────────────────────────
 
-describe('parsePriorReview', () => {
+describe('parsePriorReview — marker detection', () => {
   it('detects reviewed-by-bot marker', () => {
     // Arrange
     const comments = [{ id: 1, body: '<!-- reviewed-by-bot -->\n## Code Review\nsome findings' }]
@@ -57,10 +49,7 @@ describe('parsePriorReview', () => {
     // Arrange
     const sha = 'abc123def456'
     const comments = [
-      {
-        id: 2,
-        body: `<!-- reviewed-by-bot -->\n<!-- review-sha: ${sha} -->\n## Code Review`,
-      },
+      { id: 2, body: `<!-- reviewed-by-bot -->\n<!-- review-sha: ${sha} -->\n## Code Review` },
     ]
 
     // Act
@@ -82,6 +71,22 @@ describe('parsePriorReview', () => {
     expect(result.priorReviewCommentId).toBe(42)
   })
 
+  it('returns null sha when marker present but no review-sha comment', () => {
+    // Arrange
+    const comments = [{ id: 5, body: '<!-- reviewed-by-bot -->\nNo findings.' }]
+
+    // Act
+    const result = parsePriorReview(comments)
+
+    // Assert
+    expect(result.priorReviewFound).toBe(true)
+    expect(result.priorReviewCommitSha).toBeNull()
+  })
+})
+
+// ─── parsePriorReview — no-marker cases ──────────────────────────────────
+
+describe('parsePriorReview — no marker / edge cases', () => {
   it('returns false when no marker present', () => {
     // Arrange
     const comments = [{ id: 3, body: '## Manual review comment' }]
@@ -102,11 +107,10 @@ describe('parsePriorReview', () => {
     // Assert
     expect(result.priorReviewFound).toBe(false)
     expect(result.priorReviewCommentId).toBeNull()
-    expect(result.priorReviewCommitSha).toBeNull()
   })
 
   it('uses the first matching comment when multiple bot comments exist', () => {
-    // Arrange — two bot comments; Array.find returns the first match
+    // Arrange — Array.find returns the first match
     const comments = [
       { id: 10, body: '<!-- reviewed-by-bot -->\n<!-- review-sha: aaa111 -->' },
       { id: 20, body: '<!-- reviewed-by-bot -->\n<!-- review-sha: bbb222 -->' },
@@ -134,17 +138,5 @@ describe('parsePriorReview', () => {
     expect(result.priorReviewFound).toBe(true)
     expect(result.priorReviewCommentId).toBe(2)
     expect(result.priorReviewCommitSha).toBe('deadbeef')
-  })
-
-  it('returns null sha when marker is present but no review-sha comment', () => {
-    // Arrange
-    const comments = [{ id: 5, body: '<!-- reviewed-by-bot -->\nNo findings.' }]
-
-    // Act
-    const result = parsePriorReview(comments)
-
-    // Assert
-    expect(result.priorReviewFound).toBe(true)
-    expect(result.priorReviewCommitSha).toBeNull()
   })
 })

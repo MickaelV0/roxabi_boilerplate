@@ -3,12 +3,13 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const ROOT = resolve(import.meta.dirname, '..')
+const raw = readFileSync(`${ROOT}/.github/workflows/pr-review.yml`, 'utf-8')
 
-describe('pr-review.yml', () => {
-  const raw = readFileSync(`${ROOT}/.github/workflows/pr-review.yml`, 'utf-8')
+// ─── pr-review.yml — concurrency and fork guard ───────────────────────────
 
+describe('pr-review.yml — concurrency and fork guard', () => {
   it('has cancel-in-progress concurrency', () => {
-    // Arrange / Act — parse the relevant line from raw YAML
+    // Act
     const match = raw.match(/cancel-in-progress:\s*(true|false)/)
 
     // Assert
@@ -17,7 +18,7 @@ describe('pr-review.yml', () => {
   })
 
   it('concurrency group is scoped to PR number', () => {
-    // Arrange / Act
+    // Act
     const match = raw.match(/group:\s*(.+)/)
 
     // Assert
@@ -26,7 +27,7 @@ describe('pr-review.yml', () => {
   })
 
   it('has fork guard on review job', () => {
-    // Arrange / Act — find the `if:` line on the review job
+    // Act — find the `if:` line on the review job
     const match = raw.match(/if:\s*(.+)/)
 
     // Assert
@@ -36,26 +37,26 @@ describe('pr-review.yml', () => {
   })
 
   it('has timeout-minutes set', () => {
-    // Arrange / Act
+    // Act
     const match = raw.match(/timeout-minutes:\s*(\d+)/)
 
     // Assert
     expect(match).not.toBeNull()
     expect(Number(match![1])).toBeGreaterThan(0)
   })
+})
 
+// ─── pr-review.yml — trigger and permissions ──────────────────────────────
+
+describe('pr-review.yml — trigger and permissions', () => {
   it('triggers on pull_request opened and synchronize events', () => {
-    // Arrange / Act
-    const hasOpened = raw.includes('opened')
-    const hasSynchronize = raw.includes('synchronize')
-
     // Assert
-    expect(hasOpened).toBe(true)
-    expect(hasSynchronize).toBe(true)
+    expect(raw.includes('opened')).toBe(true)
+    expect(raw.includes('synchronize')).toBe(true)
   })
 
   it('requests pull-requests write permission', () => {
-    // Arrange / Act
+    // Act
     const match = raw.match(/pull-requests:\s*(\w+)/)
 
     // Assert
@@ -64,12 +65,9 @@ describe('pr-review.yml', () => {
   })
 
   it('uploads review-findings artifact with 90-day retention', () => {
-    // Arrange / Act
-    const hasArtifact = raw.includes('review-findings')
-    const match = raw.match(/retention-days:\s*(\d+)/)
-
     // Assert
-    expect(hasArtifact).toBe(true)
+    expect(raw.includes('review-findings')).toBe(true)
+    const match = raw.match(/retention-days:\s*(\d+)/)
     expect(match).not.toBeNull()
     expect(Number(match![1])).toBe(90)
   })

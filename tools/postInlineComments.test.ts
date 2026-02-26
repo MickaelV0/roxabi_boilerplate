@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from 'vitest'
 // ─── Stub Bun global ──────────────────────────────────────────────────────
 // postInlineComments.ts uses Bun.$ as a global template literal for shell
 // commands. Vitest runs under Node.js where Bun is undefined. We inject a
-// fake Bun.$ into globalThis before importing the module so the top-level
-// script code does not throw.
+// fake Bun.$ into globalThis before importing so that top-level script code
+// does not throw.
 const bunShellResult = {
   text: vi.fn().mockResolvedValue(''),
   json: vi.fn().mockResolvedValue([]),
@@ -13,15 +13,11 @@ const bunShellResult = {
 const bunShellTag = Object.assign(vi.fn().mockReturnValue(bunShellResult), bunShellResult)
 ;(globalThis as Record<string, unknown>).Bun = { $: bunShellTag }
 
-// ─── Stub process.argv + process.exit ────────────────────────────────────
-// The script checks process.argv[2] and argv[3] at top level and calls
-// process.exit(1) when either is missing.
+// Stub argv (pr-number + head-sha) and mock exit to prevent real termination.
 vi.spyOn(process, 'exit').mockImplementation((() => {}) as never)
 process.argv = ['bun', 'postInlineComments.ts', '42', 'abc123def456abc123def456abc12345']
 
-// ─── Mock node:fs ─────────────────────────────────────────────────────────
-// readFileSync is called for /tmp paths at top level. Return stub JSON so the
-// script does not throw when files are missing in the test environment.
+// readFileSync is called for /tmp paths at top level — return stub JSON.
 vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs')>()
   return {
@@ -41,7 +37,7 @@ vi.mock('node:fs', async (importOriginal) => {
 
 const { buildPositionMap } = await import('./postInlineComments.js')
 
-// ─── Sample diff ──────────────────────────────────────────────────────────
+// ─── Shared sample diff ───────────────────────────────────────────────────
 
 const SAMPLE_DIFF = [
   'diff --git a/src/foo.ts b/src/foo.ts',
@@ -56,9 +52,9 @@ const SAMPLE_DIFF = [
   ' context line 13',
 ].join('\n')
 
-// ─── buildPositionMap ─────────────────────────────────────────────────────
+// ─── buildPositionMap — single-file mapping ───────────────────────────────
 
-describe('buildPositionMap', () => {
+describe('buildPositionMap — single-file mapping', () => {
   it('maps added line to correct position', () => {
     // Act
     const map = buildPositionMap(SAMPLE_DIFF)
@@ -82,8 +78,7 @@ describe('buildPositionMap', () => {
     // Act
     const map = buildPositionMap(SAMPLE_DIFF)
 
-    // Assert — removed line has no new-file entry; line 11 is the added line,
-    // line 13 is the last context line; line 14 does not exist in new file.
+    // Assert — line 11 is the added line (removed line skipped); line 14 absent
     expect(map.get('src/foo.ts:11')?.side).toBe('RIGHT')
     expect(map.has('src/foo.ts:14')).toBe(false)
   })
@@ -106,7 +101,11 @@ describe('buildPositionMap', () => {
     expect(pos?.path).toBe('src/foo.ts')
     expect(pos?.line).toBe(10)
   })
+})
 
+// ─── buildPositionMap — multi-file and edge cases ─────────────────────────
+
+describe('buildPositionMap — multi-file and edge cases', () => {
   it('handles multiple files', () => {
     // Arrange
     const multiDiff =
@@ -125,20 +124,17 @@ describe('buildPositionMap', () => {
     // Act
     const map = buildPositionMap(multiDiff)
 
-    // Assert — both files are indexed
+    // Assert
     expect(map.has('src/bar.ts:2')).toBe(true)
     expect(map.has('src/foo.ts:10')).toBe(true)
   })
 
   it('returns empty map for empty diff', () => {
-    // Act
-    const map = buildPositionMap('')
-
-    // Assert
-    expect(map.size).toBe(0)
+    // Act / Assert
+    expect(buildPositionMap('').size).toBe(0)
   })
 
-  it('skips lines starting with backslash (no newline at end of file)', () => {
+  it('skips backslash lines (no newline at end of file)', () => {
     // Arrange
     const diffWithNoNewline = [
       'diff --git a/src/x.ts b/src/x.ts',
@@ -152,7 +148,7 @@ describe('buildPositionMap', () => {
     // Act
     const map = buildPositionMap(diffWithNoNewline)
 
-    // Assert — backslash line is skipped; only the added line is mapped
+    // Assert — backslash line skipped; only the added line is mapped
     expect(map.has('src/x.ts:1')).toBe(true)
     expect(map.size).toBe(1)
   })
