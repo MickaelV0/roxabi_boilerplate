@@ -110,7 +110,7 @@ gh issue edit <number> --body "$BODY
 <!-- complexity: <score> -->"
 ```
 
-This machine-parseable marker (`<!-- complexity: N -->`) can be retrieved by downstream tools (e.g., `/scaffold` reads it during planning).
+This machine-parseable marker (`<!-- complexity: N -->`) can be retrieved by downstream tools (e.g., `/plan` reads it during planning).
 
 **Factors (each scored 1-10, then weighted):**
 

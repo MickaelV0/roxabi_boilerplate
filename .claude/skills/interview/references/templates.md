@@ -112,7 +112,7 @@ description: {One-line description of the analysis}
 
 ## Spec
 
-> **Inline ambiguity markers:** `[NEEDS CLARIFICATION: description]` markers indicate unresolved ambiguity (max 3-5 per spec). These must be resolved before `/scaffold` execution.
+> **Inline ambiguity markers:** `[NEEDS CLARIFICATION: description]` markers indicate unresolved ambiguity (max 3-5 per spec). These must be resolved before `/plan` execution.
 
 Output path: `artifacts/specs/{issue}-{slug}.mdx`
 
@@ -166,7 +166,7 @@ description: {One-line description of the feature or project}
 |----|-------|------|-------------|
 | S1 | {Table, cache, API...} | {Persistent/transient/external} | N1, N2 |
 
-{Unknowns: Mark any uncertain wiring — these trigger investigation spikes during bootstrap (Gate 1.5) before spec execution.}
+{Unknowns: Mark any uncertain wiring — these trigger investigation spikes during `/analyze` before spec execution.}
 
 ## Slices
 

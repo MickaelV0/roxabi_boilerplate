@@ -46,8 +46,8 @@ Before spawning agents, check the [Development Process](../processes/dev-process
 | Tier | Criteria | Agent Mode |
 |------|----------|------------|
 | **S** | &lt;=3 files, no arch risk | Single session + optional tester subagent |
-| **F-lite** | Clear scope, documented requirements, single domain | Worktree + agents + /review (skip bootstrap) |
-| **F-full** | New arch concepts, unclear requirements, or >2 domain boundaries | Bootstrap + worktree + agents + /review |
+| **F-lite** | Clear scope, documented requirements, single domain | Worktree + agents + /review (skip analyze) |
+| **F-full** | New arch concepts, unclear requirements, or >2 domain boundaries | Full `/dev` pipeline + worktree + agents + /review |
 
 F-lite vs F-full is **judgment-based**, not file-count-based. Human always validates.
 
@@ -64,18 +64,17 @@ flowchart TD
     S --> SSingle["Single session + optional tester"]
 
     Tier --> FL["Tier F-lite"]
-    FL --> FLScaffold["/scaffold: Task subagents"]
-    FLScaffold --> FLAgents{"Domain?"}
+    FL --> FLDev["/dev: frame → spec → plan → implement"]
+    FLDev --> FLAgents{"Domain?"}
     FLAgents -->|Frontend| FE1["frontend-dev + tester"]
     FLAgents -->|Backend| BE1["backend-dev + tester"]
     FLAgents -->|Full-stack| FS1["FE + BE + tester"]
     FLAgents -->|Security| SEC1["+ security-auditor"]
-    FLScaffold --> FLReview["/review + /1b1 + fixer"]
+    FLDev --> FLReview["/review + /fix"]
 
     Tier --> FF["Tier F-full"]
-    FF --> FFBoot["/bootstrap: expert review"]
-    FF --> FFScaffold["/scaffold: Task subagents"]
-    FFScaffold --> FFAgents{"Domain?"}
+    FF --> FFDev["/dev: frame → analyze → spec → plan → implement"]
+    FFDev --> FFAgents{"Domain?"}
     FFAgents -->|Frontend| FE2["frontend-dev + tester"]
     FFAgents -->|Backend| BE2["backend-dev + tester"]
     FFAgents -->|Full-stack| FS2["FE + BE + tester"]
@@ -398,18 +397,18 @@ Merge
 6. fixer applies accepted fixes
 7. Approve merge once CI is green
 
-### Playbook 4: Large Feature (F-full with Bootstrap)
+### Playbook 4: Large Feature (F-full with /dev)
 
 **Scenario:** Major feature spanning frontend, backend, and infrastructure. New arch concepts or unclear requirements.
 
-**Phase 1 — Assessment (bootstrap):**
+**Phase 1 — Assessment (/dev Frame + Shape):**
 
 ```bash
-/bootstrap
-# Direct orchestration — bootstrap drives interviews and writes docs
+/dev #N
+# Orchestrator drives: frame → analyze → spec with expert review at each gate
 # Expert reviewers (architect, doc-writer, devops, product-lead) review at each gate
 # User selects which experts to involve per document
-# Human approves analysis and spec before proceeding
+# Human approves frame, analysis, and spec before proceeding
 ```
 
 **Phase 2 — Implementation (test-first):**
@@ -447,7 +446,7 @@ flowchart TD
 ```
 
 **As the lead, you:**
-1. Run `/bootstrap` — orchestrator interviews the human, writes analysis + spec, spawns expert reviewers (architect, doc-writer, devops, product-lead as selected)
+1. Run `/dev #N` — orchestrator drives frame → analyze → spec, spawns expert reviewers (architect, doc-writer, devops, product-lead as needed)
 2. Human approves the spec
 3. tester writes failing tests from spec
 4. Domain agents implement in parallel (each in their own packages) to pass tests

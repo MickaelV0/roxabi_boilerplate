@@ -148,20 +148,7 @@ Options: **Approve** | **Modify** | **Return to spec**
 
 ## 4f.8 Commit Plan
 
-Standalone commit (¬amend):
-
-```bash
-mkdir -p artifacts/plans
-git add artifacts/plans/{issue}-{slug}.mdx
-git commit -m "$(cat <<'EOF'
-docs(<scope>): add scaffold plan for <feature>
-
-Refs #<N>
-
-Co-Authored-By: Claude <model> <noreply@anthropic.com>
-EOF
-)"
-```
+Standalone commit (¬amend): `git add artifacts/plans/{issue}-{slug}.mdx` + commit per CLAUDE.md Rule 5.
 
 ## 4f.9 Dispatch TaskCreate
 

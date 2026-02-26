@@ -100,7 +100,7 @@ parent_issue: {parent_N}
 Full spec: [artifacts/specs/{parent_issue}-{parent_slug}.mdx](../specs/{parent_issue}-{parent_slug}.mdx)
 ```
 
-Inform: "Created {N} sub-issues under #{parent}. `/scaffold --issue <N>` for each."
+Inform: "Created {N} sub-issues under #{parent}. Run `/dev #N` for each sub-issue in dependency order."
 
 ## Edge Cases
 
