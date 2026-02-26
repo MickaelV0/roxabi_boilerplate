@@ -71,15 +71,20 @@ test.describe('Authentication — unauthenticated', () => {
   })
 })
 
-// Tests that need an authenticated session (from storageState).
-test.describe('Authentication — authenticated', () => {
+// Logout test: uses its own session to avoid invalidating the shared
+// storageState that other browser projects depend on.
+test.describe('Authentication — logout', () => {
+  test.use({ storageState: { cookies: [], origins: [] } })
   test.skip(() => !hasApi, 'Skipped: no DATABASE_URL in CI')
 
   test('should logout user and redirect to landing page', async ({ page }) => {
-    await page.goto('/dashboard')
+    // Login fresh (shared storageState is invalidated when any browser signs out)
+    const auth = new AuthPage(page)
+    await auth.gotoLogin()
+    await auth.loginWithPassword(TEST_USER_2.email, TEST_USER_2.password)
+    await page.waitForURL(/\/(dashboard|org)/, { timeout: NAVIGATION_TIMEOUT })
     await page.waitForLoadState('networkidle')
 
-    const auth = new AuthPage(page)
     await expect(auth.userMenuTrigger).toBeVisible({ timeout: 15_000 })
 
     await auth.logout()
