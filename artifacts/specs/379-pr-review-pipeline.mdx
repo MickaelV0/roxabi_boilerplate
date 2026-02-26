@@ -1,39 +1,61 @@
 ---
-title: Automated PR Review Pipeline inspired by ReviewFlow
+title: Automated PR Review & Auto-fix Pipeline
 issue: 379
 status: approved
 tier: F-lite
 date: 2026-02-26
+revised: 2026-02-26
 promoted-from: artifacts/frames/pr-review-pipeline.mdx
 ---
 
 ## Context
 
-Promoted from `artifacts/frames/pr-review-pipeline.mdx`.
-Reference: [ReviewFlow](https://github.com/DGouron/review-flow) — persistent server approach; this spec adapts the concept to ephemeral GitHub Actions runners.
-Existing foundation: `.claude/skills/review/SKILL.md` — the multi-domain review skill this pipeline wraps.
-
-**Frame constraint amendment:** The frame's Out of Scope states "no modification to the existing `/review` skill internals." This spec makes one intentional, minimal exception: Phase 6 of the review skill is amended to also write `/tmp/review-findings.json` (structured output). No review logic, agent dispatch, or comment format is changed. This is an additive-only modification that enables the inline comment feature without replacing or duplicating the skill.
+Revised to use `anthropics/claude-code-action@v1` with `CLAUDE_CODE_OAUTH_TOKEN` (Claude Pro/Max OAuth),
+replacing the original `claude --print` + custom tooling approach. No Anthropic API billing account required.
 
 ## Goal
 
-Make code review automatic and iterative: triggered on every PR open/push, findings posted as inline diff comments, follow-up reviews that verify fixes and resolve threads — all via GitHub Actions with zero manual invocation.
+On every PR open or push:
+1. Claude reviews the diff → posts findings as a PR comment
+2. Claude auto-fixes what it can → commits with `[skip ci]` → updates the comment with what was fixed
+3. The same comment lists what needs manual human attention
 
 ## Users
 
-- **Primary:** Developers opening or updating PRs — receive automatic review feedback as inline comments on the exact diff lines within minutes of pushing, without needing to invoke `/review` manually.
-- **Secondary:** Reviewers / maintainers — PR threads auto-resolve when findings are verified fixed, reducing review noise.
+- **Developer opening a PR** — receives automatic review findings within minutes, and sees auto-fixes committed directly to their branch.
+- **Reviewer / maintainer** — the review comment is always up to date; resolved items are removed on each re-run.
 
 ## Expected Behavior
 
 1. Developer opens a PR or pushes to an existing PR branch.
-2. A GitHub Actions workflow (`pr-review.yml`) triggers automatically. If another review is already running for that PR (rapid pushes), the old run is cancelled and the new one takes over (deduplication via `concurrency: pr-review-{PR#}`, `cancel-in-progress: true`).
-3. The workflow pre-fetches PR context (diff, threads, metadata, head SHA) into `/tmp/pr-context.json`. This file also records whether a prior review comment (`<!-- reviewed-by-bot -->` marker) exists and stores the thread IDs for later resolution.
-4. The workflow runs `claude --print --permission-mode bypassPermissions` with the review skill invoked up to Phase 6 only (stop-after-phase-6 instruction in the system prompt). `GH_TOKEN` is passed into the Claude subprocess environment for `gh` CLI calls. `ANTHROPIC_API_KEY` is read from repo secrets.
-5. The review skill runs its multi-domain agents, posts the summary comment (Phase 6), and writes `/tmp/review-findings.json` — an array of `{file, line, body, category, confidence}` entries.
-6. A post-processing script (`tools/post-inline-comments.ts`) reads `/tmp/review-findings.json`, maps each finding's `file:line` to a diff position using hunk headers from `/tmp/pr-context.json`, and posts each mappable finding as an inline diff comment via `gh api repos/.../pulls/.../comments` (with `commit_id`, `path`, `line`, `side`). Findings on lines outside the diff are included in the summary comment body instead.
-7. On a first-time review, the summary comment is tagged with `<!-- reviewed-by-bot -->` for detection.
-8. On subsequent pushes, the workflow detects the `<!-- reviewed-by-bot -->` marker from the context file (populated in step 3) and runs in **follow-up mode**: Claude reviews the diff since the prior review commit SHA. A finding is "verified fixed" when the file+line that triggered it no longer appears in the diff with the same code pattern — detected by comparing current diff against the prior findings JSON (stored as a workflow artifact from the previous run). Verified-fixed threads are resolved via `gh api`. An updated summary is posted showing what changed.
+2. `pr-review.yml` triggers. If another review is already running for that PR (rapid pushes), the old run is cancelled (`concurrency: pr-review-{PR#}`, `cancel-in-progress: true`).
+3. A fork guard skips the job entirely for PRs from forks (no `CLAUDE_CODE_OAUTH_TOKEN` available).
+4. A preflight check counts diff lines; if > 2000, it posts a warning comment and skips Claude.
+5. `claude-code-action@v1` runs with the review+fix prompt:
+   - Claude reviews the full diff
+   - Claude runs `bun run lint:fix` + `bun run format` and applies safe code corrections
+   - If fixes were made, Claude commits them with `fix(review): automated fixes [skip ci]`
+   - Claude posts (or updates via sticky comment) a structured PR comment
+6. The sticky comment (`use_sticky_comment: true`) means each push updates the same comment — no accumulation.
+7. The `[skip ci]` token in the auto-fix commit message prevents the commit from re-triggering the workflow.
+8. If the action fails (timeout, auth error), a fallback comment is posted.
+
+## Comment Format
+
+```markdown
+<!-- reviewed-by-claude -->
+## Automated Review
+
+### ✅ Auto-fixed
+- `src/foo.ts` — Biome format violation corrected
+- `apps/api/src/bar.ts` — Missing trailing comma added
+
+### ⚠️ Manual action needed
+- `apps/web/src/page.tsx:42` — Unhandled promise rejection
+- `apps/api/src/service.ts:17` — SQL query missing parameterization
+
+_Reviewed commit: abc1234_
+```
 
 ## Breadboard
 
@@ -41,74 +63,55 @@ Make code review automatic and iterative: triggered on every PR open/push, findi
 
 | ID | Affordance | Handler | Data |
 |----|-----------|---------|------|
-| N1 | PR `opened` / `synchronize` event | `.github/workflows/pr-review.yml` | `github.event.pull_request.number`, `github.sha`, `github.event.pull_request.head.repo.full_name` |
+| N1 | PR `opened` / `synchronize` event | `.github/workflows/pr-review.yml` | `github.event.pull_request.number`, `github.sha` |
 | N2 | Concurrency lock | Workflow `concurrency:` group | `pr-review-{PR#}` — cancel-in-progress |
-| N3 | Context file builder | `tools/build-pr-context.ts` | PR diff (`gh pr diff --patch`), threads + comments (`gh api`), head SHA, `priorReviewFound: boolean`, thread IDs, prior findings artifact path → `/tmp/pr-context.json` |
-| N4 | Claude review runner | Workflow step | `claude --print --permission-mode bypassPermissions`, stops after Phase 6, `ANTHROPIC_API_KEY` + `GH_TOKEN` in env |
-| N5 | Structured findings output | Amended review skill Phase 6 | `/tmp/review-findings.json` (`{file, line, body, category, confidence}[]`) — additive write alongside existing summary |
-| N6 | Inline comment poster | `tools/post-inline-comments.ts` | `/tmp/review-findings.json`, diff hunk positions from `/tmp/pr-context.json`, `commit_id`, `gh api` — posts inline for in-diff lines, falls back to summary body for out-of-diff lines |
-| N7 | Follow-up mode flag | Workflow condition | `priorReviewFound` from `/tmp/pr-context.json` (set by N3) — no separate API call |
-| N8 | Thread resolver | `tools/resolve-threads.ts` | Thread IDs (N3), verified-fixed finding IDs (compared against prior findings artifact) — `gh api graphql minimizeComment` |
+| N3 | Fork guard | Workflow `if:` condition | Skip if `head.repo.full_name != github.repository` |
+| N4 | Preflight size check | Workflow step (`gh pr diff | wc -l`) | If > 2000 lines → post warning + skip |
+| N5 | Claude review + fix + comment | `claude-code-action@v1` | OAuth token, `use_sticky_comment: true`, review prompt |
+| N6 | Auto-fix commit | Claude (inside action) | `bun run lint:fix && format` → commit `[skip ci]` |
+| N7 | Structured comment | Claude (inside action) | Auto-fixed list + manual-action list, sticky |
+| N8 | Fallback error comment | Workflow `if: failure()` step | `gh pr comment` with error notice |
 
 ### Wiring
 
 ```
-PR event → N1 → N2 (dedup) → N3 (context + prior review detection)
-                                        ↓
-                              N4 (claude, stop after Phase 6)
-                                        ↓
-                              N5 (findings JSON written)
-                                        ↓
-                    N6 (inline comments) + summary comment
-
-Follow-up push → N1 → N2 → N3 (priorReviewFound=true, loads prior findings)
-                                        ↓
-                              N4 (follow-up mode, diff since prior SHA)
-                                        ↓
-                    N8 (resolve fixed threads) + N6 (new/remaining) + updated summary
+PR event → N1 → N2 (dedup) → N3 (fork guard) → N4 (size preflight)
+                                                          ↓
+                                               N5 (claude-code-action)
+                                                    ↙         ↘
+                                              N6 (commit)   N7 (comment)
+                                                          ↓
+                                                N8 (fallback if failure)
 ```
 
 ## Slices
 
-| # | Slice | Affordances | Deliverable | Demo |
-|---|-------|-------------|-------------|------|
-| 1 | Trigger & run (+ spike) | N1, N2, N4 | Spike: validate `claude --print` + Task dispatch + `gh` in CI runner. Then: `pr-review.yml` workflow; runs existing `/review` skill (Phase 6 only) on PR open/push; posts summary comment; deduplication via concurrency; `GH_TOKEN` wired | Open a PR → see automatic summary review comment |
-| 2 | Context file | N3 | `tools/build-pr-context.ts`; pre-fetches diff, threads, head SHA, prior review detection into `/tmp/pr-context.json` | Review reads context from file; workflow knows whether prior review exists |
-| 3 | Inline comments | N5, N6 | Amend review skill Phase 6 to write `/tmp/review-findings.json`; `tools/post-inline-comments.ts` maps file:line → diff position, posts inline for in-diff lines, fallback to summary for out-of-diff | Findings appear as GitHub diff comments at exact file:line |
-| 4 | Follow-up review | N7, N8 | Workflow follow-up mode (N7 reads N3 flag); `tools/resolve-threads.ts` resolves verified-fixed threads; updated summary | Push fix → prior thread resolves; summary shows verified-fixed vs. remaining |
+| # | Slice | Nodes | Deliverable | Demo |
+|---|-------|-------|-------------|------|
+| 1 | Workflow skeleton | N1, N2, N3, N4 | `pr-review.yml` with triggers, concurrency, fork guard, preflight | Workflow file exists; fork PRs skipped |
+| 2 | Claude action + auth | N5 | `claude-code-action@v1` step wired with `CLAUDE_CODE_OAUTH_TOKEN`, sticky comment, commit signing | Action runs on PR open |
+| 3 | Review + fix prompt | N6, N7 | Prompt drives review → lint:fix → commit `[skip ci]` → structured comment | Comment appears with two sections; auto-fix committed |
+| 4 | Fallback + [skip ci] guard | N8 | Failure step posts error comment; `[skip ci]` confirmed to not re-trigger | Push fix after failure → no loop |
 
 ## Success Criteria
 
-- [ ] Opening a PR triggers `pr-review.yml` and a review comment tagged `<!-- reviewed-by-bot -->` appears on the PR (no latency requirement in passing criteria; 10-minute target is advisory).
-- [ ] Pushing two commits in rapid succession to the same PR runs only one review (the second push cancels the first in-progress run via the concurrency group).
-- [ ] Each finding that maps to a changed line in the diff is posted as an inline diff comment at the correct file and line; findings on unchanged lines appear in the summary comment body.
-- [ ] Pushing a fix after a review triggers a follow-up run; a finding is marked verified-fixed (and its thread resolved) when the file+line from that finding no longer contains the flagged pattern in the current diff.
-- [ ] If the Claude runner fails (API error, timeout, or non-zero exit), the workflow posts a fallback PR comment indicating the review could not complete, and the workflow job is marked failed.
-- [ ] A follow-up run does not re-post findings that were already resolved in a prior run (idempotency across pushes).
-
-## Model
-
-**All agents in CI use claude-sonnet-4-6 (Sonnet).** This overrides the CLAUDE.md defaults where architect, product-lead, and security-auditor normally inherit Opus. The override is passed via the `--model claude-sonnet-4-6` flag on the `claude --print` invocation. Rationale: automated CI runs on every push — Sonnet delivers strong review quality at acceptable cost. Manual `/review` invocations (outside CI) retain Opus for deep analysis.
-
-## Abandonment Strategy
-
-When a new push cancels an in-progress review (concurrency group), the cancelled run may have already posted inline comments. On each new run, before posting any findings, `tools/post-inline-comments.ts` first **deletes all prior bot-posted inline comments** (identified by `<!-- reviewed-by-bot-comment -->` in the comment body) via `gh api DELETE repos/.../pulls/comments/{comment_id}`. This gives a clean slate on every run with no stale comment accumulation.
-
-## Edge Cases
-
-| Scenario | Handling |
-|----------|----------|
-| No findings (F = ∅) | Still post summary comment with `<!-- reviewed-by-bot -->` marker and "No issues found" body — ensures follow-up detection works |
-| Large PR (|Δ| > 50) | Workflow preflight check: if diff line count > 2000, post a warning comment and skip Claude invocation — too large for reliable automated review |
-| Partial inline comment failure | `tools/post-inline-comments.ts` continues on per-comment API errors; failures are collected and appended to the summary comment body |
-| Prior findings artifact expired (>90 days) | Follow-up mode silently falls back to first-run mode — documented expected behavior, not an error |
-| Workflow cancelled before findings JSON written | No cleanup needed — cancellation leaves no partial inline state (inline posting is deferred to post-processing step after Claude exits) |
-| Fork PRs | `if: github.event.pull_request.head.repo.full_name == github.repository` guard — fork runners do not receive `ANTHROPIC_API_KEY`; no review runs, no error comment |
+- [ ] Opening a PR triggers `pr-review.yml` and a structured comment with `<!-- reviewed-by-claude -->` appears.
+- [ ] The comment has two sections: **Auto-fixed** and **Manual action needed**.
+- [ ] Auto-fixable issues (Biome lint/format) are committed to the PR branch with `[skip ci]` in the commit message.
+- [ ] The `[skip ci]` commit does not re-trigger `pr-review.yml`.
+- [ ] Pushing two commits in rapid succession runs only one review (concurrency cancel).
+- [ ] Fork PRs are silently skipped — no error, no comment.
+- [ ] PRs with > 2000 diff lines get a warning comment and skip Claude.
+- [ ] If Claude fails (timeout / auth error), a fallback comment is posted and the job is marked failed.
+- [ ] Each new push updates the existing review comment (sticky) — no duplicate comments accumulate.
 
 ## Implementation Notes
 
-- **Permissions block:** `pull-requests: write`, `contents: read`, `issues: read`.
-- **Timeout:** `timeout-minutes: 12` on the review job (aligns with 10-minute advisory target + buffer).
-- **Marker robustness:** Use `<!-- reviewed-by-bot -->` in summary comment body and `<!-- reviewed-by-bot-comment -->` in each inline comment body as detection keys. Not heading text.
-- **API rate limits:** Running 5–7 sub-agents per review is API-intensive; known risk. No throttling in scope — monitor in production.
-- **Phase 8 suppression:** The Claude invocation prompt explicitly instructs the skill to exit after Phase 6 (do not call `AskUserQuestion`).
+- **Auth:** `claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}` — generated by repo admin via `claude setup-token`.
+- **Permissions:** `contents: write` (auto-fix commits), `pull-requests: write` (comments), `id-token: write` (OIDC for commit signing).
+- **Commit signing:** `use_commit_signing: true` — verified commits from `claude[bot]`.
+- **Sticky comment:** `use_sticky_comment: true` — one comment per PR, updated on each run.
+- **Model:** Action uses Sonnet by default via Claude Max subscription — no model override needed.
+- **Timeout:** `timeout-minutes: 15` on the review job.
+- **Loop prevention:** `[skip ci]` in auto-fix commit message; no workflow condition needed.
+- **No custom tooling:** `build-pr-context.ts`, `post-inline-comments.ts`, `resolve-threads.ts` are not needed — Claude handles everything inside the action.
