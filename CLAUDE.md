@@ -145,6 +145,8 @@ Agents: rules → [AGENTS.md](AGENTS.md). Defs → `.claude/agents/*.md`. Guide 
 - Biome upgrade → sync `$schema` version in `biome.json`.
 - Sub-issues: `addSubIssue` GraphQL mutation, ¬markdown checklists. Use `/issue-triage --parent`.
 - Post-rebase: `bun install` before push if new build steps added.
+- `gh pr edit --add-label` broken (Projects Classic deprecation) → use `gh api repos/:owner/:repo/issues/:number/labels -f "labels[]=<label>"`.
+- `gh pr view --json` has no `merged` field → use `mergedAt` (null = not merged).
 - Domain gotchas → [apps/api/CLAUDE.md](apps/api/CLAUDE.md) and [apps/web/CLAUDE.md](apps/web/CLAUDE.md).
 
 ## Reference
