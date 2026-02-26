@@ -48,7 +48,8 @@ packages/  ui(@repo/ui) types(@repo/types) config(@repo/config) email vitest-con
 | i18n | `bun run i18n:validate` | Translation completeness |
 | Env check | `bun run check:env` | .env ↔ .env.example |
 | License | `bun run license:check` | Dependency licenses |
-| Docs / Dashboard | `bun run docs` / `bun run dashboard` | Preview / :3333 |
+| Docs | `bun run docs` | Runs web only (port 3000) |
+| Dashboard | `bun run dashboard` | Issue dashboard :3333 |
 
 ## Critical Rules
 
@@ -117,8 +118,8 @@ MUST read [code-review.mdx](docs/standards/code-review.mdx). Conventional Commen
 
 | Context | Read |
 |---------|------|
-| React / TanStack | [frontend-patterns.mdx](docs/standards/frontend-patterns.mdx) |
-| NestJS / API | [backend-patterns.mdx](docs/standards/backend-patterns.mdx) |
+| React / TanStack | [frontend-patterns.mdx](docs/standards/frontend-patterns.mdx) — see also [apps/web/CLAUDE.md](apps/web/CLAUDE.md) |
+| NestJS / API | [backend-patterns.mdx](docs/standards/backend-patterns.mdx) — see also [apps/api/CLAUDE.md](apps/api/CLAUDE.md) |
 | Tests | [testing.mdx](docs/standards/testing.mdx) |
 | Docs | [contributing.mdx](docs/contributing.mdx) |
 | Issues | [issue-management.mdx](docs/processes/issue-management.mdx) |
@@ -139,14 +140,12 @@ Agents: rules → [AGENTS.md](AGENTS.md). Defs → `.claude/agents/*.md`. Guide 
 
 - `bun test` ≠ `bun run test` — former = Bun runner (CPU spin), latter = Vitest. Hook blocks it.
 - `turbo.jsonc` ¬`turbo.json` — JSONC with comments.
-- `useImportType: off` for `apps/api/` — NestJS DI needs runtime imports.
 - Node ≥24, Bun 1.3.9 = pkg manager.
 - Orphaned ports → `bun run dev:clean`.
-- DB branches: worktree → own schema via `db:branch:create --force XXX`.
-- Paraglide i18n: compiled during codegen, `src/paraglide/` gitignored.
 - Biome upgrade → sync `$schema` version in `biome.json`.
 - Sub-issues: `addSubIssue` GraphQL mutation, ¬markdown checklists. Use `/issue-triage --parent`.
 - Post-rebase: `bun install` before push if new build steps added.
+- Domain gotchas → [apps/api/CLAUDE.md](apps/api/CLAUDE.md) and [apps/web/CLAUDE.md](apps/web/CLAUDE.md).
 
 ## Reference
 
@@ -163,7 +162,7 @@ Agents: rules → [AGENTS.md](AGENTS.md). Defs → `.claude/agents/*.md`. Guide 
 | Vision | [vision.mdx](docs/vision.mdx) |
 | Frames / Analyses / Specs / Plans | [artifacts/frames/](artifacts/frames/) / [artifacts/analyses/](artifacts/analyses/) / [artifacts/specs/](artifacts/specs/) / [artifacts/plans/](artifacts/plans/) |
 
-**Deploy:** `main` → Vercel prod. `staging` → preview. Web=`apps/web` (TanStack/Nitro). API=`apps/api` (NestJS).
+**Deploy:** `main` → Vercel prod. `staging` → preview. Details in [apps/web/CLAUDE.md](apps/web/CLAUDE.md) and [apps/api/CLAUDE.md](apps/api/CLAUDE.md).
 
 **Hooks (Claude Code):** Biome auto-format (PostToolUse) | Security warn (PreToolUse) | `bun test` blocker (PreToolUse)
 **Hooks (Git/Lefthook):** pre-commit (Biome) | commit-msg (Commitlint) | pre-push (lint+typecheck+tests+i18n+license)
