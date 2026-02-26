@@ -103,10 +103,10 @@ describe('buildPositionMap — single-file mapping', () => {
   })
 })
 
-// ─── buildPositionMap — multi-file and edge cases ─────────────────────────
+// ─── buildPositionMap — multi-file ───────────────────────────────────────
 
-describe('buildPositionMap — multi-file and edge cases', () => {
-  it('handles multiple files', () => {
+describe('buildPositionMap — multi-file', () => {
+  it('handles multiple files in one diff', () => {
     // Arrange
     const multiDiff =
       SAMPLE_DIFF +
@@ -124,33 +124,9 @@ describe('buildPositionMap — multi-file and edge cases', () => {
     // Act
     const map = buildPositionMap(multiDiff)
 
-    // Assert
+    // Assert — entries from both files are present
     expect(map.has('src/bar.ts:2')).toBe(true)
     expect(map.has('src/foo.ts:10')).toBe(true)
-  })
-
-  it('returns empty map for empty diff', () => {
-    // Act / Assert
-    expect(buildPositionMap('').size).toBe(0)
-  })
-
-  it('skips backslash lines (no newline at end of file)', () => {
-    // Arrange
-    const diffWithNoNewline = [
-      'diff --git a/src/x.ts b/src/x.ts',
-      '--- a/src/x.ts',
-      '+++ b/src/x.ts',
-      '@@ -1,1 +1,1 @@',
-      '+new content',
-      '\\ No newline at end of file',
-    ].join('\n')
-
-    // Act
-    const map = buildPositionMap(diffWithNoNewline)
-
-    // Assert — backslash line skipped; only the added line is mapped
-    expect(map.has('src/x.ts:1')).toBe(true)
-    expect(map.size).toBe(1)
   })
 
   it('handles multiple hunks within the same file', () => {
@@ -175,5 +151,33 @@ describe('buildPositionMap — multi-file and edge cases', () => {
     expect(map.has('src/util.ts:2')).toBe(true)
     expect(map.has('src/util.ts:10')).toBe(true)
     expect(map.has('src/util.ts:11')).toBe(true)
+  })
+})
+
+// ─── buildPositionMap — special lines and empty input ─────────────────────
+
+describe('buildPositionMap — special lines and empty input', () => {
+  it('returns empty map for empty diff', () => {
+    // Act / Assert
+    expect(buildPositionMap('').size).toBe(0)
+  })
+
+  it('skips backslash lines (no newline at end of file)', () => {
+    // Arrange
+    const diffWithNoNewline = [
+      'diff --git a/src/x.ts b/src/x.ts',
+      '--- a/src/x.ts',
+      '+++ b/src/x.ts',
+      '@@ -1,1 +1,1 @@',
+      '+new content',
+      '\\ No newline at end of file',
+    ].join('\n')
+
+    // Act
+    const map = buildPositionMap(diffWithNoNewline)
+
+    // Assert — backslash line skipped; only the added line is mapped
+    expect(map.has('src/x.ts:1')).toBe(true)
+    expect(map.size).toBe(1)
   })
 })
