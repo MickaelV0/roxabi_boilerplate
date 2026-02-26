@@ -13,6 +13,11 @@ pre-commit:
 
 pre-push:
   parallel: true
+  output:
+    - meta
+    - summary
+    - failure
+    - execution_out
   commands:
     lint:
       run: CI=true bun run lint
