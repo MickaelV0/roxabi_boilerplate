@@ -14,7 +14,7 @@ describe('pr-review.yml — concurrency and fork guard', () => {
 
     // Assert
     expect(match).not.toBeNull()
-    expect(match![1]).toBe('true')
+    expect(match?.[1]).toBe('true')
   })
 
   it('concurrency group is scoped to PR number', () => {
@@ -23,7 +23,7 @@ describe('pr-review.yml — concurrency and fork guard', () => {
 
     // Assert
     expect(match).not.toBeNull()
-    expect(match![1]).toContain('pull_request.number')
+    expect(match?.[1]).toContain('pull_request.number')
   })
 
   it('has fork guard on review job', () => {
@@ -32,8 +32,8 @@ describe('pr-review.yml — concurrency and fork guard', () => {
 
     // Assert
     expect(match).not.toBeNull()
-    expect(match![1]).toContain('head.repo.full_name')
-    expect(match![1]).toContain('github.repository')
+    expect(match?.[1]).toContain('head.repo.full_name')
+    expect(match?.[1]).toContain('github.repository')
   })
 
   it('has timeout-minutes set', () => {
@@ -42,7 +42,7 @@ describe('pr-review.yml — concurrency and fork guard', () => {
 
     // Assert
     expect(match).not.toBeNull()
-    expect(Number(match![1])).toBeGreaterThan(0)
+    expect(Number(match?.[1])).toBeGreaterThan(0)
   })
 })
 
@@ -61,7 +61,7 @@ describe('pr-review.yml — trigger and permissions', () => {
 
     // Assert
     expect(match).not.toBeNull()
-    expect(match![1]).toBe('write')
+    expect(match?.[1]).toBe('write')
   })
 
   it('uploads review-findings artifact with 90-day retention', () => {
@@ -69,6 +69,6 @@ describe('pr-review.yml — trigger and permissions', () => {
     expect(raw.includes('review-findings')).toBe(true)
     const match = raw.match(/retention-days:\s*(\d+)/)
     expect(match).not.toBeNull()
-    expect(Number(match![1])).toBe(90)
+    expect(Number(match?.[1])).toBe(90)
   })
 })
