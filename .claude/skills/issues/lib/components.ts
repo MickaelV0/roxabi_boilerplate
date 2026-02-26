@@ -1,4 +1,4 @@
-import type { Branch, Issue, PR, Worktree } from './types'
+import type { Branch, Issue, PR, VercelDeployment, Worktree } from './types'
 
 const PRIORITY_SHORT: Record<string, string> = {
   'P0 - Urgent': 'P0',
@@ -116,6 +116,8 @@ function getPRDisplay(pr: PR): { label: string; cssClass: string } {
   return { label: 'Review', cssClass: 'status-progress' }
 }
 
+const CI_SPINNER = '<span class="ci-spinner"></span>'
+
 function ciIcon(status: string, conclusion: string): string {
   if (status === 'COMPLETED' || status === 'SUCCESS') {
     if (conclusion === 'SUCCESS' || conclusion === '') return '\u2705'
@@ -124,13 +126,13 @@ function ciIcon(status: string, conclusion: string): string {
     if (conclusion === 'SKIPPED' || conclusion === 'NEUTRAL') return '\u23ed'
     return '\u2753'
   }
-  if (status === 'IN_PROGRESS') return '\u23f3'
+  if (status === 'IN_PROGRESS') return CI_SPINNER
   if (status === 'QUEUED' || status === 'WAITING' || status === 'PENDING' || status === 'REQUESTED')
-    return '\ud83d\udfe1'
+    return CI_SPINNER
   // StatusContext states
   if (status === 'SUCCESS') return '\u2705'
   if (status === 'FAILURE' || status === 'ERROR') return '\u274c'
-  if (status === 'PENDING' || status === 'EXPECTED') return '\ud83d\udfe1'
+  if (status === 'PENDING' || status === 'EXPECTED') return CI_SPINNER
   return '\u2753'
 }
 
@@ -168,10 +170,10 @@ function ciSummary(checks: PR['checks']): { icon: string; label: string; cssClas
 
   if (fail > 0) return { icon: '\u274c', label: `${fail}/${total} failed`, cssClass: 'ci-failure' }
   if (running > 0)
-    return { icon: '\u23f3', label: `${running}/${total} running`, cssClass: 'ci-running' }
+    return { icon: CI_SPINNER, label: `${running}/${total} running`, cssClass: 'ci-running' }
   if (pass === total) return { icon: '\u2705', label: `${total} passed`, cssClass: 'ci-success' }
   return {
-    icon: '\ud83d\udfe1',
+    icon: CI_SPINNER,
     label: `${pass}/${total} passed`,
     cssClass: 'ci-pending',
   }
@@ -247,5 +249,52 @@ export function renderBranchesAndWorktrees(branches: Branch[], worktrees: Worktr
     </div>`
   }
   html += '</div>'
+  return html
+}
+
+const DEPLOY_STATE_DISPLAY: Record<string, { icon: string; label: string; cls: string }> = {
+  BUILDING: { icon: '<span class="ci-spinner"></span>', label: 'Building', cls: 'vd-building' },
+  QUEUED: { icon: '<span class="ci-spinner"></span>', label: 'Queued', cls: 'vd-queued' },
+  INITIALIZING: {
+    icon: '<span class="ci-spinner"></span>',
+    label: 'Initializing',
+    cls: 'vd-queued',
+  },
+  READY: { icon: '\u2705', label: 'Ready', cls: 'vd-ready' },
+  ERROR: { icon: '\u274c', label: 'Error', cls: 'vd-error' },
+  CANCELED: { icon: '\u26d4', label: 'Canceled', cls: 'vd-error' },
+}
+
+export function renderVercelDeployments(deployments: VercelDeployment[]): string {
+  if (deployments.length === 0) return ''
+
+  let html = `<div class="section">
+    <h2>\u25b2 Vercel Deployments</h2>
+    <div class="vd-list">`
+
+  for (const d of deployments) {
+    const display = DEPLOY_STATE_DISPLAY[d.state] ?? {
+      icon: '\u2753',
+      label: d.state,
+      cls: '',
+    }
+    const env = d.target === 'production' ? 'prod' : 'preview'
+    const envCls = d.target === 'production' ? 'vd-env-prod' : 'vd-env-preview'
+    const branch = d.meta.githubCommitRef ?? ''
+    const msg = d.meta.githubCommitMessage ? shortTitle(d.meta.githubCommitMessage, 40) : ''
+    const age = d.createdAt ? timeAgo(new Date(d.createdAt).toISOString()) : ''
+    const deployUrl = `https://${d.url}`
+
+    html += `<div class="vd-item ${display.cls}">
+      <span class="vd-state">${display.icon} ${display.label}</span>
+      <span class="badge ${envCls}">${env}</span>
+      <a href="${escHtml(deployUrl)}" target="_blank" rel="noopener" class="vd-url">${escHtml(d.url)}</a>
+      ${branch ? `<code class="vd-branch">${escHtml(branch)}</code>` : ''}
+      ${msg ? `<span class="vd-msg">${escHtml(msg)}</span>` : ''}
+      <span class="text-muted vd-age">${age}</span>
+    </div>`
+  }
+
+  html += '</div></div>'
   return html
 }

@@ -1,13 +1,19 @@
-import { issueRow, renderBranchesAndWorktrees, renderPRs } from './components'
+import {
+  issueRow,
+  renderBranchesAndWorktrees,
+  renderPRs,
+  renderVercelDeployments,
+} from './components'
 import { buildDepGraph, renderDepGraph } from './graph'
 import { PAGE_STYLES } from './page-styles'
-import type { Branch, Issue, PR, Worktree } from './types'
+import type { Branch, Issue, PR, VercelDeployment, Worktree } from './types'
 
 export function buildHtml(
   issues: Issue[],
   prs: PR[],
   branches: Branch[],
   worktrees: Worktree[],
+  deployments: VercelDeployment[],
   fetchMs: number,
   updatedAt: number
 ): string {
@@ -26,6 +32,7 @@ export function buildHtml(
   const hiddenCount = issues.length - INITIAL_VISIBLE
   const depNodes = buildDepGraph(issues)
   const depGraphHtml = renderDepGraph(depNodes, issues)
+  const vercelHtml = renderVercelDeployments(deployments)
   const prsHtml = renderPRs(prs)
   const branchesHtml = renderBranchesAndWorktrees(branches, worktrees)
 
@@ -50,6 +57,8 @@ ${LIVE_STYLES}
       &middot; <span id="fetch-time">Fetched in ${fetchMs}ms</span>
     </span>
   </header>
+
+  <div id="section-vercel">${vercelHtml}</div>
 
   <div id="section-prs" class="section">
     <h2>Pull Requests</h2>
@@ -270,7 +279,7 @@ ${LIVE_STYLES}
       });
 
       // Patch issue tables
-      var selectors = ['#issues-visible', '#hidden-issues', '#section-prs', '#section-graph', '#section-branches', '#issue-count', '#fetch-time'];
+      var selectors = ['#issues-visible', '#hidden-issues', '#section-vercel', '#section-prs', '#section-graph', '#section-branches', '#issue-count', '#fetch-time'];
       for (var s = 0; s < selectors.length; s++) {
         var sel = selectors[s];
         var freshEl = freshDoc.querySelector(sel);

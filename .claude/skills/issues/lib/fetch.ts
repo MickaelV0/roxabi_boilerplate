@@ -2,7 +2,7 @@ import { GITHUB_REPO, PROJECT_ID } from '../../shared/config'
 import { ghGraphQL, run } from '../../shared/github'
 import { ISSUES_QUERY, PRS_QUERY } from '../../shared/queries'
 import type { RawItem } from '../../shared/types'
-import type { Branch, CICheck, Issue, PR, Worktree } from './types'
+import type { Branch, CICheck, Issue, PR, VercelDeployment, Worktree } from './types'
 
 async function fetchPage(
   cursor?: string
@@ -236,4 +236,61 @@ export async function fetchWorktrees(): Promise<Worktree[]> {
   } catch {
     return []
   }
+}
+
+const VERCEL_PROJECT_ID = 'prj_zQBFlIxtRstBkgQkxb9UwNPlaQuv'
+const VERCEL_TEAM_ID = 'team_aykdwlsiBnvKgB1hCKU7XsXy'
+const FIVE_MINUTES = 5 * 60 * 1000
+
+export async function fetchVercelDeployments(): Promise<VercelDeployment[]> {
+  const token = process.env.VERCEL_TOKEN
+  if (!token) return []
+
+  try {
+    const since = Date.now() - FIVE_MINUTES
+    const url = `https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&teamId=${VERCEL_TEAM_ID}&limit=10&since=${since}`
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) return []
+    const data = (await res.json()) as { deployments: RawVercelDeployment[] }
+
+    const now = Date.now()
+    return data.deployments
+      .map((d) => ({
+        uid: d.uid,
+        url: d.url,
+        state: d.state ?? d.readyState ?? '',
+        target: d.target ?? '',
+        createdAt: d.createdAt,
+        buildingAt: d.buildingAt ?? 0,
+        ready: d.ready ?? 0,
+        source: d.source ?? '',
+        meta: {
+          githubCommitRef: d.meta?.githubCommitRef,
+          githubCommitMessage: d.meta?.githubCommitMessage,
+        },
+      }))
+      .filter((d) => {
+        const ongoing = ['BUILDING', 'QUEUED', 'INITIALIZING'].includes(d.state)
+        const recentReady = d.state === 'READY' && d.ready > 0 && now - d.ready < FIVE_MINUTES
+        const recentError = d.state === 'ERROR' && now - d.createdAt < FIVE_MINUTES
+        return ongoing || recentReady || recentError
+      })
+  } catch {
+    return []
+  }
+}
+
+interface RawVercelDeployment {
+  uid: string
+  url: string
+  state?: string
+  readyState?: string
+  target?: string
+  createdAt: number
+  buildingAt?: number
+  ready?: number
+  source?: string
+  meta?: { githubCommitRef?: string; githubCommitMessage?: string }
 }

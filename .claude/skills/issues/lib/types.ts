@@ -53,6 +53,18 @@ export interface Worktree {
   isBare: boolean
 }
 
+export interface VercelDeployment {
+  uid: string
+  url: string
+  state: string
+  target: string
+  createdAt: number
+  buildingAt: number
+  ready: number
+  source: string
+  meta: { githubCommitRef?: string; githubCommitMessage?: string }
+}
+
 export interface DepNode {
   number: number
   title: string
