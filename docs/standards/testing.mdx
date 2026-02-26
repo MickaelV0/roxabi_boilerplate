@@ -468,6 +468,8 @@ MSW intercepts at the service-worker (browser) or `node:http` adapter level — 
 
 **When to keep vi.spyOn(fetch):** Low-level unit tests of HTTP client utilities (e.g., `apiClient.test.ts`) that must inspect the raw `RequestInit` — headers, `credentials`, correlation IDs — should keep `vi.spyOn`. MSW does not expose `RequestInit`; it exposes a `Request` object.
 
+> **Note:** MSW is not yet installed in this project. Run `bun add -d msw` before using the patterns below.
+
 ### Setup
 
 ```typescript
