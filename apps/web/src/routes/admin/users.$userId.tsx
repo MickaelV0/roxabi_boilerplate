@@ -224,22 +224,26 @@ type EditUserFormProps = {
   onCancel: () => void
 }
 
-function EditUserForm({ user, currentUserId, onSave, onCancel }: EditUserFormProps) {
+type UseEditUserMutationParams = {
+  user: AdminUserDetail
+  name: string
+  email: string
+  role: string
+  isSelfDemotion: boolean
+  onSave: () => void
+}
+
+function useEditUserMutation({
+  user,
+  name,
+  email,
+  role,
+  isSelfDemotion,
+  onSave,
+}: UseEditUserMutationParams) {
   const queryClient = useQueryClient()
-  const [name, setName] = useState(user.name || '')
-  const [email, setEmail] = useState(user.email)
-  const [role, setRole] = useState(user.role ?? 'user')
   const [error, setError] = useState<string | null>(null)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-
-  const isSelf = currentUserId === user.id
-  const isSelfSuperadmin = isSelf && user.role === 'superadmin'
-  const isRoleLocked = isSelfSuperadmin && user.isLastActiveSuperadmin
-  const isSelfDemotion = isSelfSuperadmin && role !== 'superadmin'
-
-  const orgOwnerNames = user.organizations
-    .filter((org) => org.role === 'owner')
-    .map((org) => org.name)
 
   const mutation = useMutation({
     mutationFn: async (payload: { name: string; email: string; role: string }) => {
@@ -285,25 +289,105 @@ function EditUserForm({ user, currentUserId, onSave, onCancel }: EditUserFormPro
     mutation.mutate({ name, email, role })
   }
 
-  function buildConfirmDescription() {
-    const targetLabel = ROLE_OPTIONS.find((o) => o.value === role)?.label ?? role
-    return (
-      <>
-        <p>
-          You are about to change your role from Super Admin to {targetLabel}. You will lose access
-          to the admin panel and will be logged out on all devices. Another superadmin will need to
-          restore your access.
-        </p>
-        {orgOwnerNames.length > 0 && (
-          <p className="mt-2">
-            Note: You are still an owner in {orgOwnerNames.join(', ')}. Your organization ownership
-            is not affected, but you won&apos;t be able to manage these organizations from the admin
-            panel.
-          </p>
-        )}
-      </>
-    )
+  return {
+    mutation,
+    error,
+    showConfirmDialog,
+    setShowConfirmDialog,
+    handleSubmit,
+    handleConfirmRoleChange,
   }
+}
+
+function RoleField({
+  isRoleLocked,
+  role,
+  currentRole,
+  onValueChange,
+}: {
+  isRoleLocked: boolean
+  role: string
+  currentRole: string | null
+  onValueChange: (value: string) => void
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor="edit-role" className="text-sm font-medium">
+        Global Role
+      </Label>
+      {isRoleLocked ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <output
+              aria-label="You are the last active superadmin and cannot change your role."
+              className="flex h-9 w-full items-center gap-2 rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground cursor-not-allowed"
+            >
+              <LockIcon className="size-3.5" />
+              <span className="capitalize">{currentRole}</span>
+            </output>
+          </TooltipTrigger>
+          <TooltipContent>
+            You are the last active superadmin and cannot change your role.
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        <Select value={role} onValueChange={onValueChange}>
+          <SelectTrigger id="edit-role" className="w-full">
+            <SelectValue placeholder="Select role" />
+          </SelectTrigger>
+          <SelectContent>
+            {ROLE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+    </div>
+  )
+}
+
+function buildConfirmDescription(role: string, orgOwnerNames: string[]) {
+  const targetLabel = ROLE_OPTIONS.find((o) => o.value === role)?.label ?? role
+  return (
+    <>
+      <p>
+        You are about to change your role from Super Admin to {targetLabel}. You will lose access to
+        the admin panel and will be logged out on all devices. Another superadmin will need to
+        restore your access.
+      </p>
+      {orgOwnerNames.length > 0 && (
+        <p className="mt-2">
+          Note: You are still an owner in {orgOwnerNames.join(', ')}. Your organization ownership is
+          not affected, but you won&apos;t be able to manage these organizations from the admin
+          panel.
+        </p>
+      )}
+    </>
+  )
+}
+
+function EditUserForm({ user, currentUserId, onSave, onCancel }: EditUserFormProps) {
+  const [name, setName] = useState(user.name || '')
+  const [email, setEmail] = useState(user.email)
+  const [role, setRole] = useState(user.role ?? 'user')
+
+  const isSelf = currentUserId === user.id
+  const isSelfSuperadmin = isSelf && user.role === 'superadmin'
+  const isRoleLocked = isSelfSuperadmin && user.isLastActiveSuperadmin
+  const isSelfDemotion = isSelfSuperadmin && role !== 'superadmin'
+
+  const {
+    mutation,
+    error,
+    showConfirmDialog,
+    setShowConfirmDialog,
+    handleSubmit,
+    handleConfirmRoleChange,
+  } = useEditUserMutation({ user, name, email, role, isSelfDemotion, onSave })
+
+  const ownerOrgNames = user.organizations.filter((o) => o.role === 'owner').map((o) => o.name)
 
   return (
     <>
@@ -345,40 +429,12 @@ function EditUserForm({ user, currentUserId, onSave, onCancel }: EditUserFormPro
                   placeholder="user@example.com"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-role" className="text-sm font-medium">
-                  Global Role
-                </Label>
-                {isRoleLocked ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <output
-                        aria-label="You are the last active superadmin and cannot change your role."
-                        className="flex h-9 w-full items-center gap-2 rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground cursor-not-allowed"
-                      >
-                        <LockIcon className="size-3.5" />
-                        <span className="capitalize">{user.role}</span>
-                      </output>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      You are the last active superadmin and cannot change your role.
-                    </TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <Select value={role} onValueChange={setRole}>
-                    <SelectTrigger id="edit-role" className="w-full">
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ROLE_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
+              <RoleField
+                isRoleLocked={isRoleLocked}
+                role={role}
+                currentRole={user.role}
+                onValueChange={setRole}
+              />
             </div>
             <div className="flex gap-2">
               <Button type="submit" size="sm" loading={mutation.isPending}>
@@ -396,7 +452,7 @@ function EditUserForm({ user, currentUserId, onSave, onCancel }: EditUserFormPro
         open={showConfirmDialog}
         onOpenChange={setShowConfirmDialog}
         title="Change Your Role"
-        description={buildConfirmDescription()}
+        description={buildConfirmDescription(role, ownerOrgNames)}
         variant="warning"
         confirmText="Change Role"
         onConfirm={handleConfirmRoleChange}

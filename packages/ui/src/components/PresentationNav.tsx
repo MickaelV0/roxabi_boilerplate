@@ -17,6 +17,67 @@ type PresentationNavProps = {
   syncHash?: boolean
 }
 
+function useIntersectionObserver(
+  sectionIdsRef: RefObject<string[]>,
+  scrollContainerRef: RefObject<HTMLDivElement | null> | undefined,
+  setActiveIndex: (index: number) => void,
+  isScrollingRef: RefObject<boolean>
+) {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: sectionIdsRef and isScrollingRef are stable refs — reconnecting on .current changes would defeat the purpose of using refs
+  useEffect(() => {
+    const container = scrollContainerRef?.current ?? null
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (isScrollingRef.current) return
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const index = sectionIdsRef.current.indexOf(entry.target.id)
+            if (index !== -1) setActiveIndex(index)
+          }
+        }
+      },
+      { threshold: 0.5, root: container }
+    )
+
+    for (const id of sectionIdsRef.current) {
+      const el = document.getElementById(id)
+      if (el) observer.observe(el)
+    }
+
+    return () => observer.disconnect()
+    // Only reconnect when the scroll container changes, not on every render
+  }, [scrollContainerRef])
+}
+
+function useScrollToSection(
+  sections: ReadonlyArray<Section>,
+  setActiveIndex: (index: number) => void,
+  isScrollingRef: RefObject<boolean>
+) {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: setActiveIndex is stable (from useState); isScrollingRef is a stable ref — neither needs to be in deps
+  return useCallback(
+    (index: number) => {
+      const section = sections[index]
+      if (!section) return
+      const el = document.getElementById(section.id)
+      if (!el) return
+
+      // Suppress observer during programmatic scroll
+      isScrollingRef.current = true
+      setActiveIndex(index)
+
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+
+      // Release guard after scroll settles
+      setTimeout(() => {
+        isScrollingRef.current = false
+      }, 800)
+    },
+    [sections]
+  )
+}
+
 function useActiveSection(
   sections: ReadonlyArray<Section>,
   scrollContainerRef?: RefObject<HTMLDivElement | null>,
@@ -62,52 +123,9 @@ function useActiveSection(
     }
   }, [syncHash])
 
-  useEffect(() => {
-    const container = scrollContainerRef?.current ?? null
+  useIntersectionObserver(sectionIdsRef, scrollContainerRef, setActiveIndex, isScrollingRef)
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (isScrollingRef.current) return
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const index = sectionIdsRef.current.indexOf(entry.target.id)
-            if (index !== -1) setActiveIndex(index)
-          }
-        }
-      },
-      { threshold: 0.5, root: container }
-    )
-
-    for (const id of sectionIdsRef.current) {
-      const el = document.getElementById(id)
-      if (el) observer.observe(el)
-    }
-
-    return () => observer.disconnect()
-    // Only reconnect when the scroll container changes, not on every render
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollContainerRef])
-
-  const scrollToSection = useCallback(
-    (index: number) => {
-      const section = sections[index]
-      if (!section) return
-      const el = document.getElementById(section.id)
-      if (!el) return
-
-      // Suppress observer during programmatic scroll
-      isScrollingRef.current = true
-      setActiveIndex(index)
-
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-
-      // Release guard after scroll settles
-      setTimeout(() => {
-        isScrollingRef.current = false
-      }, 800)
-    },
-    [sections]
-  )
+  const scrollToSection = useScrollToSection(sections, setActiveIndex, isScrollingRef)
 
   return { activeIndex, activeIndexRef, scrollToSection }
 }
