@@ -168,7 +168,7 @@ const server = Bun.serve({
     // Dashboard page
     try {
       if (!cache) await refreshCache()
-      return new Response(cache!.html, {
+      return new Response(cache?.html, {
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
       })
     } catch (err) {
