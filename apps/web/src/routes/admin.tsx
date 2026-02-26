@@ -73,7 +73,6 @@ const SYSTEM_LINKS: SidebarLink[] = [
     to: '/admin/feature-flags',
     label: () => m.admin_sidebar_link_feature_flags(),
     icon: FlagIcon,
-    disabled: true,
   },
   {
     to: '/admin/health',

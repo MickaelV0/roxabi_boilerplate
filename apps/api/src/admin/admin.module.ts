@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common'
 import { AuditModule } from '../audit/audit.module.js'
 import { AuthModule } from '../auth/auth.module.js'
+import { FeatureFlagsModule } from '../feature-flags/featureFlags.module.js'
 import { SystemSettingsModule } from '../system-settings/systemSettings.module.js'
 import { AdminAuditLogsController } from './adminAuditLogs.controller.js'
 import { AdminAuditLogsService } from './adminAuditLogs.service.js'
+import { AdminFeatureFlagsController } from './adminFeatureFlags.controller.js'
 import { AdminInvitationsController } from './adminInvitations.controller.js'
 import { AdminInvitationsService } from './adminInvitations.service.js'
 import { AdminMembersController } from './adminMembers.controller.js'
@@ -17,7 +19,7 @@ import { AdminUsersLifecycleService } from './adminUsers.lifecycle.js'
 import { AdminUsersService } from './adminUsers.service.js'
 
 @Module({
-  imports: [AuthModule, AuditModule, SystemSettingsModule],
+  imports: [AuthModule, AuditModule, SystemSettingsModule, FeatureFlagsModule],
   controllers: [
     AdminMembersController,
     AdminInvitationsController,
@@ -25,6 +27,7 @@ import { AdminUsersService } from './adminUsers.service.js'
     AdminOrganizationsController,
     AdminAuditLogsController,
     AdminSettingsController,
+    AdminFeatureFlagsController,
   ],
   providers: [
     AdminMembersService,

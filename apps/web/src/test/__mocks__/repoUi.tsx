@@ -249,7 +249,19 @@ export const AlertDialog = ({
   children,
   open,
 }: React.PropsWithChildren<{ open?: boolean; onOpenChange?: (open: boolean) => void }>) =>
-  open ? <div data-testid="alert-dialog">{children}</div> : null
+  open !== undefined ? (
+    open ? (
+      <div data-testid="alert-dialog">{children}</div>
+    ) : null
+  ) : (
+    <div data-testid="alert-dialog">{children}</div>
+  )
+
+export const AlertDialogTrigger = ({
+  children,
+  asChild,
+}: React.PropsWithChildren<{ asChild?: boolean }>) =>
+  asChild ? <>{children}</> : <div>{children}</div>
 
 export const AlertDialogAction = ({
   children,
