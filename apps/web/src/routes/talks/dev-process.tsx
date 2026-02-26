@@ -1,6 +1,6 @@
 import { PresentationNav } from '@repo/ui'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useRef } from 'react'
 import { LocaleSwitcher } from '@/components/LocaleSwitcher'
 import { BigPictureSection } from '@/components/presentation/dev-process/BigPictureSection'
 import { BuildPhaseSection } from '@/components/presentation/dev-process/BuildPhaseSection'
@@ -27,23 +27,20 @@ export function DevProcessPresentation() {
   const handleEscape = useCallback(() => navigate({ to: '/talks' }), [navigate])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  const sections = useMemo(
-    () => [
-      { id: 'intro', label: m.talk_dp_nav_intro() },
-      { id: 'big-picture', label: m.talk_dp_nav_big_picture() },
-      { id: 'tier-system', label: m.talk_dp_nav_tier_system() },
-      { id: 'frame-phase', label: m.talk_dp_nav_frame_phase() },
-      { id: 'shape-phase', label: m.talk_dp_nav_shape_phase() },
-      { id: 'build-phase', label: m.talk_dp_nav_build_phase() },
-      { id: 'verify-phase', label: m.talk_dp_nav_verify_phase() },
-      { id: 'ship-phase', label: m.talk_dp_nav_ship_phase() },
-      { id: 'resumability', label: m.talk_dp_nav_resumability() },
-      { id: 'human-gates', label: m.talk_dp_nav_human_gates() },
-      { id: 'compressor', label: m.talk_dp_nav_compressor() },
-      { id: 'closing', label: m.talk_dp_nav_closing() },
-    ],
-    []
-  )
+  const sections = [
+    { id: 'intro', label: m.talk_dp_nav_intro() },
+    { id: 'big-picture', label: m.talk_dp_nav_big_picture() },
+    { id: 'tier-system', label: m.talk_dp_nav_tier_system() },
+    { id: 'frame-phase', label: m.talk_dp_nav_frame_phase() },
+    { id: 'shape-phase', label: m.talk_dp_nav_shape_phase() },
+    { id: 'build-phase', label: m.talk_dp_nav_build_phase() },
+    { id: 'verify-phase', label: m.talk_dp_nav_verify_phase() },
+    { id: 'ship-phase', label: m.talk_dp_nav_ship_phase() },
+    { id: 'resumability', label: m.talk_dp_nav_resumability() },
+    { id: 'human-gates', label: m.talk_dp_nav_human_gates() },
+    { id: 'compressor', label: m.talk_dp_nav_compressor() },
+    { id: 'closing', label: m.talk_dp_nav_closing() },
+  ]
 
   return (
     <div data-presentation className="relative bg-background text-foreground">

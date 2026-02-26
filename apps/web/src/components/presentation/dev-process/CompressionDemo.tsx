@@ -125,7 +125,7 @@ function SliderDesktop({ beforeContent, afterContent, stats }: CompressionDemoPr
 
         {/* Draggable divider */}
         <div
-          className="absolute top-0 bottom-0 z-10 -ml-4 w-8 cursor-col-resize"
+          className="absolute top-0 bottom-0 z-10 -ml-4 w-8 cursor-col-resize focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           style={{ left: `${position}%` }}
           onMouseDown={() => setIsDragging(true)}
           onTouchStart={() => {

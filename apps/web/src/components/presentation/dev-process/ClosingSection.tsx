@@ -5,6 +5,7 @@ import type { ComponentType } from 'react'
 import { m } from '@/paraglide/messages'
 
 type CtaCard = {
+  id: string
   icon: ComponentType<{ className?: string }>
   label: () => string
   description: () => string
@@ -16,6 +17,7 @@ type CtaCard = {
 export function ClosingSection() {
   const ctas: ReadonlyArray<CtaCard> = [
     {
+      id: 'docs',
       icon: BookOpen,
       label: m.talk_dp_closing_docs,
       description: m.talk_dp_closing_docs_desc,
@@ -23,6 +25,7 @@ export function ClosingSection() {
       splat: '',
     },
     {
+      id: 'fork',
       icon: GitFork,
       label: m.talk_dp_closing_fork,
       description: m.talk_dp_closing_fork_desc,
@@ -30,6 +33,7 @@ export function ClosingSection() {
       external: true,
     },
     {
+      id: 'try',
       icon: Terminal,
       label: m.talk_dp_closing_try,
       description: m.talk_dp_closing_try_desc,
@@ -75,7 +79,7 @@ export function ClosingSection() {
 
             if (cta.external) {
               return (
-                <a key={cta.label()} href={cta.href} target="_blank" rel="noopener noreferrer">
+                <a key={cta.id} href={cta.href} target="_blank" rel="noopener noreferrer">
                   {content}
                 </a>
               )
@@ -83,13 +87,13 @@ export function ClosingSection() {
 
             if (cta.href && cta.splat !== undefined) {
               return (
-                <Link key={cta.label()} to={cta.href} params={{ _splat: cta.splat }}>
+                <Link key={cta.id} to={cta.href} params={{ _splat: cta.splat }}>
                   {content}
                 </Link>
               )
             }
 
-            return <div key={cta.label()}>{content}</div>
+            return <div key={cta.id}>{content}</div>
           })}
         </div>
       </AnimatedSection>

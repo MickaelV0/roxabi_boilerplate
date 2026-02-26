@@ -1,35 +1,7 @@
-import { AnimatedSection, Card, cn } from '@repo/ui'
+import { AnimatedSection } from '@repo/ui'
 import { CheckSquare, Eye, Info, ShieldCheck, Wrench } from 'lucide-react'
 import { m } from '@/paraglide/messages'
-
-type StepCardData = {
-  icon: React.ReactNode
-  title: string
-  goal: string
-  color: string
-  borderColor: string
-  extra: React.ReactNode
-}
-
-function StepCard({ card }: { card: StepCardData }) {
-  return (
-    <Card variant="subtle" className={cn('p-4 lg:p-5 h-full', card.borderColor)}>
-      <div className="flex items-center gap-2.5 mb-3">
-        <div className={cn('rounded-lg p-2', card.color)}>{card.icon}</div>
-        <h3 className="font-bold text-sm">{card.title}</h3>
-      </div>
-      <div className="space-y-2.5">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">
-            {m.talk_dp_goal()}
-          </p>
-          <p className="text-xs text-muted-foreground">{card.goal}</p>
-        </div>
-        {card.extra}
-      </div>
-    </Card>
-  )
-}
+import { StepCard, type StepCardData } from './StepCard'
 
 function ValidateChecklist() {
   const checks = ['lint', 'typecheck', 'test', 'i18n', 'env', 'license']

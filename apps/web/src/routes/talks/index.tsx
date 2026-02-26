@@ -7,7 +7,7 @@ export const Route = createFileRoute('/talks/')({
   component: TalksIndex,
 })
 
-function TalksIndex() {
+export function TalksIndex() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-6 py-16">
       <AnimatedSection className="w-full max-w-3xl">

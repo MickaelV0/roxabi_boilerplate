@@ -1,14 +1,11 @@
 import { AnimatedSection, Card, cn, useInView, useReducedMotion } from '@repo/ui'
 import { ArrowRight, Workflow } from 'lucide-react'
+import { PHASE_COLORS, type PhaseColor } from '@/components/presentation/dev-process/phaseColors'
 import { m } from '@/paraglide/messages'
 
-type PhaseBlock = {
+type PhaseBlock = PhaseColor & {
   name: string
   steps: string
-  color: string
-  bgColor: string
-  borderColor: string
-  dotColor: string
 }
 
 function usePhases(): ReadonlyArray<PhaseBlock> {
@@ -16,42 +13,27 @@ function usePhases(): ReadonlyArray<PhaseBlock> {
     {
       name: m.talk_dp_pipeline_frame(),
       steps: m.talk_dp_pipeline_frame_steps(),
-      color: 'text-emerald-500',
-      bgColor: 'bg-emerald-500/5',
-      borderColor: 'border-emerald-500/40',
-      dotColor: 'bg-emerald-500',
+      ...PHASE_COLORS[0],
     },
     {
       name: m.talk_dp_pipeline_shape(),
       steps: m.talk_dp_pipeline_shape_steps(),
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-500/5',
-      borderColor: 'border-blue-500/40',
-      dotColor: 'bg-blue-500',
+      ...PHASE_COLORS[1],
     },
     {
       name: m.talk_dp_pipeline_build(),
       steps: m.talk_dp_pipeline_build_steps(),
-      color: 'text-violet-500',
-      bgColor: 'bg-violet-500/5',
-      borderColor: 'border-violet-500/40',
-      dotColor: 'bg-violet-500',
+      ...PHASE_COLORS[2],
     },
     {
       name: m.talk_dp_pipeline_verify(),
       steps: m.talk_dp_pipeline_verify_steps(),
-      color: 'text-amber-500',
-      bgColor: 'bg-amber-500/5',
-      borderColor: 'border-amber-500/40',
-      dotColor: 'bg-amber-500',
+      ...PHASE_COLORS[3],
     },
     {
       name: m.talk_dp_pipeline_ship(),
       steps: m.talk_dp_pipeline_ship_steps(),
-      color: 'text-rose-500',
-      bgColor: 'bg-rose-500/5',
-      borderColor: 'border-rose-500/40',
-      dotColor: 'bg-rose-500',
+      ...PHASE_COLORS[4],
     },
   ]
 }

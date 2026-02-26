@@ -70,6 +70,7 @@ function isFormElement(target: EventTarget | null): boolean {
   )
 }
 
+// Keys right of '9' on QWERTY → sections 10-12
 const EXTENDED_KEY_MAP: Record<string, number> = { '0': 9, '-': 10, '=': 11 }
 
 function resolveKeyIndex(key: string, sectionCount: number): number | null {

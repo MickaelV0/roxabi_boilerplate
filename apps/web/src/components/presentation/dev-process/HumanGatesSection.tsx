@@ -1,13 +1,10 @@
 import { AnimatedSection, Card, cn, useInView, useReducedMotion } from '@repo/ui'
 import { ArrowRight, Lock, MessageSquare, ShieldCheck, Users } from 'lucide-react'
+import { PHASE_COLORS, type PhaseColor } from '@/components/presentation/dev-process/phaseColors'
 import { m } from '@/paraglide/messages'
 
-type GatedPhase = {
+type GatedPhase = PhaseColor & {
   name: string
-  color: string
-  bgColor: string
-  borderColor: string
-  dotColor: string
 }
 
 type Gate = {
@@ -16,41 +13,11 @@ type Gate = {
 
 function useGatedPhases(): ReadonlyArray<GatedPhase> {
   return [
-    {
-      name: m.talk_dp_pipeline_frame(),
-      color: 'text-emerald-500',
-      bgColor: 'bg-emerald-500/5',
-      borderColor: 'border-emerald-500/40',
-      dotColor: 'bg-emerald-500',
-    },
-    {
-      name: m.talk_dp_pipeline_shape(),
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-500/5',
-      borderColor: 'border-blue-500/40',
-      dotColor: 'bg-blue-500',
-    },
-    {
-      name: m.talk_dp_pipeline_build(),
-      color: 'text-violet-500',
-      bgColor: 'bg-violet-500/5',
-      borderColor: 'border-violet-500/40',
-      dotColor: 'bg-violet-500',
-    },
-    {
-      name: m.talk_dp_pipeline_verify(),
-      color: 'text-amber-500',
-      bgColor: 'bg-amber-500/5',
-      borderColor: 'border-amber-500/40',
-      dotColor: 'bg-amber-500',
-    },
-    {
-      name: m.talk_dp_pipeline_ship(),
-      color: 'text-rose-500',
-      bgColor: 'bg-rose-500/5',
-      borderColor: 'border-rose-500/40',
-      dotColor: 'bg-rose-500',
-    },
+    { name: m.talk_dp_pipeline_frame(), ...PHASE_COLORS[0] },
+    { name: m.talk_dp_pipeline_shape(), ...PHASE_COLORS[1] },
+    { name: m.talk_dp_pipeline_build(), ...PHASE_COLORS[2] },
+    { name: m.talk_dp_pipeline_verify(), ...PHASE_COLORS[3] },
+    { name: m.talk_dp_pipeline_ship(), ...PHASE_COLORS[4] },
   ]
 }
 
