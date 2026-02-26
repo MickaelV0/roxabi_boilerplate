@@ -142,8 +142,15 @@ correctness | security | performance | architecture | tests | readability | obse
 ## Phase 6 — Post to PR
 
 1. PR# = provided ∨ `gh pr list --head "$(git branch --show-current)" --json number --jq '.[0].number'`; ¬∃ → skip
-2. `/tmp/review-comment.md` → `gh pr comment <#> --body-file /tmp/review-comment.md`
-3. `## Code Review` header, grouped findings + summary + verdict. ∀C included.
+2. Write structured findings JSON (for inline comment pipeline):
+   - Path: `/tmp/review-findings.json`
+   - Format: `Array<{file: string, line: number, body: string, category: string, confidence: number}>`
+   - Extract from F: ∀f ∈ F where f has a `<file>:<line>` attribution line
+   - Only write if ∃ PR# (same condition as comment posting)
+3. `/tmp/review-comment.md` → `gh pr comment <#> --body-file /tmp/review-comment.md`
+4. Comment body includes `## Code Review` header.
+   Add markers at the top: `<!-- reviewed-by-bot -->` and `<!-- review-sha: {HEAD_SHA} -->`
+   where HEAD_SHA = `git rev-parse HEAD`
 
 **→ immediately continue to Phase 8 (¬stop).**
 
