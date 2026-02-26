@@ -2,18 +2,19 @@ import { Button } from '@repo/ui'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 import { authClient, useSession } from '@/lib/authClient'
 import { m } from '@/paraglide/messages'
 import { AuthLayout } from '../../components/AuthLayout'
 
 type VerifySearch = {
   token?: string
+  error?: string
 }
 
 export const Route = createFileRoute('/magic-link/verify')({
   validateSearch: (search: Record<string, unknown>): VerifySearch => ({
     token: typeof search.token === 'string' ? search.token : undefined,
+    error: typeof search.error === 'string' ? search.error : undefined,
   }),
   component: MagicLinkVerifyPage,
   head: () => ({
@@ -21,76 +22,12 @@ export const Route = createFileRoute('/magic-link/verify')({
   }),
 })
 
-function useVerifyMagicLink(token: string | undefined) {
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
-  const [errorCode, setErrorCode] = useState<string>('UNKNOWN')
-
-  useEffect(() => {
-    if (!token) {
-      setErrorCode('NO_TOKEN')
-      setStatus('error')
-      return
-    }
-
-    let isMounted = true
-
-    async function verify(t: string) {
-      try {
-        const { error } = await authClient.magicLink.verify({ query: { token: t } })
-        if (!isMounted) return
-        if (error) {
-          const code = error.code || error.message || 'UNKNOWN'
-          setErrorCode(code)
-          setStatus('error')
-        } else {
-          setStatus('success')
-        }
-      } catch {
-        if (isMounted) {
-          setErrorCode('UNKNOWN')
-          setStatus('error')
-        }
-      }
-    }
-
-    verify(token)
-    return () => {
-      isMounted = false
-    }
-  }, [token])
-
-  return { status, errorCode }
-}
-
 function VerifyingState() {
   return (
     <AuthLayout title={m.auth_magic_link_verify_title()}>
       <div className="flex flex-col items-center gap-4">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">{m.auth_magic_link_verifying()}</p>
-      </div>
-    </AuthLayout>
-  )
-}
-
-function SuccessState() {
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    toast.success(m.auth_magic_link_verified_title())
-    const timer = setTimeout(() => {
-      navigate({ to: '/dashboard' })
-    }, 1500)
-    return () => clearTimeout(timer)
-  }, [navigate])
-
-  return (
-    <AuthLayout title={m.auth_magic_link_verified_title()}>
-      <div className="text-center space-y-4">
-        <p className="text-sm text-muted-foreground">{m.auth_magic_link_verified()}</p>
-        <Button asChild className="w-full">
-          <Link to="/dashboard">{m.auth_continue_to_app()}</Link>
-        </Button>
+        <Loader2 aria-hidden="true" className="size-8 animate-spin text-muted-foreground" />
+        <output className="text-sm text-muted-foreground">{m.auth_magic_link_verifying()}</output>
       </div>
     </AuthLayout>
   )
@@ -103,7 +40,7 @@ function ErrorState({ errorCode }: { errorCode: string }) {
   return (
     <AuthLayout title={m.auth_magic_link_verify_title()}>
       <div className="text-center space-y-4">
-        <p role="alert" aria-live="polite" className="text-sm text-destructive">
+        <p role="alert" className="text-sm text-destructive">
           {errorMessage}
         </p>
         {showRequestNewLink ? (
@@ -172,35 +109,65 @@ function WarningState({ email }: { email: string }) {
 }
 
 function MagicLinkVerifyPage() {
-  const { token } = Route.useSearch()
-  const { data: session } = useSession()
+  const { token, error } = Route.useSearch()
+  const { data: session, isPending } = useSession()
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (session && !token) {
+    if (!isPending && session && !token && !error) {
       navigate({ to: '/dashboard' })
     }
-  }, [session, token, navigate])
+  }, [isPending, session, token, error, navigate])
+
+  // Wait for session to resolve before deciding
+  if (isPending) return <VerifyingState />
 
   // Session + token: show warning
   if (session && token) {
     return <WarningState email={session.user.email} />
   }
 
-  // Session + no token: redirecting (handled by useEffect above)
-  if (session && !token) {
+  // Session + no token + no error: redirecting (handled by useEffect above)
+  if (session && !token && !error) {
     return null
   }
 
-  // No session: proceed with verification
-  return <GuestVerifyFlow token={token} />
+  // No session (or error redirect): proceed with verification
+  return <GuestVerifyFlow token={token} error={error} />
 }
 
-function GuestVerifyFlow({ token }: { token: string | undefined }) {
-  const { status, errorCode } = useVerifyMagicLink(token)
+// Better Auth's magic link verify endpoint uses HTTP 302 redirects to communicate
+// results (not JSON). We navigate the browser directly to the API endpoint:
+//   - Valid token → 302 to callbackURL (/dashboard) with session cookie
+//   - Invalid/expired → 302 to errorCallbackURL (/magic-link/verify?error=CODE)
+function GuestVerifyFlow({
+  token,
+  error,
+}: {
+  token: string | undefined
+  error: string | undefined
+}) {
+  // Navigate to API verify endpoint for server-side token processing.
+  // Skipped when error is present (returning from API redirect) or token is missing.
+  useEffect(() => {
+    if (!token || error) return
+    const params = new URLSearchParams({
+      token,
+      callbackURL: '/dashboard',
+      errorCallbackURL: '/magic-link/verify',
+    })
+    window.location.href = `/api/auth/magic-link/verify?${params.toString()}`
+  }, [token, error])
 
-  if (status === 'loading') return <VerifyingState />
-  if (status === 'success') return <SuccessState />
+  // Error code from API redirect (e.g., ?error=EXPIRED_TOKEN)
+  if (error) {
+    return <ErrorState errorCode={error} />
+  }
 
-  return <ErrorState errorCode={errorCode} />
+  // No token provided
+  if (!token) {
+    return <ErrorState errorCode="NO_TOKEN" />
+  }
+
+  return <VerifyingState />
 }

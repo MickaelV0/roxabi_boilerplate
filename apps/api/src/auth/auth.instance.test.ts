@@ -535,6 +535,34 @@ describe('createBetterAuth sendMagicLink', () => {
     })
   })
 
+  it('should default to "en" locale when user locale is null', async () => {
+    // Arrange
+    const mockDb = createMockDb()
+    const mockEmail = createMockEmailProvider()
+    mockDb._mocks.selectWhereFn.mockResolvedValueOnce([{ locale: null }])
+    createBetterAuth(mockDb as never, mockEmail as never, defaultConfig)
+    const handler = getMagicLinkHandler()
+
+    mockRenderMagicLinkEmail.mockResolvedValueOnce({
+      html: '<p>Magic EN</p>',
+      text: 'Sign in',
+      subject: 'Sign in to Roxabi',
+    })
+
+    // Act
+    await handler({
+      email: 'user@example.com',
+      url: 'http://localhost:4000/api/auth/magic-link/verify?token=mx',
+    })
+
+    // Assert
+    expect(mockRenderMagicLinkEmail).toHaveBeenCalledWith(
+      'http://localhost:3000/magic-link/verify?token=mx',
+      'en',
+      'http://localhost:3000'
+    )
+  })
+
   it('should throw APIError when user not found in DB', async () => {
     // Arrange
     const mockDb = createMockDb()
@@ -549,7 +577,7 @@ describe('createBetterAuth sendMagicLink', () => {
         email: 'unknown@example.com',
         url: 'http://localhost:4000/api/auth/magic-link/verify?token=m2',
       })
-    ).rejects.toThrow()
+    ).rejects.toThrow('USER_NOT_FOUND')
 
     // Email should NOT be sent
     expect(mockEmail.send).not.toHaveBeenCalled()
