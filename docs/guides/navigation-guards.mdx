@@ -40,7 +40,7 @@ This table covers every user-state and page-type combination:
 
 ### `requireAuth()`
 
-Used in `beforeLoad` for pages that need an authenticated user. Fetches the session via `authClient.getSession()`. If no session exists, redirects to `/login` with the current path captured as a `redirect` search parameter.
+Used in `beforeLoad` for pages that need an authenticated user. Reads the session from `ctx.context.session` — populated by the root route's `beforeLoad` (see [Root Context Auth](#root-context-auth) below). If no session exists, redirects to `/login` with the current path captured as a `redirect` search parameter.
 
 ```ts
 export const Route = createFileRoute('/dashboard')({
@@ -92,21 +92,21 @@ flowchart TD
     HAS_GUARD -- No --> RENDER["Render page"]
     HAS_GUARD -- Yes --> WHICH{"Which guard?"}
 
-    WHICH -- "requireGuest()" --> FETCH_G["Fetch session"]
-    FETCH_G --> HAS_SESSION_G{"Session exists?"}
+    WHICH -- "requireGuest()" --> READ_G["Read session from context"]
+    READ_G --> HAS_SESSION_G{"Session exists?"}
     HAS_SESSION_G -- Yes --> REDIR_DASH["Redirect → /dashboard"]
     HAS_SESSION_G -- No --> RENDER
 
-    WHICH -- "requireAuth()" --> FETCH_A["Fetch session"]
-    FETCH_A --> HAS_SESSION_A{"Session exists?"}
+    WHICH -- "requireAuth()" --> READ_A["Read session from context"]
+    READ_A --> HAS_SESSION_A{"Session exists?"}
     HAS_SESSION_A -- No --> REDIR_LOGIN["Redirect → /login?redirect=path"]
     HAS_SESSION_A -- Yes --> RENDER
 
     WHICH -- "enforceRoutePermission()" --> READ_PERM["Read staticData.permission"]
     READ_PERM --> HAS_PERM{"Permission<br/>declared?"}
     HAS_PERM -- No --> RENDER
-    HAS_PERM -- Yes --> FETCH_E["Fetch enriched session<br/>from /api/session"]
-    FETCH_E --> HAS_SESSION_E{"Session exists?"}
+    HAS_PERM -- Yes --> READ_E["Read session from context"]
+    READ_E --> HAS_SESSION_E{"Session exists?"}
     HAS_SESSION_E -- No --> REDIR_LOGIN
     HAS_SESSION_E -- Yes --> PERM_TYPE{"Permission type?"}
 
@@ -145,7 +145,6 @@ flowchart TD
 | `/register` | `/dashboard` |
 | `/reset-password` | `/dashboard` |
 | `/reset-password/confirm` | `/dashboard` |
-| `/magic-link/verify` | `/dashboard` |
 
 ### Protected Pages (`requireAuth`)
 
@@ -174,6 +173,9 @@ flowchart TD
 | `/admin/audit-logs` | `role:superadmin` | `/admin` |
 | `/admin/organizations` | `role:superadmin` | `/admin` |
 | `/admin/organizations/$orgId` | `role:superadmin` | `/admin` |
+| `/admin/feature-flags` | `role:superadmin` | `/admin` |
+| `/admin/system-settings` | `role:superadmin` | `/admin` |
+| `/admin/health` | `role:superadmin` (disabled) | `/admin` |
 
 ### Legacy Redirects
 
@@ -195,19 +197,32 @@ This means a route like `/admin/users` goes through two guard checks: first the 
 
 ## SSR and Edge Cases
 
-### Server-Side Rendering
+### Root Context Auth
 
-All guards return early when running on the server:
+Guards no longer fetch the session independently. Instead, the root route (`__root.tsx`) fetches the session **once** in its `beforeLoad` via `getServerEnrichedSession()` — a `createServerFn` defined in `routePermissions.ts`:
+
+- **During SSR:** the server function executes inline, forwarding cookies via `getRequestHeader`. No client round-trip occurs.
+- **During client-side navigation:** the server function runs as an RPC call.
+
+The session is returned from root `beforeLoad` and merged into TanStack Router's context (`MyRouterContext`). All child route guards simply read `ctx.context.session` — zero additional API calls and no SSR environment checks. Auth is enforced identically on SSR and in the browser.
 
 ```ts
-if (typeof window === 'undefined') return
-```
+// router.tsx — initial context
+createRouter({ context: { session: null } })
 
-This means the server renders the page shell without auth enforcement. Auth checks happen on client hydration. This is intentional — server-side loaders must not fetch sensitive data without auth, and session cookies are not available during SSR.
+// __root.tsx — root beforeLoad
+const session = await getServerEnrichedSession()
+return { session }
+
+// routeGuards.ts — guard reads from context
+export function requireAuth(ctx: BeforeLoadContext) {
+  if (!ctx.context.session) throw redirect({ to: '/login', ... })
+}
+```
 
 ### Session Fetch Failures
 
-When `authClient.getSession()` or `fetchEnrichedSession()` fails (network error, server down), the session is treated as `null`. The user is redirected as if unauthenticated. There is no retry logic — React Query is configured with `retry: false` for the enriched session.
+When `getServerEnrichedSession()` encounters a network error or the API is unavailable, it catches the error and returns `null`. Guards treat a `null` session as unauthenticated and redirect accordingly. There is no retry logic at the guard level.
 
 ### Post-Login Redirect
 
@@ -227,10 +242,10 @@ Beyond route guards, individual components use `useCanAccess(path)` and `hasPerm
 
 | File | Purpose |
 |------|---------|
+| `apps/web/src/routes/__root.tsx` | Root route — fetches session via `getServerEnrichedSession()` server function, provides it to all child routes via context |
 | `apps/web/src/lib/routeGuards.ts` | `requireAuth()`, `requireGuest()`, `safeRedirect()` |
-| `apps/web/src/lib/routePermissions.ts` | `enforceRoutePermission()`, `useCanAccess()`, `useEnrichedSession()` |
+| `apps/web/src/lib/routePermissions.ts` | `enforceRoutePermission()`, `getServerEnrichedSession()`, `useCanAccess()`, `useEnrichedSession()` |
 | `apps/web/src/lib/permissions.ts` | `hasPermission()`, `hasAllPermissions()`, `hasAnyPermission()` |
-| `apps/web/src/lib/authClient.ts` | Better Auth React client (`useSession`, `signIn`, `signOut`) |
 
 ## Related Documentation
 

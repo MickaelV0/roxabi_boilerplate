@@ -19,11 +19,14 @@ import { Header } from '../components/Header'
 import { TanStackQueryDevtools } from '../integrations/tanstack-query/devtools'
 import { ConsentProvider } from '../lib/consent/consentProvider'
 import { getServerConsent } from '../lib/consent/server'
+import type { EnrichedSession } from '../lib/routePermissions'
+import { getServerEnrichedSession } from '../lib/routePermissions'
 import appCss from '../styles.css?url'
 
 export type MyRouterContext = {
   queryClient: QueryClient
   serverConsent?: ConsentCookiePayload | null
+  session: EnrichedSession | null
 }
 
 function ErrorFallback({
@@ -58,6 +61,8 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('lang', getLocale())
     }
+    const session = await getServerEnrichedSession()
+    return { session }
   },
 
   loader: async () => {

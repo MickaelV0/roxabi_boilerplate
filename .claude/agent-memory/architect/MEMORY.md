@@ -5,7 +5,7 @@
 ### Spec Review: Sound
 - **Better Auth Integration:** Correct. Throwing errors in `sendMagicLink` callback propagates via SDK to client. No need for wrapper endpoints.
 - **Verify Error Codes:** `INVALID_TOKEN` and `EXPIRED_TOKEN` are native Better Auth codes. Spec correctly identifies need to extract `error.code` from response.
-- **requireGuest Removal:** Sound. Replace route-level guard with inline `authClient.useSession()` to enable conditional rendering of warning UI.
+- **requireGuest on magic-link/verify:** For the warning UI use case, move the session check into the component using `authClient.useSession()` — route guards cannot render conditional UI. Note: `requireGuest` itself still exists and reads from root context (not removed).
 - **Security:** Email enumeration accepted and mitigated (global rate limit: 5/60s per IP). Comparable to email/password login flow.
 
 ### Code Validation

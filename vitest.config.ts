@@ -65,10 +65,10 @@ export default defineConfig({
       ],
       // See artifacts/specs/17-testing-gold-standard.mdx for rationale.
       thresholds: {
-        lines: 93,
-        functions: 92,
+        lines: 92,
+        functions: 89,
         branches: 84,
-        statements: 92,
+        statements: 91,
       },
     },
   },

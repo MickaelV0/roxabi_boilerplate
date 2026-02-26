@@ -11,6 +11,7 @@
 import type { PermissionString } from '@repo/types'
 import { useQuery } from '@tanstack/react-query'
 import { redirect, useRouter } from '@tanstack/react-router'
+import { createServerFn } from '@tanstack/react-start'
 import type { StaticDataRouteOption } from '@tanstack/router-core'
 
 // ---------------------------------------------------------------------------
@@ -35,9 +36,10 @@ declare module '@tanstack/router-core' {
 // Enriched session fetcher
 // ---------------------------------------------------------------------------
 
-type EnrichedSession = {
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
+export type EnrichedSession = {
   user: { id: string; name?: string; email: string; role?: string }
-  session: Record<string, unknown>
+  session: Record<string, JsonValue>
   permissions: string[]
 }
 
@@ -50,7 +52,33 @@ function isEnrichedSession(data: unknown): data is EnrichedSession {
 }
 
 /**
+ * Server function to fetch the enriched session by forwarding cookies
+ * from the incoming request to the NestJS backend.
+ * Works both during SSR (inline) and client-side navigations (via RPC).
+ */
+export const getServerEnrichedSession = createServerFn({ method: 'GET' }).handler(
+  async (): Promise<EnrichedSession | null> => {
+    const { getRequestHeader } = await import('@tanstack/react-start/server')
+    const { env } = await import('./env.server.js')
+    try {
+      const cookie = getRequestHeader('cookie')
+      if (!cookie) return null
+      const res = await fetch(`${env.API_URL}/api/session`, {
+        headers: { cookie },
+      })
+      if (!res.ok) return null
+      const data: unknown = await res.json()
+      if (!isEnrichedSession(data)) return null
+      return data
+    } catch {
+      return null
+    }
+  }
+)
+
+/**
  * Fetch the enriched session (with RBAC permissions) from the NestJS backend.
+ * Client-side only — used by React Query hooks.
  * Returns `null` when the user is not authenticated.
  */
 async function fetchEnrichedSession(): Promise<EnrichedSession | null> {
@@ -71,11 +99,10 @@ async function fetchEnrichedSession(): Promise<EnrichedSession | null> {
 
 /**
  * Generic `beforeLoad` guard that reads `staticData.permission` from the
- * current route match and enforces it.
+ * current route match and enforces it against the session from root context.
  *
  * Behaviour:
  * - No `permission` defined on the route -> allow (return early).
- * - SSR (no `window`) -> return early (same pattern as existing guards).
  * - `permission` starts with `'role:'` -> check `session.user.role` matches
  *   the suffix (e.g. `'role:superadmin'`).
  * - Otherwise -> check `session.permissions.includes(permission)` OR
@@ -105,11 +132,8 @@ export async function enforceRoutePermission(ctx: any): Promise<void> {
   const permission = currentMatch?.staticData?.permission
   if (!permission) return
 
-  // SSR: no browser cookies available — return early.
-  // The guard re-runs on hydration with cookies, enforcing the real redirect.
-  if (typeof window === 'undefined') return
-
-  const session = await fetchEnrichedSession()
+  // Read session from root route context (fetched once in __root.tsx beforeLoad)
+  const session = ctx.context?.session as EnrichedSession | null
 
   // No session at all -> redirect to login
   if (!session) {
