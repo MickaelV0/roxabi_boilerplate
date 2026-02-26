@@ -33,6 +33,7 @@
         "turbo-ignore": "^2.8.10",
         "typescript": "^5.9.3",
         "vitest": "^4.0.18",
+        "yaml": "^2.8.2",
       },
     },
     "apps/api": {
