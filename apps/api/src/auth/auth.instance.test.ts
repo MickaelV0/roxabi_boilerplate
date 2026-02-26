@@ -535,7 +535,7 @@ describe('createBetterAuth sendMagicLink', () => {
     })
   })
 
-  it('should default to "en" locale when user not found in DB', async () => {
+  it('should throw APIError when user not found in DB', async () => {
     // Arrange
     const mockDb = createMockDb()
     const mockEmail = createMockEmailProvider()
@@ -543,24 +543,17 @@ describe('createBetterAuth sendMagicLink', () => {
     createBetterAuth(mockDb as never, mockEmail as never, defaultConfig)
     const handler = getMagicLinkHandler()
 
-    mockRenderMagicLinkEmail.mockResolvedValueOnce({
-      html: '<p>Magic EN</p>',
-      text: 'Sign in',
-      subject: 'Sign in to Roxabi',
-    })
+    // Act & Assert — should reject unregistered emails
+    await expect(
+      handler({
+        email: 'unknown@example.com',
+        url: 'http://localhost:4000/api/auth/magic-link/verify?token=m2',
+      })
+    ).rejects.toThrow()
 
-    // Act
-    await handler({
-      email: 'unknown@example.com',
-      url: 'http://localhost:4000/api/auth/magic-link/verify?token=m2',
-    })
-
-    // Assert
-    expect(mockRenderMagicLinkEmail).toHaveBeenCalledWith(
-      'http://localhost:3000/magic-link/verify?token=m2',
-      'en',
-      'http://localhost:3000'
-    )
+    // Email should NOT be sent
+    expect(mockEmail.send).not.toHaveBeenCalled()
+    expect(mockRenderMagicLinkEmail).not.toHaveBeenCalled()
   })
 
   it('should send fallback email when renderMagicLinkEmail throws', async () => {
@@ -588,7 +581,7 @@ describe('createBetterAuth sendMagicLink', () => {
     })
   })
 
-  it('should send fallback email when DB query throws', async () => {
+  it('should propagate error when DB query throws', async () => {
     // Arrange
     const mockDb = createMockDb()
     const mockEmail = createMockEmailProvider()
@@ -596,19 +589,16 @@ describe('createBetterAuth sendMagicLink', () => {
     createBetterAuth(mockDb as never, mockEmail as never, defaultConfig)
     const handler = getMagicLinkHandler()
 
-    // Act
-    await handler({
-      email: 'user@example.com',
-      url: 'http://localhost:4000/api/auth/magic-link/verify?token=m4',
-    })
+    // Act & Assert — DB errors propagate (not caught by email fallback)
+    await expect(
+      handler({
+        email: 'user@example.com',
+        url: 'http://localhost:4000/api/auth/magic-link/verify?token=m4',
+      })
+    ).rejects.toThrow('DB error')
 
-    // Assert - the whole try block fails, falls to catch with frontend URL
-    expect(mockEmail.send).toHaveBeenCalledWith({
-      to: 'user@example.com',
-      subject: 'Sign in to Roxabi',
-      html: '<p>Click <a href="http://localhost:3000/magic-link/verify?token=m4">here</a> to sign in.</p>',
-      text: 'Sign in to Roxabi: http://localhost:3000/magic-link/verify?token=m4',
-    })
+    // Email should NOT be sent
+    expect(mockEmail.send).not.toHaveBeenCalled()
   })
 })
 
