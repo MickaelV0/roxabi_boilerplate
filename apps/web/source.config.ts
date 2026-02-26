@@ -1,5 +1,7 @@
 import { remarkMdxMermaid } from 'fumadocs-core/mdx-plugins'
+import { createRehypeCode } from 'fumadocs-core/mdx-plugins/rehype-code.core'
 import { defineConfig, defineDocs } from 'fumadocs-mdx/config'
+import { shikiConfig } from './src/lib/shiki'
 
 export const docs = defineDocs({
   dir: 'docs', // Symlink to ../../docs
@@ -10,28 +12,15 @@ export const docs = defineDocs({
   },
 })
 
+// Use fine-grained Shiki config to avoid bundling all 200+ grammars.
+// See src/lib/shiki.ts for details.
+const rehypeCode = createRehypeCode(shikiConfig)
+
 export default defineConfig({
   mdxOptions: {
     remarkPlugins: [remarkMdxMermaid],
-    rehypeCodeOptions: {
-      themes: {
-        light: 'github-light',
-        dark: 'github-dark',
-      },
-      langs: [
-        'typescript',
-        'ts',
-        'tsx',
-        'javascript',
-        'js',
-        'bash',
-        'lua',
-        'json',
-        'jsonc',
-        'yaml',
-        'sql',
-        'toml',
-      ],
-    },
+    // Disable default rehype-code (imports full `shiki` bundle → OOM).
+    rehypeCodeOptions: false,
+    rehypePlugins: [[rehypeCode]],
   },
 })
