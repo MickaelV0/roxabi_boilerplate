@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { EnrichedSession } from './routePermissions'
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -19,7 +20,13 @@ import { requireAuth, requireGuest, safeRedirect } from './routeGuards'
 // Helpers
 // ---------------------------------------------------------------------------
 
-function createCtx(session: unknown, pathname = '/dashboard', searchStr = '') {
+const validSession: EnrichedSession = {
+  user: { id: '1', email: 'test@example.com' },
+  session: {},
+  permissions: [],
+}
+
+function createCtx(session: EnrichedSession | null, pathname = '/dashboard', searchStr = '') {
   return {
     location: {
       pathname,
@@ -128,7 +135,7 @@ describe('requireAuth', () => {
   })
 
   it('should not throw when session exists in context', async () => {
-    const ctx = createCtx({ user: { id: '1' } })
+    const ctx = createCtx(validSession)
     await expect(requireAuth(ctx)).resolves.toBeUndefined()
   })
 
@@ -184,7 +191,7 @@ describe('requireGuest', () => {
   })
 
   it('should throw redirect to /dashboard when session exists', async () => {
-    const ctx = createCtx({ user: { id: '1' } })
+    const ctx = createCtx(validSession)
     await expect(requireGuest(ctx)).rejects.toThrow('REDIRECT:/dashboard')
   })
 })

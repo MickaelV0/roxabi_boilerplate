@@ -144,6 +144,9 @@ describe('getServerEnrichedSession', () => {
     mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(session) })
     const result = await getServerEnrichedSession()
     expect(result).toEqual(session)
+    expect(mockFetch).toHaveBeenCalledWith('http://localhost:4000/api/session', {
+      headers: { cookie: 'session=abc' },
+    })
   })
 
   it('should return null when session data has no user', async () => {
@@ -176,6 +179,17 @@ describe('enforceRoutePermission', () => {
   it('should return early when no permission is defined in staticData', async () => {
     // Arrange
     const ctx = createBeforeLoadCtx()
+
+    // Act
+    const result = await enforceRoutePermission(ctx)
+
+    // Assert
+    expect(result).toBeUndefined()
+  })
+
+  it('should return early when matches array is empty', async () => {
+    // Arrange — no matching route means no permission to enforce
+    const ctx = { routeId: '/admin/test', matches: [], context: { session: null } }
 
     // Act
     const result = await enforceRoutePermission(ctx)

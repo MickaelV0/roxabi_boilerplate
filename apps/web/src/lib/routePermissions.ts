@@ -36,7 +36,7 @@ declare module '@tanstack/router-core' {
 // Enriched session fetcher
 // ---------------------------------------------------------------------------
 
-type JsonValue = string | number | boolean | null
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
 export type EnrichedSession = {
   user: { id: string; name?: string; email: string; role?: string }
   session: Record<string, JsonValue>
@@ -99,7 +99,7 @@ async function fetchEnrichedSession(): Promise<EnrichedSession | null> {
 
 /**
  * Generic `beforeLoad` guard that reads `staticData.permission` from the
- * current route match and enforces it via a server function.
+ * current route match and enforces it against the session from root context.
  *
  * Behaviour:
  * - No `permission` defined on the route -> allow (return early).

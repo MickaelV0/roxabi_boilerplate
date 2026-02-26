@@ -1,5 +1,6 @@
 import type { ParsedLocation } from '@tanstack/react-router'
 import { redirect } from '@tanstack/react-router'
+import type { EnrichedSession } from './routePermissions'
 
 /** Subset of TanStack Router's beforeLoad context relevant to route guards.
  *  Accepting the full context now enables redirect-back-after-login later. */
@@ -7,7 +8,7 @@ export type BeforeLoadContext = {
   location: ParsedLocation
   preload: boolean
   cause: 'preload' | 'enter' | 'stay'
-  context: { session: unknown }
+  context: { session: EnrichedSession | null }
 }
 
 /** Validate a redirect target to prevent open-redirect attacks.
@@ -45,6 +46,6 @@ export async function requireAuth(ctx?: BeforeLoadContext) {
 /** Redirect authenticated users to /dashboard.
  *  Used in `beforeLoad` for guest-only routes (login, register, landing).
  *  Reads session from root route context (fetched once in __root.tsx beforeLoad). */
-export async function requireGuest(_ctx?: BeforeLoadContext) {
-  if (_ctx?.context?.session) throw redirect({ to: '/dashboard' })
+export async function requireGuest(ctx?: BeforeLoadContext) {
+  if (ctx?.context?.session) throw redirect({ to: '/dashboard' })
 }
