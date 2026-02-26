@@ -169,8 +169,12 @@ function ciSummary(checks: PR['checks']): { icon: string; label: string; cssClas
   const running = checks.filter((c) => c.status === 'IN_PROGRESS').length
 
   if (fail > 0) return { icon: '\u274c', label: `${fail}/${total} failed`, cssClass: 'ci-failure' }
-  if (running > 0)
-    return { icon: CI_SPINNER, label: `${running}/${total} running`, cssClass: 'ci-running' }
+  if (running > 0 || (pass < total && fail === 0)) {
+    // Show progress: how many done so far out of total
+    if (pass === 0 && running > 0)
+      return { icon: CI_SPINNER, label: `0/${total} passed`, cssClass: 'ci-running' }
+    return { icon: CI_SPINNER, label: `${pass}/${total} passed`, cssClass: 'ci-running' }
+  }
   if (pass === total) return { icon: '\u2705', label: `${total} passed`, cssClass: 'ci-success' }
   return {
     icon: CI_SPINNER,

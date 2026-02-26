@@ -69,7 +69,7 @@
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
     "fumadocs-mdx": "^14.2.8",
-    "shiki": "^3.22.0"
+    "shiki": "^3.23.0"
   },
   "overrides": {
     "minimatch": ">=10.2.1",
