@@ -114,17 +114,31 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
 
-      - name: Post review markers (deterministic)
+      - name: Attach review markers to Claude's comment
         if: steps.preflight.outputs.skip != 'true' && (steps.review-first.outcome == 'success' || steps.review-followup.outcome == 'success')
         run: |
-          gh pr comment "$PR_NUMBER" \
-            --body "<!-- reviewed-by-bot -->
-<!-- review-sha: $HEAD_SHA -->
-_Automated review posted. See review comment above._"
+          # Find the most recently posted PR comment containing the review header
+          COMMENT_ID=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --jq '[.[] | select(.body | contains("## Code Review"))] | last | .id // empty')
+
+          if [ -z "$COMMENT_ID" ]; then
+            echo "Warning: could not find Claude's review comment — posting standalone marker as fallback"
+            gh pr comment "$PR_NUMBER" \
+              --body "<!-- reviewed-by-bot --><!-- review-sha: ${HEAD_SHA} -->"
+            exit 0
+          fi
+
+          # Append hidden markers to Claude's existing comment (no visible change)
+          CURRENT_BODY=$(gh api "repos/${GITHUB_REPOSITORY}/issues/comments/${COMMENT_ID}" \
+            --jq '.body')
+          printf '%s' "${CURRENT_BODY}"$'\n'"<!-- reviewed-by-bot -->"$'\n'"<!-- review-sha: ${HEAD_SHA} -->" \
+            | gh api "repos/${GITHUB_REPOSITORY}/issues/comments/${COMMENT_ID}" \
+              -X PATCH --input <(jq -Rs '{body: .}')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ steps.context.outputs.head_sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
 
       - name: Post inline comments
         if: steps.preflight.outputs.skip != 'true'
