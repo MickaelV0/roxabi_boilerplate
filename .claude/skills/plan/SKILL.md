@@ -119,20 +119,7 @@ Include:
 AskUserQuestion: complexity, tier, task count, agents, consistency, slices.
 Options: **Approve** | **Modify** | **Return to spec**
 
-On Approve → commit plan artifact (standalone commit, ¬amend):
-
-```bash
-mkdir -p artifacts/plans
-git add artifacts/plans/{issue}-{slug}.mdx
-git commit -m "$(cat <<'EOF'
-docs(<scope>): add implementation plan for <feature>
-
-Refs #<N>
-
-Co-Authored-By: Claude <model> <noreply@anthropic.com>
-EOF
-)"
-```
+On Approve → commit artifact: `git add artifacts/plans/{issue}-{slug}.mdx` + commit per CLAUDE.md Rule 5.
 
 ## Edge Cases
 

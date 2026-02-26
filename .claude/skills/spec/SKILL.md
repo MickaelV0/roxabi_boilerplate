@@ -128,7 +128,9 @@ Present summary: scope, slices count, acceptance criteria count, `[NEEDS CLARIFI
 
 AskUserQuestion: **Approve** → continue pipeline | **Revise** → collect feedback → revise σ → loop from [Step 3 Pre-check](#step-3--pre-check).
 
-On approval → run [Gate 2.5 Smart Splitting](#gate-25-smart-splitting-optional) → update issue status → done.
+On approval → commit artifact: `git add artifacts/specs/{N}-{slug}.mdx` + commit per CLAUDE.md Rule 5.
+
+Run [Gate 2.5 Smart Splitting](#gate-25-smart-splitting-optional) → update issue status → done.
 
 ```bash
 bun .claude/skills/issue-triage/triage.ts set <N> --status Specs

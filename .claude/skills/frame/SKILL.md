@@ -125,6 +125,8 @@ AskUserQuestion: **Approve** | **Revise** (specify what to change).
 
 φ written at `artifacts/frames/{slug}.mdx` with `status: approved`.
 
+Commit artifact: `git add artifacts/frames/{slug}.mdx` + commit per CLAUDE.md Rule 5.
+
 ∃ N ⇒ update issue status:
 ```bash
 bun .claude/skills/issue-triage/triage.ts set N --status Analysis

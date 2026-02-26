@@ -116,15 +116,7 @@ Fixer constraints:
 ## Phase 6 — Commit + Push
 
 1. Stage specific files only (¬`git add -A`)
-2. Commit:
-   ```
-   fix(<scope>): apply review findings (#<PR>)
-
-   - <short description of finding 1>
-   - <short description of finding 2>
-
-   Co-Authored-By: Claude <model> <noreply@anthropic.com>
-   ```
+2. Commit per CLAUDE.md Rule 5. Include list of applied findings in body.
 3. AskUserQuestion: "Push now?" / "I'll push later"
 4. If push approved → `git push`
 

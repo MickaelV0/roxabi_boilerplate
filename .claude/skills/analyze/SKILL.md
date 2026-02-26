@@ -167,8 +167,9 @@ Present summary: shapes found, trade-offs, recommended shape, unresolved concern
 
 AskUserQuestion: **Approve** → update issue status → done | **Revise** → collect feedback → revise α → loop from [Step 3 Expert Review](#step-3--expert-review-1).
 
-On approval:
+On approval → commit artifact: `git add artifacts/analyses/{N}-{slug}.mdx` + commit per CLAUDE.md Rule 5.
 
+Update issue status:
 ```bash
 bun .claude/skills/issue-triage/triage.ts set <N> --status Analysis
 ```

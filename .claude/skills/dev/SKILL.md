@@ -11,7 +11,8 @@ Let:
   N    := issue number
   slug := kebab-case title slug
   τ    := tier (S | F-lite | F-full)
-  Σ    := state map (step → bool)
+  Σ    := state map (step → bool | null), persisted via artifacts
+  Σ_s  := session state map (step → bool), in-memory only, lost on restart
   S*   := next step to execute
 
 Single entry point for the full dev lifecycle. Scans artifacts → detects state → shows progress → delegates to step skill → loops.
@@ -50,7 +51,19 @@ gh issue list --search "{text}" --json number,title,state --jq '.[:3]'
 ```
 ∃ match ⇒ AskUserQuestion: **Use #{N}: {title}** | **Create new issue** | **Proceed without issue**.
 
-`--from <step>` ⇒ record override. Warn if prerequisite artifacts missing.
+`--from <step>` ⇒ record override. Warn if prerequisite artifacts missing per table:
+
+| Step | Required artifacts |
+|------|-------------------|
+| frame | issue (triage) |
+| analyze | `artifacts/frames/{slug}.mdx` (approved) |
+| spec | `artifacts/frames/{slug}.mdx` or `artifacts/analyses/{N}-{slug}.mdx` |
+| plan | `artifacts/specs/{N}-{slug}.mdx` |
+| implement | `artifacts/plans/{N}-{slug}.mdx` (or spec for S-tier) |
+| pr | worktree with code changes |
+| validate | PR ∃ |
+| review | PR ∃ |
+| fix | review findings (PR comment with "## Code Review") |
 
 ## Step 1 — Scan State (parallel, &lt;3s)
 
@@ -80,6 +93,12 @@ git branch -a | grep "{N}-{slug}"
 
 # PR
 gh pr list --search "#{N}" --json number,state,reviewDecision,merged --jq '.[]'
+
+# Review comment marker (fallback when reviewDecision is null)
+gh pr view {PR#} --json comments --jq '.comments[].body' 2>/dev/null | grep -q "^## Code Review" && echo "review_comment=true"
+
+# Fix comment marker (fallback for fix detection)
+gh pr view {PR#} --json comments --jq '.comments[].body' 2>/dev/null | grep -q "^## Review Fixes Applied" && echo "fix_comment=true"
 ```
 
 Read frontmatter of φ (frame) if ∃ → extract `status`, `tier`.
@@ -92,12 +111,18 @@ Read frontmatter of φ (frame) if ∃ → extract `status`, `tier`.
   plan:      plan artifact ∃,
   implement: worktree ∃ ∧ branch has commits beyond staging,
   pr:        PR ∃,
-  validate:  null,         # always re-run
-  review:    PR ∃ ∧ PR.reviewDecision ∈ ('APPROVED','CHANGES_REQUESTED'),
-  fix:       PR ∃ ∧ ¬open_review_threads(PR),
-  promote:   PR.merged,
+  validate:  null,         # no artifact — uses Σ_s only
+  review:    PR ∃ ∧ (PR.reviewDecision ∈ ('APPROVED','CHANGES_REQUESTED') ∨ pr_has_review_comment(PR)),
+  fix:       PR ∃ ∧ pr_has_fix_comment(PR),
+  promote:   skipped,  # /promote is staging→main (standalone). ¬part of feature /dev cycle. Always skip unless user explicitly requests.
   cleanup:   ¬worktree ∃ ∧ ¬stale_branch ∃,
 }
+
+Σ_s = {} initially. Populated in Step 8 after each skill completes. Lost on session restart.
+Steps with Σ[step] == null (no artifact detection) rely on Σ_s for within-session advancement.
+
+pr_has_review_comment(PR) := PR comments contain a body starting with "## Code Review"
+pr_has_fix_comment(PR)    := PR comments contain a body starting with "## Review Fixes Applied"
 
 τ = φ.tier || issue_size_label_to_tier(issue.labels) || null
 
@@ -140,8 +165,8 @@ should_skip(step, τ, Σ):
   analyze  ∧ τ ∈ {S, F-lite}             → skip (frame sufficient)
   spec     ∧ τ == S                       → skip
   plan     ∧ τ == S                       → skip
-  fix      ∧ Σ.fix                        → skip (no open findings)
-  promote  ∧ ¬needs_release()             → skip (already merged ∨ S-tier no tag needed)
+  fix      ∧ (Σ.fix ∨ Σ_s.fix)            → skip (fixes already applied)
+  promote                                  → skip (/promote is standalone staging→main; ¬auto-triggered by /dev)
   cleanup  ∧ ¬has_stale(N)               → skip
   default                                 → false
 ```
@@ -168,7 +193,7 @@ STEPS = [
 ```
 
 Walk STEPS:
-- Σ[step] == true ∨ should_skip(step) ⇒ mark done/skipped, continue
+- Σ[step] == true ∨ Σ_s[step] == true ∨ should_skip(step) ⇒ mark done/skipped, continue
 - First non-done, non-skipped ⇒ S* = step, stop walk
 
 ∀ steps done ⇒ display completion banner, exit loop.
@@ -192,12 +217,22 @@ AskUserQuestion:
 - **Skip to...** → {list of remaining non-skipped steps}
 - **Stop** → save progress (artifacts persist), exit
 
-**Continue** ⇒ invoke step skill:
-```
-skill: "{S*}", args: "--issue N {any extra args}"
-```
+**Continue** ⇒ invoke step skill using dispatch table:
 
-∀ step skills receive `--issue N` ∧ relevant artifact paths as context where applicable.
+| Step | Skill invocation |
+|------|-----------------|
+| triage | `skill: "issue-triage", args: "set N --status Triage"` |
+| frame | `skill: "frame", args: "--issue N"` |
+| analyze | `skill: "analyze", args: "--issue N"` |
+| spec | `skill: "spec", args: "--issue N"` |
+| plan | `skill: "plan", args: "--issue N"` |
+| implement | `skill: "implement", args: "--issue N"` |
+| pr | `skill: "pr"` (auto-detects branch + issue from worktree context) |
+| validate | `skill: "validate"` (runs in current worktree) |
+| review | `skill: "review"` (auto-detects PR from current branch) |
+| fix | `skill: "fix", args: "#{PR_NUMBER}"` (PR# from Σ scan) |
+| promote | `skill: "promote"` (standalone staging→main — skipped by default) |
+| cleanup | `skill: "cleanup"` (auto-detects stale worktrees/branches) |
 
 **Skip to X** ⇒ warn if prerequisite artifacts for X are missing, then confirm:
 AskUserQuestion: **Proceed anyway** | **Cancel skip**.
@@ -207,7 +242,9 @@ Proceed ⇒ mark all steps before X as skipped for this run, set S* = X, loop to
 
 ## Step 8 — Post-skill Re-scan
 
-After skill completes → goto Step 1 (re-scan artifacts).
+After skill completes → set Σ_s[step] = true → goto Step 1 (re-scan Σ from artifacts).
+Σ_s ensures within-session advancement for steps without artifacts (validate, review, fix).
+On session restart, Σ_s is empty → artifact-less steps re-run (desired: validate results go stale).
 Gates (frame, spec, plan, post-implement) ⇒ re-scan will detect updated artifact state → show updated progress → loop.
 ¬auto-advance past a phase gate without AskUserQuestion.
 
@@ -218,8 +255,8 @@ Gates (frame, spec, plan, post-implement) ⇒ re-scan will detect updated artifa
 | Frame | triage → frame | frame approval (status: approved) |
 | Shape | analyze → spec | spec approval |
 | Build | plan → implement → pr | plan approval; post-implement confirm |
-| Verify | validate → review → fix | post-review: fix/merge/stop |
-| Ship | promote → cleanup | — (auto-advance within Ship) |
+| Verify | validate → review → fix | post-review: fix/merge/stop. Merge = feature→staging (via /review Phase 8). |
+| Ship | promote → cleanup | promote always skipped (/promote is standalone staging→main). cleanup runs if worktree/branches stale. |
 
 ## Tier Skip Matrix
 
@@ -261,7 +298,7 @@ Issue #{N} closed. Worktree cleaned up.
 - Session dies mid-step → re-run `/dev #N`. Re-scan detects partial state. If artifact was half-written, step skill handles it (checks ∃ + status).
 - `--from <step>` with missing deps → warn once: "Step X normally requires {dep artifact}. Proceeding anyway may produce incomplete output." AskUserQuestion: **Proceed** | **Cancel**.
 - Issue ¬exists + free text → proceed in frame-only mode. After frame approved, AskUserQuestion: **Create GitHub issue now** | **Continue without issue**.
-- S* == validate → always re-run even if previously passed (validate: null in Σ).
+- S* == validate → Σ.validate is always null (no artifact). Within a session, Σ_s.validate advances past it. On resume (new session), validate re-runs (Σ_s lost).
 - Multiple open PRs for same issue → show list, AskUserQuestion: select which PR to track.
 - Deprecated `/bootstrap` ∨ `/scaffold` input → emit deprecation notice, then map to equivalent `/dev` entry and proceed.
 
