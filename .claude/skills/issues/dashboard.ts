@@ -8,6 +8,7 @@
  */
 
 import {
+  fetchBranchCI,
   fetchBranches,
   fetchIssues,
   fetchPRs,
@@ -15,7 +16,7 @@ import {
   fetchWorktrees,
 } from './lib/fetch'
 import { buildHtml } from './lib/page'
-import type { Branch, Issue, PR, VercelDeployment, Worktree } from './lib/types'
+import type { Branch, BranchCI, Issue, PR, VercelDeployment, Worktree } from './lib/types'
 import { handleUpdate } from './lib/update'
 
 const PORT = Number(process.argv.find((a) => a.startsWith('--port='))?.split('=')[1] ?? 3333)
@@ -33,7 +34,8 @@ function computeHash(
   prs: PR[],
   branches: Branch[],
   worktrees: Worktree[],
-  deployments: VercelDeployment[]
+  deployments: VercelDeployment[],
+  branchCI: BranchCI[]
 ): string {
   const key = JSON.stringify({
     i: issues.map((i) => [
@@ -54,6 +56,7 @@ function computeHash(
     b: branches.length,
     w: worktrees.length,
     v: deployments.map((d) => [d.uid, d.state, d.buildSteps.map((s) => s.status)]),
+    ci: branchCI.map((c) => [c.branch, c.commitSha, c.overallState]),
   })
   return Bun.hash(key).toString(36)
 }
@@ -61,19 +64,29 @@ function computeHash(
 async function refreshCache(): Promise<void> {
   try {
     const start = performance.now()
-    const [issues, prs, branches, worktrees, deployments] = await Promise.all([
+    const [issues, prs, branches, worktrees, deployments, branchCI] = await Promise.all([
       fetchIssues(),
       fetchPRs(),
       fetchBranches(),
       fetchWorktrees(),
       fetchVercelDeployments(),
+      fetchBranchCI(),
     ])
     const fetchMs = Math.round(performance.now() - start)
-    const hash = computeHash(issues, prs, branches, worktrees, deployments)
+    const hash = computeHash(issues, prs, branches, worktrees, deployments, branchCI)
 
     const changed = !cache || cache.hash !== hash
     const updatedAt = Date.now()
-    const html = buildHtml(issues, prs, branches, worktrees, deployments, fetchMs, updatedAt)
+    const html = buildHtml(
+      issues,
+      prs,
+      branches,
+      worktrees,
+      deployments,
+      branchCI,
+      fetchMs,
+      updatedAt
+    )
     cache = { html, hash, fetchMs, updatedAt }
 
     if (changed) notifyClients()

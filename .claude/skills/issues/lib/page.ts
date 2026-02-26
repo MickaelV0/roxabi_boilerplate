@@ -1,12 +1,13 @@
 import {
   issueRow,
+  renderBranchCI,
   renderBranchesAndWorktrees,
   renderPRs,
   renderVercelDeployments,
 } from './components'
 import { buildDepGraph, renderDepGraph } from './graph'
 import { PAGE_STYLES } from './page-styles'
-import type { Branch, Issue, PR, VercelDeployment, Worktree } from './types'
+import type { Branch, BranchCI, Issue, PR, VercelDeployment, Worktree } from './types'
 
 export function buildHtml(
   issues: Issue[],
@@ -14,6 +15,7 @@ export function buildHtml(
   branches: Branch[],
   worktrees: Worktree[],
   deployments: VercelDeployment[],
+  branchCI: BranchCI[],
   fetchMs: number,
   updatedAt: number
 ): string {
@@ -35,6 +37,7 @@ export function buildHtml(
   const vercelHtml = renderVercelDeployments(deployments)
   const prsHtml = renderPRs(prs)
   const branchesHtml = renderBranchesAndWorktrees(branches, worktrees)
+  const ciHtml = renderBranchCI(branchCI)
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -59,6 +62,8 @@ ${LIVE_STYLES}
   </header>
 
   <div id="section-vercel">${vercelHtml}</div>
+
+  <div id="section-ci" class="section"><h2>CI Status</h2>${ciHtml}</div>
 
   <div id="section-prs">${prs.length > 0 ? `<div class="section"><h2>Pull Requests</h2>${prsHtml}</div>` : ''}</div>
 
@@ -142,8 +147,8 @@ ${LIVE_STYLES}
   <div id="toast" class="toast"></div>
 
   <script>
-  function toggleCI(prNum) {
-    var row = document.getElementById('ci-' + prNum);
+  function toggleCI(id) {
+    var row = document.getElementById(typeof id === 'number' ? 'ci-' + id : id);
     if (!row) return;
     row.style.display = row.style.display === 'none' ? '' : 'none';
   }
@@ -276,7 +281,7 @@ ${LIVE_STYLES}
       });
 
       // Patch issue tables
-      var selectors = ['#issues-visible', '#hidden-issues', '#section-vercel', '#section-prs', '#section-graph', '#section-branches', '#issue-count', '#fetch-time'];
+      var selectors = ['#issues-visible', '#hidden-issues', '#section-vercel', '#section-ci', '#section-prs', '#section-graph', '#section-branches', '#issue-count', '#fetch-time'];
       for (var s = 0; s < selectors.length; s++) {
         var sel = selectors[s];
         var freshEl = freshDoc.querySelector(sel);

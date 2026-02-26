@@ -1,4 +1,4 @@
-import type { Branch, Issue, PR, VercelDeployment, Worktree } from './types'
+import type { Branch, BranchCI, Issue, PR, VercelDeployment, Worktree } from './types'
 
 const PRIORITY_SHORT: Record<string, string> = {
   'P0 - Urgent': 'P0',
@@ -284,6 +284,60 @@ function renderBuildPipeline(steps: VercelDeployment['buildSteps']): string {
         `<span class="vd-step vd-step-${s.status}">${STEP_ICON[s.status]} ${escHtml(s.name)}</span>`
     )
     .join('<span class="vd-step-arrow">\u2192</span>')
+}
+
+const OVERALL_STATE_DISPLAY: Record<string, { icon: string; label: string; cls: string }> = {
+  SUCCESS: { icon: '\u2705', label: 'Passing', cls: 'ci-success' },
+  FAILURE: { icon: '\u274c', label: 'Failing', cls: 'ci-failure' },
+  ERROR: { icon: '\u274c', label: 'Error', cls: 'ci-failure' },
+  PENDING: { icon: CI_SPINNER, label: 'Pending', cls: 'ci-running' },
+  EXPECTED: { icon: CI_SPINNER, label: 'Running', cls: 'ci-running' },
+}
+
+export function renderBranchCI(branches: BranchCI[]): string {
+  if (branches.length === 0) return '<p class="empty-state">No CI data</p>'
+
+  let html = `<table class="sub-table"><thead><tr>
+    <th>Branch</th><th>Status</th><th>CI</th><th>Commit</th><th>Updated</th>
+  </tr></thead><tbody>`
+
+  for (const b of branches) {
+    const stateDisplay = OVERALL_STATE_DISPLAY[b.overallState] ?? {
+      icon: '\u2753',
+      label: b.overallState || 'Unknown',
+      cls: 'ci-pending',
+    }
+    const summary = ciSummary(b.checks)
+    const hasChecks = b.checks.length > 0
+    const branchId = `branch-ci-${b.branch}`
+    const age = b.committedAt ? timeAgo(b.committedAt) : ''
+    const branchBadgeCls = b.branch === 'main' ? 'status-done' : 'status-review'
+
+    html += `<tr class="pr-row">
+      <td><span class="badge ${branchBadgeCls}">${escHtml(b.branch)}</span></td>
+      <td><span class="${stateDisplay.cls}">${stateDisplay.icon} ${stateDisplay.label}</span></td>
+      <td class="col-ci">${hasChecks ? `<button class="ci-toggle ${summary.cssClass}" onclick="toggleCI('${branchId}')" title="Toggle CI details">${summary.icon} ${summary.label}</button>` : '<span class="text-muted">-</span>'}</td>
+      <td class="text-muted">${b.commitSha ? `<code title="${escHtml(b.commitMessage)}">${escHtml(b.commitSha)}</code> ${escHtml(shortTitle(b.commitMessage, 30))}` : '-'}</td>
+      <td class="text-muted">${age}</td>
+    </tr>`
+
+    if (hasChecks) {
+      html += `<tr class="ci-details-row" id="${branchId}" style="display:none;">
+        <td colspan="5">
+          <div class="ci-checks">`
+      for (const check of b.checks) {
+        const icon = ciIcon(check.status, check.conclusion)
+        const cls = ciClass(check.status, check.conclusion)
+        const nameHtml = check.detailsUrl
+          ? `<a href="${escHtml(check.detailsUrl)}" target="_blank" rel="noopener">${escHtml(check.name)}</a>`
+          : escHtml(check.name)
+        html += `<div class="ci-check ${cls}">${icon} ${nameHtml}</div>`
+      }
+      html += `</div></td></tr>`
+    }
+  }
+  html += `</tbody></table>`
+  return html
 }
 
 export function renderVercelDeployments(deployments: VercelDeployment[]): string {

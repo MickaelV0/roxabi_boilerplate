@@ -1,8 +1,17 @@
 import { GITHUB_REPO, PROJECT_ID } from '../../shared/config'
 import { ghGraphQL, run } from '../../shared/github'
-import { ISSUES_QUERY, PRS_QUERY } from '../../shared/queries'
+import { BRANCH_CI_QUERY, ISSUES_QUERY, PRS_QUERY } from '../../shared/queries'
 import type { RawItem } from '../../shared/types'
-import type { Branch, BuildStep, CICheck, Issue, PR, VercelDeployment, Worktree } from './types'
+import type {
+  Branch,
+  BranchCI,
+  BuildStep,
+  CICheck,
+  Issue,
+  PR,
+  VercelDeployment,
+  Worktree,
+} from './types'
 
 async function fetchPage(
   cursor?: string
@@ -337,6 +346,66 @@ export async function fetchVercelDeployments(): Promise<VercelDeployment[]> {
     }
 
     return filtered
+  } catch {
+    return []
+  }
+}
+
+interface RawBranchRef {
+  name: string
+  target: {
+    oid: string
+    messageHeadline: string
+    committedDate: string
+    statusCheckRollup: {
+      state: string
+      contexts: { nodes: RawCheckNode[] }
+    } | null
+  } | null
+}
+
+export async function fetchBranchCI(): Promise<BranchCI[]> {
+  try {
+    const [owner, repo] = GITHUB_REPO.split('/')
+    const data = (await ghGraphQL(BRANCH_CI_QUERY, { owner, repo })) as {
+      data: { repository: { main: RawBranchRef | null; staging: RawBranchRef | null } }
+    }
+
+    const refs: [string, RawBranchRef | null][] = [
+      ['main', data.data.repository.main],
+      ['staging', data.data.repository.staging],
+    ]
+
+    return refs
+      .filter((entry): entry is [string, RawBranchRef] => entry[1] !== null)
+      .map(([branch, ref]) => {
+        const target = ref.target
+        if (!target) {
+          return {
+            branch,
+            commitSha: '',
+            commitMessage: '',
+            committedAt: '',
+            overallState: '',
+            checks: [],
+          }
+        }
+        const rawChecks = target.statusCheckRollup?.contexts.nodes ?? []
+        const checks: CICheck[] = rawChecks.map((c) => ({
+          name: c.name || c.context || 'unknown',
+          status: c.status || c.state || '',
+          conclusion: c.conclusion || '',
+          detailsUrl: c.detailsUrl || c.targetUrl || '',
+        }))
+        return {
+          branch,
+          commitSha: target.oid.slice(0, 7),
+          commitMessage: target.messageHeadline,
+          committedAt: target.committedDate,
+          overallState: target.statusCheckRollup?.state ?? '',
+          checks,
+        }
+      })
   } catch {
     return []
   }

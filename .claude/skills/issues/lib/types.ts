@@ -72,6 +72,15 @@ export interface VercelDeployment {
   buildSteps: BuildStep[]
 }
 
+export interface BranchCI {
+  branch: string
+  commitSha: string
+  commitMessage: string
+  committedAt: string
+  overallState: string
+  checks: CICheck[]
+}
+
 export interface DepNode {
   number: number
   title: string
