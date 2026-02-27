@@ -9,21 +9,7 @@ This document describes the **target architecture** for Roxabi API modules when 
 
 As a module grows — more entities, more external integrations, more invariants to protect — the CRUD baseline begins to show cracks. Business rules scatter across service methods, tests start requiring a running database, and swapping an external service becomes a surgical operation. Domain-Driven Design (DDD) and Hexagonal Architecture (also called Ports and Adapters) are the structured response to this complexity.
 
-The upgrade is not a rewrite. Roxabi already has proto-DDD artifacts: Symbol-token ports in `apps/api/src/auth/email/email.provider.ts`, four domain events in `apps/api/src/common/events/`, cross-module event consumers, and 46+ domain exception classes. This document shows how to build on those patterns systematically, and provides a worked migration using the `rbac` module as the example.
-
-## Current Baseline
-
-The codebase already contains several patterns that are adjacent to DDD and Hexagonal Architecture, even though they do not yet form a complete implementation.
-
-**Proto-port pattern.** `apps/api/src/auth/email/email.provider.ts` defines a Symbol injection token (`EMAIL_PROVIDER`) and a TypeScript type (`EmailProvider`) with a single `send()` method. The concrete adapter (`ResendEmailProvider`) is bound at the module level via `useClass`. The domain never references `ResendEmailProvider` directly. This is the port-and-adapter pattern in miniature.
-
-**Domain events.** `apps/api/src/common/events/` contains four domain events: `OrganizationCreatedEvent`, `OrganizationSoftDeletedEvent`, `UserSoftDeletedEvent`, and `EmailSendFailedEvent`. Each carries typed payload data and a string constant for the event name. These demonstrate that the codebase already treats events as first-class domain constructs.
-
-**Cross-module event consumer.** `apps/api/src/rbac/rbac.listener.ts` (`RbacListener`) subscribes to `ORGANIZATION_CREATED` and reacts by seeding default roles. This is the bounded-context integration pattern: the RBAC module reacts to events from the organization domain without being directly imported by it.
-
-**Domain exceptions.** 46 exception files across the codebase (`*.exception.ts`) are pure TypeScript `Error` subclasses with no NestJS imports. The `rbac` module has five: `RoleNotFoundException`, `MemberNotFoundException`, `RoleSlugConflictException`, `DefaultRoleException`, and `OwnershipConstraintException`. This is the most complete DDD-adjacent pattern in the current baseline.
-
-What is missing from a full DDD/Hexagonal implementation: explicit aggregate roots that enforce cross-entity invariants, value objects for primitive-obsession prevention, repository interfaces (ports) that abstract away Drizzle queries, application services that own transaction boundaries, and an anti-corruption layer for Better Auth types.
+The upgrade is not a rewrite. Roxabi already has proto-DDD artifacts: Symbol-token ports in `apps/api/src/auth/email/email.provider.ts`, four domain events in `apps/api/src/common/events/`, cross-module event consumers, and 46 domain exception classes. This document shows how to build on those patterns systematically, and provides a worked migration using the `rbac` module as the example.
 
 ## When to Adopt
 
@@ -39,6 +25,20 @@ Use this table to decide whether a module needs DDD or Hexagonal patterns. The s
 | Better Auth / ORM types leak into business logic | Anti-Corruption Layer |
 
 The RBAC module currently satisfies several of these signals: it has five cross-entity exceptions, it calls `TenantService` (which wraps Drizzle), and it has invariants that span `roles`, `role_permissions`, and `members`. It is the natural first candidate for migration.
+
+## Current Baseline
+
+The codebase already contains several patterns that are adjacent to DDD and Hexagonal Architecture, even though they do not yet form a complete implementation.
+
+**Proto-port pattern.** `apps/api/src/auth/email/email.provider.ts` defines a Symbol injection token (`EMAIL_PROVIDER`) and a TypeScript type (`EmailProvider`) with a single `send()` method. The concrete adapter (`ResendEmailProvider`) is bound at the module level via `useClass`. The domain never references `ResendEmailProvider` directly. This is the port-and-adapter pattern in miniature.
+
+**Domain events.** `apps/api/src/common/events/` contains four domain events: `OrganizationCreatedEvent`, `OrganizationSoftDeletedEvent`, `UserSoftDeletedEvent`, and `EmailSendFailedEvent`. Each carries typed payload data and a string constant for the event name. These demonstrate that the codebase already treats events as first-class domain constructs.
+
+**Cross-module event consumer.** `apps/api/src/rbac/rbac.listener.ts` (`RbacListener`) subscribes to `ORGANIZATION_CREATED` and reacts by seeding default roles and assigning the Owner role to the organization creator. This is the bounded-context integration pattern: the RBAC module reacts to events from the organization domain without being directly imported by it.
+
+**Domain exceptions.** 46 exception files across the codebase (`*.exception.ts`) are pure TypeScript `Error` subclasses with no NestJS imports. The `rbac` module has five: `RoleNotFoundException`, `MemberNotFoundException`, `RoleSlugConflictException`, `DefaultRoleException`, and `OwnershipConstraintException`. This is the most complete DDD-adjacent pattern in the current baseline.
+
+What is missing from a full DDD/Hexagonal implementation: explicit aggregate roots that enforce cross-entity invariants, value objects for primitive-obsession prevention, repository interfaces (ports) that abstract away Drizzle queries, application services that own transaction boundaries, and an anti-corruption layer for Better Auth types.
 
 ## DDD Patterns
 
@@ -57,14 +57,14 @@ type RoleId = string & { readonly _brand: 'RoleId' }
 class Email {
   private constructor(private readonly value: string) {}
   static create(raw: string): Email {
-    if (!raw.includes('@')) throw new Error('Invalid email')
+    if (!raw.includes('@')) throw new Error('Invalid email') // NOTE: simplified for illustration — use Zod or class-validator isEmail() in production
     return new Email(raw.toLowerCase())
   }
   toString() { return this.value }
 }
 ```
 
-The `PermissionString` type in `packages/types/src/rbac.ts` is already a branded-type pattern — a template literal union that prevents typos like `member:write`. Extend this approach to entity identifiers.
+The `PermissionString` type in `packages/types/src/rbac.ts` is a template literal union (`` `${PermissionResource}:${PermissionAction}` ``) that catches typos at compile time. Branded types are stricter — they prevent passing any `string` where a `RoleId` is expected, even a structurally valid one. The two patterns are complementary; extend the branded-type approach to entity identifiers.
 
 ### Entities and Aggregates
 
@@ -83,11 +83,13 @@ class Role {
 
 // Aggregate root (enforces invariants across entities)
 class OrganizationRoles {
-  private roles: Role[] = []
-  addRole(role: Role) {
-    if (this.roles.some(r => r.name === role.name))
-      throw new RoleSlugConflictException(role.name)
+  constructor(private readonly tenantId: OrganizationId, private roles: Role[] = []) {}
+  addRole(name: string, permissions: string[]): Role {
+    if (this.roles.some(r => r.name === name))
+      throw new RoleSlugConflictException(name)
+    const role = new Role(`${crypto.randomUUID()}` as RoleId, name, this.tenantId)
     this.roles.push(role)
+    return role
   }
 }
 ```
@@ -98,15 +100,31 @@ The `RoleSlugConflictException` is already defined in the codebase. The aggregat
 
 The application service is the transaction boundary. It orchestrates the sequence: validate inputs, load the aggregate via a port, call domain methods, persist via the port, and emit events. Domain services handle domain logic that does not belong on a single entity. Neither aggregates nor domain services ever touch the database directly.
 
+Domain services are stateless operations that span multiple entities. They live in the domain layer and have no database access:
+
+```ts
+// Domain service — stateless, spans multiple entities, no database access
+class RolePermissionPolicy {
+  canAssignPermission(role: Role, permission: string): boolean {
+    // Default roles cannot be assigned additional permissions
+    if (role.isDefault) return false
+    // Owner role implicitly has all permissions
+    if (role.name === 'owner') return false
+    return !role.hasPermission(permission)
+  }
+}
+```
+
 ```ts
 // Application service — orchestrates: validate → load → domain call → persist → emit
-// Transaction boundary is HERE, not in aggregates or domain services
+// Logical unit-of-work boundary is HERE — adapter save() executes the SQL transaction
 class RbacApplicationService {
   constructor(
     private readonly roleRepo: RoleRepository,  // port (interface)
     private readonly events: EventEmitter2,
   ) {}
 
+  // Auth guard enforces 'role:write' at the controller — this service assumes caller is already authorized
   async createRole(cmd: CreateRoleCommand): Promise<RoleId> {
     // 1. Load aggregate (via port — no Drizzle here)
     const orgRoles = await this.roleRepo.loadForOrg(cmd.tenantId)
@@ -121,6 +139,8 @@ class RbacApplicationService {
 }
 ```
 
+The *logical* boundary (what must succeed atomically as a whole) lives at the application service. The *physical* SQL transaction (`tenantService.queryAs()`) lives inside the adapter's `save()` — visible in the sequence diagram below.
+
 ## Hexagonal Patterns
 
 ### Layer Model
@@ -128,7 +148,7 @@ class RbacApplicationService {
 The hexagonal model organizes code into three concentric rings. The dependency rule is strict: outer rings depend on inner rings, never the reverse. Domain code never imports from infrastructure.
 
 ```mermaid
-graph TD
+graph BT
   subgraph Domain["Domain Layer (innermost)"]
     E[Entities / Aggregates]
     VO[Value Objects]
@@ -144,6 +164,8 @@ graph TD
   App --> Domain
   Infra --> App
 ```
+
+Arrows show import/dependency direction (bottom to top): Infrastructure depends on Application; Application depends on Domain. Domain imports nothing from outside itself.
 
 Controllers live in the infrastructure layer, not the application layer. They translate HTTP requests into commands and delegate to application services. The application service calls domain objects and repository ports. Adapters implement those ports using Drizzle, external APIs, or in-memory stores.
 
@@ -184,13 +206,51 @@ In practice, this means the adapter (not the application service) is responsible
 
 The guard's `session.permissions` approach already applies this principle: `AuthService.getSession()` resolves and attaches permissions before the guard returns, so inner services never see raw Better Auth session internals.
 
+```ts
+// rbac/adapters/drizzle-role.repository.ts  ← infrastructure layer
+@Injectable()
+export class DrizzleRoleRepository implements RoleRepository {
+  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+
+  async loadForOrg(tenantId: OrganizationId): Promise<OrganizationRoles> {
+    const rows = await this.db.select().from(roles).where(eq(roles.tenantId, tenantId))
+    return new OrganizationRoles(tenantId, rows.map(this.toRole))
+  }
+
+  // ACL: translates Drizzle row → domain entity. Domain code never sees raw DB rows.
+  private toRole(row: typeof roles.$inferSelect): Role {
+    return new Role(row.id as RoleId, row.name, row.tenantId as OrganizationId)
+  }
+}
+```
+
 ### Shared Kernel
 
 A **shared kernel** is a small, stable set of domain concepts that two or more modules need to agree on. It lives in `@repo/types` or a dedicated `common/` module and is explicitly shared — changes require coordination across all consumers.
 
-The motivation for introducing a shared kernel is already visible in the codebase. `apps/api/src/admin/exceptions/orgNotFound.exception.ts` and `apps/api/src/organization/exceptions/orgNotFound.exception.ts` are semantically identical — both represent the same domain concept ("an organization with this ID does not exist") but are defined independently. This duplicates domain knowledge: if the error message or constructor signature ever needs to change, both files must be updated separately, and consumers in different modules import different classes that mean the same thing.
+The motivation for introducing a shared kernel is already visible in the codebase. `apps/api/src/admin/exceptions/orgNotFound.exception.ts` and `apps/api/src/organization/exceptions/orgNotFound.exception.ts` represent the same domain fact — "an organization with this ID does not exist" — but are defined independently in separate modules. Even if their constructor signatures or error codes differ by context, the underlying concept is duplicated: if the base message or class contract ever changes, both files must be updated separately, and consumers in different modules import different classes that mean the same thing.
 
 The solution is to promote `OrgNotFoundException` into a shared location (`packages/types/src/exceptions/` or `apps/api/src/common/exceptions/`) and have both the `admin` and `organization` modules import from that shared location. The `PermissionString` type in `@repo/types` is the existing example of this pattern done correctly.
+
+```ts
+// BEFORE — duplicated across two modules (the problem):
+// apps/api/src/admin/exceptions/orgNotFound.exception.ts
+export class OrgNotFoundException extends Error {
+  constructor(id: string) { super(`Organization ${id} not found`) }
+}
+// apps/api/src/organization/exceptions/orgNotFound.exception.ts
+export class OrgNotFoundException extends Error {  // identical definition
+  constructor(id: string) { super(`Organization ${id} not found`) }
+}
+
+// AFTER — shared kernel (the solution):
+// apps/api/src/common/exceptions/orgNotFound.exception.ts
+export class OrgNotFoundException extends Error {
+  constructor(id: string) { super(`Organization ${id} not found`) }
+}
+// Both modules import from the shared location:
+import { OrgNotFoundException } from '../../common/exceptions/orgNotFound.exception.js'
+```
 
 ### What Does Not Belong in the Domain Layer
 
