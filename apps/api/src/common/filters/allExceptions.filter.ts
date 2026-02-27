@@ -80,17 +80,24 @@ export class AllExceptionsFilter implements ExceptionFilter {
       ...(errorCode !== undefined && { errorCode }),
     }
 
-    if (status >= 500) {
-      this.logger.error(
-        `[${correlationId}] ${request.method} ${request.url} - ${status}`,
-        exception instanceof Error ? exception.stack : undefined
-      )
-    } else {
-      this.logger.warn(`[${correlationId}] ${request.method} ${request.url} - ${status}`)
-    }
+    this.logException(exception, request, correlationId, status)
 
     response.header('x-correlation-id', correlationId)
     response.status(status).send(errorResponse)
+  }
+
+  private logException(
+    exception: unknown,
+    request: FastifyRequest,
+    correlationId: string,
+    status: number
+  ) {
+    const label = `[${correlationId}] ${request.method} ${request.url} - ${status}`
+    if (status >= 500) {
+      this.logger.error(label, exception instanceof Error ? exception.stack : undefined)
+    } else {
+      this.logger.warn(label)
+    }
   }
 
   private handleThrottlerException(
