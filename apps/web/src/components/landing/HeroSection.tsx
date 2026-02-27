@@ -54,7 +54,10 @@ function TerminalFeed() {
       <div className="overflow-hidden h-full">
         <div className="terminal-scroll">
           {[...TERMINAL_LINES, ...TERMINAL_LINES].map((line, i) => (
-            <div key={i} className={`font-mono text-xs leading-6 ${colorClass(line.type)}`}>
+            <div
+              key={`${i < TERMINAL_LINES.length ? 0 : 1}-${line.text}`}
+              className={`font-mono text-xs leading-6 ${colorClass(line.type)}`}
+            >
               {line.text}
             </div>
           ))}
@@ -90,7 +93,7 @@ function AgentActivityCard() {
       </p>
       <ul className="space-y-1.5">
         {ACTIVITY_ITEMS.map((item, i) => (
-          <li key={i} className="flex items-center gap-2 text-xs">
+          <li key={item.label} className="flex items-center gap-2 text-xs">
             {item.type === 'done' ? (
               <>
                 <CheckCircle2 className="size-3 shrink-0 text-emerald-500" aria-hidden="true" />
