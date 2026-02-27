@@ -13,10 +13,19 @@ import {
   fetchIssues,
   fetchPRs,
   fetchVercelDeployments,
+  fetchWorkflowRuns,
   fetchWorktrees,
 } from './lib/fetch'
 import { buildHtml } from './lib/page'
-import type { Branch, BranchCI, Issue, PR, VercelDeployment, Worktree } from './lib/types'
+import type {
+  Branch,
+  BranchCI,
+  Issue,
+  PR,
+  VercelDeployment,
+  WorkflowRun,
+  Worktree,
+} from './lib/types'
 import { handleUpdate } from './lib/update'
 
 const PORT = Number(process.argv.find((a) => a.startsWith('--port='))?.split('=')[1] ?? 3333)
@@ -35,7 +44,8 @@ function computeHash(
   branches: Branch[],
   worktrees: Worktree[],
   deployments: VercelDeployment[],
-  branchCI: BranchCI[]
+  branchCI: BranchCI[],
+  workflowRuns: WorkflowRun[]
 ): string {
   const key = JSON.stringify({
     i: issues.map((i) => [
@@ -57,6 +67,7 @@ function computeHash(
     w: worktrees.length,
     v: deployments.map((d) => [d.uid, d.state, d.buildSteps.map((s) => s.status)]),
     ci: branchCI.map((c) => [c.branch, c.commitSha, c.overallState]),
+    wr: workflowRuns.map((r) => [r.id, r.status, r.conclusion]),
   })
   return Bun.hash(key).toString(36)
 }
@@ -64,16 +75,18 @@ function computeHash(
 async function refreshCache(): Promise<void> {
   try {
     const start = performance.now()
-    const [issues, prs, branches, worktrees, deployments, branchCI] = await Promise.all([
-      fetchIssues(),
-      fetchPRs(),
-      fetchBranches(),
-      fetchWorktrees(),
-      fetchVercelDeployments(),
-      fetchBranchCI(),
-    ])
+    const [issues, prs, branches, worktrees, deployments, branchCI, workflowRuns] =
+      await Promise.all([
+        fetchIssues(),
+        fetchPRs(),
+        fetchBranches(),
+        fetchWorktrees(),
+        fetchVercelDeployments(),
+        fetchBranchCI(),
+        fetchWorkflowRuns(),
+      ])
     const fetchMs = Math.round(performance.now() - start)
-    const hash = computeHash(issues, prs, branches, worktrees, deployments, branchCI)
+    const hash = computeHash(issues, prs, branches, worktrees, deployments, branchCI, workflowRuns)
 
     const changed = !cache || cache.hash !== hash
     const updatedAt = Date.now()
@@ -84,6 +97,7 @@ async function refreshCache(): Promise<void> {
       worktrees,
       deployments,
       branchCI,
+      workflowRuns,
       fetchMs,
       updatedAt
     )

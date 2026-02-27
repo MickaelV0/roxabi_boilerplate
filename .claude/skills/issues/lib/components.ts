@@ -1,4 +1,4 @@
-import type { Branch, BranchCI, Issue, PR, VercelDeployment, Worktree } from './types'
+import type { Branch, BranchCI, Issue, PR, VercelDeployment, WorkflowRun, Worktree } from './types'
 
 const PRIORITY_SHORT: Record<string, string> = {
   'P0 - Urgent': 'P0',
@@ -373,6 +373,65 @@ export function renderVercelDeployments(deployments: VercelDeployment[]): string
         <a href="${escHtml(inspectUrl)}" target="_blank" rel="noopener" class="vd-inspect" title="Inspect on Vercel">\u2197</a>
       </div>
       ${pipeline ? `<div class="vd-pipeline">${pipeline}</div>` : ''}
+    </div>`
+  }
+
+  html += '</div></div>'
+  return html
+}
+
+const WR_STATUS_DISPLAY: Record<string, { icon: string; label: string; cls: string }> = {
+  in_progress: { icon: '\ud83d\udd04', label: 'Running', cls: 'wr-badge-running' },
+  queued: { icon: '\u23f3', label: 'Queued', cls: 'wr-badge-queued' },
+}
+
+const WR_CONCLUSION_DISPLAY: Record<string, { icon: string; label: string; cls: string }> = {
+  success: { icon: '\u2705', label: 'Success', cls: 'wr-badge-success' },
+  failure: { icon: '\u274c', label: 'Failed', cls: 'wr-badge-failure' },
+  cancelled: { icon: '\u2298', label: 'Cancelled', cls: 'wr-badge-cancelled' },
+  skipped: { icon: '\u23ed', label: 'Skipped', cls: 'wr-badge-cancelled' },
+}
+
+const WR_EVENT_LABEL: Record<string, string> = {
+  workflow_dispatch: 'manual',
+  pull_request: 'PR',
+  push: 'push',
+}
+
+export function renderWorkflowRuns(runs: WorkflowRun[]): string {
+  if (runs.length === 0) return ''
+
+  let html = `<div class="section"><h2>Workflow Runs</h2><div class="wr-cards">`
+
+  for (const run of runs) {
+    let badge: { icon: string; label: string; cls: string }
+    if (run.status === 'completed') {
+      badge = WR_CONCLUSION_DISPLAY[run.conclusion ?? ''] ?? {
+        icon: '\u2753',
+        label: run.conclusion ?? run.status,
+        cls: 'wr-badge-queued',
+      }
+    } else {
+      badge = WR_STATUS_DISPLAY[run.status] ?? {
+        icon: '\u2753',
+        label: run.status,
+        cls: 'wr-badge-queued',
+      }
+    }
+
+    const eventLabel = WR_EVENT_LABEL[run.event] ?? run.event
+    const age = timeAgo(run.updatedAt)
+    const commitText = run.displayTitle || run.headCommitMessage
+
+    html += `<div class="wr-card">
+      <div class="wr-item">
+        <span class="wr-badge ${badge.cls}">${badge.icon} ${badge.label}</span>
+        <a href="${escHtml(run.htmlUrl)}" target="_blank" rel="noopener" class="wr-name">${escHtml(run.name)}</a>
+        ${run.headBranch ? `<code class="vd-branch">${escHtml(run.headBranch)}</code>` : ''}
+        ${commitText ? `<span class="vd-msg">${escHtml(commitText)}</span>` : ''}
+        <span class="wr-event badge">${escHtml(eventLabel)}</span>
+        <span class="text-muted vd-age">${age}</span>
+      </div>
     </div>`
   }
 

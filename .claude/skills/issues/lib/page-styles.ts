@@ -473,4 +473,44 @@ export const PAGE_STYLES = `
   }
   .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.error { color: var(--red); border-color: var(--red); }
+
+  /* Workflow runs */
+  .wr-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .wr-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .wr-card:hover { border-color: var(--accent); }
+  .wr-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .wr-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    min-width: 90px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .wr-badge-running { color: var(--orange); border-color: rgba(210,153,34,.4); background: rgba(210,153,34,.1); }
+  .wr-badge-queued { color: var(--text-muted); border-color: var(--border); }
+  .wr-badge-success { color: var(--green); border-color: rgba(63,185,80,.4); background: rgba(63,185,80,.1); }
+  .wr-badge-failure { color: var(--red); border-color: rgba(248,81,73,.4); background: rgba(248,81,73,.1); }
+  .wr-badge-cancelled { color: var(--text-muted); border-color: var(--border); opacity: 0.7; }
+  .wr-name { color: var(--accent); text-decoration: none; font-weight: 500; }
+  .wr-name:hover { text-decoration: underline; }
+  .wr-event { font-size: 10px; color: var(--text-muted); }
 `

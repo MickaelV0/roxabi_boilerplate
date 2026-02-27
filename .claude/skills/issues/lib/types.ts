@@ -81,6 +81,20 @@ export interface BranchCI {
   checks: CICheck[]
 }
 
+export interface WorkflowRun {
+  id: number
+  name: string
+  displayTitle: string
+  event: string
+  status: string
+  conclusion: string | null
+  htmlUrl: string
+  createdAt: string
+  updatedAt: string
+  headBranch: string
+  headCommitMessage: string
+}
+
 export interface DepNode {
   number: number
   title: string
