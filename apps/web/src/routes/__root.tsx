@@ -57,11 +57,15 @@ function ErrorFallback({
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-  beforeLoad: async () => {
+  beforeLoad: async (ctx) => {
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('lang', getLocale())
     }
-    const session = await getServerEnrichedSession()
+    // Skip session fetch on chromeless public routes (/docs, /talks) — they
+    // have no header and no permission guards, so a 401 from the API would
+    // just be log noise with no functional impact.
+    const isPublic = CHROMELESS_PREFIXES.some((p) => ctx.location.pathname.startsWith(p))
+    const session = isPublic ? null : await getServerEnrichedSession()
     return { session }
   },
 
@@ -107,6 +111,8 @@ function NotFound() {
   )
 }
 
+// Routes under these prefixes skip the app shell (nav, consent banner, etc.) and session enforcement.
+// Invariant: no route under these prefixes may call enforceRoutePermission — they are public by design.
 const CHROMELESS_PREFIXES = ['/docs', '/talks'] as const
 
 function AppShell({ children }: { children: React.ReactNode }) {

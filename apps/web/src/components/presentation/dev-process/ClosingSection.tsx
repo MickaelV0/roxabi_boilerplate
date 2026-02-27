@@ -1,6 +1,6 @@
 import { AnimatedSection, Card, cn } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
-import { BookOpen, GitFork, Terminal } from 'lucide-react'
+import { BookMarked, BookOpen, GitFork, Package } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { m } from '@/paraglide/messages'
 
@@ -33,10 +33,20 @@ export function ClosingSection() {
       external: true,
     },
     {
-      id: 'try',
-      icon: Terminal,
-      label: m.talk_dp_closing_try,
-      description: m.talk_dp_closing_try_desc,
+      id: 'plugins-official',
+      icon: Package,
+      label: m.talk_dp_closing_plugins_official,
+      description: m.talk_dp_closing_plugins_official_desc,
+      href: 'https://github.com/anthropics/claude-plugins-official',
+      external: true,
+    },
+    {
+      id: 'plugins-knowledge',
+      icon: BookMarked,
+      label: m.talk_dp_closing_plugins_knowledge,
+      description: m.talk_dp_closing_plugins_knowledge_desc,
+      href: 'https://github.com/anthropics/knowledge-work-plugins',
+      external: true,
     },
   ]
 
@@ -57,13 +67,13 @@ export function ClosingSection() {
 
       {/* CTA cards */}
       <AnimatedSection className="mt-12">
-        <div className="grid gap-6 sm:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {ctas.map((cta) => {
             const content = (
               <Card
                 variant="subtle"
                 className={cn(
-                  'group flex flex-col items-center gap-4 p-8 text-center transition-colors',
+                  'group flex h-full flex-col items-center gap-4 p-8 text-center transition-colors',
                   cta.href && 'cursor-pointer hover:border-primary/30'
                 )}
               >
@@ -79,7 +89,13 @@ export function ClosingSection() {
 
             if (cta.external) {
               return (
-                <a key={cta.id} href={cta.href} target="_blank" rel="noopener noreferrer">
+                <a
+                  key={cta.id}
+                  href={cta.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block h-full"
+                >
                   {content}
                 </a>
               )
@@ -87,13 +103,22 @@ export function ClosingSection() {
 
             if (cta.href && cta.splat !== undefined) {
               return (
-                <Link key={cta.id} to={cta.href} params={{ _splat: cta.splat }}>
+                <Link
+                  key={cta.id}
+                  to={cta.href}
+                  params={{ _splat: cta.splat }}
+                  className="block h-full"
+                >
                   {content}
                 </Link>
               )
             }
 
-            return <div key={cta.id}>{content}</div>
+            return (
+              <div key={cta.id} className="h-full">
+                {content}
+              </div>
+            )
           })}
         </div>
       </AnimatedSection>

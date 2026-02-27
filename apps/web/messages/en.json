@@ -92,7 +92,6 @@
   "cta_button": "Get Started",
   "footer_changelog": "Changelog",
   "footer_copyright": "© {year} Roxabi. Licensed under MIT.",
-
   "user_menu_label": "User menu",
   "user_menu_profile": "Profile",
   "user_menu_account": "Account Settings",
@@ -100,7 +99,6 @@
   "user_menu_org_members": "Members",
   "user_menu_sign_out": "Sign Out",
   "user_menu_signing_out": "Signing out…",
-
   "auth_sign_in_title": "Sign In",
   "auth_sign_in_desc": "Sign in to your account",
   "auth_register_title": "Create Account",
@@ -139,7 +137,6 @@
   "auth_check_email_verify": "Check your email to verify your account.",
   "auth_check_email_reset": "Check your email for a password reset link.",
   "auth_check_email_magic_link": "Check your email for a magic link.",
-
   "auth_reset_confirm_title": "Set New Password",
   "auth_reset_confirm_desc": "Enter your new password below",
   "auth_new_password": "New Password",
@@ -150,7 +147,6 @@
   "auth_request_new_reset": "Request a new reset link",
   "auth_back_to_sign_in": "Back to sign in",
   "auth_missing_token": "Invalid link. Please request a new one.",
-
   "auth_verify_email_title": "Email Verification",
   "auth_verify_email_desc": "Verifying your email address",
   "auth_verifying_email": "Verifying your email…",
@@ -161,7 +157,6 @@
   "auth_resending": "Resending…",
   "auth_toast_verification_resent": "Verification email sent",
   "auth_continue_to_app": "Continue to app",
-
   "auth_magic_link_sent_title": "Check Your Email",
   "auth_magic_link_sent_desc": "We sent a magic link to sign you in",
   "auth_magic_link_sent_message": "We sent a magic link to {email}. Click the link in your email to sign in.",
@@ -169,7 +164,6 @@
   "auth_resend_magic_link": "Resend magic link",
   "auth_resend_in": "Resend in {seconds}s",
   "auth_toast_magic_link_resent": "Magic link resent",
-
   "org_switcher_label": "Organizations",
   "org_switcher_no_org": "No organization",
   "org_create": "Create organization",
@@ -182,7 +176,6 @@
   "org_creating": "Creating…",
   "org_toast_created": "Organization created",
   "org_toast_switched": "Switched to {name}",
-
   "org_settings_title": "Organization Settings",
   "org_settings_general": "General",
   "org_settings_save": "Save changes",
@@ -196,7 +189,6 @@
   "org_deleting": "Deleting…",
   "org_toast_deleted": "Organization deleted",
   "org_settings_read_only": "Only the organization owner can edit these settings.",
-
   "org_members_title": "Members",
   "org_members_active": "Active Members",
   "org_members_empty": "No members found.",
@@ -209,11 +201,9 @@
   "org_members_remove_confirm": "Are you sure you want to remove this member?",
   "org_toast_member_removed": "Member removed",
   "org_toast_role_updated": "Role updated",
-
   "org_role_owner": "Owner",
   "org_role_admin": "Admin",
   "org_role_member": "Member",
-
   "org_invite_title": "Invite Member",
   "org_invite_email": "Email",
   "org_invite_email_placeholder": "user@example.com",
@@ -221,7 +211,6 @@
   "org_invite_send": "Send invitation",
   "org_invite_sending": "Sending…",
   "org_toast_invited": "Invitation sent to {email}",
-
   "org_invitations_title": "Pending Invitations",
   "org_invitations_empty": "No pending invitations.",
   "org_invitations_email": "Email",
@@ -229,7 +218,6 @@
   "org_invitations_status": "Status",
   "org_invitations_revoke": "Revoke",
   "org_toast_invitation_revoked": "Invitation revoked",
-
   "org_tab_settings": "Settings",
   "org_tab_members": "Members",
   "org_delete_type_confirm": "Type \"{name}\" to confirm deletion",
@@ -240,9 +228,7 @@
   "org_members_search_placeholder": "Search members...",
   "org_members_no_results": "No members match your search.",
   "org_slug_generate": "Generate from name",
-
   "common_cancel": "Cancel",
-
   "error_ROLE_NOT_FOUND": "Role not found",
   "error_ROLE_SLUG_CONFLICT": "A role with this name already exists",
   "error_DEFAULT_ROLE_CONSTRAINT": "Cannot modify a default role",
@@ -251,7 +237,6 @@
   "error_TENANT_CONTEXT_MISSING": "Organization context is missing",
   "error_DATABASE_UNAVAILABLE": "Service temporarily unavailable",
   "error_USER_NOT_FOUND": "User not found",
-
   "demo_title": "Demos",
   "demo_subtitle": "Interactive examples showcasing the boilerplate's tech stack.",
   "demo_category_tanstack": "TanStack",
@@ -381,7 +366,6 @@
   "demo_i18n_desc": "Paraglide JS locale switching",
   "demo_i18n_heading": "Internationalization",
   "demo_i18n_subtitle": "Paraglide JS locale switching",
-
   "ds_title": "Design System",
   "ds_subtitle": "Interactive component playground & theme customization.",
   "ds_tab_colors": "Colors",
@@ -422,7 +406,6 @@
   "ds_compositions_auth": "Authentication Forms",
   "ds_compositions_data": "Data Display",
   "ds_compositions_feedback": "Feedback Patterns",
-
   "ds_theme_editor": "Theme Editor",
   "ds_theme_close": "Close",
   "ds_theme_close_aria": "Close theme editor",
@@ -461,16 +444,13 @@
   "ds_color_picker_aria": "{label} color picker",
   "ds_contrast_pass": "AA",
   "ds_contrast_fail": "Fail",
-
   "ds_showcase_props": "Props",
   "ds_showcase_show_code": "Show code",
   "ds_showcase_hide_code": "Hide code",
-
   "ds_code_copy": "Copy",
   "ds_code_copied": "Copied",
   "ds_code_copy_aria": "Copy code",
   "ds_code_copied_aria": "Copied",
-
   "ds_auth_login": "Login",
   "ds_auth_login_desc": "Enter your credentials",
   "ds_auth_email": "Email",
@@ -489,7 +469,6 @@
   "ds_auth_confirm_password_placeholder": "Confirm your password",
   "ds_auth_agree_terms": "I agree to the Terms of Service",
   "ds_auth_create_account_button": "Create account",
-
   "ds_data_stat_cards": "Stat Cards",
   "ds_data_total_revenue": "Total Revenue",
   "ds_data_active_users": "Active Users",
@@ -500,7 +479,6 @@
   "ds_data_profile_bio": "Passionate about building accessible, performant web applications. Open source contributor and technical writer.",
   "ds_data_message": "Message",
   "ds_data_follow": "Follow",
-
   "ds_feedback_success": "Success",
   "ds_feedback_success_title": "Operation completed",
   "ds_feedback_success_desc": "Your changes have been saved successfully.",
@@ -518,7 +496,6 @@
   "ds_feedback_no_results": "No results found",
   "ds_feedback_no_results_desc": "It looks like there are no items yet. Get started by creating your first one.",
   "ds_feedback_create_first": "Create your first item",
-
   "ds_category_inputs": "Inputs",
   "ds_category_data_display": "Data Display",
   "ds_category_layout": "Layout",
@@ -565,24 +542,19 @@
   "ds_demo_tab_content_3": "Manage your notification preferences.",
   "ds_demo_tooltip_text": "This is a tooltip",
   "ds_demo_user": "User",
-
   "nav_design_system": "Design System",
   "nav_talks": "Talks",
-
   "error_something_went_wrong": "Something went wrong",
   "error_page_not_found_title": "404",
   "error_page_not_found_description": "Page not found",
   "error_go_home": "Go back home",
   "error_try_again": "Try again",
-
   "docs_error_title": "Error",
   "docs_error_something_went_wrong": "Something went wrong",
   "docs_error_loading_page": "An error occurred while loading this documentation page.",
   "docs_error_try_again": "Try again",
   "docs_error_back_to_docs": "Back to Documentation",
-
   "org_role_viewer": "Viewer",
-
   "password_strength_weak": "Weak",
   "password_strength_fair": "Fair",
   "password_strength_good": "Good",
@@ -591,10 +563,8 @@
   "password_rule_uppercase": "Uppercase letter",
   "password_rule_number": "Number",
   "password_rule_symbol": "Symbol",
-
   "password_toggle_show": "Show password",
   "password_toggle_hide": "Hide password",
-
   "auth_tab_password": "Password",
   "auth_tab_magic_link": "Magic Link",
   "auth_email_invalid": "Please enter a valid email address",
@@ -611,20 +581,17 @@
   "auth_accept_terms_and": "and",
   "auth_accept_terms_of_service": "Terms of Service",
   "org_slug_invalid": "Slug must be lowercase letters, numbers, and hyphens only (no leading/trailing hyphens)",
-
   "demo_back_to_demos": "Back to Demos",
-
   "stats_features": "Built-in Features",
   "stats_typesafe": "Type Safe",
   "stats_components": "UI Components",
   "stats_integrations": "Integrations",
-
   "auth_verify_email_enter_email": "Enter your email address",
   "auth_verify_email_resend_neutral": "If an account with this email exists and is not yet verified, a verification email has been sent.",
   "auth_login_email_not_verified_sent": "Your email is not verified. A new verification email has been sent. Check your inbox.",
   "auth_magic_link_error": "Unable to send magic link. Please try again.",
   "auth_magic_link_verify_title": "Magic Link Sign In",
-  "auth_magic_link_verifying": "Signing you in\u2026",
+  "auth_magic_link_verifying": "Signing you in…",
   "auth_magic_link_no_account": "No account found for this email. Check your address or create an account.",
   "auth_magic_link_expired": "This link has expired. Request a new one.",
   "auth_magic_link_invalid": "This link is invalid or has already been used.",
@@ -634,7 +601,6 @@
   "auth_magic_link_sign_out_first": "Sign out to use this link",
   "auth_magic_link_go_to_dashboard": "Go to dashboard",
   "auth_rate_limit": "Too many attempts. Please try again later.",
-
   "dashboard_welcome": "Welcome back, {name}",
   "dashboard_org_context": "You are working in the {name} organization.",
   "dashboard_no_org": "Select or create an organization to get started with your team.",
@@ -648,7 +614,6 @@
   "dashboard_documentation": "Documentation",
   "dashboard_documentation_desc": "Browse guides, API references, and getting started docs.",
   "dashboard_read_docs": "Read Docs",
-
   "talk_nav_intro": "Introduction",
   "talk_nav_building_blocks": "Building Blocks",
   "talk_nav_specialization": "Specialization",
@@ -658,14 +623,12 @@
   "talk_nav_toolchain": "Toolchain",
   "talk_nav_lessons": "Lessons Learned",
   "talk_nav_closing": "Closing",
-
   "talk_intro_badge": "Introducing Claude Code",
   "talk_intro_title": "Your AI Development Team",
   "talk_intro_subtitle": "AI agents that write, test, review, and deploy production code. Not autocomplete — autonomous development.",
   "talk_intro_stat_sessions": "Sessions",
   "talk_intro_stat_commits": "Commits",
   "talk_intro_stat_completion": "Completion Rate",
-
   "talk_blocks_title": "Building Blocks",
   "talk_blocks_subtitle": "Three pillars that transform Claude Code into a development workforce.",
   "talk_blocks_claude_subtitle": "The constitution",
@@ -679,7 +642,6 @@
   "talk_blocks_agents_desc": "Role-specific .md files defining tools, permissions, domains, and skills.",
   "talk_blocks_bottom": "Combine these three and you get something powerful — a",
   "talk_blocks_bottom_highlight": "specialist",
-
   "talk_spec_title": "The Specialization Formula",
   "talk_spec_subtitle": "A generalist agent produces generic UI. A specialist produces production quality.",
   "talk_spec_agent_subtitle": "Role definition",
@@ -696,7 +658,6 @@
   "talk_spec_result_detail": "FE dev with design sense",
   "talk_spec_example_title": "Example: frontend-dev agent",
   "talk_spec_example_desc": "Knows its file boundaries (apps/web, packages/ui), reads frontend-patterns.mdx before every task, and has the ui-ux-pro-max skill for design decisions. A generalist agent produces generic UI. A specialist produces production quality.",
-
   "talk_dev_title": "Development Process",
   "talk_dev_subtitle": "A 50-file mechanical change may be F-lite. A 3-file rate limiter may be F-full.",
   "talk_dev_match_complexity": "Match process to complexity",
@@ -730,7 +691,6 @@
   "talk_dev_hook_pretooluse": "Security warnings before file changes",
   "talk_dev_quality_rule": "Rule:",
   "talk_dev_quality_rule_text": "Lefthook for hard gates. Claude hooks for DX. Claude can't bypass git hooks.",
-
   "talk_teams_title": "Agent Teams in Action",
   "talk_teams_subtitle": "9 agents, 3 categories. The orchestrator delegates — it never writes code.",
   "talk_teams_orch_desc": "Spawns agents, assigns tasks, synthesizes. Never writes code — preserves context window.",
@@ -753,7 +713,6 @@
   "talk_teams_review_step_4": "Parallel fixers apply accepted fixes",
   "talk_teams_review_why": "Why fresh agents?",
   "talk_teams_review_why_text": "An agent that wrote the code has sunk-cost bias — it won't question its own decisions. A fresh reviewer sees the code for the first time and challenges every choice, like a real code review.",
-
   "talk_e2e_title": "Idea to Production",
   "talk_e2e_subtitle": "Analysis, spec, code, review, deploy. Claude manages the full SDLC — including GitHub and Vercel.",
   "talk_e2e_step_idea": "Idea",
@@ -778,7 +737,6 @@
   "talk_e2e_int_cicd_detail": "GitHub Actions + Vercel auto-deploy",
   "talk_e2e_step_interview": "Interview",
   "talk_e2e_desc_interview_new": "/interview: structured requirements gathering",
-
   "talk_toolchain_title": "The Toolchain",
   "talk_toolchain_subtitle": "16 skills organized by workflow phase. Each skill is a reusable, multi-step prompt.",
   "talk_toolchain_phase_plan": "Plan",
@@ -791,7 +749,6 @@
   "talk_toolchain_review_desc": "Multi-agent review, finding walkthrough",
   "talk_toolchain_ship_desc": "Pull requests, releases, cleanup",
   "talk_toolchain_maintain_desc": "Quality, retrospectives, monitoring",
-
   "talk_lessons_title": "Lessons Learned",
   "talk_lessons_subtitle": "Honest insights from 1,930 sessions of AI-assisted development.",
   "talk_lessons_works": "What works",
@@ -806,20 +763,17 @@
   "talk_lessons_changed_1": "Bootstrap evolved: interview → analysis (gate) → spec (gate)",
   "talk_lessons_changed_2": "Skill ecosystem grew: 0 → 16 custom skills in 25 days",
   "talk_lessons_changed_3": "Human gates at every decision — not just code review",
-
   "talk_closing_title": "Get Started",
   "talk_closing_subtitle": "Everything you need to replicate this process.",
   "talk_closing_tagline": "Entirely built with Claude Code.",
   "talk_closing_cta_docs": "Explore the Docs",
   "talk_closing_cta_repo": "Fork the Repo",
   "talk_closing_cta_try": "Try /bootstrap on your first feature",
-
   "talk_index_title": "Talks",
   "talk_index_claude_code_title": "Claude Code",
   "talk_index_claude_code_subtitle": "Your AI development team. Skills, agents, and orchestration.",
   "talk_index_devprocess_title": "Dev Process Deep-Dive",
   "talk_index_devprocess_subtitle": "From idea to production. Tiers, phases, and human gates.",
-
   "talk_dp_nav_intro": "Introduction",
   "talk_dp_nav_big_picture": "Big Picture",
   "talk_dp_nav_tier_system": "Tier System",
@@ -828,25 +782,129 @@
   "talk_dp_nav_build_phase": "Build",
   "talk_dp_nav_verify_phase": "Verify",
   "talk_dp_nav_ship_phase": "Ship",
+  "talk_dp_nav_custom_tooling": "Custom Tooling",
+  "talk_dp_nav_multi_agent": "Multi-Agent",
+  "talk_dp_nav_plugin_ecosystem": "Plugins",
+  "talk_dp_nav_role_plugins": "Role Plugins",
   "talk_dp_nav_resumability": "Resumability",
   "talk_dp_nav_human_gates": "Human Gates",
+  "talk_dp_nav_deep_dive": "Going Deeper",
+  "talk_dp_divider_badge": "Part 2",
+  "talk_dp_divider_title": "Going Deeper",
+  "talk_dp_divider_subtitle": "The workflow is clear. Now let's explore the tools and patterns that power it.",
+  "talk_dp_divider_topic_hooks": "Hooks",
+  "talk_dp_divider_topic_tooling": "Custom Tooling",
+  "talk_dp_divider_topic_agents": "Agents as Perspectives",
+  "talk_dp_divider_topic_plugins": "Plugins",
+  "talk_dp_divider_topic_cicd": "CI / CD",
+  "talk_dp_divider_topic_compress": "Compression",
   "talk_dp_nav_compressor": "Compressor",
+  "talk_dp_nav_whats_next": "What's Next",
   "talk_dp_nav_closing": "Closing",
-
+  "talk_dp_nav_ci_cd": "CI/CD",
+  "talk_dp_nav_cca": "Code Action",
   "talk_dp_intro_badge": "Part 2 — Deep Dive",
   "talk_dp_intro_title": "The Dev Process",
   "talk_dp_intro_subtitle": "From issue to production — every step, every gate, every artifact",
   "talk_dp_intro_stat_steps": "Steps",
   "talk_dp_intro_stat_phases": "Phases",
   "talk_dp_intro_stat_artifacts": "Artifact Types",
+  "talk_dp_tools_title": "Tooling the Workflow",
+  "talk_dp_tools_subtitle": "Claude Code uses your tools, not just its own",
+  "talk_dp_tools_dashboard_title": "Issue Dashboard",
+  "talk_dp_tools_dashboard_desc": "Live view of issues, status, and dependencies. Runs alongside bun run dev at port 3333.",
+  "talk_dp_tools_dashboard_tagline": "visibility without context-switching",
+  "talk_dp_tools_mcp_title": "External Tool Connections",
+  "talk_dp_tools_mcp_desc": "Claude Code connects to GitHub, Vercel, Postgres, and any MCP-compatible service. Agents call these tools like any other.",
+  "talk_dp_tools_cli_title": "Custom CLI Tooling",
+  "talk_dp_tools_cli_desc": "Aliases, tmux layouts, dev:clean, db:branch:create — Claude Code drives your entire local toolchain.",
+  "talk_dp_tools_callout": "Agents don't just write code — they operate your entire toolchain",
+  "talk_dp_tools_tips_heading": "Pro Tips",
+  "talk_dp_tools_tip1_label": "Open link in browser",
+  "talk_dp_tools_tip2_label": "Open file in editor",
+  "talk_dp_multi_title": "Agents as Perspectives",
+  "talk_dp_multi_subtitle": "Same brief, different minds — pick the best result",
+  "talk_dp_multi_spec_label": "Same Spec",
+  "talk_dp_multi_pick_label": "Human Picks",
+  "talk_dp_multi_parallel_title": "Parallel Domains",
+  "talk_dp_multi_parallel_desc": "frontend-dev + backend-dev + tester work concurrently on the same issue via shared task list",
+  "talk_dp_multi_reviewer_title": "Fresh Reviewer",
+  "talk_dp_multi_reviewer_desc": "No agent reviews code it wrote. Always a different agent for review — eliminates implementation bias",
+  "talk_dp_multi_escalation_title": "Escalation",
+  "talk_dp_multi_escalation_desc": "Agent hits a blocker → creates follow-up task → notifies lead. Work never silently stalls",
+  "talk_dp_multi_primitives_label": "Coordination primitives",
+  "talk_dp_plugins_title": "Plugins: More Than Skills",
+  "talk_dp_plugins_subtitle": "A plugin is a full capability bundle",
+  "talk_dp_plugins_skill_label": "Skill",
+  "talk_dp_plugins_plugin_label": "Plugin",
+  "talk_dp_plugins_workflow_title": "Workflow",
+  "talk_dp_plugins_workflow_desc": "The Roxabi boilerplate is a plugin: /dev, /promote, 9 agents, Biome formatter hook, all bundled together",
+  "talk_dp_plugins_integration_title": "Integration",
+  "talk_dp_plugins_integration_desc": "Connect Claude to external systems via MCP: GitHub issues, Linear tickets, Vercel deployments, Slack notifications",
+  "talk_dp_plugins_knowledge_title": "Knowledge",
+  "talk_dp_plugins_knowledge_desc": "Inject live documentation into agent context via MCP servers",
+  "talk_dp_plugins_knowledge_before": "Without: stale training data",
+  "talk_dp_plugins_knowledge_after": "With Context7: live docs at query time",
+  "talk_dp_plugins_callout": "Plugins are composable — stack multiple in one project via .claude/plugins/",
+  "talk_dp_roles_title": "Beyond Engineering",
+  "talk_dp_roles_subtitle": "Domain plugins bring the same AI-powered workflow to every team — not just developers.",
+  "talk_dp_roles_pm_label": "Product Management",
+  "talk_dp_roles_marketing_label": "Marketing",
+  "talk_dp_roles_design_label": "Design",
+  "talk_dp_roles_legal_label": "Legal",
+  "talk_dp_roles_sales_label": "Sales",
+  "talk_dp_roles_pm_skill1": "Sprint planning",
+  "talk_dp_roles_pm_skill2": "Feature specs",
+  "talk_dp_roles_pm_skill3": "Roadmap updates",
+  "talk_dp_roles_marketing_skill1": "Campaign planning",
+  "talk_dp_roles_marketing_skill2": "SEO audit",
+  "talk_dp_roles_marketing_skill3": "Content creation",
+  "talk_dp_roles_design_skill1": "Critique",
+  "talk_dp_roles_design_skill2": "Accessibility review",
+  "talk_dp_roles_design_skill3": "Design system",
+  "talk_dp_roles_legal_skill1": "Contract review",
+  "talk_dp_roles_legal_skill2": "NDA triage",
+  "talk_dp_roles_legal_skill3": "Compliance check",
+  "talk_dp_roles_sales_skill1": "Pipeline review",
+  "talk_dp_roles_sales_skill2": "Outreach drafting",
+  "talk_dp_roles_sales_skill3": "Forecast",
+  "talk_dp_roles_callout": "One /install. Your whole team unlocks AI-powered workflows.",
   "talk_dp_closing_title": "Build Your Process",
   "talk_dp_closing_docs": "Explore the Docs",
   "talk_dp_closing_docs_desc": "Full guides and standards",
   "talk_dp_closing_fork": "Fork the Repo",
   "talk_dp_closing_fork_desc": "Start from a proven foundation",
-  "talk_dp_closing_try": "Try /dev #1",
-  "talk_dp_closing_try_desc": "One command to start the full lifecycle",
-
+  "talk_dp_closing_plugins_official": "Official Plugins",
+  "talk_dp_closing_plugins_official_desc": "Community-maintained plugins for Claude Code",
+  "talk_dp_closing_plugins_knowledge": "Knowledge Plugins",
+  "talk_dp_closing_plugins_knowledge_desc": "Domain-specific knowledge bundles for agents",
+  "talk_dp_cicd_title": "CI / CD — Always Green",
+  "talk_dp_cicd_subtitle": "Every push is automatically validated. Every merge is automatically deployed.",
+  "talk_dp_cicd_ci_title": "Continuous Integration",
+  "talk_dp_cicd_precommit": "Pre-commit — Biome auto-formats on every file save",
+  "talk_dp_cicd_prepush": "Pre-push — lint + typecheck + tests + i18n + license",
+  "talk_dp_cicd_actions": "GitHub Actions — 5 parallel jobs on every PR",
+  "talk_dp_cicd_e2e": "E2E — Playwright on PR, full matrix on main/staging",
+  "talk_dp_cicd_cd_title": "Continuous Deployment",
+  "talk_dp_cicd_feat": "feat/* branch",
+  "talk_dp_cicd_staging": "staging branch",
+  "talk_dp_cicd_main": "main branch",
+  "talk_dp_cicd_preview": "Vercel preview deploy",
+  "talk_dp_cicd_prod": "Vercel production deploy",
+  "talk_dp_cicd_job_build": "Build",
+  "talk_dp_cicd_callout": "Zero manual deploy steps — push to staging, promote to main, Vercel handles the rest",
+  "talk_dp_cca_title": "Claude Code Action",
+  "talk_dp_cca_subtitle": "Automated PR review — triggered by GitHub, not by you",
+  "talk_dp_cca_how_title": "How it works",
+  "talk_dp_cca_step1": "PR opened or pushed → workflow triggers",
+  "talk_dp_cca_step2": "Preflight: skip if diff > 2 000 lines",
+  "talk_dp_cca_step3": "claude-code-action@v1 spins up Claude Code in CI",
+  "talk_dp_cca_step4": "Claude reviews the diff, auto-fixes safe issues, commits if needed",
+  "talk_dp_cca_step5": "Posts structured comment: Auto-fixed + Manual action needed",
+  "talk_dp_cca_config_title": "The workflow config",
+  "talk_dp_cca_badge_no_trigger": "No human trigger needed",
+  "talk_dp_cca_badge_tools": "--allowed-tools restricts blast radius",
+  "talk_dp_cca_badge_oauth": "OAuth token = real Claude Code session",
   "talk_dp_pipeline_title": "The Pipeline",
   "talk_dp_pipeline_subtitle": "Five phases from problem to production",
   "talk_dp_pipeline_frame": "Frame",
@@ -860,7 +918,6 @@
   "talk_dp_pipeline_verify_steps": "validate, review, fix*",
   "talk_dp_pipeline_ship_steps": "promote*, cleanup*",
   "talk_dp_pipeline_conditional": "* = conditional step (skipped based on tier or outcome)",
-
   "talk_dp_tier_title": "Match Process to Complexity",
   "talk_dp_tier_subtitle": "Three tiers, one pipeline",
   "talk_dp_tier_s": "Tier S",
@@ -881,7 +938,6 @@
   "talk_dp_tier_cond": "cond",
   "talk_dp_tier_insight": "Key insight",
   "talk_dp_tier_insight_text": "File count alone doesn't determine tier. A 50-file mechanical change may be S, while a 3-file rate limiter is F-full.",
-
   "talk_dp_resume_title": "Pick Up Where You Left Off",
   "talk_dp_resume_subtitle": "Artifacts persist — sessions don't have to",
   "talk_dp_resume_scan_title": "State Scan",
@@ -903,7 +959,6 @@
   "talk_dp_resume_artifact_analysis": "How deep is it?",
   "talk_dp_resume_artifact_spec": "What will we build?",
   "talk_dp_resume_artifact_plan": "How do we build it?",
-
   "talk_dp_gates_title": "You Decide, AI Executes",
   "talk_dp_gates_subtitle": "Every phase transition requires your approval",
   "talk_dp_gates_approve_frame": "Approve frame",
@@ -917,7 +972,6 @@
   "talk_dp_gates_roles_desc": "Human decides, Claude orchestrates, agents specialize",
   "talk_dp_gates_loop_title": "Human-in-the-Loop",
   "talk_dp_gates_loop_desc": "Not fully autonomous — intentionally human-in-the-loop",
-
   "talk_dp_gates_quality_title": "Automated Quality Gates",
   "talk_dp_gates_quality_pre_commit": "pre-commit",
   "talk_dp_gates_quality_pre_commit_desc": "Biome lint + format",
@@ -925,7 +979,6 @@
   "talk_dp_gates_quality_commit_msg_desc": "Commitlint conventional",
   "talk_dp_gates_quality_pre_push": "pre-push",
   "talk_dp_gates_quality_pre_push_desc": "lint + typecheck + tests + i18n",
-
   "talk_dp_nav_hooks": "Hooks",
   "talk_dp_hooks_title": "Hooks: Automated Guardrails",
   "talk_dp_hooks_subtitle": "Git hooks and Claude Code hooks enforce quality at every step — no human action needed",
@@ -945,15 +998,12 @@
   "talk_dp_hooks_pre_tool_desc": "Block 'bun test' (must use 'bun run test'), warn on sensitive file access",
   "talk_dp_hooks_insight": "Key insight:",
   "talk_dp_hooks_insight_text": "Hooks run automatically — they don't require human attention. They catch mistakes before they compound.",
-
   "legal_back": "Back",
-
   "footer_legal_notice": "Legal Notice",
   "footer_terms": "Terms",
   "footer_privacy": "Privacy",
   "footer_cookies": "Cookies",
   "footer_cookie_settings": "Cookie Settings",
-
   "legal_mentions_title": "Legal Notice",
   "legal_mentions_editor_title": "Site Publisher",
   "legal_mentions_editor_intro": "The site is published by",
@@ -968,7 +1018,6 @@
   "legal_mentions_data_protection_title": "Personal Data Protection",
   "legal_mentions_data_protection_intro": "In accordance with the General Data Protection Regulation (GDPR), you have the right to access, rectify, port, object to, and delete your personal data.",
   "legal_mentions_data_protection_contact": "To exercise these rights, you can contact our Data Protection Officer at the following address:",
-
   "legal_cgu_title": "Terms of Service",
   "legal_cgu_article1_title": "Article 1 -- Purpose",
   "legal_cgu_article1_body": "These Terms of Service (hereinafter \"ToS\") define the conditions of access and use of the service provided by {companyName} (hereinafter \"the Service\").",
@@ -991,7 +1040,6 @@
   "legal_cgu_article8_body": "These ToS are governed by French law.",
   "legal_cgu_article9_title": "Article 9 -- Jurisdiction",
   "legal_cgu_article9_body": "In the event of a dispute relating to the interpretation or execution of these ToS, the competent courts within the jurisdiction of the registered office of {companyName} shall have sole jurisdiction, unless otherwise provided by law.",
-
   "legal_privacy_title": "Privacy Policy",
   "legal_privacy_controller_title": "Data Controller",
   "legal_privacy_controller_intro": "The data controller for personal data is",
@@ -1044,7 +1092,6 @@
   "legal_privacy_rights_contact": "To exercise these rights, contact us at:",
   "legal_privacy_authority_title": "Supervisory Authority",
   "legal_privacy_authority_body": "If you believe that the processing of your personal data constitutes a violation of the GDPR, you may file a complaint with the CNIL:",
-
   "legal_cookies_title": "Cookie Policy",
   "legal_cookies_what_title": "What is a cookie?",
   "legal_cookies_what_body": "A cookie is a small text file placed on your device (computer, tablet, smartphone) when you visit a website. It allows the site to remember information about your visit, such as your language preferences or other settings.",
@@ -1068,7 +1115,6 @@
   "legal_cookies_manage_body": "You can change your cookie preferences at any time by clicking the button below or via the \"Cookie Settings\" link in the footer.",
   "legal_cookies_manage_button": "Manage my cookie preferences",
   "legal_cookies_manage_browser": "You can also configure your browser to block or delete cookies. Note that disabling certain cookies may affect the website's functionality.",
-
   "consent_banner_text": "We use cookies to improve your experience. You can accept all, reject all, or customize your preferences.",
   "consent_banner_aria_label": "Cookie consent",
   "consent_reject_all": "Reject all",
@@ -1083,13 +1129,11 @@
   "consent_marketing_label": "Marketing",
   "consent_marketing_description": "Allow us to show you relevant advertisements",
   "consent_save_preferences": "Save preferences",
-
   "privacy_section_title": "Privacy & Data",
   "privacy_section_description": "Manage your personal data",
   "privacy_download_data": "Download my data",
   "privacy_downloading": "Downloading...",
   "privacy_delete_account": "Delete my account",
-
   "account_reactivation_title": "Account Scheduled for Deletion",
   "account_reactivation_deletion_pending": "Deletion pending",
   "account_reactivation_deleted_on": "Your account will be permanently deleted on {date}.",
@@ -1108,7 +1152,6 @@
   "account_purge_confirm_desc": "This will immediately and permanently delete your account, anonymize all your data, and remove all your sessions. This action cannot be undone.",
   "account_purge_confirm_label": "Type your email address to confirm",
   "account_purge_error": "Failed to permanently delete account",
-
   "account_deleted_purged_title": "Account Permanently Deleted",
   "account_deleted_scheduled_title": "Account Scheduled for Deletion",
   "account_deleted_purged_desc": "Your account and all associated data have been permanently deleted. This action is irreversible.",
@@ -1118,7 +1161,6 @@
   "account_deleted_changed_mind": "Changed your mind? Simply log back in before the grace period expires to reactivate your account. All your data will be restored.",
   "account_deleted_back_to_login": "Back to Login",
   "account_deleted_go_home": "Return to Homepage",
-
   "account_danger_zone": "Danger Zone",
   "account_danger_zone_desc": "Permanently delete your account and all associated data. This action is reversible during a 30-day grace period.",
   "account_delete_button": "Delete My Account",
@@ -1132,7 +1174,6 @@
   "account_delete_confirm_title": "Delete Your Account",
   "account_delete_confirm_desc": "This will schedule your account for permanent deletion. Your data will be removed after 30 days. You can reactivate by logging in during the grace period.",
   "account_delete_confirm_email_label": "Type your email address to confirm",
-
   "org_reactivation_title": "Organization Scheduled for Deletion",
   "org_reactivation_scheduled": "This organization is scheduled for permanent deletion on {date}.",
   "org_reactivation_button": "Reactivate Organization",
@@ -1143,7 +1184,6 @@
   "org_deletion_grace_period": "The organization will be permanently deleted after 30 days.",
   "org_unsaved_leave_confirm": "Type 'leave' to discard changes",
   "org_unsaved_desc": "You have unsaved changes. Are you sure you want to leave?",
-
   "profile_title": "Profile Information",
   "profile_description": "Update your name and display preferences.",
   "profile_first_name": "First Name",
@@ -1152,7 +1192,6 @@
   "profile_sync_name": "Sync from first/last name",
   "profile_saving": "Saving...",
   "profile_save": "Save Changes",
-
   "avatar_title": "Avatar",
   "avatar_description": "Choose a generated avatar style. Customize the look with options below.",
   "avatar_preview_alt": "Avatar preview",
@@ -1166,13 +1205,11 @@
   "avatar_url_length_warning": "Avatar URL is too long. Simplify options or change style to save.",
   "avatar_save_success": "Profile updated successfully",
   "avatar_save_error": "Failed to update profile",
-
   "settings_title": "Settings",
   "settings_nav_label": "Settings",
   "settings_tab_profile": "Profile",
   "settings_tab_account": "Account",
   "settings_tab_api_keys": "API Keys",
-
   "account_email_title": "Email Address",
   "account_email_description": "Change your email address. A verification link will be sent to the new address.",
   "account_email_new_label": "New Email",
@@ -1181,7 +1218,6 @@
   "account_email_change": "Change Email",
   "account_email_change_error": "Failed to change email",
   "account_email_change_success": "Verification email sent to {email}",
-
   "account_password_title": "Password",
   "account_password_description": "Update your password.",
   "account_password_current": "Current Password",
@@ -1192,10 +1228,8 @@
   "account_password_update": "Update Password",
   "account_password_update_error": "Failed to update password",
   "account_password_update_success": "Password updated successfully",
-
   "account_type_title": "Account Type",
   "account_type_oauth_description": "Your account is linked via a social provider. Email and password settings are managed through your provider.",
-
   "account_org_ownership_title": "Organization Ownership",
   "account_org_ownership_description": "You own the following organizations. Choose what happens to each one before deleting your account.",
   "account_org_member_count": "{count} member",
@@ -1204,9 +1238,7 @@
   "account_org_delete": "Delete organization",
   "account_org_select_member": "Select a member",
   "account_org_member_unknown": "Unknown",
-
   "account_head_title": "Account Settings | {appName}",
-
   "admin_sidebar_title": "Admin",
   "admin_sidebar_organization": "Organization",
   "admin_sidebar_system": "System",
@@ -1238,7 +1270,6 @@
   "admin_owner_role_tooltip": "Owner role cannot be changed",
   "admin_owner_remove_tooltip": "Owner cannot be removed",
   "admin_orgs_empty": "No organizations found",
-
   "api_keys_status_active": "Active",
   "api_keys_status_expired": "Expired",
   "api_keys_status_revoked": "Revoked",
@@ -1286,11 +1317,9 @@
   "api_keys_no_org_title": "No Organization Selected",
   "api_keys_no_org_description": "Select an organization to manage its API keys.",
   "api_keys_never": "Never",
-
   "talk_dp_goal": "Goal",
   "talk_dp_artifact": "Artifact",
   "talk_dp_gate": "Gate",
-
   "talk_dp_frame_title": "Frame",
   "talk_dp_frame_subtitle": "Define the problem",
   "talk_dp_frame_triage_goal": "Categorize and assign the issue",
@@ -1300,7 +1329,6 @@
   "talk_dp_frame_frame_artifact": "artifacts/frames/{slug}.mdx",
   "talk_dp_frame_frame_gate": "User approves frame",
   "talk_dp_frame_annotation": "S-tier skips framing — goes straight to implement",
-
   "talk_dp_shape_title": "Shape",
   "talk_dp_shape_subtitle": "Design the solution",
   "talk_dp_shape_analyze_goal": "Deep technical exploration — risks, alternatives, recommendations",
@@ -1311,7 +1339,6 @@
   "talk_dp_shape_spec_artifact": "artifacts/specs/{N}-{slug}.mdx",
   "talk_dp_shape_spec_gate": "User approves spec",
   "talk_dp_shape_annotation": "F-lite skips analysis — frame is sufficient context for spec",
-
   "talk_dp_build_title": "Build",
   "talk_dp_build_subtitle": "Write the code",
   "talk_dp_build_plan_goal": "Break spec into tasks, pick agents, define order",
@@ -1322,7 +1349,6 @@
   "talk_dp_build_pr_goal": "Package work for review",
   "talk_dp_build_annotation": "Test-first: tester writes failing tests, then domain agents implement",
   "talk_dp_build_agent_routing": "Agent Routing",
-
   "talk_dp_verify_title": "Verify",
   "talk_dp_verify_subtitle": "Review and fix",
   "talk_dp_verify_validate_goal": "Run all quality gates",
@@ -1331,14 +1357,12 @@
   "talk_dp_verify_fix_goal": "Apply accepted review findings",
   "talk_dp_verify_fix_flow": "Auto-apply → /1b1 walkthrough → domain fixers",
   "talk_dp_verify_annotation": "Fresh agents = no implementation bias",
-
   "talk_dp_ship_title": "Ship",
   "talk_dp_ship_subtitle": "Release and clean up",
   "talk_dp_ship_promote_goal": "Merge staging → main with version bump and changelog",
   "talk_dp_ship_promote_note": "Standalone via /promote — not auto-triggered by /dev",
   "talk_dp_ship_cleanup_goal": "Remove stale worktrees and branches",
   "talk_dp_ship_annotation": "Promotion batches all staging changes into one release",
-
   "talk_dp_compress_title": "Compress: Less Tokens, Same Semantics",
   "talk_dp_compress_subtitle": "Formal notation rewrite for skills and agents",
   "talk_dp_compress_before": "Before",
@@ -1356,5 +1380,21 @@
   "talk_dp_compress_symbol_then": "then",
   "talk_dp_compress_symbol_iff": "iff",
   "talk_dp_compress_simple": "Simple",
-  "talk_dp_compress_complex": "Complex"
+  "talk_dp_compress_complex": "Complex",
+  "talk_dp_next_title": "What's Next?",
+  "talk_dp_next_subtitle": "Where we're headed — projects to watch and features in the pipeline.",
+  "talk_dp_next_pi_title": "PI Agent",
+  "talk_dp_next_pi_desc": "Agent-first OS — persistent agents, ambient intelligence, no clipboard required.",
+  "talk_dp_next_pi_github": "GitHub",
+  "talk_dp_next_pi_youtube": "Demo",
+  "talk_dp_next_roadmap_title": "On the Roadmap",
+  "talk_dp_next_observability_label": "Observability Stack",
+  "talk_dp_next_observability_desc": "Production monitoring, tracing & analytics dashboards",
+  "talk_dp_next_public_api_label": "Public API & Dev Platform",
+  "talk_dp_next_public_api_desc": "REST SDK surface, API keys, webhooks & developer portal",
+  "talk_dp_next_quality_title": "Code Quality & Security",
+  "talk_dp_next_quality_item1": "Automated security auditing on every PR",
+  "talk_dp_next_quality_item2": "Coverage thresholds enforced in CI",
+  "talk_dp_next_quality_item3": "Biome upgrade path & strict rule expansion",
+  "talk_dp_next_quality_item4": "Dependency license & vulnerability scanning"
 }
