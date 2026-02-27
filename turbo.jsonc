@@ -2,12 +2,49 @@
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
   "globalPassThroughEnv": [
+    // Auth & App
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_URL",
+    "CORS_ORIGIN",
     "CRON_SECRET",
+    "EMAIL_FROM",
+    "LOG_LEVEL",
+    "PORT",
+    "RATE_LIMIT_ENABLED",
+    "RATE_LIMIT_GLOBAL_TTL",
+    "RATE_LIMIT_GLOBAL_LIMIT",
+    "RATE_LIMIT_AUTH_TTL",
+    "RATE_LIMIT_AUTH_LIMIT",
+    "RATE_LIMIT_AUTH_BLOCK_DURATION",
+    "RATE_LIMIT_API_TTL",
+    "RATE_LIMIT_API_LIMIT",
+    "RESEND_API_KEY",
+    "SWAGGER_ENABLED",
+    // OAuth providers
     "GITHUB_CLIENT_ID",
     "GITHUB_CLIENT_SECRET",
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
-    "VERCEL_AUTOMATION_BYPASS_SECRET"
+    // Vercel
+    "VERCEL_AUTOMATION_BYPASS_SECRET",
+    // Database — Neon marketplace vars (injected for all Vercel projects in scope)
+    "DATABASE_APP_URL",
+    "DATABASE_URL",
+    "DATABASE_URL_UNPOOLED",
+    "NEON_PROJECT_ID",
+    "PGDATABASE",
+    "PGHOST",
+    "PGHOST_UNPOOLED",
+    "PGPASSWORD",
+    "PGUSER",
+    "POSTGRES_DATABASE",
+    "POSTGRES_HOST",
+    "POSTGRES_PASSWORD",
+    "POSTGRES_PRISMA_URL",
+    "POSTGRES_URL",
+    "POSTGRES_URL_NON_POOLING",
+    "POSTGRES_URL_NO_SSL",
+    "POSTGRES_USER"
   ],
   "tasks": {
     // If orphaned processes hold dev ports after Ctrl+C, run `bun run dev:clean`.
