@@ -9,6 +9,7 @@ import { ClaudeCodeActionSection } from '@/components/presentation/dev-process/C
 import { ClosingSection } from '@/components/presentation/dev-process/ClosingSection'
 import { CompressorSection } from '@/components/presentation/dev-process/CompressorSection'
 import { CustomToolingSection } from '@/components/presentation/dev-process/CustomToolingSection'
+import { DeepDiveDivider } from '@/components/presentation/dev-process/DeepDiveDivider'
 import { FramePhaseSection } from '@/components/presentation/dev-process/FramePhaseSection'
 import { HooksSection } from '@/components/presentation/dev-process/HooksSection'
 import { HumanGatesSection } from '@/components/presentation/dev-process/HumanGatesSection'
@@ -44,6 +45,7 @@ export function DevProcessPresentation() {
     { id: 'ship-phase', label: m.talk_dp_nav_ship_phase() },
     { id: 'resumability', label: m.talk_dp_nav_resumability() },
     { id: 'human-gates', label: m.talk_dp_nav_human_gates() },
+    { id: 'deep-dive', label: m.talk_dp_nav_deep_dive() },
     { id: 'hooks', label: m.talk_dp_nav_hooks() },
     { id: 'custom-tooling', label: m.talk_dp_nav_custom_tooling() },
     { id: 'multi-agent', label: m.talk_dp_nav_multi_agent() },
@@ -123,6 +125,10 @@ export function DevProcessPresentation() {
 
         <SectionContainer id="human-gates">
           <HumanGatesSection />
+        </SectionContainer>
+
+        <SectionContainer id="deep-dive">
+          <DeepDiveDivider />
         </SectionContainer>
 
         <SectionContainer id="hooks">
