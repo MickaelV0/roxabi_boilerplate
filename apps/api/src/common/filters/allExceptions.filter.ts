@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Injectable,
   Logger,
+  Optional,
 } from '@nestjs/common'
 import { ThrottlerException } from '@nestjs/throttler'
 import type { FastifyReply, FastifyRequest } from 'fastify'
@@ -35,9 +36,14 @@ function hasErrorCode(value: unknown): value is { errorCode: string } {
 @Catch()
 @Injectable()
 export class AllExceptionsFilter implements ExceptionFilter {
-  private readonly logger = new Logger(AllExceptionsFilter.name)
+  private readonly logger: Logger
 
-  constructor(private readonly cls: ClsService) {}
+  constructor(
+    private readonly cls: ClsService,
+    @Optional() logger?: Logger
+  ) {
+    this.logger = logger ?? new Logger(AllExceptionsFilter.name)
+  }
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp()

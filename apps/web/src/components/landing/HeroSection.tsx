@@ -224,7 +224,10 @@ export function HeroSection() {
         </div>
 
         {/* Right — terminal feed panel with floating cards */}
-        <div className="animate-hero-in-delayed relative hidden lg:block lg:w-[420px] xl:w-[480px] overflow-visible aspect-[1/1.1]">
+        <div
+          className="animate-hero-in-delayed relative hidden lg:block lg:w-[420px] xl:w-[480px] overflow-visible aspect-[1/1.1]"
+          aria-hidden="true"
+        >
           {/* Floating cards */}
           <AgentActivityCard />
           <FeatureChip />

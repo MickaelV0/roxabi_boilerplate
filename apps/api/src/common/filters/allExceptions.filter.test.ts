@@ -1,11 +1,22 @@
 import { HttpException, HttpStatus, Logger } from '@nestjs/common'
 import { ThrottlerException } from '@nestjs/throttler'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AllExceptionsFilter } from './allExceptions.filter.js'
 
 function createMockCls(id = 'test-id') {
   return { getId: vi.fn().mockReturnValue(id) }
+}
+
+function createMockLogger() {
+  return {
+    error: vi.fn(),
+    warn: vi.fn(),
+    log: vi.fn(),
+    debug: vi.fn(),
+    verbose: vi.fn(),
+    fatal: vi.fn(),
+  } as unknown as Logger
 }
 
 function createMockHost(requestOverrides: Record<string, unknown> = {}) {
@@ -38,7 +49,14 @@ function createMockHost(requestOverrides: Record<string, unknown> = {}) {
 
 describe('AllExceptionsFilter', () => {
   const cls = createMockCls()
-  const filter = new AllExceptionsFilter(cls as never)
+  const loggerMock = createMockLogger()
+  const filter = new AllExceptionsFilter(cls as never, loggerMock)
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // Restore cls implementation cleared by clearAllMocks
+    vi.mocked(cls.getId).mockReturnValue('test-id')
+  })
 
   it('should handle HttpException with string response', () => {
     const { host, statusFn, getSentBody } = createMockHost()
@@ -94,7 +112,7 @@ describe('AllExceptionsFilter', () => {
 
   it('should use correlation ID from ClsService', () => {
     const customCls = createMockCls('custom-correlation-id')
-    const customFilter = new AllExceptionsFilter(customCls as never)
+    const customFilter = new AllExceptionsFilter(customCls as never, createMockLogger())
     const { host, getSentBody } = createMockHost()
 
     customFilter.catch(new Error('fail'), host as never)
@@ -143,41 +161,33 @@ describe('AllExceptionsFilter', () => {
 
   describe('logging', () => {
     it('should log 5xx exceptions at error level with stack trace', () => {
+      // Arrange
       const { host } = createMockHost()
       const exception = new Error('internal failure')
 
-      const logger = Reflect.get(filter, 'logger') as Logger
-      const errorSpy = vi.spyOn(logger, 'error')
-      const warnSpy = vi.spyOn(logger, 'warn')
-
+      // Act
       filter.catch(exception, host as never)
 
-      expect(errorSpy).toHaveBeenCalledWith(
+      // Assert
+      expect(loggerMock.error).toHaveBeenCalledWith(
         expect.stringContaining('GET /test - 500'),
         exception.stack
       )
-      expect(warnSpy).not.toHaveBeenCalled()
-
-      errorSpy.mockRestore()
-      warnSpy.mockRestore()
+      expect(loggerMock.warn).not.toHaveBeenCalled()
     })
 
     it('should log 4xx HttpExceptions at warn level with exception message', () => {
+      // Arrange
       const { host } = createMockHost()
       const exception = new HttpException('Not found', HttpStatus.NOT_FOUND)
 
-      const logger = Reflect.get(filter, 'logger') as Logger
-      const warnSpy = vi.spyOn(logger, 'warn')
-      const errorSpy = vi.spyOn(logger, 'error')
-
+      // Act
       filter.catch(exception, host as never)
 
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('GET /test - 404'))
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Not found'))
-      expect(errorSpy).not.toHaveBeenCalled()
-
-      warnSpy.mockRestore()
-      errorSpy.mockRestore()
+      // Assert
+      expect(loggerMock.warn).toHaveBeenCalledWith(expect.stringContaining('GET /test - 404'))
+      expect(loggerMock.warn).toHaveBeenCalledWith(expect.stringContaining('Not found'))
+      expect(loggerMock.error).not.toHaveBeenCalled()
     })
   })
 
@@ -247,19 +257,16 @@ describe('AllExceptionsFilter', () => {
       const { host } = createMockHost({ url: '/api/auth/sign-in', throttlerMeta })
       const exception = new ThrottlerException()
 
-      const logger = Reflect.get(filter, 'logger') as Logger
-      const warnSpy = vi.spyOn(logger, 'warn')
-
       // Act
       filter.catch(exception, host as never)
 
       // Assert -- logged at warn (not error), with structured info
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('RATE_LIMIT'))
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('tracker=ip:10.0.0.1'))
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('path=/api/auth/sign-in'))
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('tier=auth'))
-
-      warnSpy.mockRestore()
+      expect(loggerMock.warn).toHaveBeenCalledWith(expect.stringContaining('RATE_LIMIT'))
+      expect(loggerMock.warn).toHaveBeenCalledWith(expect.stringContaining('tracker=ip:10.0.0.1'))
+      expect(loggerMock.warn).toHaveBeenCalledWith(
+        expect.stringContaining('path=/api/auth/sign-in')
+      )
+      expect(loggerMock.warn).toHaveBeenCalledWith(expect.stringContaining('tier=auth'))
     })
 
     it('should default Retry-After to 60 when throttlerMeta is absent', () => {
