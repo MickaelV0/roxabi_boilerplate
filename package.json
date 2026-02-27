@@ -56,8 +56,8 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "sqlite-vec": "0.1.7-alpha.2",
-    "turbo": "^2.8.10",
-    "turbo-ignore": "^2.8.10",
+    "turbo": "^2.8.12",
+    "turbo-ignore": "^2.8.12",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18",
     "yaml": "^2.8.2"
@@ -72,7 +72,9 @@
     "shiki": "^3.23.0"
   },
   "overrides": {
-    "minimatch": ">=10.2.1",
-    "lodash": ">=4.17.23"
+    "minimatch": ">=10.2.3",
+    "lodash": ">=4.17.23",
+    "rollup": ">=4.59.0",
+    "ajv": ">=6.14.0"
   }
 }

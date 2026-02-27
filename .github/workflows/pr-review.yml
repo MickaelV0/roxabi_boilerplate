@@ -3,7 +3,7 @@ name: PR Review & Auto-fix
 on:
   pull_request:
     types: [opened, synchronize]
-    branches: [main, staging]
+    branches: [staging]
 
 concurrency:
   group: ${{ github.workflow }}-pr-review-${{ github.event.pull_request.number }}

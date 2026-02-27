@@ -41,8 +41,8 @@ describe('pr-review.yml', () => {
     expect(job.permissions?.['id-token']).toBe('write')
   })
 
-  it('triggers on pull_request to main and staging branches', () => {
-    expect(wf.on.pull_request.branches).toEqual(['main', 'staging'])
+  it('triggers on pull_request to staging branch only', () => {
+    expect(wf.on.pull_request.branches).toEqual(['staging'])
   })
 
   it('triggers on opened and synchronize pull_request types', () => {
