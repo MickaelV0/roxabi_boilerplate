@@ -3,17 +3,17 @@
 ## TL;DR
 
 - **Project:** Roxabi Boilerplate — SaaS framework (Bun, TurboRepo, TypeScript, TanStack Start, NestJS, Vercel)
-- **Before work:** Read [dev-process.mdx](docs/processes/dev-process.mdx) → determine tier (S / F-lite / F-full)
+- **Before work:** Use `/dev #N` as the single entry point — it determines tier (S / F-lite / F-full) and drives the full lifecycle
 - **All code changes** → worktree: `git worktree add ../roxabi-XXX -b feat/XXX-slug staging`
 - **Always** `AskUserQuestion` for choices — ¬plain-text questions
 - **¬commit** without asking, **¬push** without request, **¬**`--force`/`--hard`/`--amend`
 - **Always** use appropriate skill even without slash command
-- **Before code:** Read relevant standards doc (see [Rule 8](#8-coding-standards))
+- **Before code:** Read relevant standards doc (see [Rule 9](#9-coding-standards))
 - **Orchestrator** delegates to agents — only minor fixes directly
 
 ## Project Overview
 
-SaaS framework with integrated AI team. Vision → [docs/vision.mdx](docs/vision.mdx).
+SaaS framework with integrated AI team. Vision → [docs/product/vision.mdx](docs/product/vision.mdx).
 
 **Stack:** Bun | TurboRepo | TypeScript 5.x strict | Biome | TanStack Start | NestJS + Fastify | Vercel | Drizzle ORM + PostgreSQL 16
 **Style:** single quotes, no semicolons, trailing commas (es5), 2-space indent, 100-char width
@@ -45,22 +45,27 @@ packages/  ui(@repo/ui) types(@repo/types) config(@repo/config) email vitest-con
 | DB generate/migrate/reset/seed | `db:generate` / `db:migrate` / `db:reset` / `db:seed` | |
 | DB branch | `cd apps/api && bun run db:branch:create --force XXX` | Per-worktree |
 | Clean | `bun run clean` / `clean:cache` | Artifacts / caches |
-| i18n | `bun run i18n:validate` | Translation completeness |
-| Env check | `bun run check:env` | .env ↔ .env.example |
+| i18n | `bun run i18n:check` | Translation completeness |
+| Env check | `bun run env:check` | .env ↔ .env.example |
 | License | `bun run license:check` | Dependency licenses |
-| Docs / Dashboard | `bun run docs` / `bun run dashboard` | Preview / :3333 |
+| Docs | `bun run docs` | Runs web only (port 3000) |
+| Dashboard | `bun run dashboard` | Issue dashboard :3333 |
 
 ## Critical Rules
 
 ### 1. Dev Process
 
-**MUST read [dev-process.mdx](docs/processes/dev-process.mdx) before any work.** No exceptions.
+**Entry point: `/dev #N`** — single command that scans artifacts, shows progress, and delegates to the right phase skill. Full spec → [dev-process.mdx](docs/processes/dev-process.mdx).
 
-| Tier | Criteria | Process |
-|------|----------|---------|
-| **S** | ≤3 files, no arch, no risk | Worktree + PR |
-| **F-lite** | Clear scope, single domain | Worktree + agents + /review |
-| **F-full** | New arch, unclear reqs, >2 domains | Bootstrap + worktree + agents + /review |
+| Tier | Criteria | Phases |
+|------|----------|--------|
+| **S** | ≤3 files, no arch, no risk | triage → implement → pr → validate → review → fix* → promote* → cleanup* |
+| **F-lite** | Clear scope, single domain | Frame → spec → plan → implement → verify → ship |
+| **F-full** | New arch, unclear reqs, >2 domains | Frame → analyze → spec → plan → implement → verify → ship |
+
+`*` = conditional (runs only if applicable — e.g., fix runs only if review produces findings)
+
+Phases: **Frame** (problem) → **Shape** (spec) → **Build** (code) → **Verify** (review) → **Ship** (release).
 
 ### 2. AskUserQuestion
 
@@ -83,7 +88,18 @@ Types: feat|fix|refactor|docs|style|test|chore|ci|perf
 ¬push without request. ¬force/hard/amend. Hook fail → fix + NEW commit.
 Full spec → [docs/contributing.mdx](docs/contributing.mdx)
 
-### 6. Mandatory Worktree
+### 6. Artifact Model
+
+Artifacts are the state markers `/dev` uses for progress detection and resumption.
+
+| Type | Directory | Question answered |
+|------|-----------|-------------------|
+| **Frame** | `artifacts/frames/` | What's the problem? |
+| **Analysis** | `artifacts/analyses/` | How deep is it? |
+| **Spec** | `artifacts/specs/` | What will we build? |
+| **Plan** | `artifacts/plans/` | How do we build it? |
+
+### 7. Mandatory Worktree
 
 ```bash
 git worktree add ../roxabi-XXX -b feat/XXX-slug staging
@@ -91,19 +107,19 @@ cd ../roxabi-XXX && cp .env.example .env && bun install
 cd apps/api && bun run db:branch:create --force XXX
 ```
 
-Exceptions: XS (confirm via AskUserQuestion) | /bootstrap (doc artifacts) | /promote (release artifacts).
+Exceptions: XS (confirm via AskUserQuestion) | `/dev` pre-implementation artifacts (frame, analysis, spec, plan) | `/promote` release artifacts.
 **¬code on main/staging without worktree.**
 
-### 7. Code Review
+### 8. Code Review
 
 MUST read [code-review.mdx](docs/standards/code-review.mdx). Conventional Comments. Block only: security, correctness, standard violations.
 
-### 8. Coding Standards
+### 9. Coding Standards
 
 | Context | Read |
 |---------|------|
-| React / TanStack | [frontend-patterns.mdx](docs/standards/frontend-patterns.mdx) |
-| NestJS / API | [backend-patterns.mdx](docs/standards/backend-patterns.mdx) |
+| React / TanStack | [frontend-patterns.mdx](docs/standards/frontend-patterns.mdx) — see also [apps/web/CLAUDE.md](apps/web/CLAUDE.md) |
+| NestJS / API | [backend-patterns.mdx](docs/standards/backend-patterns.mdx) — see also [apps/api/CLAUDE.md](apps/api/CLAUDE.md) |
 | Tests | [testing.mdx](docs/standards/testing.mdx) |
 | Docs | [contributing.mdx](docs/contributing.mdx) |
 | Issues | [issue-management.mdx](docs/processes/issue-management.mdx) |
@@ -113,20 +129,25 @@ MUST read [code-review.mdx](docs/standards/code-review.mdx). Conventional Commen
 Skills: always use appropriate skill. Defs → `.claude/skills/*/SKILL.md`.
 Agents: rules → [AGENTS.md](AGENTS.md). Defs → `.claude/agents/*.md`. Guide → [agent-teams.mdx](docs/guides/agent-teams.mdx).
 
+**Agent models:** Sonnet = frontend-dev, backend-dev, devops, doc-writer, fixer, tester. Opus (inherited) = architect, product-lead, security-auditor.
+**Spawns:** Explore/research tasks → `model: "haiku"`. Simple mechanical tasks (grep, summarize, single-line fix) → `model: "haiku"`. Code generation, review, architecture → Sonnet/Opus (agent defaults).
+
+**Workflow skills (via `/dev #N` or standalone):** `dev` (orchestrator) | `frame` | `analyze` | `spec` | `plan` | `implement` | `fix`
+
 **Shared agent rules:** ¬commit/push (lead handles git) | ¬force/hard/amend | stage specific files only | escalate blockers → lead | claim tasks from shared list | create follow-up tasks | security → lead + security-auditor | message lead on completion.
 
 ## Gotchas
 
 - `bun test` ≠ `bun run test` — former = Bun runner (CPU spin), latter = Vitest. Hook blocks it.
 - `turbo.jsonc` ¬`turbo.json` — JSONC with comments.
-- `useImportType: off` for `apps/api/` — NestJS DI needs runtime imports.
 - Node ≥24, Bun 1.3.9 = pkg manager.
 - Orphaned ports → `bun run dev:clean`.
-- DB branches: worktree → own schema via `db:branch:create --force XXX`.
-- Paraglide i18n: compiled during codegen, `src/paraglide/` gitignored.
 - Biome upgrade → sync `$schema` version in `biome.json`.
 - Sub-issues: `addSubIssue` GraphQL mutation, ¬markdown checklists. Use `/issue-triage --parent`.
 - Post-rebase: `bun install` before push if new build steps added.
+- `gh pr edit --add-label` broken (Projects Classic deprecation) → use `gh api repos/:owner/:repo/issues/:number/labels -f "labels[]=<label>"`.
+- `gh pr view --json` has no `merged` field → use `mergedAt` (null = not merged).
+- Domain gotchas → [apps/api/CLAUDE.md](apps/api/CLAUDE.md) and [apps/web/CLAUDE.md](apps/web/CLAUDE.md).
 
 ## Reference
 
@@ -140,10 +161,10 @@ Agents: rules → [AGENTS.md](AGENTS.md). Defs → `.claude/agents/*.md`. Guide 
 | FE / BE / Test / Review | [frontend-patterns](docs/standards/frontend-patterns.mdx) / [backend-patterns](docs/standards/backend-patterns.mdx) / [testing](docs/standards/testing.mdx) / [code-review](docs/standards/code-review.mdx) |
 | Contributing | [contributing.mdx](docs/contributing.mdx) |
 | Deploy / Auth / Agents | [deployment](docs/guides/deployment.mdx) / [authentication](docs/guides/authentication.mdx) / [agent-teams](docs/guides/agent-teams.mdx) |
-| Vision | [vision.mdx](docs/vision.mdx) |
-| Specs / Analyses | [artifacts/specs/](artifacts/specs/) / [artifacts/analyses/](artifacts/analyses/) |
+| Vision | [vision.mdx](docs/product/vision.mdx) |
+| Frames / Analyses / Specs / Plans | [artifacts/frames/](artifacts/frames/) / [artifacts/analyses/](artifacts/analyses/) / [artifacts/specs/](artifacts/specs/) / [artifacts/plans/](artifacts/plans/) |
 
-**Deploy:** `main` → Vercel prod. `staging` → preview. Web=`apps/web` (TanStack/Nitro). API=`apps/api` (NestJS).
+**Deploy:** `main` → Vercel prod. `staging` → preview. Details in [apps/web/CLAUDE.md](apps/web/CLAUDE.md) and [apps/api/CLAUDE.md](apps/api/CLAUDE.md).
 
 **Hooks (Claude Code):** Biome auto-format (PostToolUse) | Security warn (PreToolUse) | `bun test` blocker (PreToolUse)
 **Hooks (Git/Lefthook):** pre-commit (Biome) | commit-msg (Commitlint) | pre-push (lint+typecheck+tests+i18n+license)

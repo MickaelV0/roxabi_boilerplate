@@ -1,0 +1,161 @@
+---
+title: "ADR-003: Better Auth Error Propagation for Magic Link Edge Cases"
+description: Use Better Auth callback errors and error code extraction instead of wrapper endpoints for email validation and token error differentiation.
+---
+
+## Status
+
+Accepted
+
+## Context
+
+The magic link authentication flow has three unhandled edge cases:
+1. Unregistered emails silently succeed (Better Auth sends a link to any email, potentially creating accounts).
+2. Token verification errors are generic (expired, invalid, and already-used tokens all show identical errors).
+3. Logged-in users clicking magic links are silently redirected without context.
+
+The current implementation does not leverage Better Auth's native error propagation mechanism in the `sendMagicLink` callback and does not extract error codes from verification responses.
+
+**Related:** Spec [365: Magic Link Edge Cases](../../../artifacts/specs/365-magic-link-edge-cases.mdx) | Analysis [Magic Link Edge Cases](../../../artifacts/analyses/magic-link-edge-cases.mdx)
+
+## Options Considered
+
+### Option A: Better Auth Callback Error Propagation + Client-Side Error Mapping
+- **Pros:**
+  - Minimal surface area — all changes localized to existing `auth.instance.ts`, `-login-handlers.ts`, and `verify.tsx`
+  - No new API endpoints or middleware
+  - Better Auth's error propagation is already wired; leverages native plugin API
+  - Simple, focused: callback throws → client receives error object → frontend maps error code
+  - No race conditions (unlike pre-check endpoints)
+  - Aligns with Better Auth's plugin design patterns
+- **Cons:**
+  - Email enumeration via magic link endpoint (user-accepted trade-off, mitigated by rate limiting)
+  - Requires confirming exact Better Auth error codes during implementation
+  - Client must handle error code parsing (error shape validation)
+
+### Option B: Dedicated Email Pre-Check Endpoint
+- **Pros:**
+  - Separates email validation from email sending (SOC principle)
+  - Could be reused for other auth flows
+- **Cons:**
+  - Extra network round-trip on every magic link request (latency)
+  - New `/api/auth/check-email` endpoint to maintain and secure
+  - Race condition: email could be deleted between check and send
+  - Over-engineered for a simple pre-check
+  - Doubles the number of auth requests (enumeration attack surface)
+
+### Option C: Require Session Check Before Route Load (requireGuest Only)
+- **Pros:**
+  - Prevents logged-in users from clicking magic links
+  - Simpler than inline session detection
+- **Cons:**
+  - Cannot show a helpful warning ("You're signed in as...") — just redirects
+  - Poor UX: users don't understand why they were redirected
+  - Cannot handle the case where a magic link is clicked while signed in as the *same* account
+
+**Selected:** Option A — Better Auth Callback Error Propagation + Client-Side Error Mapping. Simplest, no race conditions, leverages Better Auth's native error handling.
+
+## Decision
+
+Implement magic link edge case handling through three focused changes:
+
+### 1. Backend: Email Existence Check in `sendMagicLink` Callback
+
+In `apps/api/src/auth/auth.instance.ts`, the `sendMagicLink` callback will check whether the email exists in the `users` table before sending. If not found, throw an error that Better Auth propagates to the client.
+
+**Rationale:** Better Auth's callback API is designed for throwing errors. The SDK client automatically captures the error and includes it in the response. This is the intended extension point.
+
+**Implementation detail:** Use `throw new Error()` with a message field that the client maps to an error code. Verify during implementation whether Better Auth wraps this in an `APIError` or if a plain `Error` is sufficient.
+
+### 2. Frontend: Error Code Extraction in `useVerifyMagicLink` Hook
+
+In `apps/web/src/routes/magic-link/verify.tsx`, the `useVerifyMagicLink` hook will capture and expose the error code (not just the existence of an error).
+
+```typescript
+const { error } = await authClient.magicLink.verify({ query: { token: t } })
+if (error) {
+  setErrorCode(error.code ?? 'UNKNOWN')  // Extract code
+  setStatus('error')
+}
+```
+
+**Rationale:** Better Auth returns error objects with `{ code, message, status }` fields. We need the `code` to differentiate `EXPIRED_TOKEN` from `INVALID_TOKEN` and render the appropriate message.
+
+### 3. Frontend: Session Check Replaces `requireGuest`
+
+Remove `beforeLoad: requireGuest` from the route definition. Replace with inline session detection in the component using `authClient.useSession()`. Branch on three cases:
+- Session exists + token → render `WarningState` ("You're already signed in as...")
+- Session exists + no token → redirect to `/dashboard`
+- No session → proceed with verification (existing flow)
+
+**Rationale:** The route-level `beforeLoad` guard cannot render conditional UI; it can only redirect. Moving the check into the component allows a warning state. This is the idiomatic React Router pattern for conditional rendering.
+
+## Consequences
+
+### Positive
+- **Minimal code change:** ~150 lines across 3 files; no new packages, endpoints, or architectural patterns
+- **Leverages existing infrastructure:** Better Auth's callback error API and SDK error response structure
+- **No race conditions:** Unlike email pre-check endpoints, there's no window where email state changes
+- **Better UX:** Users see specific error messages and understand what happened
+- **Aligns with library design:** Better Auth plugins are designed to throw errors; callbacks propagate them natively
+- **Supports all three edge cases:** Unregistered email, specific verification errors, and logged-in user warning
+
+### Negative
+- **Email enumeration:** Rejecting unregistered emails reveals registration status. Mitigated by existing global rate limiter (5 req/60s per IP). This is a user-accepted trade-off, same as the existing email/password login flow.
+- **Error code coupling:** Frontend error mapping depends on Better Auth's exact error codes. Requires verification during implementation and documentation for maintenance.
+- **Session check latency:** `authClient.useSession()` is async; UI briefly shows loading state. Acceptable for an auth page (users expect some delay).
+
+### Neutral
+- **Message key expansion:** 5 new i18n keys (EN + FR). Standard process.
+- **Testing surface:** Error code mapping in component and callback error propagation require test cases for each code path.
+
+## Implementation Notes
+
+### Open Questions (Resolved During Implementation)
+
+1. **Better Auth error code shape:** Confirm that `error.code` is populated with `INVALID_TOKEN`/`EXPIRED_TOKEN`/`USER_NOT_FOUND`. If the SDK wraps errors differently, adjust frontend error detection.
+   - **Resolution path:** Write a small test callback that throws; log the client-side error shape; adjust as needed.
+
+2. **Callback error message propagation:** Does `throw new Error('USER_NOT_FOUND')` propagate the message as `error.code` or `error.message`? Or must we use Better Auth's `APIError`?
+   - **Resolution path:** Check Better Auth source (`better-auth/api` exports) during setup; confirm with a test request.
+
+3. **Session persistence timing:** After `authClient.signOut()`, does the session cookie clear immediately? Or is there a race condition where the reload tries to verify before logout completes?
+   - **Resolution path:** Implement with explicit async handling; log cookies at each step if needed.
+
+### Success Criteria (from Spec)
+
+- [ ] Submitting a magic link for an unregistered email shows "No account found for this email"
+- [ ] Submitting a magic link for a registered email still sends the link (no regression)
+- [ ] Clicking an expired magic link shows "This link has expired. Request a new one." + button
+- [ ] Clicking an already-used magic link shows "This link is invalid or has already been used."
+- [ ] Visiting `/magic-link/verify` with no token shows "No verification link found."
+- [ ] Visiting `/magic-link/verify?token=xxx` while signed in shows "You're already signed in as {email}"
+- [ ] All new strings have EN and FR translations
+- [ ] `bun run lint && bun run typecheck && bun run test` passes
+
+## Rationale for Rejecting Options
+
+**Option B (Email Pre-Check Endpoint)** was rejected because:
+1. Race condition: email deleted between check and send → confusing UX
+2. Over-engineered: Better Auth's callback already handles validation
+3. Higher latency: extra network round-trip on every request
+4. Higher maintenance cost: new endpoint to secure and test
+
+**Option C (requireGuest Only)** was rejected because:
+1. No helpful warning — users don't understand why they were redirected
+2. Silent redirect is poor UX for a security-sensitive flow
+3. Cannot distinguish "signed in as A, clicking link for B" from other scenarios
+
+## Cross-Cutting Concerns
+
+- **Rate Limiting:** Magic link send endpoint is already behind the global throttler (5/60s per IP). This is sufficient for email enumeration mitigation.
+- **i18n:** All user-facing error messages use Paraglide. No new translation framework needed.
+- **Testing:** Add unit tests for callback error throwing and component error code branching. E2E tests for full flow (send error, verify error, warning state).
+- **Observability:** Error codes logged to backend logs via Better Auth plugin hooks; frontend logs error codes to browser console (dev mode only).
+
+## Acceptance Criteria
+
+This ADR is accepted when:
+1. The spec (365-magic-link-edge-cases.mdx) is reviewed and approved by the team
+2. Implementation confirms the exact Better Auth error code shape (open question #1)
+3. All success criteria from the spec are met

@@ -68,13 +68,11 @@ const SYSTEM_LINKS: SidebarLink[] = [
     to: '/admin/system-settings',
     label: () => m.admin_sidebar_link_system_settings(),
     icon: SettingsIcon,
-    disabled: true,
   },
   {
     to: '/admin/feature-flags',
     label: () => m.admin_sidebar_link_feature_flags(),
     icon: FlagIcon,
-    disabled: true,
   },
   {
     to: '/admin/health',

@@ -108,6 +108,7 @@ The guard checks metadata in this order:
 2. Fetch session from Better Auth
 3. `OPTIONAL_AUTH` — if set and no session, allow
 4. No session → `401 Unauthorized`
+4b. Soft-deleted account → `403 Forbidden`
 5. `ROLES` — check user role → `403 Forbidden` if mismatch
 6. `REQUIRE_ORG` — check active org → `403 Forbidden` if missing
 7. `PERMISSIONS` — check tenant-scoped permissions → `403 Forbidden` if insufficient
@@ -125,7 +126,7 @@ Better Auth uses **cookie-based sessions**:
 
 ### Same-origin cookies
 
-The frontend (port 3000) and API (port 4000) run on different ports in development. To keep cookies on the same origin (avoiding `SameSite=None`), the frontend uses a **Vite dev proxy**:
+The frontend (port 3000) and API (port 4000) run on different ports in development. To keep cookies on the same origin (avoiding `SameSite=None`), the frontend uses a **Nitro dev proxy**:
 
 ```
 /api/* → http://localhost:4000
@@ -192,7 +193,7 @@ export const { useSession, signIn, signUp, signOut } = authClient
 ### Usage in components
 
 ```tsx
-import { useSession, signOut } from '~/lib/authClient'
+import { useSession, signOut } from '@/lib/authClient'
 
 function UserMenu() {
   const { data: session } = useSession()

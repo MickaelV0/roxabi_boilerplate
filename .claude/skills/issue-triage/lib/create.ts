@@ -18,8 +18,8 @@ import {
   addBlockedBy,
   addSubIssue,
   addToProject,
+  createGitHubIssue,
   getNodeId,
-  run,
   updateField,
 } from '../../shared/github'
 
@@ -172,24 +172,13 @@ export async function createIssue(args: string[]): Promise<void> {
     process.exit(1)
   }
 
-  // Build gh issue create command
-  const createArgs = ['gh', 'issue', 'create', '--title', opts.title]
-  if (opts.body) createArgs.push('--body', opts.body)
-  if (opts.labels) {
-    for (const label of opts.labels.split(',')) {
-      createArgs.push('--label', label.trim())
-    }
-  }
-
-  // Create the issue — gh issue create returns a URL like
-  // https://github.com/owner/repo/issues/123
-  const issueUrl = await run(createArgs)
-
-  const match = issueUrl.match(/\/(\d+)\s*$/)
-  if (!match) {
-    throw new Error(`Failed to parse issue number from gh output: ${issueUrl}`)
-  }
-  const issueNumber = Number(match[1])
+  // Create the issue via REST API
+  const labels = opts.labels
+    ?.split(',')
+    .map((l) => l.trim())
+    .filter(Boolean)
+  const result = await createGitHubIssue(opts.title, opts.body, labels)
+  const issueNumber = result.number
   console.log(`Created #${issueNumber}: ${opts.title}`)
 
   // Add to project board (non-fatal)

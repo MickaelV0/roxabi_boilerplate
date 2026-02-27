@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../shared/github', () => ({
-  run: vi.fn(),
+  createGitHubIssue: vi.fn(),
   getNodeId: vi.fn(),
   addToProject: vi.fn(),
   updateField: vi.fn(),
@@ -10,7 +10,7 @@ vi.mock('../../shared/github', () => ({
 }))
 
 const github = await import('../../shared/github')
-const mockRun = vi.mocked(github.run)
+const mockCreateGitHubIssue = vi.mocked(github.createGitHubIssue)
 const mockGetNodeId = vi.mocked(github.getNodeId)
 const mockAddToProject = vi.mocked(github.addToProject)
 const mockUpdateField = vi.mocked(github.updateField)
@@ -21,7 +21,10 @@ const { createIssue } = await import('../lib/create')
 
 function setupMocks() {
   vi.clearAllMocks()
-  mockRun.mockResolvedValue('https://github.com/test/repo/issues/99')
+  mockCreateGitHubIssue.mockResolvedValue({
+    url: 'https://github.com/test/repo/issues/99',
+    number: 99,
+  })
   mockGetNodeId.mockImplementation(async (num) => `node-${num}`)
   mockAddToProject.mockResolvedValue('item-99')
   vi.spyOn(console, 'log').mockImplementation(() => {})
@@ -34,9 +37,7 @@ describe('issue-triage/create > basic creation', () => {
 
   it('creates an issue with title', async () => {
     await createIssue(['--title', 'Test issue'])
-    expect(mockRun).toHaveBeenCalledWith(
-      expect.arrayContaining(['gh', 'issue', 'create', '--title', 'Test issue'])
-    )
+    expect(mockCreateGitHubIssue).toHaveBeenCalledWith('Test issue', undefined, undefined)
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Created #99'))
   })
 
@@ -88,18 +89,14 @@ describe('issue-triage/create > options and error handling', () => {
   beforeEach(setupMocks)
   afterEach(() => vi.restoreAllMocks())
 
-  it('includes labels in create command', async () => {
+  it('includes labels in create call', async () => {
     await createIssue(['--title', 'Test', '--label', 'bug,frontend'])
-    const createCall = mockRun.mock.calls[0][0]
-    expect(createCall).toContain('--label')
-    expect(createCall).toContain('bug')
+    expect(mockCreateGitHubIssue).toHaveBeenCalledWith('Test', undefined, ['bug', 'frontend'])
   })
 
-  it('includes body in create command', async () => {
+  it('includes body in create call', async () => {
     await createIssue(['--title', 'Test', '--body', 'Description here'])
-    const createCall = mockRun.mock.calls[0][0]
-    expect(createCall).toContain('--body')
-    expect(createCall).toContain('Description here')
+    expect(mockCreateGitHubIssue).toHaveBeenCalledWith('Test', 'Description here', undefined)
   })
 
   it('continues if project add fails', async () => {

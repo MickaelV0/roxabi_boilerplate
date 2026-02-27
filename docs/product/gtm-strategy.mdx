@@ -1,0 +1,245 @@
+---
+title: GTM Strategy
+description: Go-to-market plan — pricing, launch sequence, distribution channels, and community strategy for Roxabi Boilerplate
+---
+
+## What Needs to Happen Before Launch
+
+### Must-have (blocks charging $299)
+
+**1. Stripe billing integration**
+
+This is non-negotiable. Every boilerplate comparison article asks *"does it have Stripe?"* Missing it = instant disqualification for 60%+ of the ICP. The payment abstraction interface is already architecturally ready — ship Stripe first, document Paddle/Lemon Squeezy as future extensions.
+
+**2. Minimal admin panel**
+
+B2B SaaS buyers need to impersonate users, disable accounts, and see org data without touching the database. Minimum scope: user list, impersonation, org overview. Signals "production-ready" in a way that auth alone does not.
+
+### High-priority Phase 2 (post-launch, ranked by conversion/retention impact)
+
+| Priority | Feature | Why it matters |
+|----------|---------|----------------|
+| 1 | CLI from OpenAPI | Uniquely powerful demo — an AI agent that `cli users create` during dev/test/CI. Becomes a re-launch event. |
+| 2 | Webhooks + event delivery | B2B SaaS universally needs this. Retry logic + signature verification = 2-3 weeks of work buyers skip. |
+| 3 | Analytics dashboard | Lower urgency — most buyers will reach for PostHog directly. |
+
+### Skip for now
+Notifications, audit logs, themes, marketplace, plugins system — none are conversion drivers at launch.
+
+---
+
+## Pricing
+
+### Recommended structure
+
+| Tier | Price | What |
+|------|-------|------|
+| **Solo early-bird** | **$249** (first 50 seats) | 1 developer, 12-month updates |
+| **Solo regular** | **$299** | 1 developer, 12-month updates |
+| **Team** | **$449 early / $549 regular** | Up to 5 developers, 12-month updates |
+| **Lifetime** | **$799** (cap at 50 seats) | All future updates + priority Discord access |
+
+### Why this structure
+
+- **Early-bird** creates launch urgency without fake scarcity; rewards early adopters who provide feedback
+- **Team tier** captures the natural indie startup unit (2-3 devs buying together) — flat $299 leaves this on the table
+- **Lifetime cap** prevents infinite support obligation; high perceived value at $799
+- **"12-month updates"** is a specific, defensible commitment — not vague "lifetime updates" that raises abandonment doubts
+
+### Pricing validation
+
+Market data confirms $299 is correctly positioned. Supastarter validated price increases from $49 → $149 → $299 → $349 with improved conversion at every step. ShipFast runs at $199-$299 with a much simpler stack. Roxabi at $299-$549 is justified by:
+
+- TanStack Start + NestJS (more future-proof than any Next.js stack)
+- PostgreSQL RLS multi-tenancy (correct architecture, not the lazy version)
+- 10-agent AI team (no competitor at any price point has this)
+
+**What NOT to do:**
+- No countdown timers
+- No "Limited time offer" — this persona knows it's fake
+- No "Join 500+ developers" unless the number is real and verifiable
+
+---
+
+## Launch Sequence
+
+### 6–8 weeks before launch: Infrastructure
+
+**Weeks 1–2:**
+- Build the dedicated landing page (separate from the docs site — docs are for buyers, landing page is for prospects)
+- Open email waitlist
+- Post first 2-3 build-in-public threads on Twitter/X: *"Building a SaaS boilerplate with a 10-agent AI development team — here's what's inside."* Include a screenshot of the agent team working.
+
+**Weeks 3–4:**
+- Record 3 demo videos (see [Demo Strategy](#demo-strategy) below)
+- Post one "dev log" thread per week on Twitter/X
+
+**Weeks 5–6:**
+- Pitch 3-5 developer newsletters: Bytes.dev, JavaScript Weekly, The Pragmatic Engineer — newsletter slots book 2-4 weeks ahead
+- Post to IndieHackers "Looking for Feedback" — generates early traffic and social proof comments
+- Open a waitlist-only Discord with a `#waitlist` channel
+
+**Week 7 (pre-launch):**
+- Email the waitlist: "launching in 7 days" + early-bird price ($249 vs $299, valid 48 hours)
+- Submit to discovery directories: BoilerplateHub, BoilerplateList, BoilerplateSearch
+- Submit "Show HN" draft — let it sit, refine the title
+
+---
+
+### Launch day sequence
+
+```
+6:00 AM ET  → Email waitlist (early-bird $249, 48h only)
+9:00 AM ET  → Show HN post (see title guidelines below)
+10:00 AM ET → Twitter/X launch thread (screenshots + demo + CTA)
+12:00 PM ET → IndieHackers post (link to HN for social proof)
+              r/SideProject, r/webdev, r/ClaudeAI, r/node
+```
+
+**Show HN title — what works:**
+
+Use: `Show HN: SaaS boilerplate with a 10-agent Claude Code AI development team (Bun, NestJS, TanStack)`
+
+Avoid: Any marketing language ("Launch your SaaS in days", "The ultimate boilerplate") — HN penalizes this framing. Be technical and specific.
+
+**Key data point:** IndieHackers delivers **23.1% conversion per engaged post** vs Product Hunt's **3.1%**. Prioritize IH over PH.
+
+---
+
+### Post-launch: First 30 days
+
+- Reply to every HN comment personally — this sustains HN momentum
+- 7-day buyer email: *"What's the first thing you built?"* → collects testimonials
+- Document one buyer success story per month (with permission)
+- Ship billing integration publicly → *"Phase 2 just dropped"* = second launch event
+
+---
+
+## Distribution Channels
+
+### Tier 1 — Highest ROI
+
+| Channel | Tactic | Why it works |
+|---------|--------|-------------|
+| **Twitter/X build-in-public** | 3-5×/week — real agent outputs, real commits, real sessions | Creator credibility is the #1 purchase trigger for this persona |
+| **Hacker News Show HN** | One post at launch, reply every comment | Developer tools perform well; HN traffic is the right audience |
+| **IndieHackers** | Launch post + ongoing presence | 23% conversion per engaged post — highest of any channel |
+| **r/ClaudeAI** | Demo post — agent team is native content here | Your ICP literally lives in this community |
+
+### Tier 2 — Strong, underrated
+
+| Channel | Tactic |
+|---------|--------|
+| **Anthropic's Claude Discord** | Announce the agent team in `#claude-code` |
+| **awesome-claude-code-subagents** (3K+ GitHub stars) | Contribute agent definitions with attribution back to Roxabi |
+| **DevHunt** | Submit on launch day — 50K+ engineers, developer tools focus |
+| **BoilerplateHub / AlternativeTo** | List as "ShipFast alternative" — captures high-intent searches |
+| **StackShare** | Create a Roxabi listing with full stack breakdown |
+
+### Tier 3 — Long-term compounds
+
+| Channel | Tactic |
+|---------|--------|
+| **YouTube** | "Building a feature from scratch with 10 AI agents" (10-15 min) — ranks for years |
+| **Dev.to / Hashnode** | *"How we built PostgreSQL RLS multi-tenancy"* — SEO + technical credibility |
+| **Developer newsletters** | Bytes.dev, TLDR Dev, JavaScript Weekly — 1 sponsored issue = 200+ leads |
+
+---
+
+## Demo Strategy
+
+The AI agent team is the differentiator. The only thing that makes it believable is showing it doing something real.
+
+### What doesn't work
+- Screenshots of prompts
+- "AI-powered" marketing copy
+- Productivity claims without verifiable proof
+
+### What works: specificity and verifiability
+
+**Demo 1 — The full pipeline (60-second screen recording)**
+
+Show `/dev #42` typed → issue read → spec written → agents spawned → PR created. No voiceover. Real terminal, real agent names, real output.
+
+Caption: *"This is a real session. No cuts for the first feature of a new clone."*
+
+**Demo 2 — "The week to 47 minutes"**
+
+Show a specific feature (e.g., adding an RBAC permission) implemented end-to-end. Time-stamp it. *"This took 47 minutes with the agent team. It would have taken me 3-4 hours."* More credible than "10x faster."
+
+**Demo 3 — The adversarial quality loop**
+
+Show the `security-auditor` agent catching a real issue the `backend-dev` missed. `fixer` resolves it. PR updated. This demonstrates agents checking each other's work — genuinely novel, no competitor can replicate it.
+
+### Credibility frame to establish in every demo
+
+> *"This is Claude Code with structure baked in. You already pay for Claude Code — this makes it 3x more useful."*
+
+Positions the AI team as an enhancement to a tool they already use, not a new AI thing to evaluate.
+
+---
+
+## Community Strategy
+
+### Phase 1: Now → 200 customers — GitHub Discussions only
+
+**Why not Discord first:** Linear chat is bad for technical Q&A. Knowledge is unsearchable and impermanent. GitHub Discussions integrates with the repo, is searchable, and generates permanent answers future buyers will find.
+
+**Setup — enable 3 categories:**
+1. **Q&A** (support — mark answers as accepted)
+2. **Show & Tell** (buyers sharing what they built — your best marketing asset)
+3. **Ideas** (feature requests — doubles as a public roadmap signal)
+
+### Phase 2: 200+ customers — add Discord (as a perk, not support)
+
+- Discord is a Lifetime tier perk, not general support
+- 3 channels max: `#general`, `#showcase`, `#announcements`
+- Do not create channels you'll need to moderate
+
+### Support boundary — set at launch
+
+> *"Support is community-based via GitHub Discussions. Response time: 48 hours. No DM support — public answers benefit everyone."*
+
+Set this expectation at launch. Walking it back after buyers form habits is much harder.
+
+**Sustainable solo-creator support model:**
+- GitHub Discussions handles async Q&A (low time cost, builds searchable knowledge base)
+- Monthly 1-hour office hours for Lifetime tier members (high perceived value, low time cost)
+- A "common issues" doc you update as patterns emerge (highest-leverage support investment)
+
+---
+
+## Key Metrics
+
+### What actually matters at launch
+
+| Metric | Why it matters |
+|--------|---------------|
+| **Paying customers who deploy in week 1** | The single leading indicator of everything else |
+| Units sold (weekly, cumulative) | Revenue health |
+| Conversion rate: visitors → sales | Target: >2% |
+| Email list growth | Lagging indicator of audience building (target: 50+/week at launch) |
+| GitHub stars | Signals developer interest; buyers check this |
+| Activation rate (deployed to Vercel in 7 days) | If low, there's an onboarding problem |
+| Testimonials volunteered vs requested | Word-of-mouth health signal |
+| "How did you hear about us?" | Channel attribution |
+
+### What to skip early on
+CAC, LTV, churn — these metrics apply to SaaS products, not code assets sold one-time. Focus on activation and word-of-mouth until you have 50+ customers.
+
+---
+
+## Docs as Marketing
+
+The Fumadocs setup is a strategic asset. Documentation pages rank for long-tail technical queries with high buyer intent.
+
+**High-value pages to add for SEO:**
+
+| Page topic | Target query |
+|------------|-------------|
+| Multi-tenancy architecture deep-dive | "NestJS PostgreSQL RLS multi-tenant SaaS" |
+| TanStack Start + NestJS monorepo setup | "TanStack Start NestJS monorepo" |
+| Better Auth + NestJS integration | "Better Auth NestJS integration" |
+| Claude Code agents on a NestJS project | "Claude Code agents monorepo workflow" |
+
+**Docs as conversion driver:** Link prominently from the landing page — *"Explore the full documentation"* reduces purchase uncertainty more than any feature list.

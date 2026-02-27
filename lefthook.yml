@@ -13,6 +13,11 @@ pre-commit:
 
 pre-push:
   parallel: true
+  output:
+    - meta
+    - summary
+    - failure
+    - execution_out
   commands:
     lint:
       run: CI=true bun run lint
@@ -21,6 +26,6 @@ pre-push:
     test:
       run: CI=true bun run test:coverage
     i18n:
-      run: bun run i18n:validate
+      run: bun run i18n:check
     license:
       run: bun run license:check

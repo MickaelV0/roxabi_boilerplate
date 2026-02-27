@@ -3,7 +3,7 @@ title: Development Process
 description: Development workflow with tiered tracks adapted to task complexity
 ---
 
-Adapts to task complexity through tiered tracks. **Determine tier before starting.**
+Use `/dev #N` as the single entry point for any development task. It scans existing artifacts, displays phase progress, and delegates to the right step skill — resuming automatically from wherever you left off.
 
 ## Step 0: Determine Tier
 
@@ -14,17 +14,17 @@ flowchart LR
     Q -->|"New arch, unclear reqs, >2 domains"| FF["Tier F-full"]
 ```
 
-| Tier | Name | Criteria | Process |
-|------|------|----------|---------|
-| **S** | Quick Fix | &lt;=3 files, no arch, no risk | Worktree + PR |
-| **F-lite** | Feature (lite) | Clear scope, documented requirements, single domain | Worktree + agents + /review (skip bootstrap) |
-| **F-full** | Feature (full) | New arch concepts, unclear requirements, or >2 domain boundaries | Bootstrap + worktree + agents + /review |
+| Tier | Name | Criteria | `/dev #N` phases |
+|------|------|----------|-----------------|
+| **S** | Quick Fix | &lt;=3 files, no arch, no risk | triage → implement → pr → validate → review → fix* → promote* → cleanup* |
+| **F-lite** | Feature (lite) | Clear scope, documented requirements, single domain | frame → spec → plan → implement → verify → ship |
+| **F-full** | Feature (full) | New arch concepts, unclear requirements, or >2 domain boundaries | frame → analyze → spec → plan → implement → verify → ship |
 
 ### F-lite vs F-full (judgment-based)
 
 File count alone does not determine the tier. A 50-file mechanical change may be F-lite, while a 3-file rate limiter with design decisions may be F-full. Use judgment, then validate with the human.
 
-**F-full (bootstrap required):**
+**F-full (frame + analyze + spec required):**
 
 ```
 New architectural concepts or patterns?              -> F-full
@@ -32,7 +32,7 @@ Unclear or competing requirements?                   -> F-full
 Affects >2 domain boundaries?                        -> F-full
 ```
 
-**F-lite (skip bootstrap):**
+**F-lite (analyze skipped, frame + spec only):**
 
 ```
 Mechanical/repetitive regardless of file count?      -> F-lite
@@ -43,6 +43,41 @@ Single domain, clear scope?                          -> F-lite
 **Human always validates** the F-lite/F-full classification before proceeding.
 
 > **Branch Strategy:** `staging` is the default integration branch. All feature and fix branches are created from `staging` and PRs target `staging`. Only `hotfix/*` branches may target `main` directly. Merges to `main` trigger production deploys; merges to `staging` do not auto-deploy (use the **Deploy Preview** GitHub Action for on-demand previews).
+
+## Phase Model
+
+`/dev #N` organises work into five phases. Each phase produces artifacts that serve as resumption checkpoints.
+
+```mermaid
+flowchart LR
+    subgraph Frame ["Frame"]
+        F1["issue-triage"] --> F2["frame"]
+    end
+    subgraph Shape ["Shape"]
+        S1["analyze*"] --> S2["spec"]
+    end
+    subgraph Build ["Build"]
+        B1["plan"] --> B2["implement"] --> B3["pr"]
+    end
+    subgraph Verify ["Verify"]
+        V1["validate"] --> V2["review"] --> V3["fix*"]
+    end
+    subgraph Ship ["Ship"]
+        P1["promote*"] --> P2["cleanup*"]
+    end
+
+    Frame --> Shape --> Build --> Verify --> Ship
+```
+
+`*` = conditional (skipped based on tier or outcome)
+
+| Phase | Artifact produced | Gate |
+|-------|-------------------|------|
+| **Frame** | `artifacts/frames/{slug}.mdx` | User approves frame |
+| **Shape** | `artifacts/analyses/{N}-{slug}.mdx` + `artifacts/specs/{N}-{slug}.mdx` | User approves spec |
+| **Build** | `artifacts/plans/{N}-{slug}.mdx` + code in worktree + PR | User approves plan; confirms PR ready |
+| **Verify** | Review findings on PR | User chooses fix / merge / stop |
+| **Ship** | Version tag + GitHub Release | — |
 
 ---
 
@@ -73,8 +108,10 @@ Single domain, clear scope?                          -> F-lite
 
 | Artifact | When | Files |
 |----------|------|-------|
-| Feature spec | New feature | `artifacts/specs/*.mdx` |
-| Analysis (pre-spec) | Before writing a spec | `artifacts/analyses/*.mdx` |
+| Frame | Problem framing | `artifacts/frames/*.mdx` |
+| Analysis | Deep exploration (F-full) | `artifacts/analyses/*.mdx` |
+| Feature spec | Solution design | `artifacts/specs/*.mdx` |
+| Plan | Task breakdown | `artifacts/plans/*.mdx` |
 | Architecture | Structure change | `docs/architecture/*.mdx` |
 | CLAUDE.md | Critical change | `CLAUDE.md` |
 
@@ -205,19 +242,19 @@ Agents are spawned as subagents via the `Task` tool. See the [Agent Teams Guide]
 
 ---
 
-## Tier F: Feature (4-Phase Workflow)
+## Tier F: Feature (5-Phase Workflow)
 
-Tier F follows four phases: **Assess, Implement, Review, Fix/Merge**. The human is the decision-maker at every gate. Main Claude is the orchestrator.
+Tier F follows five phases: **Frame, Shape, Build, Verify, Ship**. The human is the decision-maker at every gate. Main Claude is the orchestrator.
 
 ```mermaid
 flowchart TD
     Start["Human: develop #XXX"] --> Fetch
 
-    subgraph P1[" Phase 1 — Assessment "]
+    subgraph Frame[" Frame — Assessment (Frame + Shape) "]
         Fetch["Fetch issue, check docs"] --> SpecQ{"Spec exists?"}
         SpecQ -- Yes --> P1End((" "))
-        SpecQ -- No --> Boot["/bootstrap: interview + review"]
-        Boot --> Analysis["Write analysis"]
+        SpecQ -- No --> Boot["/dev: frame → analyze → spec"]
+        Boot --> Analysis["Write analysis (F-full)"]
         Analysis --> G1{{"Human approves"}}
         G1 --> Spec["Write spec"]
         Spec --> G2{{"Human approves"}}
@@ -226,8 +263,8 @@ flowchart TD
 
     P1End --> Plan
 
-    subgraph P2[" Phase 2 — Scaffold & Implementation "]
-        Plan["Plan: scope + agents"] --> G3{{"Human approves plan"}}
+    subgraph Build[" Build "]
+        Plan["/plan: scope + agents"] --> G3{{"Human approves plan"}}
         G3 --> Setup["Issue + worktree"]
         Setup --> RED["tester: failing tests (RED)"]
         RED --> FE["frontend-dev"] & BE["backend-dev"] & Inf["devops"] & DW["doc-writer"]
@@ -239,16 +276,16 @@ flowchart TD
 
     PR --> Review
 
-    subgraph P3[" Phase 3 — Review "]
+    subgraph Verify2[" Verify "]
         Review["/review: fresh agents"] --> Agents["security, architect, product, tester, domain"]
         Agents --> Comments["Conventional Comments"]
-        Comments --> Walk["/1b1 walkthrough"]
+        Comments --> Walk["/fix: auto-apply + /1b1 walkthrough"]
         Walk --> G4{{"Human: accept / reject / defer"}}
     end
 
     G4 --> Fix
 
-    subgraph P4[" Phase 4 — Fix & Merge "]
+    subgraph Ship[" Ship "]
         Fix["fixer: apply accepted"] --> Push["Push + CI"]
         Push --> CIQ{"CI green?"}
         CIQ -- No --> FixCI["Fix + re-push"] --> Push
@@ -260,38 +297,35 @@ flowchart TD
 
 ### Phase 1 — Assessment
 
-1. Human says "develop issue #XXX"
-2. Main Claude fetches the GitHub issue, scans for existing documents:
+1. Human runs `/dev #XXX`
+2. `/dev` scans artifacts and displays progress. It fetches the GitHub issue and checks for:
+   - `artifacts/frames/*` — approved frame
    - `artifacts/analyses/*` — matching analysis
    - `artifacts/specs/*` — matching spec
-3. **If a sufficient spec exists** — skip to Phase 2
-4. **If gaps exist** (no issue detail, no analysis, no spec):
-   - Main Claude runs `/bootstrap` which drives the pipeline directly:
-     - Conducts interviews with the human (via `/interview`)
-     - Writes the analysis, spawns expert reviewers (product-lead, doc-writer, architect if needed)
-     - Human approves the analysis
-     - Writes the spec, spawns expert reviewers
-     - Human approves the spec
-   - Once spec is approved, Main Claude proceeds to Phase 2
+3. **If a sufficient spec exists** — skip to Phase 2 (Build)
+4. **If gaps exist** (no frame, no spec):
+   - `/dev` delegates to `/frame`, then `/analyze` (F-full only), then `/spec`
+   - Each step produces an artifact and pauses for user approval before continuing
+   - Once spec is approved, `/dev` proceeds to Phase 2
 
-> **Investigation (optional):** If the analysis reveals technical uncertainty, the orchestrator may suggest spiking a solution before writing the spec. See the bootstrap skill (Gate 1.5) for details.
+> **Investigation (optional):** If the analysis reveals technical uncertainty, the orchestrator may suggest spiking a solution before writing the spec. See the `/analyze` skill for details.
 
-> **F-lite shortcut:** If the task is classified as F-lite (clear scope, documented requirements), the assessment phase is brief — Main Claude confirms the spec exists and proceeds to `/scaffold`.
+> **F-lite shortcut:** If the task is classified as F-lite (clear scope, documented requirements), `/dev #N` skips the analyze step and proceeds directly from frame → spec → plan.
 
-### Scaffold and Implementation (`/scaffold`)
+### Build Phase (`/plan` + `/implement` + `/pr`)
 
-`/scaffold` is the execution engine. It takes a spec and drives it all the way to a PR:
+`/dev` delegates the Build phase to three atomic skills that together take a spec all the way to a PR:
 
-5. **Plan** — Reads the spec, analyzes scope, determines tier, breaks into tasks, picks agents. Human approves the plan.
+5. **Plan** (`/plan`) — Reads the spec, analyzes scope, determines tier, breaks into tasks, picks agents. Human approves the plan.
 
-6. **Setup** — Creates the GitHub issue (if none exists), creates worktree:
+6. **Setup** (`/implement`) — Creates the GitHub issue (if none exists), creates worktree:
    ```bash
    git worktree add ../roxabi-XXX -b feat/XXX-slug staging
    cd ../roxabi-XXX && cp .env.example .env && bun install
    cd apps/api && bun run db:branch:create --force XXX
    ```
 
-7. **Implement** — Spawns agents based on the plan (agents create files from scratch):
+7. **Implement** (`/implement`) — Spawns agents based on the plan (agents create files from scratch):
 
    | Change type | Agent |
    |-------------|-------|
@@ -312,14 +346,14 @@ flowchart TD
    - **Pass** — proceed to PR
    - **Fail** — agents fix, re-test, loop until green
 
-9. **PR** — `/scaffold` commits and creates the PR:
+9. **PR** — `/pr` commits and creates the PR:
     ```bash
     gh pr create --title "feat: description" --body "Closes #XXX"
     ```
 
 ### Phase 3 — Review
 
-11. Main Claude runs `/review` which spawns **fresh review agents** (new instances with no implementation context):
+10. Main Claude runs `/review` which spawns **fresh review agents** (new instances with no implementation context):
 
     | Always | Conditional |
     |--------|-------------|
@@ -330,28 +364,25 @@ flowchart TD
 
     Each reviewer produces Conventional Comments scoped to their domain.
 
-12. Main Claude collects all review comments.
-13. Main Claude walks the human through each comment **one-by-one** (`/1b1`):
-    - Shows the comment, severity, and context
-    - Presents trade-offs and recommendations
-    - Human decides: **accept**, **reject**, or **defer**
+11. Main Claude collects all review comments and presents a verdict (findings + recommendation).
+12. Human chooses: **Fix now** (delegates to `/fix`) | **Merge as-is** | **Stop**
 
 ### Phase 4 — Fix and Merge
 
-14. **Parallel domain fixers** receive the accepted findings scoped to their domain:
+13. `/fix` receives the accepted findings and handles: auto-apply (high-confidence), `/1b1` walkthrough, then **parallel domain fixers** scoped to their domain:
     - **Backend fixer** — if findings touch `apps/api/` or `packages/types/`
     - **Frontend fixer** — if findings touch `apps/web/` or `packages/ui/`
     - **Infra fixer** — if findings touch `packages/config/`, root configs, or CI
     - Single-domain findings → one fixer. Multi-domain → parallel fixers.
-15. Push combined fixes, post a follow-up comment on the PR confirming which findings were addressed (and noting any rejected/deferred).
-16. CI runs:
+14. Push combined fixes, post a follow-up comment on the PR confirming which findings were addressed (and noting any rejected/deferred).
+15. CI runs:
     - **Pass** — merge and cleanup worktree
     - **Fail** — fixer investigates and fixes, CI again, loop until green
-17. Human approves merge:
+16. Human approves merge:
     ```bash
     gh pr merge <pr-number> --squash --delete-branch
     ```
-18. Cleanup:
+17. Cleanup:
     ```bash
     cd ../roxabi_boilerplate
     git worktree remove ../roxabi-XXX
@@ -363,11 +394,11 @@ flowchart TD
 
 After features have been validated on staging:
 
-19. Human runs `/promote` to merge staging → main.
-20. `/promote` computes the version, generates the changelog and release notes, commits them to staging, and creates a PR from staging to main.
-21. Human reviews the promotion PR (which includes the changelog).
-22. Merge → Vercel auto-deploys with changelog and release notes already included.
-23. Run `/promote --finalize` to tag the release and create the GitHub Release.
+18. Human runs `/promote` to merge staging → main.
+19. `/promote` computes the version, generates the changelog and release notes, commits them to staging, and creates a PR from staging to main.
+20. Human reviews the promotion PR (which includes the changelog).
+21. Merge → Vercel auto-deploys with changelog and release notes already included.
+22. Run `/promote --finalize` to tag the release and create the GitHub Release.
 
 > Promotion is **not per-feature** — it batches all staging changes into a single release. See the `/promote` skill for details.
 
@@ -438,6 +469,6 @@ Enforced by Biome `useFilenamingConvention` at `error` level.
 **Before merging PR:**
 - [ ] CI checks pass (`gh pr checks &lt;pr-number&gt; --watch`)
 - [ ] `/review` completed with fresh domain agents (Tier F)
-- [ ] Human walked through all review comments via `/1b1`
+- [ ] Review findings addressed via `/fix` (auto-apply + `/1b1` walkthrough)
 - [ ] Accepted comments fixed by fixer agent
 - [ ] Fix confirmation comment posted to PR

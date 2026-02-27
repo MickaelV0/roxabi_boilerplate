@@ -1,14 +1,23 @@
-import { issueRow, renderBranchesAndWorktrees, renderPRs } from './components'
+import {
+  issueRow,
+  renderBranchCI,
+  renderBranchesAndWorktrees,
+  renderPRs,
+  renderVercelDeployments,
+} from './components'
 import { buildDepGraph, renderDepGraph } from './graph'
 import { PAGE_STYLES } from './page-styles'
-import type { Branch, Issue, PR, Worktree } from './types'
+import type { Branch, BranchCI, Issue, PR, VercelDeployment, Worktree } from './types'
 
 export function buildHtml(
   issues: Issue[],
   prs: PR[],
   branches: Branch[],
   worktrees: Worktree[],
-  fetchMs: number
+  deployments: VercelDeployment[],
+  branchCI: BranchCI[],
+  fetchMs: number,
+  updatedAt: number
 ): string {
   const totalCount = issues.reduce((sum, i) => sum + 1 + i.children.length, 0)
 
@@ -25,8 +34,11 @@ export function buildHtml(
   const hiddenCount = issues.length - INITIAL_VISIBLE
   const depNodes = buildDepGraph(issues)
   const depGraphHtml = renderDepGraph(depNodes, issues)
+  const vercelHtml = renderVercelDeployments(deployments)
   const prsHtml = renderPRs(prs)
   const branchesHtml = renderBranchesAndWorktrees(branches, worktrees)
+  const ciHtml = renderBranchCI(branchCI)
+  const showCI = shouldShowCI(branchCI)
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -36,15 +48,29 @@ export function buildHtml(
 <title>Issues Dashboard</title>
 <style>
 ${PAGE_STYLES}
+${LIVE_STYLES}
 </style>
 </head>
-<body>
+<body data-updated-at="${updatedAt}">
   <header>
     <h1>Issues Dashboard</h1>
-    <span class="count">${totalCount} issues</span>
-    <span class="meta">Fetched in ${fetchMs}ms &middot; Refresh page (<kbd>F5</kbd>) for latest data</span>
+    <span id="issue-count" class="count">${totalCount} issues</span>
+    <span class="meta">
+      <span id="live-indicator" class="live-dot connecting" title="Connecting..."></span>
+      <span id="live-status">Connecting...</span>
+      &middot; <span id="fetch-time">Fetched in ${fetchMs}ms</span>
+    </span>
   </header>
 
+  <div id="section-vercel">${vercelHtml}</div>
+
+  <div id="section-ci">${showCI ? `<div class="section"><h2>CI Status</h2>${ciHtml}</div>` : ''}</div>
+
+  <div id="section-prs">${prs.length > 0 ? `<div class="section"><h2>Pull Requests</h2>${prsHtml}</div>` : ''}</div>
+
+  <div id="section-issues" class="section">
+    <h2>Issues</h2>
+  </div>
   <table>
     <thead>
       <tr>
@@ -57,7 +83,7 @@ ${PAGE_STYLES}
         <th>Deps</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="issues-visible">
       ${visibleRows}
       ${
         hasMore
@@ -79,25 +105,20 @@ ${PAGE_STYLES}
     </tbody>
   </table>
 
-  <div class="section">
-    <h2>Pull Requests</h2>
-    ${prsHtml}
-  </div>
-
   <div class="legend">
     <span>\u26d4 blocked</span>
     <span>\ud83d\udd13 blocking</span>
     <span>\u2705 ready</span>
   </div>
 
-  <div class="section">
+  <div id="section-graph" class="section">
     <h2>Dependency Graph</h2>
     <div class="graph-container">
       ${depGraphHtml}
     </div>
   </div>
 
-  <div class="section">
+  <div id="section-branches" class="section">
     <h2>Branches &amp; Worktrees</h2>
     ${branchesHtml}
   </div>
@@ -127,12 +148,21 @@ ${PAGE_STYLES}
   <div id="toast" class="toast"></div>
 
   <script>
+  function toggleCI(id) {
+    var row = document.getElementById(typeof id === 'number' ? 'ci-' + id : id);
+    if (!row) return;
+    row.style.display = row.style.display === 'none' ? '' : 'none';
+  }
+
   (function() {
     var ctxMenu = document.getElementById('ctx-menu');
     var ctxNum = document.getElementById('ctx-issue-num');
     var toast = document.getElementById('toast');
     var ctxIssue = null;
 
+    // -----------------------------------------------------------------------
+    // Context menu
+    // -----------------------------------------------------------------------
     document.addEventListener('contextmenu', function(e) {
       var row = e.target.closest('.issue-row');
       if (!row) { ctxMenu.classList.remove('visible'); return; }
@@ -146,7 +176,6 @@ ${PAGE_STYLES}
       };
       ctxNum.textContent = ctxIssue.number;
 
-      // Mark active items
       ctxMenu.querySelectorAll('.ctx-item').forEach(function(item) {
         item.classList.remove('active', 'loading');
         var field = item.dataset.field;
@@ -156,12 +185,10 @@ ${PAGE_STYLES}
         if (field === 'priority' && value === ctxIssue.priority) item.classList.add('active');
       });
 
-      // Position menu
       ctxMenu.style.left = e.clientX + 'px';
       ctxMenu.style.top = e.clientY + 'px';
       ctxMenu.classList.add('visible');
 
-      // Adjust if overflowing viewport
       var rect = ctxMenu.getBoundingClientRect();
       if (rect.right > window.innerWidth) ctxMenu.style.left = (window.innerWidth - rect.width - 8) + 'px';
       if (rect.bottom > window.innerHeight) ctxMenu.style.top = (window.innerHeight - rect.height - 8) + 'px';
@@ -189,7 +216,7 @@ ${PAGE_STYLES}
       .then(function(data) {
         if (data.ok) {
           showToast('#' + ctxIssue.number + ' ' + field + ' \\u2192 ' + value);
-          setTimeout(function() { location.reload(); }, 800);
+          // SSE will trigger the refresh automatically
         } else {
           showToast('Error: ' + data.error, true);
           item.classList.remove('loading');
@@ -210,9 +237,166 @@ ${PAGE_STYLES}
       clearTimeout(toast._tid);
       toast._tid = setTimeout(function() { toast.classList.remove('visible'); }, 2500);
     }
+
+    // -----------------------------------------------------------------------
+    // SSE live updates
+    // -----------------------------------------------------------------------
+    var indicator = document.getElementById('live-indicator');
+    var statusEl = document.getElementById('live-status');
+    var updatedAt = Number(document.body.dataset.updatedAt) || Date.now();
+    var refreshing = false;
+
+    function setLiveState(state) {
+      indicator.className = 'live-dot ' + state;
+      if (state === 'connected') {
+        indicator.title = 'Live — connected';
+        updateRelativeTime();
+      } else if (state === 'connecting') {
+        indicator.title = 'Connecting...';
+        statusEl.textContent = 'Connecting...';
+      } else {
+        indicator.title = 'Disconnected';
+        statusEl.textContent = 'Disconnected';
+      }
+    }
+
+    function updateRelativeTime() {
+      var diff = Math.floor((Date.now() - updatedAt) / 1000);
+      if (diff < 5) statusEl.textContent = 'Live';
+      else if (diff < 60) statusEl.textContent = 'Updated ' + diff + 's ago';
+      else if (diff < 3600) statusEl.textContent = 'Updated ' + Math.floor(diff / 60) + 'm ago';
+      else statusEl.textContent = 'Updated ' + Math.floor(diff / 3600) + 'h ago';
+    }
+
+    // Update relative time every 5s
+    setInterval(updateRelativeTime, 5000);
+
+    function patchDOM(freshDoc) {
+      // Preserve show/hide state of hidden issues
+      var hiddenVisible = document.getElementById('hidden-issues').style.display !== 'none';
+
+      // Preserve CI expand/collapse state
+      var expandedCIs = [];
+      document.querySelectorAll('.ci-details-row').forEach(function(row) {
+        if (row.style.display !== 'none') expandedCIs.push(row.id);
+      });
+
+      // Patch issue tables
+      var selectors = ['#issues-visible', '#hidden-issues', '#section-vercel', '#section-ci', '#section-prs', '#section-graph', '#section-branches', '#issue-count', '#fetch-time'];
+      for (var s = 0; s < selectors.length; s++) {
+        var sel = selectors[s];
+        var freshEl = freshDoc.querySelector(sel);
+        var currentEl = document.querySelector(sel);
+        if (freshEl && currentEl) {
+          // For elements with children, replace all children
+          while (currentEl.firstChild) currentEl.removeChild(currentEl.firstChild);
+          while (freshEl.firstChild) currentEl.appendChild(freshEl.firstChild);
+        }
+      }
+
+      // Restore show/hide state
+      if (hiddenVisible) {
+        document.getElementById('hidden-issues').style.display = '';
+        var showMoreRow = document.getElementById('show-more-row');
+        if (showMoreRow) showMoreRow.style.display = 'none';
+        var showLessRow = document.getElementById('show-less-row');
+        if (showLessRow) showLessRow.style.display = '';
+      }
+
+      // Restore CI expand/collapse state
+      for (var ci = 0; ci < expandedCIs.length; ci++) {
+        var ciRow = document.getElementById(expandedCIs[ci]);
+        if (ciRow) ciRow.style.display = '';
+      }
+
+      // Update timestamp
+      var newUpdatedAt = freshDoc.body.dataset.updatedAt;
+      if (newUpdatedAt) updatedAt = Number(newUpdatedAt);
+      updateRelativeTime();
+    }
+
+    function connectSSE() {
+      var es = new EventSource('/api/events');
+
+      es.onopen = function() {
+        setLiveState('connected');
+      };
+
+      es.onmessage = function(e) {
+        if (e.data === 'connected') {
+          setLiveState('connected');
+          return;
+        }
+        if (e.data !== 'refresh' || refreshing) return;
+        refreshing = true;
+
+        fetch('/', { headers: { Accept: 'text/html' } })
+          .then(function(res) { return res.text(); })
+          .then(function(html) {
+            var parser = new DOMParser();
+            var freshDoc = parser.parseFromString(html, 'text/html');
+            patchDOM(freshDoc);
+            refreshing = false;
+          })
+          .catch(function(err) {
+            console.error('[dashboard] patch failed:', err);
+            refreshing = false;
+          });
+      };
+
+      es.onerror = function() {
+        setLiveState('disconnected');
+        // EventSource auto-reconnects, but update UI state
+        // When it reconnects, onopen fires again
+      };
+    }
+
+    connectSSE();
   })();
   </script>
 
 </body>
 </html>`
 }
+
+const TWO_MINUTES = 2 * 60 * 1000
+const CI_FAILING_STATES = ['FAILURE', 'ERROR', 'ACTION_REQUIRED', 'TIMED_OUT']
+const CI_RUNNING_STATES = ['PENDING', 'EXPECTED']
+
+function shouldShowCI(branchCI: BranchCI[]): boolean {
+  if (branchCI.length === 0) return false
+  const now = Date.now()
+  return branchCI.some((b) => {
+    if (CI_FAILING_STATES.includes(b.overallState)) return true
+    if (CI_RUNNING_STATES.includes(b.overallState)) return true
+    if (b.committedAt && now - new Date(b.committedAt).getTime() < TWO_MINUTES) return true
+    return false
+  })
+}
+
+const LIVE_STYLES = `
+  .live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+    transition: background 0.3s;
+  }
+  .live-dot.connected {
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+  }
+  .live-dot.connecting {
+    background: var(--orange);
+    animation: pulse 1.5s infinite;
+  }
+  .live-dot.disconnected {
+    background: var(--red);
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+`

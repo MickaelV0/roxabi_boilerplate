@@ -1,0 +1,403 @@
+---
+title: Landing Page Strategy
+description: Complete landing page structure, hero copy variants, feature section copy, FAQ, and CTA strategy for Roxabi Boilerplate
+---
+
+## Page Structure
+
+The landing page is separate from the docs site. Docs are for buyers; the landing page is for prospects.
+
+```
+NAV: Logo | Docs | Changelog | GitHub ★ | [Buy — $299]
+──────────────────────────────────────────────────────
+HERO
+  Headline + subheadline
+  Primary CTA + secondary CTA
+  Terminal split: BEFORE vs AFTER
+
+PAIN STRIP (3 lines, no icons)
+
+WOW SECTION: The AI Agent Team
+  Diagram of 10 agents + /dev workflow
+  2-min screen recording: real /dev session
+
+WHAT'S INCLUDED
+  Feature grid with real module paths
+
+STACK RECOGNITION
+  "You already chose TanStack. We did too."
+
+SOCIAL PROOF
+  Testimonials + GitHub stars + changelog activity
+
+CREATOR CREDIBILITY
+  "I build my own SaaS products on this."
+  Last 5 changelog entries with dates
+
+PRICING
+  Solo $299 | Team $549 | Lifetime $799
+
+FAQ
+  10 objections answered
+
+FINAL CTA
+  Time-reframe close
+──────────────────────────────────────────────────────
+```
+
+---
+
+## Hero Section
+
+### Recommended headline
+
+```
+Stop rebuilding your foundation every time.
+```
+
+**Subheadline:**
+
+```
+Roxabi ships with auth, multi-tenancy (RLS), RBAC, i18n, CI/CD, and a
+10-agent Claude Code development team — pre-configured and production-ready.
+Clone it. Tell Claude what to build. Ship in days.
+```
+
+### Headline variants to A/B test
+
+**Variant B — Direct AI angle:**
+```
+The boilerplate Claude Code was built to work on.
+```
+
+Sub: *Every new project kills your momentum: a week of auth setup, another week of multi-tenant schema, RBAC, CI/CD, linting — before you write a single line of product code. Roxabi skips that week entirely and hands Claude a team of 10 agents with full context from day one.*
+
+**Variant C — Specificity + outcome:**
+```
+Clone → Claude → ship.
+Your AI team is already hired.
+```
+
+Sub: *Senior engineers shouldn't spend 6 weeks on infrastructure that every SaaS needs. Roxabi gives you production-ready auth, multi-tenancy (RLS), RBAC, i18n, and a structured 10-agent Claude Code team. First feature in 5 minutes, not 5 weeks.*
+
+### CTA copy
+
+**Primary button (price in CTA removes a click of friction):**
+- `Get Roxabi — $299` ← recommended
+- `Start building today — $299`
+
+**Secondary (text link below):**
+- `Read the docs →`
+- `See a demo session →`
+
+---
+
+## Before / After Terminal Block
+
+This is the single highest-impact visual on the page. Render as a two-panel dark-mode terminal split.
+
+```
+BEFORE ROXABI                           WITH ROXABI
+────────────────────                    ────────────────────
+Week 1: Auth setup                      Day 1:
+  - JWT vs sessions debate              $ git clone roxabi/boilerplate
+  - Session management                  $ cp .env.example .env
+  - Email verification                  $ bun install
+  - Password reset flow                 $ bun run dev
+  - OAuth plumbing                      → web:3000  api:4000
+
+Week 2: Multi-tenancy                   Day 1, 5 minutes later:
+  - Schema design debates               $ /dev #1
+  - RLS policies from scratch           > Tier assessment: F-lite
+  - Tenant isolation bugs               > Spawning agent team...
+  - Organization model                  > tester: writing failing tests
+                                        > backend-dev: implementing...
+Week 3: RBAC                            > security-auditor: reviewing...
+  - Permission model design             > PR #1 ready for your review.
+  - Guard implementation
+  - Role hierarchies
+
+Week 4–6: CI/CD, linting,
+  i18n, design system,
+  deployment config...
+
+[You haven't shipped anything yet]      [First feature merged. Day 1.]
+```
+
+---
+
+## Pain Strip
+
+3 short lines, no icons, no fluff. Just recognition.
+
+```
+You've set up auth 5 times. You've re-configured CI/CD 3 times.
+And now Claude keeps hallucinating on your empty repo because it has no context.
+Roxabi ships everything wired — including the AI team that knows your codebase.
+```
+
+---
+
+## The AI Agent Team Section
+
+This is the WOW section. No competitor has this. It needs the most space and the most care.
+
+### Section headline
+
+```
+Your AI development team. Already on the payroll.
+```
+
+### Opening paragraph
+
+> Every other boilerplate ships code. Roxabi ships a team.
+>
+> When you clone Roxabi, you get 10 pre-configured Claude Code agents — each with a defined role, domain boundary, and memory. They don't fight each other or produce inconsistent code because they have a structured workflow: frame → spec → plan → implement → review → fix → ship.
+>
+> Run `/dev #1` on any GitHub issue. Watch Claude read the issue, determine the scope, write a spec, spawn the appropriate agents, produce failing tests, implement the feature, review it with a fresh security auditor, and open a PR — all without you writing a line.
+
+### Agent team table
+
+**Development agents — they build your SaaS:**
+
+| Agent | What they own |
+|-------|--------------|
+| `frontend-dev` | `apps/web/`, `packages/ui/` — components, routes, UI patterns |
+| `backend-dev` | `apps/api/`, `packages/types/` — NestJS modules, Drizzle schemas, API endpoints |
+| `tester` | Test files across all packages — writes failing tests before implementation |
+| `fixer` | Applies accepted review findings — fixes, not new features |
+| `architect` | System design, ADRs, cross-cutting decisions |
+| `product-lead` | Specs, issue triage, acceptance criteria |
+| `doc-writer` | Documentation, CLAUDE.md updates |
+| `devops` | CI/CD, configs, GitHub Actions, deployment |
+| `security-auditor` | Read-only audit on every PR — flags vulnerabilities before merge |
+
+### `/dev` workflow diagram
+
+```
+/dev #42
+  ↓
+Tier assessment (S = quick fix, F-lite/full = full feature)
+  ↓
+/frame   →  Problem is understood
+  ↓
+/spec    →  Solution is specified, you approve
+  ↓
+/plan    →  Tasks broken down, agents assigned
+  ↓
+/implement  →  tester writes RED tests
+               domain agents implement GREEN code
+               tester verifies coverage
+  ↓
+/review  →  Fresh agents review code they didn't write
+             security-auditor, architect, product-lead, tester
+  ↓
+/fix     →  fixer applies accepted review findings
+  ↓
+PR created. CI passes. You merge.
+```
+
+### Why this matters
+
+> Fresh Claude projects fail because Claude has no context. It doesn't know your file structure, your patterns, your architecture decisions, your test conventions. It guesses.
+>
+> Roxabi solves this with a `CLAUDE.md` that documents every critical decision, 20 skill files that define each workflow step, and 9 agent definition files that tell each agent what it owns and what it cannot touch.
+>
+> Claude is not guessing on a Roxabi project. It knows.
+
+### Concrete example (real from the project)
+
+```bash
+# GitHub issue: "Add user API key management with CRUD and UI"
+# This is issue #341 — it shipped in v0.4.0.
+
+/dev #341
+
+# Claude reads the issue.
+# Tier: F-lite (clear scope, single domain).
+# Spec created in artifacts/specs/341-api-key-management.mdx
+# You approve.
+# Agents spawn:
+#   - tester (writes failing tests for API key CRUD)
+#   - backend-dev (NestJS module, Drizzle schema, controller)
+#   - frontend-dev (management UI in apps/web)
+# Tests go RED → implementation → tests go GREEN
+# security-auditor checks key hashing
+# architect checks module structure
+# fixer applies 2 findings
+# PR opened. CI passes. You merge.
+
+# Total human decisions: approve spec, approve plan, merge PR.
+```
+
+---
+
+## What's Included Grid
+
+Show real module names, not generic feature bullets. Specificity = credibility.
+
+| Feature | What's shipped |
+|---------|---------------|
+| **Auth** | Better Auth — sessions, magic link, OAuth, password reset, email verification |
+| **Multi-tenancy** | PostgreSQL RLS via `tenant.interceptor.ts` — database-enforced isolation |
+| **RBAC** | Fine-grained permissions, role hierarchies, guards |
+| **i18n** | Paraglide JS — compile-time, type-safe, zero runtime overhead |
+| **Design system** | shadcn/ui + CVA + design tokens + dark mode default |
+| **Monorepo** | TurboRepo — `apps/web`, `apps/api`, `packages/ui`, `packages/types`, `packages/config` |
+| **CI/CD** | GitHub Actions — lint, typecheck, tests, coverage, i18n check on every PR |
+| **Security** | CORS, CSP headers, input sanitization, OWASP hardening |
+| **AI Team** | 10 agents, 20 skills, `CLAUDE.md`, `/dev` orchestrator |
+| **Deployment** | Vercel (web + api) — clone → deploy in 30 minutes |
+
+---
+
+## Stack Recognition Section
+
+Headline: `You already chose TanStack. We did too.`
+
+```
+TanStack Start  ·  NestJS + Fastify  ·  Drizzle ORM  ·  PostgreSQL
+Better Auth  ·  Bun  ·  TurboRepo  ·  Biome  ·  Vitest + Playwright
+```
+
+Supporting copy:
+
+> Every other boilerplate defaults to Next.js. You're here because you've already decided against it — or you're on the way. TanStack Start gives you back control. NestJS gives you a real backend, not API routes you'll regret at scale.
+>
+> Inngest migrated from Next.js to TanStack Start and cut local page load times by 83%. This stack is not experimental — it's the future that's already in production.
+
+---
+
+## Creator Credibility Section
+
+Headline: `I build my own SaaS products on this.`
+
+> The biggest risk with any boilerplate is that the author ships it and moves on. Roxabi is different: every update to this codebase is also an update to production infrastructure the creator depends on. When a dependency has a security issue, it affects their own deployed apps first.
+>
+> This isn't a template. It's dogfooded infrastructure.
+
+**What shipped recently** (embed the last 5 changelog entries with real dates — not a marketing table, actual commit-linked changelog):
+
+- v0.4.0 — February 25, 2026
+- v0.3.0 — [date]
+- v0.2.0 — [date]
+- v0.1.0 — [date]
+
+---
+
+## Pricing Section
+
+Headline: `One purchase. No subscription. Code you own.`
+
+| | Solo | Team | Lifetime |
+|-|------|------|---------|
+| **Price** | $299 | $549 | $799 |
+| Developers | 1 | Up to 5 | 1 |
+| Updates | 12 months | 12 months | All future |
+| Discord access | — | — | ✓ Priority |
+
+Early-bird: $249 (Solo) / $449 (Team) — first 50 seats at launch.
+
+Compare: *"Claude Pro costs $20/month. Your AI team costs $0/month after Roxabi."*
+
+---
+
+## FAQ — Top 10 Objections
+
+**Q1: Why not just use ShipFast or Makerkit?**
+
+If you want Next.js, use them — they are good products. Roxabi is for developers who specifically chose TanStack Start and NestJS. If you don't care about the stack and just want something to clone, this is not the right product for you.
+
+---
+
+**Q2: Will this be maintained? What if you abandon it?**
+
+The creator builds their own SaaS products on Roxabi. Every skipped update is a security risk and tech debt item in their own production environment. v0.4.0 shipped February 25, 2026. Check the public changelog and commit history — updates are a regular cadence, not an occasional event.
+
+---
+
+**Q3: The AI agent team sounds like marketing. How does it actually work?**
+
+It is Claude Code agent definitions (`.claude/agents/*.md`), a structured `CLAUDE.md` with full project context, and 20 skills that chain into a workflow. When you run `/dev #1`, it reads the GitHub issue, determines work scope, writes a spec, spawns the appropriate agents to implement it, runs a review with security and architecture agents, and opens a PR. The implementation is real TypeScript at `.claude/agents/`.
+
+---
+
+**Q4: $299 seems expensive compared to free boilerplates.**
+
+Free boilerplates exist. They are mostly abandoned GitHub repos with outdated dependencies, no CI/CD, no multi-tenancy, and no AI workflow. If your time is worth anything — and it is — one week of saved infrastructure setup pays for this before lunch on Tuesday.
+
+---
+
+**Q5: I need billing / Stripe. Does this include it?**
+
+Not in the current version. The architecture is payment-ready — the abstraction interface exists for Stripe, Paddle, or Lemon Squeezy — but the implementation is in Phase 2. If billing is your day-one blocker, check the public roadmap for Phase 2 timing.
+
+---
+
+**Q6: Does this work with Cursor or only Claude Code?**
+
+The agent team and `/dev` workflow require Claude Code — specifically the `Task` tool for subagent spawning. Cursor benefits from the `CLAUDE.md` context files, but the orchestrated multi-agent pipeline requires Claude Code.
+
+---
+
+**Q7: What if I don't agree with a technical decision?**
+
+Change it. Roxabi is a starting point, not a runtime dependency. The auth is Better Auth (open source). The ORM is Drizzle (open source). The frontend is TanStack Start (open source). There is no proprietary wrapper layer. If you want to swap something, the code is right there.
+
+---
+
+**Q8: Can I use this for a B2C app?**
+
+Yes, but Roxabi is optimized for B2B SaaS. Multi-tenancy with organization hierarchies, RBAC, and invite flows are core to the design. If you're building a single-user consumer app, you'll use less of what's here. The auth, CI/CD, and AI team are useful regardless.
+
+---
+
+**Q9: How long does it actually take from clone to first deployed feature?**
+
+Clone → dev server running: under 5 minutes (`cp .env.example .env && bun install && bun run db:up && bun run dev`). First real feature with the agent team: depends on the feature, but a well-scoped GitHub issue typically delivers a working PR in one session. Production deployment on Vercel: ~30 minutes following the setup checklist.
+
+---
+
+**Q10: What if I have questions or find a bug?**
+
+File a GitHub issue or Discussion. The creator responds — not a support team. Critical bugs get priority because they are also blocking the creator's own production.
+
+---
+
+## Final CTA
+
+```
+You already know how to build this.
+The question is whether you want to spend the next 6 weeks building it.
+
+[Buy Roxabi — $299]    [Read the docs first →]
+```
+
+---
+
+## OG Image Concept
+
+A dark-mode terminal window showing `/dev` command output with real agent names visible. Text below the terminal:
+
+```
+Roxabi Boilerplate
+Clone → Claude → ship.
+```
+
+Minimal sans-serif. Dark background (`#09090b`). Single brand accent on agent names. 1200×630px.
+
+**Why this works:** A developer clicking a shared link sees a terminal — immediately credible, immediately non-marketing. Signals "made by developers" before reading the headline.
+
+---
+
+## Meta Tags
+
+**Title tag:**
+```
+Roxabi Boilerplate — TanStack Start + NestJS SaaS Starter with AI Agent Team
+```
+
+**Meta description:**
+```
+Production-ready SaaS monorepo with auth, multi-tenancy (PostgreSQL RLS), RBAC, i18n, CI/CD, and a 10-agent Claude Code AI team. TanStack Start + NestJS + Drizzle. Clone to dev in 5 minutes. $299 one-time.
+```

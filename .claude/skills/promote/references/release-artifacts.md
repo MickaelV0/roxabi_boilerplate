@@ -132,14 +132,6 @@ Patch release → no meta.json change.
 
 ### 4d. Commit to staging
 
-```bash
-git add CHANGELOG.md docs/changelog/
-git commit -m "$(cat <<EOF
-docs: add release notes for $VERSION
-
-Co-Authored-By: Claude <model> <noreply@anthropic.com>
-EOF
-)"
-```
+`git add CHANGELOG.md docs/changelog/` + commit per CLAUDE.md Rule 5.
 
 > Commits to staging, not main. Release notes included in staging→main PR.

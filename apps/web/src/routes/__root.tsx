@@ -19,11 +19,14 @@ import { Header } from '../components/Header'
 import { TanStackQueryDevtools } from '../integrations/tanstack-query/devtools'
 import { ConsentProvider } from '../lib/consent/consentProvider'
 import { getServerConsent } from '../lib/consent/server'
+import type { EnrichedSession } from '../lib/routePermissions'
+import { getServerEnrichedSession } from '../lib/routePermissions'
 import appCss from '../styles.css?url'
 
 export type MyRouterContext = {
   queryClient: QueryClient
   serverConsent?: ConsentCookiePayload | null
+  session: EnrichedSession | null
 }
 
 function ErrorFallback({
@@ -54,10 +57,16 @@ function ErrorFallback({
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-  beforeLoad: async () => {
+  beforeLoad: async (ctx) => {
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('lang', getLocale())
     }
+    // Skip session fetch on chromeless public routes (/docs, /talks) — they
+    // have no header and no permission guards, so a 401 from the API would
+    // just be log noise with no functional impact.
+    const isPublic = CHROMELESS_PREFIXES.some((p) => ctx.location.pathname.startsWith(p))
+    const session = isPublic ? null : await getServerEnrichedSession()
+    return { session }
   },
 
   loader: async () => {
@@ -102,6 +111,8 @@ function NotFound() {
   )
 }
 
+// Routes under these prefixes skip the app shell (nav, consent banner, etc.) and session enforcement.
+// Invariant: no route under these prefixes may call enforceRoutePermission — they are public by design.
 const CHROMELESS_PREFIXES = ['/docs', '/talks'] as const
 
 function AppShell({ children }: { children: React.ReactNode }) {

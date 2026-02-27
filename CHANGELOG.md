@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Entries are generated automatically by `/promote` and committed to staging before the promotion PR.
 
+## [v0.5.0] - 2026-02-27
+
+### Added
+- feat(skills): atomic /dev workflow orchestrator (#366)
+- feat(admin): system settings admin page + backend (#367)
+- feat(auth): magic link edge cases (#368)
+- feat(admin): self-role-change with confirmation + sole-owner guard (#369)
+- feat(talks): add dev-process deep-dive talk (#372)
+- feat(admin): add feature flags admin page + backend with cache (#380)
+- feat(ci): automated PR review & auto-fix pipeline (#385)
+- feat(web): enhance landing page hero with two-column layout (#397)
+- feat(web): extend dev-process talk with new deep-dive sections (#399)
+
+### Fixed
+- fix(web): replace per-guard session fetch with root context auth pattern (#382)
+- fix(ci): prevent silent failures in PR Review & Auto-fix workflow (#393)
+- fix(agents): add missing task tools, WebFetch, and skills to all agents (#394)
+- fix: ADR skill meta.json corruption and feature-flags query migration (#395)
+- fix(docs): documentation accuracy audit — fix 55 inaccuracies across 26 files (#391)
+- fix(web): remove env.server import from routePermissions to silence Vite import warning
+- fix(ci): harden deploy-preview — async deletion wait, dynamic role/db discovery, neondb_owner + pooled=false for connection URI
+
+### Documentation
+- docs(standards): Phase 1 practical standards (#383)
+- docs(architecture): add backend DDD + Hexagonal vision (#398)
+
 ## [v0.4.0] - 2026-02-25
 
 ### Added

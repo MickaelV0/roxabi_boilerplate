@@ -1,0 +1,178 @@
+---
+title: Competitive Analysis
+description: SaaS boilerplate market landscape, competitor breakdown, and Roxabi's positioning gaps — February 2026
+---
+
+## Market Overview
+
+The SaaS boilerplate market is consolidating around two axes: **stack** and **AI integration**. Next.js owns ~45% of the market by volume. Developer frustration with Next.js complexity and Vercel lock-in is creating measurable migration momentum toward TanStack Start and other alternatives.
+
+**Roxabi's position:** The only production-grade, B2B-first boilerplate built on TanStack Start + NestJS + Bun with a pre-built 10-agent AI development team. No direct competitor exists in this combination.
+
+---
+
+## Competitor Breakdown
+
+### ShipFast — The Celebrity Boilerplate
+**Stack:** Next.js + MongoDB/Supabase + Stripe + NextAuth | **Price:** $199–$299 one-time | **Community:** 7,200+
+
+The market leader by brand recognition — driven by creator Marc Lou's 100K+ Twitter following, not technical superiority.
+
+**What they get right:** Stripe integration from day one, fastest time-to-demo, personal brand trust, 7,200+ customers provide strong social proof.
+
+**Where they fall short:**
+- No multi-tenancy. Explicitly single-tenant only.
+- No test suite.
+- No AI tooling of any kind (explicitly cited as a weakness in buyer reviews).
+- Update cadence slowed significantly as Marc focuses on other products.
+- "Speed now, refactoring later" trade-off documented by buyers.
+- Not suitable for complex B2B SaaS with organizations, teams, or RBAC.
+
+**Verdict:** The default choice for solo founders building B2C micro-SaaS. Not competing with Roxabi's target persona.
+
+---
+
+### Makerkit — The Serious B2B Boilerplate
+**Stack:** Next.js 16 + React 19 + Supabase/Firebase/Prisma/Drizzle (your choice) + shadcn/ui | **Price:** $249 one-time
+
+The most technically complete Next.js boilerplate for B2B SaaS. Has multi-tenancy, organization management, super admin, and MCP server.
+
+**AI features:** Ships CLAUDE.md + Cursor rules + MCP server. Calls itself "AI-Agent Optimized." This is Level 1 (config files) — not an agent team.
+
+**Where they fall short:**
+- Still Next.js only despite claiming framework flexibility.
+- "AI-optimized" = 2-3 config files. Not pre-built agents with roles and a workflow.
+- No structured dev workflow (no frame→spec→plan→implement pipeline).
+- No hallucination mitigation at the infrastructure level.
+
+**Verdict:** Roxabi's closest feature-depth competitor. The comparison to draw on the landing page. A developer choosing between Makerkit and Roxabi is choosing between Next.js and TanStack — plus the AI agent team.
+
+---
+
+### Supastarter
+**Stack:** Next.js + Nuxt + SvelteKit variants; Supabase/Prisma; Stripe/LemonSqueezy | **Price:** $199–$299 one-time | **Community:** 700+
+
+The framework-flexible option. Ships AI chat integrations (OpenAI, Anthropic APIs) and an `agents.md` file.
+
+**AI features:** One `agents.md` file compatible with Cursor/Windsurf/Claude Code. This is Level 1 — a single config file positioned as an AI feature.
+
+**Where they fall short:**
+- agents.md = one file, not a specialized team.
+- No dedicated backend service (API-route-only architecture, doesn't scale).
+- Multi-framework offering dilutes the product focus.
+- No structured dev workflow.
+
+**Verdict:** Closest to acknowledging AI tooling as a feature, but lightyears from Roxabi's 10-agent team. Easy to win the comparison with a screenshot.
+
+---
+
+### SaaSRock
+**Stack:** Remix (React Router 7) + Tailwind CSS + Prisma | **Price:** $499 (Core) / $1,999 (Pro)
+
+The kitchen-sink boilerplate. 25+ features: entity builder, workflows, affiliates, analytics, knowledge base, page block builder, email marketing, and more.
+
+**AI features:** None documented.
+
+**Where they fall short:**
+- $1,999 Pro is prohibitive for indie founders.
+- Remix/React Router 7 is a niche choice with smaller community.
+- Feature complexity is overkill for lean B2B SaaS.
+- No AI tooling at any level.
+
+**Verdict:** Proves the $499+ ceiling is reachable. Confirms that serious B2B buyers will pay. Not a day-to-day competitor.
+
+---
+
+### PropelKit
+**Stack:** Next.js 14 + TypeScript | **Price:** $109 one-time
+
+The most technically ambitious Next.js boilerplate for AI planning. Has an "AI Project Manager" that analyzes your idea, breaks it into phases, generates test cases.
+
+**AI features:** Level 2 — AI planning UI. Not code-executing agents.
+
+**Where they fall short:**
+- Still Next.js only.
+- "AI Project Manager" generates a plan, not a running agent team.
+- No persistent agent infrastructure, no workflow orchestration.
+- Budget price undercuts perceived quality.
+
+**Verdict:** Interesting direction, wrong execution. Confirms market appetite for AI in boilerplates.
+
+---
+
+### Others
+
+| Product | Stack | Price | AI | Weakness |
+|---------|-------|-------|-----|----------|
+| LaunchFast | Astro/Next.js/SvelteKit | $75–$99 | None | Budget tier, 70 users, no B2B depth |
+| Bedrock | Next.js + GraphQL | $150–$900 | None | GraphQL is niche, relatively inactive |
+| SaaS Pegasus | Python/Django | $249–$999 | CLAUDE.md rules | Different ecosystem (Python) |
+
+---
+
+## The AI Level Framework
+
+This is how the entire market maps on AI integration:
+
+| Level | What It Is | Who Has It |
+|-------|-----------|------------|
+| **0** — Nothing | No AI tooling | ShipFast, LaunchFast, Bedrock, SaaSRock |
+| **1** — Config files | CLAUDE.md / Cursor rules / agents.md | Makerkit, Supastarter, SaaS Pegasus |
+| **2** — AI planning | AI Project Manager concept (no execution) | PropelKit |
+| **3** — Full agent team | 10 specialized agents + orchestrated dev workflow | **Roxabi only** |
+
+This is a **category gap, not a feature gap.** Roxabi doesn't "support AI better" — it ships your AI development team as product infrastructure.
+
+---
+
+## Key Market Gaps Roxabi Fills
+
+### 1. TanStack Start + NestJS — a greenfield position
+
+Every major paid boilerplate is Next.js. No paid boilerplate ships TanStack Start + NestJS. This is an uncontested position in a growing segment.
+
+Real production migration data confirms the trend:
+- Inngest migrated from Next.js to TanStack Start, reducing local page load time by **83%** (10-12s → 2-3s)
+- TanStack Start reached Release Candidate status in late 2025 (v1.0 imminent)
+- TanStack Start bundles are 30-35% smaller than Next.js equivalents
+- Multiple engineering teams publicly documenting Why they left Next.js: RSC complexity, App Router confusion, Vercel lock-in
+
+### 2. PostgreSQL RLS multi-tenancy — the correct architecture
+
+Most boilerplates implement multi-tenancy at the application layer (manual `WHERE tenant_id = ?` filters). True PostgreSQL Row Level Security is database-enforced — data isolation is **impossible to bypass even with application bugs**. Almost no boilerplate ships this pre-configured.
+
+Makerkit and Supastarter offer "basic" multi-tenancy. Roxabi's RLS is the correct B2B architecture from day one.
+
+### 3. The hallucination problem — solved at the infrastructure level
+
+**Documented developer pain** (DEV Community, Reddit, Indie Hackers): *"By Day 4, Claude starts making mistakes — re-implementing features that exist in other files, forgetting architectural decisions."*
+
+The root cause: AI coding tools on fresh projects have no context. They guess. Results are inconsistent.
+
+Roxabi solves this with:
+- A `CLAUDE.md` that documents every critical architectural decision
+- 10 specialized agent definitions that tell each agent what it owns and what it cannot touch
+- 20 skill files that define exactly how each workflow step works
+- A structured pipeline (frame→spec→plan→implement→review) that sequences work correctly
+
+No competitor addresses this at the infrastructure level. This is the unique, demonstrable value of Roxabi's AI team.
+
+---
+
+## Competitive Summary
+
+| Dimension | ShipFast | Makerkit | Supastarter | SaaSRock | **Roxabi** |
+|-----------|---------|---------|------------|---------|-----------|
+| AI Agent Team | ❌ | CLAUDE.md only | agents.md (1 file) | ❌ | **10 specialized agents** |
+| Dev workflow pipeline | ❌ | ❌ | ❌ | ❌ | **frame→spec→plan→ship** |
+| Stack | Next.js | Next.js | Next.js/Nuxt/Svelte | Remix | **TanStack Start + NestJS** |
+| Multi-tenancy | ❌ | Basic | Basic | Full | **PostgreSQL RLS** |
+| B2B readiness | MVP only | Good | Good | Excellent | **Excellent** |
+| Dedicated backend | ❌ | ❌ | ❌ | ❌ | **NestJS + Fastify** |
+| Hallucination mitigated | ❌ | ❌ | ❌ | ❌ | **Yes (by design)** |
+| Price | $199–299 | $249 | $199–299 | $499–1,999 | **$299** |
+| Community | 7,200+ | Large | 700+ | Medium | Building |
+
+---
+
+*Research synthesized from 40+ web sources — February 2026*

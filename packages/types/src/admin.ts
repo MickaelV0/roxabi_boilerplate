@@ -51,6 +51,8 @@ export type AdminUser = {
 export type AdminUserDetail = AdminUser & {
   image: string | null
   activitySummary: import('./audit').AuditLogEntry[]
+  /** True when this user is the only active (non-banned, non-deleted) superadmin */
+  isLastActiveSuperadmin: boolean
 }
 
 /** Filter parameters for the admin users list */
@@ -160,4 +162,11 @@ export type CreateFeatureFlagPayload = {
   name: string
   key: string
   description?: string
+}
+
+/** Payload for PATCH /api/admin/feature-flags/:id */
+export type UpdateFeatureFlagPayload = {
+  name?: string
+  description?: string
+  enabled?: boolean
 }

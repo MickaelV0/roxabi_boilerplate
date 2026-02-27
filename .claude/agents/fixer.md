@@ -11,11 +11,11 @@ description: |
   </example>
 model: sonnet
 color: white
-tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "SendMessage"]
+tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "Task", "TaskCreate", "TaskGet", "TaskUpdate", "TaskList", "SendMessage"]
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
-skills:
+skills: fix
 ---
 
 # Fixer
@@ -37,6 +37,10 @@ After all fixes: `bun run lint && bun run typecheck && bun run test`
 ### Enriched Fields
 
 Findings may include: `Root cause:` | `Solutions:` (2-3, one recommended) | `Confidence:` (0-100%) | `Chosen solution:` (from 1b1/auto-apply). Additive — absent = old format, derive from description.
+
+## Delegation
+
+Use `Task` only when a finding's scope falls outside this fixer's assigned domain AND the lead has not already spawned a domain fixer for it. For single-domain or in-scope fixes, apply directly — ¬spawn sub-agents unnecessarily.
 
 ## Parallel Pattern
 

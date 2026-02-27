@@ -11,6 +11,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Terminal panel color token — near-black distinct from site background */
+:root {
+  --color-terminal-bg: #09090b; /* zinc-950 */
+}
+
+.dark {
+  --color-terminal-bg: #0a0a0f;
+}
+
 /* App-specific styles */
 body {
   @apply m-0;
@@ -111,6 +120,14 @@ html.dark .shiki span {
   animation: typing-reveal 2.5s steps(20, end) forwards;
 }
 
+/* Terminal feed scroll animation */
+@keyframes scroll-up {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+
+.terminal-scroll { animation: scroll-up 22s linear infinite; }
+
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -133,5 +150,9 @@ html.dark .shiki span {
   .animate-typing-reveal {
     max-height: none;
     overflow: visible;
+  }
+
+  .terminal-scroll {
+    animation: none;
   }
 }

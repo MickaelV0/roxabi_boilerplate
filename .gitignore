@@ -48,6 +48,7 @@ coverage/
 .nyc_output/
 playwright-report/
 test-results/
+apps/web/e2e/.auth/
 
 # Cache
 .cache/

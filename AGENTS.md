@@ -76,7 +76,7 @@ Intra-domain parallel: multiple same-type agents on non-overlapping files OK. Sh
 
 ## Micro-Task Protocol
 
-When `/scaffold` 4b generates micro-tasks, agents receive structured work units via TaskCreate.
+When `/plan` generates micro-tasks, agents receive structured work units via TaskCreate.
 
 **Claim:** Spawn-prompt assignment = authoritative. Also check TaskList for unassigned tasks (lowest ID first).
 
@@ -92,6 +92,6 @@ When `/scaffold` 4b generates micro-tasks, agents receive structured work units 
 ## Config
 
 Agent behavior via YAML frontmatter in `.claude/agents/*.md`:
-`permissionMode` (bypassPermissions|plan) | `maxTurns` (20-50) | `memory: project` (.claude/agent-memory/) | `skills` (preloaded) | `disallowedTools` (deny list)
+`permissionMode` (bypassPermissions|plan) | `maxTurns` (30-50) | `memory: project` (.claude/agent-memory/) | `skills` (preloaded) | `disallowedTools` (deny list)
 
 Full → [agent-teams.mdx](docs/guides/agent-teams.mdx).

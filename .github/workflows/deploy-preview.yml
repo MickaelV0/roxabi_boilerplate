@@ -130,21 +130,45 @@ jobs:
           if [ -n "$EXISTING" ]; then
             echo "Deleting existing branch: $EXISTING"
             retry_cmd 3 5 curl -sf -X DELETE -H "Authorization: Bearer $NEON_API_KEY" \
-              "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$EXISTING"
+              "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$EXISTING" \
+              > /dev/null
+            # Neon DELETE is async — wait for the branch to disappear before creating a new one
+            echo "Waiting for branch deletion to complete..."
+            for i in $(seq 1 24); do
+              STILL_EXISTS=$(curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
+                "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" \
+                | jq -r --arg bid "$EXISTING" '.branches[] | select(.id == $bid) | .id')
+              if [ -z "$STILL_EXISTS" ]; then
+                echo "Branch deletion confirmed"
+                break
+              fi
+              echo "Still deleting... (attempt $i/24)"
+              sleep 5
+            done
           fi
 
           # Create new branch from the main branch
           PAYLOAD=$(jq -n --arg name "$BRANCH_NAME" '{branch: {name: $name}, endpoints: [{type: "read_write"}]}')
-          RESPONSE=$(retry_cmd 3 5 curl -sf -X POST \
-            -H "Authorization: Bearer $NEON_API_KEY" \
-            -H "Content-Type: application/json" \
-            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" \
-            -d "$PAYLOAD")
+          BRANCH_ID=""
+          for attempt in 1 2 3; do
+            # Use || to prevent set -e from exiting on curl network error
+            RAW=$(curl -s -w "\n%{http_code}" -X POST \
+              -H "Authorization: Bearer $NEON_API_KEY" \
+              -H "Content-Type: application/json" \
+              "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" \
+              -d "$PAYLOAD" || echo "CURL_NETWORK_ERROR\n000")
+            HTTP_CODE=$(printf '%s' "$RAW" | tail -1)
+            BODY=$(printf '%s' "$RAW" | head -n -1)
+            # || echo "" guards: prevent set -e if response is not valid JSON
+            BRANCH_ID=$(echo "$BODY" | jq -r '.branch.id // empty' 2>/dev/null || echo "")
+            if [ -n "$BRANCH_ID" ] && [ "$BRANCH_ID" != "null" ]; then break; fi
+            ERR=$(echo "$BODY" | jq -r '.message // .error // empty' 2>/dev/null || echo "")
+            echo "::warning::Branch create attempt $attempt/3 failed (HTTP $HTTP_CODE): ${ERR:-non-JSON or network error}"
+            if [ "$attempt" -lt 3 ]; then sleep 5; fi
+          done
 
-          BRANCH_ID=$(echo "$RESPONSE" | jq -r '.branch.id')
-
-          if [ "$BRANCH_ID" = "null" ] || [ -z "$BRANCH_ID" ]; then
-            echo "::error::Failed to create Neon branch (branch_id was null or empty)"
+          if [ -z "$BRANCH_ID" ] || [ "$BRANCH_ID" = "null" ]; then
+            echo "::error::Failed to create Neon branch after 3 attempts"
             exit 1
           fi
 
@@ -162,8 +186,29 @@ jobs:
             exit 1
           fi
 
-          # Get connection URI from the response
-          CONNECTION_URI=$(echo "$RESPONSE" | jq -r '.connection_uris[0].connection_uri')
+          # Fetch connection URI — role_name and database_name are required params.
+          # Prefer neondb_owner (Neon-managed role with stored password) for schema ops.
+          # Use pooled=false for direct connection (required for DDL like DROP SCHEMA).
+          ROLES_JSON=$(curl -sf \
+            -H "Authorization: Bearer $NEON_API_KEY" \
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID/roles" || echo "{}")
+          ROLE_NAME=$(echo "$ROLES_JSON" | jq -r '
+            first((.roles[] | select(.name == "neondb_owner")), .roles[0]) | .name // empty' || echo "")
+          DB_NAME=$(curl -sf \
+            -H "Authorization: Bearer $NEON_API_KEY" \
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID/databases" \
+            | jq -r '.databases[0].name // empty' || echo "")
+          echo "Using role=$ROLE_NAME db=$DB_NAME for connection URI"
+
+          if [ -z "$ROLE_NAME" ] || [ -z "$DB_NAME" ]; then
+            echo "::error::Could not discover role/database name for Neon branch $BRANCH_ID"
+            exit 1
+          fi
+
+          CONNECTION_URI=$(curl -sf \
+            -H "Authorization: Bearer $NEON_API_KEY" \
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/connection_uri?branch_id=$BRANCH_ID&role_name=$ROLE_NAME&database_name=$DB_NAME&pooled=false" \
+            | jq -r '.uri // empty' || echo "")
 
           if [ "$CONNECTION_URI" = "null" ] || [ -z "$CONNECTION_URI" ]; then
             echo "::error::Failed to get connection URI from Neon branch response"

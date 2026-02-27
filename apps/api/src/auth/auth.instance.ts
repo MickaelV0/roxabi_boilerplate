@@ -8,6 +8,7 @@ import {
 import { DICEBEAR_CDN_BASE } from '@repo/types'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { APIError } from 'better-auth/api'
 import { magicLink } from 'better-auth/plugins/magic-link'
 import { organization } from 'better-auth/plugins/organization'
 import { eq } from 'drizzle-orm'
@@ -131,12 +132,18 @@ function buildMagicLinkPlugin(
   return magicLink({
     async sendMagicLink({ email, url }) {
       const emailUrl = buildFrontendUrl(url, config.appURL, '/magic-link/verify')
+
+      const [userData] = await db
+        .select({ locale: users.locale })
+        .from(users)
+        .where(eq(users.email, email))
+
+      if (!userData) {
+        throw new APIError('BAD_REQUEST', { message: 'USER_NOT_FOUND' })
+      }
+
       try {
-        const [userData] = await db
-          .select({ locale: users.locale })
-          .from(users)
-          .where(eq(users.email, email))
-        const locale = userData?.locale ?? 'en'
+        const locale = userData.locale ?? 'en'
         const { html, text, subject } = await renderMagicLinkEmail(emailUrl, locale, config.appURL)
         await emailProvider.send({ to: email, subject, html, text })
       } catch (error) {

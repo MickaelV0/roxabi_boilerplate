@@ -1,15 +1,15 @@
 import { cn, useInView } from '@repo/ui'
 import { useEffect, useState } from 'react'
-import { type BundledLanguage, codeToHtml } from 'shiki'
+import { type BundledLang, codeToHtml } from '@/lib/shiki'
 
 type CodeBlockProps = {
   children: string
-  language?: BundledLanguage
+  language?: BundledLang
   typing?: boolean
   className?: string
 }
 
-function useShikiCodeHighlight(code: string, language: BundledLanguage, inView: boolean) {
+function useShikiCodeHighlight(code: string, language: BundledLang, inView: boolean) {
   const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null)
 
   useEffect(() => {

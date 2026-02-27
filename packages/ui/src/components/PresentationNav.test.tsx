@@ -227,3 +227,91 @@ describe('PresentationNav', () => {
     })
   })
 })
+
+const sections12 = [
+  { id: 's1', label: 'Section 1' },
+  { id: 's2', label: 'Section 2' },
+  { id: 's3', label: 'Section 3' },
+  { id: 's4', label: 'Section 4' },
+  { id: 's5', label: 'Section 5' },
+  { id: 's6', label: 'Section 6' },
+  { id: 's7', label: 'Section 7' },
+  { id: 's8', label: 'Section 8' },
+  { id: 's9', label: 'Section 9' },
+  { id: 's10', label: 'Section 10' },
+  { id: 's11', label: 'Section 11' },
+  { id: 's12', label: 'Section 12' },
+] as const
+
+function createAllSection12Elements(): HTMLElement[] {
+  return sections12.map((s) => {
+    const el = document.createElement('section')
+    el.id = s.id
+    el.scrollIntoView = vi.fn()
+    document.body.appendChild(el)
+    testSectionElements.push(el)
+    return el
+  })
+}
+
+describe('PresentationNav with 12 sections', () => {
+  describe('extended key mappings', () => {
+    it('should scroll to section 10 (index 9) when key 0 is pressed', () => {
+      // Arrange
+      const elements = createAllSection12Elements()
+      render(<PresentationNav sections={sections12} />)
+
+      // Act
+      fireEvent.keyDown(document, { key: '0' })
+
+      // Assert
+      expect(elements[9]?.scrollIntoView).toHaveBeenCalledWith(
+        expect.objectContaining({ behavior: 'smooth' })
+      )
+    })
+
+    it('should scroll to section 11 (index 10) when key - is pressed', () => {
+      // Arrange
+      const elements = createAllSection12Elements()
+      render(<PresentationNav sections={sections12} />)
+
+      // Act
+      fireEvent.keyDown(document, { key: '-' })
+
+      // Assert
+      expect(elements[10]?.scrollIntoView).toHaveBeenCalledWith(
+        expect.objectContaining({ behavior: 'smooth' })
+      )
+    })
+
+    it('should scroll to section 12 (index 11) when key = is pressed', () => {
+      // Arrange
+      const elements = createAllSection12Elements()
+      render(<PresentationNav sections={sections12} />)
+
+      // Act
+      fireEvent.keyDown(document, { key: '=' })
+
+      // Assert
+      expect(elements[11]?.scrollIntoView).toHaveBeenCalledWith(
+        expect.objectContaining({ behavior: 'smooth' })
+      )
+    })
+  })
+
+  describe('backward compatibility: key 0 with 8-section fixture', () => {
+    it('should do nothing when key 0 is pressed with 9 or fewer sections', () => {
+      // Arrange
+      const elements = createAllSectionElements()
+      render(<PresentationNav sections={sections} />)
+
+      // Act
+      fireEvent.keyDown(document, { key: '0' })
+
+      // Assert — no section should have been scrolled to
+      for (const el of elements) {
+        expect(el.scrollIntoView).not.toHaveBeenCalled()
+      }
+    })
+  })
+})

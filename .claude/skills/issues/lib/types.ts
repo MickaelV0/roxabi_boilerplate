@@ -17,6 +17,13 @@ export interface Issue {
   children: Issue[]
 }
 
+export interface CICheck {
+  name: string
+  status: string
+  conclusion: string
+  detailsUrl: string
+}
+
 export interface PR {
   number: number
   title: string
@@ -30,6 +37,8 @@ export interface PR {
   deletions: number
   reviewDecision: string
   labels: string[]
+  mergeable: string
+  checks: CICheck[]
 }
 
 export interface Branch {
@@ -42,6 +51,34 @@ export interface Worktree {
   branch: string
   commit: string
   isBare: boolean
+}
+
+export interface BuildStep {
+  name: string
+  status: 'done' | 'running' | 'pending' | 'error'
+}
+
+export interface VercelDeployment {
+  uid: string
+  url: string
+  state: string
+  target: string
+  createdAt: number
+  buildingAt: number
+  ready: number
+  source: string
+  meta: { githubCommitRef?: string; githubCommitMessage?: string }
+  inspectorUrl: string
+  buildSteps: BuildStep[]
+}
+
+export interface BranchCI {
+  branch: string
+  commitSha: string
+  commitMessage: string
+  committedAt: string
+  overallState: string
+  checks: CICheck[]
 }
 
 export interface DepNode {

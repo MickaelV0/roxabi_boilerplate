@@ -12,7 +12,7 @@ const AUTH_SENSITIVE_PATHS = [
   '/api/auth/sign-up',
   '/api/auth/request-password-reset',
   '/api/auth/resetPassword',
-  '/api/auth/magicLink',
+  '/api/auth/magic-link',
   '/api/auth/change-password',
   '/api/auth/verify-email',
   '/api/auth/send-verification-email',

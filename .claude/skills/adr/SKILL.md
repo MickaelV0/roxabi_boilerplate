@@ -101,23 +101,22 @@ description: {One-line summary of the decision}
 
 #### 5. Update meta.json
 
-Read `docs/architecture/adr/meta.json` if it exists. If it does not exist, create it.
-
-The file is a JSON array of ADR entries:
+Read `docs/architecture/adr/meta.json` if it exists. If it does not exist, create it with:
 
 ```json
-[
-  {
-    "number": 1,
-    "title": "ADR-001: Fastify over Express",
-    "status": "Accepted",
-    "date": "2025-03-15",
-    "file": "001-fastify-over-express.mdx"
-  }
-]
+{ "title": "ADRs", "pages": [] }
 ```
 
-Append the new ADR entry and write the file back.
+The file uses the Fumadocs navigation format — a plain object with a `pages` array of ADR slugs (filename without `.mdx` extension):
+
+```json
+{ "title": "ADRs", "pages": ["001-fastify-over-express", "002-bun-as-runtime"] }
+```
+
+Read the parsed content:
+- If the content is a plain object with a `pages` array (Fumadocs format) — append the new slug to `pages` and write the updated object back.
+- If the content is an array (old array-of-objects format) — migrate: extract the `file` field from each entry, strip the `.mdx` extension to reconstruct slugs, rebuild as `{ "title": "ADRs", "pages": ["001-slug", "002-slug", ...] }`, then append the new slug and write.
+- Never write the old array-of-objects format.
 
 #### 6. Confirm
 
@@ -134,7 +133,7 @@ When `--list` flag is used:
 
 1. Scan `docs/architecture/adr/` for all `.mdx` files.
 2. If no ADRs exist, inform the user and suggest creating one with `/adr "Title"`.
-3. If ADRs exist, read `meta.json` and present a table:
+3. If ADRs exist, read `meta.json` and check for the Fumadocs `{ title, pages }` format. If `pages` is present, iterate the slugs in order to list each ADR. For each slug, derive the filename (`{slug}.mdx`) and read its frontmatter for title, status, and date. Present a table:
 
 ```
 Architecture Decision Records
@@ -146,7 +145,7 @@ Architecture Decision Records
   003  │ REST over GraphQL                  │ Deprecated│ 2025-04-10
 ```
 
-If `meta.json` is missing or outdated, fall back to reading frontmatter from each `.mdx` file directly.
+If `meta.json` is missing or is not in the recognised `{ title, pages }` format, fall back to scanning all `.mdx` files directly and reading frontmatter from each file.
 
 ## Edge Cases
 
@@ -154,5 +153,6 @@ If `meta.json` is missing or outdated, fall back to reading frontmatter from eac
 - **No title provided:** Ask for one via AskUserQuestion before proceeding.
 - **Superseding an ADR:** When the user mentions superseding an existing ADR, update the old ADR's status to `Superseded by ADR-{NNN}` and the new ADR's context should reference the old one.
 - **meta.json out of sync:** If `.mdx` files exist but `meta.json` is missing or incomplete, rebuild it from file frontmatter.
+- **meta.json in old format:** If the file contains an array of objects `[{ number, title, ... }]` (legacy format), migrate it to Fumadocs format by extracting `file` values and stripping `.mdx`. Append the new slug and write the updated object. The migration is performed transparently — the user sees only the new ADR being confirmed.
 
 $ARGUMENTS

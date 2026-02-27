@@ -11,6 +11,8 @@ on:
     types: [labeled, synchronize, closed]
   check_suite:
     types: [completed]
+  push:
+    branches: [staging, main]
 
 permissions:
   contents: write
@@ -32,8 +34,35 @@ jobs:
       - name: Enable auto-merge (squash)
         run: gh pr merge "$PR_NUMBER" --auto --squash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+
+  update-behind-prs:
+    name: Update behind PRs
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Update all reviewed PRs targeting this branch
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+          PRS=$(gh pr list --base "$BRANCH" --label reviewed --state open --json number,headRefOid --jq '.[]')
+          if [ -z "$PRS" ]; then
+            echo "No reviewed PRs targeting $BRANCH"
+            exit 0
+          fi
+          echo "$PRS" | while IFS= read -r pr; do
+            NUM=$(echo "$pr" | jq -r .number)
+            SHA=$(echo "$pr" | jq -r .headRefOid)
+            echo "Updating PR #$NUM..."
+            gh api "repos/${{ github.repository }}/pulls/$NUM/update-branch" \
+              --method PUT -f expected_head_sha="$SHA" || true
+          done
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
 
   close-linked-issues:
     name: Close linked issues

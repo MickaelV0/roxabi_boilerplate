@@ -15,7 +15,7 @@ Walk through a list of items from the conversation (tasks, findings, issues, sug
 Look back through the conversation to find the most recent list of items. These could be:
 
 - Review findings (from `/review`)
-- Implementation plan tasks (from `/scaffold`)
+- Implementation plan tasks (from `/plan`)
 - GitHub issues (from `/issues`)
 - TODO items or action items
 - Any enumerated list the user was discussing

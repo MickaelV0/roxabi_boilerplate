@@ -44,9 +44,25 @@ title: "{Title}"
 description: {One-line description of the analysis}
 ---
 
+## Source
+
+{Verbatim raw material — user quotes, Slack messages, issue descriptions, support tickets. Preserve original wording as ground truth. Append new material as it arrives.}
+
+## Problem
+
+{Distilled from Source — what is broken or painful. One or two sentences. No solutions.}
+
+## Outcome
+
+{Solution-agnostic success definition — what does "done" look like without prescribing how to get there.}
+
+## Appetite
+
+{Time/effort budget that constrains design. e.g. "1 week" or "2-week cycle". Fixed time, variable scope — the appetite forces trade-offs between quality, time, and scope.}
+
 ## Context
 
-{Why this analysis exists — background, motivation, triggering event}
+{Additional background — motivation, prior art, what exists today, what has been tried}
 
 ## Questions Explored
 
@@ -96,7 +112,7 @@ description: {One-line description of the analysis}
 
 ## Spec
 
-> **Inline ambiguity markers:** `[NEEDS CLARIFICATION: description]` markers indicate unresolved ambiguity (max 3-5 per spec). These must be resolved before `/scaffold` execution.
+> **Inline ambiguity markers:** `[NEEDS CLARIFICATION: description]` markers indicate unresolved ambiguity (max 3-5 per spec). These must be resolved before `/plan` execution.
 
 Output path: `artifacts/specs/{issue}-{slug}.mdx`
 
@@ -150,7 +166,7 @@ description: {One-line description of the feature or project}
 |----|-------|------|-------------|
 | S1 | {Table, cache, API...} | {Persistent/transient/external} | N1, N2 |
 
-{Unknowns: Mark any uncertain wiring — these trigger investigation spikes during bootstrap (Gate 1.5) before spec execution.}
+{Unknowns: Mark any uncertain wiring — these trigger investigation spikes during `/analyze` before spec execution.}
 
 ## Slices
 

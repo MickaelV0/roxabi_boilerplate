@@ -11,7 +11,7 @@ description: |
   </example>
 model: sonnet
 color: white
-tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Task", "SendMessage"]
+tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "Task", "TaskCreate", "TaskGet", "TaskUpdate", "TaskList", "SendMessage"]
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
@@ -46,6 +46,29 @@ Co-located `feature.test.ts` | Arrange-Act-Assert | Descriptive `describe`/`it` 
 ## Boundaries
 
 ¬source code — test files only. Bug found → task for domain agent with failing test as evidence.
+
+## Project Patterns
+
+### ESM imports
+- All imports use `.js` extension (e.g., `from './myFile.js'`)
+- Always import from `vitest` explicitly: `import { describe, it, expect, vi } from 'vitest'`
+
+### Controller tests (NestJS admin)
+- Mock services as module-level `const` with `vi.fn()`, cast `as unknown as ServiceType`
+- Instantiate controller directly: `new Controller(mockService1, mockService2)`
+- `beforeEach(() => { vi.restoreAllMocks() })` — no setup in beforeEach
+- Decorator verification: `new Reflector()` + `reflector.get('ROLES', ControllerClass)`
+- `@Roles('superadmin')` → metadata key `'ROLES'` | `@SkipOrg()` → `'SKIP_ORG'`
+
+### Service tests (Drizzle DB mock)
+- Mock entire Drizzle chain with factory helpers (`createMockDb()`)
+- Select chain: `select().from().where().limit()` — override terminal fn per test
+- Update chain: `update().set().where().returning()`
+- `vi.fn().mockResolvedValueOnce([])` for multi-call sequences
+
+### Exceptions
+- Extend `Error`, set `this.name`, carry `errorCode` from `ErrorCode` enum
+- Path: `apps/api/src/admin/exceptions/*.exception.ts`
 
 ## Edge Cases
 

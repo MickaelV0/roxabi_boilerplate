@@ -22,6 +22,27 @@ Adopt the Testing Trophy model instead of the traditional test pyramid. Integrat
 
 **E2E Tests:** Reserve Playwright for critical user journeys — signup, login, core workflows. These are slow and brittle, so keep the count small and the scope broad.
 
+## Testing Layer Guidance
+
+Use this table to decide which layer to write a test at. Write at the lowest layer that gives you sufficient confidence.
+
+| Scenario | Layer | Tool |
+|---|---|---|
+| Pure function, validator, type guard | Unit | Vitest |
+| Service with mocked dependencies | Unit | Vitest + `vi.fn()` |
+| Multiple NestJS providers wired together | Integration | Vitest + `Test.createTestingModule()` |
+| React component with real hooks and context | Integration | Vitest + Testing Library |
+| `queryOptions()` factory + component consuming it | Integration | Vitest + Testing Library + `QueryClientProvider` |
+| Auth flow, onboarding, checkout end-to-end | E2E | Playwright |
+
+**Unit — isolated logic:** Write unit tests for services, utilities, validators, and pure functions. Instantiate the class directly and pass `vi.fn()` stubs through the constructor. No module-level mocking, no NestJS DI.
+
+**Integration — module wiring:** Write integration tests when multiple things must cooperate. On the backend, use `Test.createTestingModule()` so the real dependency injection graph is exercised. On the frontend, render real components inside the providers they need (`QueryClientProvider`, `RouterProvider`, session context) and assert against visible output.
+
+**E2E — critical user flows:** Reserve Playwright for journeys that span the entire stack — signup, login, role-based access, checkout. Keep the count small. A broken E2E suite blocks everyone; a narrow E2E suite catches real regressions.
+
+This section complements the Testing Trophy above. The Trophy describes *how much* of each layer to write; this table describes *when* to write each one.
+
 ## Red-Green-Refactor Cycle
 
 Follow this cycle for every unit of work:
@@ -204,6 +225,136 @@ From `packages/ui`:
 - Group tests by function under `describe` blocks.
 - Test type guards with both valid and invalid inputs to verify the return type narrows correctly.
 
+### TanStack Query Testing
+
+See `frontend-patterns.mdx` section 1.7 for the `queryOptions()` factory pattern. This section covers how to test those factories and the components that consume them.
+
+#### QueryClientProvider wrapper
+
+Create a shared test utility so every test that touches a query gets a fresh `QueryClient` with retries disabled:
+
+```typescript
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { render } from '@testing-library/react'
+import type { ReactNode } from 'react'
+
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        gcTime: 0,
+      },
+    },
+  })
+}
+
+export function renderWithQuery(ui: ReactNode) {
+  const queryClient = createTestQueryClient()
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
+  return { ...render(ui, { wrapper }), queryClient }
+}
+```
+
+#### Testing queryOptions() factories
+
+`queryOptions()` factories are pure functions — test them directly without rendering anything:
+
+```typescript
+import { describe, expect, it } from 'vitest'
+import { apiKeysQueryOptions } from './apiKeys.queries'
+
+describe('apiKeysQueryOptions', () => {
+  it('should produce a stable query key', () => {
+    const options = apiKeysQueryOptions()
+    expect(options.queryKey).toEqual(['api-keys'])
+  })
+
+  it('should set staleTime to 30 seconds', () => {
+    const options = apiKeysQueryOptions()
+    expect(options.staleTime).toBe(30_000)
+  })
+})
+```
+
+#### Testing components that use queries
+
+Wrap the component in `renderWithQuery`. Seed the cache directly via `queryClient.setQueryData()` to avoid real network calls:
+
+```typescript
+import { screen } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+import { ApiKeysList } from './ApiKeysList'
+import { renderWithQuery } from '@/test/renderWithQuery'
+import { createMockSession } from '@/test/__mocks__/mockSession'
+
+describe('ApiKeysList', () => {
+  it('should display keys from the cache', async () => {
+    // Arrange
+    const { queryClient } = renderWithQuery(<ApiKeysList />)
+    queryClient.setQueryData(['api-keys'], {
+      data: [{ id: 'key-1', name: 'Production Key' }],
+    })
+
+    // Assert
+    expect(await screen.findByText('Production Key')).toBeInTheDocument()
+  })
+
+  it('should show empty state when no keys exist', async () => {
+    // Arrange
+    const { queryClient } = renderWithQuery(<ApiKeysList />)
+    queryClient.setQueryData(['api-keys'], { data: [] })
+
+    // Assert
+    expect(await screen.findByText(/no api keys/i)).toBeInTheDocument()
+  })
+})
+```
+
+Use `createMockSession` from `apps/web/src/test/__mocks__/mockSession.ts` when a component requires an authenticated user in context.
+
+#### Testing mutations and cache invalidation
+
+Assert that the mutation calls the correct endpoint and that `invalidateQueries` is triggered afterward:
+
+```typescript
+import { screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
+import { RevokeApiKeyButton } from './RevokeApiKeyButton'
+import { renderWithQuery } from '@/test/renderWithQuery'
+
+vi.mock('@/lib/apiKeys', () => ({
+  revokeApiKey: vi.fn().mockResolvedValue({ id: 'key-1', revokedAt: '2026-01-01T00:00:00.000Z' }),
+}))
+
+describe('RevokeApiKeyButton', () => {
+  it('should invalidate the api-keys cache after a successful revoke', async () => {
+    // Arrange
+    const { queryClient } = renderWithQuery(<RevokeApiKeyButton keyId="key-1" />)
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: /revoke/i }))
+
+    // Assert
+    await waitFor(() => {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['api-keys'] })
+    })
+  })
+})
+```
+
+#### Rules
+
+- Always disable retries (`retry: false`) in the test `QueryClient` — otherwise failed queries silently retry and slow tests down.
+- Set `gcTime: 0` so stale cache entries from one test do not leak into the next.
+- Seed the cache with `queryClient.setQueryData()` rather than letting queries fire real fetch calls.
+- When testing loading and error states, use `queryClient.setQueryData()` with `undefined` to simulate loading, or `queryClient.setQueryDefaults()` to force an error state.
+- Use `findBy*` (async) queries when asserting on content that appears after a query resolves.
+
 ## E2E Testing Patterns
 
 ### Configuration
@@ -286,6 +437,7 @@ function createMockHost(headers: Record<string, string> = {}) {
 - Keep mocks close to the tests that use them.
 - **Backend:** Prefer dependency injection over module-level mocking. Pass `vi.fn()` stubs through DI. Avoid `vi.mock()`.
 - **Environment variables:** Use `vi.stubEnv()` as shown in `apps/api/src/test/setup.ts`.
+- **Network calls (frontend):** Prefer MSW over `vi.spyOn(globalThis, 'fetch')` for any test that exercises a full fetch path. Reserve `vi.spyOn(fetch)` for low-level unit tests of HTTP client utilities where you must inspect headers or the raw `RequestInit` object. See [MSW Adoption](#msw-adoption) below.
 
 ### Frontend Mocking Rules
 
@@ -298,6 +450,164 @@ function createMockHost(headers: Record<string, string> = {}) {
 - **Third-party libraries** with side effects or browser APIs not available in jsdom (e.g., `next/navigation`, `IntersectionObserver`).
 
 **Prefer `vi.fn()` and `vi.spyOn()`** for everything else. Use factory helpers to construct mock objects.
+
+## MSW Adoption
+
+MSW is the recommended replacement for `vi.spyOn(fetch)`. Install with `bun add -d msw` before using these patterns. MSW is **not** currently installed in this project.
+
+### Why MSW over vi.spyOn(fetch)
+
+`vi.spyOn(globalThis, 'fetch')` works at the JavaScript function level. It intercepts the call before the network stack runs, which means request headers, serialization, and URL construction are never verified unless you inspect `mock.calls` manually.
+
+MSW intercepts at the service-worker (browser) or `node:http` adapter level — after your code builds the full request. This gives you:
+
+- **Network-level interception:** The real `fetch` runs. URL construction, headers, and `credentials` are verified automatically.
+- **Request validation:** Assert on the incoming `Request` object inside the handler.
+- **Shared handlers:** Define handlers once in a `src/test/msw/handlers.ts` file and reuse them across tests. Narrow overrides per test with `server.use()`.
+- **Readable error simulation:** Return `HttpResponse.error()` or a non-2xx status without constructing a `Response` object by hand.
+
+**When to keep vi.spyOn(fetch):** Low-level unit tests of HTTP client utilities (e.g., `apiClient.test.ts`) that must inspect the raw `RequestInit` — headers, `credentials`, correlation IDs — should keep `vi.spyOn`. MSW does not expose `RequestInit`; it exposes a `Request` object.
+
+> **Note:** MSW is not yet installed in this project. Run `bun add -d msw` before using the patterns below.
+
+### Setup
+
+```typescript
+// src/test/msw/server.ts
+import { setupServer } from 'msw/node'
+import { handlers } from './handlers'
+
+export const server = setupServer(...handlers)
+```
+
+```typescript
+// src/test/setup.ts  (extend the existing file)
+import '@testing-library/jest-dom/vitest'
+import { cleanup } from '@testing-library/react'
+import { afterAll, afterEach, beforeAll } from 'vitest'
+import { server } from './msw/server'
+
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
+
+afterEach(() => {
+  cleanup()
+  server.resetHandlers()
+})
+
+afterAll(() => server.close())
+```
+
+Use `onUnhandledRequest: 'error'` so any unmatched request fails the test immediately rather than silently hanging.
+
+### Before / After comparison
+
+**Before — vi.spyOn(fetch):**
+
+```typescript
+it('should return the list of API keys on success', async () => {
+  // Arrange
+  const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    new Response(JSON.stringify({ data: [makeApiKey()] }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })
+  )
+
+  // Act
+  const result = await listApiKeys()
+
+  // Assert
+  expect(result.data).toHaveLength(1)
+  fetchSpy.mockRestore()
+})
+```
+
+**After — MSW:**
+
+```typescript
+import { http, HttpResponse } from 'msw'
+import { server } from '@/test/msw/server'
+
+it('should return the list of API keys on success', async () => {
+  // Arrange — narrow override for this test
+  server.use(
+    http.get('/api/api-keys', () =>
+      HttpResponse.json({ data: [makeApiKey()] })
+    )
+  )
+
+  // Act
+  const result = await listApiKeys()
+
+  // Assert
+  expect(result.data).toHaveLength(1)
+  // handler is automatically reset in afterEach
+})
+```
+
+The MSW version requires no spy setup, no manual `mockRestore()`, and validates the URL automatically.
+
+### Handler Patterns
+
+Define baseline handlers that match the happy path for every endpoint. Override per test when you need errors or delays.
+
+```typescript
+// src/test/msw/handlers.ts
+import { http, HttpResponse } from 'msw'
+
+export const handlers = [
+  // GET — return list
+  http.get('/api/api-keys', () =>
+    HttpResponse.json({ data: [] })
+  ),
+
+  // POST — create resource
+  http.post('/api/api-keys', async ({ request }) => {
+    const body = await request.json() as { name: string }
+    return HttpResponse.json(
+      { id: 'key-new', name: body.name },
+      { status: 201 }
+    )
+  }),
+
+  // PATCH — partial update
+  http.patch('/api/api-keys/:id', async ({ params, request }) => {
+    const body = await request.json() as Record<string, unknown>
+    return HttpResponse.json({ id: params.id, ...body })
+  }),
+]
+```
+
+**Error simulation:**
+
+```typescript
+server.use(
+  http.get('/api/api-keys', () =>
+    HttpResponse.json({ message: 'Unauthorized' }, { status: 401 })
+  )
+)
+```
+
+**Network error (no response):**
+
+```typescript
+server.use(
+  http.get('/api/api-keys', () => HttpResponse.error())
+)
+```
+
+**Network delay:**
+
+```typescript
+import { delay } from 'msw'
+
+server.use(
+  http.get('/api/api-keys', async () => {
+    await delay(500) // milliseconds
+    return HttpResponse.json({ data: [] })
+  })
+)
+```
 
 ## Test Data Management
 

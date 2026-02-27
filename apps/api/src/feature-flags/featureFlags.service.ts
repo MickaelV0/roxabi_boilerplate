@@ -39,6 +39,11 @@ export class FeatureFlagService {
     return this.db.select().from(featureFlags).orderBy(desc(featureFlags.createdAt))
   }
 
+  async getById(id: string) {
+    const rows = await this.db.select().from(featureFlags).where(eq(featureFlags.id, id)).limit(1)
+    return rows[0]
+  }
+
   async create(data: { name: string; key: string; description?: string }) {
     const rows = await this.db
       .insert(featureFlags)

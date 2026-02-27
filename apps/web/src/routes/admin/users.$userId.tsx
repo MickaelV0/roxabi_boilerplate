@@ -6,6 +6,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  ConfirmDialog,
   Input,
   Label,
   Select,
@@ -20,12 +21,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from '@repo/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import {
   BuildingIcon,
   CalendarIcon,
+  LockIcon,
   MailIcon,
   PencilIcon,
   ShieldIcon,
@@ -36,6 +41,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { BackLink, DetailSkeleton } from '@/components/admin/DetailShared'
 import { UserActions } from '@/components/admin/UserActions'
+import { useSession } from '@/lib/authClient'
 import { formatDate, formatTimestamp } from '@/lib/formatDate'
 import { enforceRoutePermission } from '@/lib/routePermissions'
 import { statusLabel, statusVariant } from '@/lib/userStatus'
@@ -208,21 +214,36 @@ function ActivityCard({ entries }: { entries: AuditLogEntry[] }) {
 
 const ROLE_OPTIONS = [
   { value: 'user', label: 'User' },
-  { value: 'admin', label: 'Admin' },
   { value: 'superadmin', label: 'Super Admin' },
 ]
 
 type EditUserFormProps = {
   user: AdminUserDetail
+  currentUserId: string | undefined
   onSave: () => void
   onCancel: () => void
 }
 
-function EditUserForm({ user, onSave, onCancel }: EditUserFormProps) {
-  const [name, setName] = useState(user.name || '')
-  const [email, setEmail] = useState(user.email)
-  const [role, setRole] = useState(user.role ?? 'user')
+type UseEditUserMutationParams = {
+  user: AdminUserDetail
+  name: string
+  email: string
+  role: string
+  isSelfDemotion: boolean
+  onSave: () => void
+}
+
+function useEditUserMutation({
+  user,
+  name,
+  email,
+  role,
+  isSelfDemotion,
+  onSave,
+}: UseEditUserMutationParams) {
+  const queryClient = useQueryClient()
   const [error, setError] = useState<string | null>(null)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
 
   const mutation = useMutation({
     mutationFn: async (payload: { name: string; email: string; role: string }) => {
@@ -246,83 +267,198 @@ function EditUserForm({ user, onSave, onCancel }: EditUserFormProps) {
     },
     onError: (err) => {
       setError(err instanceof Error ? err.message : 'Failed to update user')
+      // Refetch user detail to update isLastActiveSuperadmin flag
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users', user.id] })
     },
   })
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (isSelfDemotion) {
+      setShowConfirmDialog(true)
+      return
+    }
+
     mutation.mutate({ name, email, role })
   }
 
+  function handleConfirmRoleChange() {
+    setShowConfirmDialog(false)
+    mutation.mutate({ name, email, role })
+  }
+
+  return {
+    mutation,
+    error,
+    showConfirmDialog,
+    setShowConfirmDialog,
+    handleSubmit,
+    handleConfirmRoleChange,
+  }
+}
+
+function RoleField({
+  isRoleLocked,
+  role,
+  currentRole,
+  onValueChange,
+}: {
+  isRoleLocked: boolean
+  role: string
+  currentRole: string | null
+  onValueChange: (value: string) => void
+}) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <PencilIcon className="size-4" />
-          Edit User
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <p className="text-sm text-destructive rounded-md border border-destructive/20 bg-destructive/5 p-3">
-              {error}
-            </p>
-          )}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-name" className="text-sm font-medium">
-                Name
-              </Label>
-              <Input
-                id="edit-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="User name"
+    <div className="space-y-1.5">
+      <Label htmlFor="edit-role" className="text-sm font-medium">
+        Global Role
+      </Label>
+      {isRoleLocked ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <output
+              aria-label="You are the last active superadmin and cannot change your role."
+              className="flex h-9 w-full items-center gap-2 rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground cursor-not-allowed"
+            >
+              <LockIcon className="size-3.5" />
+              <span className="capitalize">{currentRole}</span>
+            </output>
+          </TooltipTrigger>
+          <TooltipContent>
+            You are the last active superadmin and cannot change your role.
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        <Select value={role} onValueChange={onValueChange}>
+          <SelectTrigger id="edit-role" className="w-full">
+            <SelectValue placeholder="Select role" />
+          </SelectTrigger>
+          <SelectContent>
+            {ROLE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+    </div>
+  )
+}
+
+function buildConfirmDescription(role: string, orgOwnerNames: string[]) {
+  const targetLabel = ROLE_OPTIONS.find((o) => o.value === role)?.label ?? role
+  return (
+    <>
+      <p>
+        You are about to change your role from Super Admin to {targetLabel}. You will lose access to
+        the admin panel and will be logged out on all devices. Another superadmin will need to
+        restore your access.
+      </p>
+      {orgOwnerNames.length > 0 && (
+        <p className="mt-2">
+          Note: You are still an owner in {orgOwnerNames.join(', ')}. Your organization ownership is
+          not affected, but you won&apos;t be able to manage these organizations from the admin
+          panel.
+        </p>
+      )}
+    </>
+  )
+}
+
+function EditUserForm({ user, currentUserId, onSave, onCancel }: EditUserFormProps) {
+  const [name, setName] = useState(user.name || '')
+  const [email, setEmail] = useState(user.email)
+  const [role, setRole] = useState(user.role ?? 'user')
+
+  const isSelf = currentUserId === user.id
+  const isSelfSuperadmin = isSelf && user.role === 'superadmin'
+  const isRoleLocked = isSelfSuperadmin && user.isLastActiveSuperadmin
+  const isSelfDemotion = isSelfSuperadmin && role !== 'superadmin'
+
+  const {
+    mutation,
+    error,
+    showConfirmDialog,
+    setShowConfirmDialog,
+    handleSubmit,
+    handleConfirmRoleChange,
+  } = useEditUserMutation({ user, name, email, role, isSelfDemotion, onSave })
+
+  const ownerOrgNames = user.organizations.filter((o) => o.role === 'owner').map((o) => o.name)
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <PencilIcon className="size-4" />
+            Edit User
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <p className="text-sm text-destructive rounded-md border border-destructive/20 bg-destructive/5 p-3">
+                {error}
+              </p>
+            )}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-name" className="text-sm font-medium">
+                  Name
+                </Label>
+                <Input
+                  id="edit-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="User name"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-email" className="text-sm font-medium">
+                  Email
+                </Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="user@example.com"
+                />
+              </div>
+              <RoleField
+                isRoleLocked={isRoleLocked}
+                role={role}
+                currentRole={user.role}
+                onValueChange={setRole}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-email" className="text-sm font-medium">
-                Email
-              </Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="user@example.com"
-              />
+            <div className="flex gap-2">
+              <Button type="submit" size="sm" loading={mutation.isPending}>
+                Save Changes
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+                Cancel
+              </Button>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-role" className="text-sm font-medium">
-                Global Role
-              </Label>
-              <Select value={role} onValueChange={setRole}>
-                <SelectTrigger id="edit-role" className="w-full">
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button type="submit" size="sm" loading={mutation.isPending}>
-              Save Changes
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+          </form>
+        </CardContent>
+      </Card>
+
+      <ConfirmDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Change Your Role"
+        description={buildConfirmDescription(role, ownerOrgNames)}
+        variant="warning"
+        confirmText="Change Role"
+        onConfirm={handleConfirmRoleChange}
+        loading={mutation.isPending}
+      />
+    </>
   )
 }
 
@@ -378,6 +514,7 @@ function UserDetailHeader({
 function AdminUserDetailPage() {
   const { userId } = Route.useParams()
   const queryClient = useQueryClient()
+  const { data: session } = useSession()
   const [isEditing, setIsEditing] = useState(false)
 
   const { data, isLoading, error } = useQuery<AdminUserDetail>({
@@ -433,7 +570,12 @@ function AdminUserDetailPage() {
         onActionComplete={handleActionComplete}
       />
       {isEditing && (
-        <EditUserForm user={data} onSave={handleEditSave} onCancel={() => setIsEditing(false)} />
+        <EditUserForm
+          user={data}
+          currentUserId={session?.user?.id}
+          onSave={handleEditSave}
+          onCancel={() => setIsEditing(false)}
+        />
       )}
       <ProfileCard data={data} />
       <MembershipsCard organizations={data.organizations} />

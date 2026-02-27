@@ -41,6 +41,7 @@ export type AuditAction =
   | 'org.parent_changed'
   | 'settings.updated'
   | 'flag.created'
+  | 'flag.updated'
   | 'flag.toggled'
   | 'flag.deleted'
   | 'impersonation.started'

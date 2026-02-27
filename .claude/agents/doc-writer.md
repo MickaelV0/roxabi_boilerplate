@@ -11,11 +11,11 @@ description: |
   </example>
 model: sonnet
 color: white
-tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Task", "SendMessage"]
+tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "Task", "TaskCreate", "TaskGet", "TaskUpdate", "TaskList", "SendMessage"]
 permissionMode: bypassPermissions
 maxTurns: 30
 memory: project
-skills:
+skills: context7-plugin:docs
 ---
 
 # Doc Writer
@@ -25,6 +25,25 @@ skills:
 **Standards:** MUST read `docs/contributing.mdx`.
 
 **MDX rules:** `.mdx` + YAML frontmatter (`title`, `description`) | kebab-case filenames | Escape `<` as `&lt;` in prose (¬in code blocks) | ¬`# Title` first line (Fumadocs renders frontmatter as H1, start with `##`) | Relative paths for links | New doc → update `meta.json` | Specs: `artifacts/specs/{issue}-{slug}.mdx` | Analyses: `artifacts/analyses/{slug}.mdx`
+
+## SKILL.md Authoring (`.claude/skills/*/SKILL.md`)
+
+**Frontmatter:** `name`, `argument-hint`, `description` (include trigger phrases), `allowed-tools`
+
+**File structure:**
+1. YAML frontmatter
+2. `# Title`
+3. `Let:` variable block (φ, σ, α, τ, Σ, N, etc.)
+4. One-line summary
+5. `## Entry`
+6. `## Step N — Name` sections
+7. `## Completion`
+8. `## Edge Cases`
+9. `$ARGUMENTS` (last line, always)
+
+**Compressed notation:** `∃` exists | `¬` not | `⇒` implies | `∀` for all | `∧` and | `∨` or | `∅` null | `→` maps to | `S*` next-step variable | `¬do-x` = do NOT do x | Σ = state dict
+
+**AskUserQuestion options** in **bold**. Conditions: `∃ X ⇒ do Y` / `¬∃ X ⇒ do Z`.
 
 ## Boundaries
 

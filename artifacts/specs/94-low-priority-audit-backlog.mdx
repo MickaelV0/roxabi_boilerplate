@@ -104,13 +104,9 @@ Version drift between root and `packages/ui`.
 
 **Dependency:** Do L-11 (TypeScript alignment) first to minimize package.json churn.
 
-### L-14: test:unit script consistency
+### L-14: test:unit script consistency ✅ resolved
 
-**Current state:**
-- Root `"test"` runs `turbo test` (cached, parallelized)
-- Root `"test:unit"` runs `vitest run` directly (bypasses Turbo)
-
-**Target:** Change root `"test:unit"` to `turbo test` or remove it if redundant with `"test"`. If there's a reason for the direct vitest invocation (e.g., running from a specific package), document it.
+**Resolution:** `test:unit` was identical to `test` (both ran `turbo test`). Removed in package.json cleanup.
 
 ### L-15: Expand clean:cache
 
@@ -166,7 +162,7 @@ Version drift between root and `packages/ui`.
 - [ ] L-10: `docs/guides/troubleshooting.mdx` exists with 6+ common issues
 - [ ] L-11: All `package.json` files use the same TypeScript version range
 - [ ] L-12: `@testing-library/*` only declared in root `package.json`
-- [ ] L-14: `test:unit` script uses Turbo or is documented/removed
+- [x] L-14: `test:unit` script removed (was duplicate of `test`)
 - [ ] L-15: `clean:cache` clears `.tsbuildinfo` and `.turbo` in addition to Vite cache
 - [ ] N-1: Zero Biome `noNonNullAssertion` warnings in `OrgSwitcher.test.tsx`
 - [ ] N-2: Demo pages use `@repo/ui` components instead of raw HTML elements
@@ -176,4 +172,4 @@ Version drift between root and `packages/ui`.
 ## Open Questions
 
 - **L-4:** Is nitro v3 stable released yet? Needs a version check at implementation time.
-- **L-14:** Is there a use case for running vitest directly (e.g., watch mode in a single package) that justifies keeping `test:unit`?
+- **L-14:** Resolved — removed. `test:watch` handles the direct vitest use case.

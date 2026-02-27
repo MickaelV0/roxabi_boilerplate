@@ -110,9 +110,9 @@ export class TenantInterceptor implements NestInterceptor {
         this.enforceDeletedOrgRestriction(org, request)
       }
 
-      // TODO: re-enable in Phase 3 when parent tenant resolution is designed.
+      // TODO(Phase 3, #389): Parent tenant resolution is formally deferred.
       // parentOrganizationId is present in the schema but the resolution
-      // strategy (which context should inherit which tenant) is not yet defined.
+      // strategy (which context should inherit which tenant) is not yet designed.
 
       return orgId
     } catch (error) {

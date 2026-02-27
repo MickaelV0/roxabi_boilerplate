@@ -111,6 +111,87 @@ mutation($issueId: ID!, $blockingId: ID!) {
   }
 }`
 
+/** Open PRs with CI checks — used by dashboard. */
+export const PRS_QUERY = `
+query($owner: String!, $repo: String!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequests(first: 50, states: OPEN) {
+      nodes {
+        number
+        title
+        headRefName
+        state
+        isDraft
+        url
+        author { login }
+        updatedAt
+        additions
+        deletions
+        reviewDecision
+        labels(first: 10) { nodes { name } }
+        mergeable
+        commits(last: 1) {
+          nodes {
+            commit {
+              statusCheckRollup {
+                contexts(first: 50) {
+                  nodes {
+                    ... on CheckRun {
+                      __typename
+                      name
+                      status
+                      conclusion
+                      detailsUrl
+                    }
+                    ... on StatusContext {
+                      __typename
+                      context
+                      state
+                      targetUrl
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}`
+
+/** CI status for main and staging branches — used by dashboard. */
+export const BRANCH_CI_QUERY = `
+query($owner: String!, $repo: String!) {
+  repository(owner: $owner, name: $repo) {
+    main: ref(qualifiedName: "refs/heads/main") { ...BranchCI }
+    staging: ref(qualifiedName: "refs/heads/staging") { ...BranchCI }
+  }
+}
+fragment BranchCI on Ref {
+  name
+  target {
+    ... on Commit {
+      oid
+      messageHeadline
+      committedDate
+      statusCheckRollup {
+        state
+        contexts(first: 50) {
+          nodes {
+            ... on CheckRun {
+              __typename name status conclusion detailsUrl
+            }
+            ... on StatusContext {
+              __typename context state targetUrl
+            }
+          }
+        }
+      }
+    }
+  }
+}`
+
 export const ADD_SUB_ISSUE_MUTATION = `
 mutation($parentId: ID!, $childId: ID!) {
   addSubIssue(input: { issueId: $parentId, subIssueId: $childId }) {

@@ -29,7 +29,7 @@ Ensure every environment variable is validated, documented, and synchronized acr
 
 | Actor | Interaction |
 |-------|-------------|
-| **Developer** | Gets clear startup errors when env vars are missing. Can reference a single doc page for all vars. `bun run check:env` catches drift locally. |
+| **Developer** | Gets clear startup errors when env vars are missing. Can reference a single doc page for all vars. `bun run env:check` catches drift locally. |
 | **CI/CD** | Blocks merges when `.env.example` drifts from Zod schemas. Cleans up Neon branches automatically. |
 | **DevOps** | Leaner `passThroughEnv`, consistent env file resolution, `VERCEL_ENV` available for preview-specific config. |
 | **Security** | Preview deploys reject insecure default secrets. No silent fallbacks to localhost in production. |
@@ -311,7 +311,7 @@ import { loadEnv } from 'vite'
 1. Create a Bun script that imports schema shapes and compares against `.env.example`.
 2. Maintain a tooling-only allowlist for vars not in any Zod schema.
 3. Parse both uncommented and commented key-value lines from `.env.example`.
-4. Add to the `lint` CI job and as a local `bun run check:env` command.
+4. Add to the `lint` CI job and as a local `bun run env:check` command.
 
 **Important:** The new schema files (`env.server.ts`, `env.client.ts`) and the CI step must ship in the same PR. The CI step will break if added before the schema files exist.
 
@@ -390,7 +390,7 @@ If tree-shaking is insufficient, fall back to extracting schemas into a separate
 |------|--------|---------|
 | `scripts/check-env-sync.ts` | Create | Env sync check script |
 | `package.json` | Modify | Add `"check:env": "bun run scripts/check-env-sync.ts"` to scripts |
-| `.github/workflows/ci.yml` | Modify | Add `bun run check:env` step to the `lint` job (after install, alongside Biome lint) |
+| `.github/workflows/ci.yml` | Modify | Add `bun run env:check` step to the `lint` job (after install, alongside Biome lint) |
 
 **Test plan:**
 
@@ -538,7 +538,7 @@ The reference table should include all vars from both API and web Zod schemas pl
 - [ ] Web server starts in dev without explicit `API_URL` (uses default) (#150)
 - [ ] Web build fails if client env vars are invalid (#150)
 - [ ] All raw `process.env`/`import.meta.env` accesses replaced with typed imports (#150)
-- [ ] `bun run check:env` catches schema/`.env.example` drift (#152)
+- [ ] `bun run env:check` catches schema/`.env.example` drift (#152)
 - [ ] Tooling-only vars do not trigger warnings (#152)
 - [ ] CI lint job runs env sync check (#152)
 - [ ] Neon branches auto-deleted on PR close (#153)

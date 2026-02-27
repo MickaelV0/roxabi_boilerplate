@@ -3,6 +3,7 @@ import type { AuditService } from '../audit/audit.service.js'
 import { createChainMock } from './__test-utils__/createChainMock.js'
 import { AdminUsersService } from './adminUsers.service.js'
 import { EmailConflictException } from './exceptions/emailConflict.exception.js'
+import { LastSuperadminException } from './exceptions/lastSuperadmin.exception.js'
 import { SuperadminProtectionException } from './exceptions/superadminProtection.exception.js'
 import { AdminUserNotFoundException } from './exceptions/userNotFound.exception.js'
 
@@ -16,7 +17,30 @@ function createMockDb() {
     insert: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    transaction: vi.fn(),
   }
+}
+
+/**
+ * Helper to mock db.transaction() -- executes the callback with a tx mock
+ * that has its own select/update/delete chain mocks.
+ */
+function mockTransaction(db: ReturnType<typeof createMockDb>) {
+  const txSelect = vi.fn()
+  const txUpdate = vi.fn()
+  const txDelete = vi.fn()
+  const txExecute = vi.fn().mockResolvedValue(undefined)
+  const tx = {
+    select: txSelect,
+    insert: vi.fn(),
+    update: txUpdate,
+    delete: txDelete,
+    execute: txExecute,
+  }
+  db.transaction.mockImplementationOnce(async (fn: (tx: Record<string, unknown>) => unknown) =>
+    fn(tx)
+  )
+  return tx
 }
 
 function createMockAuditService(): AuditService {
@@ -415,6 +439,52 @@ describe('AdminUsersService', () => {
       // Assert
       expect(result.organizations).toEqual([])
     })
+
+    it('should return isLastActiveSuperadmin=true when user is the only active superadmin', async () => {
+      // Arrange — user is a superadmin
+      const superadminUser = { ...baseUser, role: 'superadmin' }
+      db.select
+        .mockReturnValueOnce(createChainMock([superadminUser])) // user profile
+        .mockReturnValueOnce(createChainMock([])) // memberships
+        .mockReturnValueOnce(createChainMock([])) // audit entries
+        .mockReturnValueOnce(createChainMock([{ count: 0 }])) // count of other active superadmins
+
+      // Act
+      const result = await service.getUserDetail('user-1')
+
+      // Assert
+      expect(result.isLastActiveSuperadmin).toBe(true)
+    })
+
+    it('should return isLastActiveSuperadmin=false when other active superadmins exist', async () => {
+      // Arrange
+      const superadminUser = { ...baseUser, role: 'superadmin' }
+      db.select
+        .mockReturnValueOnce(createChainMock([superadminUser])) // user profile
+        .mockReturnValueOnce(createChainMock([])) // memberships
+        .mockReturnValueOnce(createChainMock([])) // audit entries
+        .mockReturnValueOnce(createChainMock([{ count: 2 }])) // other active superadmins
+
+      // Act
+      const result = await service.getUserDetail('user-1')
+
+      // Assert
+      expect(result.isLastActiveSuperadmin).toBe(false)
+    })
+
+    it('should return isLastActiveSuperadmin=false for non-superadmin users', async () => {
+      // Arrange — user is a regular user, no superadmin count query needed
+      db.select
+        .mockReturnValueOnce(createChainMock([baseUser])) // user profile (role: 'user')
+        .mockReturnValueOnce(createChainMock([])) // memberships
+        .mockReturnValueOnce(createChainMock([])) // audit entries
+
+      // Act
+      const result = await service.getUserDetail('user-1')
+
+      // Assert
+      expect(result.isLastActiveSuperadmin).toBe(false)
+    })
   })
 
   // -----------------------------------------------------------------------
@@ -567,6 +637,122 @@ describe('AdminUsersService', () => {
         expect.objectContaining({
           action: 'user.updated',
         })
+      )
+    })
+
+    it('should allow self-role-change when other active superadmins exist', async () => {
+      // Arrange — self-role-change uses a transaction
+      const beforeUser = { ...baseUser, id: 'actor-super', role: 'superadmin' }
+      const updatedUser = { ...baseUser, id: 'actor-super', role: 'user' }
+
+      const tx = mockTransaction(db)
+      // Count query: 1 other active superadmin
+      tx.select.mockReturnValueOnce(createChainMock([{ count: 1 }]))
+      // Fetch before-user in tx
+      tx.select.mockReturnValueOnce(createChainMock([beforeUser]))
+      // Update returns updated user
+      tx.update.mockReturnValueOnce(createChainMock([updatedUser]))
+      // Delete sessions
+      tx.delete.mockReturnValueOnce(createChainMock([]))
+
+      // Act
+      const result = await service.updateUser('actor-super', { role: 'user' }, 'actor-super')
+
+      // Assert
+      expect(result).toBeDefined()
+      expect(db.transaction).toHaveBeenCalled()
+      expect(tx.delete).toHaveBeenCalled()
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'user.role_changed',
+          actorId: 'actor-super',
+          resourceId: 'actor-super',
+        })
+      )
+    })
+
+    it('should throw LastSuperadminException when last active superadmin self-demotes', async () => {
+      // Arrange — self-role-change, no other active superadmins
+      const tx = mockTransaction(db)
+      // Count query: 0 other active superadmins
+      tx.select.mockReturnValueOnce(createChainMock([{ count: 0 }]))
+
+      // Act & Assert
+      await expect(
+        service.updateUser('actor-super', { role: 'user' }, 'actor-super')
+      ).rejects.toThrow(LastSuperadminException)
+    })
+
+    it('should invalidate all sessions after successful self-demotion', async () => {
+      // Arrange
+      const beforeUser = { ...baseUser, id: 'actor-super', role: 'superadmin' }
+      const updatedUser = { ...baseUser, id: 'actor-super', role: 'user' }
+
+      const tx = mockTransaction(db)
+      tx.select.mockReturnValueOnce(createChainMock([{ count: 1 }]))
+      tx.select.mockReturnValueOnce(createChainMock([beforeUser]))
+      tx.update.mockReturnValueOnce(createChainMock([updatedUser]))
+      tx.delete.mockReturnValueOnce(createChainMock([]))
+
+      // Act
+      await service.updateUser('actor-super', { role: 'user' }, 'actor-super')
+
+      // Assert — sessions deleted via tx.delete
+      expect(tx.delete).toHaveBeenCalled()
+    })
+
+    it('should allow name/email self-update without confirmation for superadmin', async () => {
+      // Arrange — no role change, just name update on own account
+      const beforeUser = { ...baseUser, id: 'actor-super', role: 'superadmin' }
+      const updatedUser = { ...beforeUser, name: 'New Name' }
+
+      db.select.mockReturnValueOnce(createChainMock([beforeUser]))
+      db.update.mockReturnValueOnce(createChainMock([updatedUser]))
+
+      // Act
+      const result = await service.updateUser('actor-super', { name: 'New Name' }, 'actor-super')
+
+      // Assert — no transaction needed, direct update
+      expect(result).toBeDefined()
+      expect(db.transaction).not.toHaveBeenCalled()
+    })
+
+    it('should use serializable transaction for self-role-change', async () => {
+      // Arrange
+      const beforeUser = { ...baseUser, id: 'actor-super', role: 'superadmin' }
+      const updatedUser = { ...baseUser, id: 'actor-super', role: 'user' }
+
+      const tx = mockTransaction(db)
+      tx.select.mockReturnValueOnce(createChainMock([{ count: 1 }]))
+      tx.select.mockReturnValueOnce(createChainMock([beforeUser]))
+      tx.update.mockReturnValueOnce(createChainMock([updatedUser]))
+      tx.delete.mockReturnValueOnce(createChainMock([]))
+
+      // Act
+      await service.updateUser('actor-super', { role: 'user' }, 'actor-super')
+
+      // Assert — transaction started with serializable isolation level
+      // (passed as second argument to db.transaction, not via tx.execute)
+      expect(db.transaction).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({ isolationLevel: 'serializable' })
+      )
+    })
+
+    it('should throw SuperadminProtectionException when non-superadmin attempts self-role-change', async () => {
+      // Arrange — user with role 'user' tries to self-promote via self-role-change path
+      // (blocked at controller by @Roles('superadmin'), defense-in-depth at service layer)
+      const regularUser = { ...baseUser, id: 'user-1', role: 'user' }
+
+      const tx = mockTransaction(db)
+      // isLastActiveSuperadmin: count=1 so it passes through to the role guard
+      tx.select.mockReturnValueOnce(createChainMock([{ count: 1 }]))
+      // Fetch before-user in tx — returns non-superadmin user
+      tx.select.mockReturnValueOnce(createChainMock([regularUser]))
+
+      // Act & Assert
+      await expect(service.updateUser('user-1', { role: 'superadmin' }, 'user-1')).rejects.toThrow(
+        SuperadminProtectionException
       )
     })
   })

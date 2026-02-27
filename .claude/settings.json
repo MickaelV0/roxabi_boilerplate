@@ -38,7 +38,13 @@
     "context7-plugin@context7-marketplace": true,
     "plugin-dev@claude-plugins-official": true,
     "security-guidance@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": true
+    "claude-md-management@claude-plugins-official": true,
+    "vercel@claude-plugins-official": true,
+    "sales@knowledge-work-plugins": true,
+    "design@knowledge-work-plugins": true,
+    "legal@knowledge-work-plugins": true,
+    "marketing@knowledge-work-plugins": true,
+    "product-management@knowledge-work-plugins": true
   },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {

@@ -155,7 +155,7 @@ bun install
 cp .env.example .env
 
 # Edit with your values
-# DATABASE_URL, API keys, etc.
+# DATABASE_URL, DATABASE_APP_URL, API keys, etc.
 ```
 
 ## 7. Start the Database
@@ -207,7 +207,7 @@ bun --filter @repo/api dev
 | `bun format` | Format with Biome |
 | `bun typecheck` | TypeScript type checking |
 | `bun run test` | Run all tests (via turbo + vitest) |
-| `bun test:coverage` | Tests with coverage |
+| `bun run test:coverage` | Tests with coverage |
 | `bun docs` | Start documentation server (runs apps/web) |
 | `bun db:up` | Start PostgreSQL (Docker Compose) |
 | `bun db:down` | Stop PostgreSQL (preserves data) |
@@ -218,7 +218,7 @@ bun --filter @repo/api dev
 
 ## Next Steps
 
-1. Read the [Vision](./vision) to understand the project
+1. Read the [Vision](./product/vision) to understand the project
 2. Check the [Architecture](./architecture)
 3. Check the [open issues](https://github.com/MickaelV0/roxabi_boilerplate/issues)
 4. Set up [Deployment](./guides/deployment) when ready for production

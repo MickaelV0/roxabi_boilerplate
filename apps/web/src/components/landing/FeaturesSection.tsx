@@ -71,7 +71,7 @@ export function FeaturesSection() {
 
             if (feature.href) {
               return (
-                <Link key={feature.title} to={feature.href}>
+                <Link key={feature.title} to={feature.href} className="h-full">
                   {card}
                 </Link>
               )

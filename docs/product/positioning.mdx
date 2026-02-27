@@ -1,0 +1,177 @@
+---
+title: Positioning & Messaging
+description: Roxabi's market position, messaging pillars, brand voice, and copy guidelines
+---
+
+## Core Position
+
+> *"The boilerplate Claude Code was built to work on."*
+
+Roxabi is **not** another SaaS boilerplate. It is a new category: the first **AI-native development environment for SaaS** — where the AI development team ships with the code, pre-configured and production-ready.
+
+Every competitor either ignores AI tooling or ships a CLAUDE.md file and calls it "AI-optimized." Roxabi ships the team.
+
+---
+
+## One-Line Pitch
+
+> *"Clone → Claude → ship. The only boilerplate where your AI team is already hired."*
+
+---
+
+## What to Stop Saying
+
+| Avoid | Why |
+|-------|-----|
+| "AI-native" | Everyone claims this — noise |
+| "Ship faster" | ShipFast owns this; fighting on their terrain is losing |
+| Feature lists as headlines | Your persona doesn't buy on features |
+| "Powerful", "seamless", "robust", "game-changing" | Marketing-speak destroys developer trust |
+| "Save X hours" without specifics | Vague claims don't land — use real numbers |
+
+---
+
+## The 5 Messaging Pillars
+
+### Pillar 1 — Time is the only thing you can't buy back
+
+**Core message:** The week of infrastructure hell is a tax on every new project, forever.
+
+> You've done this before. Auth, multi-tenancy, RBAC, CI/CD. You did it at your last job. You did it on your last side project. You'll do it again on the next one — unless you stop.
+>
+> Roxabi is what you'd build for yourself on week 7, if you had a week 7.
+
+**Proof point:** `cp .env.example .env && bun install && bun run db:up && bun run dev` — running in under 5 minutes.
+
+---
+
+### Pillar 2 — AI that works on day one, not after weeks of context-building
+
+**Core message:** Fresh Claude projects hallucinate because Claude has no context. Roxabi ships the context system already built.
+
+> The dirty secret of using Claude Code on a fresh project: it's bad. It doesn't know your patterns, your conventions, your architecture decisions. It guesses. It produces code that looks fine and breaks things.
+>
+> Roxabi ships with a `CLAUDE.md`, 10 specialized agents, 20 skills, and a structured `/dev` workflow that gives Claude everything it needs to work correctly from the first command.
+
+**The sharpest angle:**
+
+> *"Claude generates bad code on empty projects. Roxabi is the project that makes Claude generate good code."*
+
+**Proof point:** 10 pre-configured agents — each with a defined role, domain boundary, and memory. They know the file structure. They don't guess.
+
+---
+
+### Pillar 3 — Code you own, not a framework you fight
+
+**Core message:** No black-box abstractions. Standard TypeScript you can read, modify, and eject from.
+
+> Other boilerplates wrap everything in their own primitives. A year in, you're not building on NestJS anymore — you're building on their NestJS.
+>
+> Roxabi is a starting point, not a runtime dependency. The auth is Better Auth. The ORM is Drizzle. The DB is PostgreSQL. None of it requires our blessing to modify.
+
+**Proof point:** Real module paths you can open: `apps/api/src/auth/`, `apps/api/src/rbac/`, `apps/api/src/tenant/`. No proprietary SDK. No SaaS dependency in your critical path.
+
+---
+
+### Pillar 4 — Multi-tenancy that's baked in, not bolted on
+
+**Core message:** Multi-tenancy cannot be added later without a complete database redesign. In Roxabi, it's row one.
+
+> Roxabi uses PostgreSQL Row-Level Security — every query is automatically scoped to the current tenant via `tenant_id`. No "did I forget a WHERE clause" bugs in production. No shared data leaks between customers.
+
+**Proof point:** `apps/api/src/tenant/tenant.interceptor.ts` sets the RLS context on every request. Organization hierarchy (meta org → org → child org → users), RBAC, and invite flows are all included.
+
+---
+
+### Pillar 5 — Actively maintained — the creator builds on this
+
+**Core message:** The #1 fear for boilerplate buyers is abandonment. Roxabi is not a template side project — it is the creator's production infrastructure.
+
+> The biggest risk with any boilerplate is that the author ships it, gets distracted, and stops updating it. Roxabi is different because the creator builds their own SaaS products on it. When a dependency breaks, their products break.
+
+**Proof point:** Public changelog with real dates. Active commit history. The same agents that built the boilerplate maintain it.
+
+---
+
+## 3 Positioning Angles
+
+Use all three — in the right context.
+
+### Angle A — The AI Team (Primary, for ads/hero/social)
+*"The only boilerplate where your AI team is already hired."*
+- Targets: Claude Code users, developers already in the AI-coding workflow
+- Hook: The agent team solves the #1 AI coding pain (context collapse)
+- Use: Hero, Twitter/X, Show HN
+
+### Angle B — The Stack (for SEO content and migration audiences)
+*"Built for 2026, not 2020. TanStack Start + NestJS + Bun — the stack Next.js developers move to."*
+- Targets: Developers frustrated with Next.js complexity, RSC, Vercel lock-in
+- Hook: Real migration momentum (Inngest: 83% faster local builds after migrating)
+- Use: Blog posts, comparison pages, Dev.to articles
+
+### Angle C — The B2B Depth (for features section and technical buyers)
+*"The boilerplate that takes multi-tenant B2B seriously."*
+- Targets: Senior devs / ex-CTOs who know what multi-tenancy actually requires
+- Hook: PostgreSQL RLS is database-enforced; no application-layer leaks
+- Use: Feature section, competitive comparison tables, FAQ
+
+---
+
+## Brand Voice
+
+**Tone:** A senior developer who has been burned before, writing to another senior developer who has been burned before.
+
+**Rules:**
+- Write in first or second person. Never third.
+- Use real command names: `bun run dev`, `/dev #1`, `bun run db:up`
+- Use real file paths and real numbers. Specificity = credibility.
+- Mix short punches with longer explanations. No paragraph over 4 lines.
+- When in doubt, cut the adjective and keep the noun.
+- Never use: "seamless", "powerful", "robust", "game-changing", "innovative", "leverage", "unlock", "empower"
+
+**Anti-patterns to avoid:**
+- Heavy rounded corners + neon = instant trust loss for the target persona
+- AI-generated-looking copy (ironic for an AI product)
+- Generic screenshots — show actual terminal output, real agent names, real file paths
+- Enthusiasm-based testimonials ("Great product, 10/10!")
+
+---
+
+## Target Persona Summary
+
+**"The Impatient Architect"** — Senior dev / ex-CTO (5–10 yrs exp), building their first or second SaaS on the side, or recently quit to go indie. Building B2B SaaS. Already uses Claude Code daily.
+
+**Mindset:** *"I know how to build this. I just don't want to spend 6 weeks building what doesn't matter. I want to prove the idea works first."*
+
+**Buys on:** Trust + time savings realized. NOT feature lists.
+
+**Decision triggers:**
+1. Recognizes the exact stack (bounces immediately if Next.js and they want TanStack)
+2. Sees recent commits and a real changelog (active ≠ abandoned)
+3. A specific feature clicks ("this has RLS multi-tenancy — the others don't")
+4. Watches a real demo, unedited
+
+Full persona details → [Persona & GTM Brief](./persona-gtm)
+
+---
+
+## SEO Keywords
+
+Roxabi can own underserved, high-intent terms where competition is near-zero:
+
+| Keyword | Competition | Priority |
+|---------|------------|----------|
+| `tanstack start saas boilerplate` | Very Low | 1 |
+| `claude code saas boilerplate` | Zero (new category) | 1 |
+| `ai agent boilerplate` | Zero | 1 |
+| `nestjs turborepo bun boilerplate` | Zero | 1 |
+| `bun saas boilerplate` | Very Low | 2 |
+| `nestjs saas boilerplate` | Medium | 2 |
+| `saas boilerplate typescript` | Medium | 3 |
+| `saas boilerplate` | Very High | Long-term |
+
+**Content flywheel:**
+1. Migration guides: *"Migrating from Next.js to TanStack Start"* — captures frustrated Next.js devs mid-research
+2. Comparison posts: *"ShipFast vs Roxabi"*, *"Makerkit vs Roxabi"* — captures branded searches
+3. Architecture posts: *"How we implemented PostgreSQL RLS for multi-tenant SaaS"* — link bait + SEO
+4. AI angle: *"How to use Claude Code effectively on a SaaS project"* — owns the pain point

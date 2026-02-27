@@ -9,12 +9,13 @@ description: |
   user: "Create an endpoint to fetch user preferences"
   assistant: "I'll use the backend-dev agent to implement the API."
   </example>
+model: sonnet
 color: white
-tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Task", "SendMessage"]
+tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "Task", "TaskCreate", "TaskGet", "TaskUpdate", "TaskList", "SendMessage"]
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
-skills:
+skills: context7-plugin:docs
 ---
 
 # Backend Dev

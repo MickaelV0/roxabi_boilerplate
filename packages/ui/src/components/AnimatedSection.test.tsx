@@ -75,7 +75,7 @@ describe('AnimatedSection', () => {
     // Assert -- CSS classes are the only mechanism to verify animation config
     // since AnimatedSection does not expose data attributes for transition state
     expect(container.firstChild).toHaveClass('transition-[opacity,transform]')
-    expect(container.firstChild).toHaveClass('duration-700')
+    expect(container.firstChild).toHaveClass('duration-400')
     expect(container.firstChild).toHaveClass('ease-out')
   })
 
@@ -94,7 +94,7 @@ describe('AnimatedSection', () => {
     const wrapper = screen.getByText('Static content').parentElement
     expect(wrapper).toBeInTheDocument()
     expect(wrapper).not.toHaveClass('transition-[opacity,transform]')
-    expect(wrapper).not.toHaveClass('duration-700')
+    expect(wrapper).not.toHaveClass('duration-400')
     expect(wrapper).not.toHaveClass('opacity-0')
     expect(wrapper).not.toHaveClass('translate-y-8')
   })

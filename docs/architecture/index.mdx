@@ -28,7 +28,10 @@ roxabi_boilerplate/
 ├── packages/
 │   ├── ui/                   # Shared UI components (@repo/ui)
 │   ├── config/               # Shared configurations (@repo/config)
-│   └── types/                # Shared TypeScript types (@repo/types)
+│   ├── types/                # Shared TypeScript types (@repo/types)
+│   ├── email/                # Email templates
+│   ├── vitest-config/        # Shared Vitest configuration
+│   └── playwright-config/    # Shared Playwright configuration
 ├── docs/                     # Documentation content (MDX files)
 │   ├── index.mdx             # Docs home page
 │   ├── meta.json             # Navigation order
@@ -36,12 +39,14 @@ roxabi_boilerplate/
 │   ├── processes/            # Development processes
 │   └── standards/            # Coding standards
 ├── artifacts/                # Dev process artifacts (not served by Fumadocs)
+│   ├── frames/               # Problem framing documents
 │   ├── analyses/             # Pre-spec analyses & research
 │   ├── specs/                # Feature specifications
 │   └── plans/                # Scaffold execution plans
 └── .claude/                  # Claude Code configuration
     ├── settings.json         # Project settings and hooks
     ├── agents/               # Agent team definitions
+    ├── agent-memory/         # Persistent agent memory across sessions (created at runtime — not committed)
     ├── hooks/                # Git hook scripts
     └── skills/               # Custom skills
 ```
@@ -66,7 +71,7 @@ Backend API built with NestJS and Fastify.
 - Modular architecture
 - OpenAPI documentation
 
-See [Auth & Security Architecture](./auth-security) for authentication, guards, CORS, and security headers. See [Multi-Tenant Architecture](./multi-tenant) for RLS and tenant isolation. See [RBAC Architecture](./rbac) for the permission model and role hierarchy. See [Database Architecture](./database) for Drizzle ORM setup, schema conventions, and migration workflow. See [Ubiquitous Language](./ubiquitous-language) for a glossary of domain terms, common confusions, and entity lifecycle diagrams.
+See [Auth & Security Architecture](./auth-security) for authentication, guards, CORS, and security headers. See [Multi-Tenant Architecture](./multi-tenant) for RLS and tenant isolation. See [RBAC Architecture](./rbac) for the permission model and role hierarchy. See [Database Architecture](./database) for Drizzle ORM setup, schema conventions, and migration workflow. See [Ubiquitous Language](./ubiquitous-language) for a glossary of domain terms, common confusions, and entity lifecycle diagrams. See [Backend Architecture Vision](./backend-ddd-hexagonal) for DDD and Hexagonal adoption criteria and migration strategies.
 
 ### CLI (`apps/cli`) - Planned
 

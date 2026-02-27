@@ -106,10 +106,10 @@ jobs:
         run: bun lint
 
       - name: Check env sync
-        run: bun run check:env
+        run: bun run env:check
 
       - name: Validate translations
-        run: bun run i18n:validate
+        run: bun run i18n:check
 
       - name: Check dependency licenses
         run: bun run license:check
@@ -320,6 +320,23 @@ jobs:
         contains(github.event.pull_request.labels.*.name, 'e2e') ||
         needs.detect-changes.outputs.e2e == 'true'
       )
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      BETTER_AUTH_SECRET: test-secret-minimum-32-characters-long
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -405,7 +422,27 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     needs: [build]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
+    if: |
+      !cancelled() &&
+      needs.build.result == 'success' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      BETTER_AUTH_SECRET: test-secret-minimum-32-characters-long
     strategy:
       fail-fast: false
       matrix:

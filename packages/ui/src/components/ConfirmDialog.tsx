@@ -21,7 +21,7 @@ type ConfirmDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
-  description: string
+  description: React.ReactNode
   variant?: keyof typeof variantStyles
   /** Label for the confirm action button. Defaults to "Confirm" (English).
    *  Consumers should pass localized text for i18n support. */

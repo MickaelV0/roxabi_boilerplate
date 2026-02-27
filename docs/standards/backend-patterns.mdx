@@ -35,6 +35,8 @@ feature/
 └── feature.test.ts        # Colocated tests
 ```
 
+> For guidance on adopting DDD and Hexagonal patterns as domain complexity grows, see [Backend Architecture Vision](../architecture/backend-ddd-hexagonal).
+
 ### Rules
 
 - **One module per domain feature.** Do not combine unrelated concerns into a single module.
@@ -114,10 +116,11 @@ The `AuthGuard` is registered globally and supports several decorators for acces
 1. `@AllowAnonymous()` &rarr; allow immediately
 2. Validate session &rarr; 401 if missing
 3. `@OptionalAuth()` &rarr; allow if no session
-4. `@Roles()` &rarr; check global user role
-5. `@RequireOrg()` or `@Permissions()` &rarr; require active organization
-6. Super-admin (`user.role === 'superadmin'`) &rarr; bypass permission checks
-7. `@Permissions()` &rarr; resolve member's role &rarr; load permissions &rarr; check &rarr; 403 if missing
+4. Soft-delete check &rarr; 403 if user is soft-deleted (unless route is in `SOFT_DELETED_ALLOWED_ROUTES` allowlist)
+5. `@Roles()` &rarr; check global user role
+6. `@RequireOrg()` or `@Permissions()` &rarr; require active organization
+7. Super-admin (`user.role === 'superadmin'`) &rarr; bypass permission checks
+8. `@Permissions()` &rarr; resolve member's role &rarr; load permissions &rarr; check &rarr; 403 if missing
 
 **Usage:**
 
@@ -332,7 +335,173 @@ Extend `ClsModule` setup to store additional request context (tenant ID, user co
 
 ---
 
-## 1.6 AI Quick Reference
+## 1.6 SOLID Principles — Backend
+
+SOLID in NestJS is enforced through the module and dependency-injection system. Most principles map directly to NestJS concepts: `@Injectable()` scopes, Symbol injection tokens, `@Catch()` decorators, and `forwardRef` cycles. Read [section 1.4 Provider & Module Patterns](#14-provider--module-patterns) first — the DI mechanics described there are the concrete foundation for the patterns below.
+
+### 1.6.1 SRP — Single Responsibility
+
+Each service owns one domain. `AuthService` (79 lines) handles only authentication flows; `PermissionService` (63 lines) handles only RBAC resolution. Neither leaks into the other's domain — `AuthService` calls `PermissionService` for permission data rather than duplicating the logic.
+
+```typescript
+// apps/api/src/auth/auth.service.ts — authentication domain only
+@Injectable()
+export class AuthService {
+  async handler(request: Request): Promise<Response> {
+    return this.auth.handler(request) // delegates to BetterAuth
+  }
+
+  async getSession(request: FastifyRequest) {
+    const session = await this.auth.api.getSession({ headers })
+    // delegates permission resolution to PermissionService, not reimplemented here
+    permissions = await this.permissionService.getPermissions(session.user.id, orgId)
+    return { ...session, permissions }
+  }
+}
+
+// apps/api/src/rbac/permission.service.ts — RBAC domain only
+@Injectable()
+export class PermissionService {
+  async getPermissions(userId: string, organizationId: string): Promise<string[]> { ... }
+  async hasPermission(userId: string, organizationId: string, permission: string): Promise<boolean> { ... }
+  async getAllPermissions() { ... }
+}
+```
+
+**Anti-pattern:** god-services that combine user management, authentication, billing, and email in one class. When a service touches more than one domain, split it.
+
+### 1.6.2 OCP — Open/Closed
+
+The `@Catch()` decorator pattern is the canonical OCP example: add a new filter for a new exception type without modifying existing filters. `AuthGuard` reads metadata through `Reflector` — new decorators (`@Roles()`, `@Permissions()`, `@RequireOrg()`) extend guard behavior without modifying `AuthGuard.canActivate()`.
+
+```typescript
+// apps/api/src/auth/auth.guard.ts — extended via Reflector metadata, not modification
+@Injectable()
+export class AuthGuard implements CanActivate {
+  constructor(
+    private readonly authService: AuthService,
+    private readonly reflector: Reflector, // reads decorator metadata
+    @Inject(forwardRef(() => UserService))
+    private readonly userService: UserService,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    // New decorators add behavior without touching this method's core logic
+    const isPublic = this.reflector.getAllAndOverride<boolean>('PUBLIC', [
+      context.getHandler(),
+      context.getClass(),
+    ])
+    if (isPublic) return true
+
+    // Separate private methods handle each concern
+    this.checkRoles(context, session)
+    this.checkOrgRequired(context, session)
+    this.checkPermissions(context, session)
+    return true
+  }
+}
+```
+
+**Gap:** `AllExceptionsFilter` (`apps/api/src/common/filters/allExceptions.filter.ts`) contains `instanceof ThrottlerException` and `instanceof HttpException` checks inside `catch()`. The ideal is separate `@Catch(ThrottlerException)` and `@Catch(HttpException)` filters — the current consolidation is a pragmatic trade-off but violates OCP at scale.
+
+**Anti-pattern:** `instanceof` chains inside a single filter or guard method that grows with each new exception type.
+
+### 1.6.3 LSP — Liskov Substitution
+
+Domain exception classes extend `Error` correctly — they call `super(message)` and pass through constructor arguments, preserving the expected `Error` contract. Composition over inheritance is preferred: filters implement `ExceptionFilter`, guards implement `CanActivate`, interceptors implement `NestInterceptor`. Substituting any compliant implementation works without surprises.
+
+```typescript
+// apps/api/src/auth/exceptions/ pattern — correct Error extension
+export class UserNotFoundException extends Error {
+  constructor(public readonly userId: string) {
+    super(`User ${userId} not found`) // super() called first, message set correctly
+  }
+}
+
+// Correct — implements the NestJS contract, substitutable anywhere an ExceptionFilter is expected
+@Catch(UserNotFoundException)
+export class UserNotFoundFilter implements ExceptionFilter {
+  catch(exception: UserNotFoundException, host: ArgumentsHost) { ... }
+}
+```
+
+**Rule:** Always call `super(message)` in domain exception constructors. Never override `Error.name` without also setting `Object.setPrototypeOf(this, new.target.prototype)` — omitting it breaks `instanceof` checks at runtime.
+
+### 1.6.4 ISP — Interface Segregation
+
+Injection tokens expose focused interfaces. `EMAIL_PROVIDER` defines exactly one method — `send()`. `DRIZZLE` injects the database instance with no extra surface area. Services declare only the methods they actually implement, and controllers call only the service methods they need.
+
+```typescript
+// apps/api/src/auth/email/email.provider.ts — minimal interface
+export const EMAIL_PROVIDER = Symbol('EMAIL_PROVIDER')
+
+export type EmailProvider = {
+  send(params: { to: string; subject: string; html: string; text?: string }): Promise<void>
+}
+
+// apps/api/src/rbac/permission.service.ts — focused service methods
+@Injectable()
+export class PermissionService {
+  async getPermissions(userId: string, organizationId: string): Promise<string[]> { ... }
+  async hasPermission(userId: string, organizationId: string, permission: string): Promise<boolean> { ... }
+  async getAllPermissions() { ... }
+}
+```
+
+**Anti-pattern:** a `UserService` that exposes 20+ methods — auth guards, admin controllers, and profile routes all import it and use different three-method subsets. Split into focused services or use separate injection tokens.
+
+### 1.6.5 DIP — Dependency Inversion
+
+High-level modules depend on abstractions (Symbol tokens and TypeScript types), not concrete implementations. `AuthModule` binds `EMAIL_PROVIDER` to `ResendEmailProvider` at the module level — `AuthService` injects `EmailProvider` and never references `ResendEmailProvider` directly. Use `forwardRef` to resolve circular dependencies between modules without coupling them.
+
+```typescript
+// apps/api/src/auth/auth.module.ts — composition root binds abstractions to implementations
+@Module({
+  imports: [forwardRef(() => RbacModule), forwardRef(() => UserModule)],
+  providers: [
+    AuthService,
+    { provide: EMAIL_PROVIDER, useClass: ResendEmailProvider }, // abstraction → implementation
+    { provide: APP_GUARD, useClass: AuthGuard },
+  ],
+  exports: [AuthService],
+})
+export class AuthModule {}
+
+// apps/api/src/auth/auth.service.ts — depends on the abstraction, not the concrete class
+@Injectable()
+export class AuthService {
+  constructor(
+    @Inject(DRIZZLE) db: DrizzleDB,                         // Symbol token, not DrizzleDB class directly
+    @Inject(EMAIL_PROVIDER) emailProvider: EmailProvider,   // interface, not ResendEmailProvider
+    @Inject(forwardRef(() => PermissionService))
+    private readonly permissionService: PermissionService,
+  ) {}
+}
+```
+
+**Gap:** Services currently use the raw `DrizzleDB` instance for all queries. There is no repository abstraction layer — queries are not behind an interface. This means swapping the ORM requires changes inside service classes, not just at the module binding level. Consider introducing typed repository interfaces if ORM portability becomes a requirement.
+
+See [section 1.4 Provider & Module Patterns](#14-provider--module-patterns) for Symbol token conventions and `useFactory` patterns.
+
+### 1.6.6 SOLID Rules
+
+**Rules:**
+
+- One service per domain. If a service imports from more than two other feature modules, it is doing too much.
+- Add new exception types with new `@Catch(SpecificException)` filters — do not grow `instanceof` chains inside existing filters.
+- Domain exceptions must call `super(message)` and set `Object.setPrototypeOf(this, new.target.prototype)` if `instanceof` checks are needed at runtime.
+- Inject via Symbol tokens (`@Inject(DRIZZLE)`, `@Inject(EMAIL_PROVIDER)`). Never inject concrete classes directly when an abstraction exists.
+- Use `forwardRef(() => Module)` for circular module dependencies. Prefer refactoring to break cycles when possible.
+- Module providers array is the composition root — bind abstractions to implementations there, not inside services.
+
+**Anti-patterns:**
+
+- Services that import `HttpException` or reference HTTP status codes — HTTP knowledge belongs in controllers and filters.
+- Guards or filters with growing `instanceof` chains — each exception type deserves its own filter.
+- String injection tokens — they cause collision and lose TypeScript type inference.
+- Services that construct their own dependencies with `new ConcreteClass()` instead of injecting them.
+
+## 1.7 AI Quick Reference
 
 Compressed imperative rules for AI agent consumption. No examples, no rationale.
 
@@ -351,3 +520,11 @@ Compressed imperative rules for AI agent consumption. No examples, no rationale.
 - Validate all input at controller boundary
 - Always include correlation ID in error logs
 - Never throw raw untyped `Error`
+
+**SOLID:**
+
+- SRP: one service per domain concern -- services under 100 lines, split orchestrators from workers
+- OCP: extend via `@Catch()` decorators and Reflector metadata -- never modify `AuthGuard.canActivate()` for new auth rules
+- LSP: domain exceptions extend `Error` with `Object.setPrototypeOf` -- always preserve `instanceof` chain
+- ISP: lean injection tokens (`DRIZZLE`, `EMAIL_PROVIDER`) -- one method per provider interface
+- DIP: inject `@Inject(TOKEN)` abstractions, not concrete classes -- `forwardRef` for circular deps

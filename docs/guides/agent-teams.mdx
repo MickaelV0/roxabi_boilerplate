@@ -46,8 +46,8 @@ Before spawning agents, check the [Development Process](../processes/dev-process
 | Tier | Criteria | Agent Mode |
 |------|----------|------------|
 | **S** | &lt;=3 files, no arch risk | Single session + optional tester subagent |
-| **F-lite** | Clear scope, documented requirements, single domain | Worktree + agents + /review (skip bootstrap) |
-| **F-full** | New arch concepts, unclear requirements, or >2 domain boundaries | Bootstrap + worktree + agents + /review |
+| **F-lite** | Clear scope, documented requirements, single domain | Worktree + agents + /review (skip analyze) |
+| **F-full** | New arch concepts, unclear requirements, or >2 domain boundaries | Full `/dev` pipeline + worktree + agents + /review |
 
 F-lite vs F-full is **judgment-based**, not file-count-based. Human always validates.
 
@@ -64,24 +64,23 @@ flowchart TD
     S --> SSingle["Single session + optional tester"]
 
     Tier --> FL["Tier F-lite"]
-    FL --> FLScaffold["/scaffold: Task subagents"]
-    FLScaffold --> FLAgents{"Domain?"}
+    FL --> FLDev["/dev: frame → spec → plan → implement"]
+    FLDev --> FLAgents{"Domain?"}
     FLAgents -->|Frontend| FE1["frontend-dev + tester"]
     FLAgents -->|Backend| BE1["backend-dev + tester"]
     FLAgents -->|Full-stack| FS1["FE + BE + tester"]
     FLAgents -->|Security| SEC1["+ security-auditor"]
-    FLScaffold --> FLReview["/review + /1b1 + fixer"]
+    FLDev --> FLReview["/review + /fix"]
 
     Tier --> FF["Tier F-full"]
-    FF --> FFBoot["/bootstrap: expert review"]
-    FF --> FFScaffold["/scaffold: Task subagents"]
-    FFScaffold --> FFAgents{"Domain?"}
+    FF --> FFDev["/dev: frame → analyze → spec → plan → implement"]
+    FFDev --> FFAgents{"Domain?"}
     FFAgents -->|Frontend| FE2["frontend-dev + tester"]
     FFAgents -->|Backend| BE2["backend-dev + tester"]
     FFAgents -->|Full-stack| FS2["FE + BE + tester"]
     FFAgents -->|Large scope| LS["+ architect + doc-writer"]
     FFAgents -->|Security| SEC2["+ security-auditor"]
-    FFScaffold --> FFReview["/review + /1b1 + fixer"]
+    FFDev --> FFReview["/review + /1b1 + fixer"]
 ```
 
 ### 3. Start a session
@@ -169,6 +168,49 @@ Once all tasks are complete, review the deliverables and create the PR.
 
 ---
 
+## Tool Availability Matrix
+
+Reference for what each agent can and cannot do. Use this when deciding which agent to assign a task to or diagnosing unexpected behaviour.
+
+### Core Tools
+
+| Tool | frontend-dev | backend-dev | devops | fixer | tester | doc-writer | architect | product-lead | security-auditor |
+|------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Read | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Write | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ disallowed |
+| Edit | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ disallowed |
+| Glob | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Grep | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Bash | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| WebSearch | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| WebFetch | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Task | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| SendMessage | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| TeamCreate | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ |
+| TeamDelete | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ |
+| TaskCreate / TaskGet / TaskUpdate / TaskList | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| AskUserQuestion | ❌ by convention | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+> **Note:** `AskUserQuestion` is a built-in tool available to all agents, but agents are expected to use `SendMessage` to escalate to the lead instead of interacting with the user directly. It does not need to be listed in `tools:` to be available.
+
+### MCP Plugins
+
+MCP tools (Context7, Vercel) are only available to the **orchestrator** (main Claude Code session). Sub-agents use skills as partial workarounds, or `WebSearch` + `Bash` CLI equivalents.
+
+| MCP Tool | Orchestrator | Agents | Workaround |
+|----------|:---:|:---:|---|
+| Context7: resolve-library-id / query-docs | ✅ | ❌ | `context7-plugin:docs` skill (backend-dev, doc-writer) |
+| Vercel: deploy, logs, get_deployment, etc. | ✅ | ❌ | `vercel` / `gh` CLI via Bash (devops) |
+
+### Known Gaps
+
+| Gap | Severity | Impact |
+|-----|----------|--------|
+| Context7 MCP tools not available to agents | 🟡 Workaround available | Agents use `context7-plugin:docs` skill (doc-writer, backend-dev) or `WebSearch` as fallback. Context7 MCP tools (`resolve-library-id`, `query-docs`) remain orchestrator-only |
+| Vercel MCP tools not available to `devops` | 🟡 Workaround available | devops uses `vercel:logs`, `vercel:deploy` skills + `vercel` / `gh` CLI via Bash. Vercel MCP structured tools remain orchestrator-only |
+
+---
+
 ## Agent Configuration
 
 Each agent's `.md` file contains YAML frontmatter that controls its behavior:
@@ -201,13 +243,13 @@ Some agents have skills preloaded, matching their primary function:
 
 | Agent | Skill | Purpose |
 |-------|-------|---------|
-| frontend-dev | `frontend-design`, `ui-ux-pro-max` | UI design guardrails + design system |
-| backend-dev | — | No preloaded skill |
-| devops | — | No preloaded skill |
-| doc-writer | — | No preloaded skill |
-| fixer | — | No preloaded skill |
+| frontend-dev | `frontend-design`, `ui-ux-pro-max`, `context7-plugin:docs` | UI design guardrails + design system + library docs |
+| backend-dev | `context7-plugin:docs` | NestJS / Drizzle / library documentation lookup |
+| devops | — | No preloaded skill (vercel skills pending) |
+| doc-writer | `context7-plugin:docs` | Library reference lookups while writing docs |
+| fixer | `fix` | Apply review findings workflow |
 | tester | `test` | Test generation |
-| architect | `adr` | Architecture Decision Records |
+| architect | `adr`, `context7-plugin:docs` | Architecture Decision Records + library docs |
 | product-lead | `interview`, `issue-triage`, `issues`, `1b1` | Product ownership toolkit |
 | security-auditor | — | No skill (pure analysis) |
 
@@ -398,18 +440,18 @@ Merge
 6. fixer applies accepted fixes
 7. Approve merge once CI is green
 
-### Playbook 4: Large Feature (F-full with Bootstrap)
+### Playbook 4: Large Feature (F-full with /dev)
 
 **Scenario:** Major feature spanning frontend, backend, and infrastructure. New arch concepts or unclear requirements.
 
-**Phase 1 — Assessment (bootstrap):**
+**Phase 1 — Assessment (/dev Frame + Shape):**
 
 ```bash
-/bootstrap
-# Direct orchestration — bootstrap drives interviews and writes docs
+/dev #N
+# Orchestrator drives: frame → analyze → spec with expert review at each gate
 # Expert reviewers (architect, doc-writer, devops, product-lead) review at each gate
 # User selects which experts to involve per document
-# Human approves analysis and spec before proceeding
+# Human approves frame, analysis, and spec before proceeding
 ```
 
 **Phase 2 — Implementation (test-first):**
@@ -447,7 +489,7 @@ flowchart TD
 ```
 
 **As the lead, you:**
-1. Run `/bootstrap` — orchestrator interviews the human, writes analysis + spec, spawns expert reviewers (architect, doc-writer, devops, product-lead as selected)
+1. Run `/dev #N` — orchestrator drives frame → analyze → spec, spawns expert reviewers (architect, doc-writer, devops, product-lead as needed)
 2. Human approves the spec
 3. tester writes failing tests from spec
 4. Domain agents implement in parallel (each in their own packages) to pass tests
@@ -474,9 +516,15 @@ All agents follow these rules (baked into their system prompts):
 
 Claude Code plugins are enabled in `.claude/settings.json` and extend agent capabilities:
 
-| Plugin | Purpose | Benefits |
-|--------|---------|----------|
-| `frontend-design@claude-plugins-official` | Design guardrails for UI development | Helps frontend-dev avoid AI-generated design slop |
+| Plugin | Available to | Purpose |
+|--------|-------------|---------|
+| `frontend-design@claude-plugins-official` | Orchestrator + frontend-dev (preloaded skill) | Design guardrails for UI — prevents AI-generated design slop |
+| `context7-plugin` (Context7) | Orchestrator only | Versioned library documentation lookup (`resolve-library-id` + `query-docs`) |
+| `vercel` (Vercel MCP) | Orchestrator only | Structured access to deployments, build logs, runtime logs, domain management |
+
+> MCP plugin tools are available to the orchestrator only — not to sub-agents. Agents use `WebSearch` + `Bash` CLI equivalents.
+
+12 plugins are enabled in total — see `.claude/settings.json` → `enabledPlugins` for the full list.
 
 ### Built-in Tools
 
@@ -484,18 +532,19 @@ Claude Code plugins are enabled in `.claude/settings.json` and extend agent capa
 
 ---
 
-## Model Tiering (Future)
+## Model Tiering
 
-Recommended model-per-role mapping for cost optimization. **Not applied yet** — all agents currently use `model: inherit`.
+Model assignments are configured in each agent's `.md` frontmatter (`model:` field).
+
+- **6 agents explicitly set `model: sonnet`**: backend-dev, devops, doc-writer, fixer, frontend-dev, tester
+- **3 agents inherit** (no explicit `model` set — they use the session default, Opus when run by the orchestrator): architect, product-lead, security-auditor
 
 | Tier | Model | Agents | Rationale |
 |------|-------|--------|-----------|
-| **Heavy** | Opus | product-lead, architect | Complex analysis, planning, product decisions |
-| **Standard** | Sonnet | frontend-dev, backend-dev, devops, tester, doc-writer | Implementation, testing, documentation |
-| **Standard** | Sonnet | fixer | Cross-stack fixes on identified issues |
-| **Light** | Haiku | security-auditor | Read-only analysis, checklist verification |
+| **Heavy** | Opus (inherited) | product-lead, architect, security-auditor | Complex analysis, planning, product decisions |
+| **Standard** | Sonnet | frontend-dev, backend-dev, devops, tester, doc-writer, fixer | Implementation, testing, documentation, fixes |
 
-This tiering will be applied when cost optimization becomes a priority. For now, all agents inherit the parent session's model.
+> `model: sonnet` is explicitly set in agent frontmatter for domain and quality agents. Strategy agents (product-lead, architect, security-auditor) inherit Opus from the orchestrator session since they are not assigned a model in frontmatter.
 
 ---
 
