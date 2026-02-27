@@ -43,12 +43,14 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
 
       - name: Review & Auto-fix
+        id: review_action
         if: steps.preflight.outputs.skip != 'true'
         uses: anthropics/claude-code-action@4d97243dfe710930bd5d449730cdaf7789fbe7b0 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           use_sticky_comment: true
           use_commit_signing: true
+          claude_args: --max-turns 15
           prompt: |
             # PR Review & Auto-fix for PR #${{ github.event.pull_request.number }}
 
@@ -82,6 +84,21 @@ jobs:
 
             _Reviewed commit: ${{ github.sha }}_
             ```
+
+      - name: Verify review comment posted
+        id: verify_comment
+        if: steps.preflight.outputs.skip != 'true' && steps.review_action.conclusion == 'success'
+        run: |
+          COMMENT_COUNT=$(gh pr view "$PR_NUMBER" --json comments --jq \
+            '[.comments[].body | select(startswith("<!-- reviewed-by-claude -->"))] | length')
+          if [ "$COMMENT_COUNT" -eq 0 ]; then
+            echo "::error::Review action exited successfully but posted no comment. Possible GITHUB_TOKEN expiry or silent failure."
+            exit 1
+          fi
+          echo "Review comment verified ✓"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
 
       - name: Post fallback comment on failure
         if: failure() && steps.preflight.outputs.skip != 'true'
