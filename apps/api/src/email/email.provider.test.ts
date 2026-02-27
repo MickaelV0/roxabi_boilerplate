@@ -108,6 +108,29 @@ describe('ResendEmailProvider', () => {
 
       logSpy.mockRestore()
     })
+
+    it('should log first 80 chars of text body when text is provided', async () => {
+      // Arrange
+      const logSpy = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => {})
+      vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {})
+      const config = createMockConfig({ NODE_ENV: 'development' })
+      const provider = new ResendEmailProvider(config as never)
+
+      // Act
+      await provider.send({
+        to: 'user@example.com',
+        subject: 'Welcome',
+        html: '<h1>Welcome</h1>',
+        text: 'Click here to verify: https://example.com/verify?token=abc123',
+      })
+
+      // Assert — text preview (first 80 chars), never html
+      expect(logSpy).toHaveBeenCalledWith(
+        '[Console Email] Preview: Click here to verify: https://example.com/verify?token=abc123'
+      )
+
+      logSpy.mockRestore()
+    })
   })
 
   describe('send — Resend SDK', () => {
