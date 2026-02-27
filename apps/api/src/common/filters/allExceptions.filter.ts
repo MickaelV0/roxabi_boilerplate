@@ -80,10 +80,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
       ...(errorCode !== undefined && { errorCode }),
     }
 
-    this.logger.error(
-      `[${correlationId}] ${request.method} ${request.url} - ${status}`,
-      exception instanceof Error ? exception.stack : undefined
-    )
+    if (status >= 500) {
+      this.logger.error(
+        `[${correlationId}] ${request.method} ${request.url} - ${status}`,
+        exception instanceof Error ? exception.stack : undefined
+      )
+    } else {
+      this.logger.warn(`[${correlationId}] ${request.method} ${request.url} - ${status}`)
+    }
 
     response.header('x-correlation-id', correlationId)
     response.status(status).send(errorResponse)
