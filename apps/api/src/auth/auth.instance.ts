@@ -15,7 +15,7 @@ import { eq } from 'drizzle-orm'
 import { buildFrontendUrl } from '../common/url.util.js'
 import type { DrizzleDB } from '../database/drizzle.provider.js'
 import { users } from '../database/schema/auth.schema.js'
-import type { EmailProvider } from './email/email.provider.js'
+import type { EmailProvider } from '../email/email.provider.js'
 
 const logger = new Logger('AuthInstance')
 

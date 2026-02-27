@@ -7,9 +7,9 @@ import {
   OrganizationCreatedEvent,
 } from '../common/events/organizationCreated.event.js'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
+import { EMAIL_PROVIDER, type EmailProvider } from '../email/email.provider.js'
 import { PermissionService } from '../rbac/permission.service.js'
 import { type BetterAuthInstance, createBetterAuth } from './auth.instance.js'
-import { EMAIL_PROVIDER, type EmailProvider } from './email/email.provider.js'
 import { toFetchHeaders } from './fastifyHeaders.js'
 
 @Injectable()

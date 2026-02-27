@@ -4,8 +4,6 @@ import { AuthController } from './auth.controller.js'
 import { AuthGuard } from './auth.guard.js'
 import { AuthModule } from './auth.module.js'
 import { AuthService } from './auth.service.js'
-import { EMAIL_PROVIDER } from './email/email.provider.js'
-import { ResendEmailProvider } from './email/resend.provider.js'
 
 describe('AuthModule', () => {
   const imports: unknown[] = Reflect.getMetadata('imports', AuthModule) ?? []
@@ -26,19 +24,6 @@ describe('AuthModule', () => {
   it('should provide AuthService', () => {
     // Assert
     expect(providers).toContainEqual(AuthService)
-  })
-
-  it('should provide EMAIL_PROVIDER with ResendEmailProvider', () => {
-    // Assert
-    const emailProvider = providers.find(
-      (p: unknown) =>
-        typeof p === 'object' &&
-        p !== null &&
-        'provide' in p &&
-        (p as { provide: unknown }).provide === EMAIL_PROVIDER
-    )
-    expect(emailProvider).toBeDefined()
-    expect((emailProvider as { useClass: unknown }).useClass).toBe(ResendEmailProvider)
   })
 
   it('should provide APP_GUARD with AuthGuard', () => {
