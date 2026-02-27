@@ -12,7 +12,9 @@ describe('featureFlagQueries', () => {
     const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) })
     globalThis.fetch = fetchSpy
     const controller = new AbortController()
-    await featureFlagQueries.list().queryFn({ signal: controller.signal } as never)
+    const opts = featureFlagQueries.list()
+    const queryFn = opts.queryFn as NonNullable<typeof opts.queryFn>
+    await queryFn({ signal: controller.signal } as never)
     expect(fetchSpy).toHaveBeenCalledWith(
       '/api/admin/feature-flags',
       expect.objectContaining({ signal: controller.signal })
