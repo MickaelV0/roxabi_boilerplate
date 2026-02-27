@@ -84,7 +84,7 @@ class Role {
 // Aggregate root (enforces invariants across entities)
 class OrganizationRoles {
   constructor(private readonly tenantId: OrganizationId, private roles: Role[] = []) {}
-  addRole(name: string, permissions: string[]): Role {
+  addRole(name: string): Role {
     if (this.roles.some(r => r.name === name))
       throw new RoleSlugConflictException(name)
     const role = new Role(`${crypto.randomUUID()}` as RoleId, name, this.tenantId)
@@ -129,9 +129,9 @@ class RbacApplicationService {
     // 1. Load aggregate (via port — no Drizzle here)
     const orgRoles = await this.roleRepo.loadForOrg(cmd.tenantId)
     // 2. Domain call (enforces invariants)
-    const role = orgRoles.addRole(cmd.name, cmd.permissions)
+    const role = orgRoles.addRole(cmd.name)
     // 3. Persist via port (adapter handles transaction + tenantService.query())
-    await this.roleRepo.save(role)
+    await this.roleRepo.save(orgRoles)
     // 4. Emit event at aggregate boundary (forward-looking — new event)
     await this.events.emitAsync(ROLE_CREATED, new RoleCreatedEvent(role.id))
     return role.id
