@@ -95,12 +95,16 @@ The `CI=true` environment variable ensures consistent behavior between local and
 
 ## GitHub Actions Workflows
 
-Two workflows live in `.github/workflows/`:
+Six workflows live in `.github/workflows/`:
 
 | Workflow | File | Trigger | Purpose |
 |----------|------|---------|---------|
 | **CI** | `ci.yml` | PR + push to `main`/`staging` | Quality gates for all code changes |
 | **Deploy Preview** | `deploy-preview.yml` | Manual (`workflow_dispatch`) | On-demand preview deployments to Vercel |
+| **PR Title** | `pr-title.yml` | PR opened/edited | Validates PR title follows Conventional Commits format |
+| **Auto Merge** | `auto-merge.yml` | Dependabot PRs | Auto-merges Dependabot PRs that pass CI |
+| **Neon Cleanup** | `neon-cleanup.yml` | PR closed/merged | Cleans up Neon database branches for closed/merged PRs |
+| **PR Review & Auto-fix** | `pr-review.yml` | PR opened/synchronized | Runs Claude Code automated review + auto-fix on every PR |
 
 ### CI Workflow (`ci.yml`)
 
@@ -132,6 +136,7 @@ The first three jobs (`lint`, `typecheck`, `test`) run in parallel. `build` runs
 - `bun lint` -- Biome check across the entire monorepo
 - `bun run i18n:check` -- Validates translation file completeness
 - `bun run license:check` -- Scans dependency licenses for compliance
+- `bun run env:check` -- Validates that `.env.example` is in sync with expected variables
 
 **Type Check** -- Generates code artifacts (`codegen` for Paraglide i18n and TanStack Router route tree), then runs `bun typecheck` (TurboRepo delegates to each workspace's `tsc --noEmit`).
 
@@ -151,6 +156,17 @@ The first three jobs (`lint`, `typecheck`, `test`) run in parallel. `build` runs
 | PR with only backend/docs changes | Skipped |
 
 E2E test failures upload the Playwright HTML report as a GitHub artifact (retained 7 days).
+
+#### E2E Matrix Strategy
+
+E2E tests use a **2-shard strategy** across three browser engines to maximise coverage without blocking CI:
+
+| Job | Description |
+|-----|-------------|
+| `e2e-matrix` | Runs sharded E2E tests across 2 shards × 3 browsers (chromium, firefox, webkit) |
+| `merge-reports` | Aggregates sharded Playwright results into a single HTML report |
+
+The shard split reduces wall-clock time for larger E2E suites. The `merge-reports` job always runs after all matrix shards complete, collecting results into one artifact.
 
 ### Deploy Preview Workflow (`deploy-preview.yml`)
 
@@ -310,7 +326,7 @@ TurboRepo uses two mechanisms for environment variables, and the distinction is 
 GitHub Actions caches the `.turbo` directory using `actions/cache` with SHA-based keys:
 
 ```yaml
-- uses: actions/cache@v4
+- uses: actions/cache@v5
   with:
     path: .turbo
     key: turbo-build-${{ runner.os }}-${{ github.sha }}
@@ -327,7 +343,7 @@ Each CI job (`typecheck`, `test`, `build`) maintains its own Turbo cache namespa
 Bun dependencies are cached separately from Turbo:
 
 ```yaml
-- uses: actions/cache@v4
+- uses: actions/cache@v5
   with:
     path: node_modules
     key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -411,6 +427,10 @@ Branch protection enforces the pipeline at the GitHub level, preventing merges t
 - No direct pushes
 
 These rules integrate with the CI workflow: the `lint`, `typecheck`, `test`, and `build` jobs are configured as required status checks, so a failing CI run blocks the merge button.
+
+### `ci-success` Aggregator Job
+
+The CI workflow includes a `ci-success` job that acts as a **single required status check** for branch protection. Rather than requiring each individual job (`lint`, `typecheck`, `test`, `build`) as a separate status check in GitHub settings, branch protection requires only `ci-success`. This job only passes when all preceding jobs succeed, giving a single stable check name that aggregates the full CI result. This simplifies branch protection configuration and avoids stale check entries when jobs are renamed or added.
 
 ---
 

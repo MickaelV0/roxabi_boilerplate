@@ -272,6 +272,8 @@ The `secrets` job runs [Gitleaks](https://github.com/gitleaks/gitleaks) against 
 
 Known-safe placeholder values (e.g. `dev-secret-do-not-use-in-production`, CI test secrets) are explicitly allowlisted in `.gitleaks.toml`. `.env.example` is excluded from scanning as it contains only placeholder values.
 
+> **Conditional execution:** On pull requests, secret scanning is gated by a `detect-changes` step. Gitleaks only runs when the PR diff contains files that might carry secrets (e.g. source files, config files). It does **not** run unconditionally on every PR — pure documentation or asset-only changes skip the job entirely to keep CI fast.
+
 ### Lint and type checking
 
 Biome lint (`bun lint`) and TypeScript typecheck (`bun typecheck`) run on every PR with code changes. These catch common security anti-patterns caught by static analysis rules.

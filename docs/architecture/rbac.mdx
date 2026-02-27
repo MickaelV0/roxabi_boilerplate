@@ -27,7 +27,7 @@ type PermissionAction = 'read' | 'write' | 'delete'
 type PermissionString = `${PermissionResource}:${PermissionAction}`
 ```
 
-This produces 18 possible permissions (6 resources x 3 actions). Permissions are **global** -- they are seeded via database migration and are not editable by tenants. The `permissions` table has a unique constraint on `(resource, action)`.
+This produces 18 possible type-system combinations (6 resources x 3 actions), but only **17** are seeded in `rbac.constants.ts` — `api_keys:delete` is defined in the type system but not seeded. Permissions are **global** -- they are seeded via database migration and are not editable by tenants. The `permissions` table has a unique constraint on `(resource, action)`.
 
 ### Why resource:action instead of flat strings
 
@@ -69,7 +69,9 @@ flowchart TD
     CHECK1 -- No --> CHECK2{"2. Resolve session"}
     CHECK2 -- "null + @OptionalAuth" --> ALLOW2["ALLOW"]
     CHECK2 -- "null + no decorator" --> DENY1["401 Unauthorized"]
-    CHECK2 -- "session found" --> CHECK3{"3. @Roles check<br/>user.role in list?"}
+    CHECK2 -- "session found" --> CHECK2B{"2b. User soft-deleted?"}
+    CHECK2B -- "Yes (not on allowlist)" --> DENY1B["403 Forbidden"]
+    CHECK2B -- "No / allowlisted route" --> CHECK3{"3. @Roles check<br/>user.role in list?"}
     CHECK3 -- No --> DENY2["403 Forbidden"]
     CHECK3 -- Yes --> CHECK4{"4. @RequireOrg check<br/>activeOrganizationId?"}
     CHECK4 -- No --> DENY3["403 No active organization"]
@@ -347,6 +349,20 @@ async transferOwnership(@Session() session: { user: { id: string } }) {
 }
 ```
 
+### @SkipOrg
+
+Skips tenant context resolution in `TenantInterceptor`. Use this on endpoints that do not require org context (e.g., user profile routes, account settings). The interceptor short-circuits when this decorator is detected, avoiding any org lookup or CLS tenant assignment.
+
+```ts
+import { SkipOrg } from '../tenant/decorators/skip-org.decorator.js'
+
+@Get('profile')
+@SkipOrg()
+async getProfile(@Session() session: AuthSession) {
+  return this.userService.getProfile(session.user.id)
+}
+```
+
 ## Better Auth Roles vs. RBAC Roles
 
 The system has two distinct role concepts that serve different purposes:
@@ -388,7 +404,7 @@ The `RbacController` exposes role management at `/api/roles`:
 | `PATCH` | `/api/roles/:id` | `roles:write` | Update a role |
 | `DELETE` | `/api/roles/:id` | `roles:delete` | Delete a custom role (members fallback to Viewer) |
 | `POST` | `/api/roles/transfer-ownership` | `members:write` | Transfer ownership to another Admin |
-| `PATCH` | `/api/roles/members/:id/role` | `members:write` | Change a member's role |
+| `PATCH` | `/api/roles/members/:id/role` | `members:write` | Change a member's role **[deprecated]** — use `PATCH /api/admin/members/:memberId` instead |
 
 All endpoints require authentication and an active organization context. Request bodies are validated with Zod schemas, and UUID path parameters use `ParseUUIDPipe`.
 

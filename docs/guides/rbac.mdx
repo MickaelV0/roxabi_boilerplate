@@ -380,13 +380,15 @@ The slug is auto-generated from the name (`billing-manager`). Duplicate slugs wi
 
 ### Changing a Member's Role
 
-`PATCH /api/roles/members/:id/role` with `members:write` permission:
+`PATCH /api/admin/members/:memberId` with `members:write` permission:
 
 ```json
 {
   "roleId": "uuid-of-target-role"
 }
 ```
+
+> **Deprecated:** `PATCH /api/roles/members/:id/role` is deprecated. Use `PATCH /api/admin/members/:memberId` instead.
 
 The system enforces that at least one Owner must exist at all times. Attempting to change the last Owner's role will fail with an ownership constraint error.
 

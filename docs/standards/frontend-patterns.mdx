@@ -322,13 +322,20 @@ cache invalidation.
 Co-locate `queryKey` and `queryFn` in a single reusable object using the `queryOptions()` helper
 instead of defining them inline inside `useQuery`.
 
-**Before — inline definition (avoid):**
+> **Migration in progress.** The `queryOptions()` factory is the **Target Pattern** — this is the
+> standard we are actively migrating toward. Some existing code (including `feature-flags.tsx`)
+> still uses the Current Pattern (inline `useQuery` with standalone key constants). New code
+> should follow the Target Pattern; existing code will be migrated incrementally.
+
+**Current Pattern — inline `useQuery` with standalone key constant:**
 
 ```tsx
-// Scattered across multiple files; key is not reusable
+// apps/web/src/routes/admin/feature-flags.tsx (current state)
+const FEATURE_FLAGS_QUERY_KEY = ['admin', 'feature-flags'] as const
+
 function FeatureFlagsPage() {
   const { data } = useQuery<FeatureFlag[]>({
-    queryKey: ['admin', 'feature-flags'],
+    queryKey: FEATURE_FLAGS_QUERY_KEY,
     queryFn: async () => {
       const res = await fetch('/api/admin/feature-flags', { credentials: 'include' })
       if (!res.ok) throw new Error('Failed to fetch feature flags')
@@ -338,18 +345,20 @@ function FeatureFlagsPage() {
 }
 ```
 
-**After — `queryOptions()` factory (required):**
+This pattern keeps the key reusable within the file but does not extract it into a sharable
+factory. It cannot be used with route-level `ensureQueryData` prefetching (see §1.7.3).
+
+**Target Pattern — `queryOptions()` factory (migration target):**
 
 ```ts
-// apps/web/src/lib/featureFlags/queries.ts
+// apps/web/src/lib/{feature}/queries.ts
 import { queryOptions } from '@tanstack/react-query'
 import type { FeatureFlag } from '@repo/types'
-import { featureFlagKeys } from './queryKeys'
 
 export const featureFlagQueries = {
   list: () =>
     queryOptions({
-      queryKey: featureFlagKeys.list(),
+      queryKey: ['admin', 'feature-flags', 'list'] as const,
       queryFn: async ({ signal }): Promise<FeatureFlag[]> => {
         const res = await fetch('/api/admin/feature-flags', {
           credentials: 'include',
@@ -364,7 +373,7 @@ export const featureFlagQueries = {
 
 ```tsx
 // Consumed in the component — one import, no duplication
-import { featureFlagQueries } from '@/lib/featureFlags/queries'
+import { featureFlagQueries } from '@/lib/admin-feature-flags/queries'
 
 function FeatureFlagsPage() {
   const { data } = useQuery(featureFlagQueries.list())
@@ -379,6 +388,16 @@ The factory approach enables:
   `useQuery&lt;T>` generic
 - **Testability** — factories are plain functions, easily unit-tested without rendering components
 
+> **Known migration debt — `feature-flags.tsx`:** The current implementation has three areas
+> pending migration:
+>
+> 1. Uses direct `fetch` in event handlers (pre-`useMutation` pattern)
+> 2. Uses inline `useQuery` with a standalone key constant (pre-`queryOptions` migration)
+> 3. Migration to `useMutation` + `queryOptions` factory is pending
+>
+> This file is the reference for what the migration will transform, not a model to follow for
+> new code.
+
 The existing `useOrganizations` hook in `apps/web/src/lib/useOrganizations.ts` is an example of
 the pattern we are migrating away from: it exports a key constant and embeds the query options
 inside the hook, but the options are not extracted into a `queryOptions()` factory and therefore
@@ -392,7 +411,7 @@ any level of specificity.
 **Key factory pattern:**
 
 ```ts
-// apps/web/src/lib/featureFlags/queryKeys.ts
+// apps/web/src/lib/{feature}/queryKeys.ts
 export const featureFlagKeys = {
   all: ['feature-flags'] as const,
   list: () => [...featureFlagKeys.all, 'list'] as const,
@@ -435,7 +454,7 @@ already in the cache — no loading spinner on first visit.
 ```tsx
 // apps/web/src/routes/admin/feature-flags.tsx
 import { createFileRoute } from '@tanstack/react-router'
-import { featureFlagQueries } from '@/lib/featureFlags/queries'
+import { featureFlagQueries } from '@/lib/admin-feature-flags/queries'
 import { enforceRoutePermission } from '@/lib/routePermissions'
 
 export const Route = createFileRoute('/admin/feature-flags')({
@@ -540,7 +559,7 @@ The standard pattern: call the API in `mutationFn`, then invalidate the relevant
 ```ts
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { FeatureFlag } from '@repo/types'
-import { featureFlagKeys } from '@/lib/featureFlags/queryKeys'
+import { featureFlagKeys } from '@/lib/admin-feature-flags/queryKeys'
 
 function useToggleFeatureFlag() {
   const queryClient = useQueryClient()
@@ -616,12 +635,15 @@ function useToggleFeatureFlagOptimistic() {
 
 ### 1.7.6 Rules
 
+**Target (migration in progress):**
+
+- Wrap `queryKey` + `queryFn` in a `queryOptions()` factory — target for new code; existing
+  inline `useQuery` definitions are being migrated incrementally
+- Define query keys in a central key factory (`queryKeys.ts`) — target for new code; existing
+  standalone key constants are being migrated incrementally
+
 **Always:**
 
-- Wrap `queryKey` + `queryFn` in a `queryOptions()` factory — never define them inline in
-  `useQuery` or `useSuspenseQuery`
-- Define query keys in a central key factory (`queryKeys.ts`) — never hardcode key arrays at
-  call sites
 - Invalidate after every mutation — never let stale data persist after a write
 - Order `beforeLoad` as: auth guard first, data prefetch second
 - Pass `signal` from the `queryFn` context parameter to `fetch` for automatic request
@@ -854,8 +876,8 @@ Compressed imperative rules for AI agent consumption. No examples, no rationale.
 
 **TanStack Query:**
 
-- Always use `queryOptions()` factories -- never inline query config in `useQuery()`
-- Centralize keys in a `queryKeys` factory per domain -- never hardcode string arrays
+- Target: use `queryOptions()` factories -- migration in progress; avoid inline query config in `useQuery()` for new code
+- Target: centralize keys in a `queryKeys` factory per domain -- migration in progress; avoid hardcoded string arrays in new code
 - Prefetch in `beforeLoad` with `ensureQueryData` -- auth guard first, data second
 - Use `useQuery` by default; `useSuspenseQuery` only inside `&lt;Suspense>` boundaries
 - Always invalidate related queries in mutation `onSuccess`

@@ -80,7 +80,7 @@ flowchart TD
     FFAgents -->|Full-stack| FS2["FE + BE + tester"]
     FFAgents -->|Large scope| LS["+ architect + doc-writer"]
     FFAgents -->|Security| SEC2["+ security-auditor"]
-    FFScaffold --> FFReview["/review + /1b1 + fixer"]
+    FFDev --> FFReview["/review + /1b1 + fixer"]
 ```
 
 ### 3. Start a session
@@ -530,6 +530,8 @@ Claude Code plugins are enabled in `.claude/settings.json` and extend agent capa
 
 > MCP plugin tools are available to the orchestrator only — not to sub-agents. Agents use `WebSearch` + `Bash` CLI equivalents.
 
+12 plugins are enabled in total — see `.claude/settings.json` → `enabledPlugins` for the full list.
+
 ### Built-in Tools
 
 `AskUserQuestion` is a built-in tool always available to all agents, regardless of the `tools:` field in their definition. It does not need to be listed explicitly.
@@ -540,12 +542,15 @@ Claude Code plugins are enabled in `.claude/settings.json` and extend agent capa
 
 Model assignments are configured in each agent's `.md` frontmatter (`model:` field).
 
+- **6 agents explicitly set `model: sonnet`**: backend-dev, devops, doc-writer, fixer, frontend-dev, tester
+- **3 agents inherit** (no explicit `model` set — they use the session default, Opus when run by the orchestrator): architect, product-lead, security-auditor
+
 | Tier | Model | Agents | Rationale |
 |------|-------|--------|-----------|
 | **Heavy** | Opus (inherited) | product-lead, architect, security-auditor | Complex analysis, planning, product decisions |
 | **Standard** | Sonnet | frontend-dev, backend-dev, devops, tester, doc-writer, fixer | Implementation, testing, documentation, fixes |
 
-> `model: sonnet` is explicitly set in agent frontmatter for domain and quality agents. Strategy agents (product-lead, architect) inherit Opus from the orchestrator session since they are not assigned a model in frontmatter.
+> `model: sonnet` is explicitly set in agent frontmatter for domain and quality agents. Strategy agents (product-lead, architect, security-auditor) inherit Opus from the orchestrator session since they are not assigned a model in frontmatter.
 
 ---
 
