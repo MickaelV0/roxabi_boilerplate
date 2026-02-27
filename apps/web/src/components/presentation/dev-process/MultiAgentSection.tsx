@@ -57,27 +57,31 @@ function AbDemo() {
 }
 
 type PatternCardData = {
+  id: string
   icon: React.ReactNode
-  title: string
-  desc: string
+  title: () => string
+  desc: () => string
 }
 
 export function MultiAgentSection() {
   const patterns: PatternCardData[] = [
     {
+      id: 'parallel',
       icon: <GitBranch className="h-4 w-4 text-indigo-500" />,
-      title: m.talk_dp_multi_parallel_title(),
-      desc: m.talk_dp_multi_parallel_desc(),
+      title: m.talk_dp_multi_parallel_title,
+      desc: m.talk_dp_multi_parallel_desc,
     },
     {
+      id: 'reviewer',
       icon: <Eye className="h-4 w-4 text-indigo-500" />,
-      title: m.talk_dp_multi_reviewer_title(),
-      desc: m.talk_dp_multi_reviewer_desc(),
+      title: m.talk_dp_multi_reviewer_title,
+      desc: m.talk_dp_multi_reviewer_desc,
     },
     {
+      id: 'escalation',
       icon: <AlertCircle className="h-4 w-4 text-indigo-500" />,
-      title: m.talk_dp_multi_escalation_title(),
-      desc: m.talk_dp_multi_escalation_desc(),
+      title: m.talk_dp_multi_escalation_title,
+      desc: m.talk_dp_multi_escalation_desc,
     },
   ]
 
@@ -109,11 +113,11 @@ export function MultiAgentSection() {
       {/* Pattern cards */}
       <div className="mt-6 grid gap-5 sm:grid-cols-3">
         {patterns.map((pattern) => (
-          <AnimatedSection key={pattern.title}>
+          <AnimatedSection key={pattern.id}>
             <Card variant="subtle" className="flex flex-col gap-3 p-5 border-indigo-500/20 h-full">
               <div className="rounded-lg bg-indigo-500/10 p-2 w-fit">{pattern.icon}</div>
-              <p className="text-sm font-semibold">{pattern.title}</p>
-              <p className="text-xs text-muted-foreground">{pattern.desc}</p>
+              <p className="text-sm font-semibold">{pattern.title()}</p>
+              <p className="text-xs text-muted-foreground">{pattern.desc()}</p>
             </Card>
           </AnimatedSection>
         ))}

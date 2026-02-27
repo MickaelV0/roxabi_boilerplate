@@ -10,6 +10,7 @@ const QUALITY_ITEMS = [
 ] as const
 
 type RoadmapItem = {
+  id: string
   icon: typeof Activity
   label: () => string
   desc: () => string
@@ -20,6 +21,7 @@ type RoadmapItem = {
 
 const ROADMAP_ITEMS: ReadonlyArray<RoadmapItem> = [
   {
+    id: 'observability',
     icon: Activity,
     label: m.talk_dp_next_observability_label,
     desc: m.talk_dp_next_observability_desc,
@@ -28,6 +30,7 @@ const ROADMAP_ITEMS: ReadonlyArray<RoadmapItem> = [
     borderColor: 'border-violet-500/25',
   },
   {
+    id: 'public-api',
     icon: Globe,
     label: m.talk_dp_next_public_api_label,
     desc: m.talk_dp_next_public_api_desc,
@@ -118,9 +121,9 @@ export function WhatsNextSection() {
             </div>
 
             <div className="flex flex-col gap-4 flex-1">
-              {ROADMAP_ITEMS.map((item, i) => (
+              {ROADMAP_ITEMS.map((item) => (
                 <div
-                  key={i}
+                  key={item.id}
                   className={cn(
                     'rounded-lg border p-3 flex items-start gap-3',
                     item.color,

@@ -10,17 +10,19 @@ const CI_JOBS = [
 ] as const
 
 type CiStage = {
+  id: string
   icon: typeof CheckCircle2
   label: () => string
   sub?: boolean
+  showJobs?: boolean
 }
 
 function CiPipelineHalf() {
   const stages: ReadonlyArray<CiStage> = [
-    { icon: CheckCircle2, label: m.talk_dp_cicd_precommit },
-    { icon: CheckCircle2, label: m.talk_dp_cicd_prepush },
-    { icon: CheckCircle2, label: m.talk_dp_cicd_actions },
-    { icon: CheckCircle2, label: m.talk_dp_cicd_e2e },
+    { id: 'precommit', icon: CheckCircle2, label: m.talk_dp_cicd_precommit },
+    { id: 'prepush', icon: CheckCircle2, label: m.talk_dp_cicd_prepush },
+    { id: 'actions', icon: CheckCircle2, label: m.talk_dp_cicd_actions, showJobs: true },
+    { id: 'e2e', icon: CheckCircle2, label: m.talk_dp_cicd_e2e },
   ]
 
   return (
@@ -32,7 +34,7 @@ function CiPipelineHalf() {
       {/* Pipeline stages */}
       <div className="relative flex flex-col gap-0">
         {stages.map((stage, i) => (
-          <div key={i} className="flex items-start gap-3">
+          <div key={stage.id} className="flex items-start gap-3">
             {/* Connector line + icon */}
             <div className="flex flex-col items-center">
               <div className="rounded-full bg-green-500/15 p-1.5 border border-green-500/30">
@@ -44,7 +46,7 @@ function CiPipelineHalf() {
             <div className={cn('pb-6', i === stages.length - 1 && 'pb-0')}>
               <p className="text-sm text-foreground leading-snug">{stage.label()}</p>
               {/* Job pills for GitHub Actions stage */}
-              {i === 2 && (
+              {stage.showJobs && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {CI_JOBS.map((job) => (
                     <span
@@ -58,7 +60,7 @@ function CiPipelineHalf() {
                     </span>
                   ))}
                   <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                    Build
+                    {m.talk_dp_cicd_job_build()}
                   </span>
                 </div>
               )}
@@ -71,6 +73,7 @@ function CiPipelineHalf() {
 }
 
 type CdFlowStep = {
+  id: string
   icon: typeof GitBranch
   label: () => string
   action: () => string
@@ -82,6 +85,7 @@ type CdFlowStep = {
 function CdPipelineHalf() {
   const steps: ReadonlyArray<CdFlowStep> = [
     {
+      id: 'feat',
       icon: GitBranch,
       label: m.talk_dp_cicd_feat,
       action: m.talk_dp_cicd_preview,
@@ -90,6 +94,7 @@ function CdPipelineHalf() {
       borderColor: 'border-blue-500/30',
     },
     {
+      id: 'staging',
       icon: GitMerge,
       label: m.talk_dp_cicd_staging,
       action: m.talk_dp_cicd_preview,
@@ -98,6 +103,7 @@ function CdPipelineHalf() {
       borderColor: 'border-yellow-500/30',
     },
     {
+      id: 'main',
       icon: Rocket,
       label: m.talk_dp_cicd_main,
       action: m.talk_dp_cicd_prod,
@@ -115,7 +121,7 @@ function CdPipelineHalf() {
 
       <div className="relative flex flex-col gap-0">
         {steps.map((step, i) => (
-          <div key={i} className="flex items-start gap-3">
+          <div key={step.id} className="flex items-start gap-3">
             <div className="flex flex-col items-center">
               <div className={cn('rounded-full p-1.5 border', step.color, step.borderColor)}>
                 <step.icon className={cn('h-3.5 w-3.5', step.iconColor)} />

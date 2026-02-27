@@ -38,7 +38,7 @@ export function CustomToolingSection() {
               </p>
             </div>
             <p className="text-[11px] text-cyan-500 font-medium italic">
-              visibility without context-switching
+              {m.talk_dp_tools_dashboard_tagline()}
             </p>
           </Card>
         </AnimatedSection>

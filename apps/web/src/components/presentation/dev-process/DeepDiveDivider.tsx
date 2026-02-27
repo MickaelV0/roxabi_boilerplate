@@ -3,12 +3,12 @@ import { Bot, GitBranch, Minimize2, Package, Webhook, Wrench } from 'lucide-reac
 import { m } from '@/paraglide/messages'
 
 const topics = [
-  { icon: Webhook, label: () => m.talk_dp_divider_topic_hooks() },
-  { icon: Wrench, label: () => m.talk_dp_divider_topic_tooling() },
-  { icon: Bot, label: () => m.talk_dp_divider_topic_agents() },
-  { icon: Package, label: () => m.talk_dp_divider_topic_plugins() },
-  { icon: GitBranch, label: () => m.talk_dp_divider_topic_cicd() },
-  { icon: Minimize2, label: () => m.talk_dp_divider_topic_compress() },
+  { id: 'hooks', icon: Webhook, label: () => m.talk_dp_divider_topic_hooks() },
+  { id: 'tooling', icon: Wrench, label: () => m.talk_dp_divider_topic_tooling() },
+  { id: 'agents', icon: Bot, label: () => m.talk_dp_divider_topic_agents() },
+  { id: 'plugins', icon: Package, label: () => m.talk_dp_divider_topic_plugins() },
+  { id: 'cicd', icon: GitBranch, label: () => m.talk_dp_divider_topic_cicd() },
+  { id: 'compress', icon: Minimize2, label: () => m.talk_dp_divider_topic_compress() },
 ] as const
 
 export function DeepDiveDivider() {
@@ -36,9 +36,9 @@ export function DeepDiveDivider() {
 
         <AnimatedSection className="mt-12">
           <div className="flex flex-wrap justify-center gap-3">
-            {topics.map(({ icon: Icon, label }) => (
+            {topics.map(({ id, icon: Icon, label }) => (
               <div
-                key={label()}
+                key={id}
                 className="flex items-center gap-2 rounded-full border border-border bg-muted/40 px-4 py-2 text-sm font-medium text-muted-foreground"
               >
                 <Icon className="h-3.5 w-3.5 text-primary" />

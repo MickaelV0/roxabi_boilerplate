@@ -1,11 +1,11 @@
-import { AnimatedSection, Card } from '@repo/ui'
+import { AnimatedSection, Card, cn } from '@repo/ui'
 import { LayoutDashboard, Megaphone, Palette, Scale, TrendingUp, Users } from 'lucide-react'
 import { m } from '@/paraglide/messages'
 
 type RoleCardData = {
   icon: React.ReactNode
   label: string
-  skills: readonly [string, string, string]
+  skills: readonly [() => string, () => string, () => string]
   iconBgClass: string
   borderClass: string
   iconColorClass: string
@@ -15,7 +15,7 @@ const ROLES: RoleCardData[] = [
   {
     icon: <LayoutDashboard className="h-4 w-4 text-violet-500" />,
     label: m.talk_dp_roles_pm_label(),
-    skills: ['Sprint planning', 'Feature specs', 'Roadmap updates'],
+    skills: [m.talk_dp_roles_pm_skill1, m.talk_dp_roles_pm_skill2, m.talk_dp_roles_pm_skill3],
     iconBgClass: 'bg-violet-500/10',
     borderClass: 'border-violet-500/20 bg-violet-500/5',
     iconColorClass: 'text-violet-500',
@@ -23,7 +23,11 @@ const ROLES: RoleCardData[] = [
   {
     icon: <Megaphone className="h-4 w-4 text-pink-500" />,
     label: m.talk_dp_roles_marketing_label(),
-    skills: ['Campaign planning', 'SEO audit', 'Content creation'],
+    skills: [
+      m.talk_dp_roles_marketing_skill1,
+      m.talk_dp_roles_marketing_skill2,
+      m.talk_dp_roles_marketing_skill3,
+    ],
     iconBgClass: 'bg-pink-500/10',
     borderClass: 'border-pink-500/20 bg-pink-500/5',
     iconColorClass: 'text-pink-500',
@@ -31,7 +35,11 @@ const ROLES: RoleCardData[] = [
   {
     icon: <Palette className="h-4 w-4 text-cyan-500" />,
     label: m.talk_dp_roles_design_label(),
-    skills: ['Critique', 'Accessibility review', 'Design system'],
+    skills: [
+      m.talk_dp_roles_design_skill1,
+      m.talk_dp_roles_design_skill2,
+      m.talk_dp_roles_design_skill3,
+    ],
     iconBgClass: 'bg-cyan-500/10',
     borderClass: 'border-cyan-500/20 bg-cyan-500/5',
     iconColorClass: 'text-cyan-500',
@@ -39,7 +47,11 @@ const ROLES: RoleCardData[] = [
   {
     icon: <Scale className="h-4 w-4 text-amber-500" />,
     label: m.talk_dp_roles_legal_label(),
-    skills: ['Contract review', 'NDA triage', 'Compliance check'],
+    skills: [
+      m.talk_dp_roles_legal_skill1,
+      m.talk_dp_roles_legal_skill2,
+      m.talk_dp_roles_legal_skill3,
+    ],
     iconBgClass: 'bg-amber-500/10',
     borderClass: 'border-amber-500/20 bg-amber-500/5',
     iconColorClass: 'text-amber-500',
@@ -47,7 +59,11 @@ const ROLES: RoleCardData[] = [
   {
     icon: <TrendingUp className="h-4 w-4 text-green-500" />,
     label: m.talk_dp_roles_sales_label(),
-    skills: ['Pipeline review', 'Outreach drafting', 'Forecast'],
+    skills: [
+      m.talk_dp_roles_sales_skill1,
+      m.talk_dp_roles_sales_skill2,
+      m.talk_dp_roles_sales_skill3,
+    ],
     iconBgClass: 'bg-green-500/10',
     borderClass: 'border-green-500/20 bg-green-500/5',
     iconColorClass: 'text-green-500',
@@ -61,16 +77,16 @@ type RoleCardProps = {
 function RoleCard({ role }: RoleCardProps) {
   return (
     <AnimatedSection>
-      <Card variant="subtle" className={`flex flex-col gap-3 p-5 h-full ${role.borderClass}`}>
-        <div className={`rounded-lg p-2 w-fit ${role.iconBgClass}`}>{role.icon}</div>
+      <Card variant="subtle" className={cn('flex flex-col gap-3 p-5 h-full', role.borderClass)}>
+        <div className={cn('rounded-lg p-2 w-fit', role.iconBgClass)}>{role.icon}</div>
         <p className="text-sm font-semibold">{role.label}</p>
         <div className="flex flex-wrap gap-1.5">
-          {role.skills.map((skill) => (
+          {role.skills.map((skill, i) => (
             <span
-              key={skill}
+              key={i}
               className="bg-muted/40 text-muted-foreground text-xs rounded-full px-2 py-0.5"
             >
-              {skill}
+              {skill()}
             </span>
           ))}
         </div>
@@ -81,7 +97,7 @@ function RoleCard({ role }: RoleCardProps) {
 
 export function RolePluginsSection() {
   return (
-    <div className="mx-auto max-w-7xl w-full">
+    <div className="relative mx-auto max-w-7xl w-full">
       {/* Background glow */}
       <div
         className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"

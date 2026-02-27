@@ -49,6 +49,7 @@ function StepList() {
 }
 
 type Badge = {
+  id: string
   icon: typeof Shield
   label: () => string
   color: string
@@ -59,6 +60,7 @@ type Badge = {
 export function ClaudeCodeActionSection() {
   const badges: ReadonlyArray<Badge> = [
     {
+      id: 'no-trigger',
       icon: Bot,
       label: m.talk_dp_cca_badge_no_trigger,
       color: 'bg-blue-500/10',
@@ -66,6 +68,7 @@ export function ClaudeCodeActionSection() {
       borderColor: 'border-blue-500/20',
     },
     {
+      id: 'allowed-tools',
       icon: Shield,
       label: m.talk_dp_cca_badge_tools,
       color: 'bg-yellow-500/10',
@@ -73,6 +76,7 @@ export function ClaudeCodeActionSection() {
       borderColor: 'border-yellow-500/20',
     },
     {
+      id: 'oauth',
       icon: Key,
       label: m.talk_dp_cca_badge_oauth,
       color: 'bg-green-500/10',
@@ -128,7 +132,7 @@ export function ClaudeCodeActionSection() {
         <div className="flex flex-wrap gap-3">
           {badges.map((badge) => (
             <div
-              key={badge.label()}
+              key={badge.id}
               className={cn(
                 'flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium',
                 badge.color,

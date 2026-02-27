@@ -1,4 +1,4 @@
-import { AnimatedSection, Card } from '@repo/ui'
+import { AnimatedSection, Card, cn } from '@repo/ui'
 import { BookOpen, Check, GitBranch, Plug, Puzzle } from 'lucide-react'
 import { m } from '@/paraglide/messages'
 
@@ -105,7 +105,7 @@ export function PluginEcosystemSection() {
       <div className="mt-6 grid gap-5 sm:grid-cols-3">
         {pluginTypes.map((pt) => (
           <AnimatedSection key={pt.title}>
-            <Card variant="subtle" className={`flex flex-col gap-3 p-5 h-full ${pt.accentClass}`}>
+            <Card variant="subtle" className={cn('flex flex-col gap-3 p-5 h-full', pt.accentClass)}>
               <div className="rounded-lg bg-emerald-500/10 p-2 w-fit">{pt.icon}</div>
               <p className="text-sm font-semibold">{pt.title}</p>
               <p className="text-xs text-muted-foreground">{pt.desc}</p>

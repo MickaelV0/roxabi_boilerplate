@@ -111,6 +111,8 @@ function NotFound() {
   )
 }
 
+// Routes under these prefixes skip the app shell (nav, consent banner, etc.) and session enforcement.
+// Invariant: no route under these prefixes may call enforceRoutePermission — they are public by design.
 const CHROMELESS_PREFIXES = ['/docs', '/talks'] as const
 
 function AppShell({ children }: { children: React.ReactNode }) {
