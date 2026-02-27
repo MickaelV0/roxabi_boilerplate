@@ -149,10 +149,8 @@ jobs:
 
           # Create new branch from the main branch
           PAYLOAD=$(jq -n --arg name "$BRANCH_NAME" '{branch: {name: $name}, endpoints: [{type: "read_write"}]}')
-          echo "NEON_DEBUG: payload ready, starting create loop"
           BRANCH_ID=""
           for attempt in 1 2 3; do
-            echo "NEON_DEBUG: create attempt $attempt"
             # Use || to prevent set -e from exiting on curl network error
             RAW=$(curl -s -w "\n%{http_code}" -X POST \
               -H "Authorization: Bearer $NEON_API_KEY" \
@@ -161,16 +159,13 @@ jobs:
               -d "$PAYLOAD" || echo "CURL_NETWORK_ERROR\n000")
             HTTP_CODE=$(printf '%s' "$RAW" | tail -1)
             BODY=$(printf '%s' "$RAW" | head -n -1)
-            echo "NEON_DEBUG: HTTP=$HTTP_CODE body_len=${#BODY}"
             # || echo "" guards: prevent set -e if response is not valid JSON
             BRANCH_ID=$(echo "$BODY" | jq -r '.branch.id // empty' 2>/dev/null || echo "")
-            echo "NEON_DEBUG: branch_id=${BRANCH_ID:-empty}"
             if [ -n "$BRANCH_ID" ] && [ "$BRANCH_ID" != "null" ]; then break; fi
             ERR=$(echo "$BODY" | jq -r '.message // .error // empty' 2>/dev/null || echo "")
-            echo "NEON_DEBUG: err=${ERR:-none} raw=$(printf '%s' "$BODY" | head -c 100)"
+            echo "::warning::Branch create attempt $attempt/3 failed (HTTP $HTTP_CODE): ${ERR:-non-JSON or network error}"
             if [ "$attempt" -lt 3 ]; then sleep 5; fi
           done
-          echo "NEON_DEBUG: loop done, branch_id=${BRANCH_ID:-empty}"
 
           if [ -z "$BRANCH_ID" ] || [ "$BRANCH_ID" = "null" ]; then
             echo "::error::Failed to create Neon branch after 3 attempts"
@@ -192,30 +187,28 @@ jobs:
           fi
 
           # Fetch connection URI — role_name and database_name are required params.
-          # Dynamically discover them from the branch to avoid hardcoding.
-          ROLE_NAME=$(curl -sf \
+          # Prefer neondb_owner (Neon-managed role with stored password) for schema ops.
+          # Use pooled=false for direct connection (required for DDL like DROP SCHEMA).
+          ROLES_JSON=$(curl -sf \
             -H "Authorization: Bearer $NEON_API_KEY" \
-            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID/roles" \
-            | jq -r '.roles[0].name // empty' || echo "")
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID/roles" || echo "{}")
+          ROLE_NAME=$(echo "$ROLES_JSON" | jq -r '
+            first((.roles[] | select(.name == "neondb_owner")), .roles[0]) | .name // empty' || echo "")
           DB_NAME=$(curl -sf \
             -H "Authorization: Bearer $NEON_API_KEY" \
             "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID/databases" \
             | jq -r '.databases[0].name // empty' || echo "")
-          echo "NEON_DEBUG: role=$ROLE_NAME db=$DB_NAME"
+          echo "Using role=$ROLE_NAME db=$DB_NAME for connection URI"
 
           if [ -z "$ROLE_NAME" ] || [ -z "$DB_NAME" ]; then
             echo "::error::Could not discover role/database name for Neon branch $BRANCH_ID"
             exit 1
           fi
 
-          URI_RAW=$(curl -s -w "\n%{http_code}" \
+          CONNECTION_URI=$(curl -sf \
             -H "Authorization: Bearer $NEON_API_KEY" \
-            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/connection_uri?branch_id=$BRANCH_ID&role_name=$ROLE_NAME&database_name=$DB_NAME" \
-            || echo "CURL_ERROR\n000")
-          URI_HTTP=$(printf '%s' "$URI_RAW" | tail -1)
-          URI_BODY=$(printf '%s' "$URI_RAW" | head -n -1)
-          echo "NEON_DEBUG: connection_uri HTTP=$URI_HTTP"
-          CONNECTION_URI=$(echo "$URI_BODY" | jq -r '.uri // empty' 2>/dev/null || echo "")
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/connection_uri?branch_id=$BRANCH_ID&role_name=$ROLE_NAME&database_name=$DB_NAME&pooled=false" \
+            | jq -r '.uri // empty' || echo "")
 
           if [ "$CONNECTION_URI" = "null" ] || [ -z "$CONNECTION_URI" ]; then
             echo "::error::Failed to get connection URI from Neon branch response"
