@@ -282,7 +282,7 @@ describe('beforeLoad', () => {
 
     // Act
     expect(captured.beforeLoad).not.toBeNull()
-    await captured.beforeLoad!(ctx)
+    await captured.beforeLoad?.(ctx)
 
     // Assert
     const { enforceRoutePermission } = await import('@/lib/routePermissions')
