@@ -73,7 +73,7 @@ export function ClosingSection() {
               <Card
                 variant="subtle"
                 className={cn(
-                  'group flex flex-col items-center gap-4 p-8 text-center transition-colors',
+                  'group flex h-full flex-col items-center gap-4 p-8 text-center transition-colors',
                   cta.href && 'cursor-pointer hover:border-primary/30'
                 )}
               >
@@ -89,7 +89,13 @@ export function ClosingSection() {
 
             if (cta.external) {
               return (
-                <a key={cta.id} href={cta.href} target="_blank" rel="noopener noreferrer">
+                <a
+                  key={cta.id}
+                  href={cta.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block h-full"
+                >
                   {content}
                 </a>
               )
@@ -97,13 +103,22 @@ export function ClosingSection() {
 
             if (cta.href && cta.splat !== undefined) {
               return (
-                <Link key={cta.id} to={cta.href} params={{ _splat: cta.splat }}>
+                <Link
+                  key={cta.id}
+                  to={cta.href}
+                  params={{ _splat: cta.splat }}
+                  className="block h-full"
+                >
                   {content}
                 </Link>
               )
             }
 
-            return <div key={cta.id}>{content}</div>
+            return (
+              <div key={cta.id} className="h-full">
+                {content}
+              </div>
+            )
           })}
         </div>
       </AnimatedSection>
