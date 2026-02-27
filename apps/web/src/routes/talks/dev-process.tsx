@@ -6,10 +6,13 @@ import { BigPictureSection } from '@/components/presentation/dev-process/BigPict
 import { BuildPhaseSection } from '@/components/presentation/dev-process/BuildPhaseSection'
 import { ClosingSection } from '@/components/presentation/dev-process/ClosingSection'
 import { CompressorSection } from '@/components/presentation/dev-process/CompressorSection'
+import { CustomToolingSection } from '@/components/presentation/dev-process/CustomToolingSection'
 import { FramePhaseSection } from '@/components/presentation/dev-process/FramePhaseSection'
 import { HooksSection } from '@/components/presentation/dev-process/HooksSection'
 import { HumanGatesSection } from '@/components/presentation/dev-process/HumanGatesSection'
 import { IntroSection } from '@/components/presentation/dev-process/IntroSection'
+import { MultiAgentSection } from '@/components/presentation/dev-process/MultiAgentSection'
+import { PluginEcosystemSection } from '@/components/presentation/dev-process/PluginEcosystemSection'
 import { ResumabilitySection } from '@/components/presentation/dev-process/ResumabilitySection'
 import { ShapePhaseSection } from '@/components/presentation/dev-process/ShapePhaseSection'
 import { ShipPhaseSection } from '@/components/presentation/dev-process/ShipPhaseSection'
@@ -37,6 +40,9 @@ export function DevProcessPresentation() {
     { id: 'build-phase', label: m.talk_dp_nav_build_phase() },
     { id: 'verify-phase', label: m.talk_dp_nav_verify_phase() },
     { id: 'ship-phase', label: m.talk_dp_nav_ship_phase() },
+    { id: 'custom-tooling', label: m.talk_dp_nav_custom_tooling() },
+    { id: 'multi-agent', label: m.talk_dp_nav_multi_agent() },
+    { id: 'plugin-ecosystem', label: m.talk_dp_nav_plugin_ecosystem() },
     { id: 'resumability', label: m.talk_dp_nav_resumability() },
     { id: 'human-gates', label: m.talk_dp_nav_human_gates() },
     { id: 'hooks', label: m.talk_dp_nav_hooks() },
@@ -105,6 +111,18 @@ export function DevProcessPresentation() {
 
         <SectionContainer id="ship-phase">
           <ShipPhaseSection />
+        </SectionContainer>
+
+        <SectionContainer id="custom-tooling">
+          <CustomToolingSection />
+        </SectionContainer>
+
+        <SectionContainer id="multi-agent">
+          <MultiAgentSection />
+        </SectionContainer>
+
+        <SectionContainer id="plugin-ecosystem">
+          <PluginEcosystemSection />
         </SectionContainer>
 
         <SectionContainer id="resumability">

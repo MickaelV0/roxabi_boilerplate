@@ -1,6 +1,6 @@
 import { AnimatedSection, Card, cn } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
-import { BookOpen, GitFork, Terminal } from 'lucide-react'
+import { BookOpen, GitFork, Package, Terminal } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { m } from '@/paraglide/messages'
 
@@ -38,6 +38,14 @@ export function ClosingSection() {
       label: m.talk_dp_closing_try,
       description: m.talk_dp_closing_try_desc,
     },
+    {
+      id: 'browse-plugins',
+      icon: Package,
+      label: m.talk_dp_closing_browse_plugins,
+      description: m.talk_dp_closing_browse_plugins_desc,
+      href: 'https://www.anthropic.com/claude-code',
+      external: true,
+    },
   ]
 
   return (
@@ -57,7 +65,7 @@ export function ClosingSection() {
 
       {/* CTA cards */}
       <AnimatedSection className="mt-12">
-        <div className="grid gap-6 sm:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {ctas.map((cta) => {
             const content = (
               <Card
