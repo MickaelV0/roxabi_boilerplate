@@ -10,7 +10,7 @@ description: |
   assistant: "I'll use the security-auditor agent to perform a security audit."
   </example>
 color: white
-tools: ["Read", "Glob", "Grep", "Bash", "WebSearch", "Task", "SendMessage"]
+tools: ["Read", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "Task", "TaskCreate", "TaskGet", "TaskUpdate", "TaskList", "SendMessage"]
 permissionMode: plan
 maxTurns: 30
 memory: project

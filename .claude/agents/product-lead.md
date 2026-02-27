@@ -11,7 +11,7 @@ description: |
   assistant: "I'll use the product-lead agent to define requirements."
   </example>
 color: white
-tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Task", "TeamCreate", "TeamDelete", "SendMessage"]
+tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "Task", "TaskCreate", "TaskGet", "TaskUpdate", "TaskList", "TeamCreate", "TeamDelete", "SendMessage"]
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
