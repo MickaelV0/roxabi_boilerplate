@@ -183,37 +183,31 @@ Reference for what each agent can and cannot do. Use this when deciding which ag
 | Grep | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Bash | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | WebSearch | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| WebFetch | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Task | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| WebFetch | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Task | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | SendMessage | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | TeamCreate | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ |
 | TeamDelete | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ |
-| TaskCreate / TaskGet / TaskUpdate / TaskList | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| TaskCreate / TaskGet / TaskUpdate / TaskList | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | AskUserQuestion | ❌ by design | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 > **Note:** `AskUserQuestion` is intentionally excluded from agents. Agents escalate blockers to the lead via `SendMessage` — they do not interact with the user directly.
 
 ### MCP Plugins
 
-MCP tools (Context7, Vercel) are only available to the **orchestrator** (main Claude Code session). Sub-agents use `WebSearch` + `Bash` CLI equivalents instead.
+MCP tools (Context7, Vercel) are only available to the **orchestrator** (main Claude Code session). Sub-agents use skills as partial workarounds, or `WebSearch` + `Bash` CLI equivalents.
 
-| MCP Tool | Orchestrator | All Agents |
-|----------|:---:|:---:|
-| Context7: resolve-library-id / query-docs | ✅ | ❌ |
-| Vercel: deploy, logs, get_deployment, etc. | ✅ | ❌ |
+| MCP Tool | Orchestrator | Agents | Workaround |
+|----------|:---:|:---:|---|
+| Context7: resolve-library-id / query-docs | ✅ | ❌ | `context7-plugin:docs` skill (backend-dev, doc-writer) |
+| Vercel: deploy, logs, get_deployment, etc. | ✅ | ❌ | `vercel:logs`, `vercel:deploy` skills (devops) |
 
 ### Known Gaps
 
 | Gap | Severity | Impact |
 |-----|----------|--------|
-| `TaskCreate`, `TaskGet`, `TaskUpdate`, `TaskList` missing from all agents | 🔴 Must fix | Agents cannot claim tasks, mark complete, or create follow-ups autonomously — the micro-task protocol in AGENTS.md requires these |
-| `Task` missing from `fixer` | 🔴 Must fix | fixer cannot delegate to domain-specific sub-fixers for multi-domain findings |
-| `WebFetch` missing from all agents | 🟡 Should add | Agents cannot fetch specific URLs (deployed pages, raw GitHub files, API responses). `WebSearch` only finds, it does not fetch a targeted URL |
-| Context7 not available to agents | 🟡 Should add | doc-writer, frontend-dev, backend-dev, architect use `WebSearch` for docs — Context7 gives versioned, authoritative library documentation |
-| Vercel MCP not available to `devops` | 🟡 Should add | devops uses `vercel` / `gh` CLI via Bash — Vercel MCP gives structured access to logs and deployment status |
-| No skills on `doc-writer` | 🟡 Should add | Would benefit from `context7-plugin:docs` for library reference lookups while writing docs |
-| No skills on `backend-dev` | 🟡 Should add | Would benefit from `context7-plugin:docs` for NestJS / Drizzle API lookups |
-| No skills on `devops` | 🟡 Should add | Would benefit from `vercel:logs`, `vercel:deploy` skills |
+| Context7 MCP tools not available to agents | 🟡 Workaround available | Agents use `context7-plugin:docs` skill (doc-writer, backend-dev) or `WebSearch` as fallback. Context7 MCP tools (`resolve-library-id`, `query-docs`) remain orchestrator-only |
+| Vercel MCP tools not available to `devops` | 🟡 Workaround available | devops uses `vercel:logs`, `vercel:deploy` skills + `vercel` / `gh` CLI via Bash. Vercel MCP structured tools remain orchestrator-only |
 
 ---
 
@@ -250,10 +244,10 @@ Some agents have skills preloaded, matching their primary function:
 | Agent | Skill | Purpose |
 |-------|-------|---------|
 | frontend-dev | `frontend-design`, `ui-ux-pro-max` | UI design guardrails + design system |
-| backend-dev | — | No preloaded skill |
-| devops | — | No preloaded skill |
-| doc-writer | — | No preloaded skill |
-| fixer | — | No preloaded skill |
+| backend-dev | `context7-plugin:docs` | NestJS / Drizzle / library documentation lookup |
+| devops | `vercel:logs`, `vercel:deploy` | Vercel deployment + log access |
+| doc-writer | `context7-plugin:docs` | Library reference lookups while writing docs |
+| fixer | `fix` | Apply review findings workflow |
 | tester | `test` | Test generation |
 | architect | `adr` | Architecture Decision Records |
 | product-lead | `interview`, `issue-triage`, `issues`, `1b1` | Product ownership toolkit |
