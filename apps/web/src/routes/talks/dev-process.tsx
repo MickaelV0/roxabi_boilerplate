@@ -40,12 +40,12 @@ export function DevProcessPresentation() {
     { id: 'build-phase', label: m.talk_dp_nav_build_phase() },
     { id: 'verify-phase', label: m.talk_dp_nav_verify_phase() },
     { id: 'ship-phase', label: m.talk_dp_nav_ship_phase() },
-    { id: 'custom-tooling', label: m.talk_dp_nav_custom_tooling() },
-    { id: 'multi-agent', label: m.talk_dp_nav_multi_agent() },
-    { id: 'plugin-ecosystem', label: m.talk_dp_nav_plugin_ecosystem() },
     { id: 'resumability', label: m.talk_dp_nav_resumability() },
     { id: 'human-gates', label: m.talk_dp_nav_human_gates() },
     { id: 'hooks', label: m.talk_dp_nav_hooks() },
+    { id: 'custom-tooling', label: m.talk_dp_nav_custom_tooling() },
+    { id: 'multi-agent', label: m.talk_dp_nav_multi_agent() },
+    { id: 'plugin-ecosystem', label: m.talk_dp_nav_plugin_ecosystem() },
     { id: 'compressor', label: m.talk_dp_nav_compressor() },
     { id: 'closing', label: m.talk_dp_nav_closing() },
   ]
@@ -113,18 +113,6 @@ export function DevProcessPresentation() {
           <ShipPhaseSection />
         </SectionContainer>
 
-        <SectionContainer id="custom-tooling">
-          <CustomToolingSection />
-        </SectionContainer>
-
-        <SectionContainer id="multi-agent">
-          <MultiAgentSection />
-        </SectionContainer>
-
-        <SectionContainer id="plugin-ecosystem">
-          <PluginEcosystemSection />
-        </SectionContainer>
-
         <SectionContainer id="resumability">
           <ResumabilitySection />
         </SectionContainer>
@@ -135,6 +123,18 @@ export function DevProcessPresentation() {
 
         <SectionContainer id="hooks">
           <HooksSection />
+        </SectionContainer>
+
+        <SectionContainer id="custom-tooling">
+          <CustomToolingSection />
+        </SectionContainer>
+
+        <SectionContainer id="multi-agent">
+          <MultiAgentSection />
+        </SectionContainer>
+
+        <SectionContainer id="plugin-ecosystem">
+          <PluginEcosystemSection />
         </SectionContainer>
 
         <SectionContainer id="compressor">
