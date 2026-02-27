@@ -191,11 +191,31 @@ jobs:
             exit 1
           fi
 
-          # Fetch connection URI from the dedicated endpoint (more reliable than create response)
-          URI_RESPONSE=$(retry_cmd 3 5 curl -sf \
+          # Fetch connection URI — role_name and database_name are required params.
+          # Dynamically discover them from the branch to avoid hardcoding.
+          ROLE_NAME=$(curl -sf \
             -H "Authorization: Bearer $NEON_API_KEY" \
-            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/connection_uri?branch_id=$BRANCH_ID")
-          CONNECTION_URI=$(echo "$URI_RESPONSE" | jq -r '.uri // empty')
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID/roles" \
+            | jq -r '.roles[0].name // empty' || echo "")
+          DB_NAME=$(curl -sf \
+            -H "Authorization: Bearer $NEON_API_KEY" \
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID/databases" \
+            | jq -r '.databases[0].name // empty' || echo "")
+          echo "NEON_DEBUG: role=$ROLE_NAME db=$DB_NAME"
+
+          if [ -z "$ROLE_NAME" ] || [ -z "$DB_NAME" ]; then
+            echo "::error::Could not discover role/database name for Neon branch $BRANCH_ID"
+            exit 1
+          fi
+
+          URI_RAW=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer $NEON_API_KEY" \
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/connection_uri?branch_id=$BRANCH_ID&role_name=$ROLE_NAME&database_name=$DB_NAME" \
+            || echo "CURL_ERROR\n000")
+          URI_HTTP=$(printf '%s' "$URI_RAW" | tail -1)
+          URI_BODY=$(printf '%s' "$URI_RAW" | head -n -1)
+          echo "NEON_DEBUG: connection_uri HTTP=$URI_HTTP"
+          CONNECTION_URI=$(echo "$URI_BODY" | jq -r '.uri // empty' 2>/dev/null || echo "")
 
           if [ "$CONNECTION_URI" = "null" ] || [ -z "$CONNECTION_URI" ]; then
             echo "::error::Failed to get connection URI from Neon branch response"
