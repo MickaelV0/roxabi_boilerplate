@@ -27,6 +27,7 @@ Entries are generated automatically by `/promote` and committed to staging befor
 - fix: ADR skill meta.json corruption and feature-flags query migration (#395)
 - fix(docs): documentation accuracy audit — fix 55 inaccuracies across 26 files (#391)
 - fix(web): remove env.server import from routePermissions to silence Vite import warning
+- fix(ci): harden deploy-preview — async deletion wait, dynamic role/db discovery, neondb_owner + pooled=false for connection URI
 
 ### Documentation
 - docs(standards): Phase 1 practical standards (#383)
