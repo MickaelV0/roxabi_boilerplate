@@ -6,29 +6,29 @@ import { m } from '@/paraglide/messages'
 // --- Terminal Feed ---
 
 const TERMINAL_LINES = [
-  { type: 'cmd', text: '$ bun run dev' },
-  { type: 'info', text: '  web    ready on :3000' },
-  { type: 'info', text: '  api    ready on :4000' },
-  { type: 'success', text: '  \u2713 compiled in 342ms' },
-  { type: 'cmd', text: '$ bun run typecheck' },
-  { type: 'success', text: '  \u2713 0 errors' },
-  { type: 'cmd', text: '$ bun run test' },
-  { type: 'success', text: '  \u2713 47 tests passed' },
-  { type: 'cmd', text: '$ git push origin feat/auth' },
-  { type: 'info', text: '  \u2192 PR #42 auto-created' },
-  { type: 'info', text: '  \u2192 Review requested' },
-  { type: 'ai', text: '  \u27f3 AI review running...' },
-  { type: 'success', text: '  \u2713 Code review approved' },
-  { type: 'cmd', text: '$ bun run db:migrate' },
-  { type: 'success', text: '  \u2713 migrations applied' },
-  { type: 'cmd', text: '$ vercel deploy --prod' },
-  { type: 'success', text: '  \u2713 deployed in 28s' },
-  { type: 'info', text: '  \u2192 https://app.yourdomain.com' },
+  { id: 'cmd-dev', type: 'cmd', text: '$ bun run dev' },
+  { id: 'info-web', type: 'info', text: '  web    ready on :3000' },
+  { id: 'info-api', type: 'info', text: '  api    ready on :4000' },
+  { id: 'success-compiled', type: 'success', text: '  \u2713 compiled in 342ms' },
+  { id: 'cmd-typecheck', type: 'cmd', text: '$ bun run typecheck' },
+  { id: 'success-no-errors', type: 'success', text: '  \u2713 0 errors' },
+  { id: 'cmd-test', type: 'cmd', text: '$ bun run test' },
+  { id: 'success-tests', type: 'success', text: '  \u2713 47 tests passed' },
+  { id: 'cmd-push', type: 'cmd', text: '$ git push origin feat/auth' },
+  { id: 'info-pr-created', type: 'info', text: '  \u2192 PR #42 auto-created' },
+  { id: 'info-review-req', type: 'info', text: '  \u2192 Review requested' },
+  { id: 'ai-review', type: 'ai', text: '  \u27f3 AI review running...' },
+  { id: 'success-review', type: 'success', text: '  \u2713 Code review approved' },
+  { id: 'cmd-migrate', type: 'cmd', text: '$ bun run db:migrate' },
+  { id: 'success-migrations', type: 'success', text: '  \u2713 migrations applied' },
+  { id: 'cmd-deploy', type: 'cmd', text: '$ vercel deploy --prod' },
+  { id: 'success-deployed', type: 'success', text: '  \u2713 deployed in 28s' },
+  { id: 'info-url', type: 'info', text: '  \u2192 https://app.yourdomain.com' },
 ] as const
 
 type LineType = (typeof TERMINAL_LINES)[number]['type']
 
-function colorClass(type: LineType): string {
+function lineClass(type: LineType): string {
   switch (type) {
     case 'cmd':
       return 'text-zinc-100'
@@ -37,33 +37,24 @@ function colorClass(type: LineType): string {
     case 'success':
       return 'text-emerald-400'
     case 'ai':
-      return 'text-indigo-400 animate-pulse'
+      return 'text-indigo-400 motion-safe:animate-pulse'
   }
 }
 
 function TerminalFeed() {
   return (
-    <>
-      <style>{`
-        @keyframes scroll-up {
-          from { transform: translateY(0); }
-          to { transform: translateY(-50%); }
-        }
-        .terminal-scroll { animation: scroll-up 22s linear infinite; }
-      `}</style>
-      <div className="overflow-hidden h-full">
-        <div className="terminal-scroll">
-          {[...TERMINAL_LINES, ...TERMINAL_LINES].map((line, i) => (
-            <div
-              key={`${i < TERMINAL_LINES.length ? 0 : 1}-${line.text}`}
-              className={`font-mono text-xs leading-6 ${colorClass(line.type)}`}
-            >
-              {line.text}
-            </div>
-          ))}
-        </div>
+    <div className="overflow-hidden h-full">
+      <div className="terminal-scroll">
+        {[...TERMINAL_LINES, ...TERMINAL_LINES].map((line, i) => (
+          <div
+            key={`${i < TERMINAL_LINES.length ? 0 : 1}-${line.id}`}
+            className={`font-mono text-xs leading-6 ${lineClass(line.type)}`}
+          >
+            {line.text}
+          </div>
+        ))}
       </div>
-    </>
+    </div>
   )
 }
 
@@ -102,7 +93,10 @@ function AgentActivityCard() {
               </>
             ) : (
               <>
-                <Loader2 className="size-3 shrink-0 animate-spin text-primary" aria-hidden="true" />
+                <Loader2
+                  className="size-3 shrink-0 motion-safe:animate-spin text-primary"
+                  aria-hidden="true"
+                />
                 <span className="flex-1 truncate text-muted-foreground">{item.label}</span>
               </>
             )}
@@ -171,7 +165,7 @@ export function HeroSection() {
         />
       </div>
 
-      <div className="relative mx-auto flex min-h-[90vh] max-w-7xl items-center px-6 py-28">
+      <div className="relative mx-auto flex h-full max-w-7xl items-center px-6 py-28">
         {/* Left — text content */}
         <div className="relative z-10 flex-1 lg:pr-16">
           <div className="animate-hero-in">
@@ -182,10 +176,7 @@ export function HeroSection() {
               {m.hero_badge()}
             </Badge>
 
-            <h1
-              className="max-w-2xl text-5xl font-bold text-balance sm:text-6xl lg:text-7xl"
-              style={{ letterSpacing: '-0.03em', lineHeight: 1.08 }}
-            >
+            <h1 className="max-w-2xl text-5xl font-bold text-balance sm:text-6xl lg:text-7xl tracking-[-0.03em] leading-[1.08]">
               {m.hero_title()}
             </h1>
 
@@ -233,20 +224,17 @@ export function HeroSection() {
         </div>
 
         {/* Right — terminal feed panel with floating cards */}
-        <div
-          className="animate-hero-in-delayed relative hidden lg:block lg:w-[420px] xl:w-[480px] overflow-visible"
-          style={{ aspectRatio: '1 / 1.1' }}
-        >
+        <div className="animate-hero-in-delayed relative hidden lg:block lg:w-[420px] xl:w-[480px] overflow-visible aspect-[1/1.1]">
           {/* Floating cards */}
           <AgentActivityCard />
           <FeatureChip />
           <CodeSnippetCard />
 
           {/* Terminal panel */}
-          <div className="absolute inset-0 overflow-hidden rounded-2xl border border-border/40 bg-zinc-950 dark:bg-[#0a0a0f] px-4 py-4">
+          <div className="absolute inset-0 overflow-hidden rounded-2xl border border-border/40 bg-[var(--color-terminal-bg)] px-4 py-4">
             {/* Fade top and bottom */}
-            <div className="pointer-events-none absolute top-0 left-0 right-0 h-12 z-10 bg-gradient-to-b from-zinc-950 dark:from-[#0a0a0f] to-transparent" />
-            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 z-10 bg-gradient-to-t from-zinc-950 dark:from-[#0a0a0f] to-transparent" />
+            <div className="pointer-events-none absolute top-0 left-0 right-0 h-12 z-10 bg-gradient-to-b from-[var(--color-terminal-bg)] to-transparent" />
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 z-10 bg-gradient-to-t from-[var(--color-terminal-bg)] to-transparent" />
             {/* Terminal content */}
             <TerminalFeed />
             <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-zinc-800/60" />

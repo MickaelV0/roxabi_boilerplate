@@ -141,6 +141,46 @@ describe('AllExceptionsFilter', () => {
     expect(body.errorCode).toBeUndefined()
   })
 
+  describe('logging', () => {
+    it('should log 5xx exceptions at error level with stack trace', () => {
+      const { host } = createMockHost()
+      const exception = new Error('internal failure')
+
+      const logger = Reflect.get(filter, 'logger') as Logger
+      const errorSpy = vi.spyOn(logger, 'error')
+      const warnSpy = vi.spyOn(logger, 'warn')
+
+      filter.catch(exception, host as never)
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('GET /test - 500'),
+        exception.stack
+      )
+      expect(warnSpy).not.toHaveBeenCalled()
+
+      errorSpy.mockRestore()
+      warnSpy.mockRestore()
+    })
+
+    it('should log 4xx HttpExceptions at warn level with exception message', () => {
+      const { host } = createMockHost()
+      const exception = new HttpException('Not found', HttpStatus.NOT_FOUND)
+
+      const logger = Reflect.get(filter, 'logger') as Logger
+      const warnSpy = vi.spyOn(logger, 'warn')
+      const errorSpy = vi.spyOn(logger, 'error')
+
+      filter.catch(exception, host as never)
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('GET /test - 404'))
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Not found'))
+      expect(errorSpy).not.toHaveBeenCalled()
+
+      warnSpy.mockRestore()
+      errorSpy.mockRestore()
+    })
+  })
+
   describe('ThrottlerException handling', () => {
     it('should return 429 with Retry-After header for ThrottlerException', () => {
       // Arrange

@@ -88,15 +88,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   private logException(
     exception: unknown,
-    request: FastifyRequest,
+    request: { method: string; url: string },
     correlationId: string,
     status: number
   ) {
-    const label = `[${correlationId}] ${request.method} ${request.url} - ${status}`
+    const label = `[${correlationId}] ${request.method} ${request.url.split('?')[0]} - ${status}`
     if (status >= 500) {
       this.logger.error(label, exception instanceof Error ? exception.stack : undefined)
     } else {
-      this.logger.warn(label)
+      this.logger.warn(
+        `${label} - ${exception instanceof Error ? exception.message : String(exception)}`
+      )
     }
   }
 
@@ -139,7 +141,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const tracker = meta?.tracker ?? 'unknown'
     const tierName = meta?.tierName ?? 'unknown'
     this.logger.warn(
-      `[${correlationId}] RATE_LIMIT tracker=${tracker} path=${request.url} tier=${tierName}`
+      `[${correlationId}] RATE_LIMIT tracker=${tracker} path=${request.url.split('?')[0]} tier=${tierName}`
     )
 
     response.header('x-correlation-id', correlationId)
