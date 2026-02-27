@@ -1,6 +1,6 @@
 import { AnimatedSection, Card, cn } from '@repo/ui'
 import { Link } from '@tanstack/react-router'
-import { BookOpen, GitFork, Package, Terminal } from 'lucide-react'
+import { BookMarked, BookOpen, GitFork, Package } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { m } from '@/paraglide/messages'
 
@@ -33,17 +33,19 @@ export function ClosingSection() {
       external: true,
     },
     {
-      id: 'try',
-      icon: Terminal,
-      label: m.talk_dp_closing_try,
-      description: m.talk_dp_closing_try_desc,
+      id: 'plugins-official',
+      icon: Package,
+      label: m.talk_dp_closing_plugins_official,
+      description: m.talk_dp_closing_plugins_official_desc,
+      href: 'https://github.com/anthropics/claude-plugins-official',
+      external: true,
     },
     {
-      id: 'browse-plugins',
-      icon: Package,
-      label: m.talk_dp_closing_browse_plugins,
-      description: m.talk_dp_closing_browse_plugins_desc,
-      href: 'https://www.anthropic.com/claude-code',
+      id: 'plugins-knowledge',
+      icon: BookMarked,
+      label: m.talk_dp_closing_plugins_knowledge,
+      description: m.talk_dp_closing_plugins_knowledge_desc,
+      href: 'https://github.com/anthropics/knowledge-work-plugins',
       external: true,
     },
   ]

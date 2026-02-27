@@ -4,6 +4,8 @@ import { useCallback, useRef } from 'react'
 import { LocaleSwitcher } from '@/components/LocaleSwitcher'
 import { BigPictureSection } from '@/components/presentation/dev-process/BigPictureSection'
 import { BuildPhaseSection } from '@/components/presentation/dev-process/BuildPhaseSection'
+import { CiCdSection } from '@/components/presentation/dev-process/CiCdSection'
+import { ClaudeCodeActionSection } from '@/components/presentation/dev-process/ClaudeCodeActionSection'
 import { ClosingSection } from '@/components/presentation/dev-process/ClosingSection'
 import { CompressorSection } from '@/components/presentation/dev-process/CompressorSection'
 import { CustomToolingSection } from '@/components/presentation/dev-process/CustomToolingSection'
@@ -46,6 +48,8 @@ export function DevProcessPresentation() {
     { id: 'custom-tooling', label: m.talk_dp_nav_custom_tooling() },
     { id: 'multi-agent', label: m.talk_dp_nav_multi_agent() },
     { id: 'plugin-ecosystem', label: m.talk_dp_nav_plugin_ecosystem() },
+    { id: 'ci-cd', label: m.talk_dp_nav_ci_cd() },
+    { id: 'claude-code-action', label: m.talk_dp_nav_cca() },
     { id: 'compressor', label: m.talk_dp_nav_compressor() },
     { id: 'closing', label: m.talk_dp_nav_closing() },
   ]
@@ -135,6 +139,14 @@ export function DevProcessPresentation() {
 
         <SectionContainer id="plugin-ecosystem">
           <PluginEcosystemSection />
+        </SectionContainer>
+
+        <SectionContainer id="ci-cd">
+          <CiCdSection />
+        </SectionContainer>
+
+        <SectionContainer id="claude-code-action">
+          <ClaudeCodeActionSection />
         </SectionContainer>
 
         <SectionContainer id="compressor">
