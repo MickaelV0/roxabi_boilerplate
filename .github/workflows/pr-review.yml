@@ -51,14 +51,18 @@ jobs:
           use_sticky_comment: true
           use_commit_signing: true
           base_branch: ${{ github.base_ref }}
-          claude_args: --max-turns 15
+          claude_args: --max-turns 25
           prompt: |
             # PR Review & Auto-fix for PR #${{ github.event.pull_request.number }}
 
+            IMPORTANT: Do NOT use any project skills (e.g. /review). Work directly with Bash
+            commands. Do not spawn sub-agents. Complete all three steps yourself.
+
             **Step 1 — Review**
-            Review the PR diff thoroughly. Identify bugs, security issues, style violations,
-            type errors, and anything that deviates from the project coding standards
-            (single quotes, no semicolons, trailing commas es5, 2-space indent, 100-char width).
+            Get the diff with: `gh pr diff ${{ github.event.pull_request.number }}`
+            Review it for bugs, security issues, style violations, type errors, and anything
+            that deviates from the project coding standards (single quotes, no semicolons,
+            trailing commas es5, 2-space indent, 100-char width).
 
             **Step 2 — Auto-fix**
             Fix issues you can address safely without changing logic or behaviour:
