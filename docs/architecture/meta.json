@@ -2,6 +2,7 @@
   "title": "Architecture",
   "pages": [
     "index",
+    "backend-ddd-hexagonal",
     "frontend",
     "database",
     "auth-security",
