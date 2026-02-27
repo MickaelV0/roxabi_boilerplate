@@ -141,8 +141,8 @@ function FeatureFlagsPage() {
             <FlagListItem
               key={flag.id}
               flag={flag}
-              onToggle={async (id, enabled) => toggleMutation.mutate({ id, enabled })}
-              onDelete={async (id) => deleteMutation.mutate(id)}
+              onToggle={(id, enabled) => toggleMutation.mutate({ id, enabled })}
+              onDelete={(id) => deleteMutation.mutate(id)}
             />
           ))}
         </div>

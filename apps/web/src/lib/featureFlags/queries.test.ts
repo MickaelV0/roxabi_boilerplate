@@ -9,8 +9,9 @@ describe('featureFlagQueries', () => {
   })
 
   it('list() queryFn passes signal to fetch', async () => {
-    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) })
-    globalThis.fetch = fetchSpy
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve([]) } as Response)
     const controller = new AbortController()
     const opts = featureFlagQueries.list()
     const queryFn = opts.queryFn as NonNullable<typeof opts.queryFn>

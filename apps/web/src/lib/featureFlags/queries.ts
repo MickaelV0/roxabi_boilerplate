@@ -12,7 +12,7 @@ export const featureFlagQueries = {
           signal,
         })
         if (!res.ok) throw new Error('Failed to fetch feature flags')
-        return res.json() as Promise<FeatureFlag[]>
+        return (await res.json()) as FeatureFlag[]
       },
     }),
 }
