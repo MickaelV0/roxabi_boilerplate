@@ -101,23 +101,19 @@ description: {One-line summary of the decision}
 
 #### 5. Update meta.json
 
-Read `docs/architecture/adr/meta.json` if it exists. If it does not exist, create it.
-
-The file is a JSON array of ADR entries:
+Read `docs/architecture/adr/meta.json` if it exists. If it does not exist, create it with:
 
 ```json
-[
-  {
-    "number": 1,
-    "title": "ADR-001: Fastify over Express",
-    "status": "Accepted",
-    "date": "2025-03-15",
-    "file": "001-fastify-over-express.mdx"
-  }
-]
+{ "title": "ADRs", "pages": [] }
 ```
 
-Append the new ADR entry and write the file back.
+The file uses the Fumadocs navigation format — a plain object with a `pages` array of ADR slugs (filename without `.mdx` extension):
+
+```json
+{ "title": "ADRs", "pages": ["001-fastify-over-express", "002-bun-as-runtime"] }
+```
+
+Append the new ADR slug (e.g., `"004-some-decision"`) to the `pages` array and write the updated object back, preserving `title` and all existing entries. Never replace the file with the old array-of-objects format.
 
 #### 6. Confirm
 
@@ -134,7 +130,7 @@ When `--list` flag is used:
 
 1. Scan `docs/architecture/adr/` for all `.mdx` files.
 2. If no ADRs exist, inform the user and suggest creating one with `/adr "Title"`.
-3. If ADRs exist, read `meta.json` and present a table:
+3. If ADRs exist, read `meta.json` and check for the Fumadocs `{ title, pages }` format. If `pages` is present, iterate the slugs in order to list each ADR. For each slug, derive the filename (`{slug}.mdx`) and read its frontmatter for title, status, and date. Present a table:
 
 ```
 Architecture Decision Records
@@ -146,7 +142,7 @@ Architecture Decision Records
   003  │ REST over GraphQL                  │ Deprecated│ 2025-04-10
 ```
 
-If `meta.json` is missing or outdated, fall back to reading frontmatter from each `.mdx` file directly.
+If `meta.json` is missing or is not in the recognised `{ title, pages }` format, fall back to scanning all `.mdx` files directly and reading frontmatter from each file.
 
 ## Edge Cases
 
