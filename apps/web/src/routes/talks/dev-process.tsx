@@ -17,6 +17,7 @@ import { IntroSection } from '@/components/presentation/dev-process/IntroSection
 import { MultiAgentSection } from '@/components/presentation/dev-process/MultiAgentSection'
 import { PluginEcosystemSection } from '@/components/presentation/dev-process/PluginEcosystemSection'
 import { ResumabilitySection } from '@/components/presentation/dev-process/ResumabilitySection'
+import { RolePluginsSection } from '@/components/presentation/dev-process/RolePluginsSection'
 import { ShapePhaseSection } from '@/components/presentation/dev-process/ShapePhaseSection'
 import { ShipPhaseSection } from '@/components/presentation/dev-process/ShipPhaseSection'
 import { TierSystemSection } from '@/components/presentation/dev-process/TierSystemSection'
@@ -51,6 +52,7 @@ export function DevProcessPresentation() {
     { id: 'custom-tooling', label: m.talk_dp_nav_custom_tooling() },
     { id: 'multi-agent', label: m.talk_dp_nav_multi_agent() },
     { id: 'plugin-ecosystem', label: m.talk_dp_nav_plugin_ecosystem() },
+    { id: 'role-plugins', label: m.talk_dp_nav_role_plugins() },
     { id: 'ci-cd', label: m.talk_dp_nav_ci_cd() },
     { id: 'claude-code-action', label: m.talk_dp_nav_cca() },
     { id: 'compressor', label: m.talk_dp_nav_compressor() },
@@ -147,6 +149,10 @@ export function DevProcessPresentation() {
 
         <SectionContainer id="plugin-ecosystem">
           <PluginEcosystemSection />
+        </SectionContainer>
+
+        <SectionContainer id="role-plugins">
+          <RolePluginsSection />
         </SectionContainer>
 
         <SectionContainer id="ci-cd">
