@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Injectable,
   Logger,
+  Optional,
 } from '@nestjs/common'
 import { ThrottlerException } from '@nestjs/throttler'
 import type { FastifyReply, FastifyRequest } from 'fastify'
@@ -35,9 +36,14 @@ function hasErrorCode(value: unknown): value is { errorCode: string } {
 @Catch()
 @Injectable()
 export class AllExceptionsFilter implements ExceptionFilter {
-  private readonly logger = new Logger(AllExceptionsFilter.name)
+  private readonly logger: Logger
 
-  constructor(private readonly cls: ClsService) {}
+  constructor(
+    private readonly cls: ClsService,
+    @Optional() logger?: Logger
+  ) {
+    this.logger = logger ?? new Logger(AllExceptionsFilter.name)
+  }
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp()
@@ -80,13 +86,26 @@ export class AllExceptionsFilter implements ExceptionFilter {
       ...(errorCode !== undefined && { errorCode }),
     }
 
-    this.logger.error(
-      `[${correlationId}] ${request.method} ${request.url} - ${status}`,
-      exception instanceof Error ? exception.stack : undefined
-    )
+    this.logException(exception, request, correlationId, status)
 
     response.header('x-correlation-id', correlationId)
     response.status(status).send(errorResponse)
+  }
+
+  private logException(
+    exception: unknown,
+    request: { method: string; url: string },
+    correlationId: string,
+    status: number
+  ) {
+    const label = `[${correlationId}] ${request.method} ${request.url.split('?')[0]} - ${status}`
+    if (status >= 500) {
+      this.logger.error(label, exception instanceof Error ? exception.stack : undefined)
+    } else {
+      this.logger.warn(
+        `${label} - ${exception instanceof Error ? exception.message : String(exception)}`
+      )
+    }
   }
 
   private handleThrottlerException(
@@ -128,7 +147,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const tracker = meta?.tracker ?? 'unknown'
     const tierName = meta?.tierName ?? 'unknown'
     this.logger.warn(
-      `[${correlationId}] RATE_LIMIT tracker=${tracker} path=${request.url} tier=${tierName}`
+      `[${correlationId}] RATE_LIMIT tracker=${tracker} path=${request.url.split('?')[0]} tier=${tierName}`
     )
 
     response.header('x-correlation-id', correlationId)

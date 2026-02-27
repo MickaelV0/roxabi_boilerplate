@@ -1,17 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('@repo/ui', () => ({
-  Badge: ({ children }: React.PropsWithChildren<{ variant?: string; className?: string }>) => (
-    <span>{children}</span>
-  ),
-  Button: ({
-    children,
-    asChild,
-  }: React.PropsWithChildren<{ asChild?: boolean; variant?: string; size?: string }>) =>
-    asChild ? children : <button type="button">{children}</button>,
-}))
-
 vi.mock('@/paraglide/messages', () => ({
   m: {
     hero_badge: () => 'Open Source',
@@ -64,8 +53,20 @@ describe('HeroSection', () => {
     render(<HeroSection />)
 
     // Assert
-    expect(screen.getByText('Get Started')).toBeInTheDocument()
-    expect(screen.getByText('View on GitHub')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /get started/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /view on github/i })).toBeInTheDocument()
+  })
+
+  it('should render GitHub link with correct href and rel attributes', () => {
+    // Arrange & Act
+    render(<HeroSection />)
+
+    // Assert
+    const githubLink = screen.getByRole('link', { name: /view on github/i })
+    expect(githubLink).toHaveAttribute('href', 'https://github.com/test/repo')
+    expect(githubLink).toHaveAttribute('rel', expect.stringContaining('noopener'))
+    expect(githubLink).toHaveAttribute('rel', expect.stringContaining('noreferrer'))
+    expect(githubLink).toHaveAttribute('target', '_blank')
   })
 
   it('should render stats', () => {
