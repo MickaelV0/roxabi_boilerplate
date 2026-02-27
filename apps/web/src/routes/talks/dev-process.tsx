@@ -21,6 +21,7 @@ import { ShapePhaseSection } from '@/components/presentation/dev-process/ShapePh
 import { ShipPhaseSection } from '@/components/presentation/dev-process/ShipPhaseSection'
 import { TierSystemSection } from '@/components/presentation/dev-process/TierSystemSection'
 import { VerifyPhaseSection } from '@/components/presentation/dev-process/VerifyPhaseSection'
+import { WhatsNextSection } from '@/components/presentation/dev-process/WhatsNextSection'
 import { SectionContainer } from '@/components/presentation/SectionContainer'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { m } from '@/paraglide/messages'
@@ -53,6 +54,7 @@ export function DevProcessPresentation() {
     { id: 'ci-cd', label: m.talk_dp_nav_ci_cd() },
     { id: 'claude-code-action', label: m.talk_dp_nav_cca() },
     { id: 'compressor', label: m.talk_dp_nav_compressor() },
+    { id: 'whats-next', label: m.talk_dp_nav_whats_next() },
     { id: 'closing', label: m.talk_dp_nav_closing() },
   ]
 
@@ -157,6 +159,10 @@ export function DevProcessPresentation() {
 
         <SectionContainer id="compressor">
           <CompressorSection />
+        </SectionContainer>
+
+        <SectionContainer id="whats-next">
+          <WhatsNextSection />
         </SectionContainer>
 
         <SectionContainer id="closing">
