@@ -86,6 +86,8 @@ lib/feature/
 
 Apply this structure when creating new feature directories in `apps/web/src/lib/`.
 
+**Flat file vs subdirectory threshold:** A module stays as a flat file (e.g., `lib/apiKeys.ts`) until it has ≥2 colocated files (e.g., `queryKeys.ts` + `queries.ts` + `api.ts`). At that point, graduate to a subdirectory to avoid a cluttered `lib/` root.
+
 ### File Naming
 
 - **Component files** (`**/components/**/*.tsx`): PascalCase — `BanDialog.tsx`, `FilterBar.tsx`

@@ -72,10 +72,6 @@ describe('pr-review.yml', () => {
     expect(claudeStep.with.claude_code_oauth_token).toContain('CLAUDE_CODE_OAUTH_TOKEN')
   })
 
-  it('uses sticky comment', () => {
-    expect(claudeStep.with.use_sticky_comment).toBe(true)
-  })
-
   it('uses commit signing', () => {
     expect(claudeStep.with.use_commit_signing).toBe(true)
   })

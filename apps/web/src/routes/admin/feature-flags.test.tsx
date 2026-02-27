@@ -5,13 +5,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
+  beforeLoad: null as ((ctx: unknown) => Promise<void>) | null,
 }))
 
 vi.mock('@tanstack/react-router', () => ({
-  createFileRoute: () => (config: { component: React.ComponentType }) => {
-    captured.Component = config.component
-    return { component: config.component }
-  },
+  createFileRoute:
+    () =>
+    (config: { component: React.ComponentType; beforeLoad?: (ctx: unknown) => Promise<void> }) => {
+      captured.Component = config.component
+      captured.beforeLoad = config.beforeLoad ?? null
+      return { component: config.component }
+    },
   redirect: vi.fn(),
 }))
 
@@ -28,6 +32,7 @@ vi.mock('@/lib/routePermissions', () => ({
 // Import after mocks to trigger createFileRoute and capture the component
 import './feature-flags'
 import { toast } from 'sonner'
+import { enforceRoutePermission } from '@/lib/routePermissions'
 
 // ---------------------------------------------------------------------------
 // QueryClient wrapper for tests
@@ -36,7 +41,7 @@ import { toast } from 'sonner'
 function createTestQueryClient() {
   return new QueryClient({
     defaultOptions: {
-      queries: { retry: false },
+      queries: { retry: false, gcTime: 0 },
       mutations: { retry: false },
     },
   })
@@ -265,5 +270,46 @@ describe('FeatureFlagsPage', () => {
     await waitFor(() => {
       expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Update failed')
     })
+  })
+})
+
+describe('beforeLoad', () => {
+  it('calls enforceRoutePermission then ensureQueryData', async () => {
+    // Arrange
+    const callOrder: string[] = []
+    vi.mocked(enforceRoutePermission).mockImplementation(async () => {
+      callOrder.push('enforceRoutePermission')
+    })
+    const mockEnsureQueryData = vi.fn().mockImplementation(async () => {
+      callOrder.push('ensureQueryData')
+      return []
+    })
+    const ctx = {
+      context: { queryClient: { ensureQueryData: mockEnsureQueryData } },
+    }
+
+    // Act
+    expect(captured.beforeLoad).not.toBeNull()
+    await captured.beforeLoad?.(ctx)
+
+    // Assert
+    expect(enforceRoutePermission).toHaveBeenCalledWith(ctx)
+    expect(mockEnsureQueryData).toHaveBeenCalled()
+    expect(callOrder).toEqual(['enforceRoutePermission', 'ensureQueryData'])
+  })
+
+  it('does not call ensureQueryData when enforceRoutePermission throws', async () => {
+    // Arrange
+    vi.mocked(enforceRoutePermission).mockRejectedValue(new Error('redirect'))
+    const mockEnsureQueryData = vi.fn()
+    const ctx = {
+      context: { queryClient: { ensureQueryData: mockEnsureQueryData } },
+    }
+
+    // Act
+    await expect(captured.beforeLoad?.(ctx)).rejects.toThrow('redirect')
+
+    // Assert
+    expect(mockEnsureQueryData).not.toHaveBeenCalled()
   })
 })
