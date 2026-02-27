@@ -18,8 +18,8 @@ import { useState } from 'react'
 
 type FlagListItemProps = {
   flag: FeatureFlag
-  onToggle: (id: string, enabled: boolean) => Promise<void>
-  onDelete: (id: string) => Promise<void>
+  onToggle: (id: string, enabled: boolean) => void | Promise<void>
+  onDelete: (id: string) => void | Promise<void>
 }
 
 function FlagListItem({ flag, onToggle, onDelete }: FlagListItemProps) {
