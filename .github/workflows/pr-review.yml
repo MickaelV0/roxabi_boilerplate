@@ -51,7 +51,7 @@ jobs:
           use_sticky_comment: true
           use_commit_signing: true
           base_branch: ${{ github.base_ref }}
-          claude_args: --max-turns 25 --dangerouslyBypassPermissions
+          claude_args: --max-turns 25 --allowed-tools Bash,Read,Edit,Write,Glob,Grep
           prompt: |
             # PR Review & Auto-fix for PR #${{ github.event.pull_request.number }}
 
