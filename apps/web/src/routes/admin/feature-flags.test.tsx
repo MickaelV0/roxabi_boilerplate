@@ -5,13 +5,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const captured = vi.hoisted(() => ({
   Component: (() => null) as React.ComponentType,
+  beforeLoad: null as ((ctx: unknown) => Promise<void>) | null,
 }))
 
 vi.mock('@tanstack/react-router', () => ({
-  createFileRoute: () => (config: { component: React.ComponentType }) => {
-    captured.Component = config.component
-    return { component: config.component }
-  },
+  createFileRoute:
+    () =>
+    (config: { component: React.ComponentType; beforeLoad?: (ctx: unknown) => Promise<void> }) => {
+      captured.Component = config.component
+      captured.beforeLoad = config.beforeLoad ?? null
+      return { component: config.component }
+    },
   redirect: vi.fn(),
 }))
 
@@ -265,5 +269,24 @@ describe('FeatureFlagsPage', () => {
     await waitFor(() => {
       expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Update failed')
     })
+  })
+})
+
+describe('beforeLoad', () => {
+  it('calls enforceRoutePermission then ensureQueryData', async () => {
+    // Arrange
+    const mockEnsureQueryData = vi.fn().mockResolvedValue([])
+    const ctx = {
+      context: { queryClient: { ensureQueryData: mockEnsureQueryData } },
+    }
+
+    // Act
+    expect(captured.beforeLoad).not.toBeNull()
+    await captured.beforeLoad!(ctx)
+
+    // Assert
+    const { enforceRoutePermission } = await import('@/lib/routePermissions')
+    expect(enforceRoutePermission).toHaveBeenCalledWith(ctx)
+    expect(mockEnsureQueryData).toHaveBeenCalled()
   })
 })
