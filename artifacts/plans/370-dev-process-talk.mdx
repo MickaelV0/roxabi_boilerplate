@@ -9,17 +9,17 @@ generated: "2026-02-26T00:00:00Z"
 
 ## Summary
 
-Build a 12-section scroll-snap presentation at `/talks/dev-process` covering the full dev lifecycle, with an interactive slider-wipe compression demo. Reuses existing presentation infrastructure (SectionContainer, PresentationNav, AnimatedSection). Single frontend-dev domain across 6 incremental slices.
+Build a 15-section scroll-snap presentation at `/talks/dev-process` covering the full dev lifecycle, including custom tooling, multi-agent patterns, and the plugin ecosystem, with an interactive slider-wipe compression demo. Reuses existing presentation infrastructure (SectionContainer, PresentationNav, AnimatedSection). Single frontend-dev domain across 7 incremental slices.
 
 ## Agents
 
 | Agent | Task count | Files |
 |-------|-----------|-------|
-| frontend-dev | 15 | `packages/ui/src/components/PresentationNav.tsx`, `apps/web/src/routes/talks/index.tsx`, `apps/web/src/routes/talks/dev-process.tsx`, `apps/web/src/routes/talks/claude-code.tsx`, `apps/web/src/components/presentation/dev-process/*.tsx`, `apps/web/messages/en.json`, `apps/web/messages/fr.json` |
+| frontend-dev | 18 | `packages/ui/src/components/PresentationNav.tsx`, `apps/web/src/routes/talks/index.tsx`, `apps/web/src/routes/talks/dev-process.tsx`, `apps/web/src/routes/talks/claude-code.tsx`, `apps/web/src/components/presentation/dev-process/*.tsx`, `apps/web/messages/en.json`, `apps/web/messages/fr.json` |
 
 ## Consistency Report
 
-- Criteria covered: 20/20
+- Criteria covered: 24/24
 - Uncovered criteria: none
 - Tasks without spec backing: none
 - Gold plating exemptions applied: 0
@@ -53,12 +53,12 @@ Build a 12-section scroll-snap presentation at `/talks/dev-process` covering the
 - **Traces:** SC-2, SC-19, N1
 - **Phase:** GREEN
 
-#### Task 3: Create dev-process route with 12 empty SectionContainers → frontend-dev
+#### Task 3: Create dev-process route with 15 empty SectionContainers → frontend-dev
 - **File:** `apps/web/src/routes/talks/dev-process.tsx`
-- **Snippet:** Follow `claude-code.tsx` pattern: `createFileRoute('/talks/dev-process')`, 12-item sections array, PresentationNav, scroll-snap container, 12 `<SectionContainer>` with placeholder content. Add `talk_dp_nav_*` i18n keys (12 nav labels) to en.json + fr.json. Escape navigates to `/talks/`.
+- **Snippet:** Follow `claude-code.tsx` pattern: `createFileRoute('/talks/dev-process')`, 15-item sections array, PresentationNav, scroll-snap container, 15 `<SectionContainer>` with placeholder content. Add `talk_dp_nav_*` i18n keys (15 nav labels) to en.json + fr.json. Escape navigates to `/talks/`.
 - **Verify:** `bun run typecheck --filter=@repo/web` (ready)
 - **Expected:** No type errors
-- **Time:** 8 min | **Difficulty:** 2
+- **Time:** 10 min | **Difficulty:** 2
 - **Traces:** SC-1, SC-3, SC-4, SC-5, SC-14, U1, U2, U3, U4, U5, U7
 - **Phase:** GREEN
 
@@ -75,7 +75,7 @@ Build a 12-section scroll-snap presentation at `/talks/dev-process` covering the
 
 #### Task 5: Create IntroSection component → frontend-dev
 - **File:** `apps/web/src/components/presentation/dev-process/IntroSection.tsx`
-- **Snippet:** Badge ("Part 2"), title, subtitle, 3 StatCounters (12 steps, 5 phases, 4 artifact types), background glow. Follow talk 1's IntroSection pattern. Add `talk_dp_intro_*` i18n keys to en.json + fr.json.
+- **Snippet:** Badge ("Part 2"), title, subtitle, 3 StatCounters (15 steps, 5 phases, 4 artifact types), background glow. Follow talk 1's IntroSection pattern. Add `talk_dp_intro_*` i18n keys to en.json + fr.json.
 - **Verify:** `bun run typecheck --filter=@repo/web` (ready)
 - **Expected:** No type errors
 - **Time:** 5 min | **Difficulty:** 2
@@ -84,7 +84,7 @@ Build a 12-section scroll-snap presentation at `/talks/dev-process` covering the
 
 #### Task 6: Create ClosingSection component [P] → frontend-dev
 - **File:** `apps/web/src/components/presentation/dev-process/ClosingSection.tsx`
-- **Snippet:** Title "Build Your Process", 3 CTA cards (Explore Docs, Fork Repo, Try `/dev #1`), background glow. Add `talk_dp_closing_*` i18n keys.
+- **Snippet:** Title "Build Your Process", 4 CTA cards (Explore Docs, Fork Repo, Try `/dev #1`, Browse Plugins), background glow. Add `talk_dp_closing_*` i18n keys.
 - **Verify:** `bun run typecheck --filter=@repo/web` (ready)
 - **Expected:** No type errors
 - **Time:** 4 min | **Difficulty:** 2
@@ -178,6 +178,35 @@ Build a 12-section scroll-snap presentation at `/talks/dev-process` covering the
 - **Expected:** No type errors
 - **Time:** 6 min | **Difficulty:** 2
 - **Traces:** SC-11, SC-5, SC-15
+- **Phase:** GREEN
+
+### Slice V7: Custom Tooling + Multi-Agent + Plugins
+
+#### Task 16: Create CustomToolingSection component → frontend-dev
+- **File:** `apps/web/src/components/presentation/dev-process/CustomToolingSection.tsx`
+- **Snippet:** Title "Tooling the Workflow". Three cards side-by-side (desktop) / stacked (mobile): (1) `:3333` dashboard — screenshot/mockup placeholder, description of live issue visibility; (2) MCP tools — icon grid (GitHub, Vercel, Postgres) showing external tool connections; (3) Custom CLI — alias/tmux code block. Key principle callout at bottom: "Agents operate your entire toolchain". Add `talk_dp_tools_*` i18n keys to en.json + fr.json.
+- **Verify:** `bun run typecheck --filter=@repo/web` (ready)
+- **Expected:** No type errors
+- **Time:** 8 min | **Difficulty:** 3
+- **Traces:** SC-9 (new), SC-5, SC-15
+- **Phase:** GREEN
+
+#### Task 17: Create MultiAgentSection component [P] → frontend-dev
+- **File:** `apps/web/src/components/presentation/dev-process/MultiAgentSection.tsx`
+- **Snippet:** Title "Agents as Perspectives". Hero A/B demo block: two agent cards side-by-side labeled `frontend-design` and `ui-ux-pro-max`, connected to a shared "Same Spec" input box above and a "Human Picks" decision node below — styled like a simple flow diagram using divs/borders (no SVG). Below, three smaller pattern cards: Parallel Domains, Fresh Reviewer, Escalation. Coordination primitives row: `TaskCreate`, `TaskUpdate`, `SendMessage`, `blockedBy` as pill badges. Add `talk_dp_multi_*` i18n keys to en.json + fr.json.
+- **Verify:** `bun run typecheck --filter=@repo/web` (ready)
+- **Expected:** No type errors
+- **Time:** 10 min | **Difficulty:** 3
+- **Traces:** SC-10 (new), SC-5, SC-15
+- **Phase:** GREEN
+
+#### Task 18: Create PluginEcosystemSection component [P] → frontend-dev
+- **File:** `apps/web/src/components/presentation/dev-process/PluginEcosystemSection.tsx`
+- **Snippet:** Title "Plugins: More Than Skills". Anatomy comparison row: two mini cards — "Skill" (one item: slash command) vs "Plugin" (list: agents, skills, hooks, MCP, settings, memory) — visually differentiated with border color. Three plugin type cards (Workflow / Integration / Knowledge) using the existing Card component with icon + title + description. Knowledge plugins card includes a two-line before/after callout (stale docs vs live docs). Anthropic marketplace callout badge at bottom. Add `talk_dp_plugins_*` i18n keys to en.json + fr.json.
+- **Verify:** `bun run typecheck --filter=@repo/web` (ready)
+- **Expected:** No type errors
+- **Time:** 8 min | **Difficulty:** 3
+- **Traces:** SC-11 (new), SC-5, SC-15
 - **Phase:** GREEN
 
 ### Wire-up (post all slices)
