@@ -1,5 +1,6 @@
 ---
 name: security-auditor
+model: sonnet
 description: |
   Use this agent to audit code for security vulnerabilities, review auth flows,
   and verify compliance with OWASP top 10.

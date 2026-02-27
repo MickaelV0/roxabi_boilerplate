@@ -1,5 +1,6 @@
 ---
 name: architect
+model: sonnet
 description: |
   Use this agent for system design decisions, cross-cutting architecture,
   and technical planning across the monorepo.

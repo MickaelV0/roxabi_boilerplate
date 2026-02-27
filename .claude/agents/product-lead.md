@@ -1,5 +1,6 @@
 ---
 name: product-lead
+model: sonnet
 description: |
   Use this agent for product leadership: requirements gathering, issue triage,
   prioritization, writing analyses and specs, driving the dev pipeline,
