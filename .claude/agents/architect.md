@@ -14,7 +14,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
-skills: adr
+skills: adr, context7-plugin:docs
 ---
 
 # Architect

@@ -189,9 +189,9 @@ Reference for what each agent can and cannot do. Use this when deciding which ag
 | TeamCreate | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ |
 | TeamDelete | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ |
 | TaskCreate / TaskGet / TaskUpdate / TaskList | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| AskUserQuestion | ❌ by design | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| AskUserQuestion | ❌ by convention | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
-> **Note:** `AskUserQuestion` is intentionally excluded from agents. Agents escalate blockers to the lead via `SendMessage` — they do not interact with the user directly.
+> **Note:** `AskUserQuestion` is a built-in tool available to all agents, but agents are expected to use `SendMessage` to escalate to the lead instead of interacting with the user directly. It does not need to be listed in `tools:` to be available.
 
 ### MCP Plugins
 
@@ -200,7 +200,7 @@ MCP tools (Context7, Vercel) are only available to the **orchestrator** (main Cl
 | MCP Tool | Orchestrator | Agents | Workaround |
 |----------|:---:|:---:|---|
 | Context7: resolve-library-id / query-docs | ✅ | ❌ | `context7-plugin:docs` skill (backend-dev, doc-writer) |
-| Vercel: deploy, logs, get_deployment, etc. | ✅ | ❌ | `vercel:logs`, `vercel:deploy` skills (devops) |
+| Vercel: deploy, logs, get_deployment, etc. | ✅ | ❌ | `vercel` / `gh` CLI via Bash (devops) |
 
 ### Known Gaps
 
@@ -243,13 +243,13 @@ Some agents have skills preloaded, matching their primary function:
 
 | Agent | Skill | Purpose |
 |-------|-------|---------|
-| frontend-dev | `frontend-design`, `ui-ux-pro-max` | UI design guardrails + design system |
+| frontend-dev | `frontend-design`, `ui-ux-pro-max`, `context7-plugin:docs` | UI design guardrails + design system + library docs |
 | backend-dev | `context7-plugin:docs` | NestJS / Drizzle / library documentation lookup |
-| devops | `vercel:logs`, `vercel:deploy` | Vercel deployment + log access |
+| devops | — | No preloaded skill (vercel skills pending) |
 | doc-writer | `context7-plugin:docs` | Library reference lookups while writing docs |
 | fixer | `fix` | Apply review findings workflow |
 | tester | `test` | Test generation |
-| architect | `adr` | Architecture Decision Records |
+| architect | `adr`, `context7-plugin:docs` | Architecture Decision Records + library docs |
 | product-lead | `interview`, `issue-triage`, `issues`, `1b1` | Product ownership toolkit |
 | security-auditor | — | No skill (pure analysis) |
 

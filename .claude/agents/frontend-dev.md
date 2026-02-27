@@ -15,7 +15,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
-skills: frontend-design, ui-ux-pro-max
+skills: frontend-design, ui-ux-pro-max, context7-plugin:docs
 ---
 
 # Frontend Dev

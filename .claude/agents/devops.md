@@ -15,7 +15,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"
 permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
-skills: vercel:logs, vercel:deploy
+skills:
 ---
 
 # DevOps
