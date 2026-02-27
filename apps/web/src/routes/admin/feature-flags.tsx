@@ -1,19 +1,22 @@
 import type { FeatureFlag } from '@repo/types'
 import { Card, Skeleton } from '@repo/ui'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { FlagIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { CreateFlagDialog } from '@/components/admin/CreateFlagDialog'
 import { FlagListItem } from '@/components/admin/FlagListItem'
 import { isErrorWithMessage } from '@/lib/errorUtils'
+import { featureFlagQueries } from '@/lib/featureFlags/queries'
+import { featureFlagKeys } from '@/lib/featureFlags/queryKeys'
 import { enforceRoutePermission } from '@/lib/routePermissions'
-
-const FEATURE_FLAGS_QUERY_KEY = ['admin', 'feature-flags'] as const
 
 export const Route = createFileRoute('/admin/feature-flags')({
   staticData: { permission: 'role:superadmin' },
-  beforeLoad: enforceRoutePermission,
+  beforeLoad: async (ctx) => {
+    await enforceRoutePermission(ctx)
+    await ctx.context.queryClient.ensureQueryData(featureFlagQueries.list())
+  },
   component: FeatureFlagsPage,
   head: () => ({ meta: [{ title: 'Feature Flags | Admin | Roxabi' }] }),
 })
@@ -49,72 +52,60 @@ function EmptyState() {
   )
 }
 
-function useFeatureFlagActions() {
+function useToggleFeatureFlag() {
   const queryClient = useQueryClient()
 
-  async function handleToggle(id: string, enabled: boolean) {
-    try {
+  return useMutation({
+    mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
       const res = await fetch(`/api/admin/feature-flags/${id}`, {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled }),
       })
-
       if (!res.ok) {
         const body: unknown = await res.json().catch(() => null)
-        const message = isErrorWithMessage(body) ? body.message : 'Failed to update feature flag'
-        toast.error(message)
-        return
+        throw new Error(isErrorWithMessage(body) ? body.message : 'Failed to update feature flag')
       }
-
+      return res.json() as Promise<FeatureFlag>
+    },
+    onSuccess: () => {
       toast.success('Feature flag updated')
-      await queryClient.invalidateQueries({ queryKey: [...FEATURE_FLAGS_QUERY_KEY] })
-    } catch {
-      toast.error('Failed to update feature flag')
-    }
-  }
+      queryClient.invalidateQueries({ queryKey: featureFlagKeys.list() })
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+}
 
-  async function handleDelete(id: string) {
-    try {
+function useDeleteFeatureFlag() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
       const res = await fetch(`/api/admin/feature-flags/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       })
-
       if (!res.ok) {
         const body: unknown = await res.json().catch(() => null)
-        const message = isErrorWithMessage(body) ? body.message : 'Failed to delete feature flag'
-        toast.error(message)
-        return
+        throw new Error(isErrorWithMessage(body) ? body.message : 'Failed to delete feature flag')
       }
-
+    },
+    onSuccess: () => {
       toast.success('Feature flag deleted')
-      await queryClient.invalidateQueries({ queryKey: [...FEATURE_FLAGS_QUERY_KEY] })
-    } catch {
-      toast.error('Failed to delete feature flag')
-    }
-  }
-
-  async function handleCreated() {
-    await queryClient.invalidateQueries({ queryKey: [...FEATURE_FLAGS_QUERY_KEY] })
-  }
-
-  return { handleToggle, handleDelete, handleCreated }
+      queryClient.invalidateQueries({ queryKey: featureFlagKeys.list() })
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
 }
 
 function FeatureFlagsPage() {
-  const { data, isLoading, isError } = useQuery<FeatureFlag[]>({
-    queryKey: [...FEATURE_FLAGS_QUERY_KEY],
-    queryFn: async () => {
-      const res = await fetch('/api/admin/feature-flags', { credentials: 'include' })
-      if (!res.ok) throw new Error('Failed to fetch feature flags')
-      return res.json()
-    },
-  })
+  const queryClient = useQueryClient()
+  const { data, isLoading, isError } = useQuery(featureFlagQueries.list())
+  const toggleMutation = useToggleFeatureFlag()
+  const deleteMutation = useDeleteFeatureFlag()
 
   const flags = data ?? []
-  const { handleToggle, handleDelete, handleCreated } = useFeatureFlagActions()
 
   return (
     <div className="space-y-6">
@@ -124,7 +115,9 @@ function FeatureFlagsPage() {
           <FlagIcon className="size-6 text-foreground" />
           <h1 className="text-2xl font-bold">Feature Flags</h1>
         </div>
-        <CreateFlagDialog onCreated={handleCreated} />
+        <CreateFlagDialog
+          onCreated={() => queryClient.invalidateQueries({ queryKey: featureFlagKeys.list() })}
+        />
       </div>
 
       {/* Loading state */}
@@ -148,8 +141,8 @@ function FeatureFlagsPage() {
             <FlagListItem
               key={flag.id}
               flag={flag}
-              onToggle={handleToggle}
-              onDelete={handleDelete}
+              onToggle={async (id, enabled) => toggleMutation.mutate({ id, enabled })}
+              onDelete={async (id) => deleteMutation.mutate(id)}
             />
           ))}
         </div>
