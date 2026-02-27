@@ -96,8 +96,31 @@ export function CustomToolingSection() {
         </AnimatedSection>
       </div>
 
-      {/* Bottom callout */}
+      {/* Pro Tips strip */}
       <AnimatedSection className="mt-6">
+        <div className="rounded-lg border border-border/40 bg-muted/20 px-5 py-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            {m.talk_dp_tools_tips_heading()}
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <div className="flex items-center gap-2 rounded-md border border-border/30 bg-background/60 px-3 py-2">
+              <span className="text-xs text-muted-foreground">{m.talk_dp_tools_tip1_label()}</span>
+              <code className="rounded bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[11px] text-cyan-500">
+                localhost:3000
+              </code>
+            </div>
+            <div className="flex items-center gap-2 rounded-md border border-border/30 bg-background/60 px-3 py-2">
+              <span className="text-xs text-muted-foreground">{m.talk_dp_tools_tip2_label()}</span>
+              <code className="rounded bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[11px] text-cyan-500">
+                code ./vision.mdx
+              </code>
+            </div>
+          </div>
+        </div>
+      </AnimatedSection>
+
+      {/* Bottom callout */}
+      <AnimatedSection className="mt-4">
         <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-4 text-center">
           <p className="text-sm font-medium text-cyan-500">{m.talk_dp_tools_callout()}</p>
         </div>
