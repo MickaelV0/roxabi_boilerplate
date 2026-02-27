@@ -156,8 +156,8 @@ export function WhatsNextSection() {
             </div>
 
             <ul className="flex flex-col gap-3 flex-1">
-              {QUALITY_ITEMS.map((item, i) => (
-                <li key={i} className="flex items-start gap-2.5">
+              {QUALITY_ITEMS.map((item) => (
+                <li key={item.name} className="flex items-start gap-2.5">
                   <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-green-500 shrink-0" />
                   <p className="text-sm text-muted-foreground leading-snug">{item()}</p>
                 </li>

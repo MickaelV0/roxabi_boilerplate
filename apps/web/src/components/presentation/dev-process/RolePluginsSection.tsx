@@ -81,9 +81,9 @@ function RoleCard({ role }: RoleCardProps) {
         <div className={cn('rounded-lg p-2 w-fit', role.iconBgClass)}>{role.icon}</div>
         <p className="text-sm font-semibold">{role.label}</p>
         <div className="flex flex-wrap gap-1.5">
-          {role.skills.map((skill, i) => (
+          {role.skills.map((skill) => (
             <span
-              key={i}
+              key={skill.name}
               className="bg-muted/40 text-muted-foreground text-xs rounded-full px-2 py-0.5"
             >
               {skill()}
