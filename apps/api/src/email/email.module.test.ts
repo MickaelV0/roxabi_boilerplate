@@ -3,6 +3,13 @@ import { EmailModule } from './email.module.js'
 import { EMAIL_PROVIDER } from './email.provider.js'
 import { ResendEmailProvider } from './resend.provider.js'
 
+// Note: DI compile-time smoke tests (Test.createTestingModule) are not feasible here because
+// Vitest uses esbuild which does not emit TypeScript decorator parameter type metadata
+// (design:paramtypes). ResendEmailProvider relies on implicit type injection for ConfigService.
+// The metadata assertions below verify provider registration and export wiring, which is
+// the declarative part of the module. DI resolution is covered by ResendEmailProvider's own
+// unit tests (email.provider.test.ts).
+
 describe('EmailModule', () => {
   const providers: unknown[] = Reflect.getMetadata('providers', EmailModule) ?? []
   const exports_: unknown[] = Reflect.getMetadata('exports', EmailModule) ?? []

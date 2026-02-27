@@ -89,7 +89,8 @@ function buildEmailAndPasswordConfig(emailProvider: EmailProvider, config: AuthI
       try {
         await emailProvider.send({ to: user.email, ...emailContent })
       } catch (error) {
-        logger.error(`Failed to send reset password email to ${user.email}`, error)
+        const cause = error instanceof Error ? error : new Error(String(error))
+        logger.error(`Failed to send reset password email to ${user.email}`, cause.stack)
         throw new APIError('INTERNAL_SERVER_ERROR', { message: 'EMAIL_SEND_FAILED' })
       }
     },
@@ -133,7 +134,8 @@ function buildEmailVerificationConfig(emailProvider: EmailProvider, config: Auth
       try {
         await emailProvider.send({ to: user.email, ...emailContent })
       } catch (error) {
-        logger.error(`Failed to send verification email to ${user.email}`, error)
+        const cause = error instanceof Error ? error : new Error(String(error))
+        logger.error(`Failed to send verification email to ${user.email}`, cause.stack)
         throw new APIError('INTERNAL_SERVER_ERROR', { message: 'EMAIL_SEND_FAILED' })
       }
     },
@@ -175,7 +177,8 @@ function buildMagicLinkPlugin(
       try {
         await emailProvider.send({ to: email, ...emailContent })
       } catch (error) {
-        logger.error(`Failed to send magic link email to ${email}`, error)
+        const cause = error instanceof Error ? error : new Error(String(error))
+        logger.error(`Failed to send magic link email to ${email}`, cause.stack)
         throw new APIError('INTERNAL_SERVER_ERROR', { message: 'EMAIL_SEND_FAILED' })
       }
     },

@@ -11,9 +11,9 @@ describe('AuthModule', () => {
   const providers: unknown[] = Reflect.getMetadata('providers', AuthModule) ?? []
   const exports_: unknown[] = Reflect.getMetadata('exports', AuthModule) ?? []
 
-  it('should import RbacModule and UserModule', () => {
-    // Assert — forwardRef wraps both modules
-    expect(imports).toHaveLength(2)
+  it('should import EmailModule, RbacModule and UserModule', () => {
+    // Assert — EmailModule is direct, forwardRef wraps the other two
+    expect(imports).toHaveLength(3)
   })
 
   it('should declare AuthController', () => {

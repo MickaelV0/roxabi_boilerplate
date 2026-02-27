@@ -1,8 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { EventEmitter2 } from '@nestjs/event-emitter'
 import { Resend } from 'resend'
-import { EMAIL_SEND_FAILED, EmailSendFailedEvent } from '../common/events/emailSendFailed.event.js'
 import type { EmailProvider } from './email.provider.js'
 import { EmailSendException } from './emailSend.exception.js'
 
@@ -12,10 +10,7 @@ export class ResendEmailProvider implements EmailProvider {
   private readonly from: string
   private readonly resendClient: Resend | null
 
-  constructor(
-    config: ConfigService,
-    private readonly eventEmitter: EventEmitter2
-  ) {
+  constructor(config: ConfigService) {
     const apiKey = config.get<string>('RESEND_API_KEY')
     this.from = config.get<string>('EMAIL_FROM', 'noreply@yourdomain.com')
     this.resendClient = apiKey ? new Resend(apiKey) : null
@@ -32,8 +27,9 @@ export class ResendEmailProvider implements EmailProvider {
 
   async send(params: { to: string; subject: string; html: string; text?: string }): Promise<void> {
     if (!this.resendClient) {
+      const textPreview = params.text ? params.text.slice(0, 80) : '(no text body)'
       this.logger.log(`[Console Email] To: ${params.to} | Subject: ${params.subject}`)
-      this.logger.log(`[Console Email] HTML: ${params.html}`)
+      this.logger.log(`[Console Email] Preview: ${textPreview}`)
       return
     }
 
@@ -48,14 +44,10 @@ export class ResendEmailProvider implements EmailProvider {
     } catch (error) {
       const cause = error instanceof Error ? error : new Error(String(error))
 
+      const redactedTo = params.to.replace(/(?<=.{2}).+(?=@)/, '***')
       this.logger.error(
-        `Failed to send email to ${params.to} (subject: "${params.subject}"): ${cause.message}`,
+        `Failed to send email to ${redactedTo} (subject: "${params.subject}"): ${cause.message}`,
         cause.stack
-      )
-
-      this.eventEmitter.emit(
-        EMAIL_SEND_FAILED,
-        new EmailSendFailedEvent(params.to, params.subject, cause)
       )
 
       throw new EmailSendException(params.to, cause)
