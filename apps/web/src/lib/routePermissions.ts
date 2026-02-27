@@ -59,11 +59,11 @@ function isEnrichedSession(data: unknown): data is EnrichedSession {
 export const getServerEnrichedSession = createServerFn({ method: 'GET' }).handler(
   async (): Promise<EnrichedSession | null> => {
     const { getRequestHeader } = await import('@tanstack/react-start/server')
-    const { env } = await import('./env.server.js')
+    const apiUrl = process.env.API_URL ?? 'http://localhost:4000'
     try {
       const cookie = getRequestHeader('cookie')
       if (!cookie) return null
-      const res = await fetch(`${env.API_URL}/api/session`, {
+      const res = await fetch(`${apiUrl}/api/session`, {
         headers: { cookie },
       })
       if (!res.ok) return null
