@@ -113,7 +113,6 @@ export class TenantInterceptor implements NestInterceptor {
       // TODO(Phase 3, #389): Parent tenant resolution is formally deferred.
       // parentOrganizationId is present in the schema but the resolution
       // strategy (which context should inherit which tenant) is not yet designed.
-      // Tracked: https://github.com/MickaelV0/roxabi_boilerplate/issues/389
 
       return orgId
     } catch (error) {

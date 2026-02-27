@@ -25,7 +25,7 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
@@ -46,20 +46,22 @@ jobs:
         id: review_action
         if: steps.preflight.outputs.skip != 'true'
         uses: anthropics/claude-code-action@1dd74842e568f373608605d9e45c9e854f65f543 # v1
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.base_ref }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          use_sticky_comment: true
           use_commit_signing: true
-          base_branch: ${{ github.base_ref }}
+          base_branch: ${{ env.BASE_REF }}
           claude_args: --max-turns 25 --allowed-tools Bash,Read,Edit,Write,Glob,Grep
           prompt: |
-            # PR Review & Auto-fix for PR #${{ github.event.pull_request.number }}
+            # PR Review & Auto-fix for PR #${{ env.PR_NUMBER }}
 
             IMPORTANT: Do NOT use any project skills (e.g. /review). Work directly with Bash
             commands. Do not spawn sub-agents. Complete all three steps yourself.
 
             **Step 1 — Review**
-            Get the diff with: `gh pr diff ${{ github.event.pull_request.number }}`
+            Get the diff with: `gh pr diff ${{ env.PR_NUMBER }}`
             Review it for bugs, security issues, style violations, type errors, and anything
             that deviates from the project coding standards (single quotes, no semicolons,
             trailing commas es5, 2-space indent, 100-char width).

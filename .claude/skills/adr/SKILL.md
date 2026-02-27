@@ -113,7 +113,10 @@ The file uses the Fumadocs navigation format — a plain object with a `pages` a
 { "title": "ADRs", "pages": ["001-fastify-over-express", "002-bun-as-runtime"] }
 ```
 
-Append the new ADR slug (e.g., `"004-some-decision"`) to the `pages` array and write the updated object back, preserving `title` and all existing entries. Never replace the file with the old array-of-objects format.
+Read the parsed content:
+- If the content is a plain object with a `pages` array (Fumadocs format) — append the new slug to `pages` and write the updated object back.
+- If the content is an array (old array-of-objects format) — migrate: extract the `file` field from each entry, strip the `.mdx` extension to reconstruct slugs, rebuild as `{ "title": "ADRs", "pages": ["001-slug", "002-slug", ...] }`, then append the new slug and write.
+- Never write the old array-of-objects format.
 
 #### 6. Confirm
 
@@ -150,5 +153,6 @@ If `meta.json` is missing or is not in the recognised `{ title, pages }` format,
 - **No title provided:** Ask for one via AskUserQuestion before proceeding.
 - **Superseding an ADR:** When the user mentions superseding an existing ADR, update the old ADR's status to `Superseded by ADR-{NNN}` and the new ADR's context should reference the old one.
 - **meta.json out of sync:** If `.mdx` files exist but `meta.json` is missing or incomplete, rebuild it from file frontmatter.
+- **meta.json in old format:** If the file contains an array of objects `[{ number, title, ... }]` (legacy format), migrate it to Fumadocs format by extracting `file` values and stripping `.mdx`. Append the new slug and write the updated object. The migration is performed transparently — the user sees only the new ADR being confirmed.
 
 $ARGUMENTS

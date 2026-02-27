@@ -1,4 +1,3 @@
-import type { FeatureFlag } from '@repo/types'
 import { Card, Skeleton } from '@repo/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -6,10 +5,21 @@ import { FlagIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { CreateFlagDialog } from '@/components/admin/CreateFlagDialog'
 import { FlagListItem } from '@/components/admin/FlagListItem'
-import { isErrorWithMessage } from '@/lib/errorUtils'
+import { deleteFeatureFlag, toggleFeatureFlag } from '@/lib/featureFlags/api'
 import { featureFlagQueries } from '@/lib/featureFlags/queries'
 import { featureFlagKeys } from '@/lib/featureFlags/queryKeys'
 import { enforceRoutePermission } from '@/lib/routePermissions'
+
+function FeatureFlagsErrorBoundary({ error }: { error: Error }) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-12 text-center">
+      <p className="text-sm font-medium text-destructive">
+        {error.message || 'Failed to load feature flags'}
+      </p>
+      <p className="text-xs text-muted-foreground">Please try refreshing the page</p>
+    </div>
+  )
+}
 
 export const Route = createFileRoute('/admin/feature-flags')({
   staticData: { permission: 'role:superadmin' },
@@ -18,6 +28,7 @@ export const Route = createFileRoute('/admin/feature-flags')({
     await ctx.context.queryClient.ensureQueryData(featureFlagQueries.list())
   },
   component: FeatureFlagsPage,
+  errorComponent: FeatureFlagsErrorBoundary,
   head: () => ({ meta: [{ title: 'Feature Flags | Admin | Roxabi' }] }),
 })
 
@@ -56,19 +67,8 @@ function useToggleFeatureFlag() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
-      const res = await fetch(`/api/admin/feature-flags/${id}`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled }),
-      })
-      if (!res.ok) {
-        const body: unknown = await res.json().catch(() => null)
-        throw new Error(isErrorWithMessage(body) ? body.message : 'Failed to update feature flag')
-      }
-      return res.json() as Promise<FeatureFlag>
-    },
+    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
+      toggleFeatureFlag(id, enabled),
     onSuccess: () => {
       toast.success('Feature flag updated')
       queryClient.invalidateQueries({ queryKey: featureFlagKeys.list() })
@@ -81,16 +81,7 @@ function useDeleteFeatureFlag() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/admin/feature-flags/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
-      if (!res.ok) {
-        const body: unknown = await res.json().catch(() => null)
-        throw new Error(isErrorWithMessage(body) ? body.message : 'Failed to delete feature flag')
-      }
-    },
+    mutationFn: (id: string) => deleteFeatureFlag(id),
     onSuccess: () => {
       toast.success('Feature flag deleted')
       queryClient.invalidateQueries({ queryKey: featureFlagKeys.list() })
@@ -99,11 +90,16 @@ function useDeleteFeatureFlag() {
   })
 }
 
-function FeatureFlagsPage() {
+function useOnFlagCreated() {
   const queryClient = useQueryClient()
+  return () => queryClient.invalidateQueries({ queryKey: featureFlagKeys.list() })
+}
+
+function FeatureFlagsPage() {
   const { data, isLoading, isError } = useQuery(featureFlagQueries.list())
   const toggleMutation = useToggleFeatureFlag()
   const deleteMutation = useDeleteFeatureFlag()
+  const onFlagCreated = useOnFlagCreated()
 
   const flags = data ?? []
 
@@ -115,9 +111,7 @@ function FeatureFlagsPage() {
           <FlagIcon className="size-6 text-foreground" />
           <h1 className="text-2xl font-bold">Feature Flags</h1>
         </div>
-        <CreateFlagDialog
-          onCreated={() => queryClient.invalidateQueries({ queryKey: featureFlagKeys.list() })}
-        />
+        <CreateFlagDialog onCreated={onFlagCreated} />
       </div>
 
       {/* Loading state */}
@@ -141,8 +135,13 @@ function FeatureFlagsPage() {
             <FlagListItem
               key={flag.id}
               flag={flag}
-              onToggle={(id, enabled) => toggleMutation.mutate({ id, enabled })}
-              onDelete={(id) => deleteMutation.mutate(id)}
+              onToggle={(id, enabled) =>
+                toggleMutation
+                  .mutateAsync({ id, enabled })
+                  .then(() => {})
+                  .catch(() => {})
+              }
+              onDelete={(id) => deleteMutation.mutateAsync(id).catch(() => {})}
             />
           ))}
         </div>

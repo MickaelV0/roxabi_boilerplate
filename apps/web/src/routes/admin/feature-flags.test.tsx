@@ -32,6 +32,7 @@ vi.mock('@/lib/routePermissions', () => ({
 // Import after mocks to trigger createFileRoute and capture the component
 import './feature-flags'
 import { toast } from 'sonner'
+import { enforceRoutePermission } from '@/lib/routePermissions'
 
 // ---------------------------------------------------------------------------
 // QueryClient wrapper for tests
@@ -40,7 +41,7 @@ import { toast } from 'sonner'
 function createTestQueryClient() {
   return new QueryClient({
     defaultOptions: {
-      queries: { retry: false },
+      queries: { retry: false, gcTime: 0 },
       mutations: { retry: false },
     },
   })
@@ -275,7 +276,14 @@ describe('FeatureFlagsPage', () => {
 describe('beforeLoad', () => {
   it('calls enforceRoutePermission then ensureQueryData', async () => {
     // Arrange
-    const mockEnsureQueryData = vi.fn().mockResolvedValue([])
+    const callOrder: string[] = []
+    vi.mocked(enforceRoutePermission).mockImplementation(async () => {
+      callOrder.push('enforceRoutePermission')
+    })
+    const mockEnsureQueryData = vi.fn().mockImplementation(async () => {
+      callOrder.push('ensureQueryData')
+      return []
+    })
     const ctx = {
       context: { queryClient: { ensureQueryData: mockEnsureQueryData } },
     }
@@ -285,8 +293,23 @@ describe('beforeLoad', () => {
     await captured.beforeLoad?.(ctx)
 
     // Assert
-    const { enforceRoutePermission } = await import('@/lib/routePermissions')
     expect(enforceRoutePermission).toHaveBeenCalledWith(ctx)
     expect(mockEnsureQueryData).toHaveBeenCalled()
+    expect(callOrder).toEqual(['enforceRoutePermission', 'ensureQueryData'])
+  })
+
+  it('does not call ensureQueryData when enforceRoutePermission throws', async () => {
+    // Arrange
+    vi.mocked(enforceRoutePermission).mockRejectedValue(new Error('redirect'))
+    const mockEnsureQueryData = vi.fn()
+    const ctx = {
+      context: { queryClient: { ensureQueryData: mockEnsureQueryData } },
+    }
+
+    // Act
+    await expect(captured.beforeLoad?.(ctx)).rejects.toThrow('redirect')
+
+    // Assert
+    expect(mockEnsureQueryData).not.toHaveBeenCalled()
   })
 })
