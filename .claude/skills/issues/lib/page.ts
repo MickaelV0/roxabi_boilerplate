@@ -4,10 +4,11 @@ import {
   renderBranchesAndWorktrees,
   renderPRs,
   renderVercelDeployments,
+  renderWorkflowRuns,
 } from './components'
 import { buildDepGraph, renderDepGraph } from './graph'
 import { PAGE_STYLES } from './page-styles'
-import type { Branch, BranchCI, Issue, PR, VercelDeployment, Worktree } from './types'
+import type { Branch, BranchCI, Issue, PR, VercelDeployment, WorkflowRun, Worktree } from './types'
 
 export function buildHtml(
   issues: Issue[],
@@ -16,6 +17,7 @@ export function buildHtml(
   worktrees: Worktree[],
   deployments: VercelDeployment[],
   branchCI: BranchCI[],
+  workflowRuns: WorkflowRun[],
   fetchMs: number,
   updatedAt: number
 ): string {
@@ -35,6 +37,7 @@ export function buildHtml(
   const depNodes = buildDepGraph(issues)
   const depGraphHtml = renderDepGraph(depNodes, issues)
   const vercelHtml = renderVercelDeployments(deployments)
+  const wrHtml = renderWorkflowRuns(workflowRuns)
   const prsHtml = renderPRs(prs)
   const branchesHtml = renderBranchesAndWorktrees(branches, worktrees)
   const ciHtml = renderBranchCI(branchCI)
@@ -63,6 +66,8 @@ ${LIVE_STYLES}
   </header>
 
   <div id="section-vercel">${vercelHtml}</div>
+
+  <div id="section-workflow-runs">${wrHtml}</div>
 
   <div id="section-ci">${showCI ? `<div class="section"><h2>CI Status</h2>${ciHtml}</div>` : ''}</div>
 
@@ -282,7 +287,7 @@ ${LIVE_STYLES}
       });
 
       // Patch issue tables
-      var selectors = ['#issues-visible', '#hidden-issues', '#section-vercel', '#section-ci', '#section-prs', '#section-graph', '#section-branches', '#issue-count', '#fetch-time'];
+      var selectors = ['#issues-visible', '#hidden-issues', '#section-vercel', '#section-workflow-runs', '#section-ci', '#section-prs', '#section-graph', '#section-branches', '#issue-count', '#fetch-time'];
       for (var s = 0; s < selectors.length; s++) {
         var sel = selectors[s];
         var freshEl = freshDoc.querySelector(sel);
