@@ -130,7 +130,21 @@ jobs:
           if [ -n "$EXISTING" ]; then
             echo "Deleting existing branch: $EXISTING"
             retry_cmd 3 5 curl -sf -X DELETE -H "Authorization: Bearer $NEON_API_KEY" \
-              "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$EXISTING"
+              "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$EXISTING" \
+              > /dev/null
+            # Neon DELETE is async — wait for the branch to disappear before creating a new one
+            echo "Waiting for branch deletion to complete..."
+            for i in $(seq 1 24); do
+              STILL_EXISTS=$(curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
+                "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" \
+                | jq -r --arg bid "$EXISTING" '.branches[] | select(.id == $bid) | .id')
+              if [ -z "$STILL_EXISTS" ]; then
+                echo "Branch deletion confirmed"
+                break
+              fi
+              echo "Still deleting... (attempt $i/24)"
+              sleep 5
+            done
           fi
 
           # Create new branch from the main branch
