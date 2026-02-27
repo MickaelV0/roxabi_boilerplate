@@ -162,8 +162,11 @@ jobs:
             exit 1
           fi
 
-          # Get connection URI from the response
-          CONNECTION_URI=$(echo "$RESPONSE" | jq -r '.connection_uris[0].connection_uri')
+          # Fetch connection URI from the dedicated endpoint (more reliable than create response)
+          URI_RESPONSE=$(retry_cmd 3 5 curl -sf \
+            -H "Authorization: Bearer $NEON_API_KEY" \
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/connection_uri?branch_id=$BRANCH_ID")
+          CONNECTION_URI=$(echo "$URI_RESPONSE" | jq -r '.uri // empty')
 
           if [ "$CONNECTION_URI" = "null" ] || [ -z "$CONNECTION_URI" ]; then
             echo "::error::Failed to get connection URI from Neon branch response"
