@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Entries are generated automatically by `/promote` and committed to staging before the promotion PR.
 
+## [v0.5.1] - 2026-02-27
+
+### Fixed
+- fix(ci): replace raw Neon API bash with official neondatabase/create-branch-action@v6 and delete-branch-action@v3
+- fix(devops): move all env vars to globalPassThroughEnv, remove api turbo.json
+- fix(ci): update prReview test to match staging-only trigger
+- ci(pr-review): only run automated review on staging PRs
+
+### Maintenance
+- chore(deps): update dependencies and patch 4 CVEs via overrides
+
 ## [v0.5.0] - 2026-02-27
 
 ### Added
