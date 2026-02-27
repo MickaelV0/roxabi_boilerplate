@@ -45,12 +45,11 @@ jobs:
       - name: Review & Auto-fix
         id: review_action
         if: steps.preflight.outputs.skip != 'true'
-        uses: anthropics/claude-code-action@1dd74842e568f373608605d9e45c9e854f65f543 # v1
+        uses: anthropics/claude-code-action@4d97243dfe710930bd5d449730cdaf7789fbe7b0 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           use_sticky_comment: true
           use_commit_signing: true
-          base_branch: ${{ github.base_ref }}
           claude_args: --max-turns 15
           prompt: |
             # PR Review & Auto-fix for PR #${{ github.event.pull_request.number }}
