@@ -95,7 +95,7 @@ The `CI=true` environment variable ensures consistent behavior between local and
 
 ## GitHub Actions Workflows
 
-Five workflows live in `.github/workflows/`:
+Six workflows live in `.github/workflows/`:
 
 | Workflow | File | Trigger | Purpose |
 |----------|------|---------|---------|
@@ -104,6 +104,7 @@ Five workflows live in `.github/workflows/`:
 | **PR Title** | `pr-title.yml` | PR opened/edited | Validates PR title follows Conventional Commits format |
 | **Auto Merge** | `auto-merge.yml` | Dependabot PRs | Auto-merges Dependabot PRs that pass CI |
 | **Neon Cleanup** | `neon-cleanup.yml` | PR closed/merged | Cleans up Neon database branches for closed/merged PRs |
+| **PR Review & Auto-fix** | `pr-review.yml` | PR opened/synchronized | Runs Claude Code automated review + auto-fix on every PR |
 
 ### CI Workflow (`ci.yml`)
 

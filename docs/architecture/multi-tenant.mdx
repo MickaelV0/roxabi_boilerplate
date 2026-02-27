@@ -29,7 +29,7 @@ A user can belong to multiple organizations (tenants) but operates within one at
 
 ### Parent Organization Resolution
 
-> **Planned / not yet implemented:** Full organization hierarchy resolution is pending Phase 3. The `resolveParentOrg()` function currently returns `orgId` directly (no-op stub). The description below reflects the intended design.
+> **Planned / not yet implemented:** Full organization hierarchy resolution is pending Phase 2+. The `resolveParentOrg()` function currently returns `orgId` directly (no-op stub). The description below reflects the intended design.
 
 The interceptor supports hierarchical organizations. If an organization has a `parentOrganizationId`, the parent's ID is used as the tenant boundary instead -- child organizations share the parent's data scope. Until Better Auth adds native parent org support, every organization is treated as a root tenant.
 

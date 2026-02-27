@@ -391,7 +391,7 @@ export const { useSession, signIn, signUp, signOut } = authClient
 Permission checks on the frontend use utility functions in `apps/web/src/lib/permissions.ts`:
 
 ```ts
-import { hasPermission, hasAllPermissions, hasAnyPermission } from '~/lib/permissions'
+import { hasPermission, hasAllPermissions, hasAnyPermission } from '@/lib/permissions'
 
 // Single permission check
 const canInvite = hasPermission(session, 'members:write')
