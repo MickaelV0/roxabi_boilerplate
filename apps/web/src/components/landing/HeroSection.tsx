@@ -92,7 +92,7 @@ function AgentActivityCard() {
         AI Team Activity
       </p>
       <ul className="space-y-1.5">
-        {ACTIVITY_ITEMS.map((item, i) => (
+        {ACTIVITY_ITEMS.map((item) => (
           <li key={item.label} className="flex items-center gap-2 text-xs">
             {item.type === 'done' ? (
               <>
