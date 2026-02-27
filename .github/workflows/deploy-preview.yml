@@ -86,147 +86,24 @@ jobs:
     runs-on: ubuntu-latest
     if: inputs.target == 'api' || inputs.target == 'both'
     steps:
-      - name: Validate Neon secrets
-        env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
-        run: |
-          if [ -z "$NEON_API_KEY" ] || [ -z "$NEON_PROJECT_ID" ]; then
-            echo "::error::Missing required secrets: NEON_API_KEY and/or NEON_PROJECT_ID are not configured"
-            exit 1
-          fi
+      - name: Delete existing Neon branch (if any)
+        continue-on-error: true
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          branch: preview/${{ github.ref_name }}
 
       - name: Create Neon database branch
-        id: create
-        env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
-        run: |
-          set -euo pipefail
-
-          # Retry helper: retry_cmd <max_attempts> <delay_seconds> <command...>
-          retry_cmd() {
-            local max=$1 delay=$2; shift 2
-            for attempt in $(seq 1 "$max"); do
-              if "$@"; then return 0; fi
-              if [ "$attempt" -lt "$max" ]; then
-                echo "::warning::Attempt $attempt/$max failed, retrying in ${delay}s..."
-                sleep "$delay"
-              fi
-            done
-            echo "::error::All $max attempts failed"
-            return 1
-          }
-
-          BRANCH_NAME="preview/${GITHUB_REF_NAME}"
-          # Sanitize: keep only alphanumeric, hyphens, underscores, slashes, dots
-          BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._/-]//g')
-
-          # Delete existing branch with same name (if any) to avoid conflicts
-          EXISTING=$(retry_cmd 3 5 curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
-            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" \
-            | jq -r --arg name "$BRANCH_NAME" '.branches[] | select(.name == $name) | .id')
-
-          if [ -n "$EXISTING" ]; then
-            echo "Deleting existing branch: $EXISTING"
-            retry_cmd 3 5 curl -sf -X DELETE -H "Authorization: Bearer $NEON_API_KEY" \
-              "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$EXISTING" \
-              > /dev/null
-            # Neon DELETE is async — wait for the branch to disappear before creating a new one
-            echo "Waiting for branch deletion to complete..."
-            for i in $(seq 1 24); do
-              STILL_EXISTS=$(curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
-                "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" \
-                | jq -r --arg bid "$EXISTING" '.branches[] | select(.id == $bid) | .id')
-              if [ -z "$STILL_EXISTS" ]; then
-                echo "Branch deletion confirmed"
-                break
-              fi
-              echo "Still deleting... (attempt $i/24)"
-              sleep 5
-            done
-          fi
-
-          # Create new branch from the main branch
-          PAYLOAD=$(jq -n --arg name "$BRANCH_NAME" '{branch: {name: $name}, endpoints: [{type: "read_write"}]}')
-          BRANCH_ID=""
-          for attempt in 1 2 3; do
-            # Use || to prevent set -e from exiting on curl network error
-            RAW=$(curl -s -w "\n%{http_code}" -X POST \
-              -H "Authorization: Bearer $NEON_API_KEY" \
-              -H "Content-Type: application/json" \
-              "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" \
-              -d "$PAYLOAD" || echo "CURL_NETWORK_ERROR\n000")
-            HTTP_CODE=$(printf '%s' "$RAW" | tail -1)
-            BODY=$(printf '%s' "$RAW" | head -n -1)
-            # || echo "" guards: prevent set -e if response is not valid JSON
-            BRANCH_ID=$(echo "$BODY" | jq -r '.branch.id // empty' 2>/dev/null || echo "")
-            if [ -n "$BRANCH_ID" ] && [ "$BRANCH_ID" != "null" ]; then break; fi
-            ERR=$(echo "$BODY" | jq -r '.message // .error // empty' 2>/dev/null || echo "")
-            echo "::warning::Branch create attempt $attempt/3 failed (HTTP $HTTP_CODE): ${ERR:-non-JSON or network error}"
-            if [ "$attempt" -lt 3 ]; then sleep 5; fi
-          done
-
-          if [ -z "$BRANCH_ID" ] || [ "$BRANCH_ID" = "null" ]; then
-            echo "::error::Failed to create Neon branch after 3 attempts"
-            exit 1
-          fi
-
-          # Wait for Neon branch endpoint to be ready
-          for i in $(seq 1 12); do
-            STATUS=$(curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
-              "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID" \
-              | jq -r '.branch.current_state' || echo "error")
-            if [ "$STATUS" = "ready" ]; then break; fi
-            echo "Waiting for Neon branch... (attempt $i/12)"
-            sleep 5
-          done
-          if [ "$STATUS" != "ready" ]; then
-            echo "::error::Neon branch did not become ready after 60 seconds (last status: $STATUS)"
-            exit 1
-          fi
-
-          # Fetch connection URI — role_name and database_name are required params.
-          # Prefer neondb_owner (Neon-managed role with stored password) for schema ops.
-          # Use pooled=false for direct connection (required for DDL like DROP SCHEMA).
-          ROLES_JSON=$(curl -sf \
-            -H "Authorization: Bearer $NEON_API_KEY" \
-            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID/roles" || echo "{}")
-          ROLE_NAME=$(echo "$ROLES_JSON" | jq -r '
-            first((.roles[] | select(.name == "neondb_owner")), .roles[0]) | .name // empty' || echo "")
-          DB_NAME=$(curl -sf \
-            -H "Authorization: Bearer $NEON_API_KEY" \
-            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID/databases" \
-            | jq -r '.databases[0].name // empty' || echo "")
-          echo "Using role=$ROLE_NAME db=$DB_NAME for connection URI"
-
-          if [ -z "$ROLE_NAME" ] || [ -z "$DB_NAME" ]; then
-            echo "::error::Could not discover role/database name for Neon branch $BRANCH_ID"
-            exit 1
-          fi
-
-          CONNECTION_URI=$(curl -sf \
-            -H "Authorization: Bearer $NEON_API_KEY" \
-            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/connection_uri?branch_id=$BRANCH_ID&role_name=$ROLE_NAME&database_name=$DB_NAME&pooled=false" \
-            | jq -r '.uri // empty' || echo "")
-
-          if [ "$CONNECTION_URI" = "null" ] || [ -z "$CONNECTION_URI" ]; then
-            echo "::error::Failed to get connection URI from Neon branch response"
-            exit 1
-          fi
-
-          echo "branch_id=$BRANCH_ID" >> "$GITHUB_OUTPUT"
-          # Base64-encode the connection URI to safely pass it between steps.
-          DB_URL_B64=$(echo -n "$CONNECTION_URI" | base64 -w0)
-          echo "database_url_b64=$DB_URL_B64" >> "$GITHUB_OUTPUT"
-          echo "Created Neon branch: $BRANCH_NAME ($BRANCH_ID)"
-
-      - name: Decode and mask database URL
-        id: db
-        run: |
-          DB_URL=$(echo "${{ steps.create.outputs.database_url_b64 }}" | base64 -d)
-          echo "::add-mask::$DB_URL"
-          echo "url=$DB_URL" >> "$GITHUB_OUTPUT"
+        id: create-branch
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          branch_name: preview/${{ github.ref_name }}
+          # neondb_owner is the Neon-managed admin role (has stored password).
+          # Required for direct psql DDL (DROP/CREATE SCHEMA) in the reset step.
+          role: neondb_owner
 
       - name: Checkout
         uses: actions/checkout@v6
@@ -257,7 +134,7 @@ jobs:
 
       - name: Reset database for clean migrations
         env:
-          DATABASE_URL: ${{ steps.db.outputs.url }}
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
         run: |
           set -euo pipefail
           # Neon branches fork from production, so the schema already exists
@@ -269,9 +146,7 @@ jobs:
 
       - name: Deploy API preview
         id: deploy
-        # Note: DATABASE_URL is passed via step env to avoid direct secret
-        # interpolation in the shell command. The ::add-mask:: from earlier
-        # steps ensures the value is redacted in logs.
+        # DATABASE_URL is passed via step env (not inline shell interpolation).
         # Rate limiting uses in-memory storage in previews (no Upstash) — resets on cold start.
         run: |
           for attempt in 1 2 3; do
@@ -293,7 +168,7 @@ jobs:
           done
           echo "url=$URL" >> "$GITHUB_OUTPUT"
         env:
-          DATABASE_URL: ${{ steps.db.outputs.url }}
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -318,7 +193,7 @@ jobs:
           echo "### API Preview" >> "$GITHUB_STEP_SUMMARY"
           echo "${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Neon branch:** \`preview/${GITHUB_REF_NAME}\` (${{ steps.create.outputs.branch_id }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Neon branch:** \`preview/${GITHUB_REF_NAME}\` (${{ steps.create-branch.outputs.branch_id }})" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "> **Note:** If Vercel Deployment Protection is enabled, preview URLs return HTTP 401 and require Vercel team SSO authentication." >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
@@ -330,26 +205,8 @@ jobs:
     if: inputs.target == 'cleanup'
     steps:
       - name: Delete Neon branch
-        env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
-        run: |
-          BRANCH_NAME="preview/${GITHUB_REF_NAME}"
-          # Sanitize: keep only alphanumeric, hyphens, underscores, slashes, dots
-          BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._/-]//g')
-
-          BRANCH_ID=$(curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
-            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" \
-            | jq -r --arg name "$BRANCH_NAME" '.branches[] | select(.name == $name) | .id')
-
-          if [ -z "$BRANCH_ID" ]; then
-            echo "No Neon branch found for: $BRANCH_NAME"
-            exit 0
-          fi
-
-          curl -sf -X DELETE -H "Authorization: Bearer $NEON_API_KEY" \
-            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID"
-
-          echo "Deleted Neon branch: $BRANCH_NAME ($BRANCH_ID)"
-          echo "### Cleanup" >> "$GITHUB_STEP_SUMMARY"
-          echo "Deleted Neon branch: \`$BRANCH_NAME\` ($BRANCH_ID)" >> "$GITHUB_STEP_SUMMARY"
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          branch: preview/${{ github.ref_name }}
