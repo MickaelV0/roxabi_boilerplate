@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Resend } from 'resend'
+import { toError } from '../common/utils/toError.js'
 import type { EmailProvider } from './email.provider.js'
 import { EmailSendException } from './emailSend.exception.js'
 
@@ -37,7 +38,7 @@ export class ResendEmailProvider implements EmailProvider {
         text: params.text,
       })
     } catch (error) {
-      const cause = error instanceof Error ? error : new Error(String(error))
+      const cause = toError(error)
 
       const redactedTo = params.to.replace(/(?<=.{2}).+(?=@)/, '***')
       this.logger.error(

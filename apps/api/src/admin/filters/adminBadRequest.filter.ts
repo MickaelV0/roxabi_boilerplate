@@ -1,6 +1,7 @@
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpStatus } from '@nestjs/common'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { ClsService } from 'nestjs-cls'
+import { sendErrorResponse } from '../../common/filters/sendErrorResponse.js'
 import { SettingValidationException } from '../../system-settings/index.js'
 import { FlagKeyInvalidException } from '../exceptions/flagKeyInvalid.exception.js'
 import { LastOwnerConstraintException } from '../exceptions/lastOwnerConstraint.exception.js'
@@ -11,7 +12,6 @@ import { SelfActionException } from '../exceptions/selfAction.exception.js'
 import { SelfRemovalException } from '../exceptions/selfRemoval.exception.js'
 import { SelfRoleChangeException } from '../exceptions/selfRoleChange.exception.js'
 import { UserAlreadyBannedException } from '../exceptions/userAlreadyBanned.exception.js'
-import { sendAdminErrorResponse } from './adminFilterResponse.js'
 
 type AdminBadRequestException =
   | LastOwnerConstraintException
@@ -46,6 +46,6 @@ export class AdminBadRequestFilter implements ExceptionFilter {
     const request = ctx.getRequest<FastifyRequest>()
     const correlationId = this.cls.getId()
 
-    sendAdminErrorResponse(response, request, correlationId, HttpStatus.BAD_REQUEST, exception)
+    sendErrorResponse(response, request, correlationId, HttpStatus.BAD_REQUEST, exception)
   }
 }

@@ -17,6 +17,7 @@ import { ClsService } from 'nestjs-cls'
 import { AuditService } from '../audit/audit.service.js'
 import { buildCursorCondition, buildCursorResponse } from '../common/utils/cursorPagination.util.js'
 import { DRIZZLE, type DrizzleDB, type DrizzleTx } from '../database/drizzle.provider.js'
+import { PG_UNIQUE_VIOLATION } from '../database/pgErrorCodes.js'
 import { auditLogs } from '../database/schema/audit.schema.js'
 import { members, organizations, sessions, users } from '../database/schema/auth.schema.js'
 import { findUserSnapshotOrThrow, isLastActiveSuperadmin } from './adminUsers.shared.js'
@@ -24,6 +25,8 @@ import { EmailConflictException } from './exceptions/emailConflict.exception.js'
 import { LastSuperadminException } from './exceptions/lastSuperadmin.exception.js'
 import { SuperadminProtectionException } from './exceptions/superadminProtection.exception.js'
 import { AdminUserNotFoundException } from './exceptions/userNotFound.exception.js'
+import { escapeIlikePattern } from './utils/escapeIlikePattern.js'
+import { logUserAudit } from './utils/logAudit.js'
 import { redactSensitiveFields } from './utils/redactSensitiveFields.js'
 
 /**
@@ -129,11 +132,7 @@ export class AdminUsersService {
     }
 
     if (filters.search) {
-      const escaped = filters.search
-        .replace(/\\/g, '\\\\')
-        .replace(/%/g, '\\%')
-        .replace(/_/g, '\\_')
-      const pattern = `%${escaped}%`
+      const pattern = `%${escapeIlikePattern(filters.search)}%`
       const searchCondition = or(ilike(users.name, pattern), ilike(users.email, pattern))
       if (searchCondition) conditions.push(searchCondition)
     }
@@ -339,7 +338,16 @@ export class AdminUsersService {
     const auditAction =
       data.role && data.role !== beforeUser.role ? 'user.role_changed' : 'user.updated'
 
-    this.logUserAudit(auditAction, userId, actorId, beforeUser, updatedUser)
+    logUserAudit(
+      this.auditService,
+      this.logger,
+      this.cls,
+      auditAction,
+      userId,
+      actorId,
+      beforeUser,
+      updatedUser
+    )
 
     return updatedUser
   }
@@ -406,36 +414,10 @@ export class AdminUsersService {
       return result
     } catch (err) {
       const pgErr = err as { code?: string }
-      if (pgErr.code === '23505') {
+      if (pgErr.code === PG_UNIQUE_VIOLATION) {
         throw new EmailConflictException()
       }
       throw err
     }
-  }
-
-  private logUserAudit(
-    action: AuditAction,
-    userId: string,
-    actorId: string,
-    before: Record<string, unknown> | undefined,
-    after: Record<string, unknown> | undefined
-  ) {
-    this.auditService
-      .log({
-        actorId,
-        actorType: 'user',
-        action,
-        resource: 'user',
-        resourceId: userId,
-        before: before ? { ...before } : null,
-        after: after ? { ...after } : null,
-      })
-      .catch((err) => {
-        this.logger.error(
-          { correlationId: this.cls.getId(), action, error: err.message },
-          'Audit log write failed'
-        )
-        // TODO: Add metrics counter for audit failures (Phase 3)
-      })
   }
 }

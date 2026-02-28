@@ -1,6 +1,7 @@
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpStatus } from '@nestjs/common'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { ClsService } from 'nestjs-cls'
+import { sendErrorResponse } from '../../common/filters/sendErrorResponse.js'
 import { SettingNotFoundException } from '../../system-settings/index.js'
 import { FlagNotFoundException } from '../exceptions/flagNotFound.exception.js'
 import { InvitationNotFoundException } from '../exceptions/invitationNotFound.exception.js'
@@ -8,7 +9,6 @@ import { AdminMemberNotFoundException } from '../exceptions/memberNotFound.excep
 import { AdminOrgNotFoundException } from '../exceptions/orgNotFound.exception.js'
 import { AdminRoleNotFoundException } from '../exceptions/roleNotFound.exception.js'
 import { AdminUserNotFoundException } from '../exceptions/userNotFound.exception.js'
-import { sendAdminErrorResponse } from './adminFilterResponse.js'
 
 type AdminNotFoundException =
   | AdminMemberNotFoundException
@@ -37,6 +37,6 @@ export class AdminNotFoundFilter implements ExceptionFilter {
     const request = ctx.getRequest<FastifyRequest>()
     const correlationId = this.cls.getId()
 
-    sendAdminErrorResponse(response, request, correlationId, HttpStatus.NOT_FOUND, exception)
+    sendErrorResponse(response, request, correlationId, HttpStatus.NOT_FOUND, exception)
   }
 }

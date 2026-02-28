@@ -1,7 +1,7 @@
 import { HttpStatus } from '@nestjs/common'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 
-export function sendAdminErrorResponse(
+export function sendErrorResponse(
   response: FastifyReply,
   request: FastifyRequest,
   correlationId: string,

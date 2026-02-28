@@ -19,6 +19,7 @@ import { Session } from '../auth/decorators/session.decorator.js'
 import type { AuthenticatedSession } from '../auth/types.js'
 import { SkipOrg } from '../common/decorators/skipOrg.decorator.js'
 import { ZodValidationPipe } from '../common/pipes/zodValidation.pipe.js'
+import { PG_UNIQUE_VIOLATION } from '../database/pgErrorCodes.js'
 import { FeatureFlagService } from '../feature-flags/featureFlags.service.js'
 import { FeatureFlagCreateFailedException } from './exceptions/featureFlagCreateFailed.exception.js'
 import { FlagKeyConflictException } from './exceptions/flagKeyConflict.exception.js'
@@ -27,8 +28,6 @@ import { AdminBadRequestFilter } from './filters/adminBadRequest.filter.js'
 import { AdminConflictFilter } from './filters/adminConflict.filter.js'
 import { AdminInternalErrorFilter } from './filters/adminInternalError.filter.js'
 import { AdminNotFoundFilter } from './filters/adminNotFound.filter.js'
-
-const PG_UNIQUE_VIOLATION = '23505'
 
 const FLAG_KEY_REGEX = /^[a-z0-9][a-z0-9_-]*$/
 

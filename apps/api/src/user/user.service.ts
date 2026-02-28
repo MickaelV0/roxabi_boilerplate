@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import type { OrgOwnershipResolution } from '@repo/types'
 import { and, eq, isNotNull } from 'drizzle-orm'
+import { DELETION_GRACE_PERIOD_MS } from '../common/constants.js'
 import { USER_SOFT_DELETED, UserSoftDeletedEvent } from '../common/events/userSoftDeleted.event.js'
 import { DRIZZLE, type DrizzleDB, type DrizzleTx } from '../database/drizzle.provider.js'
 import { whereActive } from '../database/helpers/whereActive.js'
@@ -269,7 +270,7 @@ export class UserService {
     await this.validateSoftDeleteRequest(userId, confirmEmail)
 
     const now = new Date()
-    const deleteScheduledFor = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+    const deleteScheduledFor = new Date(now.getTime() + DELETION_GRACE_PERIOD_MS)
 
     const updated = await this.db.transaction(async (tx) => {
       for (const resolution of orgResolutions) {

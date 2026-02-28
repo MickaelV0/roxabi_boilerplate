@@ -1,12 +1,12 @@
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpStatus } from '@nestjs/common'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { ClsService } from 'nestjs-cls'
+import { sendErrorResponse } from '../../common/filters/sendErrorResponse.js'
 import { EmailConflictException } from '../exceptions/emailConflict.exception.js'
 import { FlagKeyConflictException } from '../exceptions/flagKeyConflict.exception.js'
 import { InvitationAlreadyPendingException } from '../exceptions/invitationAlreadyPending.exception.js'
 import { MemberAlreadyExistsException } from '../exceptions/memberAlreadyExists.exception.js'
 import { OrgSlugConflictException } from '../exceptions/orgSlugConflict.exception.js'
-import { sendAdminErrorResponse } from './adminFilterResponse.js'
 
 type AdminConflictException =
   | MemberAlreadyExistsException
@@ -31,6 +31,6 @@ export class AdminConflictFilter implements ExceptionFilter {
     const request = ctx.getRequest<FastifyRequest>()
     const correlationId = this.cls.getId()
 
-    sendAdminErrorResponse(response, request, correlationId, HttpStatus.CONFLICT, exception)
+    sendErrorResponse(response, request, correlationId, HttpStatus.CONFLICT, exception)
   }
 }

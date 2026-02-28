@@ -13,6 +13,7 @@ import { magicLink } from 'better-auth/plugins/magic-link'
 import { organization } from 'better-auth/plugins/organization'
 import { eq } from 'drizzle-orm'
 import { buildFrontendUrl } from '../common/url.util.js'
+import { toError } from '../common/utils/toError.js'
 import type { DrizzleDB } from '../database/drizzle.provider.js'
 import { users } from '../database/schema/auth.schema.js'
 import type { EmailProvider } from '../email/email.provider.js'
@@ -89,7 +90,7 @@ function buildEmailAndPasswordConfig(emailProvider: EmailProvider, config: AuthI
       try {
         await emailProvider.send({ to: user.email, ...emailContent })
       } catch (error) {
-        const cause = error instanceof Error ? error : new Error(String(error))
+        const cause = toError(error)
         logger.error(`Failed to send reset password email to ${user.email}`, cause.stack)
         throw new APIError('INTERNAL_SERVER_ERROR', { message: 'EMAIL_SEND_FAILED' })
       }
@@ -134,7 +135,7 @@ function buildEmailVerificationConfig(emailProvider: EmailProvider, config: Auth
       try {
         await emailProvider.send({ to: user.email, ...emailContent })
       } catch (error) {
-        const cause = error instanceof Error ? error : new Error(String(error))
+        const cause = toError(error)
         logger.error(`Failed to send verification email to ${user.email}`, cause.stack)
         throw new APIError('INTERNAL_SERVER_ERROR', { message: 'EMAIL_SEND_FAILED' })
       }
@@ -177,7 +178,7 @@ function buildMagicLinkPlugin(
       try {
         await emailProvider.send({ to: email, ...emailContent })
       } catch (error) {
-        const cause = error instanceof Error ? error : new Error(String(error))
+        const cause = toError(error)
         logger.error(`Failed to send magic link email to ${email}`, cause.stack)
         throw new APIError('INTERNAL_SERVER_ERROR', { message: 'EMAIL_SEND_FAILED' })
       }

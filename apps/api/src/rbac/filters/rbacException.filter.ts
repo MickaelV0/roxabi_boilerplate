@@ -1,6 +1,7 @@
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpStatus } from '@nestjs/common'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { ClsService } from 'nestjs-cls'
+import { sendErrorResponse } from '../../common/filters/sendErrorResponse.js'
 import { DefaultRoleException } from '../exceptions/defaultRole.exception.js'
 import { MemberNotFoundException } from '../exceptions/memberNotFound.exception.js'
 import { OwnershipConstraintException } from '../exceptions/ownershipConstraint.exception.js'
@@ -47,19 +48,6 @@ export class RbacExceptionFilter implements ExceptionFilter {
       statusCode = HttpStatus.BAD_REQUEST
     }
 
-    const message =
-      statusCode === HttpStatus.INTERNAL_SERVER_ERROR
-        ? 'An internal error occurred'
-        : exception.message
-
-    response.header('x-correlation-id', correlationId)
-    response.status(statusCode).send({
-      statusCode,
-      timestamp: new Date().toISOString(),
-      path: request.url,
-      correlationId,
-      message,
-      errorCode: exception.errorCode,
-    })
+    sendErrorResponse(response, request, correlationId, statusCode, exception)
   }
 }
