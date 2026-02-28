@@ -57,7 +57,12 @@ type BanUserDto = z.infer<typeof banUserSchema>
 
 @ApiTags('Admin Users')
 @ApiBearerAuth()
-@UseFilters(AdminNotFoundFilter, AdminConflictFilter, AdminBadRequestFilter, AdminInternalErrorFilter)
+@UseFilters(
+  AdminNotFoundFilter,
+  AdminConflictFilter,
+  AdminBadRequestFilter,
+  AdminInternalErrorFilter
+)
 @Throttle({ global: { ttl: 60_000, limit: 30 } })
 @Roles('superadmin')
 @SkipOrg()

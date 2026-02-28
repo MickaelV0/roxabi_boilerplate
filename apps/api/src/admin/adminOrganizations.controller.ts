@@ -63,7 +63,12 @@ const VALID_STATUSES = ['active', 'archived'] as const
 
 @ApiTags('Admin Organizations')
 @ApiBearerAuth()
-@UseFilters(AdminNotFoundFilter, AdminConflictFilter, AdminBadRequestFilter, AdminInternalErrorFilter)
+@UseFilters(
+  AdminNotFoundFilter,
+  AdminConflictFilter,
+  AdminBadRequestFilter,
+  AdminInternalErrorFilter
+)
 @Throttle({ global: { ttl: 60_000, limit: 30 } })
 @Roles('superadmin')
 @SkipOrg()

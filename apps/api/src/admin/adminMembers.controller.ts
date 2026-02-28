@@ -44,7 +44,12 @@ const MAX_PAGE_LIMIT = 100
 
 @ApiTags('Admin Members')
 @ApiBearerAuth()
-@UseFilters(AdminNotFoundFilter, AdminConflictFilter, AdminBadRequestFilter, AdminInternalErrorFilter)
+@UseFilters(
+  AdminNotFoundFilter,
+  AdminConflictFilter,
+  AdminBadRequestFilter,
+  AdminInternalErrorFilter
+)
 @Throttle({ global: { ttl: 60_000, limit: 30 } })
 @Controller('api/admin/members')
 export class AdminMembersController {

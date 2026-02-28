@@ -50,7 +50,12 @@ const updateFlagSchema = z
 
 @ApiTags('Admin Feature Flags')
 @ApiBearerAuth()
-@UseFilters(AdminNotFoundFilter, AdminConflictFilter, AdminBadRequestFilter, AdminInternalErrorFilter)
+@UseFilters(
+  AdminNotFoundFilter,
+  AdminConflictFilter,
+  AdminBadRequestFilter,
+  AdminInternalErrorFilter
+)
 @Throttle({ global: { ttl: 60_000, limit: 30 } })
 @Roles('superadmin')
 @SkipOrg()
