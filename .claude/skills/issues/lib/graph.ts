@@ -14,11 +14,14 @@ export function flattenIssues(issues: Issue[]): Map<number, Issue> {
 }
 
 export function buildDepGraph(issues: Issue[]): DepNode[] {
-  const flat = flattenIssues(issues)
+  // Only include root-level issues in the graph (children deps stay internal to epics)
+  const rootNumbers = new Set(issues.map((i) => i.number))
 
   const nodes: DepNode[] = []
-  for (const issue of flat.values()) {
-    const targets = issue.blocking.filter((b) => b.state === 'OPEN').map((b) => b.number)
+  for (const issue of issues) {
+    const targets = issue.blocking
+      .filter((b) => b.state === 'OPEN' && rootNumbers.has(b.number))
+      .map((b) => b.number)
     if (targets.length > 0) {
       nodes.push({
         number: issue.number,
