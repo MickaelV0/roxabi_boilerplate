@@ -84,18 +84,19 @@ describe('ResendEmailProvider', () => {
         html: '<p>Hello</p>',
       })
 
-      // Assert — HTML is never logged; only To, Subject, and text preview
+      // Assert — HTML is never logged; only To and Subject
       expect(debugSpy).toHaveBeenCalledWith(
         '[Console Email] To: user@example.com | Subject: Test Subject'
       )
-      expect(debugSpy).toHaveBeenCalledWith('[Console Email] Preview: (no text body)')
+      expect(debugSpy).toHaveBeenCalledTimes(1)
 
       debugSpy.mockRestore()
     })
 
-    it('should log first 80 chars of text body when text is provided', async () => {
+    it('should log full URL from text body when text contains a link', async () => {
       // Arrange
       const debugSpy = vi.spyOn(Logger.prototype, 'debug').mockImplementation(() => {})
+      const logSpy = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => {})
       vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {})
       const config = createMockConfig({ NODE_ENV: 'development' })
       const provider = new ResendEmailProvider(config as never)
@@ -108,12 +109,16 @@ describe('ResendEmailProvider', () => {
         text: 'Click here to verify: https://example.com/verify?token=abc123',
       })
 
-      // Assert — text preview (first 80 chars), never html
+      // Assert — full URL is logged at log level for dev visibility
       expect(debugSpy).toHaveBeenCalledWith(
-        '[Console Email] Preview: Click here to verify: https://example.com/verify?token=abc123'
+        '[Console Email] To: user@example.com | Subject: Welcome'
+      )
+      expect(logSpy).toHaveBeenCalledWith(
+        '[Console Email] URL: https://example.com/verify?token=abc123'
       )
 
       debugSpy.mockRestore()
+      logSpy.mockRestore()
     })
   })
 

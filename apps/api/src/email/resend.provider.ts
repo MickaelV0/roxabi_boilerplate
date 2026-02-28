@@ -23,9 +23,11 @@ export class ResendEmailProvider implements EmailProvider {
 
   async send(params: { to: string; subject: string; html: string; text?: string }): Promise<void> {
     if (!this.resendClient) {
-      const textPreview = params.text ? params.text.slice(0, 80) : '(no text body)'
       this.logger.debug(`[Console Email] To: ${params.to} | Subject: ${params.subject}`)
-      this.logger.debug(`[Console Email] Preview: ${textPreview}`)
+      const urlMatch = params.text?.match(/https?:\/\/\S+/)
+      if (urlMatch) {
+        this.logger.log(`[Console Email] URL: ${urlMatch[0]}`)
+      }
       return
     }
 
