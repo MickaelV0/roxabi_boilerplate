@@ -23,7 +23,10 @@ import { FeatureFlagService } from '../feature-flags/featureFlags.service.js'
 import { FeatureFlagCreateFailedException } from './exceptions/featureFlagCreateFailed.exception.js'
 import { FlagKeyConflictException } from './exceptions/flagKeyConflict.exception.js'
 import { FlagNotFoundException } from './exceptions/flagNotFound.exception.js'
-import { AdminExceptionFilter } from './filters/adminException.filter.js'
+import { AdminBadRequestFilter } from './filters/adminBadRequest.filter.js'
+import { AdminConflictFilter } from './filters/adminConflict.filter.js'
+import { AdminInternalErrorFilter } from './filters/adminInternalError.filter.js'
+import { AdminNotFoundFilter } from './filters/adminNotFound.filter.js'
 
 const PG_UNIQUE_VIOLATION = '23505'
 
@@ -47,7 +50,7 @@ const updateFlagSchema = z
 
 @ApiTags('Admin Feature Flags')
 @ApiBearerAuth()
-@UseFilters(AdminExceptionFilter)
+@UseFilters(AdminNotFoundFilter, AdminConflictFilter, AdminBadRequestFilter, AdminInternalErrorFilter)
 @Throttle({ global: { ttl: 60_000, limit: 30 } })
 @Roles('superadmin')
 @SkipOrg()

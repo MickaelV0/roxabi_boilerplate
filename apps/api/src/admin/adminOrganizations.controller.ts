@@ -24,7 +24,10 @@ import { ZodValidationPipe } from '../common/pipes/zodValidation.pipe.js'
 import { AdminMembersService } from './adminMembers.service.js'
 import { AdminOrganizationsDeletionService } from './adminOrganizations.deletion.js'
 import { AdminOrganizationsService } from './adminOrganizations.service.js'
-import { AdminExceptionFilter } from './filters/adminException.filter.js'
+import { AdminBadRequestFilter } from './filters/adminBadRequest.filter.js'
+import { AdminConflictFilter } from './filters/adminConflict.filter.js'
+import { AdminInternalErrorFilter } from './filters/adminInternalError.filter.js'
+import { AdminNotFoundFilter } from './filters/adminNotFound.filter.js'
 
 const changeMemberRoleSchema = z.object({
   roleId: z.string().uuid(),
@@ -60,7 +63,7 @@ const VALID_STATUSES = ['active', 'archived'] as const
 
 @ApiTags('Admin Organizations')
 @ApiBearerAuth()
-@UseFilters(AdminExceptionFilter)
+@UseFilters(AdminNotFoundFilter, AdminConflictFilter, AdminBadRequestFilter, AdminInternalErrorFilter)
 @Throttle({ global: { ttl: 60_000, limit: 30 } })
 @Roles('superadmin')
 @SkipOrg()
