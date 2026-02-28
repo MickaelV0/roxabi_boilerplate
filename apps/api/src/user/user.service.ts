@@ -348,6 +348,7 @@ export class UserService {
     return user
   }
 
+  /** @internal Used by PurgeService for cron-based anonymization delegation. */
   async anonymizeUserRecords(tx: DrizzleTx, userId: string, originalEmail: string, now: Date) {
     const anonymizedEmail = `deleted-${crypto.randomUUID()}@anonymized.local`
 

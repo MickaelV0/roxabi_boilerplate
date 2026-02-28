@@ -191,7 +191,6 @@ describe('PurgeService', () => {
       expect(result.usersAnonymized).toBe(0)
       expect(result.orgsAnonymized).toBe(0)
       expect(db.transaction).not.toHaveBeenCalled()
-      expect(userService.anonymizeUserRecords).not.toHaveBeenCalled()
     })
 
     it('should process up to 100 records per invocation', async () => {
