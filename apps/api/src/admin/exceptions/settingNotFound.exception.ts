@@ -7,5 +7,6 @@ export class SettingNotFoundException extends Error {
   constructor(key: string) {
     super(`Setting "${key}" not found`)
     this.name = 'SettingNotFoundException'
+    Object.setPrototypeOf(this, new.target.prototype)
   }
 }

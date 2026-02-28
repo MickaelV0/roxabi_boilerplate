@@ -20,6 +20,7 @@ import type { AuthenticatedSession } from '../auth/types.js'
 import { SkipOrg } from '../common/decorators/skipOrg.decorator.js'
 import { ZodValidationPipe } from '../common/pipes/zodValidation.pipe.js'
 import { FeatureFlagService } from '../feature-flags/featureFlags.service.js'
+import { FeatureFlagCreateFailedException } from './exceptions/featureFlagCreateFailed.exception.js'
 import { FlagKeyConflictException } from './exceptions/flagKeyConflict.exception.js'
 import { FlagNotFoundException } from './exceptions/flagNotFound.exception.js'
 import { AdminExceptionFilter } from './filters/adminException.filter.js'
@@ -75,7 +76,7 @@ export class AdminFeatureFlagsController {
     let result: NonNullable<Awaited<ReturnType<FeatureFlagService['create']>>>
     try {
       const row = await this.featureFlagService.create(body)
-      if (!row) throw new Error('Failed to create feature flag')
+      if (!row) throw new FeatureFlagCreateFailedException()
       result = row
     } catch (error: unknown) {
       if (

@@ -4,6 +4,7 @@ import { ClsService } from 'nestjs-cls'
 import { DefaultRoleException } from '../exceptions/defaultRole.exception.js'
 import { MemberNotFoundException } from '../exceptions/memberNotFound.exception.js'
 import { OwnershipConstraintException } from '../exceptions/ownershipConstraint.exception.js'
+import { RoleInsertFailedException } from '../exceptions/roleInsertFailed.exception.js'
 import { RoleNotFoundException } from '../exceptions/roleNotFound.exception.js'
 import { RoleSlugConflictException } from '../exceptions/roleSlugConflict.exception.js'
 
@@ -13,13 +14,15 @@ type RbacException =
   | DefaultRoleException
   | RoleSlugConflictException
   | MemberNotFoundException
+  | RoleInsertFailedException
 
 @Catch(
   RoleNotFoundException,
   OwnershipConstraintException,
   DefaultRoleException,
   RoleSlugConflictException,
-  MemberNotFoundException
+  MemberNotFoundException,
+  RoleInsertFailedException
 )
 export class RbacExceptionFilter implements ExceptionFilter {
   constructor(private readonly cls: ClsService) {}
@@ -38,9 +41,16 @@ export class RbacExceptionFilter implements ExceptionFilter {
       statusCode = HttpStatus.NOT_FOUND
     } else if (exception instanceof RoleSlugConflictException) {
       statusCode = HttpStatus.CONFLICT
+    } else if (exception instanceof RoleInsertFailedException) {
+      statusCode = HttpStatus.INTERNAL_SERVER_ERROR
     } else {
       statusCode = HttpStatus.BAD_REQUEST
     }
+
+    const message =
+      statusCode === HttpStatus.INTERNAL_SERVER_ERROR
+        ? 'An internal error occurred'
+        : exception.message
 
     response.header('x-correlation-id', correlationId)
     response.status(statusCode).send({
@@ -48,7 +58,7 @@ export class RbacExceptionFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
       path: request.url,
       correlationId,
-      message: exception.message,
+      message,
       errorCode: exception.errorCode,
     })
   }
