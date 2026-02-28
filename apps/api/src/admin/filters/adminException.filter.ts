@@ -1,6 +1,8 @@
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpStatus } from '@nestjs/common'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { ClsService } from 'nestjs-cls'
+import { SettingNotFoundException } from '../../system-settings/exceptions/settingNotFound.exception.js'
+import { SettingValidationException } from '../../system-settings/exceptions/settingValidation.exception.js'
 import { EmailConflictException } from '../exceptions/emailConflict.exception.js'
 import { FeatureFlagCreateFailedException } from '../exceptions/featureFlagCreateFailed.exception.js'
 import { FlagKeyConflictException } from '../exceptions/flagKeyConflict.exception.js'
@@ -20,8 +22,6 @@ import { AdminRoleNotFoundException } from '../exceptions/roleNotFound.exception
 import { SelfActionException } from '../exceptions/selfAction.exception.js'
 import { SelfRemovalException } from '../exceptions/selfRemoval.exception.js'
 import { SelfRoleChangeException } from '../exceptions/selfRoleChange.exception.js'
-import { SettingNotFoundException } from '../exceptions/settingNotFound.exception.js'
-import { SettingValidationException } from '../exceptions/settingValidation.exception.js'
 import { UserAlreadyBannedException } from '../exceptions/userAlreadyBanned.exception.js'
 import { AdminUserNotFoundException } from '../exceptions/userNotFound.exception.js'
 

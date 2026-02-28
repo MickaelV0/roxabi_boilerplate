@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { SettingNotFoundException } from '../admin/exceptions/settingNotFound.exception.js'
-import { SettingValidationException } from '../admin/exceptions/settingValidation.exception.js'
+import { SettingNotFoundException } from './exceptions/settingNotFound.exception.js'
+import { SettingValidationException } from './exceptions/settingValidation.exception.js'
 import { SystemSettingsService } from './systemSettings.service.js'
 
 // Drizzle builder chain shapes used by SystemSettingsService:

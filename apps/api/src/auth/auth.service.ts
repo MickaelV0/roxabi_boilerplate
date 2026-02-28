@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import type { FastifyRequest } from 'fastify'
@@ -22,7 +22,6 @@ export class AuthService {
     @Inject(EMAIL_PROVIDER) emailProvider: EmailProvider,
     config: ConfigService,
     private readonly eventEmitter: EventEmitter2,
-    @Inject(forwardRef(() => PermissionService))
     private readonly permissionService: PermissionService
   ) {
     const googleClientId = config.get<string>('GOOGLE_CLIENT_ID')
