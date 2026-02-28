@@ -44,13 +44,20 @@
     "design@knowledge-work-plugins": true,
     "legal@knowledge-work-plugins": true,
     "marketing@knowledge-work-plugins": true,
-    "product-management@knowledge-work-plugins": true
+    "product-management@knowledge-work-plugins": true,
+    "roxabi-plugins@roxabi-marketplace": true
   },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {
       "source": {
         "source": "github",
         "repo": "anthropics/claude-plugins-official"
+      }
+    },
+    "roxabi-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "Roxabi/roxabi-plugins"
       }
     }
   }
