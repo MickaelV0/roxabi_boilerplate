@@ -40,22 +40,6 @@ describe('ResendEmailProvider', () => {
       warnSpy.mockRestore()
     })
 
-    it('should log error when no RESEND_API_KEY is set in production', () => {
-      // Arrange
-      const errorSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {})
-
-      // Act
-      const config = createMockConfig({ NODE_ENV: 'production' })
-      new ResendEmailProvider(config as never)
-
-      // Assert
-      expect(errorSpy).toHaveBeenCalledWith(
-        'RESEND_API_KEY is not set in production — emails will not be sent'
-      )
-
-      errorSpy.mockRestore()
-    })
-
     it('should use EMAIL_FROM from config', () => {
       // Arrange
       const config = createMockConfig({
@@ -88,7 +72,7 @@ describe('ResendEmailProvider', () => {
   describe('send — console fallback (no API key)', () => {
     it('should log To + Subject + text preview when no API key is set', async () => {
       // Arrange
-      const logSpy = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => {})
+      const debugSpy = vi.spyOn(Logger.prototype, 'debug').mockImplementation(() => {})
       vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {})
       const config = createMockConfig({ NODE_ENV: 'development' })
       const provider = new ResendEmailProvider(config as never)
@@ -101,17 +85,17 @@ describe('ResendEmailProvider', () => {
       })
 
       // Assert — HTML is never logged; only To, Subject, and text preview
-      expect(logSpy).toHaveBeenCalledWith(
+      expect(debugSpy).toHaveBeenCalledWith(
         '[Console Email] To: user@example.com | Subject: Test Subject'
       )
-      expect(logSpy).toHaveBeenCalledWith('[Console Email] Preview: (no text body)')
+      expect(debugSpy).toHaveBeenCalledWith('[Console Email] Preview: (no text body)')
 
-      logSpy.mockRestore()
+      debugSpy.mockRestore()
     })
 
     it('should log first 80 chars of text body when text is provided', async () => {
       // Arrange
-      const logSpy = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => {})
+      const debugSpy = vi.spyOn(Logger.prototype, 'debug').mockImplementation(() => {})
       vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {})
       const config = createMockConfig({ NODE_ENV: 'development' })
       const provider = new ResendEmailProvider(config as never)
@@ -125,11 +109,11 @@ describe('ResendEmailProvider', () => {
       })
 
       // Assert — text preview (first 80 chars), never html
-      expect(logSpy).toHaveBeenCalledWith(
+      expect(debugSpy).toHaveBeenCalledWith(
         '[Console Email] Preview: Click here to verify: https://example.com/verify?token=abc123'
       )
 
-      logSpy.mockRestore()
+      debugSpy.mockRestore()
     })
   })
 

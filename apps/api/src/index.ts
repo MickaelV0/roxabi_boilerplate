@@ -6,6 +6,7 @@ import { NestFactory } from '@nestjs/core'
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { AppModule } from './app.module.js'
+import { DEFAULT_LOG_LEVEL } from './config/env.validation.js'
 import { parseCorsOrigins } from './cors.js'
 import { registerRateLimitHeadersHook } from './throttler/index.js'
 
@@ -99,7 +100,7 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter({
       logger: {
-        level: process.env.LOG_LEVEL || 'debug',
+        level: process.env.LOG_LEVEL || DEFAULT_LOG_LEVEL,
       },
       bodyLimit: 1_048_576, // 1 MiB — explicit limit
       trustProxy: 1, // trust single proxy hop (Vercel) for correct client IP from x-forwarded-for

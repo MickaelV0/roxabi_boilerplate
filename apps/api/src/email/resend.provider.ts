@@ -16,20 +16,15 @@ export class ResendEmailProvider implements EmailProvider {
     this.resendClient = apiKey ? new Resend(apiKey) : null
 
     if (!apiKey) {
-      const nodeEnv = config.get<string>('NODE_ENV', 'development')
-      if (nodeEnv === 'production') {
-        this.logger.error('RESEND_API_KEY is not set in production — emails will not be sent')
-      } else {
-        this.logger.warn('RESEND_API_KEY not set — emails will be logged to console')
-      }
+      this.logger.warn('RESEND_API_KEY not set — emails will be logged to console')
     }
   }
 
   async send(params: { to: string; subject: string; html: string; text?: string }): Promise<void> {
     if (!this.resendClient) {
       const textPreview = params.text ? params.text.slice(0, 80) : '(no text body)'
-      this.logger.log(`[Console Email] To: ${params.to} | Subject: ${params.subject}`)
-      this.logger.log(`[Console Email] Preview: ${textPreview}`)
+      this.logger.debug(`[Console Email] To: ${params.to} | Subject: ${params.subject}`)
+      this.logger.debug(`[Console Email] Preview: ${textPreview}`)
       return
     }
 
