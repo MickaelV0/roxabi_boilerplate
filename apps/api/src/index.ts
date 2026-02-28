@@ -72,7 +72,7 @@ function configureSwagger(
   logger: Logger,
   nodeEnv: string
 ): void {
-  const swaggerEnabled = configService.get<boolean>('SWAGGER_ENABLED', nodeEnv !== 'production')
+  const swaggerEnabled = configService.get<boolean>('SWAGGER_ENABLED', nodeEnv === 'development')
   if (swaggerEnabled) {
     const config = new DocumentBuilder()
       .setTitle('Roxabi API')

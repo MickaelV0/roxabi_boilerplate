@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -55,6 +56,8 @@ const updateOrgSchema = z.object({
 type CreateOrgDto = z.infer<typeof createOrgSchema>
 type UpdateOrgDto = z.infer<typeof updateOrgSchema>
 
+const VALID_STATUSES = ['active', 'archived'] as const
+
 @ApiTags('Admin Organizations')
 @ApiBearerAuth()
 @UseFilters(AdminExceptionFilter)
@@ -79,6 +82,13 @@ export class AdminOrganizationsController {
     @Query('search') search?: string,
     @Query('view') view?: string
   ) {
+    if (status && !VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])) {
+      throw new BadRequestException(`status must be one of: ${VALID_STATUSES.join(', ')}`)
+    }
+    if (search && search.length > 200) {
+      throw new BadRequestException('search must be at most 200 characters')
+    }
+
     if (view === 'tree') {
       return this.adminOrganizationsService.listOrganizationsForTree()
     }
