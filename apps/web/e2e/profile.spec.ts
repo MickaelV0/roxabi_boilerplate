@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { ProfilePage } from './profile.page'
-import { TEST_USER } from './testHelpers'
-
-const hasApi = Boolean(process.env.DATABASE_URL) || !process.env.CI
+import { hasApi, TEST_USER } from './testHelpers'
 
 test.describe('User Profile', () => {
   // Profile tests use the shared authenticated storageState from the setup project.

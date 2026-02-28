@@ -1,9 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { RegistrationPage } from './registration.page'
-import { TEST_USER } from './testHelpers'
-
-const hasApi = Boolean(process.env.DATABASE_URL) || !process.env.CI
-const NAVIGATION_TIMEOUT = 45_000
+import { hasApi, NAVIGATION_TIMEOUT, TEST_USER } from './testHelpers'
 
 test.describe('Registration', () => {
   // Registration tests use a clean (unauthenticated) context so they don't

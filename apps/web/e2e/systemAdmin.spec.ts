@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { AdminPage } from './admin.page'
-
-const hasApi = Boolean(process.env.DATABASE_URL) || !process.env.CI
-const NAVIGATION_TIMEOUT = 45_000
+import { hasApi, NAVIGATION_TIMEOUT } from './testHelpers'
 
 // System admin tests use the superadmin session (superadmin@roxabi.local).
 // The storageState is produced by system-admin.setup.ts and injected by the
@@ -27,18 +25,48 @@ test.describe('System Admin', () => {
     await expect(admin.systemSettingsLink).toBeVisible()
   })
 
-  test('should display users list', async ({ page }) => {
-    // Arrange
-    const admin = new AdminPage(page)
+  const systemPages = [
+    {
+      label: 'users',
+      goto: (a: AdminPage) => a.gotoUsers(),
+      url: /\/admin\/users/,
+      heading: /^users$/i,
+    },
+    {
+      label: 'organizations',
+      goto: (a: AdminPage) => a.gotoOrganizations(),
+      url: /\/admin\/organizations/,
+      heading: /organizations/i,
+    },
+    {
+      label: 'feature flags',
+      goto: (a: AdminPage) => a.gotoFeatureFlags(),
+      url: /\/admin\/feature-flags/,
+      heading: /feature flags/i,
+    },
+    {
+      label: 'audit logs',
+      goto: (a: AdminPage) => a.gotoAuditLogs(),
+      url: /\/admin\/audit-logs/,
+      heading: /audit logs/i,
+    },
+    {
+      label: 'system settings',
+      goto: (a: AdminPage) => a.gotoSystemSettings(),
+      url: /\/admin\/system-settings/,
+      heading: /system settings/i,
+    },
+  ]
 
-    // Act
-    await admin.gotoUsers()
-    await page.waitForURL(/\/admin\/users/, { timeout: NAVIGATION_TIMEOUT })
-    await page.waitForLoadState('networkidle')
-
-    // Assert — the "Users" heading and the table (or empty state) are visible
-    await expect(page.getByRole('heading', { name: /^users$/i })).toBeVisible({ timeout: 15_000 })
-  })
+  for (const p of systemPages) {
+    test(`should display ${p.label}`, async ({ page }) => {
+      const admin = new AdminPage(page)
+      await p.goto(admin)
+      await page.waitForURL(p.url, { timeout: NAVIGATION_TIMEOUT })
+      await page.waitForLoadState('networkidle')
+      await expect(page.getByRole('heading', { name: p.heading })).toBeVisible({ timeout: 15_000 })
+    })
+  }
 
   test('should filter users by role', async ({ page }) => {
     // Arrange
@@ -73,67 +101,5 @@ test.describe('System Admin', () => {
     const urlHasFilter = page.url().includes('role') || page.url().includes('filter')
     const rowsAfter = await page.getByRole('row').count()
     expect(urlHasFilter || rowsAfter !== rowsBefore || rowsAfter > 0).toBe(true)
-  })
-
-  test('should display organizations list', async ({ page }) => {
-    // Arrange
-    const admin = new AdminPage(page)
-
-    // Act
-    await admin.gotoOrganizations()
-    await page.waitForURL(/\/admin\/organizations/, { timeout: NAVIGATION_TIMEOUT })
-    await page.waitForLoadState('networkidle')
-
-    // Assert — the "Organizations" heading is visible
-    await expect(page.getByRole('heading', { name: /organizations/i })).toBeVisible({
-      timeout: 15_000,
-    })
-  })
-
-  test('should display feature flags page', async ({ page }) => {
-    // Arrange
-    const admin = new AdminPage(page)
-
-    // Act
-    await admin.gotoFeatureFlags()
-    await page.waitForURL(/\/admin\/feature-flags/, { timeout: NAVIGATION_TIMEOUT })
-    await page.waitForLoadState('networkidle')
-
-    // Assert — the "Feature Flags" heading is visible (content may be empty state
-    // or a list of flags, both are valid)
-    await expect(page.getByRole('heading', { name: /feature flags/i })).toBeVisible({
-      timeout: 15_000,
-    })
-  })
-
-  test('should display audit logs', async ({ page }) => {
-    // Arrange
-    const admin = new AdminPage(page)
-
-    // Act
-    await admin.gotoAuditLogs()
-    await page.waitForURL(/\/admin\/audit-logs/, { timeout: NAVIGATION_TIMEOUT })
-    await page.waitForLoadState('networkidle')
-
-    // Assert — the "Audit Logs" heading is visible (may show empty state or entries)
-    await expect(page.getByRole('heading', { name: /audit logs/i })).toBeVisible({
-      timeout: 15_000,
-    })
-  })
-
-  test('should display system settings', async ({ page }) => {
-    // Arrange
-    const admin = new AdminPage(page)
-
-    // Act
-    await admin.gotoSystemSettings()
-    await page.waitForURL(/\/admin\/system-settings/, { timeout: NAVIGATION_TIMEOUT })
-    await page.waitForLoadState('networkidle')
-
-    // Assert — the "System Settings" heading is visible (may show settings cards
-    // or empty state if no settings are configured)
-    await expect(page.getByRole('heading', { name: /system settings/i })).toBeVisible({
-      timeout: 15_000,
-    })
   })
 })

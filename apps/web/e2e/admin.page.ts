@@ -15,8 +15,6 @@ export class AdminPage {
 
   async goto(path = '/admin/members') {
     await this.page.goto(path)
-    await this.page.waitForLoadState('domcontentloaded')
-    // Wait for the admin shell navigation to render
     await this.page.waitForSelector('nav, [role="navigation"], aside')
   }
 
@@ -189,12 +187,11 @@ export class AdminPage {
     await switcherBtn.click()
 
     // Wait for dropdown and click the target org
-    const menu = this.page.getByRole('menu')
-    await menu.waitFor({ state: 'visible', timeout: 5000 })
-    await menu.getByRole('menuitem', { name: orgName }).click()
+    await this.orgDropdownMenu.waitFor({ state: 'visible', timeout: 5_000 })
+    await this.orgDropdownMenu.getByRole('menuitem', { name: orgName }).click()
 
     // Wait for the menu to close
-    await menu.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {})
+    await this.orgDropdownMenu.waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {})
   }
 
   /**
@@ -204,19 +201,10 @@ export class AdminPage {
   private async findOrgSwitcherButton(): Promise<Locator | null> {
     const header = this.page.locator('header')
     const buttons = header.getByRole('button')
-    const count = await buttons.count()
-
-    for (let i = 0; i < count; i++) {
-      const btn = buttons.nth(i)
-      const text = await btn.textContent()
-      if (
-        text &&
-        text.trim().length > 0 &&
-        !text.match(/menu|theme|locale|github|sign in|sign up|open|close/i)
-      ) {
-        return btn
-      }
-    }
-    return null
+    const texts = await buttons.allTextContents()
+    const idx = texts.findIndex(
+      (t) => t.trim().length > 0 && !/menu|theme|locale|github|sign in|sign up|open|close/i.test(t)
+    )
+    return idx === -1 ? null : buttons.nth(idx)
   }
 }

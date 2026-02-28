@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { ApiKeysPage } from './apiKeys.page'
-
-const hasApi = Boolean(process.env.DATABASE_URL) || !process.env.CI
+import { hasApi } from './testHelpers'
 
 test.describe('API Key Management', () => {
   // API key tests use the shared authenticated storageState from the setup project.
@@ -14,8 +13,10 @@ test.describe('API Key Management', () => {
     await apiKeys.goto()
 
     // Assert — either the create button or the empty-state heading is present
-    const createVisible = await apiKeys.createButton.isVisible().catch(() => false)
-    const emptyStateVisible = await apiKeys.emptyState.isVisible().catch(() => false)
+    const [createVisible, emptyStateVisible] = await Promise.all([
+      apiKeys.createButton.isVisible().catch(() => false),
+      apiKeys.emptyState.isVisible().catch(() => false),
+    ])
     expect(createVisible || emptyStateVisible).toBe(true)
   })
 

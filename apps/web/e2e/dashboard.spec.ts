@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { DashboardPage } from './dashboard.page'
-
-const hasApi = Boolean(process.env.DATABASE_URL) || !process.env.CI
+import { hasApi } from './testHelpers'
 
 test.describe('Dashboard Navigation', () => {
   // Dashboard tests require the API server (needs DATABASE_URL).

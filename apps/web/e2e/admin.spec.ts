@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { AdminPage } from './admin.page'
-
-const hasApi = Boolean(process.env.DATABASE_URL) || !process.env.CI
-const NAVIGATION_TIMEOUT = 45_000
+import { hasApi, NAVIGATION_TIMEOUT } from './testHelpers'
 
 // Org Admin tests use the authenticated session injected via storageState from
 // the setup project (TEST_USER = dev@roxabi.local, has members:write permission,
@@ -78,7 +76,7 @@ test.describe('Org Admin', () => {
 
     // Assert — the header contains a button that shows the current org name
     // (OrgSwitcher renders a ghost button with the active org name)
-    await page.waitForLoadState('networkidle')
+    await expect(admin.adminNav).toBeVisible({ timeout: 15_000 })
     const orgName = await admin.getCurrentOrgName()
     expect(orgName).toBeTruthy()
   })
@@ -88,7 +86,7 @@ test.describe('Org Admin', () => {
     const admin = new AdminPage(page)
     await admin.gotoMembers()
     await page.waitForURL(/\/admin/, { timeout: NAVIGATION_TIMEOUT })
-    await page.waitForLoadState('networkidle')
+    await expect(admin.adminNav).toBeVisible({ timeout: 15_000 })
 
     // Get the current org name via POM
     const initialOrgName = await admin.getCurrentOrgName()
@@ -106,16 +104,8 @@ test.describe('Org Admin', () => {
 
     // Find a menu item that is NOT the currently active org
     const menuItems = menu.getByRole('menuitem')
-    const itemCount = await menuItems.count()
-
-    let otherOrgName: string | null = null
-    for (let i = 0; i < itemCount; i++) {
-      const itemText = await menuItems.nth(i).textContent()
-      if (itemText && itemText.trim() !== initialOrgName) {
-        otherOrgName = itemText.trim()
-        break
-      }
-    }
+    const itemTexts = await menuItems.allTextContents()
+    const otherOrgName = itemTexts.find((t) => t.trim() !== initialOrgName)?.trim() ?? null
 
     if (!otherOrgName) {
       // Only one org in the dropdown — cannot test switching

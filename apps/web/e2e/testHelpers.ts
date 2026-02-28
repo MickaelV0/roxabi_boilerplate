@@ -5,9 +5,12 @@ import type { Page } from '@playwright/test'
  * Provides helper functions for common test operations.
  */
 
-/**
- * Test user credentials for E2E tests
- */
+/** Whether the API is available (DATABASE_URL set, or not in CI). */
+export const hasApi = Boolean(process.env.DATABASE_URL) || !process.env.CI
+
+/** Generous timeout for navigations in CI (covers cold-start API responses). */
+export const NAVIGATION_TIMEOUT = 45_000
+
 /** Credentials matching apps/api/scripts/fixtures/auth.fixture.ts */
 export const TEST_USER = {
   email: 'dev@roxabi.local',
@@ -26,6 +29,9 @@ export const SUPERADMIN_USER = {
   password: 'password123',
   name: 'Super Admin',
 }
+
+/** Path to the regular-user auth storage state file (relative to repo root). */
+export const AUTH_FILE = './apps/web/e2e/.auth/user.json'
 
 /** Path to the superadmin auth storage state file (relative to repo root). */
 export const SUPERADMIN_AUTH_FILE = './apps/web/e2e/.auth/superadmin.json'

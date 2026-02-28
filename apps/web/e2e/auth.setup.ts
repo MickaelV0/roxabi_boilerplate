@@ -1,8 +1,6 @@
 import { expect, test as setup } from '@playwright/test'
 import { AuthPage } from './auth.page'
-import { TEST_USER } from './testHelpers'
-
-const authFile = './apps/web/e2e/.auth/user.json'
+import { AUTH_FILE, TEST_USER } from './testHelpers'
 
 /**
  * Authenticate once and save the storage state (cookies + localStorage)
@@ -20,5 +18,5 @@ setup('authenticate', async ({ page }) => {
   await expect(page).not.toHaveURL(/\/login/)
 
   // Save signed-in state for reuse by other projects
-  await page.context().storageState({ path: authFile })
+  await page.context().storageState({ path: AUTH_FILE })
 })
