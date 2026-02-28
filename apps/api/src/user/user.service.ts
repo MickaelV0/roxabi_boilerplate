@@ -348,12 +348,7 @@ export class UserService {
     return user
   }
 
-  private async anonymizeUserRecords(
-    tx: DrizzleTx,
-    userId: string,
-    originalEmail: string,
-    now: Date
-  ) {
+  async anonymizeUserRecords(tx: DrizzleTx, userId: string, originalEmail: string, now: Date) {
     const anonymizedEmail = `deleted-${crypto.randomUUID()}@anonymized.local`
 
     // Anonymize user record
