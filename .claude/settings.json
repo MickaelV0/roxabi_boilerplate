@@ -13,7 +13,8 @@
     "marketing@knowledge-work-plugins": true,
     "product-management@knowledge-work-plugins": true,
     "memory-audit@roxabi-marketplace": true,
-    "dev-core@roxabi-marketplace": true
+    "dev-core@roxabi-marketplace": true,
+    "web-intel@roxabi-marketplace": true
   },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {
