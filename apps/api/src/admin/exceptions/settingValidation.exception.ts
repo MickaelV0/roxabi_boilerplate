@@ -9,5 +9,6 @@ export class SettingValidationException extends Error {
       `Invalid value for setting "${key}": expected type "${expectedType}", received "${receivedType}"`
     )
     this.name = 'SettingValidationException'
+    Object.setPrototypeOf(this, new.target.prototype)
   }
 }
