@@ -140,12 +140,17 @@ describe('AdminOrganizationsController', () => {
       })
 
       // Act
-      await controller.listOrganizations('cursor-abc', '10', 'active', 'acme')
+      await controller.listOrganizations(
+        'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        '10',
+        'active',
+        'acme'
+      )
 
       // Assert
       expect(mockAdminOrganizationsService.listOrganizations).toHaveBeenCalledWith(
         { status: 'active', search: 'acme' },
-        'cursor-abc',
+        'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         10
       )
     })

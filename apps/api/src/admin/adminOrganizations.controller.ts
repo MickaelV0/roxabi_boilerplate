@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -79,6 +80,16 @@ export class AdminOrganizationsController {
     @Query('search') search?: string,
     @Query('view') view?: string
   ) {
+    const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    const VALID_STATUSES = ['active', 'archived'] as const
+
+    if (cursor && !UUID_V4_REGEX.test(cursor)) {
+      throw new BadRequestException('cursor must be a valid UUID v4')
+    }
+    if (status && !VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])) {
+      throw new BadRequestException(`status must be one of: ${VALID_STATUSES.join(', ')}`)
+    }
+
     if (view === 'tree') {
       return this.adminOrganizationsService.listOrganizationsForTree()
     }

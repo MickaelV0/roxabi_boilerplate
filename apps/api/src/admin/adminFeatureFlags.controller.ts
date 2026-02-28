@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseFilters,
@@ -105,7 +106,7 @@ export class AdminFeatureFlagsController {
   @ApiResponse({ status: 404, description: 'Feature flag not found' })
   async update(
     @Session() session: AuthenticatedSession,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body(new ZodValidationPipe(updateFlagSchema)) body: z.infer<typeof updateFlagSchema>
   ) {
     const before = await this.featureFlagService.getById(id)
@@ -140,7 +141,10 @@ export class AdminFeatureFlagsController {
   @ApiOperation({ summary: 'Delete a feature flag' })
   @ApiResponse({ status: 204, description: 'Feature flag deleted' })
   @ApiResponse({ status: 404, description: 'Feature flag not found' })
-  async delete(@Session() session: AuthenticatedSession, @Param('id') id: string) {
+  async delete(
+    @Session() session: AuthenticatedSession,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string
+  ) {
     const existing = await this.featureFlagService.getById(id)
     if (!existing) {
       throw new FlagNotFoundException(id)
