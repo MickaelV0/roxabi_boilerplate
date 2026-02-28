@@ -8,6 +8,8 @@ const booleanFromEnv = z.preprocess((val) => {
 
 const Environment = z.enum(['development', 'production', 'test'])
 
+export const DEFAULT_LOG_LEVEL = 'warn' as const
+
 export const envSchema = z.object({
   NODE_ENV: Environment.default('development'),
   PORT: z.coerce.number().default(4000),
@@ -15,14 +17,16 @@ export const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
   DATABASE_APP_URL: z.string().optional(),
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
-  LOG_LEVEL: z.string().default('debug'),
+  LOG_LEVEL: z
+    .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'])
+    .default(DEFAULT_LOG_LEVEL),
   BETTER_AUTH_SECRET: z.string().min(32).default('dev-secret-do-not-use-in-production'),
   BETTER_AUTH_URL: z.string().url().default('http://localhost:4000'),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),
-  RESEND_API_KEY: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(), // Required outside development — see validateResendApiKey(). Safe to assert non-null (!) in non-dev contexts.
   EMAIL_FROM: z.string().default('noreply@yourdomain.com'),
   APP_URL: z.string().url().optional(),
   // Rate limiting & Upstash Redis
@@ -60,6 +64,7 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
 
   const validatedConfig = result.data
   validateAuthSecret(validatedConfig)
+  validateResendApiKey(validatedConfig)
   validateSecurityWarnings(validatedConfig)
   validateRateLimitRedis(validatedConfig)
 
@@ -82,6 +87,23 @@ function validateAuthSecret(config: EnvironmentVariables) {
     throw new Error(
       'BETTER_AUTH_SECRET must be set to a secure value on Vercel deployments. ' +
         'Generate one with: openssl rand -base64 32'
+    )
+  }
+}
+
+function validateResendApiKey(config: EnvironmentVariables) {
+  // Guard uses !== 'development' to cover production and test environments.
+  if (config.NODE_ENV !== 'development' && !config.RESEND_API_KEY) {
+    throw new Error(
+      'RESEND_API_KEY must be set in non-development environments. ' +
+        'Get an API key at https://resend.com'
+    )
+  }
+
+  // Secondary guard: catches Vercel deployments where NODE_ENV may still be 'development'.
+  if (config.VERCEL_ENV && !config.RESEND_API_KEY) {
+    throw new Error(
+      'RESEND_API_KEY must be set on Vercel deployments. ' + 'Get an API key at https://resend.com'
     )
   }
 }
