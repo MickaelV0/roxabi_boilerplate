@@ -2,6 +2,7 @@ import { type ArgumentsHost, Catch, type ExceptionFilter, HttpStatus } from '@ne
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { ClsService } from 'nestjs-cls'
 import { EmailConflictException } from '../exceptions/emailConflict.exception.js'
+import { FeatureFlagCreateFailedException } from '../exceptions/featureFlagCreateFailed.exception.js'
 import { FlagKeyConflictException } from '../exceptions/flagKeyConflict.exception.js'
 import { FlagKeyInvalidException } from '../exceptions/flagKeyInvalid.exception.js'
 import { FlagNotFoundException } from '../exceptions/flagNotFound.exception.js'
@@ -47,6 +48,7 @@ type AdminException =
   | FlagNotFoundException
   | FlagKeyConflictException
   | FlagKeyInvalidException
+  | FeatureFlagCreateFailedException
 
 @Catch(
   MemberAlreadyExistsException,
@@ -70,7 +72,8 @@ type AdminException =
   SettingValidationException,
   FlagNotFoundException,
   FlagKeyConflictException,
-  FlagKeyInvalidException
+  FlagKeyInvalidException,
+  FeatureFlagCreateFailedException
 )
 export class AdminExceptionFilter implements ExceptionFilter {
   constructor(private readonly cls: ClsService) {}
@@ -100,9 +103,16 @@ export class AdminExceptionFilter implements ExceptionFilter {
       exception instanceof FlagKeyConflictException
     ) {
       statusCode = HttpStatus.CONFLICT
+    } else if (exception instanceof FeatureFlagCreateFailedException) {
+      statusCode = HttpStatus.INTERNAL_SERVER_ERROR
     } else {
       statusCode = HttpStatus.BAD_REQUEST
     }
+
+    const message =
+      statusCode === HttpStatus.INTERNAL_SERVER_ERROR
+        ? 'An internal error occurred'
+        : exception.message
 
     response.header('x-correlation-id', correlationId)
     response.status(statusCode).send({
@@ -110,7 +120,7 @@ export class AdminExceptionFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
       path: request.url,
       correlationId,
-      message: exception.message,
+      message,
       errorCode: exception.errorCode,
     })
   }
