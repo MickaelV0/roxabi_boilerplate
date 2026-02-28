@@ -16,8 +16,8 @@ export class ApiKeysPage {
 
   async goto() {
     await this.page.goto('/settings/api-keys')
-    // Wait for either the empty state or the table to be rendered
-    await this.page.waitForSelector('[class*="space-y"], table, [class*="rounded-lg"]', {
+    // Wait for either the table (keys exist) or the empty state (dashed border)
+    await this.page.waitForSelector('table, [class*="border-dashed"]', {
       timeout: 15_000,
     })
   }
@@ -109,12 +109,10 @@ export class ApiKeysPage {
 
   /**
    * The destructive "Revoke" confirm button inside the confirmation dialog.
+   * Scopes to the alertdialog role for precision; falls back to dialog if alertdialog is absent.
    */
   get revokeConfirmButton(): Locator {
-    return this.page
-      .getByRole('dialog')
-      .getByRole('button', { name: /revoke/i })
-      .last()
+    return this.page.getByRole('alertdialog').getByRole('button', { name: /revoke/i })
   }
 
   // ---------------------------------------------------------------------------

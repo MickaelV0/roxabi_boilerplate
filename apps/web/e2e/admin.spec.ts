@@ -43,12 +43,15 @@ test.describe('Org Admin', () => {
     await admin.gotoMembers()
     await page.waitForURL(/\/admin\/members/, { timeout: NAVIGATION_TIMEOUT })
 
-    // Act — wait for search input to be interactive and type a query
-    await expect(admin.memberSearch).toBeVisible({ timeout: 15_000 })
+    // Act — wait for member rows to be present before searching
+    await expect(admin.membersCard).toBeVisible({ timeout: 15_000 })
+    await expect(admin.memberSearch).toBeVisible()
     await admin.memberSearch.fill('dev')
 
-    // Assert — search input reflects the typed value (functional at minimum)
+    // Assert — input reflects the typed value and filtered rows match the query
     await expect(admin.memberSearch).toHaveValue('dev')
+    // Wait for filtering to apply, then verify visible rows contain 'dev'
+    await expect(admin.memberRows.first()).toContainText(/dev/i, { timeout: 5_000 })
   })
 
   test('should display org settings', async ({ page }) => {
@@ -87,50 +90,46 @@ test.describe('Org Admin', () => {
     await page.waitForURL(/\/admin/, { timeout: NAVIGATION_TIMEOUT })
     await page.waitForLoadState('networkidle')
 
-    // Check org switcher exists before testing switch
-    const header = page.locator('header')
-    const buttons = header.getByRole('button')
-    const count = await buttons.count()
+    // Get the current org name via POM
+    const initialOrgName = await admin.getCurrentOrgName()
 
-    // Find a button that could be the org switcher (has non-empty, non-icon text)
-    let switcherExists = false
-    for (let i = 0; i < count; i++) {
-      const btn = buttons.nth(i)
-      const text = await btn.textContent()
-      if (
-        text &&
-        text.trim().length > 0 &&
-        !text.match(/menu|theme|locale|github|sign in|sign up|open|close/i)
-      ) {
-        switcherExists = true
+    if (!initialOrgName) {
+      // No org switcher present — single-org user or switcher not rendered
+      test.skip()
+      return
+    }
+
+    // Open the org switcher dropdown by clicking the button showing the current org name
+    await admin.orgSwitcherByName(initialOrgName).click()
+    const menu = admin.orgDropdownMenu
+    await menu.waitFor({ state: 'visible', timeout: 5000 })
+
+    // Find a menu item that is NOT the currently active org
+    const menuItems = menu.getByRole('menuitem')
+    const itemCount = await menuItems.count()
+
+    let otherOrgName: string | null = null
+    for (let i = 0; i < itemCount; i++) {
+      const itemText = await menuItems.nth(i).textContent()
+      if (itemText && itemText.trim() !== initialOrgName) {
+        otherOrgName = itemText.trim()
         break
       }
     }
 
-    if (!switcherExists) {
-      // No org switcher visible — skip gracefully (e.g., user only has 1 org)
+    if (!otherOrgName) {
+      // Only one org in the dropdown — cannot test switching
+      await page.keyboard.press('Escape')
+      test.skip()
       return
     }
 
-    // Act — open the org switcher dropdown
-    await buttons
-      .nth(0)
-      .click()
-      .catch(() => {})
-    const menu = page.getByRole('menu')
-    const menuVisible = await menu.isVisible().catch(() => false)
+    // Act — click the other org menu item and wait for the menu to close
+    await menuItems.getByText(otherOrgName).click()
+    await menu.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {})
 
-    if (!menuVisible) {
-      // Dropdown didn't open — skip gracefully
-      return
-    }
-
-    // Assert — the dropdown shows org items
-    const menuItems = menu.getByRole('menuitem')
-    const itemCount = await menuItems.count()
-    expect(itemCount).toBeGreaterThan(0)
-
-    // Close the menu by pressing Escape
-    await page.keyboard.press('Escape')
+    // Assert — the org context changed
+    const newOrgName = await admin.getCurrentOrgName()
+    expect(newOrgName).not.toBe(initialOrgName)
   })
 })

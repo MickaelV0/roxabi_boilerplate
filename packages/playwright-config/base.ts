@@ -3,6 +3,7 @@ import { devices } from '@playwright/test'
 
 const hasDatabase = Boolean(process.env.DATABASE_URL)
 const authFile = './apps/web/e2e/.auth/user.json'
+// Must match SUPERADMIN_AUTH_FILE in apps/web/e2e/testHelpers.ts
 const superadminAuthFile = './apps/web/e2e/.auth/superadmin.json'
 
 /**

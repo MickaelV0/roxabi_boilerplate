@@ -35,10 +35,7 @@ export class ProfilePage {
    * The DiceBear avatar preview image rendered inside AvatarCustomizationSection.
    */
   get avatarImage(): Locator {
-    return this.page
-      .locator('img[alt]')
-      .filter({ hasNot: this.page.locator('svg') })
-      .first()
+    return this.page.locator('img[alt]').first()
   }
 
   /**

@@ -1,14 +1,14 @@
 import { expect, test } from '@playwright/test'
 import { ProfilePage } from './profile.page'
+import { TEST_USER } from './testHelpers'
 
 const hasApi = Boolean(process.env.DATABASE_URL) || !process.env.CI
 
 test.describe('User Profile', () => {
   // Profile tests use the shared authenticated storageState from the setup project.
   // No test.use({ storageState }) override needed — the default applies.
+  test.describe.configure({ mode: 'serial' })
   test.skip(() => !hasApi, 'Skipped: no DATABASE_URL in CI')
-
-  let originalName: string
 
   test('should display current profile', async ({ page }) => {
     // Arrange + Act
@@ -24,7 +24,6 @@ test.describe('User Profile', () => {
     // Arrange
     const profile = new ProfilePage(page)
     await profile.goto()
-    originalName = await profile.displayNameInput.inputValue()
     const newName = `E2E Test ${Date.now()}`
 
     // Act
@@ -32,9 +31,6 @@ test.describe('User Profile', () => {
 
     // Assert — a success toast is shown
     await expect(profile.successFeedback).toBeVisible({ timeout: 15_000 })
-
-    // Restore original name so subsequent tests start clean
-    await profile.updateName(originalName)
   })
 
   test('should show avatar image', async ({ page }) => {
@@ -56,7 +52,6 @@ test.describe('User Profile', () => {
     // Arrange
     const profile = new ProfilePage(page)
     await profile.goto()
-    originalName = await profile.displayNameInput.inputValue()
     const newName = `Persist-${Date.now()}`
 
     // Act — update name, wait for success, then reload
@@ -68,24 +63,19 @@ test.describe('User Profile', () => {
     // Assert — the new name is still shown after reload
     const nameAfterReload = await profile.displayNameInput.inputValue()
     expect(nameAfterReload).toBe(newName)
-
-    // Restore original name so subsequent tests start clean
-    await profile.updateName(originalName)
   })
 
   test.afterEach(async ({ page }) => {
-    // Restore original name if it was captured and a test failed mid-way
-    if (originalName) {
-      try {
-        const profile = new ProfilePage(page)
-        await profile.goto()
-        const currentName = await profile.displayNameInput.inputValue()
-        if (currentName !== originalName) {
-          await profile.updateName(originalName)
-        }
-      } catch {
-        // Best-effort restore — do not fail the test on cleanup error
+    // Restore seed name if a test left a test-generated value.
+    try {
+      const profile = new ProfilePage(page)
+      await profile.goto()
+      const currentName = await profile.displayNameInput.inputValue()
+      if (/^(E2E Test|Persist-)\d+$/.test(currentName)) {
+        await profile.updateName(TEST_USER.name)
       }
+    } catch {
+      // Best-effort restore — do not fail the test on cleanup error
     }
   })
 })

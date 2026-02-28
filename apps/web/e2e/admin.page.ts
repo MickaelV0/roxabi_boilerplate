@@ -16,8 +16,8 @@ export class AdminPage {
   async goto(path = '/admin/members') {
     await this.page.goto(path)
     await this.page.waitForLoadState('domcontentloaded')
-    // Wait for client-side auth guard and data fetching to settle
-    await this.page.waitForTimeout(500)
+    // Wait for the admin shell navigation to render
+    await this.page.waitForSelector('nav, [role="navigation"], aside')
   }
 
   async gotoMembers() {
@@ -112,7 +112,7 @@ export class AdminPage {
    * The members table (Card containing the table/list of members).
    */
   get membersCard(): Locator {
-    return this.page.getByRole('heading', { name: /active members|active/i }).first()
+    return this.page.getByRole('heading', { name: /active members/i }).first()
   }
 
   /**
@@ -152,19 +152,6 @@ export class AdminPage {
   // ---------------------------------------------------------------------------
 
   /**
-   * The org switcher button in the header — shows the currently active org name.
-   * The OrgSwitcher renders a ghost Button with the org name and a ChevronDown icon.
-   */
-  get orgSwitcherButton(): Locator {
-    // The OrgSwitcher is a DropdownMenuTrigger with variant="ghost" size="sm"
-    // containing the org name. We locate it by its role as a button inside the header.
-    return this.page
-      .locator('header')
-      .getByRole('button', { name: /chevron|chev/i })
-      .first()
-  }
-
-  /**
    * Get the org switcher button by the visible org name text.
    */
   orgSwitcherByName(orgName: string | RegExp): Locator {
@@ -175,29 +162,14 @@ export class AdminPage {
    * Org name as displayed in the switcher button (text content).
    */
   async getCurrentOrgName(): Promise<string | null> {
-    // The OrgSwitcher renders the org name inside a ghost button in the header nav
-    // alongside other header buttons. We find it by checking buttons in the header
-    // that contain text (not purely icon buttons).
-    const header = this.page.locator('header')
-    const buttons = header.getByRole('button')
-    const count = await buttons.count()
-
-    for (let i = 0; i < count; i++) {
-      const btn = buttons.nth(i)
-      const text = await btn.textContent()
-      // The org switcher shows the org name — skip known icon-only buttons
-      if (
-        text &&
-        text.trim().length > 0 &&
-        !text.match(/menu|theme|locale|github|sign in|sign up|open|close/i)
-      ) {
-        return text
-          .trim()
-          .replace(/[\u{203F}-\u{2040}]|[^\x20-\x7F]/gu, '')
-          .trim()
-      }
-    }
-    return null
+    const btn = await this.findOrgSwitcherButton()
+    if (!btn) return null
+    const text = await btn.textContent()
+    if (!text) return null
+    return text
+      .trim()
+      .replace(/[\u{203F}-\u{2040}]|[^\x20-\x7F]/gu, '')
+      .trim()
   }
 
   /**
@@ -211,26 +183,7 @@ export class AdminPage {
    * Switch to a different org by clicking the switcher and selecting by name.
    */
   async switchOrg(orgName: string) {
-    // Find and click the org switcher trigger in the header
-    // The button renders the current org name text + ChevronDown
-    const header = this.page.locator('header')
-    const buttons = header.getByRole('button')
-    const count = await buttons.count()
-
-    let switcherBtn: Locator | null = null
-    for (let i = 0; i < count; i++) {
-      const btn = buttons.nth(i)
-      const text = await btn.textContent()
-      if (
-        text &&
-        text.trim().length > 0 &&
-        !text.match(/menu|theme|locale|github|sign in|sign up|open|close/i)
-      ) {
-        switcherBtn = btn
-        break
-      }
-    }
-
+    const switcherBtn = await this.findOrgSwitcherButton()
     if (!switcherBtn) return
 
     await switcherBtn.click()
@@ -242,5 +195,28 @@ export class AdminPage {
 
     // Wait for the menu to close
     await menu.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {})
+  }
+
+  /**
+   * Scan header buttons to find the org switcher.
+   * Returns the first button that has non-empty text and is not a known icon-only button.
+   */
+  private async findOrgSwitcherButton(): Promise<Locator | null> {
+    const header = this.page.locator('header')
+    const buttons = header.getByRole('button')
+    const count = await buttons.count()
+
+    for (let i = 0; i < count; i++) {
+      const btn = buttons.nth(i)
+      const text = await btn.textContent()
+      if (
+        text &&
+        text.trim().length > 0 &&
+        !text.match(/menu|theme|locale|github|sign in|sign up|open|close/i)
+      ) {
+        return btn
+      }
+    }
+    return null
   }
 }

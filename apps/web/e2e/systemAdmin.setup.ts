@@ -1,8 +1,6 @@
 import { expect, test as setup } from '@playwright/test'
 import { AuthPage } from './auth.page'
-import { SUPERADMIN_USER } from './testHelpers'
-
-export const superadminAuthFile = './apps/web/e2e/.auth/superadmin.json'
+import { SUPERADMIN_AUTH_FILE, SUPERADMIN_USER } from './testHelpers'
 
 /**
  * Authenticate once as a superadmin user and save the storage state (cookies +
@@ -20,5 +18,5 @@ setup('authenticate as superadmin', async ({ page }) => {
   await expect(page).not.toHaveURL(/\/login/)
 
   // Save signed-in state for reuse by system-admin browser projects
-  await page.context().storageState({ path: superadminAuthFile })
+  await page.context().storageState({ path: SUPERADMIN_AUTH_FILE })
 })

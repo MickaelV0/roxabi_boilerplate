@@ -51,6 +51,7 @@ jobs:
               - 'apps/web/src/**'
               - 'apps/web/e2e/**'
               - 'packages/ui/src/**'
+              - 'packages/playwright-config/**'
               - 'playwright.config.ts'
               - '.github/workflows/ci.yml'
               - 'turbo.jsonc'
