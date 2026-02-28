@@ -32,6 +32,7 @@ describe('env validation', () => {
       const result = validate({
         NODE_ENV: env,
         BETTER_AUTH_SECRET: 'a-safe-secret-for-testing-purposes',
+        ...(env !== 'development' && { CRON_SECRET: 'test-cron-secret-minimum-32-chars!' }),
         ...(env === 'production' && {
           KV_REST_API_URL: 'https://redis.upstash.io',
           KV_REST_API_TOKEN: 'test-token',
@@ -129,6 +130,7 @@ describe('env validation', () => {
       const result = validate({
         NODE_ENV: 'test',
         BETTER_AUTH_SECRET: 'test-secret-minimum-32-characters-long',
+        CRON_SECRET: 'test-cron-secret-minimum-32-chars!',
       })
       expect(result.BETTER_AUTH_SECRET).toBe('test-secret-minimum-32-characters-long')
     })
@@ -137,6 +139,7 @@ describe('env validation', () => {
       const result = validate({
         NODE_ENV: 'production',
         BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
+        CRON_SECRET: 'test-cron-secret-minimum-32-chars!',
         KV_REST_API_URL: 'https://redis.upstash.io',
         KV_REST_API_TOKEN: 'test-token',
       })
@@ -202,12 +205,49 @@ describe('env validation', () => {
     })
   })
 
+  describe('CRON_SECRET non-development guard', () => {
+    it('should throw when CRON_SECRET is missing in production', () => {
+      expect(() =>
+        validate({
+          NODE_ENV: 'production',
+          BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
+          KV_REST_API_URL: 'https://redis.upstash.io',
+          KV_REST_API_TOKEN: 'test-token',
+        })
+      ).toThrow('CRON_SECRET is required in non-development environments')
+    })
+
+    it('should throw when CRON_SECRET is missing in test', () => {
+      expect(() =>
+        validate({
+          NODE_ENV: 'test',
+          BETTER_AUTH_SECRET: 'test-secret-minimum-32-characters-long',
+        })
+      ).toThrow('CRON_SECRET is required in non-development environments')
+    })
+
+    it('should allow missing CRON_SECRET in development', () => {
+      const result = validate({ NODE_ENV: 'development' })
+      expect(result.CRON_SECRET).toBeUndefined()
+    })
+
+    it('should accept CRON_SECRET when provided', () => {
+      const result = validate({
+        NODE_ENV: 'test',
+        BETTER_AUTH_SECRET: 'test-secret-minimum-32-characters-long',
+        CRON_SECRET: 'my-cron-secret-minimum-32-characters!',
+      })
+      expect(result.CRON_SECRET).toBe('my-cron-secret-minimum-32-characters!')
+    })
+  })
+
   describe('Upstash Redis production guard', () => {
     it('should throw when KV_REST_API_URL is missing in production with rate limiting enabled', () => {
       expect(() =>
         validate({
           NODE_ENV: 'production',
           BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
+          CRON_SECRET: 'test-cron-secret-minimum-32-chars!',
           RATE_LIMIT_ENABLED: true,
         })
       ).toThrow('KV_REST_API_URL and KV_REST_API_TOKEN are required in production')
@@ -218,6 +258,7 @@ describe('env validation', () => {
         validate({
           NODE_ENV: 'production',
           BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
+          CRON_SECRET: 'test-cron-secret-minimum-32-chars!',
           RATE_LIMIT_ENABLED: true,
           KV_REST_API_URL: 'https://redis.upstash.io',
         })
@@ -228,6 +269,7 @@ describe('env validation', () => {
       const result = validate({
         NODE_ENV: 'production',
         BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
+        CRON_SECRET: 'test-cron-secret-minimum-32-chars!',
         RATE_LIMIT_ENABLED: false,
       })
       expect(result.KV_REST_API_URL).toBeUndefined()
@@ -239,6 +281,7 @@ describe('env validation', () => {
       validate({
         NODE_ENV: 'production',
         BETTER_AUTH_SECRET: 'a-real-secret-that-is-safe-for-prod',
+        CRON_SECRET: 'test-cron-secret-minimum-32-chars!',
         RATE_LIMIT_ENABLED: false,
       })
       expect(errorSpy).toHaveBeenCalledWith(
