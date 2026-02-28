@@ -7,14 +7,11 @@
     "security-guidance@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
     "vercel@claude-plugins-official": true,
-    "sales@knowledge-work-plugins": true,
-    "design@knowledge-work-plugins": true,
-    "legal@knowledge-work-plugins": true,
-    "marketing@knowledge-work-plugins": true,
-    "product-management@knowledge-work-plugins": true,
     "memory-audit@roxabi-marketplace": true,
     "dev-core@roxabi-marketplace": true,
-    "web-intel@roxabi-marketplace": true
+    "web-intel@roxabi-marketplace": true,
+    "1b1@roxabi-marketplace": true,
+    "compress@roxabi-marketplace": true
   },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {
