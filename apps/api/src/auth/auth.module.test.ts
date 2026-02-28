@@ -12,7 +12,7 @@ describe('AuthModule', () => {
   const exports_: unknown[] = Reflect.getMetadata('exports', AuthModule) ?? []
 
   it('should import EmailModule, RbacModule and UserModule', () => {
-    // Assert — EmailModule is direct, forwardRef wraps the other two
+    // Assert — EmailModule and RbacModule are direct; only UserModule uses forwardRef
     expect(imports).toHaveLength(3)
   })
 
