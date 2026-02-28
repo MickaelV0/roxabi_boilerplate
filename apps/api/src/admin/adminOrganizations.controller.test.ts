@@ -141,17 +141,12 @@ describe('AdminOrganizationsController', () => {
       })
 
       // Act
-      await controller.listOrganizations(
-        'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        '10',
-        'active',
-        'acme'
-      )
+      await controller.listOrganizations('cursor-abc', '10', 'active', 'acme')
 
       // Assert
       expect(mockAdminOrganizationsService.listOrganizations).toHaveBeenCalledWith(
         { status: 'active', search: 'acme' },
-        'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        'cursor-abc',
         10
       )
     })
@@ -172,11 +167,6 @@ describe('AdminOrganizationsController', () => {
         undefined,
         100
       )
-    })
-
-    it('should reject invalid cursor (non-UUID)', async () => {
-      // Act & Assert
-      await expect(controller.listOrganizations('not-a-uuid')).rejects.toThrow(BadRequestException)
     })
 
     it('should reject invalid status value', async () => {
