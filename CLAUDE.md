@@ -118,6 +118,7 @@ MUST read [code-review.mdx](docs/standards/code-review.mdx). Conventional Commen
 
 | Context | Read |
 |---------|------|
+| New feature (end-to-end) | [new-feature-pattern.mdx](docs/guides/new-feature-pattern.mdx) |
 | React / TanStack | [frontend-patterns.mdx](docs/standards/frontend-patterns.mdx) — see also [apps/web/CLAUDE.md](apps/web/CLAUDE.md) |
 | NestJS / API | [backend-patterns.mdx](docs/standards/backend-patterns.mdx) — see also [apps/api/CLAUDE.md](apps/api/CLAUDE.md) |
 | Tests | [testing.mdx](docs/standards/testing.mdx) |
