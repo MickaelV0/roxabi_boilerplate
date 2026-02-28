@@ -45,7 +45,7 @@
     "legal@knowledge-work-plugins": true,
     "marketing@knowledge-work-plugins": true,
     "product-management@knowledge-work-plugins": true,
-    "roxabi-plugins@roxabi-marketplace": true
+    "memory-audit@roxabi-marketplace": true
   },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {

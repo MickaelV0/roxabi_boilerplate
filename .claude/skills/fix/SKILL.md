@@ -110,15 +110,57 @@ Remaining M finding(s) → 1b1.
 
 **→ immediately continue to Phase 4 (¬stop).**
 
-## Phase 4 — 1b1 Walkthrough
+## Phase 4 — Finding Walkthrough
 
 Q_1b1 = ∅ → skip to Phase 5.
 
-∀ f ∈ Q_1b1 → invoke `skill: "1b1"` with findings as items.
+**Auto-apply context note:** |Q_auto| > 0 → display before first item:
+```
+Note: N finding(s) were auto-applied in Phase 3.
+Run `git diff` to review the auto-applied changes.
+```
 
-1b1 produces a decision for each finding: {accept, reject, defer}.
+∀ f ∈ Q_1b1, sequentially:
 
-accepted = {f ∈ Q_1b1 | decision(f) = accept}
+**4a. Brief** — present enriched finding:
+```
+── Finding {N}/{|Q_1b1|}: {label} ──
+
+<label> -- estimated confidence: C(f)% -- <src(f)>
+  <file>:<line>
+
+Root cause: <root cause>
+
+Solutions:
+  1. <primary> (recommended)
+  2. <alternative>
+  3. <alternative> [if ∃]
+
+Recommended: Solution 1 -- <rationale>
+```
+
+If f was demoted from auto-apply (failed) → prepend: `Auto-apply attempted but failed: <reason>`
+
+**4b. Decision** — AskUserQuestion:
+- **Fix now** — accept finding
+- **Reject** — invalid, discard
+- **Skip** — move on
+- **Defer** — valid but not urgent
+
+**4c. Solution choice (Fix now only)** — AskUserQuestion with available solutions:
+- **Solution 1 (recommended):** <description>
+- **Solution 2:** <description>
+- **Solution 3:** <description> [if ∃]
+
+Store chosen solution with f for Phase 5 fixer payload.
+
+**4d. Summary** after all items:
+```
+── Walkthrough Complete ──
+Accepted: N | Rejected: N | Skipped: N | Deferred: N
+```
+
+accepted = {f ∈ Q_1b1 | decision(f) = accept}, each with chosen solution
 
 ## Phase 5 — Spawn Fixer Agents
 
@@ -142,7 +184,7 @@ complex(f) → domain agent: FE→frontend-dev | BE→backend-dev | Infra→devo
 - ≥6 findings/domain across distinct modules → N agents (disjoint file groups), 1/module group
 - Mixed domains → 1 agent per domain (if ≥3 each), else consolidate into fewest agents respecting min 3
 
-**Fixer payload per agent:** accepted findings in scope + full diff context + "fix each finding; re-read files before editing; run lint + tests after each fix."
+**Fixer payload per agent:** accepted findings in scope + **chosen solution text from Phase 4c** + full diff context + "fix each finding using the chosen solution; re-read files before editing; run lint + tests after each fix." If f was demoted from auto-apply, include the failure note so fixer understands what was already attempted.
 
 Fixer constraints:
 - Re-read all target files before editing (Phase 3 edits may have changed them)
