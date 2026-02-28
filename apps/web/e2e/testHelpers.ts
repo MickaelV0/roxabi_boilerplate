@@ -22,6 +22,12 @@ export const TEST_USER_2 = {
   name: 'Admin User',
 }
 
+export const SUPERADMIN_USER = {
+  email: 'superadmin@roxabi.local',
+  password: 'password123',
+  name: 'Super Admin',
+}
+
 /**
  * Login a user in E2E tests
  * @param page - Playwright page object
