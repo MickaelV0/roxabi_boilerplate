@@ -12,12 +12,10 @@ import { registerRateLimitHeadersHook } from './throttler/index.js'
 
 async function configureSecurityHeaders(
   app: NestFastifyApplication,
-  configService: ConfigService
+  swaggerEnabled: boolean
 ): Promise<void> {
-  const nodeEnv = configService.get<string>('NODE_ENV', 'development')
   // Swagger requires unsafe-inline and unpkg.com for its bundled UI assets.
   // Tighten CSP to self-only when Swagger is disabled (production default).
-  const swaggerEnabled = configService.get<boolean>('SWAGGER_ENABLED', nodeEnv === 'development')
   const scriptSrc = swaggerEnabled ? ["'self'", "'unsafe-inline'", 'https://unpkg.com'] : ["'self'"]
   const styleSrc = swaggerEnabled ? ["'self'", "'unsafe-inline'", 'https://unpkg.com'] : ["'self'"]
 
@@ -79,11 +77,9 @@ function configureCors(
 
 function configureSwagger(
   app: NestFastifyApplication,
-  configService: ConfigService,
   logger: Logger,
-  nodeEnv: string
+  swaggerEnabled: boolean
 ): void {
-  const swaggerEnabled = configService.get<boolean>('SWAGGER_ENABLED', nodeEnv === 'development')
   if (swaggerEnabled) {
     const config = new DocumentBuilder()
       .setTitle('Roxabi API')
@@ -121,8 +117,13 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService)
   const logger = new Logger('Bootstrap')
+  const nodeEnv = configService.get<string>('NODE_ENV', 'development')
+  // ConfigService.get<boolean>() does not coerce strings at runtime; the boolean generic
+  // is type-level only. SWAGGER_ENABLED is pre-validated as a native boolean by the Zod
+  // schema in env.validation.ts before ConfigService is populated.
+  const swaggerEnabled = configService.get<boolean>('SWAGGER_ENABLED', nodeEnv === 'development')
 
-  await configureSecurityHeaders(app, configService)
+  await configureSecurityHeaders(app, swaggerEnabled)
   registerRateLimitHeadersHook(app)
 
   // Global pipes
@@ -134,9 +135,8 @@ async function bootstrap() {
     })
   )
 
-  const nodeEnv = configService.get<string>('NODE_ENV', 'development')
   configureCors(app, configService, logger, nodeEnv)
-  configureSwagger(app, configService, logger, nodeEnv)
+  configureSwagger(app, logger, swaggerEnabled)
 
   const port = configService.get<number>('PORT', 4000)
   await app.listen(port, '0.0.0.0')

@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common'
 import type { AuditAction } from '@repo/types'
 import {
   and,
@@ -331,28 +331,26 @@ export class AdminUsersService {
       return this.executeSelfRoleChange(userId, data, actorId)
     }
 
-    const { beforeUser, updatedUser } = await this.db.transaction(
+    const updatedUser = await this.db.transaction(
       async (tx) => {
         const beforeUser = await findUserSnapshotOrThrow(tx, userId)
         this.validateUpdatePermissions(data, beforeUser.role ?? 'user')
-        const updatedUser = await this.applyUserUpdate(tx, userId, data)
-        return { beforeUser, updatedUser }
+        const updated = await this.applyUserUpdate(tx, userId, data)
+        const auditAction =
+          data.role && data.role !== beforeUser.role ? 'user.role_changed' : 'user.updated'
+        logUserAudit(
+          this.auditService,
+          this.logger,
+          this.cls,
+          auditAction,
+          userId,
+          actorId,
+          beforeUser,
+          updated
+        )
+        return updated
       },
       { isolationLevel: 'serializable' }
-    )
-
-    const auditAction =
-      data.role && data.role !== beforeUser.role ? 'user.role_changed' : 'user.updated'
-
-    logUserAudit(
-      this.auditService,
-      this.logger,
-      this.cls,
-      auditAction,
-      userId,
-      actorId,
-      beforeUser,
-      updatedUser
     )
 
     return updatedUser
@@ -412,9 +410,13 @@ export class AdminUsersService {
       if (!result) throw new AdminUserNotFoundException(userId)
       return result
     } catch (err) {
+      if (err instanceof AdminUserNotFoundException) throw err
       const pgErr = err as { code?: string }
       if (pgErr.code === PG_UNIQUE_VIOLATION) {
         throw new EmailConflictException()
+      }
+      if (pgErr.code === '40001') {
+        throw new ServiceUnavailableException('Serialization conflict — please retry')
       }
       throw err
     }
