@@ -1,3 +1,5 @@
+@.claude/stack.yml
+
 # Claude Configuration
 
 ## TL;DR
@@ -15,7 +17,6 @@
 
 SaaS framework with integrated AI team. Vision → [docs/product/vision.mdx](docs/product/vision.mdx).
 
-**Stack:** Bun | TurboRepo | TypeScript 5.x strict | Biome | TanStack Start | NestJS + Fastify | Vercel | Drizzle ORM + PostgreSQL 16
 **Style:** single quotes, no semicolons, trailing commas (es5), 2-space indent, 100-char width
 
 ```bash
