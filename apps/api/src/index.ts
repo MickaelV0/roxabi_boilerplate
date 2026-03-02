@@ -10,15 +10,25 @@ import { DEFAULT_LOG_LEVEL } from './config/env.validation.js'
 import { parseCorsOrigins } from './cors.js'
 import { registerRateLimitHeadersHook } from './throttler/index.js'
 
-async function configureSecurityHeaders(app: NestFastifyApplication): Promise<void> {
+async function configureSecurityHeaders(
+  app: NestFastifyApplication,
+  configService: ConfigService
+): Promise<void> {
+  const nodeEnv = configService.get<string>('NODE_ENV', 'development')
+  // Swagger requires unsafe-inline and unpkg.com for its bundled UI assets.
+  // Tighten CSP to self-only when Swagger is disabled (production default).
+  const swaggerEnabled = configService.get<boolean>('SWAGGER_ENABLED', nodeEnv === 'development')
+  const scriptSrc = swaggerEnabled ? ["'self'", "'unsafe-inline'", 'https://unpkg.com'] : ["'self'"]
+  const styleSrc = swaggerEnabled ? ["'self'", "'unsafe-inline'", 'https://unpkg.com'] : ["'self'"]
+
   // Security headers (must be registered before routes)
   await app.register(helmet, {
     global: true,
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'none'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
+        scriptSrc,
+        styleSrc,
         imgSrc: ["'self'", 'data:', 'https://api.dicebear.com'],
         fontSrc: ["'self'"],
         connectSrc: ["'self'"],
@@ -112,7 +122,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService)
   const logger = new Logger('Bootstrap')
 
-  await configureSecurityHeaders(app)
+  await configureSecurityHeaders(app, configService)
   registerRateLimitHeadersHook(app)
 
   // Global pipes

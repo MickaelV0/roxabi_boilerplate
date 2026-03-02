@@ -331,10 +331,16 @@ export class AdminUsersService {
       return this.executeSelfRoleChange(userId, data, actorId)
     }
 
-    const beforeUser = await findUserSnapshotOrThrow(this.db, userId)
-    this.validateUpdatePermissions(data, beforeUser.role ?? 'user')
+    const { beforeUser, updatedUser } = await this.db.transaction(
+      async (tx) => {
+        const beforeUser = await findUserSnapshotOrThrow(tx, userId)
+        this.validateUpdatePermissions(data, beforeUser.role ?? 'user')
+        const updatedUser = await this.applyUserUpdate(tx, userId, data)
+        return { beforeUser, updatedUser }
+      },
+      { isolationLevel: 'serializable' }
+    )
 
-    const updatedUser = await this.executeUserUpdate(userId, data)
     const auditAction =
       data.role && data.role !== beforeUser.role ? 'user.role_changed' : 'user.updated'
 
@@ -394,13 +400,6 @@ export class AdminUsersService {
     if (data.role && data.role !== 'superadmin' && currentRole === 'superadmin') {
       throw new SuperadminProtectionException()
     }
-  }
-
-  private async executeUserUpdate(
-    userId: string,
-    data: { name?: string; email?: string; role?: string }
-  ) {
-    return this.applyUserUpdate(this.db, userId, data)
   }
 
   private async applyUserUpdate(
