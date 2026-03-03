@@ -74,7 +74,6 @@
     "shiki": "^4.0.1"
   },
   "overrides": {
-    "@types/node": "^24",
     "minimatch": ">=10.2.3",
     "lodash": ">=4.17.23",
     "rollup": ">=4.59.0",
