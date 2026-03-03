@@ -38,6 +38,13 @@ updates:
     directory: /apps/api
     schedule:
       interval: monthly
+    ignore:
+      # Only upgrade to even (LTS) Node versions — odd releases are not LTS.
+      - dependency-name: node
+        versions:
+          - "25.*"
+          - "27.*"
+          - "29.*"
     labels:
       - dependencies
       - docker
@@ -47,6 +54,13 @@ updates:
     directory: /apps/web
     schedule:
       interval: monthly
+    ignore:
+      # Only upgrade to even (LTS) Node versions — odd releases are not LTS.
+      - dependency-name: node
+        versions:
+          - "25.*"
+          - "27.*"
+          - "29.*"
     labels:
       - dependencies
       - docker
