@@ -328,13 +328,19 @@ jobs:
           done < <(find apps/web/.output/server -name "*.mjs" -print0)
           [ "$failed" -eq 0 ] || exit 1
 
-      - name: Upload build artifacts
+      - name: Upload web build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build-output
-          path: |
-            apps/web/.output/
-            apps/api/dist/
+          name: web-build-output
+          path: apps/web/.output/
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload API build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-build-output
+          path: apps/api/dist/
           retention-days: 1
           if-no-files-found: error
 
@@ -408,13 +414,17 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: bunx playwright install-deps chromium
 
-      - name: Download build artifacts
+      - name: Download web build artifact
         uses: actions/download-artifact@v4
         with:
-          name: build-output
-          # upload-artifact@v4 uses LCA of paths: apps/web/.output + apps/api/dist → LCA=apps/
-          # Files are stored without the 'apps/' prefix. Extract into apps/ to restore correct paths.
-          path: apps
+          name: web-build-output
+          path: apps/web/.output
+
+      - name: Download API build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api-build-output
+          path: apps/api/dist
 
       - name: Run E2E tests
         run: bun test:e2e --project=chromium --reporter=list --reporter=html
@@ -515,13 +525,17 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: bunx playwright install-deps chromium firefox webkit
 
-      - name: Download build artifacts
+      - name: Download web build artifact
         uses: actions/download-artifact@v4
         with:
-          name: build-output
-          # upload-artifact@v4 uses LCA of paths: apps/web/.output + apps/api/dist → LCA=apps/
-          # Files are stored without the 'apps/' prefix. Extract into apps/ to restore correct paths.
-          path: apps
+          name: web-build-output
+          path: apps/web/.output
+
+      - name: Download API build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api-build-output
+          path: apps/api/dist
 
       - name: Run E2E tests (shard ${{ matrix.shard }})
         run: bun test:e2e --shard=${{ matrix.shard }}
