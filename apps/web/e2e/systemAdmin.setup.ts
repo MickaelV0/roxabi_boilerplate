@@ -17,20 +17,27 @@ setup('authenticate as superadmin', async ({ page }) => {
   // Verify we're actually authenticated
   await expect(page).not.toHaveURL(/\/login/)
 
-  // Set the consent cookie programmatically so the banner is suppressed in all subsequent
-  // test pages. Clicking the UI button during hydration is unreliable (DOM node detaches).
-  // storageState() captures cookies set via document.cookie, so the banner stays dismissed.
+  // Inject the consent cookie directly into Playwright's cookie jar so it is captured by
+  // storageState() and sent with every subsequent test request (including SSR). This prevents
+  // the consent banner from appearing in tests. page.evaluate/document.cookie is unreliable
+  // here because it may not be reflected in storageState on all browser engines.
   // Keep policyVersion in sync with legalConfig.consentPolicyVersion in legal.config.ts.
-  await page.evaluate(() => {
-    const payload = {
-      categories: { necessary: true, analytics: false, marketing: false },
-      consentedAt: new Date().toISOString(),
-      policyVersion: '2026-02-v1',
-      action: 'rejected',
-    }
-    // biome-ignore lint/suspicious/noDocumentCookie: test setup — sets consent cookie for storageState persistence
-    document.cookie = `consent=${encodeURIComponent(JSON.stringify(payload))}; Path=/; SameSite=Lax`
-  })
+  const consentPayload = {
+    categories: { necessary: true, analytics: false, marketing: false },
+    consentedAt: new Date().toISOString(),
+    policyVersion: '2026-02-v1',
+    action: 'rejected',
+  }
+  const appHost = new URL(process.env.BASE_URL ?? 'http://localhost:3000').hostname
+  await page.context().addCookies([
+    {
+      name: 'consent',
+      value: encodeURIComponent(JSON.stringify(consentPayload)),
+      domain: appHost,
+      path: '/',
+      sameSite: 'Lax',
+    },
+  ])
 
   // Save signed-in state for reuse by system-admin browser projects
   await page.context().storageState({ path: SUPERADMIN_AUTH_FILE })
