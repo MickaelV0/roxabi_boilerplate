@@ -26,7 +26,7 @@ import { buildDiceBearUrl } from '@/lib/avatar/buildDiceBearUrl'
 import { AVATAR_STYLE_LABELS } from '@/lib/avatar/constants'
 import { isAvatarStyle } from '@/lib/avatar/helpers'
 import { useAvatarPreview, useStyleSchema } from '@/lib/avatar/hooks'
-import { isErrorWithMessage } from '@/lib/errorUtils'
+import { getProfile, isApiError, updateProfile } from '@/lib/profile'
 import { m } from '@/paraglide/messages'
 
 export const Route = createLazyFileRoute('/settings/profile')({
@@ -96,13 +96,6 @@ function parseProfileResponse(
   }
 }
 
-async function fetchProfile(fallbackName: string, fallbackId: string) {
-  const res = await fetch('/api/users/me', { credentials: 'include' })
-  if (!res.ok) throw new Error('fetch failed')
-  const data = (await res.json()) as UserProfile
-  return parseProfileResponse(data, fallbackName, fallbackId)
-}
-
 // -- Custom hook --
 
 function useProfileData(user: { id: string; name: string | null } | undefined): ProfileData {
@@ -114,9 +107,17 @@ function useProfileData(user: { id: string; name: string | null } | undefined): 
 
   useEffect(() => {
     if (!user) return
-    fetchProfile(user.name ?? '', user.id)
-      .then((p) => set({ ...p, loaded: true }))
-      .catch(() => set({ fullName: user.name ?? '', avatarSeed: user.id, loaded: true }))
+    const controller = new AbortController()
+    getProfile(controller.signal)
+      .then((data) => {
+        const p = parseProfileResponse(data, user.name ?? '', user.id)
+        set({ ...p, loaded: true })
+      })
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === 'AbortError') return
+        set({ fullName: user.name ?? '', avatarSeed: user.id, loaded: true })
+      })
+    return () => controller.abort()
   }, [user, set])
 
   useEffect(() => {
@@ -336,35 +337,25 @@ function ProfileSettingsPage() {
     e.preventDefault()
     actions.setSaving(true)
     try {
-      const res = await fetch('/api/users/me', {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName: state.firstName || undefined,
-          lastName: state.lastName || undefined,
-          fullName: state.fullName,
-          avatarSeed: state.avatarSeed || undefined,
-          avatarStyle: state.avatarStyle,
-          avatarOptions: state.avatarOptions,
-          image: cdnUrl,
-        }),
+      await updateProfile({
+        firstName: state.firstName || undefined,
+        lastName: state.lastName || undefined,
+        fullName: state.fullName,
+        avatarSeed: state.avatarSeed || undefined,
+        avatarStyle: state.avatarStyle,
+        avatarOptions: state.avatarOptions,
+        image: cdnUrl,
       })
-
-      if (!res.ok) {
-        const data: unknown = await res.json().catch(() => null)
-        toast.error(isErrorWithMessage(data) ? data.message : m.avatar_save_error())
-        return
-      }
-
       try {
         await authClient.updateUser({ image: cdnUrl })
       } catch {
         // Session update failed — avatar will update on next page load
       }
       toast.success(m.avatar_save_success())
-    } catch {
-      toast.error(m.avatar_save_error())
+    } catch (err) {
+      const isApiErr = isApiError(err)
+      const message = isApiErr && err.message ? err.message : null
+      toast.error(message ?? m.avatar_save_error())
     } finally {
       actions.setSaving(false)
     }
