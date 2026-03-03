@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test'
 import { AuthPage } from './auth.page'
-import { hasApi, NAVIGATION_TIMEOUT, TEST_USER_2 } from './testHelpers'
+import {
+  getMagicLinkToken,
+  hasApi,
+  NAVIGATION_TIMEOUT,
+  TEST_USER,
+  TEST_USER_2,
+} from './testHelpers'
 
 // Tests that need a clean (unauthenticated) browser context.
 // Using test.use() avoids clearCookies() which could invalidate the
@@ -65,6 +71,28 @@ test.describe('Authentication — unauthenticated', () => {
     if (isVisible) {
       await expect(auth.githubOAuthButton).toBeVisible()
     }
+  })
+})
+
+test.describe('Authentication — magic link', () => {
+  test.use({ storageState: { cookies: [], origins: [] } })
+  test.skip(() => !hasApi, 'Skipped: no DATABASE_URL / Mailpit in CI')
+
+  test('should authenticate via magic link and redirect to dashboard', async ({
+    page,
+    request,
+  }) => {
+    const auth = new AuthPage(page)
+    await auth.gotoLogin()
+    await auth.requestMagicLink(TEST_USER.email)
+    const verifyPath = await getMagicLinkToken(request)
+    await page.goto(verifyPath)
+    await page.waitForURL(/\/dashboard/, { timeout: NAVIGATION_TIMEOUT })
+  })
+
+  test('should show error for invalid magic link token', async ({ page }) => {
+    await page.goto('/magic-link/verify?token=invalid-token-xyz')
+    await expect(page.getByRole('alert')).toBeVisible({ timeout: 10_000 })
   })
 })
 

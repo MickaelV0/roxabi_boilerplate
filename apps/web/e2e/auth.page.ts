@@ -75,6 +75,28 @@ export class AuthPage {
   }
 
   // ---------------------------------------------------------------------------
+  // Login Tab — Magic Link
+  // ---------------------------------------------------------------------------
+
+  get loginMagicLinkTab(): Locator {
+    return this.page.getByRole('tab', { name: /magic.link/i })
+  }
+
+  get loginMagicLinkEmailInput(): Locator {
+    return this.page.locator('[data-state="active"] input[type="email"]')
+  }
+
+  get loginMagicLinkSubmitButton(): Locator {
+    return this.page.getByRole('button', { name: /send.magic.link/i })
+  }
+
+  async requestMagicLink(email: string): Promise<void> {
+    await this.loginMagicLinkTab.click()
+    await this.loginMagicLinkEmailInput.fill(email)
+    await this.loginMagicLinkSubmitButton.click()
+  }
+
+  // ---------------------------------------------------------------------------
   // OAuth
   // ---------------------------------------------------------------------------
 

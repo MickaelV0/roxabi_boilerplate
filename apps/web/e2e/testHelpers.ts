@@ -55,3 +55,20 @@ export async function waitForReactHydration(page: Page): Promise<void> {
     { timeout: 15000 }
   )
 }
+
+/**
+ * Fetch the most recent magic link from Mailpit REST API.
+ * Returns the `/magic-link/verify?token=...` path.
+ *
+ * Requires Mailpit running at http://localhost:8025 (started via `bun run db:up`).
+ */
+export async function getMagicLinkToken(
+  request: import('@playwright/test').APIRequestContext
+): Promise<string> {
+  const res = await request.get('http://localhost:8025/api/v1/messages?limit=1')
+  const { messages } = (await res.json()) as { messages: Array<{ HTML: string }> }
+  const html = messages[0]?.HTML ?? ''
+  const match = html.match(/href="[^"]*\/magic-link\/verify\?token=([^"&]+)/)
+  if (!match) throw new Error('Magic link token not found in Mailpit')
+  return `/magic-link/verify?token=${match[1]}`
+}
