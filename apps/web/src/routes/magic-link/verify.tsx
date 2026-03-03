@@ -153,8 +153,8 @@ function GuestVerifyFlow({
     if (!token || error) return
     const params = new URLSearchParams({
       token,
-      callbackURL: '/dashboard',
-      errorCallbackURL: '/magic-link/verify',
+      callbackURL: `${window.location.origin}/dashboard`,
+      errorCallbackURL: `${window.location.origin}/magic-link/verify`,
     })
     window.location.href = `/api/auth/magic-link/verify?${params.toString()}`
   }, [token, error])
