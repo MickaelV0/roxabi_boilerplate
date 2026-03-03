@@ -68,13 +68,21 @@ export async function getMagicLinkToken(
 ): Promise<string> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      const res = await request.get('http://localhost:8025/api/v1/messages?limit=1', {
+      const listRes = await request.get('http://localhost:8025/api/v1/messages?limit=1', {
         timeout: 5_000,
       })
-      if (!res.ok()) throw new Error(`Mailpit returned HTTP ${res.status()}`)
-      const body = (await res.json()) as { messages?: Array<{ HTML: string }> }
-      const html = body.messages?.[0]?.HTML
-      if (!html) throw new Error('No emails in Mailpit yet')
+      if (!listRes.ok()) throw new Error(`Mailpit returned HTTP ${listRes.status()}`)
+      const listBody = (await listRes.json()) as { messages?: Array<{ ID: string }> }
+      const msgId = listBody.messages?.[0]?.ID
+      if (!msgId) throw new Error('No emails in Mailpit yet')
+      // The list endpoint only returns metadata — fetch the full message for HTML body
+      const msgRes = await request.get(`http://localhost:8025/api/v1/message/${msgId}`, {
+        timeout: 5_000,
+      })
+      if (!msgRes.ok()) throw new Error(`Mailpit message fetch returned HTTP ${msgRes.status()}`)
+      const msg = (await msgRes.json()) as { HTML?: string }
+      const html = msg.HTML
+      if (!html) throw new Error('Magic link email has no HTML body')
       const match = html.match(/href="[^"]*\/magic-link\/verify\?token=([^"&]+)/)
       if (!match) throw new Error('Magic link token not found in email HTML')
       return `/magic-link/verify?token=${match[1]}`
