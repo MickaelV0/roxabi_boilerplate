@@ -412,6 +412,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-output
+          # upload-artifact@v4 uses LCA of paths: apps/web/.output + apps/api/dist → LCA=apps/
+          # Files are stored without the 'apps/' prefix. Extract into apps/ to restore correct paths.
+          path: apps
 
       - name: Run E2E tests
         run: bun test:e2e --project=chromium --reporter=list --reporter=html
@@ -516,6 +519,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-output
+          # upload-artifact@v4 uses LCA of paths: apps/web/.output + apps/api/dist → LCA=apps/
+          # Files are stored without the 'apps/' prefix. Extract into apps/ to restore correct paths.
+          path: apps
 
       - name: Run E2E tests (shard ${{ matrix.shard }})
         run: bun test:e2e --shard=${{ matrix.shard }}
