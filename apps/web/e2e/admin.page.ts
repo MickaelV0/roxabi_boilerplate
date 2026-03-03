@@ -21,6 +21,11 @@ export class AdminPage {
     // 'aside' is too broad — it can match unrelated sidebar widgets before the admin
     // nav is ready.
     await this.page.waitForSelector('[aria-label*="admin" i], [aria-label*="navigation" i]', {
+      // state: 'attached' — on mobile the desktop nav is CSS-hidden (inside aside.hidden),
+      // which causes waitForSelector's default 'visible' state to pick the hidden desktop
+      // nav (first in DOM order) and wait forever. 'attached' just confirms the admin nav
+      // component has rendered; the visibility assertion is done by tests via adminNav.
+      state: 'attached',
       timeout: 30_000,
     })
   }
