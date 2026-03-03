@@ -22,26 +22,25 @@ setup('authenticate', async ({ page }) => {
   // org, activeOrganizationId is null and permissions are empty, causing admin
   // and api-keys tests to fail.
   //
-  // We call the NestJS API at port 4000 directly (bypassing Nitro's devProxy)
+  // We call the NestJS API directly (bypassing Nitro's devProxy) using API_URL env var.
   // because Nitro strips Set-Cookie headers when proxying the response, so the
   // browser's cookie jar never gets updated when going through port 3000.
   // page.context().request shares the browser's cookie jar: cookies are sent
   // and Set-Cookie headers from the response are applied to the context.
   const setActiveResponse = await page
     .context()
-    .request.post('http://localhost:4000/api/auth/organization/set-active', {
-      data: { organizationSlug: 'roxabi-dev' },
-      headers: {
-        'Content-Type': 'application/json',
-        // Required by better-auth's CSRF origin check (trustedOrigins = [APP_URL])
-        Origin: 'http://localhost:3000',
-      },
-    })
-  if (!setActiveResponse.ok()) {
-    console.warn(
-      `[auth.setup] set-active-org failed (${setActiveResponse.status()}) — admin/api-keys tests may not work`
+    .request.post(
+      `${process.env.API_URL ?? 'http://localhost:4000'}/api/auth/organization/set-active`,
+      {
+        data: { organizationSlug: 'roxabi-dev' },
+        headers: {
+          'Content-Type': 'application/json',
+          // Required by better-auth's CSRF origin check (trustedOrigins = [APP_URL])
+          Origin: 'http://localhost:3000',
+        },
+      }
     )
-  }
+  expect(setActiveResponse.ok()).toBe(true)
 
   // Save signed-in state for reuse by other projects
   await page.context().storageState({ path: AUTH_FILE })

@@ -57,12 +57,8 @@ test.describe('Registration', () => {
 
     // Assert — with requireEmailVerification enabled, better-auth returns a synthetic
     // success response for duplicate emails (privacy protection: prevents user enumeration).
-    // The UI cannot distinguish real vs synthetic success, so the "Account Created" card
-    // is shown. Accept either the error alert (if auth config changes) or the success state.
-    // Use locator.or() so Playwright retries until one of the two elements appears.
-    await expect(registration.backToLoginLink.or(registration.errorAlert).first()).toBeVisible({
-      timeout: NAVIGATION_TIMEOUT,
-    })
+    // The "Account Created" success card is shown — backToLoginLink confirms this.
+    await expect(registration.backToLoginLink).toBeVisible({ timeout: NAVIGATION_TIMEOUT })
   })
 
   test('should have back to sign in link', async ({ page }) => {

@@ -111,7 +111,10 @@ export class AdminPage {
    * Renders as a generic div (not a heading), so use text-based matching.
    */
   get membersCard(): Locator {
-    return this.page.getByText(/active members/i).first()
+    return this.page
+      .locator('main')
+      .getByText(/active members/i)
+      .first()
   }
 
   /**

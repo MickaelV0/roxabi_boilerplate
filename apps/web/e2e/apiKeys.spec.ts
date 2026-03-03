@@ -55,7 +55,7 @@ test.describe('API Key Management', () => {
     await expect(page.getByText(keyName)).toBeVisible({ timeout: 15_000 })
   })
 
-  test('should revoke an API key', async ({ page }) => {
+  test('should mark an API key as revoked', async ({ page }) => {
     // Arrange — create a key to revoke
     const apiKeys = new ApiKeysPage(page)
     await apiKeys.goto()
@@ -68,8 +68,8 @@ test.describe('API Key Management', () => {
     // Act — revoke the key via the confirmation dialog
     await apiKeys.revokeKey(keyName)
 
-    // Assert — after revocation the key row shows "Revoked" status.
-    // Keys are kept in the list (not removed); only the status badge changes.
+    // Assert — after revocation the key stays in the list with a "Revoked" badge.
+    // DestructiveConfirmDialog keeps revoked keys visible (status badge only).
     const revokedRow = page.getByRole('row').filter({ hasText: keyName })
     await expect(revokedRow.getByText(/revoked/i)).toBeVisible({ timeout: 15_000 })
   })

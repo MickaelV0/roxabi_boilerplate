@@ -1,4 +1,5 @@
 import type { Locator, Page } from '@playwright/test'
+import { expect } from '@playwright/test'
 
 /**
  * Page Object Model for the User Profile settings page (/settings/profile).
@@ -18,14 +19,8 @@ export class ProfilePage {
     // Wait for the name input to be visible.
     await this.displayNameInput.waitFor({ state: 'visible', timeout: 15_000 })
     // The profile form populates inputs asynchronously from /api/users/me.
-    // Wait until the display name has a non-empty value before returning.
-    await this.page.waitForFunction(
-      () => {
-        const el = document.getElementById('fullName') as HTMLInputElement | null
-        return !!el && el.value.length > 0
-      },
-      { timeout: 10_000 }
-    )
+    // Wait until the display name input is enabled — signals that /api/users/me has loaded.
+    await expect(this.displayNameInput).toBeEnabled({ timeout: 10_000 })
   }
 
   // ---------------------------------------------------------------------------
