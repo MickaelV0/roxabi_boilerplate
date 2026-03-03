@@ -15,9 +15,15 @@ export class ProfilePage {
 
   async goto() {
     await this.page.goto('/settings/profile')
-    // Wait for the form element — faster and cross-browser reliable.
-    // The displayNameInput value loads async; spec tests assert on it directly.
-    await this.page.waitForSelector('form', { timeout: 15_000 })
+    // Increase timeout to 30s: webkit is consistently slower on CI production builds
+    // and exceeds 15s on cold-start page loads.
+    await this.page.waitForSelector('form', { timeout: 30_000 })
+    // The consent banner briefly appears on first render (TanStack Start renders the
+    // shellComponent before the root loader resolves — so loaderData is undefined on
+    // the first render, causing initialConsent=null and showBanner=true). It disappears
+    // once client-side hydration reads the consent cookie. Wait for it to be gone before
+    // interacting, otherwise it intercepts clicks on elements near the bottom of the viewport.
+    await this.waitForConsentBannerGone()
   }
 
   // ---------------------------------------------------------------------------
@@ -41,10 +47,14 @@ export class ProfilePage {
   }
 
   /**
-   * The save button (type="submit") at the bottom of the profile form.
+   * The save button (type="submit") scoped to the profile form to avoid matching
+   * other "Save" buttons that may exist on the page (e.g., consent banner actions).
    */
   get saveButton(): Locator {
-    return this.page.getByRole('button', { name: /save|saving/i }).first()
+    return this.page
+      .locator('form')
+      .getByRole('button', { name: /save|saving/i })
+      .first()
   }
 
   /**
@@ -60,10 +70,34 @@ export class ProfilePage {
   // ---------------------------------------------------------------------------
 
   /**
+   * Wait until the consent banner is no longer visible.
+   *
+   * Root cause: TanStack Start renders shellComponent (which mounts ConsentProvider)
+   * before the root loader resolves. On first render loaderData is undefined, so
+   * initialConsent=null and the banner shows. Once the loader data arrives and
+   * React hydrates, the banner disappears. This takes ~100–500ms on production builds.
+   *
+   * The consent cookie IS correctly set in storageState via auth.setup.ts addCookies(),
+   * but this does not help because the race is in the render pipeline, not the cookie jar.
+   *
+   * This method is a fast no-op when the banner is already hidden.
+   */
+  async waitForConsentBannerGone(timeout = 10_000): Promise<void> {
+    const banner = this.page.locator('section[aria-label*="ookie" i]')
+    const visible = await banner.isVisible().catch(() => false)
+    if (!visible) return
+    await banner.waitFor({ state: 'hidden', timeout })
+  }
+
+  /**
    * Fill the display name field and click save.
+   * Waits for the consent banner to be gone before clicking — the banner is
+   * fixed-position at the bottom of the viewport and intercepts clicks on
+   * elements rendered near the bottom of the page.
    */
   async updateName(name: string) {
     await this.displayNameInput.fill(name)
+    await this.waitForConsentBannerGone()
     await this.saveButton.click()
   }
 }

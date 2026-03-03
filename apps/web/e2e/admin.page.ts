@@ -17,7 +17,12 @@ export class AdminPage {
 
   async goto(path = '/admin/members') {
     await this.page.goto(path)
-    await this.page.waitForSelector('nav, [role="navigation"], aside')
+    // Wait for the admin navigation specifically (not just any nav/aside on the page).
+    // 'aside' is too broad — it can match unrelated sidebar widgets before the admin
+    // nav is ready.
+    await this.page.waitForSelector('[aria-label*="admin" i], [aria-label*="navigation" i]', {
+      timeout: 30_000,
+    })
   }
 
   async gotoMembers() {
@@ -164,10 +169,13 @@ export class AdminPage {
 
   /**
    * Org name as displayed in the switcher button (text content).
+   * Uses the Locator directly (not a point-in-time snapshot) to avoid
+   * a race where the DOM changes between allTextContents() and nth().
    */
   async getCurrentOrgName(): Promise<string | null> {
-    const btn = await this.findOrgSwitcherButton()
-    if (!btn) return null
+    const btn = this.getOrgSwitcherLocator()
+    const visible = await btn.isVisible().catch(() => false)
+    if (!visible) return null
     const text = await btn.textContent()
     if (!text) return null
     return text
@@ -187,8 +195,9 @@ export class AdminPage {
    * Switch to a different org by clicking the switcher and selecting by name.
    */
   async switchOrg(orgName: string) {
-    const switcherBtn = await this.findOrgSwitcherButton()
-    if (!switcherBtn) return
+    const switcherBtn = this.getOrgSwitcherLocator()
+    const visible = await switcherBtn.isVisible().catch(() => false)
+    if (!visible) return
 
     await switcherBtn.click()
 
@@ -198,6 +207,21 @@ export class AdminPage {
 
     // Wait for the menu to close
     await this.orgDropdownMenu.waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {})
+  }
+
+  /**
+   * Returns a stable Locator for the org switcher button.
+   * Filters to header buttons that have non-empty text content and are not known
+   * icon-only utility buttons. Using a Locator avoids the snapshot race that
+   * allTextContents() + nth() can produce.
+   */
+  private getOrgSwitcherLocator(): Locator {
+    return this.page
+      .locator('header')
+      .getByRole('button')
+      .filter({ hasText: /\S/ })
+      .filter({ hasNotText: ORG_SWITCHER_EXCLUDE })
+      .first()
   }
 
   /**
@@ -211,24 +235,6 @@ export class AdminPage {
     // Wait for a header button that has actual text content (not icon-only) and is not a known
     // utility button. Icon buttons (Language, Toggle theme, GitHub) have empty textContent even
     // though they have an accessible name — so we require at least one non-whitespace character.
-    await this.page
-      .locator('header')
-      .getByRole('button')
-      .filter({ hasText: /\S/ })
-      .filter({ hasNotText: ORG_SWITCHER_EXCLUDE })
-      .first()
-      .waitFor({ state: 'visible', timeout })
-  }
-
-  /**
-   * Scan header buttons to find the org switcher.
-   * Returns the first button that has non-empty text and is not a known icon-only button.
-   */
-  private async findOrgSwitcherButton(): Promise<Locator | null> {
-    const header = this.page.locator('header')
-    const buttons = header.getByRole('button')
-    const texts = await buttons.allTextContents()
-    const idx = texts.findIndex((t) => t.trim().length > 0 && !ORG_SWITCHER_EXCLUDE.test(t))
-    return idx === -1 ? null : buttons.nth(idx)
+    await this.getOrgSwitcherLocator().waitFor({ state: 'visible', timeout })
   }
 }

@@ -5,7 +5,12 @@ import { hasApi, TEST_USER } from './testHelpers'
 test.describe('User Profile', () => {
   // Profile tests use the shared authenticated storageState from the setup project.
   // No test.use({ storageState }) override needed — the default applies.
-  test.describe.configure({ mode: 'serial' })
+  //
+  // mode: 'serial' stops subsequent tests when one fails. retries: 0 prevents
+  // Playwright from retrying failed tests out of sequence — a retry would re-run
+  // the failed test while later tests are in a skipped state, causing inconsistent
+  // DB state that makes the retry fail for a different reason than the original failure.
+  test.describe.configure({ mode: 'serial', retries: 0 })
   test.skip(() => !hasApi, 'Skipped: no DATABASE_URL in CI')
 
   test('should display current profile', async ({ page }) => {
@@ -62,12 +67,17 @@ test.describe('User Profile', () => {
 
   test.afterEach(async ({ page }) => {
     // Restore seed name if a test left a test-generated value.
+    // Wait for the save to complete so the next test starts with a clean DB state.
     try {
       const profile = new ProfilePage(page)
       await profile.goto()
       const currentName = await profile.displayNameInput.inputValue()
       if (/^(E2E Test|Persist-)\d+$/.test(currentName)) {
         await profile.updateName(TEST_USER.name)
+        // Wait for the save to complete before the next test starts.
+        // Without this, the restore save may still be in-flight when the next
+        // test navigates, leaving the DB in the test-generated state.
+        await expect(profile.successFeedback).toBeVisible({ timeout: 15_000 })
       }
     } catch {
       // Best-effort restore — do not fail the test on cleanup error
