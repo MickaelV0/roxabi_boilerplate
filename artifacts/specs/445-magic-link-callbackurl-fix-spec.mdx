@@ -1,0 +1,187 @@
+---
+title: "fix(auth): magic link verification broken — callbackURL missing at request time + no E2E coverage"
+issue: 445
+status: approved
+tier: F-full
+date: 2026-03-03
+promoted-from: "artifacts/frames/445-magic-link-callbackurl-fix-frame.mdx"
+---
+
+## Context
+
+Promoted from frame `445-magic-link-callbackurl-fix-frame.mdx`. Analysis phase skipped (problem
+well-understood from issue body + code reads).
+
+Prior fix commit `7bfb328` targeted the wrong layer: it made the `callbackURL` in `verify.tsx`'s
+redirect URL absolute, but Better Auth's verify endpoint reads `callbackURL` **from the token**,
+not from the query string. The real fix is in `-login-handlers.ts` where the token is created.
+
+## Goal
+
+Magic link authentication works end-to-end: user requests a link, clicks it, lands on `/dashboard`
+with an active session. A regression test catches any future breakage.
+
+## Users
+
+- **Primary:** End users who choose passwordless (magic link) login. Currently blocked — flow
+  silently misdirects post-verify.
+- **Secondary:** Developers — need a reliable E2E signal that the flow hasn't regressed.
+
+## Expected Behavior
+
+1. User opens `/login`, switches to the magic link tab, enters their email, submits.
+2. `handleMagicLink()` in `-login-handlers.ts` calls:
+   ```ts
+   authClient.signIn.magicLink({
+     email: form.magicLinkEmail,
+     callbackURL: `${window.location.origin}/dashboard`,
+   })
+   ```
+   Better Auth embeds `callbackURL` in the signed token at this point.
+3. User is navigated to `/magic-link-sent` (existing behavior, unchanged).
+4. User receives email, clicks the link → browser opens
+   `/magic-link/verify?token=<signed-token>`.
+5. `GuestVerifyFlow` in `verify.tsx` reads the token and navigates the browser to:
+   ```
+   /api/auth/magic-link/verify?token=<t>&errorCallbackURL=<origin>/magic-link/verify
+   ```
+   _(Note: `callbackURL` query param is removed — it was dead code ignored by Better Auth.)_
+6. Better Auth's verify handler validates the token, extracts the stored `callbackURL`
+   (`/dashboard`), sets session cookies, and issues a `302` redirect to `/dashboard`.
+7. User lands on `/dashboard` authenticated. ✓
+
+**Error path:** If the token is invalid or expired, Better Auth redirects to
+`errorCallbackURL` (i.e., `/magic-link/verify?error=EXPIRED_TOKEN`). The `GuestVerifyFlow`
+detects `?error=...` and renders the appropriate error state. This path is unchanged and
+continues to work correctly.
+
+## Breadboard
+
+### Affordances
+
+| ID | Affordance | Handler | Data |
+|----|-----------|---------|------|
+| U1 | Magic link email `<input>` | form state | `string` email |
+| U2 | "Send magic link" `<button>` | `handleMagicLink()` | triggers N1 |
+| N1 | `authClient.signIn.magicLink` | Better Auth client | `{ email, callbackURL }` — callbackURL baked into token |
+| N2 | `/magic-link/verify?token=xxx` | `GuestVerifyFlow` | reads `token` param, navigates to N3 |
+| N3 | `/api/auth/magic-link/verify?token=xxx&errorCallbackURL=...` | Better Auth server | validates token → 302 to stored callbackURL or errorCallbackURL |
+| N4 | `/dashboard` | TanStack Router | authenticated landing, requires active session cookie |
+| N5 | Mailpit API `http://localhost:3001/api/v1/messages` | Email server | read latest email, extract verify URL for E2E |
+
+### Wiring
+
+```
+U1 → U2 → N1 → (email sent) → N2 → N3 → N4
+                                         ↑
+                                    session cookie set by N3
+Error path:
+N3 → (302 errorCallbackURL) → N2 (with ?error=CODE) → ErrorState component
+```
+
+## Slices
+
+| # | Slice | Files touched | Independently demo-able? |
+|---|-------|--------------|--------------------------|
+| S1 | Fix: add `callbackURL` to both `signIn.magicLink` call sites | `apps/web/src/routes/-login-handlers.ts`, `apps/web/src/routes/magic-link-sent.tsx` | Yes — manual test: request magic link, check Mailpit, click link → lands on dashboard; also verify resend path |
+| S2 | Cleanup: remove dead `callbackURL` param from verify URL; update unit test | `apps/web/src/routes/magic-link/verify.tsx`, `apps/web/src/routes/magic-link/verify.test.tsx` | Yes — unit tests pass, verify flow still works after S1 |
+| S3 | E2E: full magic link flow test (happy path + error case) | `apps/web/e2e/auth.page.ts`, `apps/web/e2e/auth.spec.ts` | Yes — E2E test suite passes |
+
+Slice dependency: S2 can be done independently (cleanup + test fix). S3 depends on S1 being
+applied first (E2E would fail without the root fix).
+
+## Implementation Notes
+
+### S1 — callbackURL in both signIn.magicLink call sites
+
+**Call site 1** — `-login-handlers.ts:handleMagicLink` (line 83):
+```ts
+// Before
+const { error: mlError } = await authClient.signIn.magicLink({
+  email: form.magicLinkEmail,
+})
+
+// After
+const { error: mlError } = await authClient.signIn.magicLink({
+  email: form.magicLinkEmail,
+  callbackURL: `${window.location.origin}/dashboard`,
+})
+```
+
+**Call site 2** — `magic-link-sent.tsx:handleResend` (line 66):
+```ts
+// Before
+const { error } = await authClient.signIn.magicLink({ email })
+
+// After
+const { error } = await authClient.signIn.magicLink({
+  email,
+  callbackURL: `${window.location.origin}/dashboard`,
+})
+```
+
+`window.location.origin` is safe in both cases — both functions are called from browser event
+handlers, never on the server.
+
+Redirect param support (e.g., deep-linking to `/settings` after magic link) is **out of scope**
+for this fix — the issue body specifies `/dashboard` as the target.
+
+### S2 — Remove dead callbackURL from verify.tsx
+
+`verify.tsx:GuestVerifyFlow` (lines 154–158), change:
+```ts
+// Before
+const params = new URLSearchParams({
+  token,
+  callbackURL: `${window.location.origin}/dashboard`,
+  errorCallbackURL: `${window.location.origin}/magic-link/verify`,
+})
+
+// After
+const params = new URLSearchParams({
+  token,
+  errorCallbackURL: `${window.location.origin}/magic-link/verify`,
+})
+```
+
+`verify.test.tsx` (line 180): remove the assertion for `callbackURL` in the captured URL.
+The test for `errorCallbackURL` remains.
+
+### S3 — E2E test strategy
+
+Better Auth sends email via the configured email provider. In dev/CI, this is Mailpit
+(running at `http://localhost:3001`). The E2E test:
+
+1. Requests a magic link (via `AuthPage`)
+2. Polls the Mailpit REST API (`/api/v1/messages?limit=1`) to get the latest email
+3. Extracts the verify URL (`/magic-link/verify?token=xxx`) from the email HTML body
+4. Navigates to the extracted URL
+5. Asserts: URL reaches `/dashboard`, session cookie is set
+
+`AuthPage` additions needed (in `auth.page.ts`):
+- `loginMagicLinkEmailInput: Locator` — the email input in the magic link tab
+- `loginMagicLinkSubmitButton: Locator` — the "Send magic link" button
+- `requestMagicLink(email: string): Promise<void>` — switches to magic link tab + submits
+
+Mailpit helper (inline in test or shared utility):
+```ts
+async function getMagicLinkUrl(baseUrl: string): Promise<string> {
+  // Poll http://localhost:3001/api/v1/messages?limit=1
+  // Parse HTML body for href matching /magic-link/verify?token=
+  // Return the full URL
+}
+```
+
+Tests run with `test.use({ storageState: { cookies: [], origins: [] } })` (unauthenticated
+context, matching existing auth.spec.ts pattern). Guarded by `test.skip(() => !hasApi, ...)`.
+
+## Success Criteria
+
+- [ ] `authClient.signIn.magicLink` is called with `callbackURL: \`${window.location.origin}/dashboard\`` in `apps/web/src/routes/-login-handlers.ts:handleMagicLink`
+- [ ] `authClient.signIn.magicLink` is called with `callbackURL: \`${window.location.origin}/dashboard\`` in `apps/web/src/routes/magic-link-sent.tsx:handleResend`
+- [ ] `GuestVerifyFlow` in `verify.tsx` no longer passes `callbackURL` as a query param — only `token` and `errorCallbackURL` are sent to the verify endpoint
+- [ ] `verify.test.tsx` updated: assertion for `callbackURL` in captured URL is removed; all other assertions remain and pass
+- [ ] `AuthPage` (`auth.page.ts`) exposes `loginMagicLinkEmailInput`, `loginMagicLinkSubmitButton`, and `requestMagicLink(email)` helpers
+- [ ] E2E happy path test passes: request magic link → intercept token from Mailpit → navigate to verify URL → user lands on `/dashboard` with an active session
+- [ ] E2E error path test passes: navigate to `/magic-link/verify?token=invalid` → error message is visible (`role="alert"`)
+- [ ] All existing `auth.spec.ts` tests remain green
