@@ -1,10 +1,10 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   CreateApiKeyRequest,
   CreateApiKeyResponse,
   ListApiKeysResponse,
   RevokeApiKeyResponse,
-} from './apiKeys'
+} from '@repo/types'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createApiKey, listApiKeys, revokeApiKey } from './apiKeys'
 
 // ---------------------------------------------------------------------------
@@ -30,8 +30,8 @@ function createErrorResponse(status: number, body?: Record<string, unknown>): Re
 }
 
 function makeApiKey(
-  overrides: Partial<import('./apiKeys').ApiKey> = {}
-): import('./apiKeys').ApiKey {
+  overrides: Partial<import('@repo/types').ApiKey> = {}
+): import('@repo/types').ApiKey {
   return {
     id: 'key-1',
     name: 'Test Key',
