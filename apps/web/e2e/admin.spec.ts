@@ -67,6 +67,13 @@ test.describe('Org Admin', () => {
   })
 
   test('should show current org context in header', async ({ page }) => {
+    // OrgSwitcher is only rendered on md+ viewports (Header.tsx: <div className="hidden md:flex">).
+    // On mobile (<768px) the switcher is hidden — skip rather than wait 15s and time out.
+    if ((page.viewportSize()?.width ?? 0) < 768) {
+      test.skip()
+      return
+    }
+
     // Arrange
     const admin = new AdminPage(page)
 
@@ -85,6 +92,13 @@ test.describe('Org Admin', () => {
   })
 
   test('should switch between organizations', async ({ page }) => {
+    // OrgSwitcher is only rendered on md+ viewports (Header.tsx: <div className="hidden md:flex">).
+    // On mobile (<768px) the switcher is hidden — skip rather than time out.
+    if ((page.viewportSize()?.width ?? 0) < 768) {
+      test.skip()
+      return
+    }
+
     // Arrange — TEST_USER (dev@roxabi.local) belongs to 2 orgs
     const admin = new AdminPage(page)
     await admin.gotoMembers()
