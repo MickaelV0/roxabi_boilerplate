@@ -12,11 +12,22 @@ export async function getProfile(): Promise<UserProfile> {
 }
 
 /**
+ * Type guard for API errors thrown by `updateProfile`.
+ * Distinguishes intentional API errors (non-ok HTTP response) from network errors.
+ */
+export function isApiError(err: unknown): err is Error & { isApiError: true } {
+  return (
+    err instanceof Error &&
+    'isApiError' in err &&
+    (err as { isApiError: unknown }).isApiError === true
+  )
+}
+
+/**
  * Update the current user's profile.
  *
- * On API error (non-ok response): throws Error with `message` from the response body
- * (empty string if body has no message). Tagged with `isApiError: true` so the component
- * can distinguish this from network errors.
+ * On API error (non-ok response): throws an error tagged with `isApiError: true`.
+ * Use `isApiError(err)` in the catch block to distinguish from network errors.
  *
  * On network error: throws a generic Error (no `isApiError` property).
  */

@@ -26,7 +26,7 @@ import { buildDiceBearUrl } from '@/lib/avatar/buildDiceBearUrl'
 import { AVATAR_STYLE_LABELS } from '@/lib/avatar/constants'
 import { isAvatarStyle } from '@/lib/avatar/helpers'
 import { useAvatarPreview, useStyleSchema } from '@/lib/avatar/hooks'
-import { getProfile, updateProfile } from '@/lib/profile'
+import { getProfile, isApiError, updateProfile } from '@/lib/profile'
 import { m } from '@/paraglide/messages'
 
 export const Route = createLazyFileRoute('/settings/profile')({
@@ -348,7 +348,7 @@ function ProfileSettingsPage() {
       }
       toast.success(m.avatar_save_success())
     } catch (err) {
-      const isApiErr = err instanceof Error && (err as { isApiError?: true }).isApiError
+      const isApiErr = isApiError(err)
       const message = isApiErr && err.message ? err.message : null
       toast.error(message ?? m.avatar_save_error())
     } finally {
