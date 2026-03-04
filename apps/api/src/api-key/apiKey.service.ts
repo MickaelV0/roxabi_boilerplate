@@ -1,21 +1,17 @@
 import { createHmac, randomBytes } from 'node:crypto'
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  Logger,
-  UnauthorizedException,
-} from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { and, eq, isNull } from 'drizzle-orm'
 import { ClsService } from 'nestjs-cls'
 import { AuditService } from '../audit/audit.service.js'
 import type { AuthenticatedSession } from '../auth/types.js'
-import { ErrorCode } from '../common/errorCodes.js'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
 import { apiKeys } from '../database/schema/apiKey.schema.js'
 import { users } from '../database/schema/auth.schema.js'
+import { ApiKeyExpiredException } from './exceptions/apiKeyExpired.exception.js'
 import { ApiKeyExpiryInPastException } from './exceptions/apiKeyExpiryInPast.exception.js'
+import { ApiKeyInvalidException } from './exceptions/apiKeyInvalid.exception.js'
 import { ApiKeyNotFoundException } from './exceptions/apiKeyNotFound.exception.js'
+import { ApiKeyRevokedException } from './exceptions/apiKeyRevoked.exception.js'
 import { ApiKeyScopesExceededException } from './exceptions/apiKeyScopesExceeded.exception.js'
 
 const KEY_PREFIX = 'sk_live_'
@@ -200,8 +196,6 @@ export class ApiKeyService {
     tenantId: string
     scopes: string[]
     role: string
-    revokedAt: Date | null
-    expiresAt: Date | null
   }> {
     const lastFour = token.slice(-4)
 
@@ -225,22 +219,13 @@ export class ApiKeyService {
     const match = (candidates ?? []).find((c) => hmacHash(token, c.keySalt) === c.keyHash)
 
     if (!match) {
-      throw new UnauthorizedException({
-        message: 'Invalid API key',
-        errorCode: ErrorCode.API_KEY_INVALID,
-      })
+      throw new ApiKeyInvalidException()
     }
     if (match.revokedAt) {
-      throw new UnauthorizedException({
-        message: 'API key has been revoked',
-        errorCode: ErrorCode.API_KEY_REVOKED,
-      })
+      throw new ApiKeyRevokedException()
     }
     if (match.expiresAt && match.expiresAt < new Date()) {
-      throw new UnauthorizedException({
-        message: 'API key has expired',
-        errorCode: ErrorCode.API_KEY_EXPIRED,
-      })
+      throw new ApiKeyExpiredException()
     }
 
     return {
@@ -249,8 +234,6 @@ export class ApiKeyService {
       tenantId: match.tenantId,
       scopes: match.scopes,
       role: match.role ?? 'user',
-      revokedAt: match.revokedAt,
-      expiresAt: match.expiresAt,
     }
   }
 

@@ -1,5 +1,4 @@
 import { createHmac, randomBytes } from 'node:crypto'
-import { UnauthorizedException } from '@nestjs/common'
 import { describe, expect, it, vi } from 'vitest'
 import type { AuthenticatedSession } from '../auth/types.js'
 import { ErrorCode } from '../common/errorCodes.js'
@@ -45,8 +44,11 @@ function createMockDbWithJoin() {
   }
 }
 
+import { ApiKeyExpiredException } from './exceptions/apiKeyExpired.exception.js'
 import { ApiKeyExpiryInPastException } from './exceptions/apiKeyExpiryInPast.exception.js'
+import { ApiKeyInvalidException } from './exceptions/apiKeyInvalid.exception.js'
 import { ApiKeyNotFoundException } from './exceptions/apiKeyNotFound.exception.js'
+import { ApiKeyRevokedException } from './exceptions/apiKeyRevoked.exception.js'
 import { ApiKeyScopesExceededException } from './exceptions/apiKeyScopesExceeded.exception.js'
 
 // ---------------------------------------------------------------------------
@@ -717,22 +719,22 @@ describe('ApiKeyService', () => {
       expect(result).toMatchObject({ id: keyId, userId, tenantId, scopes, role })
     })
 
-    it('should throw UnauthorizedException with API_KEY_INVALID when no candidates match lastFour', async () => {
+    it('should throw ApiKeyInvalidException when no candidates match lastFour', async () => {
       // Arrange
       const { token } = buildValidToken()
       const { db, _limitFn } = createMockDbWithJoin()
-      _limitFn.mockResolvedValueOnce([]) // empty candidates
+      _limitFn.mockResolvedValue([]) // empty candidates
 
       const service = createService(db as never)
 
       // Act & Assert
-      await expect(service.validateBearerToken(token)).rejects.toThrow(UnauthorizedException)
+      await expect(service.validateBearerToken(token)).rejects.toThrow(ApiKeyInvalidException)
       await expect(service.validateBearerToken(token)).rejects.toMatchObject({
-        response: { errorCode: ErrorCode.API_KEY_INVALID },
+        errorCode: ErrorCode.API_KEY_INVALID,
       })
     })
 
-    it('should throw UnauthorizedException with API_KEY_INVALID when HMAC does not match any candidate', async () => {
+    it('should throw ApiKeyInvalidException when HMAC does not match any candidate', async () => {
       // Arrange
       const { token } = buildValidToken()
       const wrongSalt = randomBytes(16).toString('hex')
@@ -751,16 +753,17 @@ describe('ApiKeyService', () => {
       }
 
       const { db, _limitFn } = createMockDbWithJoin()
-      _limitFn.mockResolvedValueOnce([candidate])
+      _limitFn.mockResolvedValue([candidate])
       const service = createService(db as never)
 
       // Act & Assert
+      await expect(service.validateBearerToken(token)).rejects.toThrow(ApiKeyInvalidException)
       await expect(service.validateBearerToken(token)).rejects.toMatchObject({
-        response: { errorCode: ErrorCode.API_KEY_INVALID },
+        errorCode: ErrorCode.API_KEY_INVALID,
       })
     })
 
-    it('should throw UnauthorizedException with API_KEY_REVOKED when key revokedAt is set', async () => {
+    it('should throw ApiKeyRevokedException when key revokedAt is set', async () => {
       // Arrange
       const { token, salt, hash } = buildValidToken()
       const candidate = {
@@ -776,16 +779,17 @@ describe('ApiKeyService', () => {
       }
 
       const { db, _limitFn } = createMockDbWithJoin()
-      _limitFn.mockResolvedValueOnce([candidate])
+      _limitFn.mockResolvedValue([candidate])
       const service = createService(db as never)
 
       // Act & Assert
+      await expect(service.validateBearerToken(token)).rejects.toThrow(ApiKeyRevokedException)
       await expect(service.validateBearerToken(token)).rejects.toMatchObject({
-        response: { errorCode: ErrorCode.API_KEY_REVOKED },
+        errorCode: ErrorCode.API_KEY_REVOKED,
       })
     })
 
-    it('should throw UnauthorizedException with API_KEY_EXPIRED when expiresAt is in the past', async () => {
+    it('should throw ApiKeyExpiredException when expiresAt is in the past', async () => {
       // Arrange
       const { token, salt, hash } = buildValidToken()
       const candidate = {
@@ -801,12 +805,13 @@ describe('ApiKeyService', () => {
       }
 
       const { db, _limitFn } = createMockDbWithJoin()
-      _limitFn.mockResolvedValueOnce([candidate])
+      _limitFn.mockResolvedValue([candidate])
       const service = createService(db as never)
 
       // Act & Assert
+      await expect(service.validateBearerToken(token)).rejects.toThrow(ApiKeyExpiredException)
       await expect(service.validateBearerToken(token)).rejects.toMatchObject({
-        response: { errorCode: ErrorCode.API_KEY_EXPIRED },
+        errorCode: ErrorCode.API_KEY_EXPIRED,
       })
     })
   })

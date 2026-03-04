@@ -1,5 +1,6 @@
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common'
 import { describe, expect, it, vi } from 'vitest'
+import { ApiKeyRevokedException } from '../api-key/exceptions/apiKeyRevoked.exception.js'
 import { ErrorCode } from '../common/errorCodes.js'
 import { AuthGuard } from './auth.guard.js'
 
@@ -437,7 +438,8 @@ describe('AuthGuard', () => {
     it('should call apiKeyService.validateBearerToken with the token and attach a synthetic session with actorType api_key', async () => {
       // Arrange
       const apiKeyService = createMockApiKeyService(validKeyData)
-      const permissionService = createMockPermissionService(['api:read'])
+      const orgPermissions = ['api:read']
+      const permissionService = createMockPermissionService(orgPermissions)
       const { guard, context } = (() => {
         const { guard } = createGuard(
           null,
@@ -461,6 +463,34 @@ describe('AuthGuard', () => {
       const req = context.switchToHttp().getRequest() as Record<string, unknown>
       expect((req.session as Record<string, unknown>).actorType).toBe('api_key')
       expect((req.session as Record<string, unknown>).apiKeyId).toBe(validKeyData.id)
+      // Permissions must equal the intersection of key scopes and org permissions
+      const expectedPermissions = validKeyData.scopes.filter((s) => orgPermissions.includes(s))
+      expect((req.session as Record<string, unknown>).permissions).toEqual(expectedPermissions)
+    })
+
+    it('should set session.permissions to intersection of key scopes and org permissions', async () => {
+      // Arrange — key has more scopes than the org currently grants
+      const keyData = { ...validKeyData, scopes: ['api:read', 'admin:write'] }
+      const orgPermissions = ['api:read']
+      const apiKeyService = createMockApiKeyService(keyData)
+      const permissionService = createMockPermissionService(orgPermissions)
+      const { guard } = createGuard(
+        null,
+        {},
+        createMockUserService(),
+        apiKeyService,
+        permissionService
+      )
+      const { context } = createMockContext({
+        headers: { authorization: `Bearer ${VALID_API_KEY_TOKEN}` },
+      })
+
+      // Act
+      await guard.canActivate(context as never)
+
+      // Assert — only the intersection survives
+      const req = context.switchToHttp().getRequest() as Record<string, unknown>
+      expect((req.session as Record<string, unknown>).permissions).toEqual(['api:read'])
     })
 
     it('should call touchLastUsedAt with the key id after successful validation', async () => {
@@ -598,12 +628,9 @@ describe('AuthGuard', () => {
       expect(apiKeyService.validateBearerToken).not.toHaveBeenCalled()
     })
 
-    it('should propagate UnauthorizedException with API_KEY_REVOKED when validateBearerToken throws it', async () => {
+    it('should rethrow as UnauthorizedException with API_KEY_REVOKED when validateBearerToken throws ApiKeyRevokedException', async () => {
       // Arrange
-      const revokedError = new UnauthorizedException({
-        message: 'API key has been revoked',
-        errorCode: ErrorCode.API_KEY_REVOKED,
-      })
+      const revokedError = new ApiKeyRevokedException()
       const apiKeyService = createMockApiKeyService(null, revokedError)
       const { guard } = createGuard(null, {}, createMockUserService(), apiKeyService)
       const { context } = createMockContext({
@@ -611,9 +638,36 @@ describe('AuthGuard', () => {
       })
 
       // Act & Assert
+      await expect(guard.canActivate(context as never)).rejects.toBeInstanceOf(
+        UnauthorizedException
+      )
       await expect(guard.canActivate(context as never)).rejects.toMatchObject({
         response: { errorCode: ErrorCode.API_KEY_REVOKED },
       })
+    })
+
+    it('should return true even if touchLastUsedAt throws', async () => {
+      // Arrange
+      const throwingApiKeyService = createMockApiKeyService(validKeyData)
+      throwingApiKeyService.touchLastUsedAt = vi.fn().mockImplementation(() => {
+        throw new Error('DB error')
+      })
+      const { guard } = createGuard(
+        null,
+        {},
+        createMockUserService(),
+        throwingApiKeyService,
+        createMockPermissionService(['api:read'])
+      )
+      const { context } = createMockContext({
+        headers: { authorization: `Bearer ${VALID_API_KEY_TOKEN}` },
+      })
+
+      // Act
+      const result = await guard.canActivate(context as never)
+
+      // Assert
+      expect(result).toBe(true)
     })
   })
 })

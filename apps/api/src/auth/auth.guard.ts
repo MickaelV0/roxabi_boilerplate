@@ -11,6 +11,9 @@ import { Reflector } from '@nestjs/core'
 import type { Role } from '@repo/types'
 import type { FastifyRequest } from 'fastify'
 import { ApiKeyService } from '../api-key/apiKey.service.js'
+import { ApiKeyExpiredException } from '../api-key/exceptions/apiKeyExpired.exception.js'
+import { ApiKeyInvalidException } from '../api-key/exceptions/apiKeyInvalid.exception.js'
+import { ApiKeyRevokedException } from '../api-key/exceptions/apiKeyRevoked.exception.js'
 import { ErrorCode } from '../common/errorCodes.js'
 import { PermissionService } from '../rbac/permission.service.js'
 import { UserService } from '../user/user.service.js'
@@ -97,7 +100,26 @@ export class AuthGuard implements CanActivate {
     bearerToken: string | null
   ): Promise<AuthenticatedSession | null> {
     if (bearerToken?.startsWith('sk_live_')) {
-      return this.buildApiKeySession(bearerToken)
+      try {
+        return await this.buildApiKeySession(bearerToken)
+      } catch (err) {
+        if (err instanceof ApiKeyInvalidException)
+          throw new UnauthorizedException({
+            message: 'Invalid API key',
+            errorCode: ErrorCode.API_KEY_INVALID,
+          })
+        if (err instanceof ApiKeyRevokedException)
+          throw new UnauthorizedException({
+            message: 'API key has been revoked',
+            errorCode: ErrorCode.API_KEY_REVOKED,
+          })
+        if (err instanceof ApiKeyExpiredException)
+          throw new UnauthorizedException({
+            message: 'API key has expired',
+            errorCode: ErrorCode.API_KEY_EXPIRED,
+          })
+        throw err
+      }
     }
     const raw = await this.authService.getSession(request)
     return isAuthenticatedSession(raw) ? raw : null
@@ -109,8 +131,13 @@ export class AuthGuard implements CanActivate {
       keyData.userId,
       keyData.tenantId
     )
+    // Intersect key scopes with org's current permissions to prevent stale elevated access
     const effectiveScopes = keyData.scopes.filter((s) => orgPermissions.includes(s))
-    this.apiKeyService.touchLastUsedAt(keyData.id)
+    try {
+      this.apiKeyService.touchLastUsedAt(keyData.id)
+    } catch {
+      // fire-and-forget — never block auth on a last-used update failure
+    }
     return {
       user: { id: keyData.userId, role: (keyData.role ?? 'user') as Role },
       session: { id: keyData.id, activeOrganizationId: keyData.tenantId },
@@ -127,8 +154,8 @@ export class AuthGuard implements CanActivate {
   ): Promise<void> {
     if (session.actorType !== 'api_key') {
       await this.checkSoftDeleted(request, session)
-      this.checkRoles(context, session)
     }
+    this.checkRoles(context, session)
     this.checkOrgRequired(context, session)
     this.checkPermissions(context, session)
   }
@@ -155,6 +182,8 @@ export class AuthGuard implements CanActivate {
   }
 
   private checkRoles(context: ExecutionContext, session: AuthenticatedSession) {
+    // API key auth does not apply role checks — only permission/scope checks apply
+    if (session.actorType === 'api_key') return
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>('ROLES', [
       context.getHandler(),
       context.getClass(),
