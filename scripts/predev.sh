@@ -14,11 +14,20 @@ if [ -z "$DATABASE_URL" ]; then
 fi
 
 # ── Docker / Postgres health check ──────────────────────────────────────────
-_pg_reachable() {
+_pg_server_ready() {
   (cd "$ROOT_DIR" && docker compose exec -T postgres pg_isready -q 2>/dev/null)
 }
 
-if ! _pg_reachable; then
+_pg_auth_ready() {
+  cd "$ROOT_DIR/apps/api" && bun -e "
+    import postgres from 'postgres';
+    const sql = postgres(process.env.DATABASE_URL, { max: 1, connect_timeout: 3 });
+    try { await sql\`SELECT 1\`; await sql.end(); process.exit(0); }
+    catch { try { await sql.end(); } catch {} process.exit(1); }
+  " 2>/dev/null
+}
+
+if ! _pg_auth_ready; then
   echo ""
   echo "⚠  Postgres is not reachable. Starting Docker services..."
   (cd "$ROOT_DIR" && docker compose up -d)
@@ -26,14 +35,16 @@ if ! _pg_reachable; then
   echo -n "   Waiting for Postgres"
   for i in $(seq 1 60); do
     sleep 1
-    if _pg_reachable; then
-      echo " ✓"
-      break
-    fi
+    # Phase 1: server accepts connections
+    if ! _pg_server_ready; then echo -n "."; continue; fi
+    # Phase 2: DATABASE_URL credentials work (user/db may still be initializing)
+    if _pg_auth_ready; then echo " ✓"; break; fi
     echo -n "."
     if [ "$i" -eq 60 ]; then
       echo ""
-      echo "✗  Postgres did not become ready in time. Check: docker compose logs postgres"
+      echo "✗  Postgres did not become ready in time."
+      echo "   Hint: ensure APP_SLUG or POSTGRES_USER in .env matches DATABASE_URL."
+      echo "   Check: docker compose logs postgres"
       exit 1
     fi
   done
