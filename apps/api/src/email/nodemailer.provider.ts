@@ -15,7 +15,10 @@ export class NodemailerEmailProvider implements EmailProvider {
     const port = config.get<number>('SMTP_PORT', 1025)
     const secure = config.get<boolean>('SMTP_SECURE', false)
     this.from = config.get<string>('EMAIL_FROM', 'dev@localhost')
-    this.transporter = nodemailer.createTransport({ host, port, secure })
+    // ignoreTLS: true — prevents STARTTLS upgrade even if the server advertises it.
+    // Required for plain-text SMTP relays like Mailpit (port 1025) where STARTTLS
+    // is either unsupported or causes SSL version mismatch errors.
+    this.transporter = nodemailer.createTransport({ host, port, secure, ignoreTLS: !secure })
   }
 
   async send(params: { to: string; subject: string; html: string; text?: string }): Promise<void> {

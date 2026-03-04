@@ -87,7 +87,9 @@ export class AuthPage {
   }
 
   get loginMagicLinkSubmitButton(): Locator {
-    return this.page.getByRole('button', { name: /send\s*magic\s*link/i })
+    // i18n key auth_send_magic_link resolves to "Send" in English —
+    // scoped to the active tab panel to avoid matching other "Send" buttons
+    return this.page.locator('[data-state="active"]').getByRole('button', { name: /^send$/i })
   }
 
   async requestMagicLink(email: string): Promise<void> {
