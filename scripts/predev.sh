@@ -13,6 +13,37 @@ if [ -z "$DATABASE_URL" ]; then
   exit 0
 fi
 
+# ── Docker / Postgres health check ──────────────────────────────────────────
+_pg_reachable() {
+  cd "$ROOT_DIR/apps/api" && bun -e "
+    import postgres from 'postgres';
+    const sql = postgres(process.env.DATABASE_URL, { max: 1, connect_timeout: 3 });
+    try { await sql\`SELECT 1\`; await sql.end(); process.exit(0); }
+    catch { await sql.end(); process.exit(1); }
+  " 2>/dev/null
+}
+
+if ! _pg_reachable; then
+  echo ""
+  echo "⚠  Postgres is not reachable. Starting Docker services..."
+  (cd "$ROOT_DIR" && docker compose up -d)
+
+  echo -n "   Waiting for Postgres"
+  for i in $(seq 1 20); do
+    sleep 1
+    if _pg_reachable; then
+      echo " ✓"
+      break
+    fi
+    echo -n "."
+    if [ "$i" -eq 20 ]; then
+      echo ""
+      echo "✗  Postgres did not become ready in time. Check: docker compose logs"
+      exit 1
+    fi
+  done
+fi
+
 JOURNAL="$ROOT_DIR/apps/api/drizzle/migrations/meta/_journal.json"
 if [ ! -f "$JOURNAL" ]; then
   exit 0
