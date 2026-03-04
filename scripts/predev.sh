@@ -15,12 +15,7 @@ fi
 
 # ── Docker / Postgres health check ──────────────────────────────────────────
 _pg_reachable() {
-  cd "$ROOT_DIR/apps/api" && bun -e "
-    import postgres from 'postgres';
-    const sql = postgres(process.env.DATABASE_URL, { max: 1, connect_timeout: 3 });
-    try { await sql\`SELECT 1\`; await sql.end(); process.exit(0); }
-    catch { await sql.end(); process.exit(1); }
-  " 2>/dev/null
+  (cd "$ROOT_DIR" && docker compose exec -T postgres pg_isready -q 2>/dev/null)
 }
 
 if ! _pg_reachable; then
@@ -29,16 +24,16 @@ if ! _pg_reachable; then
   (cd "$ROOT_DIR" && docker compose up -d)
 
   echo -n "   Waiting for Postgres"
-  for i in $(seq 1 20); do
+  for i in $(seq 1 60); do
     sleep 1
     if _pg_reachable; then
       echo " ✓"
       break
     fi
     echo -n "."
-    if [ "$i" -eq 20 ]; then
+    if [ "$i" -eq 60 ]; then
       echo ""
-      echo "✗  Postgres did not become ready in time. Check: docker compose logs"
+      echo "✗  Postgres did not become ready in time. Check: docker compose logs postgres"
       exit 1
     fi
   done
