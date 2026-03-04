@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-roxabi}
       POSTGRES_DB: ${POSTGRES_DB:-roxabi}
     volumes:
-      - ${POSTGRES_VOLUME:-postgres_data}:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
       - ./docker/init-app-user.sh:/docker-entrypoint-initdb.d/10-init-app-user.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-roxabi}"]
@@ -23,8 +23,8 @@ services:
     container_name: ${MAILPIT_CONTAINER:-roxabi-mailpit}
     restart: unless-stopped
     ports:
-      - "127.0.0.1:1025:1025"
-      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8025/api/v1/messages?limit=1"]
       interval: 5s
@@ -32,4 +32,5 @@ services:
       retries: 5
 
 volumes:
-  ${POSTGRES_VOLUME:-postgres_data}:
+  postgres_data:
+    name: ${POSTGRES_VOLUME:-postgres_data}
