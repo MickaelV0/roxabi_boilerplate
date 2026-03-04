@@ -11,21 +11,30 @@ export const hasApi = Boolean(process.env.DATABASE_URL) || !process.env.CI
 /** Generous timeout for navigations in CI (covers cold-start API responses). */
 export const NAVIGATION_TIMEOUT = 45_000
 
+/**
+ * APP_SLUG-derived seed slug — mirrors apps/api/scripts/fixtures/auth.fixture.ts.
+ * Keeps E2E credentials in sync with whatever slug was used to seed the database.
+ */
+export const SEED_SLUG = process.env.APP_SLUG ?? process.env.POSTGRES_DB ?? 'app'
+
+/** Primary org slug seeded by tenant.fixture.ts (matches the seed slug). */
+export const PRIMARY_ORG_SLUG = SEED_SLUG
+
 /** Credentials matching apps/api/scripts/fixtures/auth.fixture.ts */
 export const TEST_USER = {
-  email: 'dev@roxabi.local',
+  email: `dev@${SEED_SLUG}.local`,
   password: 'password123',
   name: 'Dev User',
 }
 
 export const TEST_USER_2 = {
-  email: 'admin@roxabi.local',
+  email: `admin@${SEED_SLUG}.local`,
   password: 'password123',
   name: 'Admin User',
 }
 
 export const SUPERADMIN_USER = {
-  email: 'superadmin@roxabi.local',
+  email: `superadmin@${SEED_SLUG}.local`,
   password: 'password123',
   name: 'Super Admin',
 }
