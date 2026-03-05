@@ -1,7 +1,7 @@
 import { AnimatedSection, cn } from '@repo/ui'
 import { CheckCircle, Circle } from 'lucide-react'
 import { m } from '@/paraglide/messages'
-import { QuantumOrbital } from './QuantumOrbital'
+import { useLyraMode } from './LyraModeContext'
 import { useSlideReveal } from './useSlideReveal'
 
 type SkillBar = { name: string; level: number; max: number }
@@ -18,7 +18,15 @@ function ProgressBar({ level, max, color }: { level: number; max: number; color:
   )
 }
 
-function SkillsColumn({ skills, visible }: { skills: SkillBar[]; visible: boolean }) {
+function SkillsColumn({
+  skills,
+  visible,
+  isRpg,
+}: {
+  skills: SkillBar[]
+  visible: boolean
+  isRpg: boolean
+}) {
   return (
     <div className="px-6 py-5">
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-5">
@@ -28,7 +36,9 @@ function SkillsColumn({ skills, visible }: { skills: SkillBar[]; visible: boolea
         {skills.map((skill, index) => {
           const isMax = skill.level === skill.max
           const barColor = isMax
-            ? 'bg-gradient-to-r from-blue-400 to-blue-500'
+            ? isRpg
+              ? 'bg-gradient-to-r from-[#FFD700] to-amber-500'
+              : 'bg-gradient-to-r from-blue-400 to-blue-500'
             : 'bg-gradient-to-r from-blue-500/70 to-purple-500/70'
           return (
             <div key={skill.name}>
@@ -37,10 +47,14 @@ function SkillsColumn({ skills, visible }: { skills: SkillBar[]; visible: boolea
                 <span
                   className={cn(
                     'text-xs font-mono font-bold',
-                    isMax ? 'text-blue-600 dark:text-blue-300' : 'text-muted-foreground'
+                    isMax
+                      ? isRpg
+                        ? 'text-[#FFD700]'
+                        : 'text-blue-600 dark:text-blue-300'
+                      : 'text-muted-foreground'
                   )}
                 >
-                  {isMax ? 'MAX' : `${skill.level}/${skill.max}`}
+                  {isMax ? m.talk_ls_rpg_sheet_max_label() : `${skill.level}/${skill.max}`}
                 </span>
               </div>
               <div
@@ -116,6 +130,7 @@ function InfoColumn({ traits, quests }: { traits: string[]; quests: string[] }) 
 }
 
 export function CharacterSheetSection() {
+  const { isRpg } = useLyraMode()
   const { ref, visible } = useSlideReveal({ threshold: 0.15 })
 
   const skills: SkillBar[] = [
@@ -137,14 +152,6 @@ export function CharacterSheetSection() {
         <div className="absolute right-0 bottom-0 h-[300px] w-[300px] translate-x-1/4 translate-y-1/4 rounded-full bg-purple-500/5 blur-[90px] dark:bg-purple-500/12" />
       </div>
 
-      {/* Quantum orbital behind the card */}
-      <div
-        className="pointer-events-none absolute inset-0 flex items-center justify-end pr-8 opacity-15"
-        aria-hidden="true"
-      >
-        <QuantumOrbital size={180} />
-      </div>
-
       <div className="relative">
         <AnimatedSection>
           <h2 className="text-4xl font-bold tracking-tight lg:text-5xl mb-8 text-center">
@@ -157,15 +164,33 @@ export function CharacterSheetSection() {
           className={cn(
             'rounded-2xl border-2 overflow-hidden transition-all duration-700',
             visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95',
-            'border-blue-500/30 dark:border-blue-500/40',
-            'bg-gradient-to-br from-background via-blue-100/40 to-purple-100/40',
-            'dark:from-gray-950 dark:via-blue-950/20 dark:to-purple-950/15',
-            'shadow-[0_0_60px_-10px_rgba(45,127,249,0.08),0_0_120px_-20px_rgba(139,92,246,0.05)]',
-            'dark:shadow-[0_0_60px_-10px_rgba(45,127,249,0.15),0_0_120px_-20px_rgba(139,92,246,0.1)]'
+            isRpg
+              ? 'border-[#FFD700]/40 shadow-[0_0_60px_-10px_rgba(255,215,0,0.15),0_0_120px_-20px_rgba(255,215,0,0.08)] dark:from-gray-950 dark:via-amber-950/15 dark:to-yellow-950/10 bg-gradient-to-br from-background via-amber-100/20 to-yellow-100/20'
+              : cn(
+                  'border-blue-500/30 dark:border-blue-500/40',
+                  'bg-gradient-to-br from-background via-blue-100/40 to-purple-100/40',
+                  'dark:from-gray-950 dark:via-blue-950/20 dark:to-purple-950/15',
+                  'shadow-[0_0_60px_-10px_rgba(45,127,249,0.08),0_0_120px_-20px_rgba(139,92,246,0.05)]',
+                  'dark:shadow-[0_0_60px_-10px_rgba(45,127,249,0.15),0_0_120px_-20px_rgba(139,92,246,0.1)]'
+                )
           )}
         >
-          <div className="border-b border-blue-500/20 bg-gradient-to-r from-blue-500/10 to-purple-500/10 px-6 py-5 text-center">
-            <p className="text-2xl font-bold tracking-[0.3em] bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-300 dark:to-purple-300 bg-clip-text text-transparent uppercase">
+          <div
+            className={cn(
+              'px-6 py-5 text-center',
+              isRpg
+                ? 'border-b border-[#FFD700]/20 bg-gradient-to-r from-[#FFD700]/10 to-amber-500/10'
+                : 'border-b border-blue-500/20 bg-gradient-to-r from-blue-500/10 to-purple-500/10'
+            )}
+          >
+            <p
+              className={cn(
+                'text-2xl font-bold tracking-[0.3em] uppercase',
+                isRpg
+                  ? "font-['Press_Start_2P'] text-lg text-[#FFD700] drop-shadow-[0_0_10px_rgba(255,215,0,0.4)]"
+                  : 'bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-300 dark:to-purple-300 bg-clip-text text-transparent'
+              )}
+            >
               {m.talk_ls_sheet_name()}
             </p>
             <p className="text-sm text-muted-foreground mt-1 italic">
@@ -175,7 +200,7 @@ export function CharacterSheetSection() {
 
           <div className="grid gap-0 md:grid-cols-2">
             <InfoColumn traits={traits} quests={quests} />
-            <SkillsColumn skills={skills} visible={visible} />
+            <SkillsColumn skills={skills} visible={visible} isRpg={isRpg} />
           </div>
         </div>
       </div>

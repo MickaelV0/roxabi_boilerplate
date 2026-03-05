@@ -1,6 +1,7 @@
 import { AnimatedSection, Card, CardContent, cn } from '@repo/ui'
 import { Bot, Users } from 'lucide-react'
 import { m } from '@/paraglide/messages'
+import { useLyraMode } from './LyraModeContext'
 import { useSlideReveal } from './useSlideReveal'
 
 const orbs = [
@@ -143,8 +144,73 @@ function GuildNetwork() {
   )
 }
 
-export function NextStepsSection() {
+function NextStepsSectionRpg() {
   const { ref, visible } = useSlideReveal({ threshold: 0.2 })
+
+  const quests = [
+    {
+      icon: <Bot className="h-6 w-6 text-[#FFD700]" />,
+      title: m.talk_ls_rpg_next_quest1(),
+      desc: m.talk_ls_next_pets_desc(),
+    },
+    {
+      icon: <Users className="h-6 w-6 text-[#FFD700]" />,
+      title: m.talk_ls_rpg_next_quest2(),
+      desc: m.talk_ls_next_guild_desc(),
+    },
+  ]
+
+  return (
+    <div className="relative mx-auto max-w-5xl w-full">
+      <AnimatedSection className="mb-10">
+        <h2 className="font-['Press_Start_2P'] text-xl lg:text-2xl text-[#FFD700] drop-shadow-[0_0_10px_rgba(255,215,0,0.5)] mb-2 rpg-zone-enter">
+          {m.talk_ls_rpg_next_zone()}
+        </h2>
+        <p className="text-lg text-muted-foreground">{m.talk_ls_next_subtitle()}</p>
+      </AnimatedSection>
+
+      <div ref={ref} className="grid gap-6 md:grid-cols-2">
+        {quests.map((quest, index) => (
+          <div
+            key={quest.title}
+            className={cn(
+              'rounded-2xl border-2 border-[#FFD700]/40 bg-gray-950/70 px-6 py-6 transition-all duration-700 shadow-[0_0_20px_rgba(255,215,0,0.08)]',
+              visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+            )}
+            style={{ transitionDelay: visible ? `${index * 150}ms` : '0ms' }}
+          >
+            {/* Quest header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl border border-[#FFD700]/30 bg-[#FFD700]/10 p-3">
+                  {quest.icon}
+                </div>
+                <h3 className="font-['Press_Start_2P'] text-[9px] text-[#FFD700] leading-relaxed">
+                  {quest.title}
+                </h3>
+              </div>
+              <span className="font-['Press_Start_2P'] text-[7px] text-[#50C878] border border-[#50C878]/40 rounded px-2 py-1 rpg-achievement">
+                AVAILABLE
+              </span>
+            </div>
+            <div className="h-px w-full bg-[#FFD700]/15 mb-4" />
+            <p className="text-sm text-muted-foreground leading-relaxed">{quest.desc}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-6 flex items-center gap-2 font-mono text-xs text-[#FFD700]/50">
+        <span className="inline-block h-3 w-[2px] bg-[#FFD700]/70 rpg-blink" aria-hidden="true" />
+        <span>SELECT QUEST</span>
+      </div>
+    </div>
+  )
+}
+
+export function NextStepsSection() {
+  const { isRpg } = useLyraMode()
+  const { ref, visible } = useSlideReveal({ threshold: 0.2 })
+  if (isRpg) return <NextStepsSectionRpg />
 
   return (
     <div className="relative mx-auto max-w-5xl w-full">

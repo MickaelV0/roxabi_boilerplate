@@ -6,6 +6,7 @@
       "name": "roxabi-boilerplate",
       "dependencies": {
         "@fontsource-variable/inter": "^5.2.8",
+        "@fontsource/press-start-2p": "^5.2.7",
         "fumadocs-mdx": "^14.2.9",
         "lucide-react": "^0.576.0",
         "shiki": "^4.0.1",
@@ -91,6 +92,7 @@
         "@dicebear/thumbs": "^9.3.1",
         "@dicebear/toon-head": "^9.3.1",
         "@fontsource-variable/plus-jakarta-sans": "^5.2.8",
+        "@fontsource/press-start-2p": "^5.2.7",
         "@fumadocs/mdx-remote": "^1.4.5",
         "@radix-ui/react-checkbox": "^1.2.2",
         "@radix-ui/react-hover-card": "^1.1.10",
@@ -548,6 +550,8 @@
     "@fontsource-variable/inter": ["@fontsource-variable/inter@5.2.8", "", {}, "sha512-kOfP2D+ykbcX/P3IFnokOhVRNoTozo5/JxhAIVYLpea/UBmCQ/YWPBfWIDuBImXX/15KH+eKh4xpEUyS2sQQGQ=="],
 
     "@fontsource-variable/plus-jakarta-sans": ["@fontsource-variable/plus-jakarta-sans@5.2.8", "", {}, "sha512-iQecBizIdZxezODNHzOn4SvvRMrZL/S8k4MEXGDynCmUrImVW0VmX+tIAMqnADwH4haXlHSXqMgU6+kcfBQJdw=="],
+
+    "@fontsource/press-start-2p": ["@fontsource/press-start-2p@5.2.7", "", {}, "sha512-ezSxYRchANoteja170ZHh2Tt4oejmVEvX42VFPOVVvERSZ68pcuZFjbhHfrK/sNjYmaGg656y7B3431ojO9PCQ=="],
 
     "@formatjs/fast-memoize": ["@formatjs/fast-memoize@3.1.0", "", { "dependencies": { "tslib": "^2.8.1" } }, "sha512-b5mvSWCI+XVKiz5WhnBCY3RJ4ZwfjAidU0yVlKa3d3MSgKmH1hC3tBGEAtYyN5mqL7N0G5x0BOUYyO8CEupWgg=="],
 
