@@ -25,4 +25,5 @@ export const rpgZones: Record<string, RpgZoneConfig> = {
 }
 
 export const RPG_TOTAL_XP = 52000
-export const RPG_SECTIONS = Object.keys(rpgZones)
+// Sections that render RPG chrome UI — `awakening` is intentionally excluded (it has no RPG chrome)
+export const RPG_CHROME_SECTIONS = Object.keys(rpgZones)

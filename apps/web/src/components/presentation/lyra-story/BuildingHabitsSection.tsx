@@ -88,7 +88,7 @@ function BuildingHabitsSectionRpg() {
             {m.talk_ls_rpg_habits_zone()}
           </div>
           <h2 className="text-4xl font-bold tracking-tight lg:text-5xl mb-2 rpg-pixel leading-tight text-emerald-300">
-            FIRST SKILLS UNLOCKED
+            {m.talk_ls_rpg_habits_title()}
           </h2>
         </AnimatedSection>
 
@@ -152,7 +152,7 @@ function BuildingHabitsSectionRpg() {
               </div>
               <div>
                 <p className="rpg-pixel text-[10px] text-emerald-300 uppercase tracking-widest">
-                  PASSIVE SKILL
+                  {m.talk_ls_rpg_habits_passive()}
                 </p>
                 <p className="mt-1 text-muted-foreground text-sm">
                   {m.talk_ls_rpg_habits_shared()}

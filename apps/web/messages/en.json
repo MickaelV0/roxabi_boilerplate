@@ -1676,12 +1676,17 @@
 
   "talk_ls_rpg_breaking_zone": "TUTORIAL ZONE",
   "talk_ls_rpg_breaking_warning": "ZONE FAILED",
+  "talk_ls_rpg_breaking_xp_lost": "XP LOST",
+  "talk_ls_rpg_breaking_xp_gained": "XP GAINED",
+  "talk_ls_rpg_breaking_skill_unlocked": "SKILL UNLOCKED",
   "talk_ls_rpg_breaking_penalty": "XP PENALTY: -500",
   "talk_ls_rpg_breaking_recovery": "XP RECOVERY: +1,000 Discernment",
   "talk_ls_rpg_breaking_skill": "SKILL UNLOCKED: Know When to Scrap",
   "talk_ls_rpg_breaking_lesson": "Tutorial complete. Real game begins.",
 
   "talk_ls_rpg_habits_zone": "SKILL TREE",
+  "talk_ls_rpg_habits_title": "FIRST SKILLS UNLOCKED",
+  "talk_ls_rpg_habits_passive": "PASSIVE SKILL",
   "talk_ls_rpg_habits_node1": "UNLOCKED",
   "talk_ls_rpg_habits_node2": "UNLOCKED",
   "talk_ls_rpg_habits_node3": "UNLOCKED",
@@ -1737,7 +1742,9 @@
   "talk_ls_rpg_ecosystem_zone": "GUILD HALL",
   "talk_ls_rpg_ecosystem_roster": "GUILD ROSTER",
   "talk_ls_rpg_ecosystem_rank": "Guild Master",
+  "talk_ls_rpg_ecosystem_guild_master": "GUILD MASTER",
   "talk_ls_rpg_ecosystem_members": "8 members",
+  "talk_ls_rpg_ecosystem_graph_summary": "{repos} repos · {connections} connections",
 
   "talk_ls_rpg_numbers_zone": "SESSION LOG",
   "talk_ls_rpg_numbers_time": "TIME PLAYED",
@@ -1758,6 +1765,8 @@
   "talk_ls_rpg_next_zone": "SIDE QUESTS",
   "talk_ls_rpg_next_quest1": "Get Companion Pets",
   "talk_ls_rpg_next_quest2": "Create a Guild",
+  "talk_ls_rpg_next_available": "AVAILABLE",
+  "talk_ls_rpg_next_select": "SELECT QUEST",
 
   "talk_ls_rpg_closing_zone": "SAVE POINT",
   "talk_ls_rpg_closing_slot": "SAVE SLOT 1",

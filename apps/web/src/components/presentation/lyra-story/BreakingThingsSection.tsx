@@ -33,7 +33,9 @@ function BreakingThingsSectionRpg() {
                   <p className="rpg-pixel text-2xl text-red-400">
                     {m.talk_ls_rpg_breaking_penalty()}
                   </p>
-                  <p className="mt-1 text-xs text-red-400/60 uppercase tracking-widest">XP LOST</p>
+                  <p className="mt-1 text-xs text-red-400/60 uppercase tracking-widest">
+                    {m.talk_ls_rpg_breaking_xp_lost()}
+                  </p>
                 </div>
                 <ArrowRight className="h-8 w-8 text-yellow-400/60 rotate-90 sm:rotate-0" />
                 <div className="text-center">
@@ -41,7 +43,7 @@ function BreakingThingsSectionRpg() {
                     {m.talk_ls_rpg_breaking_recovery()}
                   </p>
                   <p className="mt-1 text-xs text-yellow-400/60 uppercase tracking-widest">
-                    XP GAINED
+                    {m.talk_ls_rpg_breaking_xp_gained()}
                   </p>
                 </div>
               </div>
@@ -60,7 +62,7 @@ function BreakingThingsSectionRpg() {
               <Zap className="h-5 w-5 text-emerald-400 flex-shrink-0" />
               <div>
                 <p className="rpg-pixel text-[10px] text-emerald-300 uppercase tracking-widest">
-                  SKILL UNLOCKED
+                  {m.talk_ls_rpg_breaking_skill_unlocked()}
                 </p>
                 <p className="mt-1 text-sm text-emerald-200/80">{m.talk_ls_rpg_breaking_skill()}</p>
               </div>

@@ -1676,12 +1676,17 @@
 
   "talk_ls_rpg_breaking_zone": "ZONE TUTORIEL",
   "talk_ls_rpg_breaking_warning": "ZONE ECHOUEE",
+  "talk_ls_rpg_breaking_xp_lost": "XP PERDU",
+  "talk_ls_rpg_breaking_xp_gained": "XP GAGNE",
+  "talk_ls_rpg_breaking_skill_unlocked": "COMPETENCE DEVERROUILLEE",
   "talk_ls_rpg_breaking_penalty": "PENALITE XP : -500",
   "talk_ls_rpg_breaking_recovery": "RECUPERATION XP : +1 000 Discernement",
   "talk_ls_rpg_breaking_skill": "SKILL DEBLOQUE : Savoir Quand Jeter",
   "talk_ls_rpg_breaking_lesson": "Tutoriel termine. Le vrai jeu commence.",
 
   "talk_ls_rpg_habits_zone": "ARBRE DE COMPETENCES",
+  "talk_ls_rpg_habits_title": "PREMIERES COMPETENCES DEVERROUILLEES",
+  "talk_ls_rpg_habits_passive": "COMPETENCE PASSIVE",
   "talk_ls_rpg_habits_node1": "DEBLOQUE",
   "talk_ls_rpg_habits_node2": "DEBLOQUE",
   "talk_ls_rpg_habits_node3": "DEBLOQUE",
@@ -1737,7 +1742,9 @@
   "talk_ls_rpg_ecosystem_zone": "HALL DE GUILDE",
   "talk_ls_rpg_ecosystem_roster": "REGISTRE DE GUILDE",
   "talk_ls_rpg_ecosystem_rank": "Maitre de Guilde",
+  "talk_ls_rpg_ecosystem_guild_master": "MAITRE DE GUILDE",
   "talk_ls_rpg_ecosystem_members": "8 membres",
+  "talk_ls_rpg_ecosystem_graph_summary": "{repos} repos · {connections} connexions",
 
   "talk_ls_rpg_numbers_zone": "JOURNAL DE SESSION",
   "talk_ls_rpg_numbers_time": "TEMPS DE JEU",
@@ -1758,6 +1765,8 @@
   "talk_ls_rpg_next_zone": "QUETES SECONDAIRES",
   "talk_ls_rpg_next_quest1": "Obtenir des Compagnons",
   "talk_ls_rpg_next_quest2": "Creer une Guilde",
+  "talk_ls_rpg_next_available": "DISPONIBLE",
+  "talk_ls_rpg_next_select": "CHOISIR QUETE",
 
   "talk_ls_rpg_closing_zone": "POINT DE SAUVEGARDE",
   "talk_ls_rpg_closing_slot": "EMPLACEMENT 1",

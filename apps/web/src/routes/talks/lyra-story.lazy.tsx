@@ -69,22 +69,31 @@ function LyraStoryContent() {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const index = sectionIds.indexOf(entry.target.id)
-            if (index !== -1) setCurrentSectionIndex(index)
-          }
+    const callback: IntersectionObserverCallback = (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          const index = sectionIds.indexOf(entry.target.id)
+          if (index !== -1) setCurrentSectionIndex(index)
         }
-      },
-      { threshold: 0.5 }
-    )
+      }
+    }
+    // Use a lower threshold for the thin awakening divider to avoid erratic jumps
+    const defaultObserver = new IntersectionObserver(callback, { threshold: 0.5 })
+    const awakeningObserver = new IntersectionObserver(callback, { threshold: 0.1 })
     for (const id of sectionIds) {
       const el = document.getElementById(id)
-      if (el) observer.observe(el)
+      if (el) {
+        if (id === 'awakening') {
+          awakeningObserver.observe(el)
+        } else {
+          defaultObserver.observe(el)
+        }
+      }
     }
-    return () => observer.disconnect()
+    return () => {
+      defaultObserver.disconnect()
+      awakeningObserver.disconnect()
+    }
   }, [])
 
   const sections = useMemo(
