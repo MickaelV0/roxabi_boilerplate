@@ -16,7 +16,7 @@ function createMockDb() {
   }
 }
 
-function createMockUserService() {
+function createMockUserPurgeService() {
   return {
     anonymizeUserRecords: vi.fn().mockResolvedValue(undefined),
   }
@@ -41,7 +41,7 @@ describe('PurgeService', () => {
   describe('runPurge', () => {
     it('should anonymize users whose deleteScheduledFor has passed', async () => {
       const { db } = createMockDb()
-      const userService = createMockUserService()
+      const userService = createMockUserPurgeService()
       const expiredUser = { id: 'user-1', email: 'john@example.com' }
 
       // First select: expired users; Second select: expired orgs
@@ -62,7 +62,7 @@ describe('PurgeService', () => {
 
     it('should anonymize organizations whose deleteScheduledFor has passed', async () => {
       const { db } = createMockDb()
-      const userService = createMockUserService()
+      const userService = createMockUserPurgeService()
       const expiredOrg = { id: 'org-1', name: 'Test Org', slug: 'test-org' }
 
       // First select: no expired users; Second select: expired orgs
@@ -91,7 +91,7 @@ describe('PurgeService', () => {
 
     it('should process users before organizations', async () => {
       const { db } = createMockDb()
-      const userService = createMockUserService()
+      const userService = createMockUserPurgeService()
       const expiredUser = { id: 'user-1', email: 'john@example.com' }
       const expiredOrg = { id: 'org-1', name: 'Org', slug: 'org' }
 
@@ -122,7 +122,7 @@ describe('PurgeService', () => {
 
     it('should delegate user anonymization to UserService', async () => {
       const { db } = createMockDb()
-      const userService = createMockUserService()
+      const userService = createMockUserPurgeService()
       const expiredUser = { id: 'user-1', email: 'john@example.com' }
 
       setupSelectChain(db, [[expiredUser], []])
@@ -145,7 +145,7 @@ describe('PurgeService', () => {
 
     it('should delete members, invitations, and custom roles for purged orgs', async () => {
       const { db } = createMockDb()
-      const userService = createMockUserService()
+      const userService = createMockUserPurgeService()
       const expiredOrg = { id: 'org-1', name: 'Org', slug: 'org' }
 
       setupSelectChain(db, [[], [expiredOrg]])
@@ -177,7 +177,7 @@ describe('PurgeService', () => {
 
     it('should be idempotent (re-running on anonymized records is a no-op)', async () => {
       const { db } = createMockDb()
-      const userService = createMockUserService()
+      const userService = createMockUserPurgeService()
       // Already-anonymized user (email ends with @anonymized.local)
       const anonymizedUser = { id: 'user-1', email: 'deleted-abc@anonymized.local' }
       // Already-anonymized org (slug starts with 'deleted-')
@@ -195,7 +195,7 @@ describe('PurgeService', () => {
 
     it('should process up to 100 records per invocation', async () => {
       const { db } = createMockDb()
-      const userService = createMockUserService()
+      const userService = createMockUserPurgeService()
       // The select query uses .limit(100)
       setupSelectChain(db, [[], []])
 
@@ -208,7 +208,7 @@ describe('PurgeService', () => {
 
     it('should return zero counts when no records are expired', async () => {
       const { db } = createMockDb()
-      const userService = createMockUserService()
+      const userService = createMockUserPurgeService()
       setupSelectChain(db, [[], []])
 
       const service = new PurgeService(db as never, userService as never)
