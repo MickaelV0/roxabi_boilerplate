@@ -30,7 +30,7 @@ export function TheMessengerSection() {
               <div
                 className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm font-mono ${
                   bubble.sent
-                    ? 'bg-blue-500/20 text-blue-200 border border-blue-500/30 rounded-br-none'
+                    ? 'bg-blue-500/20 text-blue-700 dark:text-blue-200 border border-blue-500/30 rounded-br-none'
                     : 'bg-background border border-border text-muted-foreground rounded-bl-none'
                 }`}
               >
@@ -56,7 +56,7 @@ export function TheMessengerSection() {
 
           <AnimatedSection className="mt-8 space-y-4">
             <Card variant="subtle" className="border border-orange-500/20 bg-orange-500/5">
-              <CardContent className="pt-5 flex items-start gap-3">
+              <CardContent className="pt-5 pb-5 flex items-start gap-3">
                 <Wrench className="h-5 w-5 text-orange-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold text-sm text-orange-300">
@@ -70,7 +70,7 @@ export function TheMessengerSection() {
             </Card>
 
             <Card variant="subtle" className="border border-blue-500/20 bg-blue-500/5">
-              <CardContent className="pt-5 flex items-start gap-3">
+              <CardContent className="pt-5 pb-5 flex items-start gap-3">
                 <Timer className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold text-sm text-blue-300">

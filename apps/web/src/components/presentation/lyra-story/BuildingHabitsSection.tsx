@@ -31,7 +31,7 @@ function SkillNode({
             : 'border-purple-500/20 bg-purple-500/5'
         )}
       >
-        <CardContent className="pt-6 space-y-3">
+        <CardContent className="pt-6 pb-6 space-y-3">
           <div
             className={cn(
               'flex items-center justify-center gap-2 mx-auto w-10 h-10 rounded-lg',
@@ -112,7 +112,7 @@ export function BuildingHabitsSection() {
             variant="subtle"
             className="border border-purple-500/20 bg-gradient-to-r from-blue-500/5 to-purple-500/5"
           >
-            <CardContent className="pt-6 flex items-start gap-4">
+            <CardContent className="pt-6 pb-6 flex items-start gap-4">
               <div className="flex-shrink-0 rounded-lg bg-purple-500/10 p-2">
                 <GitMerge className="h-5 w-5 text-purple-400" />
               </div>

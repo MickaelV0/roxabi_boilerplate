@@ -210,7 +210,7 @@ export function TheBrainSection() {
 
           <AnimatedSection className="mt-8">
             <Card variant="subtle" className="border border-blue-500/20 bg-blue-500/5">
-              <CardContent className="pt-5">
+              <CardContent className="pt-5 pb-5">
                 <div className="flex items-start gap-3">
                   <Brain className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
                   <div>

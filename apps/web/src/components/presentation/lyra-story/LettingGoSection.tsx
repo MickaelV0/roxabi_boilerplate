@@ -33,7 +33,7 @@ export function LettingGoSection() {
           {/* linkedin-jobs deletion */}
           <AnimatedSection>
             <Card variant="subtle" className="border border-red-500/20 bg-red-500/5">
-              <CardContent className="pt-6 space-y-4">
+              <CardContent className="pt-6 pb-6 space-y-4">
                 <div className="flex items-center gap-2 text-red-400">
                   <Trash2 className="h-4 w-4" />
                   <span className="text-sm font-semibold uppercase tracking-wider">

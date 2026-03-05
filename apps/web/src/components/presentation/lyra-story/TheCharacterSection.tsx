@@ -79,7 +79,7 @@ export function TheCharacterSection() {
 
           <AnimatedSection className="space-y-4">
             <Card variant="subtle" className="border border-blue-500/20 bg-blue-500/5">
-              <CardContent className="pt-5 flex items-start gap-3">
+              <CardContent className="pt-5 pb-5 flex items-start gap-3">
                 <Brain className="h-5 w-5 text-blue-400 flex-shrink-0" />
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
@@ -91,7 +91,7 @@ export function TheCharacterSection() {
             </Card>
 
             <Card variant="subtle" className="border border-purple-500/20 bg-purple-500/5">
-              <CardContent className="pt-5 flex items-start gap-3">
+              <CardContent className="pt-5 pb-5 flex items-start gap-3">
                 <Mic2 className="h-5 w-5 text-purple-400 flex-shrink-0" />
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">

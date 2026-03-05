@@ -35,7 +35,7 @@ export function BreakingThingsSection() {
               variant="subtle"
               className="h-full border border-red-500/20 bg-red-500/5 dark:bg-red-500/5"
             >
-              <CardContent className="pt-6 space-y-3">
+              <CardContent className="pt-6 pb-6 space-y-3">
                 <div className="flex items-center gap-2 text-red-400">
                   <AlertTriangle className="h-4 w-4" />
                   <span className="text-sm font-semibold uppercase tracking-wider">
@@ -72,7 +72,7 @@ export function BreakingThingsSection() {
               variant="subtle"
               className="h-full border border-blue-500/20 bg-blue-500/5 dark:bg-blue-500/5"
             >
-              <CardContent className="pt-6 space-y-3">
+              <CardContent className="pt-6 pb-6 space-y-3">
                 <div className="flex items-center gap-2 text-blue-400">
                   <Zap className="h-4 w-4" />
                   <span className="text-sm font-semibold uppercase tracking-wider">

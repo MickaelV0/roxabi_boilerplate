@@ -29,7 +29,7 @@ export function SimpleIdeaSection() {
             variant="subtle"
             className="border border-blue-500/20 bg-blue-500/5 dark:bg-blue-500/5"
           >
-            <CardContent className="pt-6 space-y-6">
+            <CardContent className="pt-6 pb-6 space-y-6">
               {[
                 {
                   icon: <Server className="h-5 w-5 text-blue-400" />,

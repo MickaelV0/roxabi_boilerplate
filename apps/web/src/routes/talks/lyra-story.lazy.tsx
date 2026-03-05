@@ -115,7 +115,10 @@ export function LyraStoryPresentation() {
           <TheVoiceSection />
         </SectionContainer>
 
-        <SectionContainer id="the-night">
+        <SectionContainer
+          id="the-night"
+          className="bg-gradient-to-b from-[#0a0a1a] via-[#0d1025] to-[#0a0a1a] dark:from-[#050510] dark:via-[#080818] dark:to-[#050510] text-gray-100"
+        >
           <TheNightSection />
         </SectionContainer>
 
