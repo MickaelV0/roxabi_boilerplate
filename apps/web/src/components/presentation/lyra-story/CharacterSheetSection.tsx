@@ -6,10 +6,27 @@ import { useSlideReveal } from './useSlideReveal'
 
 type SkillBar = { name: string; level: number; max: number }
 
-function ProgressBar({ level, max, color }: { level: number; max: number; color: string }) {
+function ProgressBar({
+  level,
+  max,
+  color,
+  label,
+}: {
+  level: number
+  max: number
+  color: string
+  label: string
+}) {
   const pct = Math.round((level / max) * 100)
   return (
-    <div className="h-1.5 w-full rounded-full bg-muted/40 overflow-hidden">
+    <div
+      role="progressbar"
+      aria-label={label}
+      aria-valuenow={level}
+      aria-valuemin={0}
+      aria-valuemax={max}
+      className="h-1.5 w-full rounded-full bg-muted/40 overflow-hidden"
+    >
       <div
         className={cn('h-full rounded-full transition-all duration-1000', color)}
         style={{ width: `${pct}%` }}
@@ -30,7 +47,7 @@ function SkillsColumn({ skills, visible }: { skills: SkillBar[]; visible: boolea
           const isMax = skill.level === skill.max
           const barColor = isMax
             ? isRpg
-              ? 'bg-gradient-to-r from-[#FFD700] to-amber-500'
+              ? 'bg-gradient-to-r from-[var(--rpg-gold)] to-amber-500'
               : 'bg-gradient-to-r from-blue-400 to-blue-500'
             : 'bg-gradient-to-r from-blue-500/70 to-purple-500/70'
           return (
@@ -42,7 +59,7 @@ function SkillsColumn({ skills, visible }: { skills: SkillBar[]; visible: boolea
                     'text-xs font-mono font-bold',
                     isMax
                       ? isRpg
-                        ? 'text-[#FFD700]'
+                        ? 'text-[var(--rpg-gold)]'
                         : 'text-blue-600 dark:text-blue-300'
                       : 'text-muted-foreground'
                   )}
@@ -57,7 +74,12 @@ function SkillsColumn({ skills, visible }: { skills: SkillBar[]; visible: boolea
                 )}
                 style={{ transitionDelay: visible ? `${200 + index * 100}ms` : '0ms' }}
               >
-                <ProgressBar level={visible ? skill.level : 0} max={skill.max} color={barColor} />
+                <ProgressBar
+                  level={visible ? skill.level : 0}
+                  max={skill.max}
+                  color={barColor}
+                  label={skill.name}
+                />
               </div>
             </div>
           )
@@ -158,7 +180,7 @@ export function CharacterSheetSection() {
             'rounded-2xl border-2 overflow-hidden transition-all duration-700',
             visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95',
             isRpg
-              ? 'border-[#FFD700]/40 shadow-[0_0_60px_-10px_rgba(255,215,0,0.15),0_0_120px_-20px_rgba(255,215,0,0.08)] dark:from-gray-950 dark:via-amber-950/15 dark:to-yellow-950/10 bg-gradient-to-br from-background via-amber-100/20 to-yellow-100/20'
+              ? 'border-[var(--rpg-gold)]/40 shadow-[0_0_60px_-10px_rgba(255,215,0,0.15),0_0_120px_-20px_rgba(255,215,0,0.08)] dark:from-gray-950 dark:via-amber-950/15 dark:to-yellow-950/10 bg-gradient-to-br from-background via-amber-100/20 to-yellow-100/20'
               : cn(
                   'border-blue-500/30 dark:border-blue-500/40',
                   'bg-gradient-to-br from-background via-blue-100/40 to-purple-100/40',
@@ -172,7 +194,7 @@ export function CharacterSheetSection() {
             className={cn(
               'px-6 py-5 text-center',
               isRpg
-                ? 'border-b border-[#FFD700]/20 bg-gradient-to-r from-[#FFD700]/10 to-amber-500/10'
+                ? 'border-b border-[var(--rpg-gold)]/20 bg-gradient-to-r from-[var(--rpg-gold)]/10 to-amber-500/10'
                 : 'border-b border-blue-500/20 bg-gradient-to-r from-blue-500/10 to-purple-500/10'
             )}
           >
@@ -180,7 +202,7 @@ export function CharacterSheetSection() {
               className={cn(
                 'text-2xl font-bold tracking-[0.3em] uppercase',
                 isRpg
-                  ? 'rpg-pixel text-lg text-[#FFD700] drop-shadow-[0_0_10px_rgba(255,215,0,0.4)]'
+                  ? 'rpg-pixel text-lg text-[var(--rpg-gold)] drop-shadow-[0_0_10px_rgba(255,215,0,0.4)]'
                   : 'bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-300 dark:to-purple-300 bg-clip-text text-transparent'
               )}
             >

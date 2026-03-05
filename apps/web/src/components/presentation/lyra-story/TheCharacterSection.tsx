@@ -16,8 +16,8 @@ function TheCharacterSectionRpg() {
     <div className="relative mx-auto max-w-5xl w-full">
       {/* Achievement banner */}
       <AnimatedSection className="text-center mb-10">
-        <div className="inline-block rounded-2xl border-2 border-[#FFD700]/60 bg-gradient-to-br from-[#FFD700]/10 to-amber-900/20 px-8 py-5 shadow-[0_0_40px_rgba(255,215,0,0.2)] rpg-achievement">
-          <p className="rpg-pixel text-lg lg:text-xl text-[#FFD700] drop-shadow-[0_0_12px_rgba(255,215,0,0.6)]">
+        <div className="inline-block rounded-2xl border-2 border-[var(--rpg-gold)]/60 bg-gradient-to-br from-[var(--rpg-gold)]/10 to-amber-900/20 px-8 py-5 shadow-[0_0_40px_rgba(255,215,0,0.2)] rpg-achievement">
+          <p className="rpg-pixel text-lg lg:text-xl text-[var(--rpg-gold)] drop-shadow-[0_0_12px_rgba(255,215,0,0.6)]">
             {m.talk_ls_rpg_character_zone()}
           </p>
         </div>
@@ -26,16 +26,17 @@ function TheCharacterSectionRpg() {
       <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
         {/* Portrait frame */}
         <AnimatedSection className="flex items-center justify-center">
-          <div className="relative w-56 h-56 rounded-xl border-4 border-[#FFD700]/60 bg-gray-950/80 flex items-center justify-center shadow-[0_0_30px_rgba(255,215,0,0.2),inset_0_0_30px_rgba(255,215,0,0.05)]">
+          <div className="relative w-56 h-56 rounded-xl border-4 border-[var(--rpg-gold)]/60 bg-gray-950/80 flex items-center justify-center shadow-[0_0_30px_rgba(255,215,0,0.2),inset_0_0_30px_rgba(255,215,0,0.05)]">
             {/* Corner ornaments */}
-            <div className="absolute top-1 left-1 w-4 h-4 border-t-2 border-l-2 border-[#FFD700]/80" />
-            <div className="absolute top-1 right-1 w-4 h-4 border-t-2 border-r-2 border-[#FFD700]/80" />
-            <div className="absolute bottom-1 left-1 w-4 h-4 border-b-2 border-l-2 border-[#FFD700]/80" />
-            <div className="absolute bottom-1 right-1 w-4 h-4 border-b-2 border-r-2 border-[#FFD700]/80" />
+            <div className="absolute top-1 left-1 w-4 h-4 border-t-2 border-l-2 border-[var(--rpg-gold)]/80" />
+            <div className="absolute top-1 right-1 w-4 h-4 border-t-2 border-r-2 border-[var(--rpg-gold)]/80" />
+            <div className="absolute bottom-1 left-1 w-4 h-4 border-b-2 border-l-2 border-[var(--rpg-gold)]/80" />
+            <div className="absolute bottom-1 right-1 w-4 h-4 border-b-2 border-r-2 border-[var(--rpg-gold)]/80" />
             <span
               className="text-7xl font-bold"
               style={{
-                background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FFD700 100%)',
+                background:
+                  'linear-gradient(135deg, var(--rpg-gold) 0%, #FFA500 50%, var(--rpg-gold) 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -45,8 +46,8 @@ function TheCharacterSectionRpg() {
               L
             </span>
             {/* Achievement badge */}
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-[#FFD700]/60 bg-gray-950 px-3 py-1">
-              <span className="rpg-pixel text-[7px] text-[#FFD700]">
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-[var(--rpg-gold)]/60 bg-gray-950 px-3 py-1">
+              <span className="rpg-pixel text-[7px] text-[var(--rpg-gold)]">
                 {m.talk_ls_rpg_character_achievement()}
               </span>
             </div>
@@ -56,16 +57,16 @@ function TheCharacterSectionRpg() {
         {/* Stats */}
         <div className="space-y-4">
           <AnimatedSection>
-            <div className="rounded-xl border border-[#FFD700]/30 bg-gray-950/60 px-5 py-4">
-              <p className="rpg-pixel text-[8px] text-[#FFD700]/60 mb-2 tracking-wider uppercase">
+            <div className="rounded-xl border border-[var(--rpg-gold)]/30 bg-gray-950/60 px-5 py-4">
+              <p className="rpg-pixel text-[8px] text-[var(--rpg-gold)]/60 mb-2 tracking-wider uppercase">
                 {m.talk_ls_character_personality_label()}
               </p>
               <p className="text-gray-200">{m.talk_ls_rpg_character_stat_personality()}</p>
             </div>
           </AnimatedSection>
           <AnimatedSection>
-            <div className="rounded-xl border border-[#FFD700]/30 bg-gray-950/60 px-5 py-4">
-              <p className="rpg-pixel text-[8px] text-[#FFD700]/60 mb-2 tracking-wider uppercase">
+            <div className="rounded-xl border border-[var(--rpg-gold)]/30 bg-gray-950/60 px-5 py-4">
+              <p className="rpg-pixel text-[8px] text-[var(--rpg-gold)]/60 mb-2 tracking-wider uppercase">
                 {m.talk_ls_character_voice_label()}
               </p>
               <p className="text-gray-200">{m.talk_ls_rpg_character_stat_voice()}</p>

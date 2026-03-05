@@ -254,12 +254,7 @@ html.dark .shiki span {
 
 /* ── Reduced motion: disable all Lyra animations ── */
 @media (prefers-reduced-motion: reduce) {
-  [data-presentation] .animate-spin-slow {
-    animation: none !important;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
+  [data-presentation] .animate-spin-slow,
   [data-presentation] .v2-ring1,
   [data-presentation] .v2-ring2,
   [data-presentation] .v2-ring3,

@@ -21,7 +21,7 @@ function ClosingSectionRpg() {
         <AnimatedSection>
           <div
             ref={ref}
-            className="rounded-2xl border-2 border-[#FFD700]/50 bg-gray-950/90 mx-auto max-w-sm px-8 py-8 shadow-[0_0_40px_rgba(255,215,0,0.15)]"
+            className="rounded-2xl border-2 border-[var(--rpg-gold)]/50 bg-gray-950/90 mx-auto max-w-sm px-8 py-8 shadow-[0_0_40px_rgba(255,215,0,0.15)]"
           >
             <p className="rpg-pixel text-[10px] text-gray-400 mb-6 tracking-wider">
               {m.talk_ls_rpg_closing_slot()}
@@ -31,7 +31,7 @@ function ClosingSectionRpg() {
             <div className="mb-5">
               <div className="h-3 w-full rounded-full bg-gray-800 overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#FFD700] to-amber-500 transition-all duration-[2000ms]"
+                  className="h-full rounded-full bg-gradient-to-r from-[var(--rpg-gold)] to-amber-500 transition-all duration-[2000ms]"
                   style={{ width: visible ? '100%' : '0%' }}
                 />
               </div>
@@ -46,14 +46,14 @@ function ClosingSectionRpg() {
                 {m.talk_ls_rpg_closing_saving()}
               </p>
               <p
-                className="rpg-pixel text-[10px] text-[#50C878] drop-shadow-[0_0_8px_rgba(80,200,120,0.4)] transition-opacity duration-700 rpg-achievement"
+                className="rpg-pixel text-[10px] text-[var(--rpg-emerald)] drop-shadow-[0_0_8px_rgba(80,200,120,0.4)] transition-opacity duration-700 rpg-achievement"
                 style={{ opacity: visible ? 1 : 0, transitionDelay: visible ? '2200ms' : '0ms' }}
               >
                 {m.talk_ls_rpg_closing_complete()}
               </p>
             </div>
 
-            <p className="rpg-pixel text-[9px] text-[#FFD700]/70 rpg-blink">
+            <p className="rpg-pixel text-[9px] text-[var(--rpg-gold)]/70 rpg-blink">
               {m.talk_ls_rpg_closing_continue()}
             </p>
           </div>
@@ -79,7 +79,7 @@ function ClosingSectionRpg() {
 
         <AnimatedSection>
           <div className="flex items-center justify-center">
-            <div className="h-px w-32 bg-gradient-to-r from-transparent via-[#FFD700]/30 to-transparent" />
+            <div className="h-px w-32 bg-gradient-to-r from-transparent via-[var(--rpg-gold)]/30 to-transparent" />
           </div>
         </AnimatedSection>
       </div>

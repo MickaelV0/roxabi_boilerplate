@@ -149,12 +149,12 @@ function NextStepsSectionRpg() {
 
   const quests = [
     {
-      icon: <Bot className="h-6 w-6 text-[#FFD700]" />,
+      icon: <Bot className="h-6 w-6 text-[var(--rpg-gold)]" />,
       title: m.talk_ls_rpg_next_quest1(),
       desc: m.talk_ls_next_pets_desc(),
     },
     {
-      icon: <Users className="h-6 w-6 text-[#FFD700]" />,
+      icon: <Users className="h-6 w-6 text-[var(--rpg-gold)]" />,
       title: m.talk_ls_rpg_next_quest2(),
       desc: m.talk_ls_next_guild_desc(),
     },
@@ -163,7 +163,7 @@ function NextStepsSectionRpg() {
   return (
     <div className="relative mx-auto max-w-5xl w-full">
       <AnimatedSection className="mb-10">
-        <h2 className="rpg-pixel text-xl lg:text-2xl text-[#FFD700] drop-shadow-[0_0_10px_rgba(255,215,0,0.5)] mb-2 rpg-zone-enter">
+        <h2 className="rpg-pixel text-xl lg:text-2xl text-[var(--rpg-gold)] drop-shadow-[0_0_10px_rgba(255,215,0,0.5)] mb-2 rpg-zone-enter">
           {m.talk_ls_rpg_next_zone()}
         </h2>
         <p className="text-lg text-muted-foreground">{m.talk_ls_next_subtitle()}</p>
@@ -174,7 +174,7 @@ function NextStepsSectionRpg() {
           <div
             key={quest.title}
             className={cn(
-              'rounded-2xl border-2 border-[#FFD700]/40 bg-gray-950/70 px-6 py-6 transition-all duration-700 shadow-[0_0_20px_rgba(255,215,0,0.08)]',
+              'rounded-2xl border-2 border-[var(--rpg-gold)]/40 bg-gray-950/70 px-6 py-6 transition-all duration-700 shadow-[0_0_20px_rgba(255,215,0,0.08)]',
               visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
             )}
             style={{ transitionDelay: visible ? `${index * 150}ms` : '0ms' }}
@@ -182,26 +182,29 @@ function NextStepsSectionRpg() {
             {/* Quest header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="rounded-xl border border-[#FFD700]/30 bg-[#FFD700]/10 p-3">
+                <div className="rounded-xl border border-[var(--rpg-gold)]/30 bg-[var(--rpg-gold)]/10 p-3">
                   {quest.icon}
                 </div>
-                <h3 className="rpg-pixel text-[9px] text-[#FFD700] leading-relaxed">
+                <h3 className="rpg-pixel text-[9px] text-[var(--rpg-gold)] leading-relaxed">
                   {quest.title}
                 </h3>
               </div>
-              <span className="rpg-pixel text-[7px] text-[#50C878] border border-[#50C878]/40 rounded px-2 py-1 rpg-achievement">
-                AVAILABLE
+              <span className="rpg-pixel text-[7px] text-[var(--rpg-emerald)] border border-[var(--rpg-emerald)]/40 rounded px-2 py-1 rpg-achievement">
+                {m.talk_ls_rpg_next_available()}
               </span>
             </div>
-            <div className="h-px w-full bg-[#FFD700]/15 mb-4" />
+            <div className="h-px w-full bg-[var(--rpg-gold)]/15 mb-4" />
             <p className="text-sm text-muted-foreground leading-relaxed">{quest.desc}</p>
           </div>
         ))}
       </div>
 
-      <div className="mt-6 flex items-center gap-2 font-mono text-xs text-[#FFD700]/50">
-        <span className="inline-block h-3 w-[2px] bg-[#FFD700]/70 rpg-blink" aria-hidden="true" />
-        <span>SELECT QUEST</span>
+      <div className="mt-6 flex items-center gap-2 font-mono text-xs text-[var(--rpg-gold)]/50">
+        <span
+          className="inline-block h-3 w-[2px] bg-[var(--rpg-gold)]/70 rpg-blink"
+          aria-hidden="true"
+        />
+        <span>{m.talk_ls_rpg_next_select()}</span>
       </div>
     </div>
   )

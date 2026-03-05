@@ -29,7 +29,7 @@ function TimelineRow({
         <span
           className={cn(
             'font-mono text-sm tabular-nums',
-            isKey ? 'text-blue-300 font-bold' : 'text-gray-500'
+            isKey ? 'text-blue-300 font-bold' : 'text-gray-400'
           )}
         >
           {time}
@@ -110,16 +110,16 @@ function TheNightSectionRpg() {
   return (
     <div className="relative mx-auto max-w-5xl w-full">
       <AnimatedSection>
-        <h2 className="rpg-pixel text-xl lg:text-2xl text-[#DC143C] mb-8 text-center drop-shadow-[0_0_10px_rgba(220,20,60,0.5)] rpg-zone-enter">
+        <h2 className="rpg-pixel text-xl lg:text-2xl text-[var(--rpg-crimson)] mb-8 text-center drop-shadow-[0_0_10px_rgba(220,20,60,0.5)] rpg-zone-enter">
           {m.talk_ls_rpg_night_zone()}
         </h2>
       </AnimatedSection>
 
       {/* Boss HP bar */}
       <AnimatedSection className="mb-10">
-        <div className="rounded-xl border border-[#DC143C]/40 bg-gray-950/80 px-6 py-5">
+        <div className="rounded-xl border border-[var(--rpg-crimson)]/40 bg-gray-950/80 px-6 py-5">
           <div className="flex items-center justify-between mb-3">
-            <span className="rpg-pixel text-[10px] text-[#DC143C]">
+            <span className="rpg-pixel text-[10px] text-[var(--rpg-crimson)]">
               {m.talk_ls_rpg_night_boss_name()}
             </span>
             <span className="rpg-pixel text-[9px] text-gray-400">
@@ -128,7 +128,7 @@ function TheNightSectionRpg() {
           </div>
           <div className="h-4 w-full rounded-full bg-gray-800 overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#DC143C] to-red-700 transition-all duration-[3000ms]"
+              className="h-full rounded-full bg-gradient-to-r from-[var(--rpg-crimson)] to-red-700 transition-all duration-[3000ms]"
               style={{ width: visible ? '0%' : '100%' }}
             />
           </div>
@@ -142,7 +142,7 @@ function TheNightSectionRpg() {
           <div
             key={index}
             className={cn(
-              'flex items-center justify-between rounded-xl border border-[#DC143C]/25 bg-gray-950/60 px-6 py-4 transition-all duration-700',
+              'flex items-center justify-between rounded-xl border border-[var(--rpg-crimson)]/25 bg-gray-950/60 px-6 py-4 transition-all duration-700',
               visible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'
             )}
             style={{ transitionDelay: visible ? `${index * 150}ms` : '0ms' }}
@@ -150,7 +150,7 @@ function TheNightSectionRpg() {
             <span className="text-gray-200 font-semibold">{phase.label}</span>
             <div className="flex items-center gap-3 ml-4 flex-shrink-0">
               <span
-                className="rpg-pixel text-[9px] text-[#DC143C] transition-opacity duration-500"
+                className="rpg-pixel text-[9px] text-[var(--rpg-crimson)] transition-opacity duration-500"
                 style={{
                   opacity: visible ? 1 : 0,
                   transitionDelay: visible ? `${index * 150 + 400}ms` : '0ms',
@@ -158,7 +158,7 @@ function TheNightSectionRpg() {
               >
                 {phase.number}
               </span>
-              <span className="rpg-pixel text-[9px] text-[#DC143C]">{phase.damage}</span>
+              <span className="rpg-pixel text-[9px] text-[var(--rpg-crimson)]">{phase.damage}</span>
             </div>
           </div>
         ))}
@@ -166,10 +166,12 @@ function TheNightSectionRpg() {
 
       {/* Victory */}
       <AnimatedSection className="text-center space-y-3">
-        <p className="rpg-pixel text-lg text-[#FFD700] drop-shadow-[0_0_12px_rgba(255,215,0,0.6)] animate-pulse">
+        <p className="rpg-pixel text-lg text-[var(--rpg-gold)] drop-shadow-[0_0_12px_rgba(255,215,0,0.6)] animate-pulse">
           {m.talk_ls_rpg_night_victory()}
         </p>
-        <p className="rpg-pixel text-[10px] text-[#50C878]">{m.talk_ls_rpg_night_loot()}</p>
+        <p className="rpg-pixel text-[10px] text-[var(--rpg-emerald)]">
+          {m.talk_ls_rpg_night_loot()}
+        </p>
       </AnimatedSection>
     </div>
   )

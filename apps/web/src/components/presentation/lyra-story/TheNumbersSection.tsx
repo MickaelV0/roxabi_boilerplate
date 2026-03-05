@@ -23,14 +23,14 @@ function TheNumbersSectionRpg() {
   ]
 
   const colorStyle = {
-    gold: { text: 'text-[#FFD700]', glow: 'bg-amber-500' },
-    emerald: { text: 'text-[#50C878]', glow: 'bg-emerald-500' },
+    gold: { text: 'text-[var(--rpg-gold)]', glow: 'bg-amber-500' },
+    emerald: { text: 'text-[var(--rpg-emerald)]', glow: 'bg-emerald-500' },
   }
 
   return (
     <div className="relative mx-auto max-w-5xl w-full">
       <AnimatedSection className="text-center mb-12">
-        <h2 className="rpg-pixel text-xl lg:text-2xl text-[#FFD700] drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]">
+        <h2 className="rpg-pixel text-xl lg:text-2xl text-[var(--rpg-gold)] drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]">
           {m.talk_ls_rpg_numbers_zone()}
         </h2>
       </AnimatedSection>
@@ -72,8 +72,8 @@ function TheNumbersSectionRpg() {
       </div>
 
       <AnimatedSection className="text-center">
-        <div className="inline-block rounded-xl border border-[#FFD700]/40 bg-[#FFD700]/10 px-8 py-4">
-          <p className="rpg-pixel text-sm text-[#FFD700] drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]">
+        <div className="inline-block rounded-xl border border-[var(--rpg-gold)]/40 bg-[var(--rpg-gold)]/10 px-8 py-4">
+          <p className="rpg-pixel text-sm text-[var(--rpg-gold)] drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]">
             {m.talk_ls_rpg_numbers_rating()}
           </p>
         </div>

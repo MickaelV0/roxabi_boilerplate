@@ -181,15 +181,17 @@ function TheEcosystemSectionRpg() {
   return (
     <div className="relative mx-auto max-w-5xl w-full">
       <AnimatedSection className="text-center mb-10">
-        <h2 className="rpg-pixel text-xl lg:text-2xl text-[#FFD700] drop-shadow-[0_0_10px_rgba(255,215,0,0.5)] mb-3">
+        <h2 className="rpg-pixel text-xl lg:text-2xl text-[var(--rpg-gold)] drop-shadow-[0_0_10px_rgba(255,215,0,0.5)] mb-3">
           {m.talk_ls_rpg_ecosystem_roster()}
         </h2>
         <div className="inline-flex items-center gap-3">
           <span className="text-gray-400 rpg-pixel text-[9px]">
             {m.talk_ls_rpg_ecosystem_rank()}:
           </span>
-          <span className="rpg-pixel text-[9px] text-[#50C878]">{m.talk_ls_ecosystem_repo6()}</span>
-          <span className="rounded-full border border-[#FFD700]/40 bg-[#FFD700]/10 px-2 py-0.5 rpg-pixel text-[7px] text-[#FFD700]">
+          <span className="rpg-pixel text-[9px] text-[var(--rpg-emerald)]">
+            {m.talk_ls_ecosystem_repo6()}
+          </span>
+          <span className="rounded-full border border-[var(--rpg-gold)]/40 bg-[var(--rpg-gold)]/10 px-2 py-0.5 rpg-pixel text-[7px] text-[var(--rpg-gold)]">
             {m.talk_ls_rpg_ecosystem_members()}
           </span>
         </div>
@@ -198,15 +200,15 @@ function TheEcosystemSectionRpg() {
       {/* Guild Master header */}
       <AnimatedSection className="mb-4">
         <div
-          className="flex items-center gap-3 rounded-xl border-2 border-[#FFD700]/60 bg-gradient-to-r from-[#FFD700]/15 to-[#FFD700]/5 px-5 py-3"
+          className="flex items-center gap-3 rounded-xl border-2 border-[var(--rpg-gold)]/60 bg-gradient-to-r from-[var(--rpg-gold)]/15 to-[var(--rpg-gold)]/5 px-5 py-3"
           style={{ boxShadow: '0 0 20px rgba(255,215,0,0.15)' }}
         >
-          <Star className="h-5 w-5 text-[#FFD700] flex-shrink-0 fill-[#FFD700]/60" />
+          <Star className="h-5 w-5 text-[var(--rpg-gold)] flex-shrink-0 fill-[var(--rpg-gold)]/60" />
           <div className="min-w-0">
-            <p className="rpg-pixel text-[8px] text-[#FFD700]/60 uppercase tracking-widest mb-0.5">
-              GUILD MASTER
+            <p className="rpg-pixel text-[8px] text-[var(--rpg-gold)]/60 uppercase tracking-widest mb-0.5">
+              {m.talk_ls_rpg_ecosystem_guild_master()}
             </p>
-            <p className="font-mono font-bold text-sm text-[#FFD700] truncate">
+            <p className="font-mono font-bold text-sm text-[var(--rpg-gold)] truncate">
               {m.talk_ls_ecosystem_repo6()}
             </p>
             <p className="text-xs text-gray-400">{m.talk_ls_ecosystem_repo6_desc()}</p>
@@ -217,24 +219,24 @@ function TheEcosystemSectionRpg() {
       {/* Members with golden vertical accent line */}
       <div ref={ref} className="relative pl-5">
         {/* Vertical gold line from guild master down */}
-        <div className="absolute left-2 top-0 bottom-0 w-px bg-gradient-to-b from-[#FFD700]/60 via-[#FFD700]/20 to-transparent" />
+        <div className="absolute left-2 top-0 bottom-0 w-px bg-gradient-to-b from-[var(--rpg-gold)]/60 via-[var(--rpg-gold)]/20 to-transparent" />
 
         <div className="space-y-2">
           {members.map((member, index) => (
             <div
               key={member.name}
               className={cn(
-                'flex items-center gap-4 rounded-xl border border-[#FFD700]/20 bg-gray-950/60 px-4 py-3 transition-all duration-700',
+                'flex items-center gap-4 rounded-xl border border-[var(--rpg-gold)]/20 bg-gray-950/60 px-4 py-3 transition-all duration-700',
                 visible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
               )}
               style={{ transitionDelay: visible ? `${index * 100}ms` : '0ms' }}
             >
               <div
-                className="flex-shrink-0 h-2 w-2 rounded-full bg-[#FFD700]/60"
+                className="flex-shrink-0 h-2 w-2 rounded-full bg-[var(--rpg-gold)]/60"
                 style={{ boxShadow: '0 0 4px rgba(255,215,0,0.5)' }}
               />
-              <div className="min-w-0 flex-1 border-b border-[#FFD700]/10 pb-2 last:border-0 last:pb-0">
-                <p className="font-mono font-semibold text-sm text-[#FFD700]/90 truncate">
+              <div className="min-w-0 flex-1 border-b border-[var(--rpg-gold)]/10 pb-2 last:border-0 last:pb-0">
+                <p className="font-mono font-semibold text-sm text-[var(--rpg-gold)]/90 truncate">
                   {member.name}
                 </p>
                 <p className="text-xs text-gray-400">{member.desc}</p>
@@ -334,7 +336,7 @@ export function TheEcosystemSection() {
           <div className="md:hidden flex items-center justify-center gap-2 py-4">
             <div className="h-2.5 w-2.5 rounded-full bg-teal-400" />
             <p className="font-mono text-sm text-teal-600 dark:text-teal-300 font-semibold">
-              8 repos · 14 connections
+              {m.talk_ls_rpg_ecosystem_graph_summary({ repos: 8, connections: 14 })}
             </p>
           </div>
           <EcosystemGraph repos={repos} visible={visible} />

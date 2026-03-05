@@ -21,7 +21,7 @@ function TitleSectionRpg() {
           // biome-ignore lint/suspicious/noArrayIndexKey: static decorative particles
           <div
             key={i}
-            className="absolute h-0.5 w-0.5 bg-[var(--rpg-gold,#FFD700)] rounded-none animate-pulse"
+            className="absolute h-0.5 w-0.5 bg-[var(--rpg-gold)] rounded-none animate-pulse"
             style={{
               left: `${15 + i * 18}%`,
               top: `${20 + (i % 3) * 25}%`,
@@ -80,7 +80,7 @@ function TitleSectionRpg() {
         </AnimatedSection>
 
         <AnimatedSection>
-          <p className="rpg-blink rpg-pixel text-[12px] tracking-[0.2em] text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.5)] select-none">
+          <p className="rpg-blink rpg-pixel text-[12px] tracking-[0.2em] text-[var(--rpg-gold)] drop-shadow-[0_0_8px_rgba(255,215,0,0.5)] select-none">
             {m.talk_ls_rpg_title_prompt()}
           </p>
         </AnimatedSection>

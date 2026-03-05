@@ -8,22 +8,22 @@ function TheLessonSectionRpg() {
   return (
     <div className="relative mx-auto flex w-full max-w-5xl flex-col items-center justify-center text-center">
       <AnimatedSection>
-        <div className="inline-block rounded-2xl border-2 border-[#FFD700]/60 bg-gray-950/80 px-10 py-8 shadow-[0_0_50px_rgba(255,215,0,0.2)] rpg-achievement max-w-lg w-full">
+        <div className="inline-block rounded-2xl border-2 border-[var(--rpg-gold)]/60 bg-gray-950/80 px-10 py-8 shadow-[0_0_50px_rgba(255,215,0,0.2)] rpg-achievement max-w-lg w-full">
           <p className="rpg-pixel text-[9px] text-gray-400 mb-5 tracking-wider">
             {m.talk_ls_rpg_lesson_title()}
           </p>
 
           <div className="flex justify-center mb-5">
-            <div className="rounded-full border border-[#FFD700]/40 bg-[#FFD700]/10 p-5">
-              <Trophy className="h-10 w-10 text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" />
+            <div className="rounded-full border border-[var(--rpg-gold)]/40 bg-[var(--rpg-gold)]/10 p-5">
+              <Trophy className="h-10 w-10 text-[var(--rpg-gold)] drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" />
             </div>
           </div>
 
-          <p className="rpg-pixel text-sm text-[#FFD700] mb-4 drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]">
+          <p className="rpg-pixel text-sm text-[var(--rpg-gold)] mb-4 drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]">
             {m.talk_ls_rpg_lesson_name()}
           </p>
 
-          <div className="h-px w-full bg-[#FFD700]/20 mb-4" />
+          <div className="h-px w-full bg-[var(--rpg-gold)]/20 mb-4" />
 
           <p className="text-gray-300 text-sm leading-relaxed italic">
             {m.talk_ls_rpg_lesson_desc()}
