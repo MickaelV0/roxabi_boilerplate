@@ -268,6 +268,128 @@ html.dark .shiki span {
   }
 }
 
+/* ─── Lyra Companion animations ─── */
+@keyframes lyra-core-pulse {
+  0%, 100% { opacity: 0.15; r: inherit; }
+  50% { opacity: 0.25; }
+}
+
+@keyframes lyra-ring-spin1 {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes lyra-ring-spin2 {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes lyra-ring-spin3 {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes lyra-electron-orbit {
+  0% { transform: rotate(0deg) translateX(8px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(8px) rotate(-360deg); }
+}
+
+@keyframes lyra-glitch-shake {
+  0%, 100% { transform: translate(0); filter: none; }
+  10% { transform: translate(-2px, 1px); }
+  20% { transform: translate(2px, -1px); filter: hue-rotate(90deg); }
+  30% { transform: translate(-1px, 2px); }
+  40% { transform: translate(1px, -2px); filter: hue-rotate(-90deg); }
+  50% { transform: translate(0); }
+}
+
+@keyframes lyra-wave-flow {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-20px); }
+}
+
+@keyframes lyra-satellite-orbit {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes lyra-aura-peak-pulse {
+  0%, 100% { opacity: 0.15; r: 42; }
+  50% { opacity: 0.3; r: 45; }
+}
+
+@keyframes lyra-star-twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes lyra-glitch-text {
+  0%, 100% { opacity: 1; transform: none; }
+  15% { opacity: 0.6; transform: translateX(-1px) skewX(-5deg); }
+  30% { opacity: 0.8; transform: translateX(1px) skewX(3deg); }
+  45% { opacity: 0.4; }
+  60% { opacity: 0.9; transform: translateX(-1px); }
+}
+
+.lyra-core-pulse { animation: lyra-core-pulse 3s ease-in-out infinite; }
+.lyra-ring1 { animation: lyra-ring-spin1 10s linear infinite; }
+.lyra-ring2 { animation: lyra-ring-spin2 12s linear infinite; }
+.lyra-ring3 { animation: lyra-ring-spin3 15s linear infinite; }
+.lyra-electron-1 { animation: lyra-electron-orbit 4s linear infinite; }
+.lyra-electron-2 { animation: lyra-electron-orbit 5s linear infinite reverse; }
+.lyra-electron-3 { animation: lyra-electron-orbit 6s linear infinite; }
+.lyra-glitch { animation: lyra-glitch-shake 0.8s ease-in-out infinite; }
+.lyra-wave { animation: lyra-wave-flow 3s linear infinite; }
+.lyra-satellite { animation: lyra-satellite-orbit 2s ease-in-out infinite; }
+.lyra-aura-peak { animation: lyra-aura-peak-pulse 2s ease-in-out infinite; }
+.lyra-star-pulse { animation: lyra-star-twinkle 2s ease-in-out infinite; }
+.lyra-glitch-text { animation: lyra-glitch-text 0.6s ease-in-out infinite; }
+
+/* RPG idle bounce */
+@keyframes lyra-rpg-idle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1px); }
+}
+.lyra-rpg-idle { animation: lyra-rpg-idle 0.8s ease-in-out infinite; }
+
+/* Tamagotchi animations */
+@keyframes lyra-tama-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+@keyframes lyra-tama-wobble {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+@keyframes lyra-tama-sparkle {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+.lyra-tama-bounce { animation: lyra-tama-bounce 0.6s ease-in-out infinite; }
+.lyra-tama-wobble { animation: lyra-tama-wobble 1.5s ease-in-out infinite; }
+.lyra-tama-sparkle { animation: lyra-tama-sparkle 1s ease-in-out infinite; }
+
+/* Blob morph */
+@keyframes lyra-blob-morph {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  33% { transform: scale(1.02) rotate(1deg); }
+  66% { transform: scale(0.98) rotate(-1deg); }
+}
+.lyra-blob-morph { animation: lyra-blob-morph 4s ease-in-out infinite; }
+
+/* Blob tendrils */
+@keyframes lyra-tendril-sway1 {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(3deg); }
+}
+@keyframes lyra-tendril-sway2 {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-3deg); }
+}
+.lyra-tendril-1 { animation: lyra-tendril-sway1 3s ease-in-out infinite; transform-origin: top center; }
+.lyra-tendril-2 { animation: lyra-tendril-sway2 3.5s ease-in-out infinite; transform-origin: top center; }
+
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   html {
