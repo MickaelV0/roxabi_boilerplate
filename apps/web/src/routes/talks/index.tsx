@@ -1,6 +1,6 @@
 import { AnimatedSection, Card, CardDescription, CardHeader, CardTitle } from '@repo/ui'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Code2, GitBranch } from 'lucide-react'
+import { Code2, GitBranch, Sparkles } from 'lucide-react'
 import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/talks/')({
@@ -25,7 +25,7 @@ export function TalksIndex() {
           {m.talk_index_title()}
         </h1>
 
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <Link to="/talks/claude-code" className="group">
             <Card className="h-full transition-shadow duration-300 hover:shadow-lg">
               <CardHeader>
@@ -46,6 +46,18 @@ export function TalksIndex() {
                 </div>
                 <CardTitle>{m.talk_index_devprocess_title()}</CardTitle>
                 <CardDescription>{m.talk_index_devprocess_subtitle()}</CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link to="/talks/lyra-story" className="group">
+            <Card className="h-full transition-shadow duration-300 hover:shadow-lg">
+              <CardHeader>
+                <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-purple-500/10 text-purple-500">
+                  <Sparkles className="size-5" />
+                </div>
+                <CardTitle>{m.talk_index_lyrastory_title()}</CardTitle>
+                <CardDescription>{m.talk_index_lyrastory_subtitle()}</CardDescription>
               </CardHeader>
             </Card>
           </Link>
