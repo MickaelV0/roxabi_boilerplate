@@ -53,7 +53,7 @@ export function TalksIndex() {
           <Link to="/talks/lyra-story" className="group">
             <Card className="h-full transition-shadow duration-300 hover:shadow-lg">
               <CardHeader>
-                <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-purple-500/10 text-purple-500">
+                <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-chart-2/10 text-chart-2">
                   <Sparkles className="size-5" />
                 </div>
                 <CardTitle>{m.talk_index_lyrastory_title()}</CardTitle>
