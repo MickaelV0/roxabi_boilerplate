@@ -1159,6 +1159,7 @@ describe('createBetterAuth onExistingUserSignUp', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     capturedConfig.config = null
+    capturedMagicLinkConfig.config = null
   })
 
   function getExistingUserSignUpHandler() {
@@ -1279,5 +1280,19 @@ describe('createBetterAuth onExistingUserSignUp', () => {
 
     // Assert — login URL falls back to relative path
     expect(mockRenderExistingAccountEmail).toHaveBeenCalledWith('/login', 'en', undefined)
+    expect(mockEmail.send).toHaveBeenCalled()
+  })
+
+  it('should not throw when both render and send fail', async () => {
+    // Arrange
+    const mockDb = createMockDb()
+    const mockEmail = { send: vi.fn().mockRejectedValue(new Error('Resend down')) }
+    createBetterAuth(mockDb as never, mockEmail as never, defaultConfig)
+    const handler = getExistingUserSignUpHandler()
+
+    mockRenderExistingAccountEmail.mockRejectedValueOnce(new Error('Render failed'))
+
+    // Act & Assert — double failure still resolves (not an unhandled exception)
+    await expect(handler({ user: { email: 'existing@example.com' } })).resolves.toBeUndefined()
   })
 })

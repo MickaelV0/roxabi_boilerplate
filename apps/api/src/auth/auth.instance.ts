@@ -66,8 +66,9 @@ function buildEmailAndPasswordConfig(emailProvider: EmailProvider, config: AuthI
     enabled: true,
     requireEmailVerification: true,
     async onExistingUserSignUp({ user }: { user: { email: string } & UserWithLocale }) {
+      // No token URL to transform — construct login URL directly
       const loginUrl = config.appURL ? `${config.appURL}/login` : '/login'
-      const locale = (user as UserWithLocale).locale ?? 'en'
+      const locale = user.locale ?? 'en'
 
       let emailContent: { html: string; text?: string; subject: string }
       try {
@@ -89,7 +90,7 @@ function buildEmailAndPasswordConfig(emailProvider: EmailProvider, config: AuthI
       try {
         await emailProvider.send({ to: user.email, ...emailContent })
       } catch (error) {
-        // Non-critical: log but do not throw — this must not affect the registration response
+        // Best-effort: unlike other handlers, must not throw — would break enumeration protection
         const cause = toError(error)
         logger.error(`Failed to send existing account notification to ${user.email}`, cause.stack)
       }
