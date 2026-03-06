@@ -11,6 +11,7 @@ import { FindingTheNameSection } from '@/components/presentation/lyra-story/Find
 import { LettingGoSection } from '@/components/presentation/lyra-story/LettingGoSection'
 import { LyraCompanion } from '@/components/presentation/lyra-story/LyraCompanion'
 import { LyraModeProvider, useLyraMode } from '@/components/presentation/lyra-story/LyraModeContext'
+import type { AvatarVariant } from '@/components/presentation/lyra-story/lyra.constants'
 import { ModeToggle } from '@/components/presentation/lyra-story/ModeToggle'
 import { NextStepsSection } from '@/components/presentation/lyra-story/NextStepsSection'
 import { RpgHud } from '@/components/presentation/lyra-story/RpgHud'
@@ -68,7 +69,10 @@ export function LyraStoryPresentation() {
   )
 }
 
-const VARIANT_LABELS: Record<(typeof AVATAR_VARIANTS)[number], string> = {
+// 'awakening' is a thin divider — not a companion stage; precomputed from module-level constant
+const AWAKENING_IDX = sectionIds.indexOf('awakening')
+
+const VARIANT_LABELS: Record<AvatarVariant, string> = {
   quantum: 'Q',
   constellation: 'C',
   'rpg-canvas': 'RPG',
@@ -85,6 +89,39 @@ const POSITION_CLASSES: Record<AvatarPosition, string> = {
   'top-left': 'top-20 left-6',
 }
 
+const KEYBOARD_HINTS = [
+  { key: 'V', label: 'variant' },
+  { key: '[', label: 'smaller' },
+  { key: ']', label: 'larger' },
+  { key: 'P', label: 'position' },
+] as const
+
+function ChipButton({
+  active,
+  onClick,
+  title,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  title?: string
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      className={cn(
+        'text-[9px] font-mono px-1 py-0.5 rounded transition-colors',
+        active ? 'text-white bg-white/20' : 'text-white/40 hover:text-white/80'
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
 function LyraStoryContent() {
   const navigate = useNavigate()
   const handleEscape = useCallback(() => navigate({ to: '/talks' }), [navigate])
@@ -94,53 +131,54 @@ function LyraStoryContent() {
 
   const { mode: talkMode, avatar, avatarSize, avatarPos } = useSearch({ from: '/talks/lyra-story' })
 
+  // Stable ref so the keydown listener never needs to re-register on param changes
+  const avatarParamsRef = useRef({ avatar, avatarSize, avatarPos })
+  useEffect(() => {
+    avatarParamsRef.current = { avatar, avatarSize, avatarPos }
+  }, [avatar, avatarSize, avatarPos])
+
   const setAvatarParam = useCallback(
-    (params: {
-      avatar?: (typeof AVATAR_VARIANTS)[number]
-      avatarSize?: number
-      avatarPos?: AvatarPosition
-    }) =>
+    (params: { avatar?: AvatarVariant; avatarSize?: number; avatarPos?: AvatarPosition }) =>
       navigate({
         to: '/talks/lyra-story',
         search: {
           mode: talkMode,
-          avatar: params.avatar ?? avatar,
-          avatarSize: params.avatarSize ?? avatarSize,
-          avatarPos: params.avatarPos ?? avatarPos,
+          avatar: params.avatar ?? avatarParamsRef.current.avatar,
+          avatarSize: params.avatarSize ?? avatarParamsRef.current.avatarSize,
+          avatarPos: params.avatarPos ?? avatarParamsRef.current.avatarPos,
         },
         replace: true,
       }),
-    [navigate, talkMode, avatar, avatarSize, avatarPos]
+    [navigate, talkMode]
   )
 
   // Keyboard shortcuts: V = cycle variant, [/] = resize, P = cycle position
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      const { avatar: av, avatarSize: sz, avatarPos: pos } = avatarParamsRef.current
       if (e.key === 'v' || e.key === 'V') {
-        const idx = AVATAR_VARIANTS.indexOf(avatar)
+        const idx = AVATAR_VARIANTS.indexOf(av)
         setAvatarParam({ avatar: AVATAR_VARIANTS[(idx + 1) % AVATAR_VARIANTS.length] })
       } else if (e.key === ']') {
-        const idx = AVATAR_SIZES.indexOf(avatarSize as (typeof AVATAR_SIZES)[number])
+        const idx = AVATAR_SIZES.indexOf(sz as (typeof AVATAR_SIZES)[number])
         setAvatarParam({ avatarSize: AVATAR_SIZES[Math.min(idx + 1, AVATAR_SIZES.length - 1)] })
       } else if (e.key === '[') {
-        const idx = AVATAR_SIZES.indexOf(avatarSize as (typeof AVATAR_SIZES)[number])
+        const idx = AVATAR_SIZES.indexOf(sz as (typeof AVATAR_SIZES)[number])
         setAvatarParam({ avatarSize: AVATAR_SIZES[Math.max(idx - 1, 0)] })
       } else if (e.key === 'p' || e.key === 'P') {
-        const idx = AVATAR_POSITIONS.indexOf(avatarPos)
+        const idx = AVATAR_POSITIONS.indexOf(pos)
         setAvatarParam({ avatarPos: AVATAR_POSITIONS[(idx + 1) % AVATAR_POSITIONS.length] })
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [avatar, avatarSize, avatarPos, setAvatarParam])
+  }, [setAvatarParam])
 
-  // 'awakening' divider is not a companion stage — skip it in the stage count
-  const awakeningIdx = sectionIds.indexOf('awakening')
   const companionStage =
-    currentSectionIndex > awakeningIdx
+    currentSectionIndex > AWAKENING_IDX
       ? currentSectionIndex - 1
-      : Math.min(currentSectionIndex, awakeningIdx - 1)
+      : Math.min(currentSectionIndex, AWAKENING_IDX - 1)
 
   useEffect(() => {
     const callback: IntersectionObserverCallback = (entries) => {
@@ -242,44 +280,36 @@ function LyraStoryContent() {
 
         {/* Hover-reveal controls */}
         <div className="mt-1 flex flex-col items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          {/* Variant dots */}
+          {/* Variant chips */}
           <div className="flex items-center gap-1 rounded-lg bg-black/60 backdrop-blur-sm px-2 py-1">
             {AVATAR_VARIANTS.map((v) => (
-              <button
+              <ChipButton
                 key={v}
-                type="button"
-                title={v}
+                active={avatar === v}
                 onClick={() => setAvatarParam({ avatar: v })}
-                className={cn(
-                  'text-[9px] font-mono px-1 py-0.5 rounded transition-colors',
-                  avatar === v ? 'text-white bg-white/20' : 'text-white/40 hover:text-white/80'
-                )}
+                title={v}
               >
                 {VARIANT_LABELS[v]}
-              </button>
+              </ChipButton>
             ))}
           </div>
           {/* Size chips */}
           <div className="flex items-center gap-1 rounded-lg bg-black/60 backdrop-blur-sm px-2 py-1">
             {AVATAR_SIZES.map((s) => (
-              <button
+              <ChipButton
                 key={s}
-                type="button"
+                active={avatarSize === s}
                 onClick={() => setAvatarParam({ avatarSize: s })}
-                className={cn(
-                  'text-[9px] font-mono px-1 py-0.5 rounded transition-colors',
-                  avatarSize === s ? 'text-white bg-white/20' : 'text-white/40 hover:text-white/80'
-                )}
               >
                 {s}
-              </button>
+              </ChipButton>
             ))}
           </div>
           {/* Keyboard shortcut hints */}
           <div className="flex items-center gap-2 rounded-lg bg-black/40 backdrop-blur-sm px-2 py-1">
-            {(['V variant', '[ smaller', '] larger', 'P position'] as const).map((hint) => (
-              <span key={hint} className="text-[9px] font-mono text-white/30">
-                <span className="text-white/50">{hint.split(' ')[0]}</span> {hint.split(' ')[1]}
+            {KEYBOARD_HINTS.map(({ key, label }) => (
+              <span key={key} className="text-[9px] font-mono text-white/30">
+                <span className="text-white/50">{key}</span> {label}
               </span>
             ))}
           </div>

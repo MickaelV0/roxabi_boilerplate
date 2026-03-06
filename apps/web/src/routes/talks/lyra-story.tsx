@@ -1,17 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
+import {
+  AVATAR_POSITIONS,
+  AVATAR_VARIANTS,
+} from '@/components/presentation/lyra-story/lyra.constants'
 
-const AVATAR_VARIANTS = [
-  'quantum',
-  'constellation',
-  'rpg-canvas',
-  'tamagotchi',
-  'silhouette',
-  'blob',
-  'pokemon',
-] as const
 const AVATAR_SIZES = [48, 80, 200, 400] as const
-const AVATAR_POSITIONS = ['bottom-right', 'bottom-left', 'top-right', 'top-left'] as const
 
 const searchSchema = z.object({
   mode: z.enum(['story', 'mmorpg']).optional().default('story'),
@@ -29,4 +23,7 @@ export const Route = createFileRoute('/talks/lyra-story')({
 })
 
 export { AVATAR_VARIANTS, AVATAR_SIZES, AVATAR_POSITIONS }
-export type AvatarPosition = (typeof AVATAR_POSITIONS)[number]
+export type {
+  AvatarPosition,
+  AvatarVariant,
+} from '@/components/presentation/lyra-story/lyra.constants'
