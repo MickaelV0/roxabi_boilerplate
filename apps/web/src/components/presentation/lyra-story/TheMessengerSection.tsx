@@ -62,7 +62,6 @@ function TheMessengerSectionRpg() {
 
                 {/* Log lines with staggered animation */}
                 {logs.map((log, index) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: static ordered log lines
                   <div
                     key={index}
                     className="text-xs text-emerald-200/70 animate-fade-in"

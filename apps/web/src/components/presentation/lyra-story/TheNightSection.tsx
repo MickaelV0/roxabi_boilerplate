@@ -138,7 +138,6 @@ function TheNightSectionRpg() {
       {/* Attack phases */}
       <div ref={ref} className="space-y-4 mb-10">
         {phases.map((phase, index) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: static ordered phase list
           <div
             key={index}
             className={cn(
@@ -224,7 +223,6 @@ export function TheNightSection() {
         {/* Timeline */}
         <div ref={ref} className="mt-12">
           {timeline.map((entry, index) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: static ordered timeline, never reordered
             <TimelineRow key={index} {...entry} visible={visible} delay={index * 120} />
           ))}
         </div>

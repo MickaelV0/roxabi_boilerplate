@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { searchSchema } from './lyra-story'
+import { searchSchema } from './lyra-product'
 
-describe('lyra-story searchSchema', () => {
+describe('lyra-product searchSchema', () => {
   it('accepts valid avatar values', () => {
     const result = searchSchema.safeParse({ avatar: 'quantum' })
     expect(result.success).toBe(true)
@@ -40,7 +40,6 @@ describe('lyra-story searchSchema', () => {
       expect(result.data.avatar).toBe('constellation')
       expect(result.data.avatarSize).toBe(400)
       expect(result.data.avatarPos).toBe('bottom-left')
-      expect(result.data.mode).toBe('story')
     }
   })
 })

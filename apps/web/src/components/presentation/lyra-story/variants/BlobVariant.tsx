@@ -212,21 +212,18 @@ export function BlobVariant({ stage, size, className }: BlobVariantProps) {
       )}
 
       {/* Particles detaching */}
-      {stage >= 11 && (
-        <>
-          {PARTICLE_POSITIONS.slice(0, Math.min(stage - 10, 8)).map((p) => (
-            <circle
-              key={`${p.x}-${p.y}`}
-              cx={p.x}
-              cy={p.y}
-              r="1"
-              fill={p.x > 50 ? '#8B5CF6' : '#2D7FF9'}
-              opacity="0.4"
-              className={cn(animate && 'lyra-satellite')}
-            />
-          ))}
-        </>
-      )}
+      {stage >= 11 &&
+        PARTICLE_POSITIONS.slice(0, Math.min(stage - 10, 8)).map((p) => (
+          <circle
+            key={`${p.x}-${p.y}`}
+            cx={p.x}
+            cy={p.y}
+            r="1"
+            fill={p.x > 50 ? '#8B5CF6' : '#2D7FF9'}
+            opacity="0.4"
+            className={cn(animate && 'lyra-satellite')}
+          />
+        ))}
     </svg>
   )
 }

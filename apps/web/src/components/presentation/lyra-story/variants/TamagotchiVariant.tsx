@@ -91,11 +91,9 @@ function Egg({ stage, animate }: { stage: number; animate: boolean }) {
       <circle cx="27" cy="28" r="1" fill="#8B5CF6" opacity="0.3" />
       {/* Sparkle on stage 1 */}
       {stage >= 1 && (
-        <>
-          <text x="30" y="20" fontSize="4" className={cn(animate && 'lyra-tama-sparkle')}>
-            *
-          </text>
-        </>
+        <text x="30" y="20" fontSize="4" className={cn(animate && 'lyra-tama-sparkle')}>
+          *
+        </text>
       )}
     </g>
   )
@@ -405,7 +403,6 @@ function MoodIndicator({ stage }: { stage: number }) {
   return (
     <g>
       {Array.from({ length: hearts }).map((_, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: static heart indicator
         <text
           key={i}
           x={8 + i * 5}

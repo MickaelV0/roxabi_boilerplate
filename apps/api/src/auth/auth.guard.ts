@@ -70,7 +70,7 @@ export class AuthGuard implements CanActivate {
     if (isPublic && !requireApiKey) return true
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>()
-    const authHeader = request.headers?.['authorization'] as string | undefined
+    const authHeader = request.headers?.authorization as string | undefined
     const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
 
     const session = await this.resolveSession(request, bearerToken)

@@ -180,7 +180,6 @@ export function TheCharacterSection() {
             </p>
             <div className="grid grid-cols-2 gap-2">
               {avatarVariants.map((variant, index) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: static ordered avatar variant list
                 <div
                   key={index}
                   className={cn(

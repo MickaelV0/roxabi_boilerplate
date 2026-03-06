@@ -37,54 +37,50 @@ function ProgressBar({
 
 function SkillsColumn({ skills, visible }: { skills: SkillBar[]; visible: boolean }) {
   const { isRpg } = useLyraMode()
+  const renderSkill = (skill: SkillBar, index: number) => {
+    const isMax = skill.level === skill.max
+    const barColor = isMax
+      ? isRpg
+        ? 'bg-gradient-to-r from-[var(--rpg-gold)] to-amber-500'
+        : 'bg-gradient-to-r from-blue-400 to-blue-500'
+      : 'bg-gradient-to-r from-blue-500/70 to-purple-500/70'
+    return (
+      <div key={skill.name}>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-xs text-muted-foreground font-mono">{skill.name}</span>
+          <span
+            className={cn(
+              'text-xs font-mono font-bold',
+              isMax
+                ? isRpg
+                  ? 'text-[var(--rpg-gold)]'
+                  : 'text-blue-600 dark:text-blue-300'
+                : 'text-muted-foreground'
+            )}
+          >
+            {isMax ? m.talk_ls_rpg_sheet_max_label() : `${skill.level}/${skill.max}`}
+          </span>
+        </div>
+        <div
+          className={cn('transition-all duration-1000', visible ? 'opacity-100' : 'opacity-0')}
+          style={{ transitionDelay: visible ? `${200 + index * 100}ms` : '0ms' }}
+        >
+          <ProgressBar
+            level={visible ? skill.level : 0}
+            max={skill.max}
+            color={barColor}
+            label={skill.name}
+          />
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="px-6 py-5">
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-5">
         {m.talk_ls_sheet_skills_title()}
       </p>
-      <div className="space-y-4">
-        {skills.map((skill, index) => {
-          const isMax = skill.level === skill.max
-          const barColor = isMax
-            ? isRpg
-              ? 'bg-gradient-to-r from-[var(--rpg-gold)] to-amber-500'
-              : 'bg-gradient-to-r from-blue-400 to-blue-500'
-            : 'bg-gradient-to-r from-blue-500/70 to-purple-500/70'
-          return (
-            <div key={skill.name}>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs text-muted-foreground font-mono">{skill.name}</span>
-                <span
-                  className={cn(
-                    'text-xs font-mono font-bold',
-                    isMax
-                      ? isRpg
-                        ? 'text-[var(--rpg-gold)]'
-                        : 'text-blue-600 dark:text-blue-300'
-                      : 'text-muted-foreground'
-                  )}
-                >
-                  {isMax ? m.talk_ls_rpg_sheet_max_label() : `${skill.level}/${skill.max}`}
-                </span>
-              </div>
-              <div
-                className={cn(
-                  'transition-all duration-1000',
-                  visible ? 'opacity-100' : 'opacity-0'
-                )}
-                style={{ transitionDelay: visible ? `${200 + index * 100}ms` : '0ms' }}
-              >
-                <ProgressBar
-                  level={visible ? skill.level : 0}
-                  max={skill.max}
-                  color={barColor}
-                  label={skill.name}
-                />
-              </div>
-            </div>
-          )
-        })}
-      </div>
+      <div className="space-y-4">{skills.map(renderSkill)}</div>
     </div>
   )
 }
@@ -128,7 +124,6 @@ function InfoColumn({ traits, quests }: { traits: string[]; quests: string[] }) 
         </p>
         <ul className="space-y-2">
           {quests.map((quest, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: static ordered quest list
             <li key={i} className="flex items-start gap-2 text-sm">
               {i === 0 ? (
                 <CheckCircle className="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" />

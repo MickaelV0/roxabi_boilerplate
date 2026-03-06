@@ -2,6 +2,12 @@ import { cn, PresentationNav } from '@repo/ui'
 import { createLazyFileRoute, Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { LocaleSwitcher } from '@/components/LocaleSwitcher'
+import {
+  ChipButton,
+  KEYBOARD_HINTS,
+  POSITION_CLASSES,
+  VARIANT_LABELS,
+} from '@/components/presentation/AvatarControls'
 import { AwakeningDivider } from '@/components/presentation/lyra-story/AwakeningDivider'
 import { BreakingThingsSection } from '@/components/presentation/lyra-story/BreakingThingsSection'
 import { BuildingHabitsSection } from '@/components/presentation/lyra-story/BuildingHabitsSection'
@@ -12,7 +18,6 @@ import { FindingTheNameSection } from '@/components/presentation/lyra-story/Find
 import { LettingGoSection } from '@/components/presentation/lyra-story/LettingGoSection'
 import { LyraCompanion } from '@/components/presentation/lyra-story/LyraCompanion'
 import { LyraModeProvider, useLyraMode } from '@/components/presentation/lyra-story/LyraModeContext'
-import type { AvatarVariant } from '@/components/presentation/lyra-story/lyra.constants'
 import { ModeToggle } from '@/components/presentation/lyra-story/ModeToggle'
 import { NextStepsSection } from '@/components/presentation/lyra-story/NextStepsSection'
 import { RpgHud } from '@/components/presentation/lyra-story/RpgHud'
@@ -35,6 +40,7 @@ import {
   AVATAR_SIZES,
   AVATAR_VARIANTS,
   type AvatarPosition,
+  type AvatarVariant,
 } from '@/routes/talks/lyra-story'
 
 export const Route = createLazyFileRoute('/talks/lyra-story')({
@@ -74,59 +80,6 @@ export function LyraStoryPresentation() {
 const AWAKENING_IDX = sectionIds.indexOf('awakening')
 if (AWAKENING_IDX === -1)
   throw new Error("'awakening' missing from sectionIds — check the sectionIds array")
-
-const VARIANT_LABELS: Record<AvatarVariant, string> = {
-  quantum: 'Q',
-  constellation: 'C',
-  'rpg-canvas': 'RPG',
-  tamagotchi: 'T',
-  silhouette: 'S',
-  blob: 'B',
-  pokemon: 'P',
-}
-
-const POSITION_CLASSES: Record<AvatarPosition, string> = {
-  'bottom-right': 'bottom-6 right-16',
-  'bottom-left': 'bottom-6 left-6',
-  'top-right': 'top-20 right-16',
-  'top-left': 'top-20 left-6',
-}
-
-const KEYBOARD_HINTS = [
-  { key: 'V', label: 'variant' },
-  { key: '[', label: 'smaller' },
-  { key: ']', label: 'larger' },
-  { key: 'P', label: 'position' },
-] as const
-
-function ChipButton({
-  active,
-  onClick,
-  title,
-  'aria-label': ariaLabel,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  title?: string
-  'aria-label'?: string
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      title={title}
-      aria-label={ariaLabel}
-      onClick={onClick}
-      className={cn(
-        'text-[9px] font-mono px-1 py-0.5 rounded transition-colors',
-        active ? 'text-white bg-white/20' : 'text-white/40 hover:text-white/80'
-      )}
-    >
-      {children}
-    </button>
-  )
-}
 
 function LyraStoryContent() {
   const navigate = useNavigate()

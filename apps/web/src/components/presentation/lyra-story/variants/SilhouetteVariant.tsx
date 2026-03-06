@@ -251,30 +251,27 @@ export function SilhouetteVariant({ stage, size, className }: SilhouetteVariantP
           )}
 
           {/* Particle effects */}
-          {stage >= 13 && (
-            <>
-              {[
-                { cx: 20, cy: 30 },
-                { cx: 80, cy: 25 },
-                { cx: 15, cy: 70 },
-                { cx: 85, cy: 65 },
-                { cx: 30, cy: 100 },
-                { cx: 70, cy: 95 },
-              ]
-                .slice(0, Math.min(stage - 12, 6))
-                .map((dot) => (
-                  <circle
-                    key={`${dot.cx}-${dot.cy}`}
-                    cx={dot.cx}
-                    cy={dot.cy}
-                    r="1"
-                    fill={dot.cx > 50 ? '#8B5CF6' : '#2D7FF9'}
-                    opacity="0.4"
-                    className={cn(animate && 'lyra-satellite')}
-                  />
-                ))}
-            </>
-          )}
+          {stage >= 13 &&
+            [
+              { cx: 20, cy: 30 },
+              { cx: 80, cy: 25 },
+              { cx: 15, cy: 70 },
+              { cx: 85, cy: 65 },
+              { cx: 30, cy: 100 },
+              { cx: 70, cy: 95 },
+            ]
+              .slice(0, Math.min(stage - 12, 6))
+              .map((dot) => (
+                <circle
+                  key={`${dot.cx}-${dot.cy}`}
+                  cx={dot.cx}
+                  cy={dot.cy}
+                  r="1"
+                  fill={dot.cx > 50 ? '#8B5CF6' : '#2D7FF9'}
+                  opacity="0.4"
+                  className={cn(animate && 'lyra-satellite')}
+                />
+              ))}
         </g>
       )}
 

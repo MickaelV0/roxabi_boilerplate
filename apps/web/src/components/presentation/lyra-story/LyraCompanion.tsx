@@ -172,7 +172,6 @@ function QuantumVariant({
         const ex = 50 + orbitR * Math.cos((angle * Math.PI) / 180)
         const ey = 50 + orbitR * Math.sin((angle * Math.PI) / 180) * 0.4
         return (
-          // biome-ignore lint/suspicious/noArrayIndexKey: static electron positions
           <circle
             key={i}
             cx={ex}
@@ -192,7 +191,6 @@ function QuantumVariant({
         const sx = 50 + 40 * Math.cos((angle * Math.PI) / 180)
         const sy = 50 + 40 * Math.sin((angle * Math.PI) / 180)
         return (
-          // biome-ignore lint/suspicious/noArrayIndexKey: static satellite positions
           <circle
             key={i}
             cx={sx}
@@ -343,7 +341,6 @@ function ConstellationVariant({
         const from = stars[a]!
         const to = stars[b]!
         return (
-          // biome-ignore lint/suspicious/noArrayIndexKey: static constellation lines
           <line
             key={i}
             x1={from.x}

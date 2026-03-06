@@ -18,7 +18,6 @@ function TitleSectionRpg() {
       {/* Floating pixel particles */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         {[...Array(5)].map((_, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: static decorative particles
           <div
             key={i}
             className="absolute h-0.5 w-0.5 bg-[var(--rpg-gold)] rounded-none animate-pulse"

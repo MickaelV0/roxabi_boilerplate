@@ -8,26 +8,26 @@ import {
   POSITION_CLASSES,
   VARIANT_LABELS,
 } from '@/components/presentation/AvatarControls'
-import { AbandonedQuestSection } from '@/components/presentation/lyra-dev/AbandonedQuestSection'
-import { AwakeningNightSection } from '@/components/presentation/lyra-dev/AwakeningNightSection'
-import { BuildChangeSection } from '@/components/presentation/lyra-dev/BuildChangeSection'
-import { CharacterCreationSection } from '@/components/presentation/lyra-dev/CharacterCreationSection'
-import { CharacterSheetSection } from '@/components/presentation/lyra-dev/CharacterSheetSection'
-import { ClosingSection } from '@/components/presentation/lyra-dev/ClosingSection'
-import { CraftSystemSection } from '@/components/presentation/lyra-dev/CraftSystemSection'
-import { DEV_SECTION_IDS } from '@/components/presentation/lyra-dev/devConfig'
-import { EndgameSection } from '@/components/presentation/lyra-dev/EndgameSection'
-import { GrandRespecSection } from '@/components/presentation/lyra-dev/GrandRespecSection'
-import { GuildHallSection } from '@/components/presentation/lyra-dev/GuildHallSection'
-import { IndustrializationSection } from '@/components/presentation/lyra-dev/IndustrializationSection'
-import { PatchNotesSection } from '@/components/presentation/lyra-dev/PatchNotesSection'
-import { QuestJournalSection } from '@/components/presentation/lyra-dev/QuestJournalSection'
-import { SectionChrome } from '@/components/presentation/lyra-dev/SectionChrome'
-import { SessionLogSection } from '@/components/presentation/lyra-dev/SessionLogSection'
-import { SkillTreeSection } from '@/components/presentation/lyra-dev/SkillTreeSection'
-import { TheLessonSection } from '@/components/presentation/lyra-dev/TheLessonSection'
-import { TitleSection } from '@/components/presentation/lyra-dev/TitleSection'
-import { TutorialZoneSection } from '@/components/presentation/lyra-dev/TutorialZoneSection'
+import { ClosingSection } from '@/components/presentation/lyra-product/ClosingSection'
+import { IndustrialTurnSection } from '@/components/presentation/lyra-product/IndustrialTurnSection'
+import { KillDarlingsSection } from '@/components/presentation/lyra-product/KillDarlingsSection'
+import { KnowledgeRadarSection } from '@/components/presentation/lyra-product/KnowledgeRadarSection'
+import { LyraIn4DaysSection } from '@/components/presentation/lyra-product/LyraIn4DaysSection'
+import { LyraNotSoleneSection } from '@/components/presentation/lyra-product/LyraNotSoleneSection'
+import { PatchNotesSection } from '@/components/presentation/lyra-product/PatchNotesSection'
+import { PivotSpeedSection } from '@/components/presentation/lyra-product/PivotSpeedSection'
+import { PRODUCT_SECTION_IDS } from '@/components/presentation/lyra-product/productConfig'
+import { SectionChrome } from '@/components/presentation/lyra-product/SectionChrome'
+import { SharedFoundationSection } from '@/components/presentation/lyra-product/SharedFoundationSection'
+import { TelegramSection } from '@/components/presentation/lyra-product/TelegramSection'
+import { TheDaySection } from '@/components/presentation/lyra-product/TheDaySection'
+import { TheEcosystemSection } from '@/components/presentation/lyra-product/TheEcosystemSection'
+import { TheLessonSection } from '@/components/presentation/lyra-product/TheLessonSection'
+import { TheNightSection } from '@/components/presentation/lyra-product/TheNightSection'
+import { TheNumbersSection } from '@/components/presentation/lyra-product/TheNumbersSection'
+import { TitleSection } from '@/components/presentation/lyra-product/TitleSection'
+import { VoiceSection } from '@/components/presentation/lyra-product/VoiceSection'
+import { WrongBetSection } from '@/components/presentation/lyra-product/WrongBetSection'
 import { LyraCompanion } from '@/components/presentation/lyra-story/LyraCompanion'
 import { SectionContainer } from '@/components/presentation/SectionContainer'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -38,43 +38,43 @@ import {
   AVATAR_VARIANTS,
   type AvatarPosition,
   type AvatarVariant,
-} from '@/routes/talks/lyra-dev'
+} from '@/routes/talks/lyra-product'
 
-export const Route = createLazyFileRoute('/talks/lyra-dev')({
-  component: LyraDevPresentation,
+export const Route = createLazyFileRoute('/talks/lyra-product')({
+  component: LyraProductPresentation,
 })
 
-const sectionIds = DEV_SECTION_IDS
+const sectionIds = PRODUCT_SECTION_IDS
 
-const sections = [
-  { id: 'title', label: m.talk_ld_nav_title() },
-  { id: 'character-creation', label: m.talk_ld_nav_char_creation() },
-  { id: 'tutorial-zone', label: m.talk_ld_nav_tutorial() },
-  { id: 'skill-tree', label: m.talk_ld_nav_skill_tree() },
-  { id: 'abandoned-quest', label: m.talk_ld_nav_abandoned() },
-  { id: 'build-change', label: m.talk_ld_nav_build_shift() },
-  { id: 'grand-respec', label: m.talk_ld_nav_grand_respec() },
-  { id: 'industrialization', label: m.talk_ld_nav_factory() },
-  { id: 'patch-notes', label: m.talk_ld_nav_patch_notes() },
-  { id: 'craft-system', label: m.talk_ld_nav_craft() },
-  { id: 'awakening-night', label: m.talk_ld_nav_awakening() },
-  { id: 'guild-hall', label: m.talk_ld_nav_guild_hall() },
-  { id: 'quest-journal', label: m.talk_ld_nav_quest_journal() },
-  { id: 'session-log', label: m.talk_ld_nav_session_log() },
-  { id: 'endgame', label: m.talk_ld_nav_endgame() },
-  { id: 'character-sheet', label: m.talk_ld_nav_char_sheet() },
-  { id: 'the-lesson', label: m.talk_ld_nav_lesson() },
-  { id: 'closing', label: m.talk_ld_nav_closing() },
-]
-
-export function LyraDevPresentation() {
+export function LyraProductPresentation() {
+  const sections = [
+    { id: 'title', label: m.talk_lp_nav_title() },
+    { id: 'wrong-bet', label: m.talk_lp_nav_wrong_bet() },
+    { id: 'pivot-speed', label: m.talk_lp_nav_pivot() },
+    { id: 'kill-darlings', label: m.talk_lp_nav_kill() },
+    { id: 'shared-foundation', label: m.talk_lp_nav_foundation() },
+    { id: 'knowledge-radar', label: m.talk_lp_nav_radar() },
+    { id: 'telegram-anywhere', label: m.talk_lp_nav_telegram() },
+    { id: 'industrial-turn', label: m.talk_lp_nav_process() },
+    { id: 'patch-notes', label: m.talk_lp_nav_changelog() },
+    { id: 'the-day', label: m.talk_lp_nav_explosion() },
+    { id: 'voice', label: m.talk_lp_nav_voice() },
+    { id: 'the-night', label: m.talk_lp_nav_night() },
+    { id: 'lyra-not-solene', label: m.talk_lp_nav_identity() },
+    { id: 'the-ecosystem', label: m.talk_lp_nav_ecosystem() },
+    { id: 'the-numbers', label: m.talk_lp_nav_numbers() },
+    { id: 'lyra-in-4-days', label: m.talk_lp_nav_four_days() },
+    { id: 'the-lesson', label: m.talk_lp_nav_lesson() },
+    { id: 'closing', label: m.talk_lp_nav_closing() },
+  ]
   const navigate = useNavigate()
   const handleEscape = useCallback(() => navigate({ to: '/talks' }), [navigate])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
 
-  const { avatar, avatarSize, avatarPos } = useSearch({ from: '/talks/lyra-dev' })
+  const { avatar, avatarSize, avatarPos } = useSearch({ from: '/talks/lyra-product' })
 
+  // Stable ref for keydown handler — avoids re-registering on every param change
   const avatarParamsRef = useRef({ avatar, avatarSize, avatarPos })
   useEffect(() => {
     avatarParamsRef.current = { avatar, avatarSize, avatarPos }
@@ -83,7 +83,7 @@ export function LyraDevPresentation() {
   const setAvatarParam = useCallback(
     (params: { avatar?: AvatarVariant; avatarSize?: number; avatarPos?: AvatarPosition }) =>
       navigate({
-        to: '/talks/lyra-dev',
+        to: '/talks/lyra-product',
         search: {
           avatar: params.avatar ?? avatarParamsRef.current.avatar,
           avatarSize: params.avatarSize ?? avatarParamsRef.current.avatarSize,
@@ -139,14 +139,14 @@ export function LyraDevPresentation() {
   return (
     <div
       data-presentation
-      data-mode="mmorpg"
-      className="relative bg-[#060d08] text-foreground min-h-dvh"
+      data-mode="product"
+      className="relative bg-[#0d0a07] text-foreground min-h-dvh"
     >
       {/* Roxabi wordmark */}
       <div className="fixed left-6 top-6 z-50">
         <Link
           to="/"
-          className="font-mono text-xs font-bold tracking-wider text-emerald-400/50 hover:text-emerald-400 transition-colors uppercase"
+          className="font-mono text-xs font-bold tracking-wider text-amber-400/50 hover:text-amber-400 transition-colors uppercase"
         >
           Roxabi
         </Link>
@@ -158,9 +158,9 @@ export function LyraDevPresentation() {
         <ThemeToggle />
       </div>
 
-      {/* XP counter */}
+      {/* Progress counter */}
       <div className="fixed left-6 bottom-6 z-50 hidden md:block">
-        <p className="font-mono text-[9px] tracking-widest text-emerald-400/40 uppercase">
+        <p className="font-mono text-[9px] tracking-widest text-amber-400/40 uppercase">
           {currentSectionIndex + 1} / {sectionIds.length}
         </p>
       </div>
@@ -170,7 +170,7 @@ export function LyraDevPresentation() {
         <LyraCompanion stage={currentSectionIndex} variant={avatar} size={avatarSize} />
 
         {/* Hover-reveal controls */}
-        <div className="mt-1 flex flex-col items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
+        <div className="mt-1 flex flex-col items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200">
           <div className="flex items-center gap-1 rounded-lg bg-black/60 backdrop-blur-sm px-2 py-1">
             {AVATAR_VARIANTS.map((v) => (
               <ChipButton
@@ -224,39 +224,39 @@ export function LyraDevPresentation() {
           <TitleSection />
         </SectionContainer>
 
-        <SectionContainer id="character-creation" className="relative">
-          <SectionChrome sectionId="character-creation" />
-          <CharacterCreationSection />
+        <SectionContainer id="wrong-bet" className="relative">
+          <SectionChrome sectionId="wrong-bet" />
+          <WrongBetSection />
         </SectionContainer>
 
-        <SectionContainer id="tutorial-zone" className="relative">
-          <SectionChrome sectionId="tutorial-zone" />
-          <TutorialZoneSection />
+        <SectionContainer id="pivot-speed" className="relative">
+          <SectionChrome sectionId="pivot-speed" />
+          <PivotSpeedSection />
         </SectionContainer>
 
-        <SectionContainer id="skill-tree" className="relative">
-          <SectionChrome sectionId="skill-tree" />
-          <SkillTreeSection />
+        <SectionContainer id="kill-darlings" className="relative">
+          <SectionChrome sectionId="kill-darlings" />
+          <KillDarlingsSection />
         </SectionContainer>
 
-        <SectionContainer id="abandoned-quest" className="relative">
-          <SectionChrome sectionId="abandoned-quest" />
-          <AbandonedQuestSection />
+        <SectionContainer id="shared-foundation" className="relative">
+          <SectionChrome sectionId="shared-foundation" />
+          <SharedFoundationSection />
         </SectionContainer>
 
-        <SectionContainer id="build-change" className="relative">
-          <SectionChrome sectionId="build-change" />
-          <BuildChangeSection />
+        <SectionContainer id="knowledge-radar" className="relative">
+          <SectionChrome sectionId="knowledge-radar" />
+          <KnowledgeRadarSection />
         </SectionContainer>
 
-        <SectionContainer id="grand-respec" className="relative">
-          <SectionChrome sectionId="grand-respec" />
-          <GrandRespecSection />
+        <SectionContainer id="telegram-anywhere" className="relative">
+          <SectionChrome sectionId="telegram-anywhere" />
+          <TelegramSection />
         </SectionContainer>
 
-        <SectionContainer id="industrialization" className="relative">
-          <SectionChrome sectionId="industrialization" />
-          <IndustrializationSection />
+        <SectionContainer id="industrial-turn" className="relative">
+          <SectionChrome sectionId="industrial-turn" />
+          <IndustrialTurnSection />
         </SectionContainer>
 
         <SectionContainer id="patch-notes" className="relative">
@@ -264,39 +264,39 @@ export function LyraDevPresentation() {
           <PatchNotesSection />
         </SectionContainer>
 
-        <SectionContainer id="craft-system" className="relative">
-          <SectionChrome sectionId="craft-system" />
-          <CraftSystemSection />
+        <SectionContainer id="the-day" className="relative">
+          <SectionChrome sectionId="the-day" />
+          <TheDaySection />
         </SectionContainer>
 
-        <SectionContainer id="awakening-night" className="relative bg-[#0a0005]">
-          <SectionChrome sectionId="awakening-night" />
-          <AwakeningNightSection />
+        <SectionContainer id="voice" className="relative">
+          <SectionChrome sectionId="voice" />
+          <VoiceSection />
         </SectionContainer>
 
-        <SectionContainer id="guild-hall" className="relative">
-          <SectionChrome sectionId="guild-hall" />
-          <GuildHallSection />
+        <SectionContainer id="the-night" className="relative bg-[#0a0005]">
+          <SectionChrome sectionId="the-night" />
+          <TheNightSection />
         </SectionContainer>
 
-        <SectionContainer id="quest-journal" className="relative">
-          <SectionChrome sectionId="quest-journal" />
-          <QuestJournalSection />
+        <SectionContainer id="lyra-not-solene" className="relative">
+          <SectionChrome sectionId="lyra-not-solene" />
+          <LyraNotSoleneSection />
         </SectionContainer>
 
-        <SectionContainer id="session-log" className="relative">
-          <SectionChrome sectionId="session-log" />
-          <SessionLogSection />
+        <SectionContainer id="the-ecosystem" className="relative">
+          <SectionChrome sectionId="the-ecosystem" />
+          <TheEcosystemSection />
         </SectionContainer>
 
-        <SectionContainer id="endgame" className="relative">
-          <SectionChrome sectionId="endgame" />
-          <EndgameSection />
+        <SectionContainer id="the-numbers" className="relative">
+          <SectionChrome sectionId="the-numbers" />
+          <TheNumbersSection />
         </SectionContainer>
 
-        <SectionContainer id="character-sheet" className="relative">
-          <SectionChrome sectionId="character-sheet" />
-          <CharacterSheetSection />
+        <SectionContainer id="lyra-in-4-days" className="relative">
+          <SectionChrome sectionId="lyra-in-4-days" />
+          <LyraIn4DaysSection />
         </SectionContainer>
 
         <SectionContainer id="the-lesson" className="relative">
