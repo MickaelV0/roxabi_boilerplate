@@ -10,7 +10,7 @@ import {
 
 export { AVATAR_VARIANTS, AVATAR_POSITIONS, AVATAR_SIZES, type AvatarVariant, type AvatarPosition }
 
-const searchSchema = z.object({
+export const searchSchema = z.object({
   avatar: z.enum(AVATAR_VARIANTS).optional().default('constellation'),
   avatarSize: z.coerce
     .number()

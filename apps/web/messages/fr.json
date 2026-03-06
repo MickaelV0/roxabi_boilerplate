@@ -1528,7 +1528,7 @@
   "talk_ls_name_lyra_label": "Lyra",
   "talk_ls_name_lyra_desc": "L'électron libre — non lié à un atome fixe",
   "talk_ls_name_alias_label": "L'alias existait avant le repo",
-  "talk_ls_name_alias_code": "alias lyra='ssh mickael@machine1'",
+  "talk_ls_name_alias_code": "alias lyra='ssh user@machine'",
   "talk_ls_name_alias_note": "Machine 1 avait le nom de Lyra avant même que le repo Lyra soit créé.",
   "talk_ls_name_glow": "Lyra",
   "talk_ls_character_title": "Le Personnage Émerge",
@@ -2000,7 +2000,7 @@
   "talk_lp_day_item2_label": "roxabi-plugins",
   "talk_lp_day_item2": "Marketplace open-source — 1 → 11 plugins en 4 jours.",
   "talk_lp_day_item3_label": "roxabi-claude-config",
-  "talk_lp_day_item3": "Config partagée + alias lyra='ssh mickael@machine1'",
+  "talk_lp_day_item3": "Config partagée + alias lyra='ssh user@machine'",
   "talk_lp_day_insight": "Les écosystèmes n'émergent pas de la planification. Ils émergent du compounding.",
 
   "talk_lp_voice_date": "D47 · 28 février",
@@ -2078,6 +2078,10 @@
   "talk_lp_closing_cta": "C'est quoi votre laboratoire ?",
   "talk_lp_closing_links_label": "TROUVER LYRA",
   "talk_lp_closing_contact": "Liens & contact",
+
+  "talk_avatar_companion_label": "Ouvrir le terrain de jeu",
+  "talk_avatar_switch_variant": "Changer la variante",
+  "talk_avatar_set_size": "Définir la taille",
 
   "talk_index_lyraproduct_title": "52 Jours",
   "talk_index_lyraproduct_subtitle": "Décisions produit, vitesse d'itération & émergence d'écosystème"

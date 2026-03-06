@@ -167,7 +167,7 @@ export function LyraProductPresentation() {
 
       {/* Lyra avatar companion — hidden on mobile */}
       <div className={cn('fixed z-40 hidden md:block group', POSITION_CLASSES[avatarPos])}>
-        <Link to="/talks/lyra-companion-test" aria-label="Open avatar playground">
+        <Link to="/talks/lyra-companion-test" aria-label={m.talk_avatar_companion_label()}>
           <LyraCompanion stage={currentSectionIndex} variant={avatar} size={avatarSize} />
         </Link>
 
@@ -180,7 +180,7 @@ export function LyraProductPresentation() {
                 active={avatar === v}
                 onClick={() => setAvatarParam({ avatar: v })}
                 title={v}
-                aria-label={`Switch to ${v} variant`}
+                aria-label={m.talk_avatar_switch_variant()}
               >
                 {VARIANT_LABELS[v]}
               </ChipButton>
@@ -192,7 +192,7 @@ export function LyraProductPresentation() {
                 key={s}
                 active={avatarSize === s}
                 onClick={() => setAvatarParam({ avatarSize: s })}
-                aria-label={`Set size to ${s}`}
+                aria-label={m.talk_avatar_set_size()}
               >
                 {s}
               </ChipButton>

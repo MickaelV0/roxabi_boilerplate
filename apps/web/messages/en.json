@@ -1528,7 +1528,7 @@
   "talk_ls_name_lyra_label": "Lyra",
   "talk_ls_name_lyra_desc": "The free electron — not bound to a fixed atom",
   "talk_ls_name_alias_label": "The alias existed before the repo",
-  "talk_ls_name_alias_code": "alias lyra='ssh mickael@machine1'",
+  "talk_ls_name_alias_code": "alias lyra='ssh user@machine'",
   "talk_ls_name_alias_note": "Machine 1 had Lyra's name before the Lyra repo was created.",
   "talk_ls_name_glow": "Lyra",
   "talk_ls_character_title": "The Character Emerges",
@@ -2000,7 +2000,7 @@
   "talk_lp_day_item2_label": "roxabi-plugins",
   "talk_lp_day_item2": "Open-source marketplace — 1 → 11 plugins in 4 days.",
   "talk_lp_day_item3_label": "roxabi-claude-config",
-  "talk_lp_day_item3": "Shared config + alias lyra='ssh mickael@machine1'",
+  "talk_lp_day_item3": "Shared config + alias lyra='ssh user@machine'",
   "talk_lp_day_insight": "Ecosystems don't emerge from planning. They emerge from compounding.",
 
   "talk_lp_voice_date": "D47 · February 28",
@@ -2078,6 +2078,10 @@
   "talk_lp_closing_cta": "What's your laboratory?",
   "talk_lp_closing_links_label": "FIND LYRA",
   "talk_lp_closing_contact": "Links & contact",
+
+  "talk_avatar_companion_label": "Open avatar playground",
+  "talk_avatar_switch_variant": "Switch variant",
+  "talk_avatar_set_size": "Set size",
 
   "talk_index_lyraproduct_title": "52 Days",
   "talk_index_lyraproduct_subtitle": "Product decisions, iteration speed & ecosystem emergence"
