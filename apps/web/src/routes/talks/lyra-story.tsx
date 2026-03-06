@@ -7,7 +7,7 @@ import {
 
 const AVATAR_SIZES = [48, 80, 200, 400] as const
 
-const searchSchema = z.object({
+export const searchSchema = z.object({
   mode: z.enum(['story', 'mmorpg']).optional().default('story'),
   avatar: z.enum(AVATAR_VARIANTS).optional().default('quantum'),
   avatarSize: z.coerce

@@ -7,6 +7,7 @@ import { BreakingThingsSection } from '@/components/presentation/lyra-story/Brea
 import { BuildingHabitsSection } from '@/components/presentation/lyra-story/BuildingHabitsSection'
 import { CharacterSheetSection } from '@/components/presentation/lyra-story/CharacterSheetSection'
 import { ClosingSection } from '@/components/presentation/lyra-story/ClosingSection'
+import { computeCompanionStage } from '@/components/presentation/lyra-story/companionStage'
 import { FindingTheNameSection } from '@/components/presentation/lyra-story/FindingTheNameSection'
 import { LettingGoSection } from '@/components/presentation/lyra-story/LettingGoSection'
 import { LyraCompanion } from '@/components/presentation/lyra-story/LyraCompanion'
@@ -71,6 +72,8 @@ export function LyraStoryPresentation() {
 
 // 'awakening' is a thin divider — not a companion stage; precomputed from module-level constant
 const AWAKENING_IDX = sectionIds.indexOf('awakening')
+if (AWAKENING_IDX === -1)
+  throw new Error("'awakening' missing from sectionIds — check the sectionIds array")
 
 const VARIANT_LABELS: Record<AvatarVariant, string> = {
   quantum: 'Q',
@@ -175,10 +178,7 @@ function LyraStoryContent() {
     return () => window.removeEventListener('keydown', onKey)
   }, [setAvatarParam])
 
-  const companionStage =
-    currentSectionIndex > AWAKENING_IDX
-      ? currentSectionIndex - 1
-      : Math.min(currentSectionIndex, AWAKENING_IDX - 1)
+  const companionStage = computeCompanionStage(currentSectionIndex, AWAKENING_IDX)
 
   useEffect(() => {
     const callback: IntersectionObserverCallback = (entries) => {
@@ -274,12 +274,12 @@ function LyraStoryContent() {
 
       {/* Lyra avatar companion — evolves with each section */}
       <div className={cn('fixed z-40 hidden md:block group', POSITION_CLASSES[avatarPos])}>
-        <Link to="/talks/lyra-companion-test" title="Open avatar playground">
+        <Link to="/talks/lyra-companion-test" aria-label="Open avatar playground">
           <LyraCompanion stage={companionStage} variant={avatar} size={avatarSize} />
         </Link>
 
         {/* Hover-reveal controls */}
-        <div className="mt-1 flex flex-col items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="mt-1 flex flex-col items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
           {/* Variant chips */}
           <div className="flex items-center gap-1 rounded-lg bg-black/60 backdrop-blur-sm px-2 py-1">
             {AVATAR_VARIANTS.map((v) => (
