@@ -68,9 +68,12 @@ function LyraStoryContent() {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const { isRpg, mode } = useLyraMode()
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
-  // 'awakening' divider is at sectionIds index 9 — not a companion stage, so subtract 1 after it
+  // 'awakening' divider is not a companion stage — skip it in the stage count
+  const awakeningIdx = sectionIds.indexOf('awakening')
   const companionStage =
-    currentSectionIndex >= 10 ? currentSectionIndex - 1 : Math.min(currentSectionIndex, 8)
+    currentSectionIndex > awakeningIdx
+      ? currentSectionIndex - 1
+      : Math.min(currentSectionIndex, awakeningIdx - 1)
 
   useEffect(() => {
     const callback: IntersectionObserverCallback = (entries) => {
