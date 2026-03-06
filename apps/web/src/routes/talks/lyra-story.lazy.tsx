@@ -1,5 +1,5 @@
-import { PresentationNav } from '@repo/ui'
-import { createLazyFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { cn, PresentationNav } from '@repo/ui'
+import { createLazyFileRoute, Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { LocaleSwitcher } from '@/components/LocaleSwitcher'
 import { AwakeningDivider } from '@/components/presentation/lyra-story/AwakeningDivider'
@@ -28,6 +28,12 @@ import { TitleSection } from '@/components/presentation/lyra-story/TitleSection'
 import { SectionContainer } from '@/components/presentation/SectionContainer'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { m } from '@/paraglide/messages'
+import {
+  AVATAR_POSITIONS,
+  AVATAR_SIZES,
+  AVATAR_VARIANTS,
+  type AvatarPosition,
+} from '@/routes/talks/lyra-story'
 
 export const Route = createLazyFileRoute('/talks/lyra-story')({
   component: LyraStoryPresentation,
@@ -62,12 +68,73 @@ export function LyraStoryPresentation() {
   )
 }
 
+const VARIANT_LABELS: Record<(typeof AVATAR_VARIANTS)[number], string> = {
+  quantum: 'Q',
+  constellation: 'C',
+  'rpg-canvas': 'RPG',
+  tamagotchi: 'T',
+  silhouette: 'S',
+  blob: 'B',
+  pokemon: 'P',
+}
+
+const POSITION_CLASSES: Record<AvatarPosition, string> = {
+  'bottom-right': 'bottom-6 right-16',
+  'bottom-left': 'bottom-6 left-6',
+  'top-right': 'top-20 right-16',
+  'top-left': 'top-20 left-6',
+}
+
 function LyraStoryContent() {
   const navigate = useNavigate()
   const handleEscape = useCallback(() => navigate({ to: '/talks' }), [navigate])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const { isRpg, mode } = useLyraMode()
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
+
+  const { mode: talkMode, avatar, avatarSize, avatarPos } = useSearch({ from: '/talks/lyra-story' })
+
+  const setAvatarParam = useCallback(
+    (params: {
+      avatar?: (typeof AVATAR_VARIANTS)[number]
+      avatarSize?: number
+      avatarPos?: AvatarPosition
+    }) =>
+      navigate({
+        to: '/talks/lyra-story',
+        search: {
+          mode: talkMode,
+          avatar: params.avatar ?? avatar,
+          avatarSize: params.avatarSize ?? avatarSize,
+          avatarPos: params.avatarPos ?? avatarPos,
+        },
+        replace: true,
+      }),
+    [navigate, talkMode, avatar, avatarSize, avatarPos]
+  )
+
+  // Keyboard shortcuts: V = cycle variant, [/] = resize, P = cycle position
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (e.key === 'v' || e.key === 'V') {
+        const idx = AVATAR_VARIANTS.indexOf(avatar)
+        setAvatarParam({ avatar: AVATAR_VARIANTS[(idx + 1) % AVATAR_VARIANTS.length] })
+      } else if (e.key === ']') {
+        const idx = AVATAR_SIZES.indexOf(avatarSize as (typeof AVATAR_SIZES)[number])
+        setAvatarParam({ avatarSize: AVATAR_SIZES[Math.min(idx + 1, AVATAR_SIZES.length - 1)] })
+      } else if (e.key === '[') {
+        const idx = AVATAR_SIZES.indexOf(avatarSize as (typeof AVATAR_SIZES)[number])
+        setAvatarParam({ avatarSize: AVATAR_SIZES[Math.max(idx - 1, 0)] })
+      } else if (e.key === 'p' || e.key === 'P') {
+        const idx = AVATAR_POSITIONS.indexOf(avatarPos)
+        setAvatarParam({ avatarPos: AVATAR_POSITIONS[(idx + 1) % AVATAR_POSITIONS.length] })
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [avatar, avatarSize, avatarPos, setAvatarParam])
+
   // 'awakening' divider is not a companion stage — skip it in the stage count
   const awakeningIdx = sectionIds.indexOf('awakening')
   const companionStage =
@@ -168,12 +235,45 @@ function LyraStoryContent() {
       <RpgHud currentSectionIndex={currentSectionIndex} totalSections={sections.length} />
 
       {/* Lyra avatar companion — evolves with each section */}
-      <div className="fixed bottom-6 right-16 z-40 hidden md:block">
-        <LyraCompanion
-          stage={companionStage}
-          variant={isRpg ? 'rpg-canvas' : 'quantum'}
-          size={72}
-        />
+      <div className={cn('fixed z-40 hidden md:block group', POSITION_CLASSES[avatarPos])}>
+        <LyraCompanion stage={companionStage} variant={avatar} size={avatarSize} />
+
+        {/* Hover-reveal controls */}
+        <div className="mt-1 flex flex-col items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          {/* Variant dots */}
+          <div className="flex items-center gap-1 rounded-lg bg-black/60 backdrop-blur-sm px-2 py-1">
+            {AVATAR_VARIANTS.map((v) => (
+              <button
+                key={v}
+                type="button"
+                title={v}
+                onClick={() => setAvatarParam({ avatar: v })}
+                className={cn(
+                  'text-[9px] font-mono px-1 py-0.5 rounded transition-colors',
+                  avatar === v ? 'text-white bg-white/20' : 'text-white/40 hover:text-white/80'
+                )}
+              >
+                {VARIANT_LABELS[v]}
+              </button>
+            ))}
+          </div>
+          {/* Size chips */}
+          <div className="flex items-center gap-1 rounded-lg bg-black/60 backdrop-blur-sm px-2 py-1">
+            {AVATAR_SIZES.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setAvatarParam({ avatarSize: s })}
+                className={cn(
+                  'text-[9px] font-mono px-1 py-0.5 rounded transition-colors',
+                  avatarSize === s ? 'text-white bg-white/20' : 'text-white/40 hover:text-white/80'
+                )}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Section navigation dots */}
