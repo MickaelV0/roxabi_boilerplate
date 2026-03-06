@@ -10,7 +10,7 @@ const AVATAR_VARIANTS = [
   'blob',
   'pokemon',
 ] as const
-const AVATAR_SIZES = [48, 64, 72, 80, 100] as const
+const AVATAR_SIZES = [48, 80, 200, 400] as const
 const AVATAR_POSITIONS = ['bottom-right', 'bottom-left', 'top-right', 'top-left'] as const
 
 const searchSchema = z.object({
@@ -20,7 +20,7 @@ const searchSchema = z.object({
     .number()
     .refine((n) => (AVATAR_SIZES as readonly number[]).includes(n))
     .optional()
-    .default(72),
+    .default(80),
   avatarPos: z.enum(AVATAR_POSITIONS).optional().default('bottom-right'),
 })
 
