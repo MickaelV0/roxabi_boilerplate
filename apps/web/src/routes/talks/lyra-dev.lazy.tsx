@@ -2,6 +2,12 @@ import { cn, PresentationNav } from '@repo/ui'
 import { createLazyFileRoute, Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LocaleSwitcher } from '@/components/LocaleSwitcher'
+import {
+  ChipButton,
+  KEYBOARD_HINTS,
+  POSITION_CLASSES,
+  VARIANT_LABELS,
+} from '@/components/presentation/AvatarControls'
 import { AbandonedQuestSection } from '@/components/presentation/lyra-dev/AbandonedQuestSection'
 import { AwakeningNightSection } from '@/components/presentation/lyra-dev/AwakeningNightSection'
 import { BuildChangeSection } from '@/components/presentation/lyra-dev/BuildChangeSection'
@@ -39,59 +45,6 @@ export const Route = createLazyFileRoute('/talks/lyra-dev')({
 })
 
 const sectionIds = DEV_SECTION_IDS
-
-const POSITION_CLASSES: Record<AvatarPosition, string> = {
-  'bottom-right': 'bottom-6 right-16',
-  'bottom-left': 'bottom-6 left-6',
-  'top-right': 'top-20 right-16',
-  'top-left': 'top-20 left-6',
-}
-
-const VARIANT_LABELS: Record<AvatarVariant, string> = {
-  quantum: 'Q',
-  constellation: 'C',
-  'rpg-canvas': 'RPG',
-  tamagotchi: 'T',
-  silhouette: 'S',
-  blob: 'B',
-  pokemon: 'P',
-}
-
-const KEYBOARD_HINTS = [
-  { key: 'V', label: 'variant' },
-  { key: '[', label: 'smaller' },
-  { key: ']', label: 'larger' },
-  { key: 'P', label: 'position' },
-] as const
-
-function ChipButton({
-  active,
-  onClick,
-  title,
-  'aria-label': ariaLabel,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  title?: string
-  'aria-label'?: string
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      title={title}
-      aria-label={ariaLabel}
-      onClick={onClick}
-      className={cn(
-        'text-[9px] font-mono px-1 py-0.5 rounded transition-colors',
-        active ? 'text-white bg-white/20' : 'text-white/40 hover:text-white/80'
-      )}
-    >
-      {children}
-    </button>
-  )
-}
 
 const sections = [
   { id: 'title', label: m.talk_ld_nav_title() },
