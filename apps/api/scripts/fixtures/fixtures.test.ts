@@ -351,12 +351,12 @@ describe('parsePreset', () => {
     expect(VALID_PRESETS).toEqual(['minimal', 'full'])
   })
 
-  it('should return minimal by default when no --preset arg is provided', () => {
+  it('should return full by default when no --preset arg is provided', () => {
     // Act
     const result = parsePreset(['node', 'db-seed.ts'])
 
     // Assert
-    expect(result).toBe('minimal')
+    expect(result).toBe('full')
   })
 
   it('should return full when --preset=full is provided', () => {
