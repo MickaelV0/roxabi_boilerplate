@@ -9,6 +9,7 @@ import { CharacterSheetSection } from '@/components/presentation/lyra-story/Char
 import { ClosingSection } from '@/components/presentation/lyra-story/ClosingSection'
 import { FindingTheNameSection } from '@/components/presentation/lyra-story/FindingTheNameSection'
 import { LettingGoSection } from '@/components/presentation/lyra-story/LettingGoSection'
+import { LyraCompanion } from '@/components/presentation/lyra-story/LyraCompanion'
 import { LyraModeProvider, useLyraMode } from '@/components/presentation/lyra-story/LyraModeContext'
 import { ModeToggle } from '@/components/presentation/lyra-story/ModeToggle'
 import { NextStepsSection } from '@/components/presentation/lyra-story/NextStepsSection'
@@ -67,6 +68,9 @@ function LyraStoryContent() {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const { isRpg, mode } = useLyraMode()
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
+  // 'awakening' divider is at sectionIds index 9 — not a companion stage, so subtract 1 after it
+  const companionStage =
+    currentSectionIndex >= 10 ? currentSectionIndex - 1 : Math.min(currentSectionIndex, 8)
 
   useEffect(() => {
     const callback: IntersectionObserverCallback = (entries) => {
@@ -159,6 +163,15 @@ function LyraStoryContent() {
 
       {/* RPG HUD overlay */}
       <RpgHud currentSectionIndex={currentSectionIndex} totalSections={sections.length} />
+
+      {/* Lyra avatar companion — evolves with each section */}
+      <div className="fixed bottom-6 right-16 z-40 hidden md:block">
+        <LyraCompanion
+          stage={companionStage}
+          variant={isRpg ? 'rpg-canvas' : 'quantum'}
+          size={72}
+        />
+      </div>
 
       {/* Section navigation dots */}
       <PresentationNav
