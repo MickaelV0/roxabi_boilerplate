@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common'
 import {
   escapeHtml,
+  renderExistingAccountEmail,
   renderMagicLinkEmail,
   renderResetEmail,
   renderVerificationEmail,
@@ -64,6 +65,35 @@ function buildEmailAndPasswordConfig(emailProvider: EmailProvider, config: AuthI
   return {
     enabled: true,
     requireEmailVerification: true,
+    async onExistingUserSignUp({ user }: { user: { email: string } & UserWithLocale }) {
+      const loginUrl = config.appURL ? `${config.appURL}/login` : '/login'
+      const locale = (user as UserWithLocale).locale ?? 'en'
+
+      let emailContent: { html: string; text?: string; subject: string }
+      try {
+        const { html, text, subject } = await renderExistingAccountEmail(
+          loginUrl,
+          locale,
+          config.appURL
+        )
+        emailContent = { html, text, subject }
+      } catch {
+        logger.warn('Failed to render existing account email template, using plain fallback')
+        emailContent = {
+          subject: 'Someone tried to sign up with your email',
+          html: `<p>Someone tried to create an account using your email. <a href="${escapeHtml(loginUrl)}">Sign in</a> to your existing account instead.</p>`,
+          text: `Someone tried to create an account using your email. Sign in instead: ${loginUrl}`,
+        }
+      }
+
+      try {
+        await emailProvider.send({ to: user.email, ...emailContent })
+      } catch (error) {
+        // Non-critical: log but do not throw — this must not affect the registration response
+        const cause = toError(error)
+        logger.error(`Failed to send existing account notification to ${user.email}`, cause.stack)
+      }
+    },
     async sendResetPassword({
       user,
       url,
