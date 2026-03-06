@@ -70,7 +70,7 @@
         "class-transformer": "^0.5.1",
         "class-validator": "^0.15.1",
         "drizzle-orm": "^0.45.1",
-        "fastify": "^5.8.1",
+        "fastify": "^5.7.4",
         "nestjs-cls": "^6.2.0",
         "nodemailer": "^8.0.1",
         "postgres": "^3.4.5",
