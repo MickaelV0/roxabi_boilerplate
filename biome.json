@@ -117,6 +117,23 @@
       }
     },
     {
+      "includes": ["**/components/presentation/**", "**/routes/talks/**"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "info",
+            "noExcessiveLinesPerFunction": "info"
+          },
+          "suspicious": {
+            "noArrayIndexKey": "info"
+          },
+          "style": {
+            "noNonNullAssertion": "info"
+          }
+        }
+      }
+    },
+    {
       "includes": ["**/routes/**"],
       "linter": {
         "rules": {

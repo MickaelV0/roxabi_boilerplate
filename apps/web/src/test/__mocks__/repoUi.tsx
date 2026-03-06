@@ -260,8 +260,7 @@ export const AlertDialog = ({
 export const AlertDialogTrigger = ({
   children,
   asChild,
-}: React.PropsWithChildren<{ asChild?: boolean }>) =>
-  asChild ? <>{children}</> : <div>{children}</div>
+}: React.PropsWithChildren<{ asChild?: boolean }>) => (asChild ? children : <div>{children}</div>)
 
 export const AlertDialogAction = ({
   children,

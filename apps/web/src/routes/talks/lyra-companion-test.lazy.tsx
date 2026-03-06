@@ -276,7 +276,6 @@ function LyraCompanionTestPage() {
             <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-1.5">
               {SLIDE_LABELS.map((_, i) => (
                 <div
-                  // biome-ignore lint/suspicious/noArrayIndexKey: static dot indicator
                   key={i}
                   className={cn(
                     'h-1.5 w-1.5 rounded-full transition-all duration-300',

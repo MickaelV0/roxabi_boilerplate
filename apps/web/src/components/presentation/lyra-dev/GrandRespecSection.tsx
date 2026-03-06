@@ -31,7 +31,6 @@ export function GrandRespecSection() {
         <AnimatedSection className="mt-8">
           <div className="space-y-3 max-w-lg">
             {respecSteps().map((step, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: static ordered respec steps
               <div key={i} className="flex items-center gap-4">
                 <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded border border-red-400/30 bg-red-500/10">
                   <span className="font-mono text-[10px] font-bold text-red-400">{i + 1}</span>
