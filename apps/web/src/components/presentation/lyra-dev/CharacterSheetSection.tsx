@@ -1,6 +1,44 @@
 import { AnimatedSection, cn, useInView } from '@repo/ui'
 import { m } from '@/paraglide/messages'
 
+const memoryLevels = [
+  {
+    level: 1,
+    name: 'Context Window',
+    desc: 'Messages in current conversation',
+    color: 'text-muted-foreground/50',
+    bar: 'bg-muted/30',
+  },
+  {
+    level: 2,
+    name: 'Session State',
+    desc: "Active tasks, today's decisions",
+    color: 'text-emerald-400/60',
+    bar: 'bg-emerald-500/30',
+  },
+  {
+    level: 3,
+    name: 'Long-term Memory',
+    desc: 'Learned patterns, user preferences',
+    color: 'text-emerald-300/70',
+    bar: 'bg-emerald-500/50',
+  },
+  {
+    level: 4,
+    name: 'Knowledge Base',
+    desc: '389+ articles · BM25 + vector search',
+    color: 'text-amber-300/80',
+    bar: 'bg-amber-500/50',
+  },
+  {
+    level: 5,
+    name: 'Identity Core',
+    desc: 'Character traits, voice profile, relationship history',
+    color: 'text-amber-300',
+    bar: 'bg-gradient-to-r from-amber-400 to-amber-500',
+  },
+]
+
 const skills = () => [
   { name: 'Knowledge Base (BM25 + vec)', level: 12, max: 12 },
   { name: 'Voice (Qwen-fast, Whisper)', level: 8, max: 12 },
@@ -137,6 +175,28 @@ export function CharacterSheetSection() {
             </div>
           </div>
         </div>
+
+        <AnimatedSection className="mt-8">
+          <p className="font-mono text-[9px] tracking-widest text-amber-400/40 uppercase mb-3">
+            MEMORY_ARCHITECTURE · 5 LEVELS
+          </p>
+          <div className="max-w-xl space-y-2">
+            {memoryLevels.map(({ level, name, desc, color, bar }) => (
+              <div key={level} className="flex items-center gap-3">
+                <span className="w-8 flex-shrink-0 font-mono text-[9px] text-muted-foreground/30 text-right">
+                  Lv.{level}
+                </span>
+                <div className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${bar}`} />
+                <div className="flex-1 min-w-0">
+                  <span className={`font-mono text-xs font-semibold ${color}`}>{name}</span>
+                  <span className="font-mono text-[10px] text-muted-foreground/40 ml-2">
+                    {desc}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </AnimatedSection>
       </div>
     </div>
   )

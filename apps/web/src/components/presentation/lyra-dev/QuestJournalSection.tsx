@@ -46,8 +46,11 @@ export function QuestJournalSection() {
           <h2 className="text-4xl font-bold tracking-tight lg:text-5xl mb-2 font-mono text-blue-300">
             {m.talk_ld_journal_title()}
           </h2>
-          <p className="font-mono text-sm text-muted-foreground/60 mb-6">
+          <p className="font-mono text-sm text-muted-foreground/60 mb-2">
             {m.talk_ld_journal_subtitle()}
+          </p>
+          <p className="font-mono text-sm text-blue-300/70 italic mb-6 max-w-2xl">
+            {m.talk_ld_journal_mechanic()}
           </p>
         </AnimatedSection>
 
@@ -93,12 +96,6 @@ export function QuestJournalSection() {
                   </p>
                 </div>
               ))}
-
-              <div className="mt-4 rounded-lg border border-blue-400/15 bg-blue-500/5 px-4 py-3">
-                <p className="font-mono text-[10px] text-blue-300/60 italic">
-                  {m.talk_ld_journal_mechanic()}
-                </p>
-              </div>
             </div>
           </AnimatedSection>
         </div>

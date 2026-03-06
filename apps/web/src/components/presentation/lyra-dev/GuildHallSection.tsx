@@ -92,6 +92,12 @@ export function GuildHallSection() {
             })}
           </div>
         </AnimatedSection>
+
+        <AnimatedSection className="mt-6">
+          <p className="font-mono text-sm text-emerald-300/70 italic max-w-2xl">
+            {m.talk_ld_guild_so_what()}
+          </p>
+        </AnimatedSection>
       </div>
     </div>
   )

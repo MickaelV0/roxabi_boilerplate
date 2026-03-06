@@ -56,6 +56,24 @@ export function CraftSystemSection() {
         </AnimatedSection>
 
         <AnimatedSection className="mt-7">
+          <div className="max-w-md rounded-xl border border-emerald-400/20 bg-black/40 overflow-hidden">
+            <div className="flex items-center gap-1.5 border-b border-emerald-400/10 px-4 py-2">
+              <div className="h-2 w-2 rounded-full bg-red-500/50" />
+              <div className="h-2 w-2 rounded-full bg-amber-500/50" />
+              <div className="h-2 w-2 rounded-full bg-emerald-500/50" />
+              <span className="ml-2 font-mono text-[9px] text-muted-foreground/40">
+                roxabi-claude-config
+              </span>
+            </div>
+            <pre className="px-4 py-4 font-mono text-xs leading-relaxed text-emerald-300/80 overflow-x-auto">
+              <span className="text-muted-foreground/40">{`# Machine 1 becomes Lyra\n`}</span>
+              <span>{`alias lyra='ssh lyra@machine1'\n`}</span>
+              <span className="text-emerald-400">{`lyra /voice "Generate a 5-min vocal on the new engine"`}</span>
+            </pre>
+          </div>
+        </AnimatedSection>
+
+        <AnimatedSection className="mt-5">
           <p className="font-mono text-sm text-muted-foreground/60 italic max-w-lg">
             {m.talk_ld_craft_note()}
           </p>
