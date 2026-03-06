@@ -74,17 +74,34 @@
     "node": ">=24"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/helmet": "^13.0.2",
     "@fontsource-variable/inter": "^5.2.8",
     "@fontsource/press-start-2p": "^5.2.7",
+    "@nestjs/platform-fastify": "^11.1.16",
+    "better-auth": "^1.5.4",
+    "dompurify": "^3.3.2",
+    "esbuild": "^0.27.3",
+    "fastify": "^5.8.1",
     "fumadocs-mdx": "^14.2.9",
+    "hono": "^4.12.5",
     "lucide-react": "^0.576.0",
-    "shiki": "^4.0.1"
+    "serialize-javascript": "^7.0.4",
+    "shiki": "^4.0.1",
+    "tar": "^7.5.10"
   },
   "overrides": {
     "minimatch": ">=10.2.3",
     "lodash": ">=4.17.23",
     "rollup": ">=4.59.0",
-    "ajv": ">=6.14.0"
+    "ajv": ">=6.14.0",
+    "fastify": ">=5.8.1",
+    "hono": ">=4.11.7",
+    "@hono/node-server": ">=1.19.10",
+    "dompurify": ">=3.3.2",
+    "tar": ">=7.5.10",
+    "serialize-javascript": ">=7.0.3",
+    "esbuild": ">=0.25.0"
   },
   "resolutions": {
     "@types/node": "24.11.0"
