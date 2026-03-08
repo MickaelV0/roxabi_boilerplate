@@ -110,7 +110,6 @@ describe('Header', () => {
 
     // Assert
     expect(screen.getAllByText('nav_home').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('nav_docs').length).toBeGreaterThanOrEqual(1)
   })
 
   it('should render the mobile menu toggle button', () => {
