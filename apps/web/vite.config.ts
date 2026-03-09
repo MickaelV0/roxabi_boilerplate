@@ -10,7 +10,8 @@ import viteTsConfigPaths from 'vite-tsconfig-paths'
 import { z } from 'zod'
 
 const apiTarget = process.env.API_URL ?? `http://localhost:${process.env.API_PORT ?? 4000}`
-const apiBypassSecret = process.env.VERCEL_API_BYPASS_SECRET
+const apiBypassSecret =
+  process.env.VERCEL_ENV !== 'production' ? process.env.VERCEL_AUTOMATION_BYPASS_SECRET : undefined
 
 // Duplicated from env.shared.ts — Vite config runs outside the app bundle
 // and cannot import app source. Keep in sync manually; check-env-sync.ts
