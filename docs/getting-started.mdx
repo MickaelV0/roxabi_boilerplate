@@ -176,7 +176,7 @@ bun db:seed
 
 > **Note:** Data persists across restarts. To stop: `bun db:down`. To wipe and re-seed: `bun db:reset && bun db:seed`.
 
-> **Troubleshooting:** If port 5432 is already in use, stop your local PostgreSQL first (`sudo systemctl stop postgresql` or `brew services stop postgresql`).
+> **Troubleshooting:** If port 5432 is already in use, either stop your local PostgreSQL (`sudo systemctl stop postgresql` or `brew services stop postgresql`) or set `POSTGRES_PORT=5433` (or any free port) in `.env` before running `bun db:up`. Remember to update `DATABASE_URL` to match.
 
 > **Multiple projects on the same machine:** If another project is already running Docker containers with the same names, you'll get container or volume conflicts. Set `POSTGRES_CONTAINER`, `MAILPIT_CONTAINER`, `POSTGRES_VOLUME`, and `DB_BRANCH_PREFIX` in `.env` to unique values before running `bun db:up`. See [Configuration — Docker Overrides](./configuration#docker-overrides-local-dev--multi-project).
 
