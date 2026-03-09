@@ -47,7 +47,7 @@ Preview deploys are **manual only**, triggered via the GitHub Actions tab.
 1. Go to **Actions** → **Deploy Preview**
 2. Click **Run workflow**
 3. Select the branch (typically `staging`)
-4. Choose a target: `web`, `api`, or `both`
+4. Choose a target: `web`, `api`, `docs`, or `both`
 5. Click **Run workflow**
 
 The workflow builds and deploys a Vercel preview. The preview URL appears in the **workflow run summary**.
@@ -70,6 +70,7 @@ The **Deploy Preview** workflow requires these repository secrets:
 | `VERCEL_ORG_ID` | Vercel team/org ID | `.vercel/project.json` → `orgId` (after `vercel link`) |
 | `VERCEL_PROJECT_ID_WEB` | Vercel project ID for web | `apps/web/.vercel/project.json` → `projectId` |
 | `VERCEL_PROJECT_ID_API` | Vercel project ID for API | `apps/api/.vercel/project.json` → `projectId` |
+| `VERCEL_PROJECT_ID_DOCS` | Vercel project ID for docs | `apps/docs/.vercel/project.json` → `projectId` |
 | `NEON_API_KEY` | Neon API key (for preview DB branches) | [console.neon.tech](https://console.neon.tech) → Account → API Keys |
 | `NEON_PROJECT_ID` | Neon project ID | [console.neon.tech](https://console.neon.tech) → Project Settings |
 
@@ -140,6 +141,12 @@ curl -X PATCH -H "Authorization: Bearer $TOKEN" \
 # Disable for API project
 curl -X PATCH -H "Authorization: Bearer $TOKEN" \
   "https://api.vercel.com/v9/projects/<api-project-id>?teamId=$TEAM_ID" \
+  -H "Content-Type: application/json" \
+  -d '{"previewDeploymentsDisabled":true}'
+
+# Disable for Docs project
+curl -X PATCH -H "Authorization: Bearer $TOKEN" \
+  "https://api.vercel.com/v9/projects/<docs-project-id>?teamId=$TEAM_ID" \
   -H "Content-Type: application/json" \
   -d '{"previewDeploymentsDisabled":true}'
 ```
@@ -341,7 +348,7 @@ DATABASE_URL="<your-neon-connection-string>" bun run db:migrate
 
 ### 3. Configure GitHub Actions Secrets
 
-Add these 6 secrets at **Settings** &gt; **Secrets and variables** &gt; **Actions** &gt; **New repository secret**:
+Add these 7 secrets at **Settings** &gt; **Secrets and variables** &gt; **Actions** &gt; **New repository secret**:
 
 | Secret | Description | Where to find |
 |--------|-------------|---------------|
@@ -349,6 +356,7 @@ Add these 6 secrets at **Settings** &gt; **Secrets and variables** &gt; **Action
 | `VERCEL_ORG_ID` | Vercel team/org ID | `.vercel/project.json` &gt; `orgId` (after `vercel link`) |
 | `VERCEL_PROJECT_ID_WEB` | Vercel project ID for web | `apps/web/.vercel/project.json` &gt; `projectId` |
 | `VERCEL_PROJECT_ID_API` | Vercel project ID for API | `apps/api/.vercel/project.json` &gt; `projectId` |
+| `VERCEL_PROJECT_ID_DOCS` | Vercel project ID for docs | `apps/docs/.vercel/project.json` &gt; `projectId` |
 | `NEON_API_KEY` | Neon API key (for preview DB branches) | [console.neon.tech](https://console.neon.tech) &gt; Account &gt; API Keys |
 | `NEON_PROJECT_ID` | Neon project ID | [console.neon.tech](https://console.neon.tech) &gt; Project Settings |
 
@@ -371,7 +379,7 @@ Install the Resend integration for transactional emails:
 
 ### 6. Disable Automatic Preview Deployments
 
-Disable Vercel's automatic preview deployments on **both** projects to prevent rate-limit exhaustion. See [Disable Automatic Preview Deployments](#3-disable-automatic-preview-deployments) for the API commands.
+Disable Vercel's automatic preview deployments on **all three** projects to prevent rate-limit exhaustion. See [Disable Automatic Preview Deployments](#3-disable-automatic-preview-deployments) for the curl commands.
 
 ### 7. Deploy to Production
 
@@ -464,6 +472,18 @@ Build settings are version-controlled in `vercel.json` files — no dashboard co
   "buildCommand": "bun run db:migrate && turbo run build"
 }
 ```
+
+**`apps/docs/vercel.json`:**
+
+```json
+{
+  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ] || git diff $VERCEL_GIT_PREVIOUS_SHA --quiet -- apps/docs",
+  "installCommand": "bun install --ignore-scripts",
+  "buildCommand": "bun run codegen && next build"
+}
+```
+
+> **Note:** `apps/docs` uses a `git diff` path filter for `ignoreCommand` instead of `turbo-ignore`, since it is a Next.js app with its own build pipeline rather than a Turbo task graph dependency.
 
 Nitro (TanStack Start) outputs to `.vercel/output/` using the Vercel Build Output API — no `outputDirectory` override needed.
 

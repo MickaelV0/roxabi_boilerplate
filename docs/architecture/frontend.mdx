@@ -289,7 +289,7 @@ Run the docs site locally:
 bun run docs   # starts apps/docs on port 3002
 ```
 
-`apps/docs` is a separate TurboRepo package (`@repo/docs`) and is not part of the `apps/web` Vite build.
+`apps/docs` is a separate TurboRepo package (`@repo/docs`) with its own Next.js build pipeline; it is not part of the `apps/web` Vite/Nitro build.
 
 ## Component Architecture
 
@@ -309,7 +309,6 @@ apps/web/src/
     LocaleSwitcher.tsx      # Language selector
     GithubIcon.tsx          # GitHub link icon
     FeatureCard.tsx         # Landing page feature card
-    DocsErrorBoundary.tsx   # Error boundary for docs pages
     landing/                # Landing page sections
       HeroSection.tsx
       FeaturesSection.tsx
@@ -318,10 +317,6 @@ apps/web/src/
       TechStackSection.tsx
       CtaSection.tsx
       SectionHeading.tsx
-    presentation/           # Presentation/talk components
-      IntroSection.tsx
-      BuildingBlocksSection.tsx
-      ...
 ```
 
 ### Component Patterns

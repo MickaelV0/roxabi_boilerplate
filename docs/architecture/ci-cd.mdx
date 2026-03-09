@@ -367,6 +367,7 @@ Only merges to `main` trigger production deployments. `apps/web`, `apps/api`, an
 flowchart TD
     M["Merge to main"] --> W["Vercel (Web)"]
     M --> A["Vercel (API)"]
+    M --> D["Vercel (Docs)"]
 
     W --> W1["1. ignoreCommand check<br/>(is this main? did @repo/web change?)"]
     W1 --> W2["2. bun install"]
@@ -378,6 +379,12 @@ flowchart TD
     A2 --> A3["3. bun run db:migrate<br/>(Drizzle applies pending migrations)"]
     A3 --> A4["4. turbo run build"]
     A4 --> A5["5. Deploy NestJS function"]
+
+    D --> D1["1. ignoreCommand check<br/>(is this main? did apps/docs change?)"]
+    D1 --> D2["2. bun install"]
+    D2 --> D3["3. bun run codegen<br/>(Fumadocs source map)"]
+    D3 --> D4["4. next build"]
+    D4 --> D5["5. Deploy static/ISR site"]
 ```
 
 ### Duplicate Deploy Prevention
