@@ -86,7 +86,7 @@ jobs:
   deploy-web:
     name: Deploy Web Preview
     runs-on: ubuntu-latest
-    needs: [vercel-env-check]
+    needs: [vercel-env-check, deploy-api]
     if: |
       !cancelled() && !failure() &&
       (inputs.target == 'web' || inputs.target == 'both')
@@ -121,8 +121,14 @@ jobs:
       - name: Deploy
         id: deploy
         run: |
+          API_URL_OVERRIDE="${{ needs.deploy-api.outputs.url }}"
+          EXTRA_ARGS=""
+          if [ -n "$API_URL_OVERRIDE" ]; then
+            echo "Injecting API preview URL: $API_URL_OVERRIDE"
+            EXTRA_ARGS="--env API_URL=$API_URL_OVERRIDE"
+          fi
           for attempt in 1 2 3; do
-            if URL=$(vercel deploy --token "$VERCEL_TOKEN"); then break; fi
+            if URL=$(vercel deploy --token "$VERCEL_TOKEN" $EXTRA_ARGS); then break; fi
             if [ "$attempt" -lt 3 ]; then
               echo "::warning::Deploy attempt $attempt/3 failed, retrying in 10s..."
               sleep 10
@@ -149,6 +155,8 @@ jobs:
     if: |
       !cancelled() && !failure() &&
       (inputs.target == 'api' || inputs.target == 'both')
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
     steps:
       - name: Delete existing Neon branch (if any)
         continue-on-error: true
