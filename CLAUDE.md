@@ -50,6 +50,7 @@ packages/  ui(@repo/ui) types(@repo/types) config(@repo/config) email vitest-con
 | i18n | `bun run i18n:check` | Translation completeness |
 | Env check | `bun run env:check` | .env ↔ .env.example |
 | MDX check | `bun run mdx:check` | Frontmatter, JSX, links |
+| Custom lint | `bun run lint:custom` | DRIZZLE injection + @repo/types boundary |
 | License | `bun run license:check` | Dependency licenses |
 | Docs | `bun run docs` | Runs apps/docs (port 3002) |
 | Dashboard | `/issues` skill | Issue dashboard (plugin-provided) |
@@ -151,6 +152,7 @@ Agents: rules → [AGENTS.md](AGENTS.md). Defs → `dev-core` plugin. Guide → 
 - Post-rebase: `bun install` before push if new build steps added.
 - `gh pr edit --add-label` broken (Projects Classic deprecation) → use `gh api repos/:owner/:repo/issues/:number/labels -f "labels[]=<label>"`.
 - `gh pr view --json` has no `merged` field → use `mergedAt` (null = not merged).
+- `@repo/types` import boundary: `apps/web` must not import `@repo/types/api`, `apps/api` must not import `@repo/types/ui`. Enforced by `bun run lint:custom`.
 - Domain gotchas → [apps/api/CLAUDE.md](apps/api/CLAUDE.md) and [apps/web/CLAUDE.md](apps/web/CLAUDE.md).
 
 ## Reference

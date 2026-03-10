@@ -108,6 +108,9 @@ jobs:
       - name: Run Biome lint
         run: bun lint
 
+      - name: Run custom lint checks
+        run: bun run lint:custom
+
       - name: Check env sync
         run: bun run env:check
 

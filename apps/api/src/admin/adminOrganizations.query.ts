@@ -16,7 +16,7 @@ import { escapeIlikePattern } from './utils/escapeIlikePattern.js'
  */
 @Injectable()
 export class AdminOrganizationsQueryService {
-  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {} // RLS-BYPASS: superadmin — cross-tenant org queries
 
   /**
    * List organizations with cursor-based pagination and optional filters.

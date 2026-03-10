@@ -14,7 +14,7 @@ import { redactSensitiveFields } from './utils/redactSensitiveFields.js'
  */
 @Injectable()
 export class AdminAuditLogsService {
-  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {} // RLS-BYPASS: superadmin — cross-tenant audit log queries
 
   /**
    * List audit log entries with cursor-based pagination and optional filters.

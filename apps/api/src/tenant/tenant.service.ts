@@ -16,7 +16,7 @@ type TenantTx = Parameters<NonNullable<DrizzleDB>['transaction']>[0] extends (
 export class TenantService {
   constructor(
     private readonly cls: ClsService,
-    @Inject(DRIZZLE) private readonly db: DrizzleDB | null
+    @Inject(DRIZZLE) private readonly db: DrizzleDB | null // RLS-BYPASS: tenant setup — manages RLS via SET LOCAL ROLE
   ) {}
 
   /**

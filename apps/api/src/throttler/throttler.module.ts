@@ -1,8 +1,9 @@
 import { Logger, Module } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { APP_GUARD } from '@nestjs/core'
+import { APP_FILTER, APP_GUARD } from '@nestjs/core'
 import { ThrottlerModule } from '@nestjs/throttler'
 import { CustomThrottlerGuard } from './customThrottler.guard.js'
+import { ThrottlerExceptionFilter } from './filters/throttlerException.filter.js'
 import { UpstashThrottlerStorage } from './upstashThrottlerStorage.js'
 
 @Module({
@@ -54,6 +55,9 @@ import { UpstashThrottlerStorage } from './upstashThrottlerStorage.js'
       },
     }),
   ],
-  providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],
+  providers: [
+    { provide: APP_GUARD, useClass: CustomThrottlerGuard },
+    { provide: APP_FILTER, useClass: ThrottlerExceptionFilter },
+  ],
 })
 export class ThrottlerConfigModule {}

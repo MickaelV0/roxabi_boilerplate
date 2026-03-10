@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest'
 
 import { AllExceptionsFilter } from '../common/filters/allExceptions.filter.js'
 import { CustomThrottlerGuard } from './customThrottler.guard.js'
+import { ThrottlerExceptionFilter } from './filters/throttlerException.filter.js'
 
 /**
  * Minimal test controller for rate limiting integration tests.
@@ -76,15 +77,17 @@ async function createTestApp(globalLimit = 3) {
     providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],
   }).compile()
 
-  // Create the AllExceptionsFilter with ClsService injected explicitly
+  // Create filters with ClsService injected explicitly
   const { ClsService } = await import('nestjs-cls')
   const cls = moduleRef.get(ClsService)
-  const filter = new AllExceptionsFilter(cls)
+  const allExceptionsFilter = new AllExceptionsFilter(cls)
+  const throttlerExceptionFilter = new ThrottlerExceptionFilter(cls)
 
   const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter())
 
-  // Register the exception filter globally with explicitly injected ClsService
-  app.useGlobalFilters(filter)
+  // Register filters globally — NestJS resolves @Catch(ThrottlerException) over @Catch()
+  // by specificity, so ThrottlerExceptionFilter handles ThrottlerException regardless of order
+  app.useGlobalFilters(allExceptionsFilter, throttlerExceptionFilter)
 
   // Register the onSend hook for rate limit headers (shared with bootstrap)
   const { registerRateLimitHeadersHook } = await import('./index.js')

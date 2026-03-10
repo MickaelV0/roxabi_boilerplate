@@ -70,7 +70,7 @@ export interface GdprExportData {
 export class GdprService {
   private readonly logger = new Logger(GdprService.name)
 
-  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {} // RLS-BYPASS: GDPR export — cross-tenant data access
 
   private fetchUserRecord(userId: string): Promise<GdprUserData[]> {
     return this.db

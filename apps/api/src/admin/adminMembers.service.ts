@@ -30,7 +30,7 @@ export class AdminMembersService {
   private readonly logger = new Logger(AdminMembersService.name)
 
   constructor(
-    @Inject(DRIZZLE) private readonly db: DrizzleDB,
+    @Inject(DRIZZLE) private readonly db: DrizzleDB, // RLS-BYPASS: superadmin — cross-tenant member queries
     private readonly auditService: AuditService,
     private readonly cls: ClsService
   ) {}
