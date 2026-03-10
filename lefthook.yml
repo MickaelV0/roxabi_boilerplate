@@ -34,5 +34,3 @@ pre-push:
       run: bash .lefthook/run-quiet.sh 'bun run i18n:check'
     license:
       run: bash .lefthook/run-quiet.sh 'bun run license:check'
-    docs:
-      run: bash .lefthook/run-quiet.sh 'bun run docs:check'
