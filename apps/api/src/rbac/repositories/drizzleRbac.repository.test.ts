@@ -1,6 +1,27 @@
 import { describe, expect, it, vi } from 'vitest'
 import { DrizzleRbacRepository } from './drizzleRbac.repository.js'
 
+function createMockDb() {
+  const terminal = vi.fn()
+
+  const mockDb = {
+    select: vi.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockImplementation(() => terminal()),
+    innerJoin: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    set: vi.fn().mockReturnThis(),
+    returning: vi.fn().mockImplementation(() => terminal()),
+    insert: vi.fn().mockReturnThis(),
+    values: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    _terminal: terminal,
+  }
+
+  return { db: mockDb, terminal }
+}
+
 function createMockTx() {
   const terminal = vi.fn()
 
@@ -39,7 +60,7 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx } = createMockTx()
       tx.from.mockResolvedValueOnce([mockRole])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       const result = await repo.listRoles(tx as never)
@@ -54,13 +75,29 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx } = createMockTx()
       tx.from.mockResolvedValueOnce([])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       const result = await repo.listRoles(tx as never)
 
       // Assert
       expect(result).toEqual([])
+    })
+
+    it('should use db when tx is omitted', async () => {
+      // Arrange
+      const { db, terminal } = createMockDb()
+      terminal.mockResolvedValueOnce([mockRole])
+      db.from.mockResolvedValueOnce([mockRole])
+      const repo = new DrizzleRbacRepository(db as never)
+
+      // Act
+      const result = await repo.listRoles()
+
+      // Assert
+      expect(result).toEqual([mockRole])
+      expect(db.select).toHaveBeenCalled()
+      expect(db.from).toHaveBeenCalled()
     })
   })
 
@@ -69,7 +106,7 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx, terminal } = createMockTx()
       terminal.mockResolvedValueOnce([{ id: 'role-1' }])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       const result = await repo.findRoleBySlug('org-1', 'admin', tx as never)
@@ -85,7 +122,7 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx, terminal } = createMockTx()
       terminal.mockResolvedValueOnce([])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       const result = await repo.findRoleBySlug('org-1', 'nonexistent', tx as never)
@@ -100,7 +137,7 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx, terminal } = createMockTx()
       terminal.mockResolvedValueOnce([mockRole])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
       const data = {
         tenantId: 'org-1',
         name: 'Admin',
@@ -123,7 +160,7 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx, terminal } = createMockTx()
       terminal.mockResolvedValueOnce([])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       const result = await repo.insertRole(
@@ -141,7 +178,7 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx, terminal } = createMockTx()
       terminal.mockResolvedValueOnce([{ id: 'role-1' }])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       const result = await repo.checkSlugCollision('org-1', 'admin', tx as never)
@@ -154,7 +191,7 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx, terminal } = createMockTx()
       terminal.mockResolvedValueOnce([])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       const result = await repo.checkSlugCollision('org-1', 'new-slug', tx as never)
@@ -169,7 +206,7 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx, terminal } = createMockTx()
       terminal.mockResolvedValueOnce([mockRole])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       const result = await repo.findRoleById('role-1', tx as never)
@@ -182,7 +219,7 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx, terminal } = createMockTx()
       terminal.mockResolvedValueOnce([])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       const result = await repo.findRoleById('missing-role', tx as never)
@@ -197,7 +234,7 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx } = createMockTx()
       tx.where.mockResolvedValueOnce([])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       await repo.updateRole('role-1', { name: 'Updated Admin' }, tx as never)
@@ -214,7 +251,7 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx } = createMockTx()
       tx.where.mockResolvedValueOnce([])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       await repo.deleteRolePermissions('role-1', tx as never)
@@ -230,7 +267,7 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx } = createMockTx()
       tx.where.mockResolvedValueOnce([])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       await repo.deleteRole('role-1', tx as never)
@@ -246,7 +283,7 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx, terminal } = createMockTx()
       terminal.mockResolvedValueOnce([{ id: 'viewer-role-id' }])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       const result = await repo.findViewerRole('org-1', tx as never)
@@ -259,7 +296,7 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx, terminal } = createMockTx()
       terminal.mockResolvedValueOnce([])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       const result = await repo.findViewerRole('org-1', tx as never)
@@ -274,7 +311,7 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx } = createMockTx()
       tx.where.mockResolvedValueOnce([])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       await repo.reassignMembersToRole('old-role', 'new-role', tx as never)
@@ -295,7 +332,7 @@ describe('DrizzleRbacRepository', () => {
         { id: 'perm-2', resource: 'users', action: 'write' },
       ]
       tx.from.mockResolvedValueOnce(perms)
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       const result = await repo.getAllPermissions(tx as never)
@@ -312,7 +349,7 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx } = createMockTx()
       tx.values.mockResolvedValueOnce([])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
       const inserts = [
         { roleId: 'role-1', permissionId: 'perm-1' },
         { roleId: 'role-1', permissionId: 'perm-2' },
@@ -329,7 +366,7 @@ describe('DrizzleRbacRepository', () => {
     it('should skip insert when inserts array is empty', async () => {
       // Arrange
       const { tx } = createMockTx()
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       await repo.insertRolePermissions([], tx as never)
@@ -345,7 +382,7 @@ describe('DrizzleRbacRepository', () => {
       const { tx } = createMockTx()
       const perms = [{ id: 'perm-1', resource: 'users', action: 'read', description: null }]
       tx.where.mockResolvedValueOnce(perms)
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       const result = await repo.getRolePermissions('role-1', tx as never)
@@ -362,7 +399,7 @@ describe('DrizzleRbacRepository', () => {
       // Arrange
       const { tx } = createMockTx()
       tx.where.mockResolvedValueOnce([])
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       const result = await repo.getRolePermissions('role-1', tx as never)
@@ -413,7 +450,7 @@ describe('DrizzleRbacRepository', () => {
       }
       Object.assign(txObj, tx)
 
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
       const defaultRoles = [
         { name: 'Admin', slug: 'admin', description: null, permissions: ['users:read'] },
       ]
@@ -443,7 +480,7 @@ describe('DrizzleRbacRepository', () => {
         set: vi.fn().mockReturnThis(),
         delete: vi.fn().mockReturnThis(),
       }
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act — should not throw
       await expect(
@@ -472,7 +509,7 @@ describe('DrizzleRbacRepository', () => {
         set: vi.fn().mockReturnThis(),
         delete: vi.fn().mockReturnThis(),
       }
-      const repo = new DrizzleRbacRepository({} as never)
+      const repo = new DrizzleRbacRepository(createMockDb().db as never)
 
       // Act
       await repo.seedDefaultRoles(

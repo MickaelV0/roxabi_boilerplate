@@ -11,7 +11,7 @@ export class DrizzleRbacRepository implements RbacRepository {
 
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
-  async listRoles(tx: DrizzleTx): Promise<RoleRow[]> {
+  async listRoles(tx?: DrizzleTx): Promise<RoleRow[]> {
     const qb = tx ?? this.db
     return qb.select().from(roles)
   }
@@ -59,28 +59,32 @@ export class DrizzleRbacRepository implements RbacRepository {
     return collision
   }
 
-  async findRoleById(roleId: string, tx: DrizzleTx): Promise<RoleRow | undefined> {
+  async findRoleById(roleId: string, tx?: DrizzleTx): Promise<RoleRow | undefined> {
     const qb = tx ?? this.db
     const [role] = await qb.select().from(roles).where(eq(roles.id, roleId)).limit(1)
     return role
   }
 
-  async updateRole(roleId: string, updates: Record<string, unknown>, tx: DrizzleTx): Promise<void> {
+  async updateRole(
+    roleId: string,
+    updates: Record<string, unknown>,
+    tx?: DrizzleTx
+  ): Promise<void> {
     const qb = tx ?? this.db
     await qb.update(roles).set(updates).where(eq(roles.id, roleId))
   }
 
-  async deleteRolePermissions(roleId: string, tx: DrizzleTx): Promise<void> {
+  async deleteRolePermissions(roleId: string, tx?: DrizzleTx): Promise<void> {
     const qb = tx ?? this.db
     await qb.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId))
   }
 
-  async deleteRole(roleId: string, tx: DrizzleTx): Promise<void> {
+  async deleteRole(roleId: string, tx?: DrizzleTx): Promise<void> {
     const qb = tx ?? this.db
     await qb.delete(roles).where(eq(roles.id, roleId))
   }
 
-  async findViewerRole(tenantId: string, tx: DrizzleTx): Promise<{ id: string } | undefined> {
+  async findViewerRole(tenantId: string, tx?: DrizzleTx): Promise<{ id: string } | undefined> {
     const qb = tx ?? this.db
     const [viewerRole] = await qb
       .select({ id: roles.id })
@@ -90,7 +94,7 @@ export class DrizzleRbacRepository implements RbacRepository {
     return viewerRole
   }
 
-  async reassignMembersToRole(fromRoleId: string, toRoleId: string, tx: DrizzleTx): Promise<void> {
+  async reassignMembersToRole(fromRoleId: string, toRoleId: string, tx?: DrizzleTx): Promise<void> {
     const qb = tx ?? this.db
     await qb.update(members).set({ roleId: toRoleId }).where(eq(members.roleId, fromRoleId))
   }
@@ -114,7 +118,7 @@ export class DrizzleRbacRepository implements RbacRepository {
     }
   }
 
-  async getRolePermissions(roleId: string, tx: DrizzleTx): Promise<PermissionRow[]> {
+  async getRolePermissions(roleId: string, tx?: DrizzleTx): Promise<PermissionRow[]> {
     const qb = tx ?? this.db
     return qb
       .select({

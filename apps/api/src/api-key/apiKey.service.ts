@@ -5,6 +5,7 @@ import { AuditService } from '../audit/audit.service.js'
 import type { AuthenticatedSession } from '../auth/types.js'
 import { API_KEY_REPO, type ApiKeyRepository } from './apiKey.repository.js'
 import { ApiKeyExpiryInPastException } from './exceptions/apiKeyExpiryInPast.exception.js'
+import { ApiKeyInsertFailedException } from './exceptions/apiKeyInsertFailed.exception.js'
 import { ApiKeyInvalidException } from './exceptions/apiKeyInvalid.exception.js'
 import { ApiKeyNotFoundException } from './exceptions/apiKeyNotFound.exception.js'
 import { ApiKeyScopesExceededException } from './exceptions/apiKeyScopesExceeded.exception.js'
@@ -61,6 +62,8 @@ export class ApiKeyService {
       scopes: dto.scopes,
       expiresAt,
     })
+
+    if (!inserted) throw new ApiKeyInsertFailedException()
 
     this.logAudit(session.user.id, orgId, 'api_key.created', id, {
       after: { name: dto.name, scopes: dto.scopes, expiresAt: expiresAt?.toISOString() ?? null },

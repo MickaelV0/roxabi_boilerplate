@@ -9,7 +9,10 @@ import type { MemberRow, RbacMemberRepository, RoleRow } from '../rbacMember.rep
 export class DrizzleRbacMemberRepository implements RbacMemberRepository {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
-  async findDefaultRoles(tenantId: string, tx: DrizzleTx): Promise<{ id: string; slug: string }[]> {
+  async findDefaultRoles(
+    tenantId: string,
+    tx?: DrizzleTx
+  ): Promise<{ id: string; slug: string }[]> {
     const qb = tx ?? this.db
     return qb
       .select({ id: roles.id, slug: roles.slug })
@@ -59,7 +62,7 @@ export class DrizzleRbacMemberRepository implements RbacMemberRepository {
     return member
   }
 
-  async updateMemberRole(memberId: string, roleId: string, tx: DrizzleTx): Promise<void> {
+  async updateMemberRole(memberId: string, roleId: string, tx?: DrizzleTx): Promise<void> {
     const qb = tx ?? this.db
     await qb.update(members).set({ roleId }).where(eq(members.id, memberId))
   }
@@ -92,7 +95,7 @@ export class DrizzleRbacMemberRepository implements RbacMemberRepository {
     return member
   }
 
-  async findRoleById(roleId: string, tx: DrizzleTx): Promise<RoleRow | undefined> {
+  async findRoleById(roleId: string, tx?: DrizzleTx): Promise<RoleRow | undefined> {
     const qb = tx ?? this.db
     const [role] = await qb.select().from(roles).where(eq(roles.id, roleId)).limit(1)
     return role

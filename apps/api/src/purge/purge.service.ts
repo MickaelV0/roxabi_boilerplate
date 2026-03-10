@@ -10,7 +10,7 @@ export class PurgeService {
   private readonly logger = new Logger(PurgeService.name)
 
   constructor(
-    @Inject(DRIZZLE) private readonly db: DrizzleDB,
+    @Inject(DRIZZLE) private readonly db: DrizzleDB, // RLS-BYPASS: cron job — no tenant context
     private readonly userPurgeService: UserPurgeService
   ) {}
 
