@@ -21,7 +21,7 @@ const mockFeatureFlagService: FeatureFlagService = {
 } as unknown as FeatureFlagService
 
 const mockAuditService: AuditService = {
-  log: vi.fn(),
+  log: vi.fn().mockResolvedValue(undefined),
 } as unknown as AuditService
 
 function createFlag(

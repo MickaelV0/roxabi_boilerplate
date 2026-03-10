@@ -18,7 +18,7 @@ const mockSystemSettingsService: SystemSettingsService = {
 } as unknown as SystemSettingsService
 
 const mockAuditService: AuditService = {
-  log: vi.fn(),
+  log: vi.fn().mockResolvedValue(undefined),
 } as unknown as AuditService
 
 // ---------------------------------------------------------------------------
