@@ -180,6 +180,8 @@ bun db:seed
 
 > **Multiple projects on the same machine:** If another project is already running Docker containers with the same names, you'll get container or volume conflicts. Set `POSTGRES_CONTAINER`, `MAILPIT_CONTAINER`, `POSTGRES_VOLUME`, and `DB_BRANCH_PREFIX` in `.env` to unique values before running `bun db:up`. See [Configuration — Docker Overrides](./configuration#docker-overrides-local-dev--multi-project).
 
+> **Multiple projects on the same machine:** If another project is already running Docker containers with the same names, you'll get container or volume conflicts. Set `POSTGRES_CONTAINER`, `MAILPIT_CONTAINER`, `POSTGRES_VOLUME`, and `DB_BRANCH_PREFIX` in `.env` to unique values before running `bun db:up`. See [Configuration — Docker Overrides](./configuration#docker-overrides-local-dev--multi-project).
+
 ## 8. Run the Project
 
 ```bash
