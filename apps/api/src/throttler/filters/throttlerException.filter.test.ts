@@ -40,7 +40,7 @@ describe('ThrottlerExceptionFilter', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(cls.getId).mockReturnValue('test-correlation-id')
+    ;(cls.getId as ReturnType<typeof vi.fn>).mockReturnValue('test-correlation-id')
   })
 
   it('should return 429 with correct response shape', () => {

@@ -85,8 +85,8 @@ async function createTestApp(globalLimit = 3) {
 
   const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter())
 
-  // Register filters globally — ThrottlerExceptionFilter is more specific and must come first
-  // so NestJS applies it before the catch-all AllExceptionsFilter
+  // Register filters globally — NestJS resolves @Catch(ThrottlerException) over @Catch()
+  // by specificity, so ThrottlerExceptionFilter handles ThrottlerException regardless of order
   app.useGlobalFilters(allExceptionsFilter, throttlerExceptionFilter)
 
   // Register the onSend hook for rate limit headers (shared with bootstrap)

@@ -1,4 +1,4 @@
-import { type ArgumentsHost, Catch, type ExceptionFilter, Logger } from '@nestjs/common'
+import { type ArgumentsHost, Catch, type ExceptionFilter, Injectable, Logger } from '@nestjs/common'
 import { ThrottlerException } from '@nestjs/throttler'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { ClsService } from 'nestjs-cls'
@@ -6,6 +6,7 @@ import { ErrorCode } from '../../common/errorCodes.js'
 import { AUTH_SENSITIVE_PATHS, type ThrottlerMeta } from '../index.js'
 
 @Catch(ThrottlerException)
+@Injectable()
 export class ThrottlerExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(ThrottlerExceptionFilter.name)
 

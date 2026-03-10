@@ -20,10 +20,7 @@ async function scanDir(
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
-      if (
-        line.includes(`from '${forbiddenImport}'`) ||
-        line.includes(`from "${forbiddenImport}"`)
-      ) {
+      if (line.includes(`from '${forbiddenImport}`) || line.includes(`from "${forbiddenImport}`)) {
         violations.push({ file: relPath, line: i + 1, message })
       }
     }
