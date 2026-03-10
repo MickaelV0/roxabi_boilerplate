@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Capture the config passed to betterAuth so we can test databaseHooks
 const capturedConfig = vi.hoisted(() => ({
@@ -315,7 +315,7 @@ describe('createBetterAuth sendVerificationEmail', () => {
     expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
       'http://localhost:3000/verify-email?token=abc',
       'fr',
-      'http://localhost:3000'
+      { appUrl: 'http://localhost:3000', appName: 'App' }
     )
     expect(mockEmail.send).toHaveBeenCalledWith({
       to: 'user@example.com',
@@ -348,7 +348,7 @@ describe('createBetterAuth sendVerificationEmail', () => {
     expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
       'http://localhost:3000/verify-email?token=abc',
       'en',
-      'http://localhost:3000'
+      { appUrl: 'http://localhost:3000', appName: 'App' }
     )
   })
 
@@ -461,7 +461,7 @@ describe('createBetterAuth sendResetPassword', () => {
     expect(mockRenderResetEmail).toHaveBeenCalledWith(
       'http://localhost:3000/reset-password/confirm?token=xyz',
       'fr',
-      'http://localhost:3000'
+      { appUrl: 'http://localhost:3000', appName: 'App' }
     )
     expect(mockEmail.send).toHaveBeenCalledWith({
       to: 'user@example.com',
@@ -494,7 +494,7 @@ describe('createBetterAuth sendResetPassword', () => {
     expect(mockRenderResetEmail).toHaveBeenCalledWith(
       'http://localhost:3000/reset-password/confirm?token=xyz',
       'en',
-      'http://localhost:3000'
+      { appUrl: 'http://localhost:3000', appName: 'App' }
     )
   })
 
@@ -607,7 +607,7 @@ describe('createBetterAuth sendMagicLink', () => {
     expect(mockRenderMagicLinkEmail).toHaveBeenCalledWith(
       'http://localhost:3000/magic-link/verify?token=m1',
       'fr',
-      'http://localhost:3000'
+      { appUrl: 'http://localhost:3000', appName: 'App' }
     )
     expect(mockEmail.send).toHaveBeenCalledWith({
       to: 'user@example.com',
@@ -641,7 +641,7 @@ describe('createBetterAuth sendMagicLink', () => {
     expect(mockRenderMagicLinkEmail).toHaveBeenCalledWith(
       'http://localhost:3000/magic-link/verify?token=mx',
       'en',
-      'http://localhost:3000'
+      { appUrl: 'http://localhost:3000', appName: 'App' }
     )
   })
 
@@ -685,9 +685,9 @@ describe('createBetterAuth sendMagicLink', () => {
     // Assert - should send fallback email with frontend URL
     expect(mockEmail.send).toHaveBeenCalledWith({
       to: 'user@example.com',
-      subject: 'Sign in to Roxabi',
+      subject: 'Sign in to App',
       html: '<p>Click <a href="http://localhost:3000/magic-link/verify?token=m3">here</a> to sign in.</p>',
-      text: 'Sign in to Roxabi: http://localhost:3000/magic-link/verify?token=m3',
+      text: 'Sign in to App: http://localhost:3000/magic-link/verify?token=m3',
     })
   })
 
@@ -794,7 +794,7 @@ describe('createBetterAuth buildFrontendUrl', () => {
     expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
       'http://localhost:3000/verify-email?token=abc',
       'en',
-      'http://localhost:3000'
+      { appUrl: 'http://localhost:3000', appName: 'App' }
     )
   })
 
@@ -827,7 +827,7 @@ describe('createBetterAuth buildFrontendUrl', () => {
     expect(mockRenderResetEmail).toHaveBeenCalledWith(
       'http://localhost:3000/reset-password/confirm?token=xyz',
       'en',
-      'http://localhost:3000'
+      { appUrl: 'http://localhost:3000', appName: 'App' }
     )
   })
 
@@ -859,7 +859,7 @@ describe('createBetterAuth buildFrontendUrl', () => {
     expect(mockRenderMagicLinkEmail).toHaveBeenCalledWith(
       'http://localhost:3000/magic-link/verify?token=m1',
       'en',
-      'http://localhost:3000'
+      { appUrl: 'http://localhost:3000', appName: 'App' }
     )
   })
 
@@ -893,7 +893,7 @@ describe('createBetterAuth buildFrontendUrl', () => {
     expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
       'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=%2F',
       'en',
-      undefined
+      { appUrl: undefined, appName: 'App' }
     )
   })
 
@@ -1000,7 +1000,7 @@ describe('buildFrontendUrl edge cases', () => {
     expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
       'http://localhost:3000/verify-email?token=abc',
       'en',
-      'http://localhost:3000'
+      { appUrl: 'http://localhost:3000', appName: 'App' }
     )
   })
 
@@ -1033,7 +1033,7 @@ describe('buildFrontendUrl edge cases', () => {
     expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
       'http://localhost:3000/verify-email?token=abc',
       'en',
-      'http://localhost:3000'
+      { appUrl: 'http://localhost:3000', appName: 'App' }
     )
   })
 
@@ -1067,7 +1067,7 @@ describe('buildFrontendUrl edge cases', () => {
     expect(mockRenderResetEmail).toHaveBeenCalledWith(
       'http://localhost:4000/api/auth/reset-password?token=xyz&callbackURL=%2F',
       'en',
-      undefined
+      { appUrl: undefined, appName: 'App' }
     )
   })
 })
@@ -1189,7 +1189,7 @@ describe('createBetterAuth onExistingUserSignUp', () => {
     expect(mockRenderExistingAccountEmail).toHaveBeenCalledWith(
       'http://localhost:3000/login',
       'fr',
-      'http://localhost:3000'
+      { appUrl: 'http://localhost:3000', appName: 'App' }
     )
     expect(mockEmail.send).toHaveBeenCalledWith({
       to: 'existing@example.com',
@@ -1219,7 +1219,7 @@ describe('createBetterAuth onExistingUserSignUp', () => {
     expect(mockRenderExistingAccountEmail).toHaveBeenCalledWith(
       'http://localhost:3000/login',
       'en',
-      'http://localhost:3000'
+      { appUrl: 'http://localhost:3000', appName: 'App' }
     )
   })
 
@@ -1279,7 +1279,10 @@ describe('createBetterAuth onExistingUserSignUp', () => {
     await handler({ user: { email: 'existing@example.com' } })
 
     // Assert — login URL falls back to relative path
-    expect(mockRenderExistingAccountEmail).toHaveBeenCalledWith('/login', 'en', undefined)
+    expect(mockRenderExistingAccountEmail).toHaveBeenCalledWith('/login', 'en', {
+      appUrl: undefined,
+      appName: 'App',
+    })
     expect(mockEmail.send).toHaveBeenCalled()
   })
 
@@ -1294,5 +1297,156 @@ describe('createBetterAuth onExistingUserSignUp', () => {
 
     // Act & Assert — double failure still resolves (not an unhandled exception)
     await expect(handler({ user: { email: 'existing@example.com' } })).resolves.toBeUndefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// APP_NAME env override
+// ---------------------------------------------------------------------------
+
+describe('APP_NAME env override', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('should pass the custom APP_NAME to renderVerificationEmail', async () => {
+    // Arrange — stub env before re-importing the module so APP_NAME is read fresh
+    vi.stubEnv('APP_NAME', 'Acme')
+    vi.resetModules()
+    const { createBetterAuth: createBetterAuthFresh } = await import('./auth.instance.js')
+
+    const mockDb = createMockDb()
+    const mockEmail = createMockEmailProvider()
+    createBetterAuthFresh(mockDb as never, mockEmail as never, defaultConfig)
+
+    const emailVerification = capturedConfig.config?.emailVerification as {
+      sendVerificationEmail: (params: {
+        user: { email: string; locale?: string }
+        url: string
+      }) => Promise<void>
+    }
+
+    mockRenderVerificationEmail.mockResolvedValueOnce({
+      html: '<p>Verify</p>',
+      text: 'Verify',
+      subject: 'Verify your email',
+    })
+
+    // Act
+    await emailVerification.sendVerificationEmail({
+      user: { email: 'user@example.com', locale: 'en' },
+      url: 'http://localhost:4000/api/auth/verify-email?token=abc',
+    })
+
+    // Assert — custom APP_NAME forwarded to email renderer
+    expect(mockRenderVerificationEmail).toHaveBeenCalledWith(
+      expect.any(String),
+      'en',
+      expect.objectContaining({ appName: 'Acme' })
+    )
+  })
+
+  it('should pass the custom APP_NAME to renderResetEmail', async () => {
+    // Arrange
+    vi.stubEnv('APP_NAME', 'Acme')
+    vi.resetModules()
+    const { createBetterAuth: createBetterAuthFresh } = await import('./auth.instance.js')
+
+    const mockDb = createMockDb()
+    const mockEmail = createMockEmailProvider()
+    createBetterAuthFresh(mockDb as never, mockEmail as never, defaultConfig)
+
+    const emailAndPassword = capturedConfig.config?.emailAndPassword as {
+      sendResetPassword: (params: {
+        user: { email: string; locale?: string }
+        url: string
+      }) => Promise<void>
+    }
+
+    mockRenderResetEmail.mockResolvedValueOnce({
+      html: '<p>Reset</p>',
+      text: 'Reset',
+      subject: 'Reset your password',
+    })
+
+    // Act
+    await emailAndPassword.sendResetPassword({
+      user: { email: 'user@example.com', locale: 'en' },
+      url: 'http://localhost:4000/api/auth/reset-password?token=xyz',
+    })
+
+    // Assert — custom APP_NAME forwarded to email renderer
+    expect(mockRenderResetEmail).toHaveBeenCalledWith(
+      expect.any(String),
+      'en',
+      expect.objectContaining({ appName: 'Acme' })
+    )
+  })
+
+  it('should pass the custom APP_NAME to renderMagicLinkEmail', async () => {
+    // Arrange
+    vi.stubEnv('APP_NAME', 'Acme')
+    vi.resetModules()
+    const { createBetterAuth: createBetterAuthFresh } = await import('./auth.instance.js')
+
+    const mockDb = createMockDb()
+    const mockEmail = createMockEmailProvider()
+    mockDb._mocks.selectWhereFn.mockResolvedValueOnce([{ locale: 'en' }])
+    createBetterAuthFresh(mockDb as never, mockEmail as never, defaultConfig)
+
+    const handler = capturedMagicLinkConfig.config?.sendMagicLink as (params: {
+      email: string
+      url: string
+    }) => Promise<void>
+
+    mockRenderMagicLinkEmail.mockResolvedValueOnce({
+      html: '<p>Magic</p>',
+      text: 'Sign in',
+      subject: 'Sign in to Acme',
+    })
+
+    // Act
+    await handler({
+      email: 'user@example.com',
+      url: 'http://localhost:4000/api/auth/magic-link/verify?token=m1',
+    })
+
+    // Assert — custom APP_NAME forwarded to email renderer
+    expect(mockRenderMagicLinkEmail).toHaveBeenCalledWith(
+      expect.any(String),
+      'en',
+      expect.objectContaining({ appName: 'Acme' })
+    )
+  })
+
+  it('should pass the custom APP_NAME to renderExistingAccountEmail', async () => {
+    // Arrange
+    vi.stubEnv('APP_NAME', 'Acme')
+    vi.resetModules()
+    const { createBetterAuth: createBetterAuthFresh } = await import('./auth.instance.js')
+
+    const mockDb = createMockDb()
+    const mockEmail = createMockEmailProvider()
+    createBetterAuthFresh(mockDb as never, mockEmail as never, defaultConfig)
+
+    const emailAndPassword = capturedConfig.config?.emailAndPassword as {
+      onExistingUserSignUp: (params: { user: { email: string; locale?: string } }) => Promise<void>
+    }
+
+    mockRenderExistingAccountEmail.mockResolvedValueOnce({
+      html: '<p>Notification</p>',
+      text: 'Someone tried to sign up',
+      subject: 'Someone tried to sign up with your email',
+    })
+
+    // Act
+    await emailAndPassword.onExistingUserSignUp({ user: { email: 'existing@example.com' } })
+
+    // Assert — custom APP_NAME forwarded to email renderer
+    expect(mockRenderExistingAccountEmail).toHaveBeenCalledWith(
+      expect.any(String),
+      'en',
+      expect.objectContaining({ appName: 'Acme' })
+    )
   })
 })
