@@ -1,43 +1,15 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import type { OrgOwnershipResolution } from '@repo/types'
-import { and, eq } from 'drizzle-orm'
 import { DELETION_GRACE_PERIOD_MS } from '../common/constants.js'
 import { USER_SOFT_DELETED, UserSoftDeletedEvent } from '../common/events/userSoftDeleted.event.js'
-import { DRIZZLE, type DrizzleDB, type DrizzleTx } from '../database/drizzle.provider.js'
-import { whereActive } from '../database/helpers/whereActive.js'
-import {
-  invitations,
-  members,
-  organizations,
-  sessions,
-  users,
-} from '../database/schema/auth.schema.js'
 import { OrgNotOwnerException } from '../organization/exceptions/orgNotOwner.exception.js'
 import { AccountAlreadyDeletedException } from './exceptions/accountAlreadyDeleted.exception.js'
 import { EmailConfirmationMismatchException } from './exceptions/emailConfirmationMismatch.exception.js'
 import { TransferTargetNotMemberException } from './exceptions/transferTargetNotMember.exception.js'
 import { UserNotFoundException } from './exceptions/userNotFound.exception.js'
+import { USER_REPO, type UserRepository } from './user.repository.js'
 import { UserPurgeService } from './userPurge.service.js'
-
-const profileColumns = {
-  id: users.id,
-  fullName: users.name,
-  firstName: users.firstName,
-  lastName: users.lastName,
-  fullNameCustomized: users.fullNameCustomized,
-  email: users.email,
-  emailVerified: users.emailVerified,
-  image: users.image,
-  avatarSeed: users.avatarSeed,
-  avatarStyle: users.avatarStyle,
-  avatarOptions: users.avatarOptions,
-  role: users.role,
-  deletedAt: users.deletedAt,
-  deleteScheduledFor: users.deleteScheduledFor,
-  createdAt: users.createdAt,
-  updatedAt: users.updatedAt,
-}
 
 /** Simple in-memory TTL cache for soft-delete status lookups */
 const SOFT_DELETE_CACHE_TTL_MS = 60_000
@@ -51,7 +23,7 @@ export class UserService {
   >()
 
   constructor(
-    @Inject(DRIZZLE) private readonly db: DrizzleDB,
+    @Inject(USER_REPO) private readonly repo: UserRepository,
     private readonly eventEmitter: EventEmitter2,
     private readonly userPurgeService: UserPurgeService
   ) {}
@@ -62,13 +34,7 @@ export class UserService {
       return cached.value
     }
 
-    const [user] = await this.db
-      .select({ deletedAt: users.deletedAt, deleteScheduledFor: users.deleteScheduledFor })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1)
-
-    const result = user ?? null
+    const result = await this.repo.getSoftDeleteStatus(userId)
     this.softDeleteCache.set(userId, {
       value: result,
       expiresAt: Date.now() + SOFT_DELETE_CACHE_TTL_MS,
@@ -85,11 +51,7 @@ export class UserService {
     // whereActive is intentionally omitted: the AuthGuard blocks soft-deleted users
     // from most endpoints, and the profile page needs to display deletion status
     // (deletedAt, deleteScheduledFor) so users can see and reactivate their account.
-    const [user] = await this.db
-      .select(profileColumns)
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1)
+    const user = await this.repo.getProfile(userId)
     if (!user) throw new UserNotFoundException(userId)
     return user
   }
@@ -129,15 +91,7 @@ export class UserService {
       (data.firstName !== undefined || data.lastName !== undefined) &&
       data.fullName === undefined
     ) {
-      const [current] = await this.db
-        .select({
-          firstName: users.firstName,
-          lastName: users.lastName,
-          fullNameCustomized: users.fullNameCustomized,
-        })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1)
+      const current = await this.repo.getNameFields(userId)
       if (!current) throw new UserNotFoundException(userId)
 
       if (!current.fullNameCustomized) {
@@ -147,21 +101,13 @@ export class UserService {
       }
     }
 
-    const [updated] = await this.db
-      .update(users)
-      .set(updateData)
-      .where(and(eq(users.id, userId), whereActive(users)))
-      .returning(profileColumns)
+    const updated = await this.repo.updateProfile(userId, updateData)
     if (!updated) throw new UserNotFoundException(userId)
     return updated
   }
 
   private async validateSoftDeleteRequest(userId: string, confirmEmail: string) {
-    const [user] = await this.db
-      .select({ id: users.id, email: users.email, deletedAt: users.deletedAt })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1)
+    const user = await this.repo.findForValidation(userId)
     if (!user) throw new UserNotFoundException(userId)
 
     // Block re-deletion: prevent scheduling deletion on an already-deleted account
@@ -176,114 +122,52 @@ export class UserService {
     return user
   }
 
-  private async processOrgTransfer(
-    tx: DrizzleTx,
-    resolution: Extract<OrgOwnershipResolution, { action: 'transfer' }>,
-    now: Date
-  ) {
-    // Verify transferToUserId is an existing member of the org
-    const [targetMember] = await tx
-      .select({ id: members.id })
-      .from(members)
-      .where(
-        and(
-          eq(members.organizationId, resolution.organizationId),
-          eq(members.userId, resolution.transferToUserId)
-        )
-      )
-      .limit(1)
-    if (!targetMember) {
-      throw new TransferTargetNotMemberException(
-        resolution.transferToUserId,
-        resolution.organizationId
-      )
-    }
-
-    // Transfer ownership: update role on target member
-    await tx
-      .update(members)
-      .set({ role: 'owner', updatedAt: now })
-      .where(
-        and(
-          eq(members.organizationId, resolution.organizationId),
-          eq(members.userId, resolution.transferToUserId)
-        )
-      )
-  }
-
-  private async processOrgDeletion(
-    tx: DrizzleTx,
-    resolution: Extract<OrgOwnershipResolution, { action: 'delete' }>,
-    now: Date,
-    deleteScheduledFor: Date
-  ) {
-    // Soft-delete the organization
-    await tx
-      .update(organizations)
-      .set({ deletedAt: now, deleteScheduledFor, updatedAt: now })
-      .where(eq(organizations.id, resolution.organizationId))
-
-    // Clear activeOrganizationId on sessions referencing this org
-    await tx
-      .update(sessions)
-      .set({ activeOrganizationId: null })
-      .where(eq(sessions.activeOrganizationId, resolution.organizationId))
-
-    // Invalidate pending invitations for this org
-    await tx
-      .update(invitations)
-      .set({ status: 'expired' })
-      .where(
-        and(
-          eq(invitations.organizationId, resolution.organizationId),
-          eq(invitations.status, 'pending')
-        )
-      )
-  }
-
-  private async processOrgResolution(
-    tx: DrizzleTx,
-    resolution: OrgOwnershipResolution,
-    userId: string,
-    context: { now: Date; deleteScheduledFor: Date }
-  ) {
-    // Verify the deleting user is an owner of this organization
-    const [membership] = await tx
-      .select({ role: members.role })
-      .from(members)
-      .where(and(eq(members.organizationId, resolution.organizationId), eq(members.userId, userId)))
-      .limit(1)
-    if (!membership || membership.role !== 'owner') {
-      throw new OrgNotOwnerException(resolution.organizationId)
-    }
-
-    if (resolution.action === 'transfer') {
-      await this.processOrgTransfer(tx, resolution, context.now)
-    } else if (resolution.action === 'delete') {
-      await this.processOrgDeletion(tx, resolution, context.now, context.deleteScheduledFor)
-    }
-  }
-
   async softDelete(userId: string, confirmEmail: string, orgResolutions: OrgOwnershipResolution[]) {
     await this.validateSoftDeleteRequest(userId, confirmEmail)
 
     const now = new Date()
     const deleteScheduledFor = new Date(now.getTime() + DELETION_GRACE_PERIOD_MS)
 
-    const updated = await this.db.transaction(async (tx) => {
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: inherent to multi-table org resolution within softDelete transaction
+    const updated = await this.repo.transaction(async (tx) => {
       for (const resolution of orgResolutions) {
-        await this.processOrgResolution(tx, resolution, userId, { now, deleteScheduledFor })
+        // Verify the deleting user is an owner of this organization
+        const membership = await this.repo.verifyOrgOwnership(resolution.organizationId, userId, tx)
+        if (!membership || membership.role !== 'owner') {
+          throw new OrgNotOwnerException(resolution.organizationId)
+        }
+
+        if (resolution.action === 'transfer') {
+          // Verify transferToUserId is an existing member of the org
+          const targetMember = await this.repo.verifyTargetMember(
+            resolution.organizationId,
+            resolution.transferToUserId,
+            tx
+          )
+          if (!targetMember) {
+            throw new TransferTargetNotMemberException(
+              resolution.transferToUserId,
+              resolution.organizationId
+            )
+          }
+          await this.repo.transferOrgOwnership(
+            resolution.organizationId,
+            resolution.transferToUserId,
+            now,
+            tx
+          )
+        } else if (resolution.action === 'delete') {
+          await this.repo.softDeleteOrg(resolution.organizationId, now, deleteScheduledFor, tx)
+          await this.repo.clearOrgSessions(resolution.organizationId, tx)
+          await this.repo.expireOrgInvitations(resolution.organizationId, tx)
+        }
       }
 
       // Soft-delete the user
-      const [result] = await tx
-        .update(users)
-        .set({ deletedAt: now, deleteScheduledFor, updatedAt: now })
-        .where(eq(users.id, userId))
-        .returning(profileColumns)
+      const result = await this.repo.softDeleteUser(userId, now, deleteScheduledFor, tx)
 
       // Delete all sessions for this user (force logout)
-      await tx.delete(sessions).where(eq(sessions.userId, userId))
+      await this.repo.deleteUserSessions(userId, tx)
 
       // Invalidate cached soft-delete status after successful deletion
       this.invalidateSoftDeleteCache(userId)
@@ -298,11 +182,7 @@ export class UserService {
   }
 
   async reactivate(userId: string) {
-    const [updated] = await this.db
-      .update(users)
-      .set({ deletedAt: null, deleteScheduledFor: null, updatedAt: new Date() })
-      .where(eq(users.id, userId))
-      .returning(profileColumns)
+    const updated = await this.repo.reactivateUser(userId)
     if (!updated) throw new UserNotFoundException(userId)
 
     // Invalidate cached soft-delete status after reactivation
@@ -312,17 +192,7 @@ export class UserService {
   }
 
   async getOwnedOrganizations(userId: string) {
-    const ownedOrgs = await this.db
-      .select({
-        orgId: organizations.id,
-        orgName: organizations.name,
-        orgSlug: organizations.slug,
-      })
-      .from(members)
-      .innerJoin(organizations, eq(members.organizationId, organizations.id))
-      .where(and(eq(members.userId, userId), eq(members.role, 'owner'), whereActive(organizations)))
-
-    return ownedOrgs
+    return this.repo.getOwnedOrganizations(userId)
   }
 
   async purge(userId: string, confirmEmail: string) {
@@ -331,10 +201,10 @@ export class UserService {
 
     this.logger.warn('Purging account', { userId })
 
-    await this.db.transaction(async (tx) => {
+    await this.repo.transaction(async (tx) => {
       const now = new Date()
-      await this.userPurgeService.anonymizeUserRecords(tx, userId, originalEmail, now)
-      await this.userPurgeService.purgeOwnedOrganizations(tx, userId, now)
+      await this.userPurgeService.anonymizeUserRecords(userId, originalEmail, now, tx)
+      await this.userPurgeService.purgeOwnedOrganizations(userId, now, tx)
     })
 
     this.logger.log('Account purged successfully', { userId })

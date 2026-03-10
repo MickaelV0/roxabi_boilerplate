@@ -18,7 +18,7 @@ export class AuthService {
   readonly enabledProviders: { google: boolean; github: boolean }
 
   constructor(
-    @Inject(DRIZZLE) db: DrizzleDB,
+    @Inject(DRIZZLE) db: DrizzleDB, // RLS-BYPASS: better-auth-adapter
     @Inject(EMAIL_PROVIDER) emailProvider: EmailProvider,
     config: ConfigService,
     private readonly eventEmitter: EventEmitter2,

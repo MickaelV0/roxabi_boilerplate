@@ -42,7 +42,7 @@ export class PurgeService {
       if (user.email.endsWith('@anonymized.local')) continue
 
       await this.db.transaction(async (tx) => {
-        await this.userPurgeService.anonymizeUserRecords(tx, user.id, user.email, now)
+        await this.userPurgeService.anonymizeUserRecords(user.id, user.email, now, tx)
       })
       anonymized++
     }
