@@ -1,14 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common'
 import type { ConsentRecord } from '@repo/types'
-import { CONSENT_REPO, type ConsentRepository } from './consent.repository.js'
+import { CONSENT_REPO, type ConsentRepository, type SaveConsentDto } from './consent.repository.js'
 
-export interface SaveConsentDto {
-  categories: { necessary: true; analytics: boolean; marketing: boolean }
-  policyVersion: string
-  action: 'accepted' | 'rejected' | 'customized'
-  ipAddress?: string | null
-  userAgent?: string | null
-}
+export type { SaveConsentDto } from './consent.repository.js'
 
 @Injectable()
 export class ConsentService {

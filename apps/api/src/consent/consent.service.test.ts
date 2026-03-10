@@ -33,13 +33,8 @@ describe('ConsentService (with InMemoryConsentRepository)', () => {
 
   describe('saveConsent', () => {
     it('should persist and return a mapped ConsentRecord', async () => {
-      // Arrange
-      // (validDto + 'user-1' defined above)
-
-      // Act
       const result = await service.saveConsent('user-1', validDto)
 
-      // Assert
       expect(result.userId).toBe('user-1')
       expect(result.categories).toEqual(validDto.categories)
       expect(result.policyVersion).toBe('2026-02-v1')
@@ -57,22 +52,15 @@ describe('ConsentService (with InMemoryConsentRepository)', () => {
 
   describe('getLatestConsent', () => {
     it('should return the most recent record after multiple saves', async () => {
-      // Arrange
       await service.saveConsent('user-1', { ...validDto, policyVersion: '2026-01-v1' })
       await service.saveConsent('user-1', { ...validDto, policyVersion: '2026-02-v1' })
 
-      // Act
       const result = await service.getLatestConsent('user-1')
 
-      // Assert
       expect(result.policyVersion).toBe('2026-02-v1')
     })
 
     it('should throw ConsentNotFoundException when no record exists', async () => {
-      // Arrange
-      // (no records saved for 'nonexistent-user')
-
-      // Act & Assert
       await expect(service.getLatestConsent('nonexistent-user')).rejects.toThrow(
         ConsentNotFoundException
       )

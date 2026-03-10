@@ -145,18 +145,27 @@ Services apply the Dependency Inversion Principle not just for infrastructure li
 **Port interface** — defines the contract, lives in the feature module:
 
 ```typescript
-// consent.repository.ts
+// consent.repository.ts — port defines both the interface and the DTO
 import type { ConsentRecord } from '@repo/types'
 import type { DrizzleTx } from '../database/drizzle.provider.js'
-import type { SaveConsentDto } from './consent.service.js'
 
 export const CONSENT_REPO = Symbol('CONSENT_REPO')
+
+export interface SaveConsentDto {
+  categories: { necessary: true; analytics: boolean; marketing: boolean }
+  policyVersion: string
+  action: 'accepted' | 'rejected' | 'customized'
+  ipAddress?: string | null
+  userAgent?: string | null
+}
 
 export interface ConsentRepository {
   saveConsent(userId: string, dto: SaveConsentDto, tx?: DrizzleTx): Promise<ConsentRecord>
   getLatestByUserId(userId: string, tx?: DrizzleTx): Promise<ConsentRecord>
 }
 ```
+
+The service re-exports the DTO for external consumers: `export type { SaveConsentDto } from './consent.repository.js'`. This ensures the dependency arrow flows inward: adapters → port ← service.
 
 **Key rules for port design:**
 

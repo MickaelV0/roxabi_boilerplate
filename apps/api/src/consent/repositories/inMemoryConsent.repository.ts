@@ -1,7 +1,6 @@
 import type { ConsentRecord } from '@repo/types'
 import type { DrizzleTx } from '../../database/drizzle.provider.js'
-import type { ConsentRepository } from '../consent.repository.js'
-import type { SaveConsentDto } from '../consent.service.js'
+import type { ConsentRepository, SaveConsentDto } from '../consent.repository.js'
 import { ConsentNotFoundException } from '../exceptions/consentNotFound.exception.js'
 
 export class InMemoryConsentRepository implements ConsentRepository {
