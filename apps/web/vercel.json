@@ -5,6 +5,8 @@
   "buildCommand": "turbo run build",
   "redirects": [
     { "source": "/docs/(.*)", "destination": "https://docs.app.roxabi.com/$1", "permanent": true },
-    { "source": "/docs", "destination": "https://docs.app.roxabi.com", "permanent": true }
+    { "source": "/docs", "destination": "https://docs.app.roxabi.com", "permanent": true },
+    { "source": "/talks/(.*)", "destination": "https://talks.roxabi.com/$1", "permanent": true },
+    { "source": "/talks", "destination": "https://talks.roxabi.com", "permanent": true }
   ]
 }
