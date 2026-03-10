@@ -85,9 +85,9 @@ describe('env validation', () => {
   })
 
   describe('BETTER_AUTH_URL validation', () => {
-    it('should default to http://localhost:4000', () => {
+    it('should default to http://localhost:3000', () => {
       const result = validate({})
-      expect(result.BETTER_AUTH_URL).toBe('http://localhost:4000')
+      expect(result.BETTER_AUTH_URL).toBe('http://localhost:3000')
     })
 
     it('should throw on invalid BETTER_AUTH_URL', () => {
@@ -410,6 +410,121 @@ describe('env validation', () => {
     it('should be undefined when omitted', () => {
       const result = validate({})
       expect(result.SWAGGER_ENABLED).toBeUndefined()
+    })
+  })
+
+  describe('env derivation', () => {
+    it('CORS_ORIGIN defaults to APP_URL when CORS_ORIGIN is not set', () => {
+      // Arrange
+      const config = { APP_URL: 'https://example.com' }
+
+      // Act
+      const result = validate(config)
+
+      // Assert
+      expect(result.CORS_ORIGIN).toBe('https://example.com')
+    })
+
+    it('BETTER_AUTH_URL defaults to APP_URL when BETTER_AUTH_URL is not set', () => {
+      // Arrange
+      const config = { APP_URL: 'https://example.com' }
+
+      // Act
+      const result = validate(config)
+
+      // Assert
+      expect(result.BETTER_AUTH_URL).toBe('https://example.com')
+    })
+
+    it('explicit CORS_ORIGIN overrides APP_URL derivation', () => {
+      // Arrange
+      const config = {
+        APP_URL: 'https://example.com',
+        CORS_ORIGIN: 'https://override.example.com',
+      }
+
+      // Act
+      const result = validate(config)
+
+      // Assert
+      expect(result.CORS_ORIGIN).toBe('https://override.example.com')
+    })
+
+    it('CORS_ORIGIN and BETTER_AUTH_URL default to http://localhost:3000 when APP_URL is not set', () => {
+      // Arrange — no APP_URL, no CORS_ORIGIN, no BETTER_AUTH_URL
+
+      // Act
+      const result = validate({})
+
+      // Assert
+      expect(result.CORS_ORIGIN).toBe('http://localhost:3000')
+      expect(result.BETTER_AUTH_URL).toBe('http://localhost:3000')
+    })
+  })
+
+  describe('rate limit presets', () => {
+    it('RATE_LIMIT_PRESET=default applies default values', () => {
+      // Arrange
+      const config = { RATE_LIMIT_PRESET: 'default' }
+
+      // Act
+      const result = validate(config)
+
+      // Assert
+      expect(result.RATE_LIMIT_GLOBAL_LIMIT).toBe(60)
+      expect(result.RATE_LIMIT_AUTH_LIMIT).toBe(5)
+    })
+
+    it('RATE_LIMIT_PRESET=strict applies strict values', () => {
+      // Arrange
+      const config = { RATE_LIMIT_PRESET: 'strict' }
+
+      // Act
+      const result = validate(config)
+
+      // Assert
+      expect(result.RATE_LIMIT_GLOBAL_LIMIT).toBe(30)
+      expect(result.RATE_LIMIT_AUTH_LIMIT).toBe(3)
+    })
+
+    it('RATE_LIMIT_PRESET=relaxed applies relaxed values', () => {
+      // Arrange
+      const config = { RATE_LIMIT_PRESET: 'relaxed' }
+
+      // Act
+      const result = validate(config)
+
+      // Assert
+      expect(result.RATE_LIMIT_GLOBAL_LIMIT).toBe(120)
+      expect(result.RATE_LIMIT_AUTH_LIMIT).toBe(10)
+    })
+
+    it('explicit RATE_LIMIT_AUTH_LIMIT overrides preset value', () => {
+      // Arrange
+      const config = {
+        RATE_LIMIT_PRESET: 'strict',
+        RATE_LIMIT_AUTH_LIMIT: '10',
+      }
+
+      // Act
+      const result = validate(config)
+
+      // Assert
+      expect(result.RATE_LIMIT_AUTH_LIMIT).toBe(10)
+    })
+
+    it('RATE_LIMIT_ENABLED is unaffected by preset', () => {
+      // Arrange
+      const config = {
+        RATE_LIMIT_ENABLED: false,
+        RATE_LIMIT_PRESET: 'default',
+      }
+
+      // Act
+      const result = validate(config)
+
+      // Assert
+      expect(result.RATE_LIMIT_ENABLED).toBe(false)
     })
   })
 })

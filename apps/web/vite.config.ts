@@ -81,12 +81,19 @@ async function getPlugins() {
   ] as PluginOption[]
 }
 
-const config = defineConfig(async () => ({
-  envDir: '../..',
-  build: { chunkSizeWarningLimit: 1000 },
-  server: { port: Number(process.env.APP_PORT) || 3000 },
-  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
-  plugins: await getPlugins(),
-}))
+const config = defineConfig(async () => {
+  // Derive VITE_APP_NAME from APP_NAME if not explicitly set in .env
+  const envDir = '../..'
+  const env = loadEnv('development', envDir, '')
+  process.env.VITE_APP_NAME ??= env.APP_NAME ?? 'App'
+
+  return {
+    envDir: '../..',
+    build: { chunkSizeWarningLimit: 1000 },
+    server: { port: Number(process.env.APP_PORT) || 3000 },
+    resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+    plugins: await getPlugins(),
+  }
+})
 
 export default config

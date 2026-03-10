@@ -226,6 +226,46 @@ Agent definitions are in `.claude/agents/*.md`. See the [Agent Teams Guide](./gu
 | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | — | No | `0` | Local | Agent teams toggle |
 | `GITHUB_TOKEN` | — | No | — | Local/CI | GitHub API access |
 
+## Derived Variables
+
+Some environment variables default to the value of another variable when not explicitly set. This allows common deployments to be configured with a single value while still supporting advanced overrides.
+
+| Variable | Defaults to | When to override |
+|----------|-------------|-----------------|
+| `CORS_ORIGIN` | `APP_URL` | Multi-origin setups — e.g., staging with branch aliases that differ from the primary `APP_URL` |
+| `BETTER_AUTH_URL` | `APP_URL` | Split-domain deployments where the auth service runs on a different origin from the frontend |
+| `VITE_APP_NAME` | `APP_NAME` | When the browser-visible name should differ from the server-side application name |
+
+**Precedence:** an explicit value in `.env` always takes precedence silently — the fallback only applies when the variable is absent or empty.
+
+For typical single-domain deployments, setting `APP_URL` and `APP_NAME` is sufficient and the derived variables require no further configuration.
+
+## Rate Limit Presets
+
+`RATE_LIMIT_PRESET` selects a named configuration that sets sensible rate limit defaults as a group. This avoids having to tune five individual variables for common scenarios.
+
+| Preset | Global Limit | Auth Limit | Auth Block (ms) | Notes |
+|--------|-------------|-----------|-----------------|-------|
+| `default` | 60 req/min | 5 req/min | 300,000 | Balanced (production default) |
+| `strict` | 30 req/min | 3 req/min | 600,000 | Enhanced auth protection |
+| `relaxed` | 120 req/min | 10 req/min | 60,000 | Permissive (dev/testing) |
+
+**On/off toggle:** `RATE_LIMIT_ENABLED` remains the independent kill switch — it disables rate limiting entirely regardless of which preset is active.
+
+**Individual overrides:** any of the `RATE_LIMIT_*` variables set explicitly in `.env` take precedence over the preset values for that specific parameter. This allows mixing presets with targeted adjustments without having to redeclare every value.
+
+## Dev-core Configuration
+
+Agent orchestration settings are stored in `.claude/dev-core.yml`, which is committed to the repository. This file holds GitHub Projects field IDs and other workflow metadata used by Claude Code agent orchestration — it has no effect on the application at runtime.
+
+The file is auto-populated by the `/init` skill when you first set up the project. You do not normally need to edit it by hand.
+
+Values are resolved using a 3-tier fallback:
+
+1. **YAML** — `.claude/dev-core.yml` (committed, shared across the team)
+2. **Environment variable** — shell or `.env` override for per-developer customization
+3. **Live lookup** — `gh repo view` for `GITHUB_REPO` when neither of the above is present
+
 ## TypeScript Configuration
 
 Root `tsconfig.json` provides base settings. Each app/package extends it:

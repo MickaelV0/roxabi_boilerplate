@@ -16,12 +16,12 @@ export const envSchema = z.object({
   VERCEL_ENV: z.enum(['production', 'preview', 'development']).optional(),
   DATABASE_URL: z.string().optional(),
   DATABASE_APP_URL: z.string().optional(),
-  CORS_ORIGIN: z.string().default('http://localhost:3000'),
+  CORS_ORIGIN: z.string().optional(),
   LOG_LEVEL: z
     .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'])
     .default(DEFAULT_LOG_LEVEL),
   BETTER_AUTH_SECRET: z.string().min(32).default('dev-secret-do-not-use-in-production'),
-  BETTER_AUTH_URL: z.string().url().default('http://localhost:4000'),
+  BETTER_AUTH_URL: z.string().url().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GITHUB_CLIENT_ID: z.string().optional(),
@@ -36,22 +36,23 @@ export const envSchema = z.object({
   KV_REST_API_URL: z.string().optional(),
   KV_REST_API_TOKEN: z.string().optional(),
   RATE_LIMIT_ENABLED: booleanFromEnv.default(true),
+  RATE_LIMIT_PRESET: z.enum(['default', 'strict', 'relaxed']).default('default'),
   APP_NAME: z
     .string()
     .max(64)
     .regex(/^[\w\s\-.]+$/)
     .default('App'),
   SWAGGER_ENABLED: booleanFromEnv.optional(),
-  RATE_LIMIT_GLOBAL_TTL: z.coerce.number().positive().default(60_000),
-  RATE_LIMIT_GLOBAL_LIMIT: z.coerce.number().positive().default(60),
-  RATE_LIMIT_AUTH_TTL: z.coerce.number().positive().default(60_000),
-  RATE_LIMIT_AUTH_LIMIT: z.coerce.number().positive().default(5),
-  RATE_LIMIT_AUTH_BLOCK_DURATION: z.coerce.number().positive().default(300_000),
+  RATE_LIMIT_GLOBAL_TTL: z.coerce.number().positive().optional(),
+  RATE_LIMIT_GLOBAL_LIMIT: z.coerce.number().positive().optional(),
+  RATE_LIMIT_AUTH_TTL: z.coerce.number().positive().optional(),
+  RATE_LIMIT_AUTH_LIMIT: z.coerce.number().positive().optional(),
+  RATE_LIMIT_AUTH_BLOCK_DURATION: z.coerce.number().positive().optional(),
   // CRON secret for scheduled jobs (purge, etc.)
   CRON_SECRET: z.string().min(32).optional(),
   // Reserved for the future API key rate-limit tier
-  RATE_LIMIT_API_TTL: z.coerce.number().default(60_000),
-  RATE_LIMIT_API_LIMIT: z.coerce.number().default(100),
+  RATE_LIMIT_API_TTL: z.coerce.number().optional(),
+  RATE_LIMIT_API_LIMIT: z.coerce.number().optional(),
 })
 
 export type EnvironmentVariables = z.infer<typeof envSchema>
@@ -60,6 +61,51 @@ const INSECURE_SECRETS: readonly string[] = [
   'dev-secret-do-not-use-in-production',
   'change-me-to-a-random-32-char-string',
 ]
+
+function deriveFallbacks(config: Record<string, unknown>): void {
+  const appUrl = config.APP_URL as string | undefined
+  const fallbackUrl = appUrl ?? 'http://localhost:3000'
+  if (config.CORS_ORIGIN === undefined) config.CORS_ORIGIN = fallbackUrl
+  if (config.BETTER_AUTH_URL === undefined) config.BETTER_AUTH_URL = fallbackUrl
+}
+
+const RATE_LIMIT_PRESETS = {
+  default: {
+    RATE_LIMIT_GLOBAL_TTL: 60_000,
+    RATE_LIMIT_GLOBAL_LIMIT: 60,
+    RATE_LIMIT_AUTH_TTL: 60_000,
+    RATE_LIMIT_AUTH_LIMIT: 5,
+    RATE_LIMIT_AUTH_BLOCK_DURATION: 300_000,
+    RATE_LIMIT_API_TTL: 60_000,
+    RATE_LIMIT_API_LIMIT: 100,
+  },
+  strict: {
+    RATE_LIMIT_GLOBAL_TTL: 60_000,
+    RATE_LIMIT_GLOBAL_LIMIT: 30,
+    RATE_LIMIT_AUTH_TTL: 60_000,
+    RATE_LIMIT_AUTH_LIMIT: 3,
+    RATE_LIMIT_AUTH_BLOCK_DURATION: 600_000,
+    RATE_LIMIT_API_TTL: 60_000,
+    RATE_LIMIT_API_LIMIT: 50,
+  },
+  relaxed: {
+    RATE_LIMIT_GLOBAL_TTL: 60_000,
+    RATE_LIMIT_GLOBAL_LIMIT: 120,
+    RATE_LIMIT_AUTH_TTL: 60_000,
+    RATE_LIMIT_AUTH_LIMIT: 10,
+    RATE_LIMIT_AUTH_BLOCK_DURATION: 60_000,
+    RATE_LIMIT_API_TTL: 60_000,
+    RATE_LIMIT_API_LIMIT: 200,
+  },
+} as const
+
+function applyRateLimitPreset(config: Record<string, unknown>): void {
+  const preset = (config.RATE_LIMIT_PRESET as keyof typeof RATE_LIMIT_PRESETS) ?? 'default'
+  const defaults = RATE_LIMIT_PRESETS[preset]
+  for (const [key, value] of Object.entries(defaults)) {
+    if (config[key] === undefined) config[key] = value
+  }
+}
 
 export function validate(config: Record<string, unknown>): EnvironmentVariables {
   const result = envSchema.safeParse(config)
@@ -70,7 +116,10 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
     )
   }
 
-  const validatedConfig = result.data
+  deriveFallbacks(result.data)
+  applyRateLimitPreset(result.data)
+
+  const validatedConfig = result.data as EnvironmentVariables
   validateAuthSecret(validatedConfig)
   validateResendApiKey(validatedConfig)
   validateSecurityWarnings(validatedConfig)
