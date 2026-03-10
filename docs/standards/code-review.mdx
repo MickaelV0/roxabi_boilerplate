@@ -29,6 +29,7 @@ Use this checklist for every pull request. Not every item applies to every PR â€
 - [ ] Auth guards on protected endpoints (`@UseGuards()`)
 - [ ] Rate limiting on public-facing endpoints (`@nestjs/throttler`)
 - [ ] Sensitive tokens stored in `httpOnly` cookies, not `localStorage`
+- [ ] If `@Inject(DRIZZLE)` is used, verify the file is in an allowed path (`*.repository.ts`, `admin/**`, or explicitly listed service) and has a `// RLS-BYPASS: <reason>` inline comment
 
 ### Performance
 
