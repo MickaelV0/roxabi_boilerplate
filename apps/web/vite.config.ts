@@ -21,6 +21,7 @@ function validateEnvPlugin(): Plugin {
       if (config.command === 'build') {
         const envVars = loadEnv(config.mode, config.envDir ?? process.cwd(), 'VITE_')
         const schema = z.object({
+          VITE_APP_NAME: z.string().optional(),
           VITE_GITHUB_REPO_URL: z.string().url().optional(),
           VITE_TALKS_URL: z.string().url().optional(),
           VITE_DOCS_URL: z.string().url().optional(),
