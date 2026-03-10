@@ -1,0 +1,10 @@
+# Dev-core configuration — GitHub Projects issue triage
+# Auto-populated by /init skill. Committed to repo (non-sensitive).
+github_repo: Roxabi/roxabi-boilerplate
+gh_project_id: ''
+status_field_id: ''
+size_field_id: ''
+priority_field_id: ''
+status_options_json: '{}'
+size_options_json: '{}'
+priority_options_json: '{}'

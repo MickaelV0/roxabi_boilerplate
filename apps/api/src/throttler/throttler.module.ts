@@ -28,19 +28,21 @@ import { UpstashThrottlerStorage } from './upstashThrottlerStorage.js'
           logger.warn('Rate limiting using in-memory storage — not suitable for production')
         }
 
+        // Values always defined — applyRateLimitPreset() in env.validation.ts guarantees concrete values
+        // RATE_LIMIT_API_TTL / RATE_LIMIT_API_LIMIT are reserved for a future API-key throttler tier
         return {
           throttlers: [
             {
               name: 'global',
-              ttl: config.get<number>('RATE_LIMIT_GLOBAL_TTL', 60_000),
-              limit: config.get<number>('RATE_LIMIT_GLOBAL_LIMIT', 60),
+              ttl: config.get<number>('RATE_LIMIT_GLOBAL_TTL')!,
+              limit: config.get<number>('RATE_LIMIT_GLOBAL_LIMIT')!,
               setHeaders: false,
             },
             {
               name: 'auth',
-              ttl: config.get<number>('RATE_LIMIT_AUTH_TTL', 60_000),
-              limit: config.get<number>('RATE_LIMIT_AUTH_LIMIT', 5),
-              blockDuration: config.get<number>('RATE_LIMIT_AUTH_BLOCK_DURATION', 300_000),
+              ttl: config.get<number>('RATE_LIMIT_AUTH_TTL')!,
+              limit: config.get<number>('RATE_LIMIT_AUTH_LIMIT')!,
+              blockDuration: config.get<number>('RATE_LIMIT_AUTH_BLOCK_DURATION')!,
               setHeaders: false,
             },
           ],

@@ -4,8 +4,6 @@
   "globalPassThroughEnv": [
     // Auth & App
     "BETTER_AUTH_SECRET",
-    "BETTER_AUTH_URL",
-    "CORS_ORIGIN",
     "CRON_SECRET",
     "EMAIL_FROM",
     "API_PORT",
@@ -13,6 +11,7 @@
     "EMAIL_PORT",
     "LOG_LEVEL",
     "RATE_LIMIT_ENABLED",
+    "RATE_LIMIT_PRESET",
     "RATE_LIMIT_GLOBAL_TTL",
     "RATE_LIMIT_GLOBAL_LIMIT",
     "RATE_LIMIT_AUTH_TTL",
@@ -71,7 +70,7 @@
         "!**/*.stories.{tsx,mdx}"
       ],
       "outputs": ["dist/**", ".output/**", ".vercel/output/**", ".next/**", "build/**"],
-      "env": ["API_URL", "APP_URL", "KV_*", "REDIS_*", "VITE_*"]
+      "env": ["API_URL", "APP_NAME", "APP_URL", "KV_*", "REDIS_*", "VITE_*"]
     },
     "typecheck": {
       "dependsOn": ["codegen", "^typecheck", "^build"],
