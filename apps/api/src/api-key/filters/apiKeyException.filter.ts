@@ -3,6 +3,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify'
 import { ClsService } from 'nestjs-cls'
 import { sendErrorResponse } from '../../common/filters/sendErrorResponse.js'
 import { ApiKeyExpiryInPastException } from '../exceptions/apiKeyExpiryInPast.exception.js'
+import { ApiKeyNoActiveOrgException } from '../exceptions/apiKeyNoActiveOrg.exception.js'
 import { ApiKeyNotFoundException } from '../exceptions/apiKeyNotFound.exception.js'
 import { ApiKeyScopesExceededException } from '../exceptions/apiKeyScopesExceeded.exception.js'
 
@@ -10,8 +11,14 @@ type ApiKeyException =
   | ApiKeyNotFoundException
   | ApiKeyScopesExceededException
   | ApiKeyExpiryInPastException
+  | ApiKeyNoActiveOrgException
 
-@Catch(ApiKeyNotFoundException, ApiKeyScopesExceededException, ApiKeyExpiryInPastException)
+@Catch(
+  ApiKeyNotFoundException,
+  ApiKeyScopesExceededException,
+  ApiKeyExpiryInPastException,
+  ApiKeyNoActiveOrgException
+)
 export class ApiKeyExceptionFilter implements ExceptionFilter {
   constructor(private readonly cls: ClsService) {}
 

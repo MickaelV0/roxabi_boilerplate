@@ -173,34 +173,6 @@ describe('DrizzleRbacRepository', () => {
     })
   })
 
-  describe('checkSlugCollision', () => {
-    it('should return existing role when slug collides', async () => {
-      // Arrange
-      const { tx, terminal } = createMockTx()
-      terminal.mockResolvedValueOnce([{ id: 'role-1' }])
-      const repo = new DrizzleRbacRepository(createMockDb().db as never)
-
-      // Act
-      const result = await repo.checkSlugCollision('org-1', 'admin', tx as never)
-
-      // Assert
-      expect(result).toEqual({ id: 'role-1' })
-    })
-
-    it('should return undefined when no collision', async () => {
-      // Arrange
-      const { tx, terminal } = createMockTx()
-      terminal.mockResolvedValueOnce([])
-      const repo = new DrizzleRbacRepository(createMockDb().db as never)
-
-      // Act
-      const result = await repo.checkSlugCollision('org-1', 'new-slug', tx as never)
-
-      // Assert
-      expect(result).toBeUndefined()
-    })
-  })
-
   describe('findRoleById', () => {
     it('should return role when found', async () => {
       // Arrange

@@ -886,7 +886,7 @@ describe('ApiKeyService', () => {
       expect(() => service.touchLastUsedAt(keyId)).not.toThrow()
 
       // Assert
-      expect(mockRepo.touchLastUsedAt).toHaveBeenCalledWith(keyId)
+      expect(mockRepo.touchLastUsedAt).toHaveBeenCalledWith(keyId, expect.any(Date))
     })
 
     it('should return undefined synchronously (fire-and-forget — callers must not await)', () => {

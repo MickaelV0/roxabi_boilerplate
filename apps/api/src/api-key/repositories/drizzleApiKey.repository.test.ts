@@ -269,7 +269,7 @@ describe('DrizzleApiKeyRepository', () => {
       const repo = new DrizzleApiKeyRepository(db as never)
 
       // Act
-      await repo.touchLastUsedAt('key-1')
+      await repo.touchLastUsedAt('key-1', new Date('2025-06-01'))
 
       // Assert
       expect(db.update).toHaveBeenCalled()

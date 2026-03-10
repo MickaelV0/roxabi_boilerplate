@@ -45,20 +45,6 @@ export class DrizzleRbacRepository implements RbacRepository {
     return role
   }
 
-  async checkSlugCollision(
-    tenantId: string,
-    slug: string,
-    tx: DrizzleTx
-  ): Promise<{ id: string } | undefined> {
-    const qb = tx ?? this.db
-    const [collision] = await qb
-      .select({ id: roles.id })
-      .from(roles)
-      .where(and(eq(roles.tenantId, tenantId), eq(roles.slug, slug)))
-      .limit(1)
-    return collision
-  }
-
   async findRoleById(roleId: string, tx?: DrizzleTx): Promise<RoleRow | undefined> {
     const qb = tx ?? this.db
     const [role] = await qb.select().from(roles).where(eq(roles.id, roleId)).limit(1)
@@ -67,7 +53,7 @@ export class DrizzleRbacRepository implements RbacRepository {
 
   async updateRole(
     roleId: string,
-    updates: Record<string, unknown>,
+    updates: { name?: string; slug?: string; description?: string | null },
     tx?: DrizzleTx
   ): Promise<void> {
     const qb = tx ?? this.db

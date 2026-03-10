@@ -89,13 +89,13 @@ export class RbacService {
       }
 
       // Update role fields
-      const updates: Record<string, unknown> = {}
+      const updates: { name?: string; slug?: string; description?: string | null } = {}
       if (data.name !== undefined) {
         const newSlug = slugify(data.name)
         const tenantId = this.cls.get('tenantId') as string
         // Ensure the new slug doesn't collide with an existing role in the tenant
         if (newSlug !== existing.slug) {
-          const collision = await this.repo.checkSlugCollision(tenantId, newSlug, tx)
+          const collision = await this.repo.findRoleBySlug(tenantId, newSlug, tx)
           if (collision) {
             throw new RoleSlugConflictException(newSlug)
           }

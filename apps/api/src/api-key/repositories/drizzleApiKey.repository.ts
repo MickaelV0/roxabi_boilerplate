@@ -105,9 +105,9 @@ export class DrizzleApiKeyRepository implements ApiKeyRepository {
       .limit(10)
   }
 
-  async touchLastUsedAt(id: string, tx?: DrizzleTx): Promise<void> {
+  async touchLastUsedAt(id: string, now: Date, tx?: DrizzleTx): Promise<void> {
     const qb = tx ?? this.db
-    await qb.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, id))
+    await qb.update(apiKeys).set({ lastUsedAt: now }).where(eq(apiKeys.id, id))
   }
 
   async revokeAllForUser(userId: string, now: Date, tx?: DrizzleTx): Promise<void> {

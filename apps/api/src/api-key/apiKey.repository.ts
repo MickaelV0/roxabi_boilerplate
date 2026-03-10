@@ -67,7 +67,7 @@ export interface ApiKeyRepository {
 
   findCandidatesByLastFour(lastFour: string, tx?: DrizzleTx): Promise<ApiKeyValidationRow[]>
 
-  touchLastUsedAt(id: string, tx?: DrizzleTx): Promise<void>
+  touchLastUsedAt(id: string, now: Date, tx?: DrizzleTx): Promise<void>
 
   revokeAllForUser(userId: string, now: Date, tx?: DrizzleTx): Promise<void>
 

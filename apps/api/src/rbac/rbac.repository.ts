@@ -32,15 +32,13 @@ export interface RbacRepository {
     tx?: DrizzleTx
   ): Promise<RoleRow | undefined>
 
-  checkSlugCollision(
-    tenantId: string,
-    slug: string,
-    tx?: DrizzleTx
-  ): Promise<{ id: string } | undefined>
-
   findRoleById(roleId: string, tx?: DrizzleTx): Promise<RoleRow | undefined>
 
-  updateRole(roleId: string, updates: Record<string, unknown>, tx?: DrizzleTx): Promise<void>
+  updateRole(
+    roleId: string,
+    updates: { name?: string; slug?: string; description?: string | null },
+    tx?: DrizzleTx
+  ): Promise<void>
 
   deleteRolePermissions(roleId: string, tx?: DrizzleTx): Promise<void>
 

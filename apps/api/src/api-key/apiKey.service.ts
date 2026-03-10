@@ -1,5 +1,5 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { ClsService } from 'nestjs-cls'
 import { AuditService } from '../audit/audit.service.js'
 import type { AuthenticatedSession } from '../auth/types.js'
@@ -7,6 +7,7 @@ import { API_KEY_REPO, type ApiKeyRepository } from './apiKey.repository.js'
 import { ApiKeyExpiryInPastException } from './exceptions/apiKeyExpiryInPast.exception.js'
 import { ApiKeyInsertFailedException } from './exceptions/apiKeyInsertFailed.exception.js'
 import { ApiKeyInvalidException } from './exceptions/apiKeyInvalid.exception.js'
+import { ApiKeyNoActiveOrgException } from './exceptions/apiKeyNoActiveOrg.exception.js'
 import { ApiKeyNotFoundException } from './exceptions/apiKeyNotFound.exception.js'
 import { ApiKeyScopesExceededException } from './exceptions/apiKeyScopesExceeded.exception.js'
 
@@ -74,7 +75,7 @@ export class ApiKeyService {
 
   private requireOrgId(session: AuthenticatedSession): string {
     const orgId = session.session.activeOrganizationId
-    if (!orgId) throw new BadRequestException('Active organization required')
+    if (!orgId) throw new ApiKeyNoActiveOrgException()
     return orgId
   }
 
@@ -205,7 +206,7 @@ export class ApiKeyService {
   }
 
   touchLastUsedAt(id: string): void {
-    this.repo.touchLastUsedAt(id).catch((err) => {
+    this.repo.touchLastUsedAt(id, new Date()).catch((err) => {
       this.logger.error(`[touchLastUsedAt] Failed to update lastUsedAt for key ${id}`, err)
     })
   }

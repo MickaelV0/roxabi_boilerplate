@@ -14,7 +14,6 @@ function createMockRbacRepo(): RbacRepository {
     listRoles: vi.fn(),
     findRoleBySlug: vi.fn(),
     insertRole: vi.fn(),
-    checkSlugCollision: vi.fn(),
     findRoleById: vi.fn(),
     updateRole: vi.fn(),
     deleteRolePermissions: vi.fn(),
@@ -118,7 +117,7 @@ describe('RbacService', () => {
       ;(mockRepo.findRoleById as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce(existingRole)
         .mockResolvedValueOnce(updatedRole)
-      ;(mockRepo.checkSlugCollision as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
+      ;(mockRepo.findRoleBySlug as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
       ;(mockRepo.updateRole as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
 
       const service = new RbacService(mockTenantService, mockCls, mockRepo as never)
