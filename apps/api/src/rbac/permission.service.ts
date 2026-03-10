@@ -14,7 +14,7 @@ import { permissions, rolePermissions } from '../database/schema/rbac.schema.js'
  */
 @Injectable()
 export class PermissionService {
-  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {} // RLS-BYPASS: RBAC resolution — cross-tenant permission queries
 
   /**
    * Resolve permissions for a user in an organization.

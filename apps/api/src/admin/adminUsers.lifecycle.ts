@@ -27,7 +27,7 @@ export class AdminUsersLifecycleService {
   private readonly logger = new Logger(AdminUsersLifecycleService.name)
 
   constructor(
-    @Inject(DRIZZLE) private readonly db: DrizzleDB,
+    @Inject(DRIZZLE) private readonly db: DrizzleDB, // RLS-BYPASS: superadmin — user lifecycle (ban/unban/delete)
     private readonly auditService: AuditService,
     private readonly cls: ClsService
   ) {}

@@ -25,7 +25,7 @@ export class AdminOrganizationsDeletionService {
   private readonly logger = new Logger(AdminOrganizationsDeletionService.name)
 
   constructor(
-    @Inject(DRIZZLE) private readonly db: DrizzleDB,
+    @Inject(DRIZZLE) private readonly db: DrizzleDB, // RLS-BYPASS: superadmin — org deletion across tenants
     private readonly auditService: AuditService,
     private readonly cls: ClsService
   ) {}

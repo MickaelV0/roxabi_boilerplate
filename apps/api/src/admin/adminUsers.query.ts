@@ -31,7 +31,7 @@ import { escapeIlikePattern } from './utils/escapeIlikePattern.js'
  */
 @Injectable()
 export class AdminUsersQueryService {
-  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {} // RLS-BYPASS: superadmin — cross-tenant user queries
 
   /**
    * List users with cursor-based pagination and optional filters.
