@@ -44,7 +44,19 @@ const TOOLING_ALLOWLIST = new Set([
  * Keys that are in Zod schemas but intentionally absent from .env.example.
  * These are derived at runtime from other vars (e.g. CORS_ORIGIN from APP_URL).
  */
-const DERIVED_VARS = new Set(['CORS_ORIGIN', 'BETTER_AUTH_URL', 'VITE_APP_NAME'])
+const DERIVED_VARS = new Set([
+  'CORS_ORIGIN',
+  'BETTER_AUTH_URL',
+  'VITE_APP_NAME',
+  // Individual rate limit vars — derived from RATE_LIMIT_PRESET at runtime
+  'RATE_LIMIT_GLOBAL_TTL',
+  'RATE_LIMIT_GLOBAL_LIMIT',
+  'RATE_LIMIT_AUTH_TTL',
+  'RATE_LIMIT_AUTH_LIMIT',
+  'RATE_LIMIT_AUTH_BLOCK_DURATION',
+  'RATE_LIMIT_API_TTL',
+  'RATE_LIMIT_API_LIMIT',
+])
 
 /** Prefix for client-side environment variables exposed by Vite. */
 // biome-ignore lint/correctness/noUnusedVariables: documentation constant for future use
