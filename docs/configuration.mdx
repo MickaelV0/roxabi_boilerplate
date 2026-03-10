@@ -98,6 +98,7 @@ bun db:reset && bun db:seed
 | `APP_URL` | Frontend URL | `http://localhost:3000` |
 | `API_URL` | Backend URL | `http://localhost:4000` |
 | `GITHUB_TOKEN` | GitHub API access | - |
+| `APP_NAME` | Application name (emails, Swagger, page titles) | `App` |
 
 ### Docker Overrides (local dev — multi-project)
 
@@ -117,6 +118,7 @@ Set these in `.env` before running `bun db:up`. The branch database scripts (`db
 
 | Variable | Description | Default |
 |----------|-------------|---------|
+| `VITE_APP_NAME` | Application name shown in UI (logo, titles, footer) | `App` |
 | `VITE_GITHUB_REPO_URL` | GitHub repository URL shown in UI | - |
 
 ### Claude Code Agent Teams
@@ -150,6 +152,7 @@ Agent definitions are in `.claude/agents/*.md`. See the [Agent Teams Guide](./gu
 | `APP_URL` | API, Web | No | — | Server | Frontend URL |
 | `CORS_ORIGIN` | API | No | `http://localhost:3000` | Server | Allowed CORS origin |
 | `LOG_LEVEL` | API | No | `debug` | Server | Log verbosity |
+| `APP_NAME` | API, Web, Docs | No | `App` | Server | Application name (emails, Swagger, fixtures) |
 
 ### Database
 
@@ -203,6 +206,7 @@ Agent definitions are in `.claude/agents/*.md`. See the [Agent Teams Guide](./gu
 
 | Variable | App | Required | Default | Scope | Description |
 |----------|-----|----------|---------|-------|-------------|
+| `VITE_APP_NAME` | Web | No | `App` | Client | Application name (page titles, logo, footer) |
 | `VITE_GITHUB_REPO_URL` | Web | No | — | Client | GitHub URL in header |
 
 ### Docker (local dev)
