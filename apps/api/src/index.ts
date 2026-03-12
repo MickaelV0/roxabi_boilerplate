@@ -166,7 +166,10 @@ async function bootstrap() {
   // is type-level only. SWAGGER_ENABLED is pre-validated as a native boolean by the Zod
   // schema in env.validation.ts before ConfigService is populated.
   const swaggerEnabled = configService.get<boolean>('SWAGGER_ENABLED', nodeEnv === 'development')
-  const v1SwaggerEnabled = configService.get<boolean>('V1_SWAGGER_ENABLED', true)
+  const v1SwaggerEnabled = configService.get<boolean>(
+    'V1_SWAGGER_ENABLED',
+    nodeEnv === 'development'
+  )
 
   await configureSecurityHeaders(app, swaggerEnabled, v1SwaggerEnabled)
   registerRateLimitHeadersHook(app)

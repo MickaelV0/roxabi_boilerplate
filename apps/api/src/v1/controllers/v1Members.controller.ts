@@ -52,15 +52,18 @@ export class V1MembersController {
   ): Promise<V1PaginatedResponse<V1MemberResponse>> {
     const clampedPage = Math.max(1, page)
     const clampedLimit = Math.min(Math.max(1, limit), MAX_PAGE_LIMIT)
+    const safeSearch = search?.trim() || undefined
     const orgId = session.session.activeOrganizationId
 
     const result = await this.adminMembersService.listMembers(orgId, {
       page: clampedPage,
       limit: clampedLimit,
-      search,
+      search: safeSearch,
     })
 
     return {
+      // Coupled to AdminMembersService.listMembers return shape — if service renames
+      // member.user.name, this mapping breaks. Consider a typed return interface.
       data: result.data.map((member) => ({
         id: member.id,
         userId: member.userId,

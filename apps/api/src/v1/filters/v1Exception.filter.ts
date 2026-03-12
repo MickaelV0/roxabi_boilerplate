@@ -59,22 +59,18 @@ export class V1ExceptionFilter implements ExceptionFilter {
 
   private errorCodeToStatus(code: string): number {
     if (code.endsWith('_NOT_FOUND')) return HttpStatus.NOT_FOUND
-    if (
-      code.endsWith('_UNAUTHORIZED') ||
-      code.endsWith('_INVALID') ||
-      code.endsWith('_REQUIRED') ||
-      code.endsWith('_REVOKED') ||
-      code.endsWith('_EXPIRED')
-    )
+    if (code.endsWith('_UNAUTHORIZED') || code.endsWith('_REQUIRED') || code.endsWith('_EXPIRED'))
       return HttpStatus.UNAUTHORIZED
+    if (code.endsWith('_INVALID') || code.endsWith('_VALIDATION') || code.endsWith('_IN_PAST'))
+      return HttpStatus.BAD_REQUEST
     if (
+      code.endsWith('_REVOKED') ||
       code.endsWith('_SCOPE_DENIED') ||
       code.endsWith('_CONSTRAINT') ||
       code.endsWith('_PROTECTION')
     )
       return HttpStatus.FORBIDDEN
     if (code.endsWith('_CONFLICT') || code.includes('_ALREADY_')) return HttpStatus.CONFLICT
-    if (code.endsWith('_VALIDATION') || code.endsWith('_IN_PAST')) return HttpStatus.BAD_REQUEST
     return HttpStatus.INTERNAL_SERVER_ERROR
   }
 

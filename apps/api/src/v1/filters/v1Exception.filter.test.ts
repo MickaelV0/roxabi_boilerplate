@@ -225,6 +225,36 @@ describe('V1ExceptionFilter', () => {
       })
     })
 
+    it('maps _INVALID errorCode to 400', () => {
+      // Arrange
+      const exception = Object.assign(new Error('Invalid input'), {
+        errorCode: 'EMAIL_INVALID',
+      })
+
+      // Act
+      filter.catch(exception, host as never)
+
+      // Assert
+      expect(sendMock).toHaveBeenCalledWith({
+        error: { code: 'EMAIL_INVALID', message: 'Invalid input', statusCode: 400 },
+      })
+    })
+
+    it('maps _REVOKED errorCode to 403', () => {
+      // Arrange
+      const exception = Object.assign(new Error('Key revoked'), {
+        errorCode: 'API_KEY_REVOKED',
+      })
+
+      // Act
+      filter.catch(exception, host as never)
+
+      // Assert
+      expect(sendMock).toHaveBeenCalledWith({
+        error: { code: 'API_KEY_REVOKED', message: 'Key revoked', statusCode: 403 },
+      })
+    })
+
     it('maps _VALIDATION errorCode to 400', () => {
       // Arrange
       const exception = Object.assign(new Error('Input validation failed'), {

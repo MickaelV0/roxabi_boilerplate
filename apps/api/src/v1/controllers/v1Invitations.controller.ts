@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  HttpException,
   HttpStatus,
   Param,
   ParseUUIDPipe,
@@ -21,6 +22,9 @@ import { ZodValidationPipe } from '../../common/pipes/zodValidation.pipe.js'
 import type { V1InvitationResponse } from '../dto/v1Responses.js'
 import { V1ExceptionFilter } from '../filters/v1Exception.filter.js'
 
+// Coupled to AdminInvitationsService invitation TTL (7 days).
+// invitations table has no createdAt — invitedAt is derived as expiresAt - TTL.
+// If the service-side TTL changes, this constant must be updated.
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 const createInvitationSchema = z.object({
@@ -82,7 +86,10 @@ export class V1InvitationsController {
       session.user.id
     )
     if (!invitation) {
-      throw new Error('Invitation creation failed: no record returned')
+      throw new HttpException(
+        'Invitation creation failed: no record returned',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
     }
     return mapToInvitationResponse(invitation)
   }
