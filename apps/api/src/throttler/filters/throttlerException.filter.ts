@@ -44,7 +44,8 @@ export class ThrottlerExceptionFilter implements ExceptionFilter {
       path,
       correlationId,
       message: 'Too Many Requests',
-      errorCode: ErrorCode.RATE_LIMIT_EXCEEDED,
+      errorCode:
+        meta?.tierName === 'api' ? ErrorCode.API_KEY_RATE_LIMITED : ErrorCode.RATE_LIMIT_EXCEEDED,
     })
 
     // Log at warn level (not error) with structured context

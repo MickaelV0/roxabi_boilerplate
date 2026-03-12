@@ -47,6 +47,46 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
       return true
     }
 
+    // Skip api tier for non-API-key requests
+    if (throttler.name === 'api') {
+      const { req: apiReq } = this.getRequestResponse(context)
+      const session = apiReq.session as { actorType?: string; apiKeyId?: string } | undefined
+      if (session?.actorType !== 'api_key' || !session.apiKeyId) return true
+
+      const tracker = `apikey:${session.apiKeyId}`
+      const key = generateKey(context, tracker, 'api')
+
+      const { totalHits, timeToExpire, isBlocked, timeToBlockExpire } =
+        await this.storageService.increment(key, ttl, limit, blockDuration, 'api')
+
+      const remaining = Math.max(0, limit - totalHits)
+      const reset = Math.floor(Date.now() / 1000) + Math.ceil(timeToExpire / 1000)
+
+      apiReq.throttlerMeta = {
+        limit,
+        remaining,
+        reset,
+        tierName: 'api',
+        tracker,
+      }
+
+      if (isBlocked || totalHits > limit) {
+        apiReq.throttlerMeta.remaining = 0
+        await this.throwThrottlingException(context, {
+          limit,
+          ttl,
+          key,
+          tracker,
+          totalHits,
+          timeToExpire,
+          isBlocked,
+          timeToBlockExpire,
+        })
+      }
+
+      return true
+    }
+
     const { req } = this.getRequestResponse(context)
     const tracker = await this.getTracker(req)
     const key = generateKey(context, tracker, throttler.name ?? 'default')
