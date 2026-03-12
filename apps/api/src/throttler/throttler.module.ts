@@ -30,7 +30,6 @@ import { UpstashThrottlerStorage } from './upstashThrottlerStorage.js'
         }
 
         // Values always defined — applyRateLimitPreset() in env.validation.ts guarantees concrete values
-        // RATE_LIMIT_API_TTL / RATE_LIMIT_API_LIMIT are reserved for a future API-key throttler tier
         return {
           throttlers: [
             {
@@ -44,6 +43,12 @@ import { UpstashThrottlerStorage } from './upstashThrottlerStorage.js'
               ttl: config.get<number>('RATE_LIMIT_AUTH_TTL')!,
               limit: config.get<number>('RATE_LIMIT_AUTH_LIMIT')!,
               blockDuration: config.get<number>('RATE_LIMIT_AUTH_BLOCK_DURATION')!,
+              setHeaders: false,
+            },
+            {
+              name: 'api',
+              ttl: config.get<number>('RATE_LIMIT_API_TTL')!,
+              limit: config.get<number>('RATE_LIMIT_API_LIMIT')!,
               setHeaders: false,
             },
           ],

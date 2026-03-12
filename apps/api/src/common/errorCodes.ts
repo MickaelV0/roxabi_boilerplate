@@ -68,6 +68,7 @@ export const ErrorCode = {
   FEATURE_FLAG_CREATE_FAILED: 'FEATURE_FLAG_CREATE_FAILED',
   // Rate Limiting
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
+  API_KEY_RATE_LIMITED: 'API_KEY_RATE_LIMITED',
 } as const
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode]

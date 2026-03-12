@@ -32,6 +32,11 @@ class TestController {
     return { message: 'session' }
   }
 
+  @Get('api/key-test')
+  getKeyTest() {
+    return { message: 'ok' }
+  }
+
   @Get('health')
   @SkipThrottle()
   getHealth() {
@@ -43,7 +48,7 @@ class TestController {
  * Helper: inject the NestJS Fastify app and return a function that makes HTTP requests.
  * Uses app.inject() — Fastify's built-in lightweight HTTP testing (no real TCP server needed).
  */
-async function createTestApp(globalLimit = 3) {
+async function createTestApp(globalLimit = 3, apiLimit = 3, apiKeyId?: string) {
   const moduleRef = await Test.createTestingModule({
     imports: [
       ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true }),
@@ -67,6 +72,12 @@ async function createTestApp(globalLimit = 3) {
             ttl: 60_000,
             limit: 2,
             blockDuration: 60_000,
+            setHeaders: false,
+          },
+          {
+            name: 'api',
+            ttl: 60_000,
+            limit: apiLimit,
             setHeaders: false,
           },
         ],
@@ -93,6 +104,21 @@ async function createTestApp(globalLimit = 3) {
   const { registerRateLimitHeadersHook } = await import('./index.js')
   registerRateLimitHeadersHook(app)
 
+  // Register preHandler hook to simulate API key auth on /api/key-test
+  // Must be registered before app.init() — Fastify rejects addHook after listening
+  if (apiKeyId) {
+    app
+      .getHttpAdapter()
+      .getInstance()
+      // biome-ignore lint/suspicious/noExplicitAny: Fastify raw request type
+      .addHook('preHandler', (request: any, _reply: any, done: () => void) => {
+        if ((request.url as string)?.startsWith('/api/key-test')) {
+          request.session = { apiKeyId }
+        }
+        done()
+      })
+  }
+
   await app.init()
   await app.getHttpAdapter().getInstance().ready()
 
@@ -103,8 +129,13 @@ async function createTestApp(globalLimit = 3) {
  * Helper: make an HTTP request using Fastify's inject() method.
  * This avoids the need for a real TCP server.
  */
-async function inject(app: NestFastifyApplication, method: string, url: string) {
-  return app.inject({ method: method as 'GET', url })
+async function inject(
+  app: NestFastifyApplication,
+  method: string,
+  url: string,
+  headers?: Record<string, string>
+) {
+  return app.inject({ method: method as 'GET', url, headers })
 }
 
 describe('Rate Limiting Integration', () => {
@@ -165,6 +196,67 @@ describe('Rate Limiting Integration', () => {
       expect(response.headers['x-ratelimit-reset']).toBeUndefined()
     } finally {
       await freshApp.close()
+    }
+  })
+
+  it('should return 429 with API_KEY_RATE_LIMITED when api key exceeds limit', async () => {
+    // Arrange -- create a fresh app with api limit of 2, api key pre-set via preHandler
+    const apiApp = await createTestApp(100, 2, 'test-key-uuid')
+
+    try {
+      // Act -- make requests up to and beyond the api tier limit
+      const first = await inject(apiApp, 'GET', '/api/key-test')
+      const second = await inject(apiApp, 'GET', '/api/key-test')
+      const third = await inject(apiApp, 'GET', '/api/key-test')
+
+      // Assert
+      expect(first.statusCode).toBe(200)
+      expect(second.statusCode).toBe(200)
+      expect(third.statusCode).toBe(429)
+
+      const body = JSON.parse(third.body)
+      expect(body.message).toBe('Too Many Requests')
+      expect(body.errorCode).toBe('API_KEY_RATE_LIMITED')
+      expect(third.headers['retry-after']).toBeDefined()
+      expect(third.headers['x-ratelimit-remaining']).toBe('0')
+    } finally {
+      await apiApp.close()
+    }
+  })
+
+  it('should include X-RateLimit-* headers on API key success responses', async () => {
+    // Arrange -- create a fresh app with a high api limit, api key pre-set via preHandler
+    const apiApp = await createTestApp(100, 100, 'test-key-headers')
+
+    try {
+      // Act
+      const response = await inject(apiApp, 'GET', '/api/key-test')
+
+      // Assert
+      expect(response.statusCode).toBe(200)
+      expect(response.headers['x-ratelimit-limit']).toBeDefined()
+      expect(response.headers['x-ratelimit-remaining']).toBeDefined()
+      expect(response.headers['x-ratelimit-reset']).toBeDefined()
+    } finally {
+      await apiApp.close()
+    }
+  })
+
+  it('should not apply api tier to non-API-key requests', async () => {
+    // Arrange -- create app with very low api limit (no apiKeyId set on session)
+    const apiApp = await createTestApp(10, 1)
+    // No registerApiKeyHook — requests go without session.apiKeyId
+
+    try {
+      // Act -- make multiple requests beyond api limit; should still succeed (global limit is 10)
+      const first = await inject(apiApp, 'GET', '/api/key-test')
+      const second = await inject(apiApp, 'GET', '/api/key-test')
+
+      // Assert -- both should succeed because api tier is skipped for non-API-key requests
+      expect(first.statusCode).toBe(200)
+      expect(second.statusCode).toBe(200)
+    } finally {
+      await apiApp.close()
     }
   })
 
