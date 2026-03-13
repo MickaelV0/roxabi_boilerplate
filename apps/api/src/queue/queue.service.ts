@@ -38,12 +38,12 @@ export class QueueService implements OnModuleInit, OnApplicationShutdown, QueueE
     this.logger.log('pg-boss started')
 
     for (const queue of this.queues) {
-      await this.boss.createQueue(queue.name, {
-        retryLimit: queue.retryLimit,
-        retryDelay: queue.retryDelay,
-        retryBackoff: queue.retryBackoff,
-        deadLetter: queue.deadLetter,
-      })
+      const opts: Record<string, unknown> = {}
+      if (queue.retryLimit !== undefined) opts.retryLimit = queue.retryLimit
+      if (queue.retryDelay !== undefined) opts.retryDelay = queue.retryDelay
+      if (queue.retryBackoff !== undefined) opts.retryBackoff = queue.retryBackoff
+      if (queue.deadLetter !== undefined) opts.deadLetter = queue.deadLetter
+      await this.boss.createQueue(queue.name, opts)
       this.logger.log(`Queue registered: ${queue.name}`)
     }
 
