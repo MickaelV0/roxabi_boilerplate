@@ -7,6 +7,12 @@ import {
 } from '../../common/events/emailSendFailed.event.js'
 import type { EmailJobPayload } from './email.handler.js'
 
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@')
+  if (!(local && domain)) return '***'
+  return `${local[0]}***@${domain}`
+}
+
 @Injectable()
 export class EmailDlqHandler {
   private readonly logger = new Logger(EmailDlqHandler.name)
@@ -16,7 +22,7 @@ export class EmailDlqHandler {
   async handle(jobs: Job<object>[]): Promise<void> {
     for (const job of jobs) {
       const { to, subject } = (job.data ?? {}) as Partial<EmailJobPayload>
-      const errorMsg = `Email permanently failed after retries (job ${job.id}): to=${to}, subject=${subject}`
+      const errorMsg = `Email permanently failed after retries (job ${job.id}): to=${maskEmail(to ?? 'unknown')}, subject=${subject}`
       this.logger.error(errorMsg)
 
       const error = new Error(errorMsg)

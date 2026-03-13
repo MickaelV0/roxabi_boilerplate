@@ -106,6 +106,25 @@ describe('EmailQueueHandler', () => {
       expect(mockEmailProvider.send).not.toHaveBeenCalled()
     })
 
+    it('destructures missing fields as undefined from corrupted job data', async () => {
+      // Arrange
+      const corruptedJob = {
+        ...makeJob(),
+        data: { to: 'user@test.com' }, // missing subject, html, text
+      } as unknown as Job<object>
+
+      // Act
+      await handler.handle([corruptedJob])
+
+      // Assert
+      expect(mockEmailProvider.send).toHaveBeenCalledWith({
+        to: 'user@test.com',
+        subject: undefined,
+        html: undefined,
+        text: undefined,
+      })
+    })
+
     it('passes text as undefined when not provided in job data', async () => {
       // Arrange
       const job = makeJob({

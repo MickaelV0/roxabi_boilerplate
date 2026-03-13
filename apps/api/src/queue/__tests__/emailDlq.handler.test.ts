@@ -88,7 +88,7 @@ describe('EmailDlqHandler', () => {
       await handler.handle(jobs)
 
       // Assert
-      expect(mockEventEmitter.emit).toHaveBeenCalledWith('email.send.failed', expect.any(Object))
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(EMAIL_SEND_FAILED, expect.any(Object))
     })
 
     it('emits event with "unknown" fallback when job data is missing to/subject', async () => {
@@ -109,6 +109,17 @@ describe('EmailDlqHandler', () => {
           subject: 'unknown',
         })
       )
+    })
+
+    it('propagates error when eventEmitter.emit() throws', async () => {
+      // Arrange
+      mockEventEmitter.emit.mockImplementation(() => {
+        throw new Error('EventEmitter failure')
+      })
+      const jobs = [makeJob()]
+
+      // Act & Assert
+      await expect(handler.handle(jobs)).rejects.toThrow('EventEmitter failure')
     })
 
     it('handles empty job list without emitting events', async () => {
@@ -135,7 +146,7 @@ describe('EmailDlqHandler', () => {
       const emittedEvent = calls[0]?.[1] as EmailSendFailedEvent
       expect(emittedEvent.error).toBeInstanceOf(Error)
       expect(emittedEvent.error.message).toContain('job-xyz')
-      expect(emittedEvent.error.message).toContain('fail@example.com')
+      expect(emittedEvent.error.message).toContain('f***@example.com')
     })
   })
 })

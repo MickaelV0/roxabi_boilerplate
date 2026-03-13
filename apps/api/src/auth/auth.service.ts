@@ -7,7 +7,7 @@ import {
   OrganizationCreatedEvent,
 } from '../common/events/organizationCreated.event.js'
 import { DRIZZLE, type DrizzleDB } from '../database/drizzle.provider.js'
-import { QueueService } from '../queue/queue.service.js'
+import { QUEUE_SERVICE, type QueueEnqueuer } from '../queue/queue.provider.js'
 import { type BetterAuthInstance, createBetterAuth } from './auth.instance.js'
 import { toFetchHeaders } from './fastifyHeaders.js'
 
@@ -18,7 +18,7 @@ export class AuthService {
 
   constructor(
     @Inject(DRIZZLE) db: DrizzleDB, // RLS-BYPASS: better-auth-adapter
-    private readonly queueService: QueueService,
+    @Inject(QUEUE_SERVICE) private readonly queueService: QueueEnqueuer,
     config: ConfigService,
     private readonly eventEmitter: EventEmitter2
   ) {

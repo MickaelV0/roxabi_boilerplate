@@ -18,7 +18,7 @@ import { toError } from '../common/utils/toError.js'
 import type { DrizzleDB } from '../database/drizzle.provider.js'
 import { users } from '../database/schema/auth.schema.js'
 import { QUEUE_NAMES } from '../queue/queue.constants.js'
-import type { QueueService } from '../queue/queue.service.js'
+import type { QueueEnqueuer } from '../queue/queue.provider.js'
 
 const logger = new Logger('AuthInstance')
 
@@ -63,7 +63,7 @@ function buildSocialProviders(config: AuthInstanceConfig): Record<string, unknow
   return socialProviders
 }
 
-function buildEmailAndPasswordConfig(queueService: QueueService, config: AuthInstanceConfig) {
+function buildEmailAndPasswordConfig(queueService: QueueEnqueuer, config: AuthInstanceConfig) {
   return {
     enabled: true,
     requireEmailVerification: true,
@@ -136,7 +136,7 @@ function buildEmailAndPasswordConfig(queueService: QueueService, config: AuthIns
   }
 }
 
-function buildEmailVerificationConfig(queueService: QueueService, config: AuthInstanceConfig) {
+function buildEmailVerificationConfig(queueService: QueueEnqueuer, config: AuthInstanceConfig) {
   return {
     // Better Auth applies server-side rate limiting on verification email sends
     // (rateLimit plugin). Client-side cooldown (60s) is UX guidance only.
@@ -182,7 +182,7 @@ function buildEmailVerificationConfig(queueService: QueueService, config: AuthIn
 
 function buildMagicLinkPlugin(
   db: DrizzleDB,
-  queueService: QueueService,
+  queueService: QueueEnqueuer,
   config: AuthInstanceConfig
 ) {
   return magicLink({
@@ -251,7 +251,7 @@ function buildOrganizationPlugin(onOrganizationCreated?: OrganizationCreatedCall
 
 export function createBetterAuth(
   db: DrizzleDB,
-  queueService: QueueService,
+  queueService: QueueEnqueuer,
   config: AuthInstanceConfig,
   onOrganizationCreated?: OrganizationCreatedCallback
 ) {

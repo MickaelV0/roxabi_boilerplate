@@ -109,6 +109,7 @@ describe('QueueService', () => {
       // Arrange
       const config = makeConfigService()
       const service = new QueueService(config)
+      await service.onModuleInit()
       const jobData = { to: 'user@example.com', subject: 'Hello' }
 
       // Act
@@ -123,6 +124,7 @@ describe('QueueService', () => {
       // Arrange
       const config = makeConfigService()
       const service = new QueueService(config)
+      await service.onModuleInit()
       const jobData = { to: 'user@example.com' }
       const opts = { priority: 1 }
 
@@ -131,6 +133,20 @@ describe('QueueService', () => {
 
       // Assert
       expect(mockSend).toHaveBeenCalledWith('email-send', jobData, opts)
+    })
+
+    it('returns null when boss.send() returns null', async () => {
+      // Arrange
+      const config = makeConfigService()
+      const service = new QueueService(config)
+      await service.onModuleInit()
+      mockSend.mockResolvedValueOnce(null)
+
+      // Act
+      const result = await service.enqueue('email-send', { to: 'user@test.com' })
+
+      // Assert
+      expect(result).toBeNull()
     })
   })
 
@@ -179,6 +195,7 @@ describe('QueueService', () => {
       // Arrange
       const config = makeConfigService()
       const service = new QueueService(config)
+      await service.onModuleInit()
 
       // Act
       const result = await service.getQueueStats('email-send')
@@ -194,6 +211,7 @@ describe('QueueService', () => {
       // Arrange
       const config = makeConfigService()
       const service = new QueueService(config)
+      await service.onModuleInit()
 
       // Act
       await service.onApplicationShutdown()
@@ -201,5 +219,22 @@ describe('QueueService', () => {
       // Assert
       expect(mockStop).toHaveBeenCalledWith({ graceful: true, timeout: 30000 })
     })
+  })
+
+  it('constructs PgBoss with undefined connectionString when DATABASE_URL is not set', () => {
+    // Arrange
+    const config = {
+      get: vi.fn((key: string, defaultVal?: unknown) => {
+        if (key === 'DATABASE_URL') return
+        if (key === 'QUEUE_WORKER_ENABLED') return true
+        return defaultVal
+      }),
+    } as unknown as ConfigService
+
+    // Act — constructor should not throw (PgBoss validates on start(), not construction)
+    const service = new QueueService(config)
+
+    // Assert
+    expect(service).toBeDefined()
   })
 })

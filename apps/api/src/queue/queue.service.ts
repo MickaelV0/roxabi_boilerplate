@@ -2,7 +2,7 @@ import { Injectable, Logger, type OnApplicationShutdown, type OnModuleInit } fro
 import { ConfigService } from '@nestjs/config'
 import type { Job, QueueResult, SendOptions, WorkOptions } from 'pg-boss'
 import { PgBoss } from 'pg-boss'
-import type { QueueRegistration } from './queue.provider.js'
+import type { QueueEnqueuer, QueueRegistration } from './queue.provider.js'
 
 type HandlerRegistration = {
   name: string
@@ -11,17 +11,19 @@ type HandlerRegistration = {
 }
 
 @Injectable()
-export class QueueService implements OnModuleInit, OnApplicationShutdown {
+export class QueueService implements OnModuleInit, OnApplicationShutdown, QueueEnqueuer {
   private readonly logger = new Logger(QueueService.name)
-  private boss: PgBoss
+  private boss!: PgBoss
   private readonly queues: QueueRegistration[] = []
   private readonly handlers: HandlerRegistration[] = []
-  private workerEnabled: boolean
+  private readonly workerEnabled: boolean
 
   constructor(private readonly config: ConfigService) {
-    const databaseUrl = this.config.get<string>('DATABASE_URL')
     this.workerEnabled = this.config.get<boolean>('QUEUE_WORKER_ENABLED', true)
+  }
 
+  async onModuleInit(): Promise<void> {
+    const databaseUrl = this.config.get<string>('DATABASE_URL')
     this.boss = new PgBoss({ connectionString: databaseUrl })
 
     this.boss.on('error', (err: unknown) => {
@@ -31,9 +33,7 @@ export class QueueService implements OnModuleInit, OnApplicationShutdown {
     this.boss.on('warning', (msg: unknown) => {
       this.logger.warn(`pg-boss warning: ${String(msg)}`)
     })
-  }
 
-  async onModuleInit(): Promise<void> {
     await this.boss.start()
     this.logger.log('pg-boss started')
 

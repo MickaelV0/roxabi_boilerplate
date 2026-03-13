@@ -54,11 +54,4 @@ import { QueueService } from './queue.service.js'
   ],
   exports: [QueueService, QUEUE_SERVICE],
 })
-// biome-ignore lint/complexity/noStaticOnlyClass: NestJS dynamic module pattern requires a class with static forRoot()
-export class QueueModule {
-  static forRoot() {
-    return {
-      module: QueueModule,
-    }
-  }
-}
+export class QueueModule {}

@@ -53,7 +53,7 @@ import { V1Module } from './v1/v1.module.js'
     EventEmitterModule.forRoot(),
     DatabaseModule,
     EmailModule,
-    QueueModule.forRoot(),
+    QueueModule,
     AuditModule,
     AuthModule,
     TenantModule,

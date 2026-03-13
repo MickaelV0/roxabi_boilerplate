@@ -20,7 +20,7 @@ import { QueueModule } from './queue/queue.module.js'
     EventEmitterModule.forRoot(),
     DatabaseModule,
     EmailModule,
-    QueueModule.forRoot(),
+    QueueModule,
   ],
 })
 export class WorkerAppModule {}

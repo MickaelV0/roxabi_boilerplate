@@ -1,5 +1,9 @@
 export const QUEUE_SERVICE = Symbol('QUEUE_SERVICE')
 
+export interface QueueEnqueuer {
+  enqueue(name: string, data: Record<string, unknown>): Promise<string | null>
+}
+
 export type QueueJobData = Record<string, unknown>
 
 export type QueueConfig = {
