@@ -25,16 +25,16 @@ import { QueueService } from './queue.service.js'
         emailHandler: EmailQueueHandler,
         dlqHandler: EmailDlqHandler
       ) => {
-        // Register queues
+        // Register queues — DLQ must exist before queues that reference it as deadLetter
+        queueService.registerQueue({
+          name: QUEUE_NAMES.EMAIL_DLQ,
+        })
         queueService.registerQueue({
           name: QUEUE_NAMES.EMAIL_SEND,
           retryLimit: QUEUE_DEFAULTS.retryLimit,
           retryDelay: QUEUE_DEFAULTS.retryDelay,
           retryBackoff: QUEUE_DEFAULTS.retryBackoff,
           deadLetter: QUEUE_NAMES.EMAIL_DLQ,
-        })
-        queueService.registerQueue({
-          name: QUEUE_NAMES.EMAIL_DLQ,
         })
 
         // Register handlers
