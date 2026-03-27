@@ -58,6 +58,19 @@ The workflow builds and deploys a Vercel preview. The preview URL appears in the
 - To share a preview URL with stakeholders for review
 - To smoke-test a specific branch without deploying to production
 
+### Custom domain mapping
+
+By default, preview deploys compute `APP_URL` from the Vercel branch alias (e.g., `roxabi-app-git-staging-roxabi.vercel.app`). Branches with a custom domain alias (e.g., `app.staging.roxabi.com`) need `APP_URL` set to the custom domain so better-auth's CSRF origin check passes.
+
+The workflow handles this automatically for known branches:
+
+| Branch | `APP_URL` | `CORS_ORIGIN` |
+|--------|-----------|---------------|
+| `staging` | `https://app.staging.roxabi.com` | `https://app.staging.roxabi.com,https://roxabi-app-git-staging-roxabi.vercel.app` |
+| Other branches | Branch alias | Branch alias |
+
+To add a custom domain for a new branch, add a `case` entry in the `deploy-preview.yml` workflow's "Deploy API preview" step.
+
 ---
 
 ## GitHub Actions Secrets
@@ -73,7 +86,7 @@ The **Deploy Preview** workflow requires these repository secrets:
 | `VERCEL_PROJECT_ID_DOCS` | Vercel project ID for docs | `apps/docs/.vercel/project.json` → `projectId` |
 | `NEON_API_KEY` | Neon API key (for preview DB branches) | [console.neon.tech](https://console.neon.tech) → Account → API Keys |
 | `NEON_PROJECT_ID` | Neon project ID | [console.neon.tech](https://console.neon.tech) → Project Settings |
-| `VERCEL_AUTOMATION_BYPASS_SECRET` | API project's Protection Bypass for Automation secret — injected into the web preview build so the Nitro proxy can forward requests to the SSO-protected API preview URL | Vercel dashboard → API project → Settings → Deployment Protection → Protection Bypass for Automation → Generate |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | API project's Protection Bypass for Automation secret — stored as a Vercel preview env var on the **web** project so the Nitro server route can read it at runtime and forward it to the SSO-protected API preview | Vercel dashboard → API project → Settings → Deployment Protection → Protection Bypass for Automation → Generate |
 
 Add them at **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
 
@@ -360,7 +373,7 @@ Add these 8 secrets at **Settings** &gt; **Secrets and variables** &gt; **Action
 | `VERCEL_PROJECT_ID_DOCS` | Vercel project ID for docs | `apps/docs/.vercel/project.json` &gt; `projectId` |
 | `NEON_API_KEY` | Neon API key (for preview DB branches) | [console.neon.tech](https://console.neon.tech) &gt; Account &gt; API Keys |
 | `NEON_PROJECT_ID` | Neon project ID | [console.neon.tech](https://console.neon.tech) &gt; Project Settings |
-| `VERCEL_AUTOMATION_BYPASS_SECRET` | API project's Protection Bypass for Automation secret — injected into the web preview build so the Nitro proxy can forward requests to the SSO-protected API preview URL | Vercel dashboard &gt; API project &gt; Settings &gt; Deployment Protection &gt; Protection Bypass for Automation &gt; Generate |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | API project's Protection Bypass for Automation secret — stored as a Vercel preview env var on the **web** project so the Nitro server route can read it at runtime and forward it to the SSO-protected API preview | Vercel dashboard &gt; API project &gt; Settings &gt; Deployment Protection &gt; Protection Bypass for Automation &gt; Generate |
 
 ### 4. Provision Upstash Redis (Rate Limiting)
 
@@ -479,13 +492,10 @@ Build settings are version-controlled in `vercel.json` files — no dashboard co
 
 ```json
 {
-  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ] || git diff $VERCEL_GIT_PREVIOUS_SHA --quiet -- apps/docs",
+  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ] || npx turbo-ignore @repo/docs",
   "installCommand": "bun install --ignore-scripts",
   "buildCommand": "bun run codegen && next build"
 }
-```
-
-> **Note:** `apps/docs` uses a `git diff` path filter for `ignoreCommand` instead of `turbo-ignore`, since it is a Next.js app with its own build pipeline rather than a Turbo task graph dependency.
 
 Nitro (TanStack Start) outputs to `.vercel/output/` using the Vercel Build Output API — no `outputDirectory` override needed.
 
@@ -662,7 +672,7 @@ Both Vercel projects have SSO deployment protection enabled by default:
 }
 ```
 
-This requires **Vercel team SSO authentication** to access any deployment URL that is not a custom domain. Since preview deployments have no custom domain, they are always gated behind SSO login.
+This requires **Vercel team SSO authentication** to access any deployment URL that is not a custom domain. The `staging` branch has custom domains (`app.staging.roxabi.com`, `api.staging.roxabi.com`) which bypass SSO. Other preview deployments use Vercel-generated URLs and are gated behind SSO login.
 
 ### Options for Preview Access
 
@@ -698,12 +708,12 @@ The Deploy Preview workflow integrates with Vercel's [Protection Bypass for Auto
 **How it works:**
 
 1. Generate a bypass secret on the **API project**: Vercel dashboard → API project → Settings → Deployment Protection → Protection Bypass for Automation → **Generate**
-2. Add it as a GitHub Actions secret: `VERCEL_AUTOMATION_BYPASS_SECRET`
-3. The Deploy Preview workflow injects the secret at web build time via `--build-env`
-4. The Nitro proxy in `vite.config.ts` reads the secret and adds `x-vercel-protection-bypass` to every outgoing `/api/**` request (server-side, invisible to clients)
+2. Add it as a GitHub Actions secret: `VERCEL_AUTOMATION_BYPASS_SECRET` (used by the health check step)
+3. Add it as a Vercel preview env var on the **web** project: `vercel env add VERCEL_AUTOMATION_BYPASS_SECRET preview --cwd apps/web`
+4. The Nitro server route (`server/routes/api/[...path].ts`) reads the secret at **runtime** from `process.env` and adds `x-vercel-protection-bypass` to every outgoing `/api/**` request (server-side, invisible to clients). The secret is never baked into the build artifact.
 5. The health check step also uses the secret to verify API preview accessibility
 
-The bypass secret is **only** active in preview environments (`VERCEL_ENV !== 'production'`), so production deployments are unaffected.
+The bypass secret is **only** forwarded in preview environments (`VERCEL_ENV === 'preview'`), so local dev and production deployments are unaffected.
 
 **Option C — Keep the default:** No configuration needed. All team members log in via Vercel SSO to access preview URLs, but web→API communication in previews will fail (401 errors).
 

@@ -3,6 +3,7 @@ import { AccountNotDeletedException } from './exceptions/accountNotDeleted.excep
 import { EmailConfirmationMismatchException } from './exceptions/emailConfirmationMismatch.exception.js'
 import { TransferTargetNotMemberException } from './exceptions/transferTargetNotMember.exception.js'
 import { UserNotFoundException } from './exceptions/userNotFound.exception.js'
+import type { UserRepository } from './user.repository.js'
 import { UserService } from './user.service.js'
 import { UserPurgeService } from './userPurge.service.js'
 
@@ -30,6 +31,7 @@ const mockUser = {
   image: null,
   avatarSeed: null,
   avatarStyle: 'lorelei',
+  avatarOptions: null,
   role: 'user',
   deletedAt: null,
   deleteScheduledFor: null,
@@ -37,33 +39,25 @@ const mockUser = {
   updatedAt: new Date('2025-01-01'),
 }
 
-function createMockDb() {
-  const limitFn = vi.fn()
-  const selectWhereFn = vi.fn().mockReturnValue({ limit: limitFn })
-  const fromFn = vi.fn().mockReturnValue({ where: selectWhereFn })
-  const selectFn = vi.fn().mockReturnValue({ from: fromFn })
-
-  const returningFn = vi.fn()
-  const updateWhereFn = vi.fn().mockReturnValue({ returning: returningFn })
-  const setFn = vi.fn().mockReturnValue({ where: updateWhereFn })
-  const updateFn = vi.fn().mockReturnValue({ set: setFn })
-
-  const deleteFn = vi.fn().mockReturnValue({
-    where: vi.fn().mockResolvedValue([]),
-  })
-
+function createMockUserRepo(): UserRepository {
   return {
-    db: {
-      select: selectFn,
-      update: updateFn,
-      delete: deleteFn,
-      transaction: vi.fn(),
-    },
-    chains: {
-      select: { from: fromFn, where: selectWhereFn, limit: limitFn },
-      update: { set: setFn, where: updateWhereFn, returning: returningFn },
-    },
-  }
+    getSoftDeleteStatus: vi.fn(),
+    getProfile: vi.fn(),
+    getNameFields: vi.fn(),
+    updateProfile: vi.fn(),
+    findForValidation: vi.fn(),
+    softDeleteUser: vi.fn(),
+    reactivateUser: vi.fn(),
+    getOwnedOrganizations: vi.fn(),
+    deleteUserSessions: vi.fn(),
+    verifyOrgOwnership: vi.fn(),
+    verifyTargetMember: vi.fn(),
+    transferOrgOwnership: vi.fn(),
+    softDeleteOrg: vi.fn(),
+    clearOrgSessions: vi.fn(),
+    expireOrgInvitations: vi.fn(),
+    transaction: vi.fn(),
+  } as unknown as UserRepository
 }
 
 describe('UserService', () => {
@@ -72,17 +66,13 @@ describe('UserService', () => {
       // Arrange
       const deletedAt = new Date('2026-02-01')
       const deleteScheduledFor = new Date('2026-03-03')
-      const db = {
-        select: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue([{ deletedAt, deleteScheduledFor }]),
-            }),
-          }),
-        }),
-      }
+      const mockRepo = createMockUserRepo()
+      ;(mockRepo.getSoftDeleteStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+        deletedAt,
+        deleteScheduledFor,
+      })
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -96,43 +86,31 @@ describe('UserService', () => {
 
     it('should return null fields when user exists and is active', async () => {
       // Arrange
-      const limitFn = vi.fn().mockResolvedValue([{ deletedAt: null, deleteScheduledFor: null }])
-      const selectFn = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: limitFn,
-          }),
-        }),
+      const mockRepo = createMockUserRepo()
+      ;(mockRepo.getSoftDeleteStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+        deletedAt: null,
+        deleteScheduledFor: null,
       })
-      const db = { select: selectFn }
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
 
-      // Act — use unique userId to avoid module-level cache collision with other tests
+      // Act -- use unique userId to avoid module-level cache collision with other tests
       const result = await service.getSoftDeleteStatus('user-active')
 
       // Assert
-      expect(selectFn).toHaveBeenCalledOnce()
-      expect(limitFn).toHaveBeenCalledOnce()
+      expect(mockRepo.getSoftDeleteStatus).toHaveBeenCalledOnce()
       expect(result).toEqual({ deletedAt: null, deleteScheduledFor: null })
     })
 
     it('should return null when user does not exist', async () => {
       // Arrange
-      const db = {
-        select: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        }),
-      }
+      const mockRepo = createMockUserRepo()
+      ;(mockRepo.getSoftDeleteStatus as ReturnType<typeof vi.fn>).mockResolvedValue(null)
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -148,10 +126,10 @@ describe('UserService', () => {
   describe('getProfile', () => {
     it('should return user profile with all new fields', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.select.limit.mockResolvedValue([mockUser])
+      const mockRepo = createMockUserRepo()
+      ;(mockRepo.getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(mockUser)
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -174,10 +152,10 @@ describe('UserService', () => {
 
     it('should throw UserNotFoundException when user not found', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.select.limit.mockResolvedValue([])
+      const mockRepo = createMockUserRepo()
+      ;(mockRepo.getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(null)
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -190,14 +168,16 @@ describe('UserService', () => {
   describe('updateProfile', () => {
     it('should update firstName and auto-update fullName when fullNameCustomized is false', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.select.limit.mockResolvedValueOnce([
-        { firstName: 'John', lastName: 'Doe', fullNameCustomized: false },
-      ])
+      const mockRepo = createMockUserRepo()
+      ;(mockRepo.getNameFields as ReturnType<typeof vi.fn>).mockResolvedValue({
+        firstName: 'John',
+        lastName: 'Doe',
+        fullNameCustomized: false,
+      })
       const updatedUser = { ...mockUser, firstName: 'Jane', fullName: 'Jane Doe' }
-      chains.update.returning.mockResolvedValue([updatedUser])
+      ;(mockRepo.updateProfile as ReturnType<typeof vi.fn>).mockResolvedValue(updatedUser)
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -212,11 +192,11 @@ describe('UserService', () => {
 
     it('should set fullNameCustomized to true when fullName is directly edited', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
+      const mockRepo = createMockUserRepo()
       const updatedUser = { ...mockUser, fullName: 'Custom Name', fullNameCustomized: true }
-      chains.update.returning.mockResolvedValue([updatedUser])
+      ;(mockRepo.updateProfile as ReturnType<typeof vi.fn>).mockResolvedValue(updatedUser)
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -231,10 +211,10 @@ describe('UserService', () => {
 
     it('should throw UserNotFoundException when user not found during update', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.update.returning.mockResolvedValue([])
+      const mockRepo = createMockUserRepo()
+      ;(mockRepo.updateProfile as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -249,10 +229,14 @@ describe('UserService', () => {
   describe('softDelete', () => {
     it('should throw EmailConfirmationMismatchException when email does not match', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.select.limit.mockResolvedValue([{ id: 'user-1', email: 'john@example.com' }])
+      const mockRepo = createMockUserRepo()
+      ;(mockRepo.findForValidation as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'user-1',
+        email: 'john@example.com',
+        deletedAt: null,
+      })
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -265,10 +249,10 @@ describe('UserService', () => {
 
     it('should throw UserNotFoundException when user does not exist', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.select.limit.mockResolvedValue([])
+      const mockRepo = createMockUserRepo()
+      ;(mockRepo.findForValidation as ReturnType<typeof vi.fn>).mockResolvedValue(null)
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -281,24 +265,22 @@ describe('UserService', () => {
 
     it('should throw TransferTargetNotMemberException when transfer target is not a member of the org', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.select.limit.mockResolvedValue([{ id: 'user-1', email: 'john@example.com' }])
-
-      db.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
-        const txLimitFn = vi
-          .fn()
-          .mockResolvedValueOnce([{ role: 'owner' }]) // ownership check passes
-          .mockResolvedValueOnce([]) // target member check fails (not a member)
-        const txSelectWhereFn = vi.fn().mockReturnValue({ limit: txLimitFn })
-        const txFromFn = vi.fn().mockReturnValue({ where: txSelectWhereFn })
-        const tx = {
-          select: vi.fn().mockReturnValue({ from: txFromFn }),
-        }
-        return cb(tx)
+      const mockRepo = createMockUserRepo()
+      ;(mockRepo.findForValidation as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'user-1',
+        email: 'john@example.com',
+        deletedAt: null,
       })
+      ;(mockRepo.transaction as ReturnType<typeof vi.fn>).mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) => fn(undefined)
+      )
+      ;(mockRepo.verifyOrgOwnership as ReturnType<typeof vi.fn>).mockResolvedValue({
+        role: 'owner',
+      })
+      ;(mockRepo.verifyTargetMember as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
 
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -314,47 +296,32 @@ describe('UserService', () => {
 
     it('should process transfer resolution by updating target member role to owner', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.select.limit.mockResolvedValue([{ id: 'user-1', email: 'john@example.com' }])
+      const mockRepo = createMockUserRepo()
+      ;(mockRepo.findForValidation as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'user-1',
+        email: 'john@example.com',
+        deletedAt: null,
+      })
       const deletedUser = {
         ...mockUser,
         deletedAt: new Date(),
         deleteScheduledFor: new Date(),
       }
-
-      const txUpdateCalls: unknown[] = []
-      db.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
-        const txLimitFn = vi
-          .fn()
-          .mockResolvedValueOnce([{ role: 'owner' }]) // ownership check
-          .mockResolvedValueOnce([{ id: 'member-2' }]) // target member check
-        const txSelectWhereFn = vi.fn().mockReturnValue({ limit: txLimitFn })
-        const txFromFn = vi.fn().mockReturnValue({ where: txSelectWhereFn })
-        const tx = {
-          select: vi.fn().mockReturnValue({ from: txFromFn }),
-          update: vi.fn().mockImplementation(() => {
-            const call = { setArg: null as unknown }
-            txUpdateCalls.push(call)
-            return {
-              set: vi.fn().mockImplementation((data: unknown) => {
-                call.setArg = data
-                return {
-                  where: vi.fn().mockReturnValue({
-                    returning: vi.fn().mockResolvedValue([deletedUser]),
-                  }),
-                }
-              }),
-            }
-          }),
-          delete: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue([]),
-          }),
-        }
-        return cb(tx)
+      ;(mockRepo.transaction as ReturnType<typeof vi.fn>).mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) => fn(undefined)
+      )
+      ;(mockRepo.verifyOrgOwnership as ReturnType<typeof vi.fn>).mockResolvedValue({
+        role: 'owner',
       })
+      ;(mockRepo.verifyTargetMember as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'member-2',
+      })
+      ;(mockRepo.transferOrgOwnership as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
+      ;(mockRepo.softDeleteUser as ReturnType<typeof vi.fn>).mockResolvedValue(deletedUser)
+      ;(mockRepo.deleteUserSessions as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
 
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -367,48 +334,37 @@ describe('UserService', () => {
 
       // Assert
       expect(result).toEqual(deletedUser)
-      expect(db.transaction).toHaveBeenCalledOnce()
-      // First update call should be the ownership transfer
-      expect(txUpdateCalls.length).toBeGreaterThanOrEqual(2)
+      expect(mockRepo.transaction).toHaveBeenCalledOnce()
+      expect(mockRepo.transferOrgOwnership).toHaveBeenCalledOnce()
     })
 
     it('should process delete resolution by soft-deleting org, clearing sessions, and expiring invitations', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.select.limit.mockResolvedValue([{ id: 'user-1', email: 'john@example.com' }])
+      const mockRepo = createMockUserRepo()
+      ;(mockRepo.findForValidation as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'user-1',
+        email: 'john@example.com',
+        deletedAt: null,
+      })
       const deletedUser = {
         ...mockUser,
         deletedAt: new Date(),
         deleteScheduledFor: new Date(),
       }
-
-      let txUpdateCallCount = 0
-      db.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
-        txUpdateCallCount = 0
-        const txLimitFn = vi.fn().mockResolvedValueOnce([{ role: 'owner' }]) // ownership check
-        const txSelectWhereFn = vi.fn().mockReturnValue({ limit: txLimitFn })
-        const txFromFn = vi.fn().mockReturnValue({ where: txSelectWhereFn })
-        const tx = {
-          select: vi.fn().mockReturnValue({ from: txFromFn }),
-          update: vi.fn().mockImplementation(() => {
-            txUpdateCallCount++
-            return {
-              set: vi.fn().mockReturnValue({
-                where: vi.fn().mockReturnValue({
-                  returning: vi.fn().mockResolvedValue([deletedUser]),
-                }),
-              }),
-            }
-          }),
-          delete: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue([]),
-          }),
-        }
-        return cb(tx)
+      ;(mockRepo.transaction as ReturnType<typeof vi.fn>).mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) => fn(undefined)
+      )
+      ;(mockRepo.verifyOrgOwnership as ReturnType<typeof vi.fn>).mockResolvedValue({
+        role: 'owner',
       })
+      ;(mockRepo.softDeleteOrg as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
+      ;(mockRepo.clearOrgSessions as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
+      ;(mockRepo.expireOrgInvitations as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
+      ;(mockRepo.softDeleteUser as ReturnType<typeof vi.fn>).mockResolvedValue(deletedUser)
+      ;(mockRepo.deleteUserSessions as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
 
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -419,37 +375,33 @@ describe('UserService', () => {
 
       // Assert
       expect(result).toEqual(deletedUser)
-      expect(db.transaction).toHaveBeenCalledOnce()
-      // delete resolution produces: org update, session update, invitation update, then user update = 4 update calls
-      expect(txUpdateCallCount).toBe(4)
+      expect(mockRepo.transaction).toHaveBeenCalledOnce()
+      expect(mockRepo.softDeleteOrg).toHaveBeenCalledOnce()
+      expect(mockRepo.clearOrgSessions).toHaveBeenCalledOnce()
+      expect(mockRepo.expireOrgInvitations).toHaveBeenCalledOnce()
     })
 
     it('should accept case-insensitive email confirmation', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.select.limit.mockResolvedValue([{ id: 'user-1', email: 'John@Example.com' }])
+      const mockRepo = createMockUserRepo()
+      ;(mockRepo.findForValidation as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'user-1',
+        email: 'John@Example.com',
+        deletedAt: null,
+      })
       const deletedUser = {
         ...mockUser,
         deletedAt: new Date(),
         deleteScheduledFor: new Date(),
       }
-      db.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
-        const tx = {
-          update: vi.fn().mockReturnValue({
-            set: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                returning: vi.fn().mockResolvedValue([deletedUser]),
-              }),
-            }),
-          }),
-          delete: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue([]),
-          }),
-        }
-        return cb(tx)
-      })
+      ;(mockRepo.transaction as ReturnType<typeof vi.fn>).mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) => fn(undefined)
+      )
+      ;(mockRepo.softDeleteUser as ReturnType<typeof vi.fn>).mockResolvedValue(deletedUser)
+      ;(mockRepo.deleteUserSessions as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
+
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -465,11 +417,11 @@ describe('UserService', () => {
   describe('reactivate', () => {
     it('should clear deletedAt and deleteScheduledFor', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
+      const mockRepo = createMockUserRepo()
       const reactivatedUser = { ...mockUser, deletedAt: null, deleteScheduledFor: null }
-      chains.update.returning.mockResolvedValue([reactivatedUser])
+      ;(mockRepo.reactivateUser as ReturnType<typeof vi.fn>).mockResolvedValue(reactivatedUser)
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -484,10 +436,10 @@ describe('UserService', () => {
 
     it('should throw UserNotFoundException when user not found', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.update.returning.mockResolvedValue([])
+      const mockRepo = createMockUserRepo()
+      ;(mockRepo.reactivateUser as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -500,21 +452,14 @@ describe('UserService', () => {
   describe('getOwnedOrganizations', () => {
     it('should return organizations where user has owner role', async () => {
       // Arrange
-      const { db } = createMockDb()
+      const mockRepo = createMockUserRepo()
       const ownedOrgs = [
         { orgId: 'org-1', orgName: 'Org One', orgSlug: 'org-one' },
         { orgId: 'org-2', orgName: 'Org Two', orgSlug: 'org-two' },
       ]
-      db.select = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          innerJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue(ownedOrgs),
-          }),
-        }),
-      })
-
+      ;(mockRepo.getOwnedOrganizations as ReturnType<typeof vi.fn>).mockResolvedValue(ownedOrgs)
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -529,17 +474,10 @@ describe('UserService', () => {
 
     it('should return empty array when user owns no organizations', async () => {
       // Arrange
-      const { db } = createMockDb()
-      db.select = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          innerJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue([]),
-          }),
-        }),
-      })
-
+      const mockRepo = createMockUserRepo()
+      ;(mockRepo.getOwnedOrganizations as ReturnType<typeof vi.fn>).mockResolvedValue([])
       const service = new UserService(
-        db as never,
+        mockRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -555,13 +493,17 @@ describe('UserService', () => {
   describe('purge', () => {
     it('should propagate UserNotFoundException from UserPurgeService', async () => {
       // Arrange
-      const { db } = createMockDb()
+      const mockRepo = createMockUserRepo()
       const mockPurgeService = createMockUserPurgeService({
         validatePurgeEligibility: vi
           .fn()
           .mockRejectedValue(new UserNotFoundException('nonexistent')),
       })
-      const service = new UserService(db as never, mockEventEmitter as never, mockPurgeService)
+      const service = new UserService(
+        mockRepo as never,
+        mockEventEmitter as never,
+        mockPurgeService
+      )
 
       // Act & Assert
       await expect(service.purge('nonexistent', 'john@example.com')).rejects.toThrow(
@@ -571,11 +513,15 @@ describe('UserService', () => {
 
     it('should propagate AccountNotDeletedException from UserPurgeService', async () => {
       // Arrange
-      const { db } = createMockDb()
+      const mockRepo = createMockUserRepo()
       const mockPurgeService = createMockUserPurgeService({
         validatePurgeEligibility: vi.fn().mockRejectedValue(new AccountNotDeletedException()),
       })
-      const service = new UserService(db as never, mockEventEmitter as never, mockPurgeService)
+      const service = new UserService(
+        mockRepo as never,
+        mockEventEmitter as never,
+        mockPurgeService
+      )
 
       // Act & Assert
       await expect(service.purge('user-purge-1', 'john@example.com')).rejects.toThrow(
@@ -585,13 +531,17 @@ describe('UserService', () => {
 
     it('should propagate EmailConfirmationMismatchException from UserPurgeService', async () => {
       // Arrange
-      const { db } = createMockDb()
+      const mockRepo = createMockUserRepo()
       const mockPurgeService = createMockUserPurgeService({
         validatePurgeEligibility: vi
           .fn()
           .mockRejectedValue(new EmailConfirmationMismatchException()),
       })
-      const service = new UserService(db as never, mockEventEmitter as never, mockPurgeService)
+      const service = new UserService(
+        mockRepo as never,
+        mockEventEmitter as never,
+        mockPurgeService
+      )
 
       // Act & Assert
       await expect(service.purge('user-purge-2', 'wrong@example.com')).rejects.toThrow(
@@ -601,20 +551,26 @@ describe('UserService', () => {
 
     it('should delegate to UserPurgeService and return success on happy path', async () => {
       // Arrange
-      const { db } = createMockDb()
+      const mockRepo = createMockUserRepo()
       const user = { id: 'user-purge-3', email: 'john@example.com', deletedAt: new Date() }
       const mockPurgeService = createMockUserPurgeService({
         validatePurgeEligibility: vi.fn().mockResolvedValue(user),
       })
-      db.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb({}))
-      const service = new UserService(db as never, mockEventEmitter as never, mockPurgeService)
+      ;(mockRepo.transaction as ReturnType<typeof vi.fn>).mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) => fn({})
+      )
+      const service = new UserService(
+        mockRepo as never,
+        mockEventEmitter as never,
+        mockPurgeService
+      )
 
       // Act
       const result = await service.purge('user-purge-3', 'john@example.com')
 
       // Assert
       expect(result).toEqual({ success: true })
-      expect(db.transaction).toHaveBeenCalledOnce()
+      expect(mockRepo.transaction).toHaveBeenCalledOnce()
       expect(mockPurgeService.validatePurgeEligibility).toHaveBeenCalledWith(
         'user-purge-3',
         'john@example.com'
@@ -624,50 +580,42 @@ describe('UserService', () => {
     })
 
     it('should invalidate soft-delete cache after purge', async () => {
-      // Arrange
-      const { db } = createMockDb()
+      // Arrange — prime cache with one service instance, purge with another, verify fresh DB hit
       const user = { id: 'user-purge-7', email: 'john@example.com', deletedAt: new Date() }
       const mockPurgeService = createMockUserPurgeService({
         validatePurgeEligibility: vi.fn().mockResolvedValue(user),
       })
-      db.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb({}))
-      const service = new UserService(db as never, mockEventEmitter as never, mockPurgeService)
 
-      // Prime the cache by calling getSoftDeleteStatus first
-      const cacheDb = {
-        select: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi
-                .fn()
-                .mockResolvedValue([{ deletedAt: new Date(), deleteScheduledFor: new Date() }]),
-            }),
-          }),
-        }),
-      }
+      // Cache service: call getSoftDeleteStatus to prime the cache
+      const cacheRepo = createMockUserRepo()
+      ;(cacheRepo.getSoftDeleteStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+        deletedAt: new Date(),
+        deleteScheduledFor: new Date(),
+      })
       const cacheService = new UserService(
-        cacheDb as never,
+        cacheRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
       await cacheService.getSoftDeleteStatus('user-purge-7')
 
-      // Act
-      await service.purge('user-purge-7', 'john@example.com')
+      // Purge service: purge the user to invalidate cache
+      const purgeRepo = createMockUserRepo()
+      ;(purgeRepo.transaction as ReturnType<typeof vi.fn>).mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) => fn({})
+      )
+      const purgeService = new UserService(
+        purgeRepo as never,
+        mockEventEmitter as never,
+        mockPurgeService
+      )
+      await purgeService.purge('user-purge-7', 'john@example.com')
 
-      // After purge, the cache should be invalidated.
-      // Calling getSoftDeleteStatus again should hit the DB, not the cache.
-      const freshDb = {
-        select: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        }),
-      }
+      // Fresh service: getSoftDeleteStatus should hit DB (not cache)
+      const freshRepo = createMockUserRepo()
+      ;(freshRepo.getSoftDeleteStatus as ReturnType<typeof vi.fn>).mockResolvedValue(null)
       const freshService = new UserService(
-        freshDb as never,
+        freshRepo as never,
         mockEventEmitter as never,
         createMockUserPurgeService()
       )
@@ -675,7 +623,7 @@ describe('UserService', () => {
 
       // Assert -- cache was invalidated so the fresh DB query returns null (no user)
       expect(result).toBeNull()
-      expect(freshDb.select).toHaveBeenCalled()
+      expect(freshRepo.getSoftDeleteStatus).toHaveBeenCalled()
     })
   })
 })

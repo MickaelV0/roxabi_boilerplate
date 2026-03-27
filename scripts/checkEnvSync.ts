@@ -38,15 +38,24 @@ const TOOLING_ALLOWLIST = new Set([
   'VERCEL_TOKEN',
   'VERCEL_PROJECT_ID',
   'VERCEL_TEAM_ID',
-  // GitHub Projects issue-triage tooling — used by dev-core scripts
-  'GITHUB_REPO',
-  'GH_PROJECT_ID',
-  'STATUS_FIELD_ID',
-  'SIZE_FIELD_ID',
-  'PRIORITY_FIELD_ID',
-  'STATUS_OPTIONS_JSON',
-  'SIZE_OPTIONS_JSON',
-  'PRIORITY_OPTIONS_JSON',
+])
+
+/**
+ * Keys that are in Zod schemas but intentionally absent from .env.example.
+ * These are derived at runtime from other vars (e.g. CORS_ORIGIN from APP_URL).
+ */
+const DERIVED_VARS = new Set([
+  'CORS_ORIGIN',
+  'BETTER_AUTH_URL',
+  'VITE_APP_NAME',
+  // Individual rate limit vars — derived from RATE_LIMIT_PRESET at runtime
+  'RATE_LIMIT_GLOBAL_TTL',
+  'RATE_LIMIT_GLOBAL_LIMIT',
+  'RATE_LIMIT_AUTH_TTL',
+  'RATE_LIMIT_AUTH_LIMIT',
+  'RATE_LIMIT_AUTH_BLOCK_DURATION',
+  'RATE_LIMIT_API_TTL',
+  'RATE_LIMIT_API_LIMIT',
 ])
 
 /** Prefix for client-side environment variables exposed by Vite. */
@@ -259,6 +268,7 @@ async function checkTurboDeclarations(allSchemaKeys: Set<string>): Promise<{ war
   // Check each schema key
   for (const key of allSchemaKeys) {
     if (TOOLING_ALLOWLIST.has(key)) continue
+    if (DERIVED_VARS.has(key)) continue
     if (concreteVars.has(key)) continue
     if (matchesWildcard(key, wildcardPatterns)) continue
     warnings.push(`${key} is in a schema but not declared in any turbo config (env/passThroughEnv)`)
@@ -287,6 +297,7 @@ async function main() {
   // ERROR: schema key not documented in .env.example (and not allowlisted)
   for (const key of allSchemaKeys) {
     if (TOOLING_ALLOWLIST.has(key)) continue
+    if (DERIVED_VARS.has(key)) continue
     if (!envExampleKeys.has(key)) {
       console.error(`ERROR: ${key} is in a schema but missing from .env.example`)
       hasErrors = true
@@ -296,6 +307,7 @@ async function main() {
   // WARN: .env.example key not in any schema (and not allowlisted)
   for (const key of envExampleKeys) {
     if (TOOLING_ALLOWLIST.has(key)) continue
+    if (DERIVED_VARS.has(key)) continue
     if (!allSchemaKeys.has(key)) {
       console.warn(`WARN:  ${key} is in .env.example but not in any schema`)
     }

@@ -25,7 +25,7 @@ export class AdminOrganizationsService {
   private readonly logger = new Logger(AdminOrganizationsService.name)
 
   constructor(
-    @Inject(DRIZZLE) private readonly db: DrizzleDB,
+    @Inject(DRIZZLE) private readonly db: DrizzleDB, // RLS-BYPASS: superadmin — cross-tenant org management
     private readonly auditService: AuditService,
     private readonly cls: ClsService
   ) {}

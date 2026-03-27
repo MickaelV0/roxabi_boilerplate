@@ -2,7 +2,12 @@ import { createHmac, randomBytes } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
 import type { AuthenticatedSession } from '../auth/types.js'
 import { ErrorCode } from '../common/errorCodes.js'
+import type { ApiKeyRepository } from './apiKey.repository.js'
 import { ApiKeyService } from './apiKey.service.js'
+import { ApiKeyExpiryInPastException } from './exceptions/apiKeyExpiryInPast.exception.js'
+import { ApiKeyInvalidException } from './exceptions/apiKeyInvalid.exception.js'
+import { ApiKeyNotFoundException } from './exceptions/apiKeyNotFound.exception.js'
+import { ApiKeyScopesExceededException } from './exceptions/apiKeyScopesExceeded.exception.js'
 
 // ---------------------------------------------------------------------------
 // Helpers for validateBearerToken / touchLastUsedAt tests
@@ -20,65 +25,21 @@ function buildValidToken(): { token: string; lastFour: string; salt: string; has
   return { token, lastFour, salt, hash }
 }
 
-function createMockDbWithJoin() {
-  // Supports the innerJoin chain used by validateBearerToken:
-  //   db.select().from().innerJoin().where().limit()
-  // Supports the update chain used by touchLastUsedAt:
-  //   db.update().set().where().catch()
-  const limitFn = vi.fn()
-  const catchFn = vi.fn().mockReturnThis()
-  const updateWhereFn = vi.fn().mockReturnValue({ catch: catchFn })
-  const updateSetFn = vi.fn().mockReturnValue({ where: updateWhereFn })
-  const updateFn = vi.fn().mockReturnValue({ set: updateSetFn })
-
-  const innerJoinWhereFn = vi.fn().mockReturnValue({ limit: limitFn })
-  const innerJoinFn = vi.fn().mockReturnValue({ where: innerJoinWhereFn })
-  const fromFn = vi.fn().mockReturnValue({ innerJoin: innerJoinFn })
-  const selectFn = vi.fn().mockReturnValue({ from: fromFn })
-
-  return {
-    db: { select: selectFn, update: updateFn },
-    _limitFn: limitFn,
-    _updateSetFn: updateSetFn,
-    _updateWhereFn: updateWhereFn,
-  }
-}
-
-import { ApiKeyExpiryInPastException } from './exceptions/apiKeyExpiryInPast.exception.js'
-import { ApiKeyInvalidException } from './exceptions/apiKeyInvalid.exception.js'
-import { ApiKeyNotFoundException } from './exceptions/apiKeyNotFound.exception.js'
-import { ApiKeyScopesExceededException } from './exceptions/apiKeyScopesExceeded.exception.js'
-
 // ---------------------------------------------------------------------------
 // Factory helpers
 // ---------------------------------------------------------------------------
 
-function createMockDb() {
-  // -- insert chain: insert().values().returning()
-  const returningFn = vi.fn()
-  const valuesFn = vi.fn().mockReturnValue({ returning: returningFn })
-  const insertFn = vi.fn().mockReturnValue({ values: valuesFn })
-
-  // -- select chain: select().from().where().orderBy() / .limit()
-  const orderByFn = vi.fn()
-  const limitFn = vi.fn()
-  const selectWhereFn = vi.fn().mockReturnValue({ orderBy: orderByFn, limit: limitFn })
-  const fromFn = vi.fn().mockReturnValue({ where: selectWhereFn })
-  const selectFn = vi.fn().mockReturnValue({ from: fromFn })
-
-  // -- update chain: update().set().where()
-  const updateWhereFn = vi.fn().mockResolvedValue(undefined)
-  const setFn = vi.fn().mockReturnValue({ where: updateWhereFn })
-  const updateFn = vi.fn().mockReturnValue({ set: setFn })
-
+function createMockApiKeyRepo(): ApiKeyRepository {
   return {
-    db: { insert: insertFn, select: selectFn, update: updateFn },
-    chains: {
-      insert: { values: valuesFn, returning: returningFn },
-      select: { from: fromFn, where: selectWhereFn, orderBy: orderByFn, limit: limitFn },
-      update: { set: setFn, where: updateWhereFn },
-    },
-  }
+    insert: vi.fn(),
+    list: vi.fn(),
+    findForRevoke: vi.fn(),
+    markRevoked: vi.fn(),
+    findCandidatesByLastFour: vi.fn(),
+    touchLastUsedAt: vi.fn().mockResolvedValue(undefined),
+    revokeAllForUser: vi.fn().mockResolvedValue(undefined),
+    revokeAllForOrg: vi.fn().mockResolvedValue(undefined),
+  } as unknown as ApiKeyRepository
 }
 
 function createMockAuditService() {
@@ -100,14 +61,14 @@ function createSession(overrides: Partial<AuthenticatedSession> = {}): Authentic
 }
 
 function createService(
-  dbOverride?: ReturnType<typeof createMockDb>['db'],
+  repoOverride?: ApiKeyRepository,
   auditOverride?: ReturnType<typeof createMockAuditService>,
   clsOverride?: ReturnType<typeof createMockCls>
 ) {
-  const db = dbOverride ?? createMockDb().db
+  const repo = repoOverride ?? createMockApiKeyRepo()
   const audit = auditOverride ?? createMockAuditService()
   const cls = clsOverride ?? createMockCls()
-  return new ApiKeyService(db as never, audit as never, cls as never)
+  return new ApiKeyService(repo as never, audit as never, cls as never)
 }
 
 // ---------------------------------------------------------------------------
@@ -121,7 +82,7 @@ describe('ApiKeyService', () => {
   describe('create()', () => {
     it('should return a full key starting with sk_live_ prefix', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
+      const mockRepo = createMockApiKeyRepo()
       const insertedRow = {
         id: 'key-1',
         name: 'My Key',
@@ -131,8 +92,8 @@ describe('ApiKeyService', () => {
         expiresAt: null,
         createdAt: new Date(),
       }
-      chains.insert.returning.mockResolvedValue([insertedRow])
-      const service = createService(db)
+      ;(mockRepo.insert as ReturnType<typeof vi.fn>).mockResolvedValue(insertedRow)
+      const service = createService(mockRepo)
 
       // Act
       const result = await service.create(createSession(), {
@@ -146,19 +107,18 @@ describe('ApiKeyService', () => {
 
     it('should insert a row with HMAC-hashed key and salt', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.insert.returning.mockResolvedValue([
-        {
-          id: 'key-1',
-          name: 'My Key',
-          keyPrefix: 'sk_live_',
-          lastFour: 'xxxx',
-          scopes: ['api_keys:read'],
-          expiresAt: null,
-          createdAt: new Date(),
-        },
-      ])
-      const service = createService(db)
+      const mockRepo = createMockApiKeyRepo()
+      const insertedRow = {
+        id: 'key-1',
+        name: 'My Key',
+        keyPrefix: 'sk_live_',
+        lastFour: 'xxxx',
+        scopes: ['api_keys:read'],
+        expiresAt: null,
+        createdAt: new Date(),
+      }
+      ;(mockRepo.insert as ReturnType<typeof vi.fn>).mockResolvedValue(insertedRow)
+      const service = createService(mockRepo)
 
       // Act
       await service.create(createSession(), {
@@ -167,8 +127,9 @@ describe('ApiKeyService', () => {
       })
 
       // Assert
-      expect(db.insert).toHaveBeenCalledOnce()
-      const insertedValues = chains.insert.values.mock.calls[0]?.[0] as Record<string, unknown>
+      expect(mockRepo.insert).toHaveBeenCalledOnce()
+      const insertedValues = (mockRepo.insert as ReturnType<typeof vi.fn>).mock
+        .calls[0]?.[0] as Record<string, unknown>
       expect(insertedValues.keyHash).toEqual(expect.any(String))
       expect(insertedValues.keySalt).toEqual(expect.any(String))
       expect(insertedValues.keyPrefix).toBe('sk_live_')
@@ -184,20 +145,18 @@ describe('ApiKeyService', () => {
 
     it('should store lastFour as last 4 characters of the full key', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.insert.returning.mockResolvedValue([
-        {
-          id: 'key-1',
-          name: 'K',
-          keyPrefix: 'sk_live_',
-          lastFour: 'xxxx',
-          scopes: [],
-          expiresAt: null,
-          createdAt: new Date(),
-        },
-      ])
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.insert as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'key-1',
+        name: 'K',
+        keyPrefix: 'sk_live_',
+        lastFour: 'xxxx',
+        scopes: [],
+        expiresAt: null,
+        createdAt: new Date(),
+      })
       const audit = createMockAuditService()
-      const service = createService(db, audit)
+      const service = createService(mockRepo, audit)
 
       // Act
       const result = await service.create(createSession({ permissions: [] }), {
@@ -206,27 +165,26 @@ describe('ApiKeyService', () => {
       })
 
       // Assert
-      const insertedValues = chains.insert.values.mock.calls[0]?.[0] as Record<string, unknown>
+      const insertedValues = (mockRepo.insert as ReturnType<typeof vi.fn>).mock
+        .calls[0]?.[0] as Record<string, unknown>
       const fullKey = result.key as string
       expect(insertedValues.lastFour).toBe(fullKey.slice(-4))
     })
 
     it('should call auditService.log with api_key.created action', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.insert.returning.mockResolvedValue([
-        {
-          id: 'key-1',
-          name: 'Audit Test',
-          keyPrefix: 'sk_live_',
-          lastFour: 'abcd',
-          scopes: ['api_keys:read'],
-          expiresAt: null,
-          createdAt: new Date(),
-        },
-      ])
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.insert as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'key-1',
+        name: 'Audit Test',
+        keyPrefix: 'sk_live_',
+        lastFour: 'abcd',
+        scopes: ['api_keys:read'],
+        expiresAt: null,
+        createdAt: new Date(),
+      })
       const audit = createMockAuditService()
-      const service = createService(db, audit)
+      const service = createService(mockRepo, audit)
 
       // Act
       await service.create(createSession(), {
@@ -261,19 +219,17 @@ describe('ApiKeyService', () => {
 
     it('should parse expiresAt as a Date when provided', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.insert.returning.mockResolvedValue([
-        {
-          id: 'key-1',
-          name: 'Expiring Key',
-          keyPrefix: 'sk_live_',
-          lastFour: 'abcd',
-          scopes: [],
-          expiresAt: new Date('2099-01-01T00:00:00.000Z'),
-          createdAt: new Date(),
-        },
-      ])
-      const service = createService(db)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.insert as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'key-1',
+        name: 'Expiring Key',
+        keyPrefix: 'sk_live_',
+        lastFour: 'abcd',
+        scopes: [],
+        expiresAt: new Date('2099-01-01T00:00:00.000Z'),
+        createdAt: new Date(),
+      })
+      const service = createService(mockRepo)
 
       // Act
       await service.create(createSession({ permissions: [] }), {
@@ -283,31 +239,31 @@ describe('ApiKeyService', () => {
       })
 
       // Assert
-      const insertedValues = chains.insert.values.mock.calls[0]?.[0] as Record<string, unknown>
+      const insertedValues = (mockRepo.insert as ReturnType<typeof vi.fn>).mock
+        .calls[0]?.[0] as Record<string, unknown>
       expect(insertedValues.expiresAt).toEqual(new Date('2099-01-01T00:00:00.000Z'))
     })
 
     it('should set expiresAt to null when not provided', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.insert.returning.mockResolvedValue([
-        {
-          id: 'key-1',
-          name: 'No Expiry',
-          keyPrefix: 'sk_live_',
-          lastFour: 'abcd',
-          scopes: [],
-          expiresAt: null,
-          createdAt: new Date(),
-        },
-      ])
-      const service = createService(db)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.insert as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'key-1',
+        name: 'No Expiry',
+        keyPrefix: 'sk_live_',
+        lastFour: 'abcd',
+        scopes: [],
+        expiresAt: null,
+        createdAt: new Date(),
+      })
+      const service = createService(mockRepo)
 
       // Act
       await service.create(createSession({ permissions: [] }), { name: 'No Expiry', scopes: [] })
 
       // Assert
-      const insertedValues = chains.insert.values.mock.calls[0]?.[0] as Record<string, unknown>
+      const insertedValues = (mockRepo.insert as ReturnType<typeof vi.fn>).mock
+        .calls[0]?.[0] as Record<string, unknown>
       expect(insertedValues.expiresAt).toBeNull()
     })
 
@@ -327,19 +283,17 @@ describe('ApiKeyService', () => {
 
     it('should allow creating a key with empty scopes', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.insert.returning.mockResolvedValue([
-        {
-          id: 'key-1',
-          name: 'Empty Scopes Key',
-          keyPrefix: 'sk_live_',
-          lastFour: 'abcd',
-          scopes: [],
-          expiresAt: null,
-          createdAt: new Date(),
-        },
-      ])
-      const service = createService(db)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.insert as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'key-1',
+        name: 'Empty Scopes Key',
+        keyPrefix: 'sk_live_',
+        lastFour: 'abcd',
+        scopes: [],
+        expiresAt: null,
+        createdAt: new Date(),
+      })
+      const service = createService(mockRepo)
 
       // Act
       const result = await service.create(createSession(), {
@@ -351,7 +305,8 @@ describe('ApiKeyService', () => {
       // Assert
       expect(result).toBeDefined()
       expect(result.key).toMatch(/^sk_live_/)
-      const insertedValues = chains.insert.values.mock.calls[0]?.[0] as Record<string, unknown>
+      const insertedValues = (mockRepo.insert as ReturnType<typeof vi.fn>).mock
+        .calls[0]?.[0] as Record<string, unknown>
       expect(insertedValues.scopes).toEqual([])
     })
 
@@ -371,19 +326,17 @@ describe('ApiKeyService', () => {
 
     it('should not throw when scopes are a subset of permissions', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.insert.returning.mockResolvedValue([
-        {
-          id: 'key-1',
-          name: 'Valid Scopes',
-          keyPrefix: 'sk_live_',
-          lastFour: 'abcd',
-          scopes: ['api_keys:read'],
-          expiresAt: null,
-          createdAt: new Date(),
-        },
-      ])
-      const service = createService(db)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.insert as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'key-1',
+        name: 'Valid Scopes',
+        keyPrefix: 'sk_live_',
+        lastFour: 'abcd',
+        scopes: ['api_keys:read'],
+        expiresAt: null,
+        createdAt: new Date(),
+      })
+      const service = createService(mockRepo)
       const session = createSession({ permissions: ['api_keys:read', 'api_keys:write'] })
 
       // Act
@@ -411,19 +364,17 @@ describe('ApiKeyService', () => {
 
     it('should generate unique keys on each call', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.insert.returning.mockResolvedValue([
-        {
-          id: 'key-1',
-          name: 'K',
-          keyPrefix: 'sk_live_',
-          lastFour: 'abcd',
-          scopes: [],
-          expiresAt: null,
-          createdAt: new Date(),
-        },
-      ])
-      const service = createService(db)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.insert as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'key-1',
+        name: 'K',
+        keyPrefix: 'sk_live_',
+        lastFour: 'abcd',
+        scopes: [],
+        expiresAt: null,
+        createdAt: new Date(),
+      })
+      const service = createService(mockRepo)
       const session = createSession({ permissions: [] })
 
       // Act
@@ -441,7 +392,7 @@ describe('ApiKeyService', () => {
   describe('list()', () => {
     it('should return data array from the database', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
+      const mockRepo = createMockApiKeyRepo()
       const rows = [
         {
           id: 'key-1',
@@ -456,8 +407,8 @@ describe('ApiKeyService', () => {
           createdAt: new Date(),
         },
       ]
-      chains.select.orderBy.mockResolvedValue(rows)
-      const service = createService(db)
+      ;(mockRepo.list as ReturnType<typeof vi.fn>).mockResolvedValue(rows)
+      const service = createService(mockRepo)
 
       // Act
       const result = await service.list(createSession())
@@ -468,9 +419,9 @@ describe('ApiKeyService', () => {
 
     it('should return empty data array when no keys exist', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.select.orderBy.mockResolvedValue([])
-      const service = createService(db)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.list as ReturnType<typeof vi.fn>).mockResolvedValue([])
+      const service = createService(mockRepo)
 
       // Act
       const result = await service.list(createSession())
@@ -481,9 +432,9 @@ describe('ApiKeyService', () => {
 
     it('should query by tenantId matching the orgId', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.select.orderBy.mockResolvedValue([])
-      const service = createService(db)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.list as ReturnType<typeof vi.fn>).mockResolvedValue([])
+      const service = createService(mockRepo)
 
       // Act
       await service.list(
@@ -491,8 +442,8 @@ describe('ApiKeyService', () => {
       )
 
       // Assert
-      expect(db.select).toHaveBeenCalledOnce()
-      expect(chains.select.where).toHaveBeenCalledOnce()
+      expect(mockRepo.list).toHaveBeenCalledOnce()
+      expect(mockRepo.list).toHaveBeenCalledWith('org-42')
     })
 
     it('should throw Error when session has no activeOrganizationId', async () => {
@@ -513,11 +464,14 @@ describe('ApiKeyService', () => {
   describe('revoke()', () => {
     it('should revoke an existing active key and return revocation timestamp', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.select.limit.mockResolvedValue([{ id: 'key-1', revokedAt: null }])
-      chains.update.where.mockResolvedValue(undefined)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.findForRevoke as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'key-1',
+        revokedAt: null,
+      })
+      ;(mockRepo.markRevoked as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
       const audit = createMockAuditService()
-      const service = createService(db, audit)
+      const service = createService(mockRepo, audit)
 
       // Act
       const result = await service.revoke('key-1', createSession())
@@ -529,29 +483,37 @@ describe('ApiKeyService', () => {
       expect(new Date(result.revokedAt).toISOString()).toBe(result.revokedAt)
     })
 
-    it('should call db.update to set revokedAt', async () => {
+    it('should call repo.markRevoked to set revokedAt', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.select.limit.mockResolvedValue([{ id: 'key-1', revokedAt: null }])
-      chains.update.where.mockResolvedValue(undefined)
-      const service = createService(db)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.findForRevoke as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'key-1',
+        revokedAt: null,
+      })
+      ;(mockRepo.markRevoked as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
+      const service = createService(mockRepo)
 
       // Act
       await service.revoke('key-1', createSession())
 
       // Assert
-      expect(db.update).toHaveBeenCalledOnce()
-      const setArg = chains.update.set.mock.calls[0]?.[0] as Record<string, unknown>
-      expect(setArg.revokedAt).toBeInstanceOf(Date)
+      expect(mockRepo.markRevoked).toHaveBeenCalledOnce()
+      // biome-ignore lint/style/noNonNullAssertion: verified toHaveBeenCalledOnce above
+      const markRevokedArgs = (mockRepo.markRevoked as ReturnType<typeof vi.fn>).mock.calls[0]!
+      expect(markRevokedArgs[0]).toBe('key-1')
+      expect(markRevokedArgs[1]).toBeInstanceOf(Date)
     })
 
     it('should log api_key.revoked audit event', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.select.limit.mockResolvedValue([{ id: 'key-1', revokedAt: null }])
-      chains.update.where.mockResolvedValue(undefined)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.findForRevoke as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'key-1',
+        revokedAt: null,
+      })
+      ;(mockRepo.markRevoked as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
       const audit = createMockAuditService()
-      const service = createService(db, audit)
+      const service = createService(mockRepo, audit)
 
       // Act
       await service.revoke('key-1', createSession())
@@ -571,10 +533,13 @@ describe('ApiKeyService', () => {
     it('should be idempotent when key is already revoked', async () => {
       // Arrange
       const revokedAt = new Date('2024-06-01T00:00:00.000Z')
-      const { db, chains } = createMockDb()
-      chains.select.limit.mockResolvedValue([{ id: 'key-1', revokedAt }])
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.findForRevoke as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'key-1',
+        revokedAt,
+      })
       const audit = createMockAuditService()
-      const service = createService(db, audit)
+      const service = createService(mockRepo, audit)
 
       // Act
       const result = await service.revoke('key-1', createSession())
@@ -582,15 +547,15 @@ describe('ApiKeyService', () => {
       // Assert
       expect(result).toEqual({ id: 'key-1', revokedAt: revokedAt.toISOString() })
       // Should NOT update or log again
-      expect(db.update).not.toHaveBeenCalled()
+      expect(mockRepo.markRevoked).not.toHaveBeenCalled()
       expect(audit.log).not.toHaveBeenCalled()
     })
 
     it('should throw ApiKeyNotFoundException when key does not exist', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.select.limit.mockResolvedValue([])
-      const service = createService(db)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.findForRevoke as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
+      const service = createService(mockRepo)
 
       // Act & Assert
       await expect(service.revoke('nonexistent', createSession())).rejects.toThrow(
@@ -600,9 +565,9 @@ describe('ApiKeyService', () => {
 
     it('should throw ApiKeyNotFoundException with the key id in the message', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.select.limit.mockResolvedValue([])
-      const service = createService(db)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.findForRevoke as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
+      const service = createService(mockRepo)
 
       // Act & Assert
       await expect(service.revoke('key-xyz', createSession())).rejects.toThrow(
@@ -628,24 +593,26 @@ describe('ApiKeyService', () => {
   describe('revokeAllForUser()', () => {
     it('should update all non-revoked keys for the given userId', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.update.where.mockResolvedValue(undefined)
-      const service = createService(db)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.revokeAllForUser as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
+      const service = createService(mockRepo)
 
       // Act
       await service.revokeAllForUser('user-1')
 
       // Assert
-      expect(db.update).toHaveBeenCalledOnce()
-      const setArg = chains.update.set.mock.calls[0]?.[0] as Record<string, unknown>
-      expect(setArg.revokedAt).toBeInstanceOf(Date)
+      expect(mockRepo.revokeAllForUser).toHaveBeenCalledOnce()
+      // biome-ignore lint/style/noNonNullAssertion: verified toHaveBeenCalledOnce above
+      const args = (mockRepo.revokeAllForUser as ReturnType<typeof vi.fn>).mock.calls[0]!
+      expect(args[0]).toBe('user-1')
+      expect(args[1]).toBeInstanceOf(Date)
     })
 
     it('should not throw when no keys exist for the user', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.update.where.mockResolvedValue(undefined)
-      const service = createService(db)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.revokeAllForUser as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
+      const service = createService(mockRepo)
 
       // Act & Assert
       await expect(service.revokeAllForUser('user-no-keys')).resolves.toBeUndefined()
@@ -658,24 +625,26 @@ describe('ApiKeyService', () => {
   describe('revokeAllForOrg()', () => {
     it('should update all non-revoked keys for the given organizationId', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.update.where.mockResolvedValue(undefined)
-      const service = createService(db)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.revokeAllForOrg as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
+      const service = createService(mockRepo)
 
       // Act
       await service.revokeAllForOrg('org-1')
 
       // Assert
-      expect(db.update).toHaveBeenCalledOnce()
-      const setArg = chains.update.set.mock.calls[0]?.[0] as Record<string, unknown>
-      expect(setArg.revokedAt).toBeInstanceOf(Date)
+      expect(mockRepo.revokeAllForOrg).toHaveBeenCalledOnce()
+      // biome-ignore lint/style/noNonNullAssertion: verified toHaveBeenCalledOnce above
+      const args = (mockRepo.revokeAllForOrg as ReturnType<typeof vi.fn>).mock.calls[0]!
+      expect(args[0]).toBe('org-1')
+      expect(args[1]).toBeInstanceOf(Date)
     })
 
     it('should not throw when no keys exist for the organization', async () => {
       // Arrange
-      const { db, chains } = createMockDb()
-      chains.update.where.mockResolvedValue(undefined)
-      const service = createService(db)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.revokeAllForOrg as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
+      const service = createService(mockRepo)
 
       // Act & Assert
       await expect(service.revokeAllForOrg('org-no-keys')).resolves.toBeUndefined()
@@ -683,7 +652,7 @@ describe('ApiKeyService', () => {
   })
 
   // -----------------------------------------------------------------------
-  // validateBearerToken() — RED phase tests (#319)
+  // validateBearerToken() — token validation tests
   // -----------------------------------------------------------------------
   describe('validateBearerToken()', () => {
     it('should return row data (id, userId, tenantId, scopes, role) when token is valid', async () => {
@@ -707,9 +676,12 @@ describe('ApiKeyService', () => {
         role,
       }
 
-      const { db, _limitFn } = createMockDbWithJoin()
-      _limitFn.mockResolvedValueOnce([candidate])
-      const service = createService(db as never)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.findCandidatesByLastFour as ReturnType<typeof vi.fn>).mockResolvedValue([
+        candidate,
+      ])
+      ;(mockRepo.touchLastUsedAt as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
+      const service = createService(mockRepo)
 
       // Act
       const result = await service.validateBearerToken(token)
@@ -721,10 +693,10 @@ describe('ApiKeyService', () => {
     it('should throw ApiKeyInvalidException when no candidates match lastFour', async () => {
       // Arrange
       const { token } = buildValidToken()
-      const { db, _limitFn } = createMockDbWithJoin()
-      _limitFn.mockResolvedValue([]) // empty candidates
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.findCandidatesByLastFour as ReturnType<typeof vi.fn>).mockResolvedValue([])
 
-      const service = createService(db as never)
+      const service = createService(mockRepo)
 
       // Act & Assert
       await expect(service.validateBearerToken(token)).rejects.toThrow(ApiKeyInvalidException)
@@ -751,9 +723,11 @@ describe('ApiKeyService', () => {
         role: 'user',
       }
 
-      const { db, _limitFn } = createMockDbWithJoin()
-      _limitFn.mockResolvedValue([candidate])
-      const service = createService(db as never)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.findCandidatesByLastFour as ReturnType<typeof vi.fn>).mockResolvedValue([
+        candidate,
+      ])
+      const service = createService(mockRepo)
 
       // Act & Assert
       await expect(service.validateBearerToken(token)).rejects.toThrow(ApiKeyInvalidException)
@@ -777,9 +751,11 @@ describe('ApiKeyService', () => {
         role: 'user',
       }
 
-      const { db, _limitFn } = createMockDbWithJoin()
-      _limitFn.mockResolvedValue([candidate])
-      const service = createService(db as never)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.findCandidatesByLastFour as ReturnType<typeof vi.fn>).mockResolvedValue([
+        candidate,
+      ])
+      const service = createService(mockRepo)
 
       // Act & Assert
       await expect(service.validateBearerToken(token)).rejects.toThrow(ApiKeyInvalidException)
@@ -803,9 +779,11 @@ describe('ApiKeyService', () => {
         role: 'user',
       }
 
-      const { db, _limitFn } = createMockDbWithJoin()
-      _limitFn.mockResolvedValue([candidate])
-      const service = createService(db as never)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.findCandidatesByLastFour as ReturnType<typeof vi.fn>).mockResolvedValue([
+        candidate,
+      ])
+      const service = createService(mockRepo)
 
       // Act & Assert
       await expect(service.validateBearerToken(token)).rejects.toThrow(ApiKeyInvalidException)
@@ -816,9 +794,9 @@ describe('ApiKeyService', () => {
 
     it('should throw ApiKeyInvalidException for tokens that do not match the sk_live_ format', async () => {
       // Arrange
-      const { db, _limitFn } = createMockDbWithJoin()
-      _limitFn.mockResolvedValue([]) // DB never reached
-      const service = createService(db as never)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.findCandidatesByLastFour as ReturnType<typeof vi.fn>).mockResolvedValue([])
+      const service = createService(mockRepo)
 
       // Act & Assert — wrong prefix
       await expect(service.validateBearerToken('invalid_token_abc')).rejects.toThrow(
@@ -871,10 +849,13 @@ describe('ApiKeyService', () => {
       expect(candidateA.id).not.toBe(candidateB.id)
       expect(lastFour).toHaveLength(4)
 
-      const { db, _limitFn } = createMockDbWithJoin()
+      const mockRepo = createMockApiKeyRepo()
       // DB returns both candidates — only candidateB should match the HMAC
-      _limitFn.mockResolvedValue([candidateA, candidateB])
-      const service = createService(db as never)
+      ;(mockRepo.findCandidatesByLastFour as ReturnType<typeof vi.fn>).mockResolvedValue([
+        candidateA,
+        candidateB,
+      ])
+      const service = createService(mockRepo)
 
       // Act
       const result = await service.validateBearerToken(token)
@@ -891,31 +872,29 @@ describe('ApiKeyService', () => {
   })
 
   // -----------------------------------------------------------------------
-  // touchLastUsedAt() — RED phase tests (#319)
+  // touchLastUsedAt() — fire-and-forget tests
   // -----------------------------------------------------------------------
   describe('touchLastUsedAt()', () => {
-    it('should call db.update with the correct key id and not throw', () => {
+    it('should call repo.touchLastUsedAt with the correct key id and not throw', () => {
       // Arrange
       const keyId = 'key-uuid-touch'
-      const { db, _updateSetFn, _updateWhereFn } = createMockDbWithJoin()
-      const service = createService(db as never)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.touchLastUsedAt as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
+      const service = createService(mockRepo)
 
       // Act — fire-and-forget, returns void synchronously
       expect(() => service.touchLastUsedAt(keyId)).not.toThrow()
 
       // Assert
-      expect(db.update).toHaveBeenCalled()
-      expect(_updateSetFn).toHaveBeenCalledWith(
-        expect.objectContaining({ lastUsedAt: expect.any(Date) })
-      )
-      expect(_updateWhereFn).toHaveBeenCalled()
+      expect(mockRepo.touchLastUsedAt).toHaveBeenCalledWith(keyId, expect.any(Date))
     })
 
     it('should return undefined synchronously (fire-and-forget — callers must not await)', () => {
       // Arrange
       const keyId = 'key-uuid-ff'
-      const { db } = createMockDbWithJoin()
-      const service = createService(db as never)
+      const mockRepo = createMockApiKeyRepo()
+      ;(mockRepo.touchLastUsedAt as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
+      const service = createService(mockRepo)
 
       // Act
       const returnValue = service.touchLastUsedAt(keyId)

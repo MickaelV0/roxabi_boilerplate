@@ -1,8 +1,9 @@
 import { Logger, Module } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { APP_GUARD } from '@nestjs/core'
+import { APP_FILTER, APP_GUARD } from '@nestjs/core'
 import { ThrottlerModule } from '@nestjs/throttler'
 import { CustomThrottlerGuard } from './customThrottler.guard.js'
+import { ThrottlerExceptionFilter } from './filters/throttlerException.filter.js'
 import { UpstashThrottlerStorage } from './upstashThrottlerStorage.js'
 
 @Module({
@@ -28,19 +29,26 @@ import { UpstashThrottlerStorage } from './upstashThrottlerStorage.js'
           logger.warn('Rate limiting using in-memory storage — not suitable for production')
         }
 
+        // Values always defined — applyRateLimitPreset() in env.validation.ts guarantees concrete values
         return {
           throttlers: [
             {
               name: 'global',
-              ttl: config.get<number>('RATE_LIMIT_GLOBAL_TTL', 60_000),
-              limit: config.get<number>('RATE_LIMIT_GLOBAL_LIMIT', 60),
+              ttl: config.get<number>('RATE_LIMIT_GLOBAL_TTL')!,
+              limit: config.get<number>('RATE_LIMIT_GLOBAL_LIMIT')!,
               setHeaders: false,
             },
             {
               name: 'auth',
-              ttl: config.get<number>('RATE_LIMIT_AUTH_TTL', 60_000),
-              limit: config.get<number>('RATE_LIMIT_AUTH_LIMIT', 5),
-              blockDuration: config.get<number>('RATE_LIMIT_AUTH_BLOCK_DURATION', 300_000),
+              ttl: config.get<number>('RATE_LIMIT_AUTH_TTL')!,
+              limit: config.get<number>('RATE_LIMIT_AUTH_LIMIT')!,
+              blockDuration: config.get<number>('RATE_LIMIT_AUTH_BLOCK_DURATION')!,
+              setHeaders: false,
+            },
+            {
+              name: 'api',
+              ttl: config.get<number>('RATE_LIMIT_API_TTL')!,
+              limit: config.get<number>('RATE_LIMIT_API_LIMIT')!,
               setHeaders: false,
             },
           ],
@@ -52,6 +60,9 @@ import { UpstashThrottlerStorage } from './upstashThrottlerStorage.js'
       },
     }),
   ],
-  providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],
+  providers: [
+    { provide: APP_GUARD, useClass: CustomThrottlerGuard },
+    { provide: APP_FILTER, useClass: ThrottlerExceptionFilter },
+  ],
 })
 export class ThrottlerConfigModule {}

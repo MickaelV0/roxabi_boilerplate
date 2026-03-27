@@ -11,6 +11,8 @@ import { InvitationNotFoundException } from './exceptions/invitationNotFound.exc
 import { MemberAlreadyExistsException } from './exceptions/memberAlreadyExists.exception.js'
 import { AdminRoleNotFoundException } from './exceptions/roleNotFound.exception.js'
 
+export const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
 /**
  * AdminInvitationsService -- invitation-related operations for admin member management.
  *
@@ -27,7 +29,7 @@ export class AdminInvitationsService {
   private readonly logger = new Logger(AdminInvitationsService.name)
 
   constructor(
-    @Inject(DRIZZLE) private readonly db: DrizzleDB,
+    @Inject(DRIZZLE) private readonly db: DrizzleDB, // RLS-BYPASS: superadmin — cross-tenant invitation management
     private readonly auditService: AuditService,
     private readonly cls: ClsService
   ) {}
@@ -41,7 +43,7 @@ export class AdminInvitationsService {
     await this.ensureNoExistingMembership(orgId, data.email)
     await this.ensureNoPendingInvitation(orgId, data.email)
 
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+    const expiresAt = new Date(Date.now() + INVITATION_TTL_MS)
     const invitation = await this.insertOrReuseInvitation(
       orgId,
       data.email,

@@ -106,12 +106,12 @@ vi.mock('next-themes', () => ({
 import { Header } from './Header'
 
 describe('Header', () => {
-  it('should render the Roxabi logo', () => {
+  it('should render the app name in the header', () => {
     // Arrange & Act
     render(<Header />)
 
     // Assert
-    expect(screen.getByText('Roxabi')).toBeInTheDocument()
+    expect(screen.getByText('App')).toBeInTheDocument()
   })
 
   it('should render navigation links', () => {
@@ -148,7 +148,7 @@ describe('Header', () => {
     render(<Header />)
 
     // Assert
-    const logoLink = screen.getByRole('link', { name: 'Roxabi' })
+    const logoLink = screen.getByRole('link', { name: /app/i })
     expect(logoLink).toHaveAttribute('href', '/')
   })
 

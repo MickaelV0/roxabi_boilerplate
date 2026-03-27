@@ -17,10 +17,12 @@ import { buildFrontendUrl } from '../common/url.util.js'
 import { toError } from '../common/utils/toError.js'
 import type { DrizzleDB } from '../database/drizzle.provider.js'
 import { users } from '../database/schema/auth.schema.js'
-import type { EmailProvider } from '../email/email.provider.js'
+import { QUEUE_NAMES } from '../queue/queue.constants.js'
+import type { QueueEnqueuer } from '../queue/queue.provider.js'
 
 const logger = new Logger('AuthInstance')
 
+const APP_NAME = process.env.APP_NAME ?? 'App'
 const SUPPORTED_LOCALES = ['en', 'fr']
 
 // Better Auth does not infer additionalFields on callback user parameters.
@@ -61,7 +63,7 @@ function buildSocialProviders(config: AuthInstanceConfig): Record<string, unknow
   return socialProviders
 }
 
-function buildEmailAndPasswordConfig(emailProvider: EmailProvider, config: AuthInstanceConfig) {
+function buildEmailAndPasswordConfig(queueService: QueueEnqueuer, config: AuthInstanceConfig) {
   return {
     enabled: true,
     requireEmailVerification: true,
@@ -72,11 +74,10 @@ function buildEmailAndPasswordConfig(emailProvider: EmailProvider, config: AuthI
 
       let emailContent: { html: string; text?: string; subject: string }
       try {
-        const { html, text, subject } = await renderExistingAccountEmail(
-          loginUrl,
-          locale,
-          config.appURL
-        )
+        const { html, text, subject } = await renderExistingAccountEmail(loginUrl, locale, {
+          appUrl: config.appURL,
+          appName: APP_NAME,
+        })
         emailContent = { html, text, subject }
       } catch {
         logger.warn('Failed to render existing account email template, using plain fallback')
@@ -88,11 +89,14 @@ function buildEmailAndPasswordConfig(emailProvider: EmailProvider, config: AuthI
       }
 
       try {
-        await emailProvider.send({ to: user.email, ...emailContent })
+        await queueService.enqueue(QUEUE_NAMES.EMAIL_SEND, { to: user.email, ...emailContent })
       } catch (error) {
         // Best-effort: unlike other handlers, must not throw — would break enumeration protection
         const cause = toError(error)
-        logger.error(`Failed to send existing account notification to ${user.email}`, cause.stack)
+        logger.error(
+          `Failed to enqueue existing account notification to ${user.email}`,
+          cause.stack
+        )
       }
     },
     async sendResetPassword({
@@ -107,7 +111,10 @@ function buildEmailAndPasswordConfig(emailProvider: EmailProvider, config: AuthI
       let emailContent: { html: string; text?: string; subject: string }
       try {
         const locale = (user as UserWithLocale).locale ?? 'en'
-        const { html, text, subject } = await renderResetEmail(emailUrl, locale, config.appURL)
+        const { html, text, subject } = await renderResetEmail(emailUrl, locale, {
+          appUrl: config.appURL,
+          appName: APP_NAME,
+        })
         emailContent = { html, text, subject }
       } catch {
         logger.warn('Failed to render reset password email template, using plain fallback')
@@ -119,17 +126,17 @@ function buildEmailAndPasswordConfig(emailProvider: EmailProvider, config: AuthI
       }
 
       try {
-        await emailProvider.send({ to: user.email, ...emailContent })
+        await queueService.enqueue(QUEUE_NAMES.EMAIL_SEND, { to: user.email, ...emailContent })
       } catch (error) {
         const cause = toError(error)
-        logger.error(`Failed to send reset password email to ${user.email}`, cause.stack)
+        logger.error(`Failed to enqueue reset password email to ${user.email}`, cause.stack)
         throw new APIError('INTERNAL_SERVER_ERROR', { message: 'EMAIL_SEND_FAILED' })
       }
     },
   }
 }
 
-function buildEmailVerificationConfig(emailProvider: EmailProvider, config: AuthInstanceConfig) {
+function buildEmailVerificationConfig(queueService: QueueEnqueuer, config: AuthInstanceConfig) {
   return {
     // Better Auth applies server-side rate limiting on verification email sends
     // (rateLimit plugin). Client-side cooldown (60s) is UX guidance only.
@@ -148,11 +155,10 @@ function buildEmailVerificationConfig(emailProvider: EmailProvider, config: Auth
       let emailContent: { html: string; text?: string; subject: string }
       try {
         const locale = (user as UserWithLocale).locale ?? 'en'
-        const { html, text, subject } = await renderVerificationEmail(
-          emailUrl,
-          locale,
-          config.appURL
-        )
+        const { html, text, subject } = await renderVerificationEmail(emailUrl, locale, {
+          appUrl: config.appURL,
+          appName: APP_NAME,
+        })
         emailContent = { html, text, subject }
       } catch {
         logger.warn('Failed to render verification email template, using plain fallback')
@@ -164,10 +170,10 @@ function buildEmailVerificationConfig(emailProvider: EmailProvider, config: Auth
       }
 
       try {
-        await emailProvider.send({ to: user.email, ...emailContent })
+        await queueService.enqueue(QUEUE_NAMES.EMAIL_SEND, { to: user.email, ...emailContent })
       } catch (error) {
         const cause = toError(error)
-        logger.error(`Failed to send verification email to ${user.email}`, cause.stack)
+        logger.error(`Failed to enqueue verification email to ${user.email}`, cause.stack)
         throw new APIError('INTERNAL_SERVER_ERROR', { message: 'EMAIL_SEND_FAILED' })
       }
     },
@@ -176,7 +182,7 @@ function buildEmailVerificationConfig(emailProvider: EmailProvider, config: Auth
 
 function buildMagicLinkPlugin(
   db: DrizzleDB,
-  emailProvider: EmailProvider,
+  queueService: QueueEnqueuer,
   config: AuthInstanceConfig
 ) {
   return magicLink({
@@ -195,22 +201,25 @@ function buildMagicLinkPlugin(
       let emailContent: { html: string; text?: string; subject: string }
       try {
         const locale = userData.locale ?? 'en'
-        const { html, text, subject } = await renderMagicLinkEmail(emailUrl, locale, config.appURL)
+        const { html, text, subject } = await renderMagicLinkEmail(emailUrl, locale, {
+          appUrl: config.appURL,
+          appName: APP_NAME,
+        })
         emailContent = { html, text, subject }
       } catch {
         logger.warn('Failed to render magic link email template, using plain fallback')
         emailContent = {
-          subject: 'Sign in to Roxabi',
+          subject: `Sign in to ${escapeHtml(APP_NAME)}`,
           html: `<p>Click <a href="${escapeHtml(emailUrl)}">here</a> to sign in.</p>`,
-          text: `Sign in to Roxabi: ${emailUrl}`,
+          text: `Sign in to ${escapeHtml(APP_NAME)}: ${emailUrl}`,
         }
       }
 
       try {
-        await emailProvider.send({ to: email, ...emailContent })
+        await queueService.enqueue(QUEUE_NAMES.EMAIL_SEND, { to: email, ...emailContent })
       } catch (error) {
         const cause = toError(error)
-        logger.error(`Failed to send magic link email to ${email}`, cause.stack)
+        logger.error(`Failed to enqueue magic link email to ${email}`, cause.stack)
         throw new APIError('INTERNAL_SERVER_ERROR', { message: 'EMAIL_SEND_FAILED' })
       }
     },
@@ -242,7 +251,7 @@ function buildOrganizationPlugin(onOrganizationCreated?: OrganizationCreatedCall
 
 export function createBetterAuth(
   db: DrizzleDB,
-  emailProvider: EmailProvider,
+  queueService: QueueEnqueuer,
   config: AuthInstanceConfig,
   onOrganizationCreated?: OrganizationCreatedCallback
 ) {
@@ -288,8 +297,8 @@ export function createBetterAuth(
       },
     },
     database: drizzleAdapter(db, { provider: 'pg', usePlural: true }),
-    emailAndPassword: buildEmailAndPasswordConfig(emailProvider, config),
-    emailVerification: buildEmailVerificationConfig(emailProvider, config),
+    emailAndPassword: buildEmailAndPasswordConfig(queueService, config),
+    emailVerification: buildEmailVerificationConfig(queueService, config),
     socialProviders: buildSocialProviders(config),
     session: {
       expiresIn: 60 * 60 * 24 * 7,
@@ -301,7 +310,7 @@ export function createBetterAuth(
       // Better Auth admin plugin disabled in Phase 1 (#268)
       // All admin actions go through NestJS AdminModule with guards + audit logging.
       // The plugin exposed /api/auth/admin/* endpoints that bypassed NestJS guards entirely.
-      buildMagicLinkPlugin(db, emailProvider, config),
+      buildMagicLinkPlugin(db, queueService, config),
     ],
   })
 }

@@ -136,10 +136,10 @@ describe('PurgeService', () => {
       await service.runPurge()
 
       expect(userPurgeService.anonymizeUserRecords).toHaveBeenCalledWith(
-        capturedTx,
         'user-1',
         'john@example.com',
-        expect.any(Date)
+        expect.any(Date),
+        capturedTx
       )
     })
 

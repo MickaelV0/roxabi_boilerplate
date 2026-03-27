@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Entries are generated automatically by `/promote` and committed to staging before the promotion PR.
 
+## [v0.9.0] - 2026-03-27
+
+### Added
+- feat(api): Public API v1 controllers + Swagger (#520)
+- feat(rate-limit): add API key rate limiting tier (#521)
+- feat(cli): CLI package + direct token auth (#524)
+- feat(jobs): queue provider setup + worker infrastructure (#525)
+
+### Fixed
+- fix(api): address V1 public API review findings (#523)
+- fix(api): review findings + queue module artifacts (#526)
+- fix(dev): ensure Ctrl+C cleanly kills all dev processes (#539)
+- fix(docs): use repo root as Vercel project root (#540)
+- fix(docs): replace nested `<a>` in nav title with span + nav.url (#541)
+- fix(web): restore docs BookOpen icon + allow localhost in env URL validation (#542)
+- fix(preview): use custom domain for staging branch APP_URL (#493)
+- fix(web): sync /talks redirect from main (#497)
+
+### Changed
+- refactor: simplify .env configuration — reduce ~60 vars via derivation and presets (#499)
+- refactor: replace hardcoded app name with configurable env vars (#496)
+- refactor(types): namespace @repo/types into shared/api/ui sub-paths (#508)
+- refactor(api): extract SessionEnrichmentService from AuthService (#509)
+- refactor(api): introduce repository pattern with Consent module as exemplar (#510)
+- refactor(api): repository ports for FeatureFlags, Audit, SystemSettings (#511)
+- refactor(api): extract repository ports for User, RBAC, ApiKey, Org (#512)
+- refactor(api): per-domain exception filters, RLS bypass lint rule, import boundary enforcement (#515)
+- refactor(api): replace $inferSelect with domain types in port interfaces (#516)
+
+### Documentation
+- docs: add backend design quality artifacts and ADR 005 (#514)
+- docs: improve readme and contributing quality (#518)
+
+### Chores
+- chore: add community health files (#519)
+- chore: populate dev-core.yml, fix test:e2e env loading (#500)
+- chore: enable typescript-lsp plugin (#517)
+
+## [v0.8.1] - 2026-03-10
+
+### Fixed
+- fix(preview): move bypass secret to runtime Nitro server route (#489)
+- fix(docs): use turbo-ignore for Vercel ignoreCommand (#490)
+- fix(preview): use custom domain for staging branch APP_URL (#493)
+
+### Documentation
+- docs: sync proxy and ignoreCommand references (#491)
+
 ## [v0.8.0] - 2026-03-10
 
 ### Added

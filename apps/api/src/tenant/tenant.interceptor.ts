@@ -44,7 +44,7 @@ export class TenantInterceptor implements NestInterceptor {
   constructor(
     private readonly cls: ClsService,
     private readonly reflector: Reflector,
-    @Optional() @Inject(DRIZZLE) private readonly db: DrizzleDB | null
+    @Optional() @Inject(DRIZZLE) private readonly db: DrizzleDB | null // RLS-BYPASS: tenant resolution — org lookup before RLS context
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {

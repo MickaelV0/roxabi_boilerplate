@@ -10,8 +10,6 @@ import viteTsConfigPaths from 'vite-tsconfig-paths'
 import { z } from 'zod'
 
 const apiTarget = process.env.API_URL ?? `http://localhost:${process.env.API_PORT ?? 4000}`
-const apiBypassSecret =
-  process.env.VERCEL_ENV !== 'production' ? process.env.VERCEL_AUTOMATION_BYPASS_SECRET : undefined
 
 // Duplicated from env.shared.ts — Vite config runs outside the app bundle
 // and cannot import app source. Keep in sync manually; check-env-sync.ts
@@ -23,6 +21,7 @@ function validateEnvPlugin(): Plugin {
       if (config.command === 'build') {
         const envVars = loadEnv(config.mode, config.envDir ?? process.cwd(), 'VITE_')
         const schema = z.object({
+          VITE_APP_NAME: z.string().optional(),
           VITE_GITHUB_REPO_URL: z.string().url().optional(),
           VITE_TALKS_URL: z.string().url().optional(),
           VITE_DOCS_URL: z.string().url().optional(),
@@ -60,18 +59,10 @@ async function getPlugins() {
         // appends each Set-Cookie header separately and works correctly. It is active
         // in both dev and production, giving full dev/prod parity.
         routeRules: {
-          '/api/**': {
-            proxy: {
-              to: `${apiTarget}/api/**`,
-              // In preview environments the API is protected by Vercel Deployment Protection
-              // (SSO). The Nitro proxy runs server-side, so it can bypass protection using
-              // the automation bypass secret injected at deploy time by the preview workflow.
-              // No-op in local dev (secret is undefined) and in production (no SSO on API).
-              ...(apiBypassSecret && {
-                headers: { 'x-vercel-protection-bypass': apiBypassSecret },
-              }),
-            },
-          },
+          // /api/** is handled by server/routes/api/[...path].ts — a runtime Nitro route
+          // that reads VERCEL_AUTOMATION_BYPASS_SECRET from process.env per request, so
+          // the secret is never serialised into the .output/ bundle artifact.
+          '/api/**': { proxy: `${apiTarget}/api/**` },
         },
       },
     }),
@@ -90,12 +81,20 @@ async function getPlugins() {
   ] as PluginOption[]
 }
 
-const config = defineConfig(async () => ({
-  envDir: '../..',
-  build: { chunkSizeWarningLimit: 1000 },
-  server: { port: Number(process.env.APP_PORT) || 3000 },
-  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
-  plugins: await getPlugins(),
-}))
+const config = defineConfig(async ({ mode }) => {
+  // Derive VITE_APP_NAME from APP_NAME if not explicitly set in .env.
+  // Runs before Vite calls configResolved — validateEnvPlugin sees the derived value.
+  const envDir = '../..'
+  const env = loadEnv(mode, envDir, '')
+  process.env.VITE_APP_NAME ??= env.APP_NAME ?? 'App'
+
+  return {
+    envDir: '../..',
+    build: { chunkSizeWarningLimit: 1000 },
+    server: { port: Number(process.env.APP_PORT) || 3000 },
+    resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+    plugins: await getPlugins(),
+  }
+})
 
 export default config
