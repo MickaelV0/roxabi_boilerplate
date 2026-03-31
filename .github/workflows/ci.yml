@@ -337,7 +337,7 @@ jobs:
           [ "$failed" -eq 0 ] || exit 1
 
       - name: Upload web build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: web-build-output
           path: apps/web/.output/
@@ -346,7 +346,7 @@ jobs:
           include-hidden-files: true
 
       - name: Upload API build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: api-build-output
           path: apps/api/dist/
@@ -446,13 +446,13 @@ jobs:
         run: bunx playwright install-deps chromium
 
       - name: Download web build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: web-build-output
           path: apps/web/.output
 
       - name: Download API build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: api-build-output
           path: apps/api/dist
@@ -461,7 +461,7 @@ jobs:
         run: bun test:e2e --project=chromium --reporter=list --reporter=html
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
@@ -563,13 +563,13 @@ jobs:
         run: bunx playwright install-deps chromium firefox webkit
 
       - name: Download web build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: web-build-output
           path: apps/web/.output
 
       - name: Download API build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: api-build-output
           path: apps/api/dist
@@ -578,7 +578,7 @@ jobs:
         run: bun test:e2e --shard=${{ matrix.shard }}
 
       - name: Upload blob report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: blob-report-${{ strategy.job-index }}
@@ -611,7 +611,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Download blob reports
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: blob-report-*
           merge-multiple: true
@@ -621,7 +621,7 @@ jobs:
         run: bunx playwright merge-reports --reporter html all-blob-reports
 
       - name: Upload merged report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-merged
           path: playwright-report/
