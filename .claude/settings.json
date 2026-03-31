@@ -1,17 +1,4 @@
 {
-  "extraKnownMarketplaces": {
-    "roxabi-marketplace": { "source": { "source": "github", "repo": "Roxabi/roxabi-plugins" } },
-    "claude-plugins-official": {
-      "source": { "source": "github", "repo": "anthropics/claude-plugins-official" }
-    },
-    "context7-marketplace": { "source": { "source": "github", "repo": "upstash/context7" } },
-    "ui-ux-pro-max-skill": {
-      "source": {
-        "source": "git",
-        "url": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill.git"
-      }
-    }
-  },
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true,
     "ui-ux-pro-max@ui-ux-pro-max-skill": true,
@@ -25,5 +12,31 @@
     "1b1@roxabi-marketplace": true,
     "compress@roxabi-marketplace": true,
     "typescript-lsp@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "roxabi-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "Roxabi/roxabi-plugins"
+      }
+    },
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      }
+    },
+    "context7-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "upstash/context7"
+      }
+    },
+    "ui-ux-pro-max-skill": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill.git"
+      }
+    }
   }
 }
