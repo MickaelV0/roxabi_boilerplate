@@ -73,7 +73,7 @@ Phases: **Frame** (problem) → **Shape** (spec) → **Build** (code) → **Veri
 
 ### 2. Decision Protocol
 
-Never use `AskUserQuestion`. For all decisions, choices (≥2 options), approach proposals:
+For all decisions, choices (≥2 options), approach proposals:
 
 1. **Summarize** — why / root cause / current behavior / target / path to reach it
 2. **Propose** — numbered options, one marked as recommended
