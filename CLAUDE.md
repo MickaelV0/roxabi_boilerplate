@@ -7,7 +7,7 @@
 - **Project:** Roxabi Boilerplate — SaaS framework (Bun, TurboRepo, TypeScript, TanStack Start, NestJS, Vercel)
 - **Before work:** Use `/dev #N` as the single entry point — it determines tier (S / F-lite / F-full) and drives the full lifecycle
 - **All code changes** → worktree: `git worktree add ../roxabi-XXX -b feat/XXX-slug staging`
-- **Always** `AskUserQuestion` for choices — ¬plain-text questions
+- **Decisions:** summarize context → numbered options + recommendation → wait for reply (see [Decision Protocol](#decision-protocol))
 - **¬commit** without asking, **¬push** without request, **¬**`--force`/`--hard`/`--amend`
 - **Always** use appropriate skill even without slash command
 - **Before code:** Read relevant standards doc (see [Rule 9](#9-coding-standards))
@@ -71,10 +71,15 @@ packages/  ui(@repo/ui) types(@repo/types) config(@repo/config) email vitest-con
 
 Phases: **Frame** (problem) → **Shape** (spec) → **Build** (code) → **Verify** (review) → **Ship** (release).
 
-### 2. AskUserQuestion
+### 2. Decision Protocol
 
-Always `AskUserQuestion` for: decisions, choices (≥2 options), approach proposals.
-**¬** plain-text "Do you want..." / "Should I..." → use the tool.
+Never use `AskUserQuestion`. For all decisions, choices (≥2 options), approach proposals:
+
+1. **Summarize** — why / root cause / current behavior / target / path to reach it
+2. **Propose** — numbered options, one marked as recommended
+3. **Explain** — why the recommended option is recommended
+
+Then wait for reply.
 
 ### 3. Orchestrator Delegation
 
@@ -82,7 +87,7 @@ Orchestrator ¬modify code/docs. Delegate: FE→`frontend-dev` | BE→`backend-d
 
 ### 4. Parallel Execution
 
-≥3 complex tasks → AskUserQuestion: Sequential | Parallel (Recommended).
+≥3 complex tasks → present decision: Sequential | Parallel (Recommended).
 F-full + ≥4 independent tasks in 1 domain → multiple same-type agents on separate file groups.
 
 ### 5. Git
@@ -111,7 +116,7 @@ cd ../roxabi-XXX && cp .env.example .env && bun install
 cd apps/api && bun run db:branch:create --force XXX
 ```
 
-Exceptions: XS (confirm via AskUserQuestion) | `/dev` pre-implementation artifacts (frame, analysis, spec, plan) | `/promote` release artifacts.
+Exceptions: XS (present decision) | `/dev` pre-implementation artifacts (frame, analysis, spec, plan) | `/promote` release artifacts.
 **¬code on main/staging without worktree.**
 
 ### 8. Code Review
