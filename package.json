@@ -63,7 +63,7 @@
     "@vitest/coverage-v8": "^4.0.18",
     "better-auth": "^1.5.4",
     "dompurify": "^3.3.2",
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.1",
     "fastify": "^5.8.1",
     "hono": "^4.12.5",
     "jsdom": "^29.0.1",
