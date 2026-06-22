@@ -1,5 +1,4 @@
 @.claude/stack.yml
-@~/.claude/shared/global-patterns.md
 
 # Claude Configuration
 
@@ -7,7 +6,6 @@
 
 - **Project:** Roxabi Boilerplate — SaaS framework (Bun, TurboRepo, TypeScript, TanStack Start, NestJS, Vercel)
 - **Before work:** Use `/dev #N` as the single entry point — it determines tier (S / F-lite / F-full) and drives the full lifecycle
-- **Decisions:** → see global patterns (@~/.claude/shared/global-patterns.md)
 - **¬**`--force`/`--hard`/`--amend`
 - **Always** use appropriate skill even without slash command
 - **Before code:** Read relevant standards doc (see [Rule 9](#9-coding-standards))
@@ -83,6 +81,9 @@ MUST read [code-review.mdx](docs/standards/code-review.mdx). Conventional Commen
 - `gh pr edit --add-label` broken (Projects Classic deprecation) → use `gh api repos/:owner/:repo/issues/:number/labels -f "labels[]=<label>"`.
 - `gh pr view --json` has no `merged` field → use `mergedAt` (null = not merged).
 - `@repo/types` import boundary: `apps/web` must not import `@repo/types/api`, `apps/api` must not import `@repo/types/ui`. Enforced by `bun run lint:custom`.
+- TS `noUncheckedIndexedAccess` (on): `array[i]` is `T | undefined` → use `?? fallback`.
+- TS `TS6133`: unused imports / destructured params are errors → remove before submitting.
+- `as const` arrays passed to a prop typed `string[]` error → type the prop `readonly string[]`.
 - Domain gotchas → [apps/api/CLAUDE.md](apps/api/CLAUDE.md) and [apps/web/CLAUDE.md](apps/web/CLAUDE.md).
 
 ## Reference
