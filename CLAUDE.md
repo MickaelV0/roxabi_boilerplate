@@ -104,4 +104,4 @@ MUST read [code-review.mdx](docs/standards/code-review.mdx). Conventional Commen
 **Deploy:** `main` → Vercel prod. `staging` → preview. Details in [apps/web/CLAUDE.md](apps/web/CLAUDE.md) and [apps/api/CLAUDE.md](apps/api/CLAUDE.md).
 
 **Hooks (Claude Code):** Biome auto-format (PostToolUse) | Security warn (PreToolUse) | `bun test` blocker (PreToolUse)
-**Hooks (Git/Lefthook):** pre-commit (Biome) | commit-msg (Commitlint) | pre-push (lint+typecheck+tests+i18n+license)
+**Hooks (Git/Lefthook):** pre-commit (Biome + TruffleHog) | commit-msg (Commitlint) | pre-push (lint+typecheck+tests+i18n+license+lint:custom)
