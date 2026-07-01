@@ -23,6 +23,11 @@ updates:
       - dependencies
 
   # GitHub Actions
+    cooldown:
+      default-days: 3
+      semver-major-days: 3
+      semver-minor-days: 3
+      semver-patch-days: 3
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -34,6 +39,11 @@ updates:
       - ci
 
   # Docker (apps/api)
+    cooldown:
+      default-days: 3
+      semver-major-days: 3
+      semver-minor-days: 3
+      semver-patch-days: 3
   - package-ecosystem: docker
     directory: /apps/api
     schedule:
@@ -52,6 +62,11 @@ updates:
       - docker
 
   # Docker (apps/web)
+    cooldown:
+      default-days: 3
+      semver-major-days: 3
+      semver-minor-days: 3
+      semver-patch-days: 3
   - package-ecosystem: docker
     directory: /apps/web
     schedule:
@@ -68,3 +83,8 @@ updates:
     labels:
       - dependencies
       - docker
+    cooldown:
+      default-days: 3
+      semver-major-days: 3
+      semver-minor-days: 3
+      semver-patch-days: 3
