@@ -19,7 +19,7 @@ Key conventions observed in `/apps/web/e2e/`:
 - Submit: `getByRole('button', { name: /create account|sign up|register|creating/i })`
 - Success state: renders `RegistrationSuccess` component with `backToLoginLink` (link to `/login`)
 - Error: `[data-slot="form-message"]` for API errors; `#email-error` for inline email validation
-- Existing seed user for duplicate email test: `dev@roxabi.local`
+- Existing seed user for duplicate email test: `TEST_USER.email` from `testHelpers.ts` (derived `dev@${SEED_SLUG}.local`) — do NOT hardcode a literal, it changes per repo/env (see Seeded Test Users)
 
 ## Profile Page (`/settings/profile`)
 
@@ -43,9 +43,11 @@ Key conventions observed in `/apps/web/e2e/`:
 
 ## Seeded Test Users
 
-- `TEST_USER`: `dev@roxabi.local` / `password123` — used for shared auth setup
-- `TEST_USER_2`: `admin@roxabi.local` / `password123` — used for unauthenticated tests
-- `SUPERADMIN_USER`: `superadmin@roxabi.local` / `password123` — superadmin session
+- `testHelpers.ts`: `SEED_SLUG = process.env.APP_SLUG ?? process.env.POSTGRES_DB ?? 'app'` — NEVER hardcode literal emails, they're derived from this slug
+- `TEST_USER`: `dev@${SEED_SLUG}.local` / `password123` — used for shared auth setup
+- `TEST_USER_2`: `admin@${SEED_SLUG}.local` / `password123` — used for unauthenticated tests
+- `SUPERADMIN_USER`: `superadmin@${SEED_SLUG}.local` / `password123` — superadmin session
+- Local `.env` sets `APP_SLUG` per repo (e.g. `roxabi` here) so locally this resolves to `dev@roxabi.local` etc.; CI sets `POSTGRES_DB=ci` (no `APP_SLUG`) so CI resolves to `dev@ci.local` etc. — always read `TEST_USER.email`, never assume the literal
 
 ## E2E Import Conventions
 
@@ -57,15 +59,15 @@ Key conventions observed in `/apps/web/e2e/`:
 ## Auth Storage Paths
 
 - Regular user: `./apps/web/e2e/.auth/user.json` (from `auth.setup.ts`)
-- Superadmin: `./apps/web/e2e/.auth/superadmin.json` (from `system-admin.setup.ts`)
+- Superadmin: `./apps/web/e2e/.auth/superadmin.json` (from `systemAdmin.setup.ts`)
 - Paths are relative to repo root (config lives at repo root)
 
 ## Playwright Config Pattern (`packages/playwright-config/base.ts`)
 
 - Setup projects use `testMatch` regexp; browser projects use `testIgnore` regexp
 - Regular browser projects must ignore BOTH setup files AND spec files for dedicated projects
-- `testIgnore` for regular browsers: `/(?:auth|system-admin)\.setup\.ts|system-admin\.spec\.ts/`
-- Dedicated project for system-admin: `testMatch: /system-admin\.spec\.ts/`
+- `testIgnore` for regular browsers: `/(?:auth|systemAdmin)\.setup\.ts|systemAdmin\.spec\.ts/`
+- Dedicated project for system-admin: `testMatch: /systemAdmin\.spec\.ts/`
 - All conditional project additions are guarded: `...(hasDatabase ? [...] : [])`
 
 ## Admin UI Structure
