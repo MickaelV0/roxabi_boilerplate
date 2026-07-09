@@ -43,7 +43,7 @@ jobs:
           private-key: ${{ secrets.ROXABI_CI_APP_PRIVATE_KEY }}
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Block dependabot semver-major bumps
         if: github.event.pull_request.user.login == 'dependabot[bot]'
@@ -85,7 +85,7 @@ jobs:
           private-key: ${{ secrets.ROXABI_CI_APP_PRIVATE_KEY }}
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Update all reviewed PRs targeting this branch
         run: |
